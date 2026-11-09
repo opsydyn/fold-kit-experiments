@@ -300,3 +300,11 @@ export type {
   ZlozEventStormingRelationshipAuditEntry,
   ZlozEventStormingRelationshipAudit,
 } from './relationship-audit';
+export { compareModelEventStormingRelationships } from './relationship-audit-comparison';
+export type {
+  ZlozRelationshipAuditFinding,
+  ZlozRelationshipAuditSource,
+  ZlozRelationshipAuditSelection,
+  ZlozRelationshipAuditComparison,
+  ZlozRelationshipAuditComparisonDecision,
+} from './relationship-audit-comparison';

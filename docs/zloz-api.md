@@ -239,3 +239,21 @@ semantic incompatibility (exit 1) from malformed/configuration input (exit 2),
 retains complete per-edge results and scopes models explicitly to their current
 graph. See the [CLI contract](../packages/foldkit-zloz-cli/README.md#causal-relationship-audit)
 and [ADR 0032](adr/0032-audit-causal-relationships-through-effect-cli.md).
+
+### Edition-aware audit comparison
+
+Core exports `compareModelEventStormingRelationships`,
+`ZlozRelationshipAuditFinding`, `ZlozRelationshipAuditSource`,
+`ZlozRelationshipAuditSelection`, `ZlozRelationshipAuditComparison` and
+`ZlozRelationshipAuditComparisonDecision`. Explicit model-owned selectors return
+a comparison or a blocked unknown-edition/baseline decision. Both sides use the
+same conventions; findings are matched by edge ID and code. Full audits and
+introduced/resolved/persisting projections remain available without editing data.
+See the [core example](../packages/foldkit-zloz/README.md#edition-aware-audit-comparison).
+
+The Effect CLI adds `relationships compare --baseline <id> [--edition <id>]`
+and `CliAuditRegression`. Its compared response gates only newly introduced
+findings (exit 1); no new findings exits 0 even when existing findings persist.
+Selector/input errors exit 2. See the
+[CLI contract](../packages/foldkit-zloz-cli/README.md#edition-aware-audit-comparison)
+and [ADR 0033](adr/0033-compare-edition-relationship-audits.md).

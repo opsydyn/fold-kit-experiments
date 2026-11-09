@@ -123,6 +123,42 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       ],
     });
     const customRules = path.join(directory, 'causal-rules.json');
+    const comparisonText = serializeModelDocument({
+      id: 'audit-comparison',
+      name: 'Audit comparison',
+      origin: null,
+      snapshot: {
+        graph: {
+          ...causal,
+          edges: [
+            {
+              ...firstCausal,
+              architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+            },
+          ],
+        },
+      },
+      editions: [
+        { id: 'baseline', name: 'Baseline', snapshot: { graph: causal } },
+        {
+          id: 'custom',
+          name: 'Custom',
+          snapshot: {
+            graph: {
+              ...causal,
+              edges: [
+                {
+                  ...firstCausal,
+                  architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    const comparisonFile = path.join(directory, 'comparison.model.json');
+    await writeFile(comparisonFile, comparisonText);
     await writeFile(
       customRules,
       JSON.stringify({
@@ -139,6 +175,64 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       }),
     );
     for (const runtime of ['node', 'bun']) {
+      const regression = await run([
+        runtime,
+        bin,
+        'relationships',
+        'compare',
+        '--baseline',
+        'baseline',
+        '-i',
+        comparisonFile,
+      ]);
+      expect(regression.code).toBe(1);
+      expect(regression.stderr).toBe('');
+      expect(JSON.parse(regression.stdout)).toMatchObject({
+        operation: 'relationships-compare',
+        status: 'compared',
+        data: { summary: { introduced: 1, resolved: 0, persisting: 0 } },
+      });
+      const persisting = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'custom'],
+        comparisonText,
+      );
+      expect(persisting.code).toBe(0);
+      expect(persisting.stderr).toBe('');
+      expect(JSON.parse(persisting.stdout).data.summary).toEqual({
+        introduced: 0,
+        resolved: 0,
+        persisting: 1,
+      });
+      const resolution = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'custom', '--edition', 'baseline'],
+        comparisonText,
+      );
+      expect(resolution.code).toBe(0);
+      expect(resolution.stderr).toBe('');
+      expect(JSON.parse(resolution.stdout).data.summary.resolved).toBe(1);
+      const conventionComparison = await run(
+        [
+          runtime,
+          bin,
+          'relationships',
+          'compare',
+          '--baseline',
+          'baseline',
+          '--rules',
+          customRules,
+        ],
+        comparisonText,
+      );
+      expect(conventionComparison.code).toBe(0);
+      expect(conventionComparison.stderr).toBe('');
+      expect(JSON.parse(conventionComparison.stdout).data.summary.introduced).toBe(0);
+      const missingEdition = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'absent'],
+        comparisonText,
+      );
+      expect(missingEdition.code).toBe(2);
+      expect(missingEdition.stderr).toBe('');
+      expect(JSON.parse(missingEdition.stdout).diagnostics[0].code).toBe('unknown-baseline');
       const audited = await run([runtime, bin, 'relationships', 'audit'], serializeGraph(causal));
       expect(audited.code).toBe(0);
       expect(audited.stderr).toBe('');
@@ -232,6 +326,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     }
     expect(await readFile(modelFile, 'utf8')).toBe(graph);
     expect(await readFile(portableFile, 'utf8')).toBe(modelText);
+    expect(await readFile(comparisonFile, 'utf8')).toBe(comparisonText);
     const tooLarge = path.join(directory, 'oversized.json');
     await writeFile(tooLarge, ' '.repeat(1_048_577));
     const limited = await run([bin, 'validate', '-i', tooLarge]);
@@ -247,7 +342,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+      `import { CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const comparison:Extract<CliResponse,{status:'compared'}>['data']['summary']={introduced:0,resolved:1,persisting:2}; void comparison; void CliAuditRegression;
 const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,
     );
     const tsc = path.join(root, 'packages/foldkit-zloz-cli/node_modules/.bin/tsc');

@@ -142,6 +142,94 @@ test('relationship audit is an Effect command with a distinct audited response',
   });
 });
 
+test('edition comparison gates on introduced findings and selects only explicit model editions', async () => {
+  const graph = createEventStormingPattern(),
+    first = graph.edges[0];
+  assert(first);
+  const bad = {
+    ...graph,
+    edges: [
+      { ...first, architecture: { family: 'event-storming' as const, role: 'emits' as const } },
+    ],
+  };
+  const model = {
+    id: 'comparison',
+    name: 'Comparison',
+    snapshot: { graph: bad },
+    origin: null,
+    editions: [
+      { id: 'clean', name: 'Clean', snapshot: { graph } },
+      { id: 'bad', name: 'Bad', snapshot: { graph: bad } },
+    ],
+  };
+  const input = serializeModelDocument(model);
+  const regression = await invoke(['relationships', 'compare', '--baseline', 'clean'], input);
+  expect(regression.code).toBe(1);
+  const output = JSON.parse(regression.text);
+  expect(output).toMatchObject({
+    operation: 'relationships-compare',
+    status: 'compared',
+    scope: 'model-editions',
+    conventions: { source: 'builtin', input: null },
+  });
+  expect(output.data.summary).toEqual({ introduced: 1, resolved: 0, persisting: 0 });
+  expect(output.data.selected.source).toEqual({ kind: 'current' });
+  expect(output.diagnostics).toEqual([
+    {
+      code: 'relationship-incompatible-roles',
+      message: output.data.introduced[0].message,
+      subject: first.id,
+      severity: 'error',
+      dimension: 'semantics',
+    },
+  ]);
+  const persisting = await invoke(['relationships', 'compare', '--baseline', 'bad'], input);
+  expect(persisting.code).toBe(0);
+  expect(JSON.parse(persisting.text).data.summary).toEqual({
+    introduced: 0,
+    resolved: 0,
+    persisting: 1,
+  });
+  expect(JSON.parse(persisting.text).diagnostics).toEqual([]);
+  expect(JSON.parse(persisting.text).data.selected.audit.status).toBe('incompatible');
+  const resolved = await invoke(
+    ['relationships', 'compare', '--baseline', 'bad', '--edition', 'clean'],
+    input,
+  );
+  expect(resolved.code).toBe(0);
+  expect(JSON.parse(resolved.text).data.summary).toEqual({
+    introduced: 0,
+    resolved: 1,
+    persisting: 0,
+  });
+  expect(JSON.parse(resolved.text).data.selected.source).toEqual({
+    kind: 'edition',
+    id: 'clean',
+    name: 'Clean',
+  });
+  for (const [flags, code] of [
+    [['--baseline', 'absent'], 'unknown-baseline'],
+    [['--baseline', 'bad', '--edition', 'absent'], 'unknown-edition'],
+  ] as const) {
+    const result = await invoke(['relationships', 'compare', ...flags], input);
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text)).toMatchObject({
+      operation: 'relationships-compare',
+      status: 'rejected',
+      diagnostics: [{ code, subject: 'absent' }],
+    });
+  }
+  for (const input of [empty, serializeGraph(graph)]) {
+    const result = await invoke(['relationships', 'compare', '--baseline', 'clean'], input);
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text).diagnostics[0].code).toBe('model-required');
+  }
+  const invalid = await invoke(['relationships', 'compare', '--baseline', 'clean'], '{bad');
+  expect(invalid.code).toBe(2);
+  expect(JSON.parse(invalid.text).diagnostics[0].code).toBe('invalid-json');
+  expect(serializeModelDocument(model)).toBe(input);
+});
+
 test('audit distinguishes compatibility exit 1 from malformed-input exit 2 and scopes model input to the live graph', async () => {
   const value = createEventStormingPattern();
   const first = value.edges[0];
@@ -225,6 +313,46 @@ test('data-only rule files support named custom meaning and reject malformed, du
         expect(JSON.parse(accepted.text).data.entries[0].relationshipKey).toBe('custom:approves');
         expect(JSON.parse(accepted.text).conventions).toEqual({ source: 'file', input: file });
         expect(await readFile(file, 'utf8')).toBe(rules);
+        const customModel = serializeModelDocument({
+          id: 'custom',
+          name: 'Custom',
+          origin: null,
+          snapshot: { graph: { ...graph, edges: [] } },
+          editions: [
+            {
+              id: 'custom-baseline',
+              name: 'Custom baseline',
+              snapshot: {
+                graph: {
+                  ...graph,
+                  edges: [
+                    {
+                      ...first,
+                      architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        });
+        const baselineFinding = await invoke(
+          ['relationships', 'compare', '--baseline', 'custom-baseline'],
+          customModel,
+        );
+        expect(baselineFinding.code).toBe(0);
+        expect(JSON.parse(baselineFinding.text).data.summary.resolved).toBe(1);
+        const sharedRules = await invoke(
+          ['relationships', 'compare', '--baseline', 'custom-baseline', '--rules', file],
+          customModel,
+        );
+        expect(sharedRules.code).toBe(0);
+        expect(JSON.parse(sharedRules.text).data.summary).toEqual({
+          introduced: 0,
+          resolved: 0,
+          persisting: 0,
+        });
+        expect(JSON.parse(sharedRules.text).data.baseline.audit.summary.typed).toBe(1);
         for (const invalid of [
           { version: 2, rules: [rule] },
           { version: 1, rules: [rule, rule] },
@@ -237,6 +365,16 @@ test('data-only rule files support named custom meaning and reject malformed, du
           expect(result.code).toBe(2);
           expect(JSON.parse(result.text).diagnostics[0].code).toBe('invalid-rules');
         }
+        const invalidComparisonRules = await invoke(
+          ['relationships', 'compare', '--baseline', 'custom-baseline', '--rules', file],
+          customModel,
+        );
+        expect(invalidComparisonRules.code).toBe(2);
+        expect(JSON.parse(invalidComparisonRules.text)).toMatchObject({
+          operation: 'relationships-compare',
+          status: 'rejected',
+          diagnostics: [{ code: 'invalid-rules' }],
+        });
         const reserved = await invoke(['relationships', 'audit', '--rules', '-'], text);
         expect(reserved.code).toBe(2);
         expect(JSON.parse(reserved.text).diagnostics[0].message).toContain('stdin is reserved');

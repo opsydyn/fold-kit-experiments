@@ -3205,3 +3205,44 @@ Use the graph codec for structural validation; this audit is semantic only. The
 standalone Effect CLI exposes the same report as `zloz relationships audit`,
 including bounded custom JSON rule files. See the
 [CLI command contract](../foldkit-zloz-cli/README.md#causal-relationship-audit).
+
+## Edition-aware audit comparison
+
+Compare the current graph, or a chosen edition, against an explicit baseline:
+
+```ts
+import { compareModelEventStormingRelationships } from '@opsydyn/foldkit-zloz';
+
+const result = compareModelEventStormingRelationships(
+  document,
+  { baselineId: 'before', selectedId: 'after' }, // Omit selectedId for current graph.
+  conventions,
+);
+if (result.type === 'compared') {
+  const { introduced, resolved, persisting, baseline, selected } = result.comparison;
+  // persisting entries retain { before, after }; both sides include full audits.
+} else {
+  console.log(result.code, result.editionId, result.reason);
+}
+```
+
+Only editions owned by the supplied model are selectable. Missing IDs return
+`unknown-baseline` or `unknown-edition`, with no fallback or implicit lineage
+lookup. The model is validated with the existing capture boundary; malformed
+documents or rule catalogues throw the existing core error. No document, edition,
+camera or Undo history is changed.
+
+Both sides use the same `rules` and pure `roleOf` interpretation. Findings are
+blocked entries identified by **edge ID and diagnostic code**. Changed codes
+resolve the old finding and introduce the new one; label, endpoint, reason and
+presentation changes retain that identity, with both projections visible.
+Removed edges resolve findings and renamed IDs introduce findings. These are
+diagnostic changes, not proof that removing a relationship repaired the design.
+Typed, inferred and unrelated entries are preserved in the full audits but do
+not become findings. Arrays retain canonical edge-ID order.
+
+The report includes model ID, explicit edition/current source references,
+`summary: { introduced, resolved, persisting }` and status `regressed` or
+`no-new-findings`. **No new findings does not mean compatible**: existing blocked
+relationships may persist. Comparing an edition to itself is valid and retains
+its existing findings as persisting. No serialization format is changed.

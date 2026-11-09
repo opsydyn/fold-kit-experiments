@@ -1,9 +1,17 @@
-import type { ZlozEventStormingRelationshipAudit } from '@opsydyn/foldkit-zloz';
+import type {
+  ZlozEventStormingRelationshipAudit,
+  ZlozRelationshipAuditComparison,
+} from '@opsydyn/foldkit-zloz';
 import type { MermaidBundle } from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
 export const cliProtocol = 'foldkit-zloz-cli/v1';
-export type CliOperation = 'validate' | 'mermaid-export' | 'relationships-audit' | 'invocation';
+export type CliOperation =
+  | 'validate'
+  | 'mermaid-export'
+  | 'relationships-audit'
+  | 'relationships-compare'
+  | 'invocation';
 export const CliDiagnostic = Schema.Struct({
   code: Schema.String,
   message: Schema.String,
@@ -45,6 +53,16 @@ export type CliResponse =
     }>
   | Readonly<{
       protocol: typeof cliProtocol;
+      operation: 'relationships-compare';
+      status: 'compared';
+      scope: 'model-editions';
+      conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
+      data: ZlozRelationshipAuditComparison;
+      /** Newly introduced findings only; persisting findings remain in data. */
+      diagnostics: readonly CliDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof cliProtocol;
       operation: CliOperation;
       status: 'rejected';
       diagnostics: readonly CliDiagnostic[];
@@ -59,7 +77,10 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'invalid-utf8'
     | 'invalid-json'
     | 'invalid-document'
-    | 'invalid-rules';
+    | 'invalid-rules'
+    | 'model-required'
+    | 'unknown-baseline'
+    | 'unknown-edition';
   readonly message: string;
   readonly dimension: CliDiagnostic['dimension'];
   readonly subject: string;
@@ -76,6 +97,10 @@ export class CliConversionRejected extends Data.TaggedError('CliConversionReject
   readonly [Runtime.errorReported] = false;
 }
 export class CliAuditIncompatible extends Data.TaggedError('CliAuditIncompatible') {
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+export class CliAuditRegression extends Data.TaggedError('CliAuditRegression') {
   readonly [Runtime.errorExitCode] = 1;
   readonly [Runtime.errorReported] = false;
 }

@@ -4,6 +4,7 @@
  */
 import {
   auditEventStormingRelationships,
+  compareModelEventStormingRelationships,
   type ZlozGraph,
   type ZlozSnapshot,
   type ZlozEventStormingRelationshipOptions,
@@ -13,7 +14,7 @@ import {
   type MermaidDirection,
   type MermaidLossPolicy,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { Console, Effect, Match, Option, Stdio } from 'effect';
+import { Console, Effect, Match, Option, Result, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
@@ -24,6 +25,7 @@ import {
   type CliDiagnostic,
   CliConversionRejected,
   CliAuditIncompatible,
+  CliAuditRegression,
   CliInvocationRejected,
   encodeResponse,
   type CliOperation,
@@ -39,6 +41,7 @@ export {
   CliOutputError,
   CliConversionRejected,
   CliAuditIncompatible,
+  CliAuditRegression,
   CliInvocationRejected,
 } from './protocol';
 export type { CliOperation, CliResponse } from './protocol';
@@ -171,16 +174,15 @@ const convert =
       Match.orElse(() => rejectConversion(diagnostics)),
     );
   };
-function readAuditRules(input: string) {
-  return readRelationshipRules(input).pipe(
-    Effect.catchTag('CliInputError', (error) => rejectInput('relationships-audit', error)),
+const readAuditRules = (operation: Operation) => (input: string) =>
+  readRelationshipRules(input).pipe(
+    Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
   );
-}
 function executeAudit(input: string, rules: Option.Option<string>) {
   const auditing = Effect.gen(function* () {
     const readingRules = Option.match(rules, {
       onNone: () => Effect.succeed<ZlozEventStormingRelationshipOptions>({}),
-      onSome: readAuditRules,
+      onSome: readAuditRules('relationships-audit'),
     });
     const options = yield* readingRules;
     const document = yield* readForOperation('relationships-audit', input);
@@ -220,6 +222,87 @@ function executeAudit(input: string, rules: Option.Option<string>) {
     yield* reporting;
   });
   return auditing.pipe(Effect.withSpan('zloz.cli.auditRelationships'));
+}
+function executeComparison(
+  input: string,
+  baselineId: string,
+  edition: Option.Option<string>,
+  rules: Option.Option<string>,
+) {
+  const comparing = Effect.gen(function* () {
+    const readingRules = Option.match(rules, {
+      onNone: () => Effect.succeed<ZlozEventStormingRelationshipOptions>({}),
+      onSome: readAuditRules('relationships-compare'),
+    });
+    const options = yield* readingRules;
+    const document = yield* readForOperation('relationships-compare', input);
+    const modelResult = Match.value(document).pipe(
+      Match.when({ kind: 'model' }, ({ document }) => Result.succeed(document)),
+      Match.orElse(() =>
+        Result.fail(
+          new CliInputError({
+            code: 'model-required',
+            message: 'Edition comparison requires a Zloz model document.',
+            dimension: 'identity',
+            subject: input,
+          }),
+        ),
+      ),
+    );
+    const selectingModel = Effect.fromResult(modelResult).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('relationships-compare', error)),
+    );
+    const model = yield* selectingModel;
+    const selection = Option.match(edition, {
+      onNone: () => ({ baselineId }),
+      onSome: (selectedId) => ({ baselineId, selectedId }),
+    });
+    const result = compareModelEventStormingRelationships(model, selection, options);
+    const comparisonResult = Match.value(result).pipe(
+      Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
+      Match.orElse((result) =>
+        Result.fail(
+          new CliInputError({
+            code: result.code,
+            message: result.reason,
+            dimension: 'identity',
+            subject: result.editionId,
+          }),
+        ),
+      ),
+    );
+    const selectingComparison = Effect.fromResult(comparisonResult).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('relationships-compare', error)),
+    );
+    const data = yield* selectingComparison;
+    const conventions = Option.match(rules, {
+      onNone: () => ({ source: 'builtin' as const, input: null }),
+      onSome: (input) => ({ source: 'file' as const, input }),
+    });
+    const response: Extract<CliResponse, { status: 'compared' }> = {
+      protocol: cliProtocol,
+      operation: 'relationships-compare',
+      status: 'compared',
+      scope: 'model-editions',
+      conventions,
+      data,
+      diagnostics: data.introduced.map((entry) => ({
+        code: `relationship-${entry.code}`,
+        message: entry.message,
+        subject: entry.edgeId,
+        severity: 'error',
+        dimension: 'semantics',
+      })),
+    };
+    const reporting = writeResponse(response).pipe(
+      Effect.filterOrFail(
+        () => data.summary.introduced === 0,
+        () => new CliAuditRegression(),
+      ),
+    );
+    yield* reporting;
+  });
+  return comparing.pipe(Effect.withSpan('zloz.cli.compareRelationships'));
 }
 const input = Flag.String('input').pipe(
   Flag.withAlias('i'),
@@ -264,9 +347,23 @@ const auditCommand = Command.make('audit', { input, rules }, (config) =>
     'Read-only causal relationship audit with per-edge JSON results and semantic diagnostics.',
   ),
 );
+const baseline = Flag.String('baseline').pipe(
+  Flag.withDescription('Required baseline edition ID owned by the input model.'),
+);
+const edition = Flag.String('edition').pipe(
+  Flag.optional,
+  Flag.withDescription('Target edition ID; omit to compare the current graph.'),
+);
+const compareCommand = Command.make('compare', { input, rules, baseline, edition }, (config) =>
+  executeComparison(config.input, config.baseline, config.edition, config.rules),
+).pipe(
+  Command.withDescription(
+    'Compare causal findings against an explicit baseline; exit 1 only for newly introduced findings.',
+  ),
+);
 const relationshipsCommand = Command.make('relationships').pipe(
   Command.withDescription('Event-storming causal relationship tools.'),
-  Command.withSubcommands([auditCommand]),
+  Command.withSubcommands([auditCommand, compareCommand]),
 );
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(

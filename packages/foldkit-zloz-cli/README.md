@@ -208,3 +208,50 @@ stdin is reserved for model input. Configuration is data-only: no imports,
 callbacks or code execution. Applications needing custom `roleOf` interpretation
 can use the core API. The response records builtin/file provenance. Existing
 validate/Mermaid response shapes are unchanged; audit is an additive v1 operation.
+
+## Edition-aware audit comparison
+
+```sh
+zloz relationships compare --input model.json --baseline before
+zloz relationships compare -i model.json --baseline before --edition after
+cat model.json | zloz relationships compare --baseline before --rules conventions.json
+```
+
+This command requires a portable **model document** and an explicit baseline
+edition ID. Omit `--edition` to target the current graph; supply it to target an
+owned edition. Missing baseline/target IDs reject with `unknown-baseline` or
+`unknown-edition`; graph/snapshot input rejects with `model-required`. There is no
+automatic baseline, index-based selection, fallback or origin-edition traversal.
+The same bounded data-only `--rules` catalogue audits both sides. Input files and
+history remain unchanged.
+
+One JSON value plus newline on stdout uses the existing protocol with operation
+`relationships-compare`, status `compared`, scope `model-editions`, convention
+provenance, `data` and `diagnostics`. Data includes:
+
+- `modelId`, `status: regressed | no-new-findings` and count `summary`.
+- `baseline` and `selected`, each with explicit `source` and a complete `audit`.
+  Edition sources are `{ kind: 'edition', id, name }`; current is `{ kind: 'current' }`.
+- `introduced` and `resolved` blocked audit entries, plus `persisting` pairs of
+  `{ before, after }`. All arrays retain canonical edge-ID order.
+
+Finding identity is edge ID plus diagnostic code. Changed codes resolve one
+finding and introduce another; label, endpoint and message changes retain identity.
+Deleting an edge resolves its finding; renaming its ID introduces a new finding.
+These changes do not certify design correctness. Inferred/unrelated edges are
+still visible in full audits and never counted as blocked findings.
+
+| Exit | Meaning                                                                                   |
+| ---- | ----------------------------------------------------------------------------------------- |
+| 0    | Complete comparison with no introduced findings. Persisting incompatibilities can remain. |
+| 1    | Complete comparison with introduced findings and typed `CliAuditRegression`.              |
+| 2    | Rejected input, selectors, rules, invocation or I/O.                                      |
+
+Top-level diagnostics contain **introduced findings only**, as
+`relationship-<code>` with edge ID subjects. Inspect `data.persisting` or the full
+selected audit for existing incompatibilities. Use `relationships audit` when
+the gate should reject **any** incompatibility. Same-edition comparisons are
+valid and report all existing findings as persisting. The original audit command
+and its exit semantics are unchanged.
+
+See the [executable comparison evidence](evidence/relationship-comparison.md).

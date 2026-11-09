@@ -1,0 +1,785 @@
+{
+  "result": "passed",
+  "runtimes": {
+    "node": "v24.15.0",
+    "bun": "1.4.4"
+  },
+  "checks": [
+    "Node/Bun real executable",
+    "explicit edition and current graph selection",
+    "introduced/resolved/persisting findings",
+    "same convention on both sides",
+    "0/1/2 exits and single JSON framing",
+    "fixture bytes unchanged during commands"
+  ],
+  "runs": [
+    {
+      "runtime": "node",
+      "example": "current-file",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 2,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "explicit-edition-stdin",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "summary": {
+            "introduced": 2,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "resolved",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "clean",
+            "name": "Clean"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 4,
+            "persisting": 0
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "persisting-current",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 3
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "same-edition",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 4
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "reverse",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "summary": {
+            "introduced": 3,
+            "resolved": 2,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "fixed",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "removed",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "shared-custom-rules",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "unknown-baseline",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "unknown-baseline",
+            "message": "The baseline edition is unavailable in this model.",
+            "dimension": "identity",
+            "subject": "absent",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "unknown-target",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "unknown-edition",
+            "message": "The selected edition is unavailable in this model.",
+            "dimension": "identity",
+            "subject": "absent",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "graph-rejected",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "model-required",
+            "message": "Edition comparison requires a Zloz model document.",
+            "dimension": "identity",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-json",
+            "message": "Input must be valid JSON.",
+            "dimension": "syntax",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "reserved-rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-rules",
+            "message": "Rules must be a JSON file; stdin is reserved for model input.",
+            "dimension": "semantics",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "missing-baseline-argument",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "invocation",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-arguments",
+            "message": "\nERROR\n  Missing required flag: --baseline",
+            "severity": "error",
+            "dimension": "syntax",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "current-file",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 2,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "explicit-edition-stdin",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "summary": {
+            "introduced": 2,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "resolved",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "clean",
+            "name": "Clean"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 4,
+            "persisting": 0
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "persisting-current",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 3
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "same-edition",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "no-new-findings",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 4
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "reverse",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "summary": {
+            "introduced": 3,
+            "resolved": 2,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "fixed",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "recoded",
+            "severity": "error",
+            "dimension": "semantics"
+          },
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "removed",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "shared-custom-rules",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "compared",
+        "data": {
+          "modelId": "orders",
+          "status": "regressed",
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 3,
+            "persisting": 1
+          }
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "added",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "unknown-baseline",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "unknown-baseline",
+            "message": "The baseline edition is unavailable in this model.",
+            "dimension": "identity",
+            "subject": "absent",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "unknown-target",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "unknown-edition",
+            "message": "The selected edition is unavailable in this model.",
+            "dimension": "identity",
+            "subject": "absent",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "graph-rejected",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "model-required",
+            "message": "Edition comparison requires a Zloz model document.",
+            "dimension": "identity",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-json",
+            "message": "Input must be valid JSON.",
+            "dimension": "syntax",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "reserved-rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-compare",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-rules",
+            "message": "Rules must be a JSON file; stdin is reserved for model input.",
+            "dimension": "semantics",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "missing-baseline-argument",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "invocation",
+        "status": "rejected",
+        "data": null,
+        "diagnostics": [
+          {
+            "code": "invalid-arguments",
+            "message": "\nERROR\n  Missing required flag: --baseline",
+            "severity": "error",
+            "dimension": "syntax",
+            "subject": null
+          }
+        ]
+      }
+    }
+  ]
+}

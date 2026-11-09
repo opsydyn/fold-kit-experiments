@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-zloz-elk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Optional ELK layout adapter for Foldkit Zloz.",
   "keywords": [
     "diagram",
@@ -61,7 +61,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@opsydyn/foldkit-zloz": "0.1.0"
+    "@opsydyn/foldkit-zloz": "0.1.1"
   },
   "engines": {
     "node": ">=22.0.0"

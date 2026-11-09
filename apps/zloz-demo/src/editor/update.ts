@@ -5,6 +5,7 @@ import {
   resolveEditionRestore,
   restoreEdition,
   type ZlozEdition,
+  type ZlozModelDocument,
   captureEdition,
   createHistoryReview,
   updateHistoryReview,
@@ -44,6 +45,7 @@ import {
   ArrangeFlow,
   ExportZlozEditions,
   ImportZlozEditions,
+  ImportZlozModel,
   ExportFlow,
   ExportZlozModel,
   ExportMermaidBundle,
@@ -70,7 +72,13 @@ import {
   portSnappingGraph,
   type Model,
 } from './model';
-import { forkWorkingEdition, selectWorkingModel, workbenchDocument } from './model-sessions';
+import {
+  forkWorkingEdition,
+  selectWorkingModel,
+  workbenchDocument,
+  openModelDocument,
+  modelSessionBusy,
+} from './model-sessions';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
@@ -91,6 +99,29 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
   )
     return { model };
+  const cancelModelImport = () =>
+    model.modelImport
+      ? [
+          ImportZlozModel.Interrupt({ id: model.modelImport.id }, () =>
+            Message.CompletedCancelModelImport(),
+          ),
+        ]
+      : [];
+  if (
+    model.modelImport &&
+    new Set<string>([
+      'ClickedLoad',
+      'ChoseImportFiles',
+      'ChoseEditionArchiveFiles',
+      'ClickedArrange',
+    ]).has(message._tag)
+  )
+    return {
+      model: {
+        ...model,
+        notice: 'Finish or cancel model import before starting another document operation.',
+      },
+    };
   const cancelEditionImport = () =>
     model.editionImport
       ? [
@@ -174,6 +205,82 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const result: Return<Model, Message> = Message.match(message, {
+    ClickedModelImportProtection: () => ({
+      model: { ...model, protectModelImport: !model.protectModelImport },
+    }),
+    ChoseModelDocumentFiles: ({ files }) => {
+      if (!files.length)
+        return { model: { ...model, modelImport: null }, commands: cancelModelImport() };
+      if (files.length !== 1 || files[0]!.size > editionArchiveByteLimit)
+        return {
+          model: {
+            ...model,
+            modelImport: null,
+            notice: 'Choose one model JSON file up to 5 MiB. Existing models are preserved.',
+          },
+          commands: cancelModelImport(),
+        };
+      if (modelSessionBusy({ ...model, modelImport: null }) || model.protectModelImport)
+        return {
+          model: {
+            ...model,
+            notice: 'Finish active operations and allow model import before opening a model.',
+          },
+        };
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          modelImport: {
+            id,
+            epoch: model.modelEpoch,
+            revision: model.editor.revision,
+            graph: model.editor.graph,
+          },
+          notice: 'Reading model document…',
+        },
+        commands: [...cancelModelImport(), ImportZlozModel({ id, file: files[0]! })],
+      };
+    },
+    ClickedCancelModelImport: () => ({
+      model: {
+        ...model,
+        modelImport: null,
+        notice: 'Model import cancelled. Existing models are preserved.',
+      },
+      commands: cancelModelImport(),
+    }),
+    CompletedCancelModelImport: () => ({ model }),
+    FailedModelDocumentImport: ({ id }) =>
+      model.modelImport?.id === id
+        ? {
+            model: {
+              ...model,
+              modelImport: null,
+              notice:
+                'Invalid, unsupported or unreadable model JSON. Existing models are preserved.',
+            },
+          }
+        : { model },
+    SucceededModelDocumentImport: ({ id, document: raw }) => {
+      const request = model.modelImport;
+      if (!request || request.id !== id) return { model };
+      const ready = { ...model, modelImport: null };
+      if (
+        request.epoch !== model.modelEpoch ||
+        request.revision !== model.editor.revision ||
+        request.graph !== model.editor.graph
+      )
+        return {
+          model: {
+            ...ready,
+            notice: 'The source session changed while reading. Choose the model file again.',
+          },
+        };
+      // SAFETY: ImportZlozModel validates this document through the canonical model codec before dispatch.
+      return { model: openModelDocument(ready, raw as ZlozModelDocument) };
+    },
     ObservedModelInput: ({ message }) => update(model, Message.ObservedZlozInput({ message })),
     ChangedForkName: ({ name }) => ({ model: { ...model, forkName: name } }),
     ClickedEditionForkProtection: () => ({

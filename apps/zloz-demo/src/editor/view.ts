@@ -507,10 +507,42 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
       button('Export model with lineage', Message.ClickedExportModel()),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.protectModelImport),
+            h.OnClick(Message.ClickedModelImportProtection()),
+          ]),
+          'Protect model import',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Open model JSON (up to 5 MiB)',
+          h.input([
+            h.Key(`model-import-${model.modelImport?.id ?? 'ready'}`),
+            h.Type('file'),
+            h.Accept('application/json,.json'),
+            h.AriaLabel('Open model JSON'),
+            h.Disabled(busyModelSession || model.protectModelImport),
+            h.OnFileChange((files) => Message.ChoseModelDocumentFiles({ files })),
+          ]),
+        ],
+      ),
+      ...(model.modelImport
+        ? [
+            h.p([h.Role('status')], ['Reading model document…']),
+            button('Cancel model import', Message.ClickedCancelModelImport()),
+          ]
+        : []),
+
       h.p(
         [],
         [
-          'Models are kept in this tab. Export the working model with lineage before leaving; diagram-only exports omit identity and origin.',
+          'Models are kept in this tab. Export and reopen model JSON to preserve identity, editions and origin. Diagram-only files omit this metadata.',
         ],
       ),
       h.p(

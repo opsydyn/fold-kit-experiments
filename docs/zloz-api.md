@@ -85,3 +85,8 @@ are preserved within a distinct host-allocated model identity. Immediate origin
 pins the exact source edition; no mutable lookup or host-owned node-data keys are
 used. A fork gets its own edition collection and fresh editor/Undo. See
 [the package example](../packages/foldkit-zloz/README.md#fork-an-edition-into-another-model).
+
+CLI exposes `readDocument` and `CliDocument` for metadata-preserving model or
+snapshot input. `readGraph` deliberately rejects model envelopes. CLI validation
+adds model identity/origin summary only for this new input kind. Mermaid
+projections report model metadata and camera omissions and reject them by default.

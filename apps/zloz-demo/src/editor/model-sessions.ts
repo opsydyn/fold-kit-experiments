@@ -29,6 +29,7 @@ export function modelSessionBusy(model: Model): boolean {
     model.active !== null ||
     model.importing !== null ||
     model.editionImport !== null ||
+    model.modelImport !== null ||
     model.editor.edgeLabelDraft !== null ||
     model.portLabelDraft !== null ||
     model.portPositionDraft !== null
@@ -68,6 +69,7 @@ function activate(
     active: null,
     importing: null,
     editionImport: null,
+    modelImport: null,
     portLabelDraft: null,
     portPositionDraft: null,
     mermaidLossConsentRevision: null,
@@ -85,11 +87,11 @@ export function forkWorkingEdition(model: Model): Model {
     model.modelIdentity.id,
     ...model.savedModels.map((item) => item.identity.id),
   ]);
-  while (ids.has(`model-${sequence}`)) sequence++;
+  while (ids.has(`model:${model.modelNamespace}:${sequence}`)) sequence++;
   const result = forkEdition(
     workbenchDocument(model),
     editionId,
-    { id: `model-${sequence}`, name: model.forkName },
+    { id: `model:${model.modelNamespace}:${sequence}`, name: model.forkName },
     {
       canForkEdition: () =>
         model.protectEditionFork ? 'Edition forking is protected in this workspace.' : null,
@@ -136,5 +138,49 @@ export function selectWorkingModel(model: Model, id: string): Model {
       session(model),
     ]),
     notice: `Working model: ${target.identity.name}. Its own Undo history is preserved.`,
+  };
+}
+
+/** Import is additive at the session registry boundary; no identity is renamed or overwritten. */
+export function openModelDocument(model: Model, input: ZlozModelDocument): Model {
+  if (modelSessionBusy(model))
+    return { ...model, notice: 'Finish active edits, imports or layout before opening a model.' };
+  if (model.protectModelImport)
+    return { ...model, notice: 'Model import is protected in this workspace.' };
+  const document = captureModelDocument(input);
+  if (
+    document.id === model.modelIdentity.id ||
+    model.savedModels.some((item) => item.identity.id === document.id)
+  )
+    return {
+      ...model,
+      notice:
+        'This model ID is already open. Switch to that model; import will not overwrite or rename it.',
+    };
+  const { visibility: _visibility, viewport: _viewport, ...preferences } = model.editor;
+  const cameraZoom = document.snapshot.viewport?.zoom ?? 1;
+  const zoomLimits = {
+    minZoom: Math.min(model.editor.zoomLimits.minZoom, cameraZoom),
+    maxZoom: Math.max(model.editor.zoomLimits.maxZoom, cameraZoom),
+  };
+  const editor = createModelEditor(document, { ...preferences, zoomLimits, readOnly: false });
+  return {
+    ...activate(
+      model,
+      {
+        identity: { id: document.id, name: document.name, origin: document.origin },
+        nodeDesign: document.snapshot.graph.nodes.some(
+          (node) => node.architecture?.family === 'ddd',
+        )
+          ? 'ddd'
+          : document.snapshot.graph.nodes.some((node) => node.architecture?.family === 'c4')
+            ? 'c4'
+            : model.nodeDesign,
+        editor,
+        editions: document.editions,
+      },
+      [...model.savedModels, session(model)],
+    ),
+    notice: `Opened model: ${document.name}. Existing models and Undo histories are preserved.`,
   };
 }

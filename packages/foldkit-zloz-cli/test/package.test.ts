@@ -6,6 +6,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import {
+  captureModelDocument,
+  captureEdition,
+  serializeModelDocument,
+  parseSnapshot,
+} from '@opsydyn/foldkit-zloz';
+
 import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
 import manifest from '../package.json';
@@ -83,7 +90,50 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(version.stdout).toContain(manifest.version);
     const modelFile = path.join(directory, 'model.json');
     await writeFile(modelFile, graph);
+    const checkpoint = captureEdition({
+      id: 'baseline',
+      name: 'Baseline',
+      snapshot: parseSnapshot(graph),
+    });
+    const modelText = serializeModelDocument(
+      captureModelDocument({
+        id: 'alternative',
+        name: 'Alternative',
+        snapshot: checkpoint.snapshot,
+        editions: [checkpoint],
+        origin: { modelId: 'parent', modelName: 'Parent', edition: checkpoint },
+      }),
+    );
+    const portableFile = path.join(directory, 'portable.model.json');
+    await writeFile(portableFile, modelText);
     for (const runtime of ['node', 'bun']) {
+      const portable = await run([runtime, bin, 'validate', '--input', portableFile]);
+      expect(portable.code).toBe(0);
+      expect(JSON.parse(portable.stdout).model).toEqual({
+        id: 'alternative',
+        name: 'Alternative',
+        editions: 1,
+        origin: { modelId: 'parent', editionId: 'baseline' },
+      });
+      const strictModel = await run([runtime, bin, 'mermaid', 'export', '-i', portableFile]);
+      expect(strictModel.code).toBe(1);
+      expect(
+        JSON.parse(strictModel.stdout).diagnostics.map((d: { code: string }) => d.code),
+      ).toContain('model-metadata-omitted');
+      const projected = await run([
+        runtime,
+        bin,
+        'mermaid',
+        'export',
+        '-i',
+        portableFile,
+        '--loss-policy',
+        'report',
+      ]);
+      expect(projected.code).toBe(0);
+      expect(
+        JSON.parse(projected.stdout).diagnostics.map((d: { code: string }) => d.code),
+      ).toContain('model-metadata-omitted');
       const valid = await run([runtime, bin, 'validate'], empty);
       expect(valid.code).toBe(0);
       expect(JSON.parse(valid.stdout).status).toBe('valid');
@@ -120,6 +170,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       expect(JSON.parse(missing.stdout).diagnostics[0].code).toBe('input-unavailable');
     }
     expect(await readFile(modelFile, 'utf8')).toBe(graph);
+    expect(await readFile(portableFile, 'utf8')).toBe(modelText);
     const tooLarge = path.join(directory, 'oversized.json');
     await writeFile(tooLarge, ' '.repeat(1_048_577));
     const limited = await run([bin, 'validate', '-i', tooLarge]);
@@ -135,8 +186,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { run, cliProtocol, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
-const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result;`,
+      `import { readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,
     );
     const tsc = path.join(root, 'packages/foldkit-zloz-cli/node_modules/.bin/tsc');
     for (const mode of ['Bundler', 'NodeNext'])

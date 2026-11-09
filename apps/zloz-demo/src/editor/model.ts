@@ -343,9 +343,12 @@ export const Model = Schema.Struct({
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
   editionImport: Schema.NullOr(Schema.Unknown),
+  modelImport: Schema.NullOr(Schema.Unknown),
+  protectModelImport: Schema.Boolean,
   editionRestore: Schema.NullOr(Schema.Unknown),
   modelIdentity: Schema.Unknown,
   modelEpoch: Schema.Number,
+  modelNamespace: Schema.String,
   savedModels: Schema.Unknown,
   forkName: Schema.String,
   protectEditionFork: Schema.Boolean,
@@ -429,11 +432,14 @@ export type Model = Readonly<{
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
+  modelImport: Readonly<{ id: number; epoch: number; revision: number; graph: ZlozGraph }> | null;
+  protectModelImport: boolean;
   editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
   editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
   protectEditionRestore: boolean;
   modelIdentity: WorkbenchModelIdentity;
   modelEpoch: number;
+  modelNamespace: string;
   savedModels: readonly WorkbenchModelSession[];
   forkName: string;
   protectEditionFork: boolean;
@@ -448,7 +454,7 @@ export type Model = Readonly<{
   sequence: number;
   notice: string;
 }>;
-export const init = () => ({
+export const init = (namespace = 'test-workbench') => ({
   model: {
     sidebarSection: 'diagram',
     sidebarCollapsed: false,
@@ -514,10 +520,13 @@ export const init = () => ({
     nodeDesign: 'cards',
     background: 'dots',
     editionImport: null,
+    modelImport: null,
+    protectModelImport: false,
     editionRestore: null,
     protectEditionRestore: false,
-    modelIdentity: { id: 'workbench-root', name: 'Working model', origin: null },
+    modelIdentity: { id: `root:${namespace}`, name: 'Working model', origin: null },
     modelEpoch: 0,
+    modelNamespace: namespace,
     savedModels: [],
     forkName: '',
     protectEditionFork: false,

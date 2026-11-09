@@ -1,4 +1,4 @@
-import type { MermaidBundle, MermaidDiagnostic } from '@opsydyn/foldkit-zloz-mermaid';
+import type { MermaidBundle } from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
 export const cliProtocol = 'foldkit-zloz-cli/v1';
@@ -17,6 +17,12 @@ export type CliResponse =
       operation: 'validate';
       status: 'valid';
       summary: Readonly<{ nodes: number; edges: number }>;
+      model?: Readonly<{
+        id: string;
+        name: string;
+        editions: number;
+        origin: Readonly<{ modelId: string; editionId: string }> | null;
+      }>;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -24,7 +30,7 @@ export type CliResponse =
       operation: 'mermaid-export';
       status: 'converted';
       data: MermaidBundle;
-      diagnostics: readonly MermaidDiagnostic[];
+      diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
       protocol: typeof cliProtocol;
@@ -35,6 +41,7 @@ export type CliResponse =
 
 export class CliInputError extends Data.TaggedError('CliInputError')<{
   readonly code:
+    | 'model-projection-required'
     | 'input-required'
     | 'input-unavailable'
     | 'input-limit'

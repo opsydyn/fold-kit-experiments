@@ -1,4 +1,4 @@
-import { parseEditions } from '@opsydyn/foldkit-zloz';
+import { parseEditions, parseModelDocument } from '@opsydyn/foldkit-zloz';
 import { parseGraph, parseSnapshot } from '@opsydyn/foldkit-zloz';
 import { Data, Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
@@ -213,6 +213,28 @@ export const ImportZlozEditions = Command.define('ImportZlozEditions', {
       Effect.match({
         onSuccess: (editions) => Message.SucceededEditionArchiveImport({ id, editions }),
         onFailure: () => Message.FailedEditionArchiveImport({ id }),
+      }),
+    ),
+});
+
+export const ImportZlozModel = Command.define('ImportZlozModel', {
+  args: { id: Schema.Number, file: Schema.instanceOf(File) },
+  interrupt: { keyFields: ['id'], toKey: ({ id }) => String(id) },
+  messages: [Message.SucceededModelDocumentImport, Message.FailedModelDocumentImport],
+  execute: ({ id, file }) =>
+    Effect.tryPromise(() => file.arrayBuffer()).pipe(
+      Effect.filterOrFail(
+        (buffer) => buffer.byteLength <= editionArchiveByteLimit,
+        () => new EditionArchiveTooLarge({ byteLimit: editionArchiveByteLimit }),
+      ),
+      Effect.flatMap((buffer) =>
+        Effect.try(() =>
+          parseModelDocument(new TextDecoder('utf-8', { fatal: true }).decode(buffer)),
+        ),
+      ),
+      Effect.match({
+        onSuccess: (document) => Message.SucceededModelDocumentImport({ id, document }),
+        onFailure: () => Message.FailedModelDocumentImport({ id }),
       }),
     ),
 });

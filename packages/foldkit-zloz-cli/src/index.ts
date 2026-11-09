@@ -2,7 +2,7 @@
  * Effect command tree for the standalone Zloz CLI. Importing never starts a process.
  * @module CLI
  */
-import type { ZlozGraph } from '@opsydyn/foldkit-zloz';
+import type { ZlozGraph, ZlozSnapshot } from '@opsydyn/foldkit-zloz';
 import {
   exportMermaid,
   type MermaidDirection,
@@ -12,17 +12,19 @@ import { Console, Effect, Match, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
-import { readGraph, writeResponse } from './io';
+import { readDocument, writeResponse, type CliDocument } from './io';
 import {
   cliProtocol,
   CliInputError,
+  type CliDiagnostic,
   CliConversionRejected,
   CliInvocationRejected,
   encodeResponse,
   type CliOperation,
   type CliResponse,
 } from './protocol';
-export { inputByteLimit, readGraph } from './io';
+export { inputByteLimit, readGraph, readDocument } from './io';
+export type { CliDocument } from './io';
 export {
   cliProtocol,
   CliDiagnostic,
@@ -55,14 +57,18 @@ function rejectInput(operation: Operation, error: CliInputError) {
   });
 }
 function readForOperation(operation: Operation, input: string) {
-  return readGraph(input).pipe(
+  return readDocument(input).pipe(
     Effect.catchTag(['CliInputError'], (error) => rejectInput(operation, error)),
   );
 }
-function execute(operation: Operation, input: string, project: (graph: ZlozGraph) => CliResponse) {
+function execute(
+  operation: Operation,
+  input: string,
+  project: (document: CliDocument) => CliResponse,
+) {
   return Effect.gen(function* () {
-    const graph = yield* readForOperation(operation, input);
-    const response = project(graph);
+    const document = yield* readForOperation(operation, input);
+    const response = project(document);
     yield* writeResponse(response).pipe(
       Effect.filterOrFail(
         (value) => value.status !== 'rejected',
@@ -71,42 +77,97 @@ function execute(operation: Operation, input: string, project: (graph: ZlozGraph
     );
   });
 }
-const summarize = (graph: ZlozGraph): CliResponse => ({
+const graphOf = (document: CliDocument): ZlozGraph =>
+  Match.value(document).pipe(
+    Match.when({ kind: 'model' }, (value) => value.document.snapshot.graph),
+    Match.orElse((value) => value.snapshot.graph),
+  );
+const summarize = (document: CliDocument): CliResponse => {
+  const graph = graphOf(document);
+  const response: Extract<CliResponse, { status: 'valid' }> = {
+    protocol: cliProtocol,
+    operation: 'validate' as const,
+    status: 'valid' as const,
+    summary: { nodes: graph.nodes.length, edges: graph.edges.length },
+    diagnostics: [],
+  };
+  return Match.value(document).pipe(
+    Match.when({ kind: 'model' }, ({ document }) => ({
+      ...response,
+      model: {
+        id: document.id,
+        name: document.name,
+        editions: document.editions.length,
+        origin: document.origin
+          ? { modelId: document.origin.modelId, editionId: document.origin.edition.id }
+          : null,
+      },
+    })),
+    Match.orElse(() => response),
+  );
+};
+const snapshotLosses = (snapshot: ZlozSnapshot): readonly CliDiagnostic[] =>
+  Match.value(snapshot.viewport).pipe(
+    Match.when(undefined, () => []),
+    Match.orElse(() => [
+      {
+        code: 'viewport-omitted',
+        severity: 'loss' as const,
+        dimension: 'layout' as const,
+        subject: null,
+        message: 'The snapshot camera is omitted from Mermaid.',
+      },
+    ]),
+  );
+const metadataLosses = (document: CliDocument): readonly CliDiagnostic[] =>
+  Match.value(document).pipe(
+    Match.when({ kind: 'model' }, ({ document }) => [
+      {
+        code: 'model-metadata-omitted',
+        severity: 'loss' as const,
+        dimension: 'identity' as const,
+        subject: document.id,
+        message:
+          'Mermaid projects only the current graph; model identity, editions, lineage and capture camera are omitted. Keep model JSON as the authoritative document.',
+      },
+    ]),
+    Match.orElse((value) => snapshotLosses(value.snapshot)),
+  );
+const rejectConversion = (diagnostics: readonly CliDiagnostic[]): CliResponse => ({
   protocol: cliProtocol,
-  operation: 'validate',
-  status: 'valid',
-  summary: { nodes: graph.nodes.length, edges: graph.edges.length },
-  diagnostics: [],
+  operation: 'mermaid-export',
+  status: 'rejected',
+  diagnostics,
 });
 const convert =
   (direction: MermaidDirection, lossPolicy: MermaidLossPolicy) =>
-  (graph: ZlozGraph): CliResponse =>
-    Match.value(exportMermaid(graph, { direction, lossPolicy })).pipe(
+  (document: CliDocument): CliResponse => {
+    const losses = metadataLosses(document);
+    const result = exportMermaid(graphOf(document), { direction, lossPolicy });
+    const diagnostics = [...result.diagnostics, ...losses];
+    return Match.value({ result, policy: lossPolicy, hasMetadataLoss: losses.length > 0 }).pipe(
+      Match.when({ result: { status: 'converted' }, policy: 'reject', hasMetadataLoss: true }, () =>
+        rejectConversion(diagnostics),
+      ),
       Match.when(
-        { status: 'converted' },
-        (result) =>
-          ({
-            protocol: cliProtocol,
-            operation: 'mermaid-export',
-            status: 'converted',
-            data: result.value,
-            diagnostics: result.diagnostics,
-          }) as const,
+        { result: { status: 'converted' } },
+        ({ result }): CliResponse => ({
+          protocol: cliProtocol,
+          operation: 'mermaid-export',
+          status: 'converted',
+          data: result.value,
+          diagnostics,
+        }),
       ),
-      Match.orElse(
-        (result) =>
-          ({
-            protocol: cliProtocol,
-            operation: 'mermaid-export',
-            status: 'rejected',
-            diagnostics: result.diagnostics,
-          }) as const,
-      ),
+      Match.orElse(() => rejectConversion(diagnostics)),
     );
+  };
 const input = Flag.String('input').pipe(
   Flag.withAlias('i'),
   Flag.withDefault('-'),
-  Flag.withDescription('Version-one Zloz JSON file, or - for stdin (1 MiB maximum).'),
+  Flag.withDescription(
+    'Version-one graph, snapshot or model JSON file, or - for stdin (1 MiB maximum).',
+  ),
 );
 const direction = Flag.Literals('direction', ['LR', 'RL', 'TB', 'BT']).pipe(Flag.withDefault('LR'));
 const lossPolicy = Flag.Literals('loss-policy', ['reject', 'report']).pipe(

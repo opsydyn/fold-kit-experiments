@@ -1,6 +1,12 @@
 import { Buffer } from 'node:buffer';
 
-import { parseSnapshot } from '@opsydyn/foldkit-zloz';
+import {
+  parseModelDocument,
+  parseSnapshot,
+  type ZlozModelDocument,
+  type JsonValue,
+  type ZlozSnapshot,
+} from '@opsydyn/foldkit-zloz';
 import { Effect, FileSystem, Match, Schema, Stdio, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 
@@ -54,7 +60,7 @@ const decodeUtf8 = (chunks: readonly Uint8Array[], input: string) =>
       }),
   });
 function decodeJson(text: string, input: string) {
-  return Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown))(text).pipe(
+  return Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Json))(text).pipe(
     Effect.mapError(
       () =>
         new CliInputError({
@@ -66,9 +72,18 @@ function decodeJson(text: string, input: string) {
     ),
   );
 }
-const decodeDocument = (text: string, input: string) =>
+export type CliDocument =
+  | Readonly<{ kind: 'snapshot'; snapshot: ZlozSnapshot }>
+  | Readonly<{ kind: 'model'; document: ZlozModelDocument }>;
+const modelMarker = Schema.Struct({ format: Schema.Literal('foldkit-zloz-model') });
+const parseCliDocument = (text: string, model: boolean): CliDocument =>
+  Match.value(model).pipe(
+    Match.when(true, () => ({ kind: 'model' as const, document: parseModelDocument(text) })),
+    Match.orElse(() => ({ kind: 'snapshot' as const, snapshot: parseSnapshot(text) })),
+  );
+const decodeDocument = (text: string, value: JsonValue, input: string) =>
   Effect.try({
-    try: () => parseSnapshot(text).graph,
+    try: () => parseCliDocument(text, Schema.is(modelMarker)(value)),
     catch: (cause) =>
       new CliInputError({
         code: 'invalid-document',
@@ -78,7 +93,7 @@ const decodeDocument = (text: string, input: string) =>
       }),
   });
 /** Scoped platform input; the core codec remains the authority for graph/snapshot semantics. */
-export function readGraph(input: string) {
+export function readDocument(input: string) {
   const reading = Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const stdio = yield* Stdio.Stdio;
@@ -97,10 +112,28 @@ export function readGraph(input: string) {
     );
     const chunks = yield* collectInput(source, input);
     const text = yield* decodeUtf8(chunks, input);
-    yield* decodeJson(text, input);
-    return yield* decodeDocument(text, input);
+    const value = yield* decodeJson(text, input);
+    return yield* decodeDocument(text, value, input);
   });
-  return reading.pipe(Effect.withSpan('zloz.cli.readGraph'));
+  return reading.pipe(Effect.withSpan('zloz.cli.readDocument'));
+}
+/** Graph-only compatibility seam: never implicitly projects a model document. */
+export function readGraph(input: string) {
+  return readDocument(input).pipe(
+    Effect.filterOrFail(
+      (document): document is Extract<CliDocument, { kind: 'snapshot' }> =>
+        document.kind === 'snapshot',
+      () =>
+        new CliInputError({
+          code: 'model-projection-required',
+          message:
+            'Use readDocument for model identity and lineage; graph-only projection must be explicit.',
+          dimension: 'identity',
+          subject: input,
+        }),
+    ),
+    Effect.map((document) => document.snapshot.graph),
+  );
 }
 export function writeResponse(response: CliResponse) {
   return Effect.gen(function* () {

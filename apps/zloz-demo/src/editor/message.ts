@@ -30,6 +30,12 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ChoseModelDocumentFiles: { files: Schema.Array(Schema.instanceOf(File)) },
+  SucceededModelDocumentImport: { id: Schema.Number, document: Schema.Unknown },
+  FailedModelDocumentImport: { id: Schema.Number },
+  ClickedCancelModelImport: {},
+  CompletedCancelModelImport: {},
+  ClickedModelImportProtection: {},
   ChangedForkName: { name: Schema.String },
   ClickedForkEdition: {},
   SelectedWorkingModel: { id: Schema.String },

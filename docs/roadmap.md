@@ -181,14 +181,16 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** integrate the new model-document envelope with workbench import
-and CLI validation, preserving identity and lineage end to end, then continue with
-atomic pattern insertion. Forking is implemented locally with package-owned
+**Recommended next:** atomic pattern insertion with validated fragments, explicit
+ID remapping, live policy checks and one Undo per insertion. Model-document
+workbench import and CLI validation are now implemented locally with explicit
+identity conflicts and conversion-loss reporting. Forking is implemented locally with package-owned
 model identity, pinned source edition, independent editing/Undo, policy checks,
 session switching and an explicit model codec. Graph/snapshot/edition v1 remain
-unchanged. The existing diagram importer and CLI still read their original
-formats; they must not silently strip new model metadata. See
-[the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
+unchanged. The existing diagram importer remains graph/snapshot-only; Open model
+JSON and CLI readDocument preserve the full envelope. Mermaid projection requires
+explicit loss consent. See [the adapter qualification receipt](../apps/zloz-demo/evidence/model-import.md)
+and [the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
 DDD renderers retain the current
 descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
 with people, explore how its architecture evolves, and review/communicate the

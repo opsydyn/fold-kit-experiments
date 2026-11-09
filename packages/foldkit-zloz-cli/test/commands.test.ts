@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { NodeServices } from '@effect/platform-node';
+import { captureModelDocument, serializeModelDocument } from '@opsydyn/foldkit-zloz';
 import { Cause, Effect, Exit, Runtime, Sink, Stdio, Stream } from 'effect';
 
 import { run } from '../src/index';
@@ -70,4 +71,47 @@ test('invalid JSON and unsupported graph versions emit input diagnostics and exi
     expect(result.code).toBe(2);
     expect(JSON.parse(result.text).status).toBe('rejected');
   }
+});
+
+test('model validation preserves identity metadata and Mermaid projection losses require consent', async () => {
+  const model = captureModelDocument({
+    id: 'model-a',
+    name: 'Alternative',
+    snapshot: { graph: { nodes: [], edges: [] }, viewport: { x: 1, y: 2, zoom: 1 } },
+    editions: [],
+    origin: null,
+  });
+  const input = serializeModelDocument(model);
+  const validated = await invoke(['validate'], input);
+  expect(validated.code).toBe(0);
+  expect(JSON.parse(validated.text).model).toEqual({
+    id: 'model-a',
+    name: 'Alternative',
+    editions: 0,
+    origin: null,
+  });
+  const strict = await invoke(['mermaid', 'export'], input);
+  expect(strict.code).toBe(1);
+  expect(JSON.parse(strict.text).diagnostics.map((d: { code: string }) => d.code)).toContain(
+    'model-metadata-omitted',
+  );
+  const report = await invoke(['mermaid', 'export', '--loss-policy', 'report'], input);
+  expect(report.code).toBe(0);
+  expect(JSON.parse(report.text).diagnostics.map((d: { code: string }) => d.code)).toContain(
+    'model-metadata-omitted',
+  );
+  expect(input).toBe(serializeModelDocument(model));
+  const bad = JSON.parse(input);
+  bad.version = 99;
+  expect((await invoke(['validate'], JSON.stringify(bad))).code).toBe(2);
+});
+test('snapshot camera loss is explicit even for an empty graph', async () => {
+  const input = JSON.stringify({
+    version: 1,
+    graph: { nodes: [], edges: [] },
+    viewport: { x: 1, y: 2, zoom: 1 },
+  });
+  const strict = await invoke(['mermaid', 'export'], input);
+  expect(strict.code).toBe(1);
+  expect(JSON.parse(strict.text).diagnostics[0].code).toBe('viewport-omitted');
 });

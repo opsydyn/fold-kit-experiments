@@ -2661,7 +2661,8 @@ Editor options remain host-owned; the snapshot camera is used unless explicitly
 overridden. Undo, selection, gestures, routes and clipboard are never persisted.
 Forking is distinct from undoable restore and does not merge model branches.
 
-The existing CLI and workbench diagram importer still accept graph/snapshot JSON.
-They do not silently discard model metadata: use the explicit model codec to read
-this new envelope, and deliberately export its snapshot for diagram-only tools.
-Model-document CLI/import UI integration is a separate adapter slice.
+The standalone CLI validates model envelopes and reports explicit metadata losses
+when projecting them to Mermaid. The workbench Open model JSON action opens a
+separate session and rejects already-open IDs without overwrite or renaming. Its
+existing diagram importer remains graph/snapshot-only. Use the explicit model
+codec when identity, editions and origin must survive a round trip.

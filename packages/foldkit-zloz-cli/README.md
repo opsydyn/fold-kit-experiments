@@ -24,7 +24,7 @@ zloz mermaid export --help
 Input defaults to stdin (`--input -`). Interactive stdin requires a file or pipe;
 the command does not wait indefinitely for a terminal to supply a document.
 Input must be UTF-8, at most **1,048,576 bytes**, and a canonical version-one graph
-or snapshot document. Example:
+snapshot, or `foldkit-zloz-model` v1 document. Example:
 
 ```json
 { "version": 1, "graph": { "nodes": [], "edges": [] } }
@@ -37,7 +37,7 @@ network commands and performs no layout. General Mermaid import is not shipped.
 
 ## Conversion and agent contract
 
-`zloz validate` reports counts without changing the model. `zloz mermaid export`
+`zloz validate` reports live node/edge counts without changing the input. For model documents it also reports model ID/name, edition count and immediate origin IDs. `zloz mermaid export`
 calls the pure exporter. Non-empty diagrams have conversion losses: Mermaid
 chooses layout, and source uses safe aliases. Losses reject by default. Opt in
 with `--loss-policy report` to obtain source, identity metadata and explicit
@@ -110,3 +110,25 @@ types, stdout/stderr and 0/1/2/130 exits, file preservation, loss behavior, byte
 limits, split UTF-8 and interruption cleanup. CI runs the same checks. The
 publication selector and release automation do not enable this candidate yet;
 publication is a separate explicit step. See [ADR 0016](../../docs/adr/0016-ship-a-standalone-effect-cli-for-zloz.md).
+
+## Portable model documents
+
+The workbench's **Export model with lineage** file is accepted directly:
+
+```sh
+zloz validate --input alternative.model.json
+zloz mermaid export --input alternative.model.json --loss-policy report
+```
+
+Validation checks the entire model envelope, including edition snapshots and
+pinned origin, through the core codec. Mermaid projects the current graph only.
+Its `model-metadata-omitted` diagnostic explicitly records loss of model identity,
+editions, lineage and capture camera; default strict policy rejects that loss.
+Snapshot camera loss is reported as `viewport-omitted`, including empty graphs.
+Report mode never permits invalid documents or unsupported graph conversion.
+Keep model JSON as the authoritative copy. No input file is rewritten.
+
+The injectable `readDocument` seam returns a tagged `CliDocument` preserving the
+model or snapshot. Existing `readGraph` remains graph/snapshot-only and rejects a
+model envelope with `model-projection-required`. Existing graph/snapshot validate
+responses keep their original JSON shape; model validation adds a `model` summary.

@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "command-allocated distinct workspace identity after reload",
+    "fork export and fresh-session import preserve identity/lineage/editions/camera/graph",
+    "duplicate IDs reject without overwrite",
+    "future envelope rejects without mutation",
+    "import policy disables chooser",
+    "existing model and Undo/Redo preserved",
+    "import has a fresh Undo stack",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

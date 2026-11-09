@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { NodeServices } from '@effect/platform-node';
+import { captureModelDocument, serializeModelDocument } from '@opsydyn/foldkit-zloz';
 import {
   Cause,
   Deferred,
@@ -14,7 +15,7 @@ import {
   Stream,
 } from 'effect';
 
-import { inputByteLimit, readGraph } from '../src/index';
+import { inputByteLimit, readDocument, readGraph } from '../src/index';
 import { writeResponse } from '../src/io';
 
 const document = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
@@ -126,4 +127,27 @@ test('an unavailable stdout fails through the typed I/O channel with exit 2', as
   );
   expect(errorOf(result)).toMatchObject({ _tag: 'CliOutputError' });
   expect(Runtime.getErrorExitCode(errorOf(result))).toBe(2);
+});
+
+test('document reads retain model metadata while the graph-only adapter refuses implicit projection', async () => {
+  const model = captureModelDocument({
+    id: 'portable',
+    name: 'Portable',
+    snapshot: { graph: { nodes: [], edges: [] } },
+    editions: [],
+    origin: null,
+  });
+  const bytes = new TextEncoder().encode(serializeModelDocument(model));
+  const decoded = await Effect.runPromise(
+    readDocument('-').pipe(
+      Effect.provide(
+        Stdio.layerTest({ stdin: Stream.succeed(bytes), stdinIsTerminal: Effect.succeed(false) }),
+      ),
+      Effect.provide(NodeServices.layer),
+    ),
+  );
+  expect(decoded).toEqual({ kind: 'model', document: model });
+  const rejected = await Effect.runPromiseExit(read(Stream.succeed(bytes)));
+  expect(errorOf(rejected)).toMatchObject({ code: 'model-projection-required' });
+  expect(Runtime.getErrorExitCode(errorOf(rejected))).toBe(2);
 });

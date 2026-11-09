@@ -19,6 +19,12 @@ export function historyAllowsMessage(message: Message): boolean {
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'ChoseModelDocumentFiles',
+    'SucceededModelDocumentImport',
+    'FailedModelDocumentImport',
+    'ClickedCancelModelImport',
+    'CompletedCancelModelImport',
+    'ClickedModelImportProtection',
     'ChangedForkName',
     'ClickedForkEdition',
     'SelectedWorkingModel',

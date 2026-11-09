@@ -1,8 +1,9 @@
+import type { ZlozEventStormingRelationshipAudit } from '@opsydyn/foldkit-zloz';
 import type { MermaidBundle } from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
 export const cliProtocol = 'foldkit-zloz-cli/v1';
-export type CliOperation = 'validate' | 'mermaid-export' | 'invocation';
+export type CliOperation = 'validate' | 'mermaid-export' | 'relationships-audit' | 'invocation';
 export const CliDiagnostic = Schema.Struct({
   code: Schema.String,
   message: Schema.String,
@@ -34,6 +35,16 @@ export type CliResponse =
     }>
   | Readonly<{
       protocol: typeof cliProtocol;
+      operation: 'relationships-audit';
+      status: 'audited';
+      scope: 'current-graph';
+      modelId: string | null;
+      conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
+      data: ZlozEventStormingRelationshipAudit;
+      diagnostics: readonly CliDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof cliProtocol;
       operation: CliOperation;
       status: 'rejected';
       diagnostics: readonly CliDiagnostic[];
@@ -47,7 +58,8 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'input-limit'
     | 'invalid-utf8'
     | 'invalid-json'
-    | 'invalid-document';
+    | 'invalid-document'
+    | 'invalid-rules';
   readonly message: string;
   readonly dimension: CliDiagnostic['dimension'];
   readonly subject: string;
@@ -60,6 +72,10 @@ export class CliOutputError extends Data.TaggedError('CliOutputError') {
   readonly [Runtime.errorReported] = false;
 }
 export class CliConversionRejected extends Data.TaggedError('CliConversionRejected') {
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+export class CliAuditIncompatible extends Data.TaggedError('CliAuditIncompatible') {
   readonly [Runtime.errorExitCode] = 1;
   readonly [Runtime.errorReported] = false;
 }

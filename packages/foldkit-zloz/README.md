@@ -3171,3 +3171,37 @@ availability and compatibility; a custom renderer can choose the desired level
 of detail. Native disabled/description/value semantics stay model-derived.
 Server-rendered options explicitly retain selection, including unavailable stored
 values. No generated IDs, new cursor/draft, timer or persistence format is added.
+
+## Read-only causal relationship audit
+
+`auditEventStormingRelationships(graph, options?)` uses the existing convention
+resolver for every edge. The same `rules` and `roleOf` options are supported.
+
+```ts
+import { auditEventStormingRelationships } from '@opsydyn/foldkit-zloz';
+
+const audit = auditEventStormingRelationships(graph, conventions);
+// audit.status: 'compatible' | 'incompatible'
+// audit.summary: { edges, typed, inferred, unrelated, blocked }
+for (const entry of audit.entries) {
+  if (entry.status === 'blocked') console.log(entry.edgeId, entry.code, entry.message);
+}
+```
+
+Entries have stable edge ID/label, source/target port identity and distinct
+`typed`, `inferred`, `unrelated` or `blocked` status. Typed/inferred entries carry a
+non-null architecture descriptor and relationship key. Blocked entries preserve
+any authored descriptor and the existing resolver code. Ordering is canonical
+UTF-16 edge-ID order, independent of graph-array order or process locale.
+
+A compatible report means **no blocked relationships under this convention**;
+it does not mean every edge has authored semantic metadata. Inferred meaning is
+reported without stamping it into the graph. Unrelated edges remain explicitly
+unrelated. Counts include every edge. Empty graphs succeed, while invalid rule
+catalogues reject even with no edges. Reports omit host-owned data and callbacks.
+The graph and any surrounding editor/Undo state remain untouched.
+
+Use the graph codec for structural validation; this audit is semantic only. The
+standalone Effect CLI exposes the same report as `zloz relationships audit`,
+including bounded custom JSON rule files. See the
+[CLI command contract](../foldkit-zloz-cli/README.md#causal-relationship-audit).

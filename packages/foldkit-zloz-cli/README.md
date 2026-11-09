@@ -1,6 +1,6 @@
 # Foldkit Zloz CLI
 
-An independent Effect CLI package for validating Zloz models and exporting
+An independent Effect CLI package for validating Zloz models, auditing causal relationships and exporting
 Mermaid bundles. **Local 0.1.0 candidate; not published to npm.** No Mermaid parser,
 browser, Foldkit runtime or layout engine is installed by this package.
 
@@ -132,3 +132,79 @@ The injectable `readDocument` seam returns a tagged `CliDocument` preserving the
 model or snapshot. Existing `readGraph` remains graph/snapshot-only and rejects a
 model envelope with `model-projection-required`. Existing graph/snapshot validate
 responses keep their original JSON shape; model validation adds a `model` summary.
+
+## Causal relationship audit
+
+```sh
+zloz relationships audit --input diagram.json
+cat model.json | zloz relationships audit > audit.json
+zloz relationships audit -i model.json --rules conventions.json
+zloz relationships audit --help
+```
+
+This is read-only and calls the core relationship audit. Graph/snapshot inputs
+are audited directly. Model documents audit only their **current graph**, not
+stored editions or lineage; the response identifies this scope and the model ID.
+The full result is one JSON value and newline on stdout:
+
+```json
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "relationships-audit",
+  "status": "audited",
+  "scope": "current-graph",
+  "modelId": null,
+  "conventions": { "source": "builtin", "input": null },
+  "data": {
+    "status": "compatible",
+    "summary": { "edges": 0, "typed": 0, "inferred": 0, "unrelated": 0, "blocked": 0 },
+    "entries": []
+  },
+  "diagnostics": []
+}
+```
+
+| Exit | Meaning                                                                                             |
+| ---- | --------------------------------------------------------------------------------------------------- |
+| 0    | Complete audit with no blocked relationships. Typed, inferred and unrelated counts remain distinct. |
+| 1    | Complete `audited` response with `data.status: incompatible` and per-edge semantic diagnostics.     |
+| 2    | Rejected input, rules, invocation or I/O. This is not a semantic audit result.                      |
+
+Each entry preserves edge ID/label and source/target port identity. Status is
+`typed`, `inferred`, `unrelated` or `blocked`; code/message explain the result.
+Typed/inferred entries carry architecture and relationship key. Blocked entries
+retain any authored descriptor. Top-level diagnostics include blocked entries as
+`relationship-<code>`, with the edge ID as subject and semantics/error dimensions.
+Entries use canonical UTF-16 edge-ID order. Reports omit host-owned data and
+callbacks. Neither a compatible result nor syntax-only `validate` certifies an
+executable process, and inference never rewrites metadata.
+
+`--rules` accepts a **complete replacement** catalogue, not a patch to defaults:
+
+```json
+{
+  "version": 1,
+  "rules": [
+    {
+      "architecture": { "family": "event-storming", "role": "custom", "name": "approves" },
+      "sources": ["actor"],
+      "targets": ["command"],
+      "label": "Approves"
+    }
+  ]
+}
+```
+
+Include every default/custom rule the model needs. Sources/targets support actor,
+command, aggregate, domain-event and policy. DDD aggregate/aggregate-root and
+domain-event nodes use the same interpretation as workshop notes. Unknown fields,
+duplicate semantic keys, empty role sets/labels and invalid descriptors reject
+with `invalid-rules`. Multiple compatible rules require explicit authored meaning;
+the audit reports ambiguity instead of choosing one.
+
+Rules files have their own 1,048,576-byte UTF-8 cap and use scoped streams. They
+are read before the model and are never rewritten. `--rules -` is rejected because
+stdin is reserved for model input. Configuration is data-only: no imports,
+callbacks or code execution. Applications needing custom `roleOf` interpretation
+can use the core API. The response records builtin/file provenance. Existing
+validate/Mermaid response shapes are unchanged; audit is an additive v1 operation.

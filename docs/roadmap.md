@@ -181,8 +181,15 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** a package-level causal relationship audit with Effect CLI
-JSON diagnostics, so agents can inspect whole models without opening the workbench.
+**Recommended next:** edition-aware audit comparison: select explicit baselines
+and report newly introduced/resolved relationship findings through core and CLI,
+so agents can review architecture changes without losing history context.
+
+A package-level read-only causal audit and Effect CLI command are implemented
+locally. Reports classify every edge in deterministic identity order, preserve
+typed/inferred/unrelated distinctions and return structured semantic reasons.
+The CLI scopes model audits to the current graph and supports bounded data-only
+custom rule catalogues, with distinct compatibility and input-error exits.
 
 Composable causal controls are implemented locally: a pure current-edge context,
 identity-safe request resolver, native select/inference/status/reason helpers and

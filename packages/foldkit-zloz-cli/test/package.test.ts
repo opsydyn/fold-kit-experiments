@@ -7,6 +7,9 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import {
+  createEventStormingPattern,
+  serializeGraph,
+  eventStormingRelationshipRules,
   captureModelDocument,
   captureEdition,
   serializeModelDocument,
@@ -84,6 +87,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(help.code).toBe(0);
     expect(help.stdout).toContain('validate');
     expect(help.stdout).toContain('mermaid');
+    expect(help.stdout).toContain('relationships');
     expect(help.stderr).toBe('');
     const version = await run([bin, '--version']);
     expect(version.code).toBe(0);
@@ -106,7 +110,64 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     );
     const portableFile = path.join(directory, 'portable.model.json');
     await writeFile(portableFile, modelText);
+    const causal = createEventStormingPattern();
+    const firstCausal = causal.edges[0];
+    if (!firstCausal) throw new Error('Missing causal fixture');
+    const customText = serializeGraph({
+      ...causal,
+      edges: [
+        {
+          ...firstCausal,
+          architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+        },
+      ],
+    });
+    const customRules = path.join(directory, 'causal-rules.json');
+    await writeFile(
+      customRules,
+      JSON.stringify({
+        version: 1,
+        rules: [
+          ...eventStormingRelationshipRules,
+          {
+            architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+            sources: ['actor'],
+            targets: ['command'],
+            label: 'Approves',
+          },
+        ],
+      }),
+    );
     for (const runtime of ['node', 'bun']) {
+      const audited = await run([runtime, bin, 'relationships', 'audit'], serializeGraph(causal));
+      expect(audited.code).toBe(0);
+      expect(audited.stderr).toBe('');
+      expect(JSON.parse(audited.stdout).data.summary).toEqual({
+        edges: 4,
+        typed: 4,
+        inferred: 0,
+        unrelated: 0,
+        blocked: 0,
+      });
+      const incompatible = await run([runtime, bin, 'relationships', 'audit'], customText);
+      expect(incompatible.code).toBe(1);
+      expect(incompatible.stderr).toBe('');
+      expect(JSON.parse(incompatible.stdout).diagnostics[0].code).toBe(
+        'relationship-unknown-relationship',
+      );
+      const customAudit = await run(
+        [runtime, bin, 'relationships', 'audit', '--rules', customRules],
+        customText,
+      );
+      expect(customAudit.code).toBe(0);
+      expect(customAudit.stderr).toBe('');
+      expect(JSON.parse(customAudit.stdout).data.entries[0].relationshipKey).toBe(
+        'custom:approves',
+      );
+      const badRules = await run([runtime, bin, 'relationships', 'audit', '--rules', '-'], empty);
+      expect(badRules.code).toBe(2);
+      expect(badRules.stderr).toBe('');
+      expect(JSON.parse(badRules.stdout).diagnostics[0].code).toBe('invalid-rules');
       const portable = await run([runtime, bin, 'validate', '--input', portableFile]);
       expect(portable.code).toBe(0);
       expect(JSON.parse(portable.stdout).model).toEqual({

@@ -2,13 +2,18 @@
  * Effect command tree for the standalone Zloz CLI. Importing never starts a process.
  * @module CLI
  */
-import type { ZlozGraph, ZlozSnapshot } from '@opsydyn/foldkit-zloz';
+import {
+  auditEventStormingRelationships,
+  type ZlozGraph,
+  type ZlozSnapshot,
+  type ZlozEventStormingRelationshipOptions,
+} from '@opsydyn/foldkit-zloz';
 import {
   exportMermaid,
   type MermaidDirection,
   type MermaidLossPolicy,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { Console, Effect, Match, Stdio } from 'effect';
+import { Console, Effect, Match, Option, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
@@ -18,11 +23,13 @@ import {
   CliInputError,
   type CliDiagnostic,
   CliConversionRejected,
+  CliAuditIncompatible,
   CliInvocationRejected,
   encodeResponse,
   type CliOperation,
   type CliResponse,
 } from './protocol';
+import { readRelationshipRules } from './relationship-rules';
 export { inputByteLimit, readGraph, readDocument } from './io';
 export type { CliDocument } from './io';
 export {
@@ -31,6 +38,7 @@ export {
   CliInputError,
   CliOutputError,
   CliConversionRejected,
+  CliAuditIncompatible,
   CliInvocationRejected,
 } from './protocol';
 export type { CliOperation, CliResponse } from './protocol';
@@ -69,12 +77,13 @@ function execute(
   return Effect.gen(function* () {
     const document = yield* readForOperation(operation, input);
     const response = project(document);
-    yield* writeResponse(response).pipe(
+    const reporting = writeResponse(response).pipe(
       Effect.filterOrFail(
         (value) => value.status !== 'rejected',
         () => new CliConversionRejected(),
       ),
     );
+    yield* reporting;
   });
 }
 const graphOf = (document: CliDocument): ZlozGraph =>
@@ -162,6 +171,56 @@ const convert =
       Match.orElse(() => rejectConversion(diagnostics)),
     );
   };
+function readAuditRules(input: string) {
+  return readRelationshipRules(input).pipe(
+    Effect.catchTag('CliInputError', (error) => rejectInput('relationships-audit', error)),
+  );
+}
+function executeAudit(input: string, rules: Option.Option<string>) {
+  const auditing = Effect.gen(function* () {
+    const readingRules = Option.match(rules, {
+      onNone: () => Effect.succeed<ZlozEventStormingRelationshipOptions>({}),
+      onSome: readAuditRules,
+    });
+    const options = yield* readingRules;
+    const document = yield* readForOperation('relationships-audit', input);
+    const data = auditEventStormingRelationships(graphOf(document), options);
+    const modelId = Match.value(document).pipe(
+      Match.when({ kind: 'model' }, ({ document }) => document.id),
+      Match.orElse(() => null),
+    );
+    const conventions = Option.match(rules, {
+      onNone: () => ({ source: 'builtin' as const, input: null }),
+      onSome: (input) => ({ source: 'file' as const, input }),
+    });
+    const response: Extract<CliResponse, { status: 'audited' }> = {
+      protocol: cliProtocol,
+      operation: 'relationships-audit',
+      status: 'audited',
+      scope: 'current-graph',
+      modelId,
+      conventions,
+      data,
+      diagnostics: data.entries
+        .filter((entry) => entry.status === 'blocked')
+        .map((entry) => ({
+          code: `relationship-${entry.code}`,
+          message: entry.message,
+          subject: entry.edgeId,
+          severity: 'error',
+          dimension: 'semantics',
+        })),
+    };
+    const reporting = writeResponse(response).pipe(
+      Effect.filterOrFail(
+        () => data.status === 'compatible',
+        () => new CliAuditIncompatible(),
+      ),
+    );
+    yield* reporting;
+  });
+  return auditing.pipe(Effect.withSpan('zloz.cli.auditRelationships'));
+}
 const input = Flag.String('input').pipe(
   Flag.withAlias('i'),
   Flag.withDefault('-'),
@@ -192,11 +251,28 @@ const mermaidCommand = Command.make('mermaid').pipe(
   Command.withDescription('Loss-aware Mermaid projections.'),
   Command.withSubcommands([exportCommand]),
 );
+const rules = Flag.String('rules').pipe(
+  Flag.optional,
+  Flag.withDescription(
+    'Optional version-one data-only rule catalogue file (1 MiB maximum). Stdin remains reserved for the model.',
+  ),
+);
+const auditCommand = Command.make('audit', { input, rules }, (config) =>
+  executeAudit(config.input, config.rules),
+).pipe(
+  Command.withDescription(
+    'Read-only causal relationship audit with per-edge JSON results and semantic diagnostics.',
+  ),
+);
+const relationshipsCommand = Command.make('relationships').pipe(
+  Command.withDescription('Event-storming causal relationship tools.'),
+  Command.withSubcommands([auditCommand]),
+);
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(
-    'Compose systems. Connect ideas. Validate Zloz models and export Mermaid as JSON.',
+    'Compose systems. Connect ideas. Validate and audit Zloz models; export Mermaid as JSON.',
   ),
-  Command.withSubcommands([validate, mermaidCommand]),
+  Command.withSubcommands([validate, mermaidCommand, relationshipsCommand]),
 );
 
 type InvalidInvocation = Extract<CliOutput.Presenter.Event, { readonly _tag: 'InvalidInvocation' }>;

@@ -1,7 +1,18 @@
 import { expect, test } from 'bun:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { NodeServices } from '@effect/platform-node';
-import { captureModelDocument, serializeModelDocument } from '@opsydyn/foldkit-zloz';
+import {
+  captureModelDocument,
+  captureEdition,
+  serializeModelDocument,
+  createEventStormingPattern,
+  serializeGraph,
+  eventStormingRelationshipRules,
+} from '@opsydyn/foldkit-zloz';
 import { Cause, Effect, Exit, Runtime, Sink, Stdio, Stream } from 'effect';
 
 import { run } from '../src/index';
@@ -114,4 +125,147 @@ test('snapshot camera loss is explicit even for an empty graph', async () => {
   const strict = await invoke(['mermaid', 'export'], input);
   expect(strict.code).toBe(1);
   expect(JSON.parse(strict.text).diagnostics[0].code).toBe('viewport-omitted');
+});
+
+test('relationship audit is an Effect command with a distinct audited response', async () => {
+  const result = await invoke(['relationships', 'audit'], empty);
+  expect(result.code).toBe(0);
+  const response = JSON.parse(result.text);
+  expect(response.operation).toBe('relationships-audit');
+  expect(response.status).toBe('audited');
+  expect(response.data.summary).toEqual({
+    edges: 0,
+    typed: 0,
+    inferred: 0,
+    unrelated: 0,
+    blocked: 0,
+  });
+});
+
+test('audit distinguishes compatibility exit 1 from malformed-input exit 2 and scopes model input to the live graph', async () => {
+  const value = createEventStormingPattern();
+  const first = value.edges[0];
+  assert(first, 'Missing edge');
+  const bad = {
+    ...value,
+    edges: [
+      { ...first, architecture: { family: 'event-storming' as const, role: 'emits' as const } },
+    ],
+  };
+  const incompatible = await invoke(['relationships', 'audit'], serializeGraph(bad));
+  expect(incompatible.code).toBe(1);
+  const response = JSON.parse(incompatible.text);
+  expect(response.status).toBe('audited');
+  expect(response.data.status).toBe('incompatible');
+  expect(response.diagnostics[0]).toMatchObject({
+    code: 'relationship-incompatible-roles',
+    subject: first.id,
+    severity: 'error',
+    dimension: 'semantics',
+  });
+  const invalid = await invoke(['relationships', 'audit'], '{bad');
+  expect(invalid.code).toBe(2);
+  expect(JSON.parse(invalid.text).diagnostics[0].code).toBe('invalid-json');
+  const document = captureModelDocument({
+    id: 'audit-model',
+    name: 'Current',
+    snapshot: { graph: value },
+    editions: [
+      captureEdition({
+        id: 'earlier',
+        name: 'Earlier incompatible draft',
+        snapshot: { graph: bad },
+      }),
+    ],
+    origin: null,
+  });
+  const result = await invoke(['relationships', 'audit'], serializeModelDocument(document));
+  const output = JSON.parse(result.text);
+  expect(result.code).toBe(0);
+  expect(output.scope).toBe('current-graph');
+  expect(output.modelId).toBe('audit-model');
+  expect(output.data.summary).toEqual({
+    edges: 4,
+    typed: 4,
+    inferred: 0,
+    unrelated: 0,
+    blocked: 0,
+  });
+});
+test('data-only rule files support named custom meaning and reject malformed, duplicate or executable configuration', async () => {
+  const creatingDirectory = Effect.promise(() => mkdtemp(join(tmpdir(), 'zloz-audit-rules-')));
+  const fixture = Effect.acquireUseRelease(
+    creatingDirectory,
+    (directory) =>
+      Effect.promise(async () => {
+        const graph = createEventStormingPattern(),
+          first = graph.edges[0];
+        assert(first, 'Missing edge');
+        const text = serializeGraph({
+          ...graph,
+          edges: [
+            {
+              ...first,
+              architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+            },
+          ],
+        });
+        const file = join(directory, 'rules.json');
+        const rule = {
+          architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+          sources: ['actor'],
+          targets: ['command'],
+          label: 'Approves',
+        };
+        const rules = JSON.stringify({ version: 1, rules: [rule] });
+        await writeFile(file, rules);
+        expect((await invoke(['relationships', 'audit'], text)).code).toBe(1);
+        const accepted = await invoke(['relationships', 'audit', '--rules', file], text);
+        expect(accepted.code).toBe(0);
+        expect(JSON.parse(accepted.text).data.entries[0].relationshipKey).toBe('custom:approves');
+        expect(JSON.parse(accepted.text).conventions).toEqual({ source: 'file', input: file });
+        expect(await readFile(file, 'utf8')).toBe(rules);
+        for (const invalid of [
+          { version: 2, rules: [rule] },
+          { version: 1, rules: [rule, rule] },
+          { version: 1, rules: [{ ...rule, sources: [] }] },
+          { version: 1, rules: [{ ...rule, execute: 'throw new Error()' }] },
+          { version: 1, rules: [rule], roleOf: '() => actor' },
+        ]) {
+          await writeFile(file, JSON.stringify(invalid));
+          const result = await invoke(['relationships', 'audit', '--rules', file], text);
+          expect(result.code).toBe(2);
+          expect(JSON.parse(result.text).diagnostics[0].code).toBe('invalid-rules');
+        }
+        const reserved = await invoke(['relationships', 'audit', '--rules', '-'], text);
+        expect(reserved.code).toBe(2);
+        expect(JSON.parse(reserved.text).diagnostics[0].message).toContain('stdin is reserved');
+        const missing = await invoke(
+          ['relationships', 'audit', '--rules', join(directory, 'missing.json')],
+          text,
+        );
+        expect(missing.code).toBe(2);
+        expect(JSON.parse(missing.text).diagnostics[0].code).toBe('input-unavailable');
+        await writeFile(
+          file,
+          JSON.stringify({
+            version: 1,
+            rules: [
+              ...eventStormingRelationshipRules,
+              { ...rule, architecture: { ...rule.architecture, name: 'a' } },
+              { ...rule, architecture: { ...rule.architecture, name: 'b' } },
+            ],
+          }),
+        );
+        const { architecture: _architecture, ...untyped } = first;
+        const ambiguous = await invoke(
+          ['relationships', 'audit', '--rules', file],
+          serializeGraph({ ...graph, edges: [untyped] }),
+        );
+        expect(ambiguous.code).toBe(1);
+        expect(JSON.parse(ambiguous.text).data.entries[0].code).toBe('ambiguous-relationship');
+      }),
+    (directory) => Effect.promise(() => rm(directory, { recursive: true, force: true })),
+  );
+  await Effect.runPromise(fixture);
 });

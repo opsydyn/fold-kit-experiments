@@ -293,3 +293,10 @@ export type {
   ZlozEventStormingRelationshipControlsContext,
   ZlozEventStormingRelationshipEditDecision,
 } from './relationship-controls';
+
+export { auditEventStormingRelationships } from './relationship-audit';
+export type {
+  ZlozRelationshipAuditCode,
+  ZlozEventStormingRelationshipAuditEntry,
+  ZlozEventStormingRelationshipAudit,
+} from './relationship-audit';

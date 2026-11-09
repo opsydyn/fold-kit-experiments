@@ -224,3 +224,18 @@ The `/foldkit` entry exports `zlozEventStormingRelationshipControls`,
 `ZlozEventStormingRelationshipControlsViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#composable-causal-relationship-controls)
 and [ADR 0031](adr/0031-compose-causal-relationship-controls.md).
+
+### Causal relationship audit
+
+Core exports `auditEventStormingRelationships`, `ZlozRelationshipAuditCode`,
+`ZlozEventStormingRelationshipAuditEntry` and `ZlozEventStormingRelationshipAudit`.
+The read-only report classifies all edges using the existing resolver and accepts
+the same custom rules/role interpretation. See the
+[core example](../packages/foldkit-zloz/README.md#read-only-causal-relationship-audit).
+
+The Effect CLI adds `zloz relationships audit` with optional bounded data-only
+`--rules` files and `CliAuditIncompatible`. Its audited response distinguishes
+semantic incompatibility (exit 1) from malformed/configuration input (exit 2),
+retains complete per-edge results and scopes models explicitly to their current
+graph. See the [CLI contract](../packages/foldkit-zloz-cli/README.md#causal-relationship-audit)
+and [ADR 0032](adr/0032-audit-causal-relationships-through-effect-cli.md).

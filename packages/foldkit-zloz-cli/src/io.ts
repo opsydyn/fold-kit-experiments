@@ -92,8 +92,8 @@ const decodeDocument = (text: string, value: JsonValue, input: string) =>
         subject: input,
       }),
   });
-/** Scoped platform input; the core codec remains the authority for graph/snapshot semantics. */
-export function readDocument(input: string) {
+/** Scoped UTF-8 JSON input shared by document and data-only configuration readers. */
+export function readJsonInput(input: string) {
   const reading = Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const stdio = yield* Stdio.Stdio;
@@ -113,9 +113,16 @@ export function readDocument(input: string) {
     const chunks = yield* collectInput(source, input);
     const text = yield* decodeUtf8(chunks, input);
     const value = yield* decodeJson(text, input);
-    return yield* decodeDocument(text, value, input);
+    return { text, value };
   });
-  return reading.pipe(Effect.withSpan('zloz.cli.readDocument'));
+  return reading.pipe(Effect.withSpan('zloz.cli.readJsonInput'));
+}
+/** Document interpretation remains separate from the shared bounded JSON input boundary. */
+export function readDocument(input: string) {
+  return readJsonInput(input).pipe(
+    Effect.flatMap(({ text, value }) => decodeDocument(text, value, input)),
+    Effect.withSpan('zloz.cli.readDocument'),
+  );
 }
 /** Graph-only compatibility seam: never implicitly projects a model document. */
 export function readGraph(input: string) {

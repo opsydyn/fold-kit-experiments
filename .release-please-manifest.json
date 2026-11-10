@@ -5,8 +5,8 @@
   "packages/effect-three-foldkit": "0.6.4",
   "packages/effect-three-rapier": "0.6.4",
   "packages/effect-three-troika": "0.6.4",
-  "packages/foldkit-zloz": "0.2.0",
-  "packages/foldkit-zloz-elk": "0.2.0",
-  "packages/foldkit-zloz-force": "0.2.0",
-  "packages/foldkit-zloz-mermaid": "0.2.0"
+  "packages/foldkit-zloz": "0.3.0",
+  "packages/foldkit-zloz-elk": "0.3.0",
+  "packages/foldkit-zloz-force": "0.3.0",
+  "packages/foldkit-zloz-mermaid": "0.3.0"
 }

@@ -1,7 +1,7 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Literal graph outline assertions. */
 import { expect, test } from 'bun:test';
 
-import type { ZlozGraph } from '@opsydyn/foldkit-zloz';
+import { createArchitecturePattern, type ZlozGraph } from '@opsydyn/foldkit-zloz';
 
 import { exportMermaid, mermaidProtocol, mermaidSourceLimit } from '../src/index';
 
@@ -205,4 +205,29 @@ test('the documented source limit is inclusive and measured in UTF-16 code units
   );
   expect(rejected.status).toBe('rejected');
   expect(rejected.diagnostics.some((item) => item.code === 'source-limit')).toBe(true);
+});
+
+test('event-storming metadata loss is explicit and rejected by default', () => {
+  const graph = createArchitecturePattern('event-storming');
+  expect(exportMermaid(graph).status).toBe('rejected');
+  const result = exportMermaid(graph, { lossPolicy: 'report' });
+  expect(result.status).toBe('converted');
+  expect(
+    result.diagnostics.filter(
+      (item) => item.code === 'node-fields-omitted' && item.message.includes('architecture'),
+    ),
+  ).toHaveLength(5);
+  if (result.status === 'converted') expect(result.value.source).toContain('Order placed');
+});
+
+test('typed causal relationships are explicitly reported as semantic conversion loss', () => {
+  const source = createArchitecturePattern('event-storming');
+  const result = exportMermaid(source, { lossPolicy: 'report' });
+  expect(result.status).toBe('converted');
+  expect(
+    result.diagnostics.filter(
+      (value) => value.code === 'edge-fields-omitted' && value.message.includes('architecture'),
+    ),
+  ).toHaveLength(4);
+  expect(exportMermaid(source, { lossPolicy: 'reject' }).status).not.toBe('converted');
 });

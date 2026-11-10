@@ -2616,3 +2616,714 @@ live protection reason and explicit **Restore as new change** action demonstrate
 the package contract. Editions remain session-owned until exported; import does
 not enable automatic persistence. Forks, merging branches and playback remain
 separate slices.
+
+### Fork an edition into another model
+
+`captureModelDocument` owns portable document identity separately from local
+node/edge/port IDs. `forkEdition` selects an edition in that model's collection,
+checks distinct identity and an optional `canForkEdition` veto, and returns a new
+immutable document. The source is untouched. Each document owns its own edition
+IDs; the fork starts without captured editions. `origin` pins the immediate
+parent's ID/name and exact edition. It is not a complete ancestry DAG or an
+attestation of ownership. Hosts allocate model IDs unique within their registry.
+
+```ts
+import {
+  captureModelDocument,
+  forkEdition,
+  createModelEditor,
+  serializeModelDocument,
+  parseModelDocument,
+} from '@opsydyn/foldkit-zloz';
+
+const source = captureModelDocument({
+  id: 'ordering',
+  name: 'Ordering',
+  snapshot: { graph },
+  editions: [edition],
+  origin: null,
+});
+const fork = forkEdition(source, edition.id, {
+  id: 'ordering-alternative',
+  name: 'Alternative ordering',
+});
+if (fork.type === 'forked') {
+  const portable = parseModelDocument(serializeModelDocument(fork.document));
+  const editor = createModelEditor(portable); // fresh editable session; empty Undo/Redo
+}
+```
+
+The independent `foldkit-zloz-model` version-1 JSON envelope preserves snapshot,
+editions and pinned origin. Existing graph/snapshot and edition-archive version-1
+formats remain unchanged and do not carry model identity. Old strict snapshot
+readers reject model envelopes; use `parseModelDocument`, then `createModelEditor`.
+Editor options remain host-owned; the snapshot camera is used unless explicitly
+overridden. Undo, selection, gestures, routes and clipboard are never persisted.
+Forking is distinct from undoable restore and does not merge model branches.
+
+The standalone CLI validates model envelopes and reports explicit metadata losses
+when projecting them to Mermaid. The workbench Open model JSON action opens a
+separate session and rejects already-open IDs without overwrite or renaming. Its
+existing diagram importer remains graph/snapshot-only. Use the explicit model
+codec when identity, editions and origin must survive a round trip.
+
+## Atomic architecture patterns
+
+`insertPattern` adds any self-contained graph fragment without replacing existing
+content. `createArchitecturePattern('c4-context' | 'ddd-aggregate' | 'event-storming')` supplies fresh,
+customizable starters; use your own graph for other patterns.
+
+```ts
+import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
+
+const result = insertPattern(editor, createArchitecturePattern('ddd-aggregate'), {
+  offset: { x: 800, y: 40 },
+  policy: {
+    canInsertPattern: (fragment, current) => null,
+    canConnectPort: (endpoint, proposed) => null,
+  },
+});
+if (result.type === 'inserted') {
+  editor = result.editor;
+  const newRootId = result.nodeIds.get('source');
+}
+```
+
+Every node and edge gets a fresh ID, returned in separate `ReadonlyMap`s. Parent
+and endpoint references are remapped; node-local port IDs, geometry, semantics
+and JSON data survive. JSON strings are opaque and are never rewritten as IDs.
+Offsets translate all world positions equally, including nested groups. Placement
+and overlap handling belong to the host.
+
+The complete fragment is validated and detached. Invalid input throws `ZlozError`;
+expected vetoes return `blocked` with the original editor and a nonempty reason.
+Empty fragments return `unchanged`. Read-only/busy editors and disabled Undo
+block insertion. Whole-pattern and existing connection policies run on every
+call; each edge policy sees the complete proposed graph excluding that edge.
+Selection policies filter the new root selection independently of insertion.
+One successful insertion records one Undo step and clears Redo/routes, preserving
+the camera, clipboard, model identity and editions. Persistence stays version one.
+
+## Event-storming notes
+
+The `EventStormingNodeArchitecture` family models workshop process notes:
+`{ family: 'event-storming', role: 'command' | 'domain-event' | 'policy' | 'actor', description?: string }`.
+These are ordinary nodes using existing geometry, ports, grouping membership,
+serialization and semantic-edit Undo. They cannot themselves be group boundaries.
+The separate DDD `domain-event` role keeps its existing structural meaning.
+
+```ts
+import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
+import { zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
+
+const result = insertPattern(editor, createArchitecturePattern('event-storming'));
+// In zlozView options:
+const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
+```
+
+The starter shows Customer → Place order → Order placed → a policy → Request
+payment. Edges describe an illustrative process; notes do not execute policies or
+enforce causality. Adapt labels, ports, outlines and relationships to your model.
+
+`ZlozEventStormingNodeOptions` offers `renderType`, `renderName`,
+`renderDescription`, `renderBody`, `renderControls`, `attributes` and `bodyCache`.
+Undefined slot results retain defaults, null omits content, and an empty controls
+array hides chrome. Keep interactive UI in `renderControls`; sockets and control
+feedback stay outside cached inert artwork. Compose this renderer with C4/DDD
+renderers using their undefined fallback.
+
+Scoped theme tokens `eventStormingCommand`, `eventStormingEvent`,
+`eventStormingPolicy` and `eventStormingActor` override role accents, including
+with host/Pleat variables. Light/dark defaults retain visible type labels so color
+is supplemental. Outlines and geometry remain independent of semantic roles.
+Graph/model envelopes remain version one; older readers can reject this new
+semantic family. Mermaid strict export rejects omitted architecture metadata;
+report mode explicitly discloses that loss. This is a bounded vocabulary, not a
+complete workshop methodology or process engine.
+
+## Opt-in edition playback
+
+`createEditionPlayback` creates a session cursor over an ordered collection of
+unique edition IDs. It stores no graphs, browser resources or working editor.
+Hosts own the clock and resolve the selected ID against their own edition store.
+
+```ts
+import {
+  createEditionPlayback,
+  updateEditionPlayback,
+  playbackEditionId,
+} from '@opsydyn/foldkit-zloz';
+
+let playback = createEditionPlayback(
+  editions.map((edition) => edition.id),
+  {
+    intervalMs: 2000,
+    reducedMotion: prefersReducedMotion,
+  },
+);
+playback = updateEditionPlayback(playback, { type: 'PlayClicked' });
+// From a host-owned subscription, only while status is 'playing':
+playback = updateEditionPlayback(playback, { type: 'Elapsed', milliseconds: 2000 });
+const selectedId = playbackEditionId(playback);
+```
+
+Playback starts paused. Reduced motion defaults true until explicitly supplied;
+`editionPlaybackReason` gives a visible reason when automatic play is unavailable.
+Events include PlayClicked, PauseClicked, RewindClicked, PreviousClicked,
+NextClicked, EditionSelected, IntervalChanged and ReducedMotionChanged. Rewind,
+manual steps, seeking, speed changes and enabling reduced motion pause/reset timing.
+Removing reduced motion never resumes automatically. Empty/single collections
+cannot play automatically; manual steps remain available with reduced motion.
+
+At most one edition advances per elapsed event; overshoot is discarded to avoid
+catch-up bursts. Playback pauses at the end. Play at the last edition restarts at
+the first without looping. Invalid identities, intervals or active elapsed values
+throw `ZlozError`. Replace the controller when the edition collection changes.
+
+Use `createHistoryReview` for the selected edition and `compareEditions` plus
+`zlozHistoryGhosts` for optional comparison. Preserve the working editor and its
+Undo. Hosts must cancel subscriptions and reject stale scoped ticks after pause,
+model/collection changes, leaving history or lifecycle changes. The workbench
+uses a scoped Effect Stream timer with model/run identity, pauses for hidden
+pages and live reduced-motion changes, and lets manual inspection take priority.
+Playback is session-only and never changes portable document formats.
+
+## Composable playback controls
+
+Core `resolveEditionPlaybackControls` projects the cursor into named actions,
+status text and availability reasons. `blockedReason` adds a host restriction on
+play/manual navigation; `automaticReason` adds a restriction on automatic play
+only. Core reduced-motion and boundary guards remain in force. Pause stays
+available while running. Blank reasons retain a nonempty fallback, and labels can
+be localized with the `labels` record. `editionLabel` resolves your store's name
+without putting edition data inside the cursor.
+
+```ts
+import { resolveEditionPlaybackControls } from '@opsydyn/foldkit-zloz';
+import { zlozPlaybackControls, zlozPlaybackControl } from '@opsydyn/foldkit-zloz/foldkit';
+
+const context = resolveEditionPlaybackControls(playback, {
+  editionLabel: currentEditionName,
+  blockedReason: editingReason,
+  automaticReason: visibilityReason,
+});
+const controls = zlozPlaybackControls(h, context, toMessage, {
+  renderControl: (action, builder, onEvent) =>
+    zlozPlaybackControl(builder, action, onEvent, [builder.Class('my-pill')], [action.label]),
+});
+```
+
+The Foldkit entry exposes the group composition and individual native helpers
+`zlozPlaybackControl`, `zlozPlaybackStatus` and `zlozPlaybackReason`. The component
+is unstyled. Customize `renderControl`, `renderStatus`, `renderReason` and
+`renderLayout`, or use the helpers independently inside your own frame. Slot
+undefined retains a default; null omits a part. `controls` sets an ordered subset
+(duplicates are removed); `[]` omits all controls. Frame/status/reason labels are
+configurable, and status/reason helpers accept custom children and label options.
+
+Native helpers preserve button types, accessible names, disabled state, reason
+descriptions and polite status semantics. Supply a Key through attributes when
+composing repeated actions in one parent. Custom HTML can replace them entirely;
+its semantics then belong to the consumer. Contexts are view projections, not
+permission grants: keep live update guards and host timer/lifecycle handling.
+No state, generated DOM IDs, subscription or persistence format is introduced.
+The workbench demonstrates custom icon pills, a timeline badge and reason layout
+using these same public APIs.
+
+## Edition scrubber and explicit seeking
+
+Core `resolveEditionScrubber` derives ordered entries, current value text and
+manual-seek restrictions from the existing playback cursor. Customize names with
+`labelEdition`, `formatValueText`, `label` and `emptyLabel`. No ordinal counters
+are required in the visible readout. Manual seeking remains available with
+reduced motion.
+
+```ts
+import {
+  resolveEditionScrubber,
+  editionScrubberRequest,
+  resolveEditionSeek,
+  updateEditionPlayback,
+} from '@opsydyn/foldkit-zloz';
+
+const context = resolveEditionScrubber(playback, {
+  labelEdition: (id) => names.get(id) ?? id,
+  blockedReason: editingReason,
+});
+const request = editionScrubberRequest(context, '3');
+// In update: recheck the host session and resolve against current state/policy.
+const decision = resolveEditionSeek(playback, request, { blockedReason: editingReason });
+if (decision.type === 'ready') playback = updateEditionPlayback(playback, decision.event);
+```
+
+Requests carry an edition ID, not a saved array index. Reordering cannot redirect
+the request to a different edition. Missing IDs and malformed/out-of-bounds native
+values are ignored; no clamping or implicit substitute is chosen. Host vetoes
+return a nonempty blocked reason. Applying the ready EditionSelected event pauses
+playback and clears elapsed timing. The host projects a read-only review while
+preserving the working editor and Undo.
+
+The `/foldkit` entry exposes `zlozEditionScrubber` and individual input, readout,
+reason and Open-button helpers. The controlled native range supports browser
+keyboard navigation and uses `aria-valuetext` for human labels. Its readout is
+non-live to avoid another announcement of each range value. A single edition
+locks the range but remains explicitly openable; Open also handles an unchanged
+first position while present.
+
+Use `renderInput`, `renderReadout`, `renderReason`, `renderOpen` and `renderLayout`
+to replace, omit or rearrange parts. Undefined retains defaults and null omits a
+part. Helpers are unstyled, generate no DOM IDs and allow attributes/custom
+children/labels. They create no draft selection, timer or persistence format.
+Custom HTML owns its own semantics. Hosts must check current identity, policy and
+callback lifetime in update; the workbench uses a dedicated seek-session token
+that survives continuous seeking but expires on leaving history, returning to
+present, collection/model changes or disable/re-enable. Its eight-checkpoint
+sample is synthetic demonstration data, not a business change log.
+
+## Composable history comparison controls
+
+Core owns baseline choices and ghost preferences without a renderer or timer:
+
+```ts
+import {
+  resolveHistoryComparisonControls,
+  resolveHistoryComparisonRequest,
+  type ZlozHistoryComparisonControlsState,
+} from '@opsydyn/foldkit-zloz';
+
+let settings: ZlozHistoryComparisonControlsState = {
+  baselineId: 'original',
+  ghosts: { enabled: true, nodes: true, edges: true, movements: true },
+};
+const policy = {
+  minimalMode,
+  ghostReasons: { edges: 'Edge overlays are managed by this workspace.' },
+};
+const context = resolveHistoryComparisonControls(editions, viewedEditionId, settings, policy);
+// In update, resolve again against current metadata, settings and policy:
+const decision = resolveHistoryComparisonRequest(editions, viewedEditionId, settings, {
+  type: 'GhostVisibilityToggled',
+  part: 'nodes',
+});
+if (decision.type === 'ready') settings = decision.state;
+```
+
+Pass the **same current policy** to both resolvers. `BaselineSelected` carries an
+edition ID or explicit null clear. Unknown/self IDs are ignored; stale stored IDs
+produce no active baseline without rewriting preferences. Duplicate/blank IDs
+and blank names reject with `ZlozError`. `GhostVisibilityChanged` sets an absolute
+value; native controls emit `GhostVisibilityToggled` for fresh-state updates.
+No-op requests return unchanged; denied requests return blocked with a reason.
+
+Use `context.effectiveGhosts` with `zlozHistoryGhosts`. Minimal mode and the master
+switch retain each layer choice. Preferences can be configured before reviewing.
+Global `blockedReason`, `baselineReason` and per-part `ghostReasons` protect
+controls independently, with visible reasons. Labels and edition names can be
+localized through context options.
+
+```ts
+import {
+  zlozHistoryComparisonControls,
+  zlozHistoryGhostToggle,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozHistoryComparisonControls(h, context, toMessage, {
+  renderGhost: (control, builder, onRequest) =>
+    builder.label([], [zlozHistoryGhostToggle(builder, control, onRequest), control.label]),
+});
+```
+
+The optional entry also exports `zlozHistoryBaselineSelect`,
+`zlozHistoryComparisonStatus` and `zlozHistoryComparisonReason`. Helpers are
+unstyled native controls. Compose individually or customize `renderBaseline`,
+`renderGhost`, `renderStatus`, `renderReason` and `renderLayout`. Undefined keeps
+defaults; null omits a part. `ghosts` selects/reorders visible layers (duplicates
+are removed; [] hides all). Attributes style controls without replacing native
+checked/disabled/selection semantics. Custom renderers own any replacement
+semantics. Hosts own request lifetimes, comparison data, accessible change lists
+and playback interruption; these helpers never edit the graph or Undo.
+
+## Composable history change navigation
+
+`resolveHistoryChangeNavigator(comparison, options)` derives native-control
+contexts and a filtered list from `compareEditions`. Options include independent
+`filters` for `added`, `removed` and `changed` (all default true), `filterLabels`,
+`labelChange`, global `blockedReason` and per-item `focusReason`. Node/edge IDs
+have separate namespaces. Counts describe the unfiltered comparison; filtering
+never changes the comparison or ghost preferences.
+
+```ts
+import { resolveHistoryChangeNavigator, resolveHistoryChangeFocus } from '@opsydyn/foldkit-zloz';
+import { zlozHistoryChangeNavigator, zlozHistoryChangeButton } from '@opsydyn/foldkit-zloz/foldkit';
+
+const options = { filters, blockedReason: busyReason };
+const context = resolveHistoryChangeNavigator(comparison, options);
+const view = zlozHistoryChangeNavigator(
+  h,
+  context,
+  { onFilter, onFocus },
+  {
+    renderEntry: (entry, builder, focus) =>
+      builder.li([], [zlozHistoryChangeButton(builder, entry, focus, [], [entry.summary])]),
+  },
+);
+// In update, recheck current comparison, preferences and policy:
+const decision = resolveHistoryChangeFocus(comparison, request, options);
+```
+
+Requests carry both edition IDs and entity type/ID. Unknown, stale or filtered-out
+requests return ignored; current restrictions return blocked with a visible
+reason. A ready decision carries an entry and target. For `side: 'selected'`,
+apply `target.event` through `updateHistoryReview` to reveal the current node or
+edge, including collapsed ancestors. For `side: 'baseline'`, `target.nodes` are
+earlier node/endpoint geometry: fit a camera with
+`fitNodes(target.nodes, surface, padding, zoomLimits)`
+and apply a `ViewportChanged` navigation event. Never insert these nodes into the
+working or review graph. Removed-edge framing uses baseline endpoint nodes;
+computed layout routes are outside the portable edition contract.
+
+Hosts own camera measurement, operation policies, callback freshness, optional
+playback pause and review projection. Compare requests against the current pair
+and host/model scope. Camera focus leaves keyboard focus on the native button;
+no DOM focus is performed. Ghost visibility remains independent, including when
+focusing a removed item with its ghost hidden.
+
+The optional entry also exports `zlozHistoryChangeFilter`,
+`zlozHistoryChangeStatus` and `zlozHistoryChangeReason`. Composition supports
+nullable `renderFilter`, `renderEntry`, `renderStatus`, `renderReason`, and a
+`renderLayout` hook. Undefined keeps defaults; null omits parts. `filters` in view
+options selects/reorders filter **controls**, while core options decide which
+changes appear. Custom entries own their list-item semantics. Labels, attributes,
+status/reason content and frame/list names are configurable. No generated IDs,
+selection cursor, timer, graph edits or persistence format are introduced.
+
+## Typed event-storming relationships
+
+Edges can carry `architecture: EventStormingEdgeArchitecture` independently of
+their visible `label` and host-owned `data`. Zloz's default process conventions
+are:
+
+| Role        | Source       | Target       |
+| ----------- | ------------ | ------------ |
+| `issues`    | actor        | command      |
+| `handles`   | command      | aggregate    |
+| `emits`     | aggregate    | domain event |
+| `produces`  | command      | domain event |
+| `activates` | domain event | policy       |
+| `triggers`  | policy       | command      |
+
+DDD aggregate/aggregate-root and domain-event nodes participate alongside
+EventStorming notes. An aggregate boundary still needs ordinary ports; an
+aggregate root is usually the useful connection endpoint. These are adaptable
+modelling conventions, not executable business rules or a universal grammar.
+
+```ts
+import {
+  createEventStormingPattern,
+  createEditor,
+  updateEditor,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipPolicy,
+} from '@opsydyn/foldkit-zloz';
+
+const graph = createEventStormingPattern({ includeAggregate: true });
+const policy = eventStormingRelationshipPolicy({}, existingHostPolicy);
+const decision = resolveEventStormingRelationship(graph, candidateEdge);
+// A candidate without architecture can be inferred without changing the graph.
+if (decision.type === 'allowed') {
+  const typed = { ...candidateEdge, architecture: decision.architecture };
+  const next = updateEditor(
+    createEditor(graph),
+    { type: 'ConnectionCreated', edge: typed },
+    policy,
+  );
+}
+```
+
+The resolver returns `allowed` (descriptor, matched rule, inferred flag),
+`unrelated` for ordinary untyped connections, or `blocked` with a stable code and
+readable reason. It checks semantic roles only. The editor continues to enforce
+port direction, duplicates, read-only/gesture state and host policies. Pass the
+same live conventions to the resolver, native creation/reconnection chooser and
+update path. `eventStormingRelationshipPolicy(options, basePolicy)` preserves
+host veto precedence and checks incident links when a node changes role.
+
+Custom rules are first-class and replace the complete default catalogue:
+
+```ts
+import {
+  eventStormingRelationshipRules,
+  eventStormingRelationshipPolicy,
+} from '@opsydyn/foldkit-zloz';
+
+const options = {
+  rules: [
+    ...eventStormingRelationshipRules,
+    {
+      architecture: { family: 'event-storming', role: 'custom', name: 'delegates' },
+      sources: ['command'],
+      targets: ['command'],
+      label: 'Delegates',
+    },
+  ],
+} satisfies import('@opsydyn/foldkit-zloz').ZlozEventStormingRelationshipOptions;
+const policy = eventStormingRelationshipPolicy(options, existingHostPolicy);
+```
+
+`roleOf` can interpret custom host nodes; use `eventStormingParticipantRole` as the
+default fallback. `eventStormingRelationshipKey` identifies built-in or named
+custom descriptors for native controls; descriptions are authored meaning rather
+than identity. Rule descriptors must have unique keys, supported nonempty role
+sets and nonempty labels. Multiple compatible inference rules produce a blocked
+ambiguity reason until the author chooses an explicit descriptor. Empty catalogues
+are valid. Structural port and policy checks remain active with custom rules.
+
+Edit an existing relation with `EdgeArchitectureChanged` (`architecture: null`
+clears the descriptor). `canChangeEdgeArchitecture` receives previous edge, next
+edge and full graph. Edits are undoable, preserve layout routes and do not create
+Undo entries for identical descriptors or rejected changes. Legacy untyped edges
+need no migration. `isEdgeArchitecture` validates strict reserved syntax; custom
+roles require a nonempty name. Graph/snapshot/model version 1 serializes optional
+descriptors, while history distinguishes these semantic changes from layout.
+Imports and Undo/Redo preserve unresolved drafts; compatibility enforcement is
+opt-in and never rewrites a model when conventions change. Older readers may not
+understand or enforce the new meaning, so qualify mixed-version roundtrips.
+
+Mermaid reports `edge-fields-omitted` semantic loss for descriptors. Strict loss
+policy rejects; report mode projects labels/identity without pretending it can
+roundtrip architecture. No executable process, automatic metadata stamping,
+semantic side effects or dependency is introduced. The compact
+`createArchitecturePattern('event-storming')` remains five notes with typed links;
+the detailed factory adds an aggregate root.
+
+## Composable causal relationship controls
+
+Core derives a chooser and explicit inference action from the current editor and
+inspector target. Pass current conventions and the same policy used by the editor:
+
+```ts
+import {
+  resolveEventStormingRelationshipControls,
+  resolveEventStormingRelationshipRequest,
+  eventStormingRelationshipPolicy,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+
+const options = {
+  conventions,
+  policy: eventStormingRelationshipPolicy(conventions, hostPolicy),
+  blockedReason: operationReason,
+  inferenceLabel: 'Use inferred meaning',
+};
+const context = resolveEventStormingRelationshipControls(editor, inspectedEdgeId, options);
+// In update, use the current target, graph, conventions and policy:
+const decision = resolveEventStormingRelationshipRequest(editor, inspectedEdgeId, request, options);
+if (decision.type === 'ready') editor = updateEditor(editor, decision.event, options.policy);
+```
+
+Requests are `RelationshipSelected` with edge ID and nullable semantic key (null
+is an explicit clear), or `InferenceApplied` with edge ID. The resolver rejects
+changed inspector targets and unknown keys as ignored; it never converts a stale
+choice into a clear. It returns blocked with a reason for current restrictions,
+unchanged for an existing key, or a ready `EdgeArchitectureChanged` event. Ready
+is not a lasting permission grant: apply through the editor with current policy.
+Hosts own model/session callback scope and asynchronous operation restrictions.
+
+Compatibility reasons remain visible independently of enforcement. Omitting the
+policy allows unresolved drafts; rendering a chooser never enables convention
+validation. Read-only and gesture guards still apply. `blockedReason` adds a host
+restriction. `label`, `clearLabel`, `inferenceLabel` and `labelRule` customize
+control text. Unfamiliar stored descriptors remain selected as unavailable
+current-only options until the host restores their convention or the author
+explicitly chooses another meaning. Ambiguous inference requires an explicit
+choice. Inference cannot replace authored descriptions for the same semantic key.
+
+```ts
+import {
+  zlozEventStormingRelationshipControls,
+  zlozEventStormingRelationshipSelect,
+  zlozEventStormingRelationshipInference,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozEventStormingRelationshipControls(h, context, toMessage, {
+  renderSelect: (context, builder, onRequest) =>
+    builder.label(
+      [],
+      [context.label, zlozEventStormingRelationshipSelect(builder, context, onRequest)],
+    ),
+  renderInference: (action, builder, onRequest) =>
+    zlozEventStormingRelationshipInference(
+      builder,
+      action,
+      onRequest,
+      [],
+      ['Use inferred meaning'],
+    ),
+});
+```
+
+Individual native helpers also include `zlozEventStormingRelationshipStatus` and
+`zlozEventStormingRelationshipReasons`. Composition supports `renderSelect`,
+`renderInference`, `renderStatus`, `renderReasons` and `renderLayout`. Undefined
+keeps defaults; null omits a part. Frame/status/reasons names, native attributes,
+button/status content and wrappers are customizable. Default reasons show both
+availability and compatibility; a custom renderer can choose the desired level
+of detail. Native disabled/description/value semantics stay model-derived.
+Server-rendered options explicitly retain selection, including unavailable stored
+values. No generated IDs, new cursor/draft, timer or persistence format is added.
+
+## Read-only causal relationship audit
+
+`auditEventStormingRelationships(graph, options?)` uses the existing convention
+resolver for every edge. The same `rules` and `roleOf` options are supported.
+
+```ts
+import { auditEventStormingRelationships } from '@opsydyn/foldkit-zloz';
+
+const audit = auditEventStormingRelationships(graph, conventions);
+// audit.status: 'compatible' | 'incompatible'
+// audit.summary: { edges, typed, inferred, unrelated, blocked }
+for (const entry of audit.entries) {
+  if (entry.status === 'blocked') console.log(entry.edgeId, entry.code, entry.message);
+}
+```
+
+Entries have stable edge ID/label, source/target port identity and distinct
+`typed`, `inferred`, `unrelated` or `blocked` status. Typed/inferred entries carry a
+non-null architecture descriptor and relationship key. Blocked entries preserve
+any authored descriptor and the existing resolver code. Ordering is canonical
+UTF-16 edge-ID order, independent of graph-array order or process locale.
+
+A compatible report means **no blocked relationships under this convention**;
+it does not mean every edge has authored semantic metadata. Inferred meaning is
+reported without stamping it into the graph. Unrelated edges remain explicitly
+unrelated. Counts include every edge. Empty graphs succeed, while invalid rule
+catalogues reject even with no edges. Reports omit host-owned data and callbacks.
+The graph and any surrounding editor/Undo state remain untouched.
+
+Use the graph codec for structural validation; this audit is semantic only. The
+standalone Effect CLI exposes the same report as `zloz relationships audit`,
+including bounded custom JSON rule files. See the
+[CLI command contract](../foldkit-zloz-cli/README.md#causal-relationship-audit).
+
+## Edition-aware audit comparison
+
+Compare the current graph, or a chosen edition, against an explicit baseline:
+
+```ts
+import { compareModelEventStormingRelationships } from '@opsydyn/foldkit-zloz';
+
+const result = compareModelEventStormingRelationships(
+  document,
+  { baselineId: 'before', selectedId: 'after' }, // Omit selectedId for current graph.
+  conventions,
+);
+if (result.type === 'compared') {
+  const { introduced, resolved, persisting, baseline, selected } = result.comparison;
+  // persisting entries retain { before, after }; both sides include full audits.
+} else {
+  console.log(result.code, result.editionId, result.reason);
+}
+```
+
+Only editions owned by the supplied model are selectable. Missing IDs return
+`unknown-baseline` or `unknown-edition`, with no fallback or implicit lineage
+lookup. The model is validated with the existing capture boundary; malformed
+documents or rule catalogues throw the existing core error. No document, edition,
+camera or Undo history is changed.
+
+Both sides use the same `rules` and pure `roleOf` interpretation. Findings are
+blocked entries identified by **edge ID and diagnostic code**. Changed codes
+resolve the old finding and introduce the new one; label, endpoint, reason and
+presentation changes retain that identity, with both projections visible.
+Removed edges resolve findings and renamed IDs introduce findings. These are
+diagnostic changes, not proof that removing a relationship repaired the design.
+Typed, inferred and unrelated entries are preserved in the full audits but do
+not become findings. Arrays retain canonical edge-ID order.
+
+The report includes model ID, explicit edition/current source references,
+`summary: { introduced, resolved, persisting }` and status `regressed` or
+`no-new-findings`. **No new findings does not mean compatible**: existing blocked
+relationships may persist. Comparing an edition to itself is valid and retains
+its existing findings as persisting. No serialization format is changed.
+
+## Composable audit comparison controls
+
+The package also supplies a pure control context and request resolver. Keep this
+small state in your host model, independently of its visible history camera:
+
+```ts
+import {
+  resolveAuditComparisonControls,
+  resolveAuditComparisonRequest,
+  type ZlozAuditComparisonState,
+  type ZlozAuditComparisonControlsOptions,
+} from '@opsydyn/foldkit-zloz';
+
+const state: ZlozAuditComparisonState = {
+  baselineId: 'before',
+  selectedId: null, // Current graph; an edition ID explicitly selects that snapshot.
+  filters: { introduced: true, resolved: true, persisting: true },
+};
+const options: ZlozAuditComparisonControlsOptions = {
+  ...conventions,
+  blockedReason: busyReason,
+  focusReason: (item) => (canInspect(item) ? null : 'Inspection is protected.'),
+};
+const context = resolveAuditComparisonControls(document, state, options);
+const decision = resolveAuditComparisonRequest(document, state, request, options);
+// ready: store decision.state
+// focus: apply decision.event to the editor for decision.source
+// blocked: show decision.reason; ignored: retain the current model
+```
+
+`context.comparison` retains the full audit delta even when filters hide entries.
+No baseline gives an explicit unavailable reason; missing stored choices remain
+visible in the native selectors. Sources are model-owned editions or the current
+graph. Resolved findings reveal the baseline. Introduced and persisting findings
+reveal the target; persisting entries also carry `previous` for custom displays.
+Same-edition comparisons are allowed. Control state is transient and does not
+change document serialization.
+
+Focus requests carry model, comparison, category, edge and diagnostic identity.
+The resolver recomputes findings and rechecks filters and protection before
+returning a source plus an ordinary `EdgeRevealRequested` event. It never changes
+the graph, camera, selection, playback or Undo itself. Hosts should add an epoch
+check across model replacements/async operations, pause playback for explicit
+navigation, and apply the event to the selected source editor. A historical source
+should be opened read-only rather than copied into the working graph. Filters
+remain usable while other controls are protected.
+
+The optional Foldkit composition is unstyled and supports custom cards/badges:
+
+```ts
+import { zlozAuditComparisonControls, zlozAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozAuditComparisonControls(h, context, toMessage, {
+  showCounts: false,
+  renderStatus: () => null,
+  renderEntry: (entry, builder, onRequest) =>
+    builder.li(
+      [],
+      [
+        zlozAuditFindingButton(
+          builder,
+          entry,
+          onRequest,
+          [],
+          [builder.strong([], [entry.kind]), ` ${entry.label}`],
+        ),
+      ],
+    ),
+});
+```
+
+Individual helpers are `zlozAuditEditionSelect`, `zlozAuditFindingFilter`,
+`zlozAuditFindingButton`, `zlozAuditComparisonStatus` and
+`zlozAuditComparisonReason`. Attributes, text, control names, filter order/subsets,
+selectors, entries, status, reason and layout are customizable. Undefined keeps
+default parts; null omits them. Custom entries own list-item semantics. The native
+helpers retain model-derived selection, protection and descriptions. `showCounts`
+hides numeric filter and status readouts without changing preferences. Hosts can
+bind it to diagnostics or minimal mode and omit status through its render slot.
+Rendering preferences do not replace functional protection policies.

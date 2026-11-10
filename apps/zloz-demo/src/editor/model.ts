@@ -2,9 +2,11 @@ import {
   createEditor,
   type EditorState,
   type ZlozEdition,
+  type ZlozEditionPlayback,
   type ZlozHistoryReview,
   type ZlozGraph,
   type LayoutRequest,
+  type ZlozAuditComparisonState,
 } from '@opsydyn/foldkit-zloz';
 import {
   resolveZlozDiagnostics,
@@ -13,6 +15,8 @@ import {
   type ZlozPortPositionDraft,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
+
+import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
 
 export const initialGraph: ZlozGraph = {
   nodes: [
@@ -216,7 +220,7 @@ export type WheelNavigation = typeof WheelNavigation.Type;
 export const NavigationDesign = Schema.Literals(['standard', 'compact']);
 export type NavigationDesign = typeof NavigationDesign.Type;
 
-export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4', 'ddd']);
+export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4', 'ddd', 'event-storming']);
 export type NodeDesign = typeof NodeDesign.Type;
 
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
@@ -331,6 +335,8 @@ export const Model = Schema.Struct({
   contextMenuDesign: ContextMenuDesign,
   nodeToolbarDesign: NodeToolbarDesign,
   edgeToolbarDesign: EdgeToolbarDesign,
+  semanticRelationships: Schema.Boolean,
+  customStormingRelationships: Schema.Boolean,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   wheelNavigation: WheelNavigation,
@@ -341,11 +347,30 @@ export const Model = Schema.Struct({
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
   editionImport: Schema.NullOr(Schema.Unknown),
+  modelImport: Schema.NullOr(Schema.Unknown),
+  protectModelImport: Schema.Boolean,
+  protectPatternInsertion: Schema.Boolean,
   editionRestore: Schema.NullOr(Schema.Unknown),
+  modelIdentity: Schema.Unknown,
+  modelEpoch: Schema.Number,
+  modelNamespace: Schema.String,
+  savedModels: Schema.Unknown,
+  forkName: Schema.String,
+  protectEditionFork: Schema.Boolean,
   protectEditionRestore: Schema.Boolean,
   editions: Schema.Unknown,
   historyReview: Schema.NullOr(Schema.Unknown),
+  historyPlayback: Schema.NullOr(Schema.Unknown),
+  playbackRun: Schema.Number,
+  playbackReducedMotion: Schema.NullOr(Schema.Boolean),
+  playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
+  auditComparison: Schema.Unknown,
+  historyChangeFilters: Schema.Struct({
+    added: Schema.Boolean,
+    removed: Schema.Boolean,
+    changed: Schema.Boolean,
+  }),
   editionName: Schema.String,
   historyGhosts: Schema.Struct({
     enabled: Schema.Boolean,
@@ -413,6 +438,8 @@ export type Model = Readonly<{
   contextMenuDesign: ContextMenuDesign;
   nodeToolbarDesign: NodeToolbarDesign;
   edgeToolbarDesign: EdgeToolbarDesign;
+  semanticRelationships: boolean;
+  customStormingRelationships: boolean;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   wheelNavigation: WheelNavigation;
@@ -422,12 +449,31 @@ export type Model = Readonly<{
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
+  modelImport: Readonly<{ id: number; epoch: number; revision: number; graph: ZlozGraph }> | null;
+  protectModelImport: boolean;
+  protectPatternInsertion: boolean;
   editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
   editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
   protectEditionRestore: boolean;
+  modelIdentity: WorkbenchModelIdentity;
+  modelEpoch: number;
+  modelNamespace: string;
+  savedModels: readonly WorkbenchModelSession[];
+  forkName: string;
+  protectEditionFork: boolean;
   editions: readonly ZlozEdition[];
   historyReview: ZlozHistoryReview | null;
+  historyPlayback: Readonly<{
+    cursor: ZlozEditionPlayback;
+    editions: readonly ZlozEdition[];
+    session: number;
+  }> | null;
+  playbackRun: number;
+  playbackReducedMotion: boolean | null;
+  playbackVisible: boolean;
   historyBaselineId: string | null;
+  auditComparison: ZlozAuditComparisonState;
+  historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
   editor: EditorState;
@@ -436,7 +482,7 @@ export type Model = Readonly<{
   sequence: number;
   notice: string;
 }>;
-export const init = () => ({
+export const init = (namespace = 'test-workbench') => ({
   model: {
     sidebarSection: 'diagram',
     sidebarCollapsed: false,
@@ -492,6 +538,8 @@ export const init = () => ({
     contextMenuDesign: 'standard',
     nodeToolbarDesign: 'off',
     edgeToolbarDesign: 'standard',
+    semanticRelationships: false,
+    customStormingRelationships: false,
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     wheelNavigation: 'zoom',
@@ -502,11 +550,30 @@ export const init = () => ({
     nodeDesign: 'cards',
     background: 'dots',
     editionImport: null,
+    modelImport: null,
+    protectModelImport: false,
+    protectPatternInsertion: false,
     editionRestore: null,
     protectEditionRestore: false,
+    modelIdentity: { id: `root:${namespace}`, name: 'Working model', origin: null },
+    modelEpoch: 0,
+    modelNamespace: namespace,
+    savedModels: [],
+    forkName: '',
+    protectEditionFork: false,
     editions: [],
     historyReview: null,
+    historyPlayback: null,
+    playbackRun: 0,
+    playbackReducedMotion: null,
+    playbackVisible: false,
     historyBaselineId: null,
+    auditComparison: {
+      baselineId: null,
+      selectedId: null,
+      filters: { introduced: true, resolved: true, persisting: true },
+    },
+    historyChangeFilters: { added: true, removed: true, changed: true },
     editionName: '',
     historyGhosts: { enabled: false, nodes: true, edges: true, movements: true },
     editor: createEditor(initialGraph, { snapToAlignment: true }),

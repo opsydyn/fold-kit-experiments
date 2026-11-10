@@ -2005,6 +2005,38 @@ export function updateEditor(
         routes: state.routes,
       };
     }
+    case 'EdgeArchitectureChanged': {
+      const edge = state.graph.edges.find((item) => item.id === event.id);
+      if (!edge) return state;
+      const { architecture: previous, ...without } = edge;
+      const next: ZlozEdge =
+        event.architecture === null
+          ? without
+          : { ...edge, architecture: { ...event.architecture } };
+      const graph = {
+        ...state.graph,
+        edges: state.graph.edges.map((item) => (item.id === edge.id ? next : item)),
+      };
+      validateGraph(graph);
+      const value = next.architecture;
+      if (
+        value === undefined
+          ? previous === undefined
+          : previous !== undefined &&
+            Object.keys(value).length === Object.keys(previous).length &&
+            Object.entries(value).every(([key, item]) =>
+              Object.entries(previous).some(
+                ([otherKey, other]) => key === otherKey && item === other,
+              ),
+            )
+      )
+        return state;
+      const veto = policy.canChangeEdgeArchitecture?.(edge, next, state.graph);
+      const reason = veto == null ? null : veto.trim() || 'Relationship editing is unavailable.';
+      return reason === null
+        ? { ...commitGraph(state, graph), routes: state.routes }
+        : { ...state, notice: reason };
+    }
     case 'EdgeDataChanged':
       if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
       return {

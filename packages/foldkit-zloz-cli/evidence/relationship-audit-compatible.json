@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "note:0",
+        "label": "Customer",
+        "architecture": { "family": "event-storming", "role": "actor" },
+        "position": { "x": 40, "y": 40 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+        "appearance": { "shape": "rectangle" }
+      },
+      {
+        "id": "note:1",
+        "label": "Place order",
+        "architecture": { "family": "event-storming", "role": "command" },
+        "position": { "x": 380, "y": 40 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [
+          { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+          { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+        ],
+        "appearance": { "shape": "rectangle" }
+      },
+      {
+        "id": "note:2",
+        "label": "Order aggregate",
+        "architecture": { "family": "ddd", "role": "aggregate-root" },
+        "position": { "x": 720, "y": 40 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [
+          { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+          { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+        ],
+        "appearance": { "shape": "rounded-rectangle" }
+      },
+      {
+        "id": "note:3",
+        "label": "Order placed",
+        "architecture": { "family": "event-storming", "role": "domain-event" },
+        "position": { "x": 720, "y": 350 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [
+          { "id": "in", "kind": "input", "side": "top", "offset": 0.5 },
+          { "id": "out", "kind": "output", "side": "left", "offset": 0.5 }
+        ],
+        "appearance": { "shape": "rectangle" }
+      },
+      {
+        "id": "note:4",
+        "label": "When order placed, request payment",
+        "architecture": { "family": "event-storming", "role": "policy" },
+        "position": { "x": 380, "y": 350 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [
+          { "id": "in", "kind": "input", "side": "right", "offset": 0.5 },
+          { "id": "out", "kind": "output", "side": "left", "offset": 0.5 }
+        ],
+        "appearance": { "shape": "rectangle" }
+      },
+      {
+        "id": "note:5",
+        "label": "Request payment",
+        "architecture": { "family": "event-storming", "role": "command" },
+        "position": { "x": 40, "y": 350 },
+        "size": { "width": 220, "height": 160 },
+        "ports": [{ "id": "in", "kind": "input", "side": "right", "offset": 0.5 }],
+        "appearance": { "shape": "rectangle" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "step:0",
+        "label": "Issues",
+        "architecture": { "family": "event-storming", "role": "issues" },
+        "source": { "node": "note:0", "port": "out" },
+        "target": { "node": "note:1", "port": "in" }
+      },
+      {
+        "id": "step:1",
+        "label": "Handled by",
+        "architecture": { "family": "event-storming", "role": "handles" },
+        "source": { "node": "note:1", "port": "out" },
+        "target": { "node": "note:2", "port": "in" }
+      },
+      {
+        "id": "step:2",
+        "label": "Emits",
+        "architecture": { "family": "event-storming", "role": "emits" },
+        "source": { "node": "note:2", "port": "out" },
+        "target": { "node": "note:3", "port": "in" }
+      },
+      {
+        "id": "step:3",
+        "label": "Whenever",
+        "architecture": { "family": "event-storming", "role": "activates" },
+        "source": { "node": "note:3", "port": "out" },
+        "target": { "node": "note:4", "port": "in" }
+      },
+      {
+        "id": "step:4",
+        "label": "Then",
+        "architecture": { "family": "event-storming", "role": "triggers" },
+        "source": { "node": "note:4", "port": "out" },
+        "target": { "node": "note:5", "port": "in" }
+      }
+    ]
+  }
+}

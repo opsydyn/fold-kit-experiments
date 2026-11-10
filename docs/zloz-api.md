@@ -74,3 +74,226 @@ restoration with required freshness and current policy checks. Public contracts:
 `ZlozEditionRestoreDecision`, `ZlozEditionRestoreResult`. See the
 [import/restore guide](../packages/foldkit-zloz/README.md#import-and-restore-editions)
 for policy scope, graph-only semantics and conflict handling.
+
+## Model documents and edition forks
+
+Core exports `captureModelDocument`, `serializeModelDocument`, `parseModelDocument`,
+`forkEdition` and `createModelEditor`, with `ZlozModelDocument`, `ZlozModelIdentity`,
+`ZlozModelOrigin`, `ZlozEditionForkPolicy` and `ZlozEditionForkResult`.
+The model envelope is independent of graph/snapshot/edition v1. Local diagram IDs
+are preserved within a distinct host-allocated model identity. Immediate origin
+pins the exact source edition; no mutable lookup or host-owned node-data keys are
+used. A fork gets its own edition collection and fresh editor/Undo. See
+[the package example](../packages/foldkit-zloz/README.md#fork-an-edition-into-another-model).
+
+CLI exposes `readDocument` and `CliDocument` for metadata-preserving model or
+snapshot input. `readGraph` deliberately rejects model envelopes. CLI validation
+adds model identity/origin summary only for this new input kind. Mermaid
+projections report model metadata and camera omissions and reject them by default.
+
+### Atomic pattern insertion
+
+Core exports `createArchitecturePattern`, `ArchitecturePattern`, `insertPattern`,
+`ZlozPatternInsertionOptions`, `ZlozPatternInsertionPolicy` and
+`ZlozPatternInsertionResult`. Supply a self-contained `ZlozGraph`, optional world
+offset and current policies. The discriminated result is `inserted` (editor plus
+node/edge ID maps), `unchanged`, or `blocked` (original editor and reason).
+Invalid graph/offset data throws the canonical error. See the [package example](../packages/foldkit-zloz/README.md#atomic-architecture-patterns)
+and [ADR 0023](adr/0023-insert-self-contained-patterns-atomically.md).
+
+### Event-storming
+
+Core's `EventStormingNodeArchitecture` adds command, domain-event, policy and actor
+notes to the architecture union. `createArchitecturePattern('event-storming')`
+uses the same atomic insertion API. The `/foldkit` entry exports
+`zlozEventStormingNode`, `ZlozEventStormingNodeOptions`,
+`ZlozEventStormingContentContext` and `ZlozEventStormingContentRenderer`.
+Four scoped `eventStorming*` theme tokens customize role accents; content/control
+slots and artwork caching follow the existing semantic renderer contracts. See
+[the package example](../packages/foldkit-zloz/README.md#event-storming-notes)
+and [ADR 0024](adr/0024-add-event-storming-process-notes.md).
+
+### Edition playback
+
+Core exports `createEditionPlayback`, `updateEditionPlayback`, `playbackEditionId`
+and `editionPlaybackReason`, with `ZlozEditionPlayback`,
+`ZlozEditionPlaybackOptions` and `ZlozEditionPlaybackEvent`. The pure cursor is
+empty, paused or playing over a pinned ordered ID list; the host owns editions,
+clock, read-only projection and subscription lifecycle. Reduced motion pauses
+automatic play while manual stepping remains available. See the
+[package example](../packages/foldkit-zloz/README.md#opt-in-edition-playback) and
+[ADR 0025](adr/0025-add-opt-in-edition-playback.md).
+
+### Playback controls
+
+Core exports `resolveEditionPlaybackControls` and its `ZlozPlaybackControlName`,
+`ZlozPlaybackControlEvent`, `ZlozPlaybackControl`, `ZlozPlaybackControlsContext`
+and `ZlozPlaybackControlsOptions` contracts. Host restrictions add vetoes without
+removing core playback guards or blocking an active Pause.
+
+The `/foldkit` entry exports `zlozPlaybackControls`, `zlozPlaybackControl`,
+`zlozPlaybackStatus`, `zlozPlaybackReason`, `ZlozPlaybackControlsParts`,
+`ZlozPlaybackControlsViewOptions` and `ZlozPlaybackTextOptions`. Native helpers,
+ordered subsets, nullable slots and a layout hook separate behavior from visual
+composition. See the [package example](../packages/foldkit-zloz/README.md#composable-playback-controls)
+and [ADR 0026](adr/0026-compose-package-playback-controls.md).
+
+### Edition scrubber
+
+Core exports `resolveEditionScrubber`, `editionScrubberRequest` and
+`resolveEditionSeek`, with `ZlozEditionSeekRequest`, `ZlozEditionSeekDecision`,
+`ZlozEditionScrubberEntry`, `ZlozEditionScrubberOptions` and
+`ZlozEditionScrubberContext`. Native ordinals become identity requests before
+dispatch; fresh host state/policy determines whether an EditionSelected event is
+ready, blocked or ignored.
+
+The `/foldkit` entry exports `zlozEditionScrubber`, `zlozEditionScrubberInput`,
+`zlozEditionScrubberReadout`, `zlozEditionScrubberReason`, `zlozEditionSeekButton`,
+`ZlozEditionScrubberParts` and `ZlozEditionScrubberViewOptions`. See the
+[package example](../packages/foldkit-zloz/README.md#edition-scrubber-and-explicit-seeking)
+and [ADR 0027](adr/0027-seek-editions-with-a-composable-scrubber.md).
+
+### History comparison controls
+
+Core exports `resolveHistoryComparisonControls`, `resolveHistoryComparisonRequest`
+and the `ZlozHistoryComparisonControlsState`, `ZlozHistoryComparisonRequest`,
+`ZlozHistoryComparisonDecision`, `ZlozHistoryComparisonControlsContext`,
+`ZlozHistoryComparisonControlsOptions`, `ZlozHistoryGhostVisibility`,
+`ZlozHistoryGhostPart`, `ZlozHistoryGhostControl`, `ZlozHistoryBaselineControl`,
+`ZlozComparisonEdition` and `ZlozComparisonChoice` types. Pure contexts separate
+stored preferences from effective visibility; fresh requests validate identity
+and current host policy without editing history or Undo.
+
+The `/foldkit` entry exports `zlozHistoryComparisonControls`,
+`zlozHistoryBaselineSelect`, `zlozHistoryGhostToggle`,
+`zlozHistoryComparisonStatus`, `zlozHistoryComparisonReason`,
+`ZlozHistoryComparisonControlsParts`, `ZlozHistoryComparisonTextOptions` and
+`ZlozHistoryComparisonControlsViewOptions`.
+See the [package example](../packages/foldkit-zloz/README.md#composable-history-comparison-controls)
+and [ADR 0028](adr/0028-compose-history-comparison-controls.md).
+
+### History change navigation
+
+Core exports `resolveHistoryChangeNavigator` and `resolveHistoryChangeFocus`,
+with `ZlozHistoryChangeKind`, `ZlozHistoryChangeFilters`, `ZlozHistoryChangeItem`,
+`ZlozHistoryChangeFilter`, `ZlozHistoryChangeEntry`,
+`ZlozHistoryChangeFocusRequest`, `ZlozHistoryChangeFocusTarget`,
+`ZlozHistoryChangeFocusDecision`, `ZlozHistoryChangeNavigatorOptions` and
+`ZlozHistoryChangeNavigatorContext`. Explicit requests revalidate the comparison
+pair, visible entity and current host policy before returning camera-only targets.
+Core also exports the existing `fitNodes` geometry primitive so earlier node bounds
+can frame a camera directly without constructing an editor graph.
+
+The `/foldkit` entry exports `zlozHistoryChangeNavigator`,
+`zlozHistoryChangeFilter`, `zlozHistoryChangeButton`, `zlozHistoryChangeStatus`,
+`zlozHistoryChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
+`ZlozHistoryChangeNavigatorParts` and `ZlozHistoryChangeNavigatorViewOptions`.
+See the [package example](../packages/foldkit-zloz/README.md#composable-history-change-navigation)
+and [ADR 0029](adr/0029-navigate-history-comparison-changes.md).
+
+### Event-storming causal relationships
+
+`ZlozEdge.architecture` accepts `ZlozEdgeArchitecture` / `EventStormingEdgeArchitecture`.
+Core exports `isEdgeArchitecture`, `eventStormingRelationshipRules`,
+`eventStormingParticipantRole`, `eventStormingRelationshipKey`,
+`resolveEventStormingRelationship`, `eventStormingRelationshipPolicy` and
+`createEventStormingPattern`. Configuration and result types are
+`EventStormingParticipantRole`, `ZlozEventStormingRelationshipRule`,
+`ZlozEventStormingRelationshipOptions` and `ZlozEventStormingRelationshipDecision`.
+
+`EdgeArchitectureChanged` and `EditorPolicy.canChangeEdgeArchitecture` support
+undoable, protected descriptor edits. Opt-in conventions compose with connection
+and node-role policies; graph syntax validation remains separate from workshop
+compatibility. See the [package example](../packages/foldkit-zloz/README.md#typed-event-storming-relationships)
+and [ADR 0030](adr/0030-type-event-storming-causal-relationships.md).
+
+### Causal relationship controls
+
+Core exports `resolveEventStormingRelationshipControls` and
+`resolveEventStormingRelationshipRequest`, with
+`ZlozEventStormingRelationshipRequest`, `ZlozEventStormingRelationshipControlsOptions`,
+`ZlozEventStormingRelationshipChoice`, `ZlozEventStormingRelationshipInference`,
+`ZlozEventStormingRelationshipControlsContext` and
+`ZlozEventStormingRelationshipEditDecision`. Requests recheck current inspector
+identity, conventions, lifecycle and policy before producing an ordinary editor event.
+
+The `/foldkit` entry exports `zlozEventStormingRelationshipControls`,
+`zlozEventStormingRelationshipSelect`, `zlozEventStormingRelationshipInference`,
+`zlozEventStormingRelationshipStatus`, `zlozEventStormingRelationshipReasons`,
+`ZlozRelationshipTextOptions`, `ZlozEventStormingRelationshipControlsParts` and
+`ZlozEventStormingRelationshipControlsViewOptions`. See the
+[package example](../packages/foldkit-zloz/README.md#composable-causal-relationship-controls)
+and [ADR 0031](adr/0031-compose-causal-relationship-controls.md).
+
+### Causal relationship audit
+
+Core exports `auditEventStormingRelationships`, `ZlozRelationshipAuditCode`,
+`ZlozEventStormingRelationshipAuditEntry` and `ZlozEventStormingRelationshipAudit`.
+The read-only report classifies all edges using the existing resolver and accepts
+the same custom rules/role interpretation. See the
+[core example](../packages/foldkit-zloz/README.md#read-only-causal-relationship-audit).
+
+The Effect CLI adds `zloz relationships audit` with optional bounded data-only
+`--rules` files and `CliAuditIncompatible`. Its audited response distinguishes
+semantic incompatibility (exit 1) from malformed/configuration input (exit 2),
+retains complete per-edge results and scopes models explicitly to their current
+graph. See the [CLI contract](../packages/foldkit-zloz-cli/README.md#causal-relationship-audit)
+and [ADR 0032](adr/0032-audit-causal-relationships-through-effect-cli.md).
+
+### Edition-aware audit comparison
+
+Core exports `compareModelEventStormingRelationships`,
+`ZlozRelationshipAuditFinding`, `ZlozRelationshipAuditSource`,
+`ZlozRelationshipAuditSelection`, `ZlozRelationshipAuditComparison` and
+`ZlozRelationshipAuditComparisonDecision`. Explicit model-owned selectors return
+a comparison or a blocked unknown-edition/baseline decision. Both sides use the
+same conventions; findings are matched by edge ID and code. Full audits and
+introduced/resolved/persisting projections remain available without editing data.
+See the [core example](../packages/foldkit-zloz/README.md#edition-aware-audit-comparison).
+
+The Effect CLI adds `relationships compare --baseline <id> [--edition <id>]`
+and `CliAuditRegression`. Its compared response gates only newly introduced
+findings (exit 1); no new findings exits 0 even when existing findings persist.
+Selector/input errors exit 2. See the
+[CLI contract](../packages/foldkit-zloz-cli/README.md#edition-aware-audit-comparison)
+and [ADR 0033](adr/0033-compare-edition-relationship-audits.md).
+
+### Composable audit comparison controls
+
+Core exports `resolveAuditComparisonControls`, `resolveAuditComparisonRequest`,
+`ZlozAuditFindingKind`, `ZlozAuditComparisonState`, `ZlozAuditFindingFocusRequest`,
+`ZlozAuditComparisonRequest`, `ZlozAuditFindingItem`, `ZlozAuditFindingEntry`,
+`ZlozAuditEditionControl`, `ZlozAuditFindingFilter`,
+`ZlozAuditComparisonControlsOptions`, `ZlozAuditComparisonControlsContext` and
+`ZlozAuditComparisonDecision`. The pure request resolver rechecks current scope,
+filters and policy before returning a source-aware camera navigation event.
+
+The `/foldkit` entry exports `zlozAuditComparisonControls`,
+`zlozAuditEditionSelect`, `zlozAuditFindingFilter`, `zlozAuditFindingButton`,
+`zlozAuditComparisonStatus`, `zlozAuditComparisonReason`,
+`ZlozAuditComparisonParts` and `ZlozAuditComparisonViewOptions`. Nullable slots,
+custom text/attributes/layout and numeric readout control support host styling
+and diagnostics. See the
+[package example](../packages/foldkit-zloz/README.md#composable-audit-comparison-controls)
+and [ADR 0034](adr/0034-compose-audit-comparison-controls.md).
+
+### Portable review packets
+
+The optional Mermaid package exports `createReviewPacket`, `ZlozReviewPacket`,
+`ZlozReviewPacketOptions`, `ZlozReviewPacketDiagnostic`, `ZlozReviewSnapshot` and
+`ZlozReviewPacketResult`. The pure builder composes core comparison and loss-aware
+projections into a versioned, selected-snapshot export. The complete data-only
+catalogue travels with chosen snapshots, findings and Mermaid identity metadata.
+Core remains independent of the optional adapter. See the
+[packet contract](../packages/foldkit-zloz-mermaid/README.md#portable-review-packets).
+
+The Effect CLI adds `review packet --baseline <id> [--edition <id>]` with existing
+input/rules/direction/loss-policy flags and `CliReviewInputRejected`. Creation
+exits 0 even with introduced findings; projection rejection exits 1 and invalid
+input/selectors exit 2. See the
+[CLI contract](../packages/foldkit-zloz-cli/README.md#portable-review-packets)
+and [ADR 0035](adr/0035-export-portable-review-packets.md).
+
+`CliDiagnostic` also exposes an exact optional `side` field for packet diagnostics,
+including projection rejection. Its schema retains that field when decoding;
+existing command diagnostics omit it and retain their original JSON shape.

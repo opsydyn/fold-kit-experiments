@@ -1,4 +1,4 @@
-import { validNodeArchitectureFields } from './architecture';
+import { validNodeArchitectureFields, isEdgeArchitecture } from './architecture';
 import type {
   Endpoint,
   ZlozEdge,
@@ -172,7 +172,8 @@ function isEdge(value: unknown): value is ZlozEdge {
       value.pathStyle === 'stepped' ||
       value.pathStyle === 'smooth') &&
     (!('label' in value) || typeof value.label === 'string') &&
-    (!('data' in value) || isJson(value.data))
+    (!('data' in value) || isJson(value.data)) &&
+    (!('architecture' in value) || isEdgeArchitecture(value.architecture))
   );
 }
 function isGraph(value: unknown): value is ZlozGraph {

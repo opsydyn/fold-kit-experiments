@@ -131,7 +131,12 @@ export function workbenchLayout(
                 zlozViewportControl(
                   h,
                   viewportControlActions(model.editor).fitView,
-                  (event) => Message.ObservedZlozInput({ message: event }),
+                  (event) =>
+                    Message.ObservedModelInput({
+                      modelId: model.modelIdentity.id,
+                      epoch: model.modelEpoch,
+                      message: event,
+                    }),
                   [h.Class('workbench-rail-fit')],
                   ['Fit'],
                 ),
@@ -185,6 +190,7 @@ export function workbenchLayout(
       ),
       h.section(
         [
+          h.Key(`model:${model.modelIdentity.id}:${model.modelEpoch}`),
           h.Class('workbench-canvas'),
           h.AriaLabel('Diagram canvas'),
           h.Style({ position: 'relative' }),

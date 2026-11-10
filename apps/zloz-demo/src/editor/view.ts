@@ -1,7 +1,15 @@
 import {
   resolveEdgeReconnection,
-  compareEditions,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipRules,
+  playbackEditionId,
+  resolveEditionPlaybackControls,
+  resolveEditionScrubber,
+  resolveHistoryComparisonControls,
+  type ZlozEditionSeekRequest,
+  type ZlozPlaybackControlEvent,
   captureEdition,
+  compareEditions,
   resolveEditionRestore,
   defaultFitViewPadding,
   architectureNodePresets,
@@ -9,10 +17,35 @@ import {
   type EdgePathStyle,
   type ZlozNode,
   type EditorEvent,
+  type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozEventStormingRelationshipControls,
+  zlozEventStormingRelationshipSelect,
+  zlozEventStormingRelationshipInference,
+  zlozEventStormingRelationshipStatus,
+  zlozHistoryChangeNavigator,
+  zlozHistoryChangeButton,
+  zlozHistoryChangeFilter,
+  zlozAuditComparisonControls,
+  zlozAuditEditionSelect,
+  zlozAuditFindingButton,
+  zlozAuditFindingFilter,
+  zlozHistoryComparisonControls,
+  zlozHistoryBaselineSelect,
+  zlozHistoryGhostToggle,
+  zlozEditionScrubber,
+  zlozEditionScrubberInput,
+  zlozEditionScrubberReadout,
+  zlozEditionSeekButton,
+  zlozPlaybackControls,
+  zlozPlaybackControl,
+  zlozPlaybackStatus,
+  zlozPlaybackReason,
+  zlozEventStormingNode,
+  type ZlozEventStormingNodeOptions,
   zlozHistoryGhosts,
   zlozGroupFrame,
   zlozDragHandle,
@@ -56,8 +89,14 @@ import {
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
+import { workbenchAuditContext } from './audit-comparison';
 import { workbenchPolicy } from './editor-policy';
+import {
+  delegatedRelationship,
+  workbenchRelationshipOptions,
+} from './event-storming-relationships';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
+import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -84,6 +123,9 @@ import {
   type Model,
   PortSnapPriority,
 } from './model';
+import { modelSessionBusy } from './model-sessions';
+import { patternInsertionReason } from './pattern-insertion';
+import { playbackReason, playbackInspectionReason } from './playback';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -110,6 +152,7 @@ import {
   canvasHelpCard,
   canvasStatusCard,
 } from './presentation';
+import { relationshipControlsContext } from './relationship-controls';
 import { searchDiagram } from './search';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
@@ -122,11 +165,16 @@ type WorkbenchEdgeHooks = {
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createZlozNodeBodyCache();
 const orbitBodyCache = createZlozNodeBodyCache();
+const stormOptions: ZlozEventStormingNodeOptions<Message> = {
+  bodyCache: createZlozNodeBodyCache(),
+};
 const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
 const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Node(context, h, c4Options);
+  zlozEventStormingNode(context, h, stormOptions) ??
+  zlozC4Node(context, h, c4Options) ??
+  zlozDddNode(context, h, dddOptions);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Group(context, h, c4Options);
+  zlozC4Group(context, h, c4Options) ?? zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
   renderBadge: ({ architecture }, h) =>
     architecture.role === 'aggregate-root'
@@ -138,16 +186,19 @@ const dddOptions: ZlozDddNodeOptions<Message> = {
   bodyCache: createZlozNodeBodyCache(),
 };
 const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptionsWithoutCache);
+  zlozEventStormingNode(context, h) ??
+  zlozDddNode(context, h, dddOptionsWithoutCache) ??
+  zlozC4Node(context, h);
 const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptions);
+  zlozEventStormingNode(context, h, stormOptions) ??
+  zlozDddNode(context, h, dddOptions) ??
+  zlozC4Node(context, h, c4Options);
 const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddGroup(context, h, dddOptions);
+  zlozDddGroup(context, h, dddOptions) ?? zlozC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitGroup(context, h, orbitBodyCache);
-const zlozInput = (message: EditorEvent) => Message.ObservedZlozInput({ message });
 
 const reconnectionRadiusOptions = {
   match: {},
@@ -160,6 +211,7 @@ function renderWorkbenchNode(
   minimalMode: boolean,
   measurements: boolean,
   resizeDisabled: boolean,
+  onEvent: (event: EditorEvent) => Message,
 ) {
   return builder.div(
     [builder.Style({ visibility: minimalMode ? 'hidden' : 'visible' })],
@@ -167,11 +219,7 @@ function renderWorkbenchNode(
       builder.input([
         builder.AriaLabel(`Label for ${node.id}`),
         builder.Value(node.label),
-        builder.OnInput((label) =>
-          Message.ObservedZlozInput({
-            message: { type: 'NodeLabelChanged', id: node.id, label },
-          }),
-        ),
+        builder.OnInput((label) => onEvent({ type: 'NodeLabelChanged', id: node.id, label })),
         builder.Style({
           width: '100%',
           'box-sizing': 'border-box',
@@ -207,9 +255,7 @@ function renderWorkbenchNode(
             builder.Value(String(node.size.width)),
             builder.Style({ width: '100%', 'touch-action': 'pan-x' }),
             builder.OnChange((value) =>
-              Message.ObservedZlozInput({
-                message: { type: 'NodeWidthChanged', id: node.id, width: Number(value) },
-              }),
+              onEvent({ type: 'NodeWidthChanged', id: node.id, width: Number(value) }),
             ),
           ]),
         ],
@@ -217,13 +263,16 @@ function renderWorkbenchNode(
     ],
   );
 }
-const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
-  renderWorkbenchNode(node, builder, false, true, false);
-
+const historyStormOptions: ZlozEventStormingNodeOptions<Message> = {
+  ...stormOptions,
+  renderControls: () => [],
+};
 const historyDddOptions: ZlozDddNodeOptions<Message> = { ...dddOptions, renderControls: () => [] };
 const historyC4Options: ZlozC4NodeOptions<Message> = { ...c4Options, renderControls: () => [] };
 const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, historyDddOptions) ?? zlozC4Node(context, h, historyC4Options);
+  zlozEventStormingNode(context, h, historyStormOptions) ??
+  zlozDddNode(context, h, historyDddOptions) ??
+  zlozC4Node(context, h, historyC4Options);
 const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozDddGroup(context, h, historyDddOptions) ??
   zlozC4Group(context, h, historyC4Options) ??
@@ -253,8 +302,49 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
   { label: 'Smooth', style: 'smooth' },
 ];
 
+const playbackIcons = { play: '▶', pause: 'Ⅱ', rewind: '↶', previous: '←', next: '→' };
+const playbackMessages = {
+  PlayClicked: Message.ClickedPlaybackPlay,
+  PauseClicked: Message.ClickedPlaybackPause,
+  RewindClicked: Message.ClickedPlaybackRewind,
+  PreviousClicked: Message.ClickedPlaybackPrevious,
+  NextClicked: Message.ClickedPlaybackNext,
+} satisfies Record<ZlozPlaybackControlEvent['type'], () => Message>;
+const playbackInput = (event: ZlozPlaybackControlEvent): Message => playbackMessages[event.type]();
+
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const modelId = model.modelIdentity.id;
+  const epoch = model.modelEpoch;
+  const observedInput = ({ message }: { message: EditorEvent }) =>
+    Message.ObservedModelInput({ modelId, epoch, message });
+  const zlozInput = (message: EditorEvent) => observedInput({ message });
+  const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
+    renderWorkbenchNode(node, builder, false, true, false, zlozInput);
   const workingEditor = model.editor;
+  const playback = model.historyPlayback?.cursor;
+  const playbackId = playback ? playbackEditionId(playback) : null;
+  const playbackName =
+    model.editions.find((edition) => edition.id === playbackId)?.name ?? 'No editions';
+  const playbackContext = playback
+    ? resolveEditionPlaybackControls(playback, {
+        blockedReason: playbackInspectionReason(model),
+        automaticReason: playbackReason(model),
+        editionLabel: playbackName,
+      })
+    : null;
+  const editionNames = new Map(model.editions.map((edition) => [edition.id, edition.name]));
+  const scrubberContext = playback
+    ? resolveEditionScrubber(playback, {
+        blockedReason: playbackInspectionReason(model),
+        labelEdition: (id) => editionNames.get(id) ?? id,
+      })
+    : null;
+  const seekInput = (request: ZlozEditionSeekRequest) =>
+    Message.SelectedPlaybackEdition({
+      modelId,
+      session: model.historyPlayback?.session ?? -1,
+      editionId: request.editionId,
+    });
   const restoreDecision = model.editionRestore
     ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
         expectedRevision: model.editionRestore.expectedRevision,
@@ -274,9 +364,25 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdition = model.editions.find(
     (edition) => edition.id === model.historyReview?.editionId,
   );
-  const baselineEdition = model.editions.find((edition) => edition.id === model.historyBaselineId);
-  const comparison =
-    selectedEdition && baselineEdition ? compareEditions(baselineEdition, selectedEdition) : null;
+  const comparisonControls = resolveHistoryComparisonControls(
+    model.editions,
+    model.historyReview?.editionId ?? null,
+    {
+      baselineId: model.historyBaselineId,
+      ghosts: model.historyGhosts,
+    },
+    { minimalMode: model.minimalMode },
+  );
+  const comparison = workbenchHistoryComparison(model);
+  const changeNavigator = historyChangeNavigatorContext(model, comparison);
+  const auditControls = model.sidebarSection === 'history' ? workbenchAuditContext(model) : null;
+  const auditRequest = (request: ZlozAuditComparisonRequest) =>
+    Message.ObservedAuditComparisonInput({
+      request,
+      modelId: model.modelIdentity.id,
+      epoch: model.modelEpoch,
+    });
+  const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
@@ -364,6 +470,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
   const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
+  const causalRules = workbenchRelationshipOptions(model).rules ?? eventStormingRelationshipRules;
+  const relationshipEditingBlocked =
+    busyModelSession ||
+    model.editor.readOnly ||
+    model.historyReview !== null ||
+    model.editor.gesture.type !== 'idle';
+  const relationshipControls = relationshipControlsContext(model);
+  const incompatibleRelationship = selectedEdge
+    ? causalRules.find(
+        (rule) =>
+          resolveEventStormingRelationship(
+            model.editor.graph,
+            { ...selectedEdge, architecture: rule.architecture },
+            workbenchRelationshipOptions(model),
+          ).type === 'blocked',
+      )?.architecture
+    : undefined;
+  const insertionReason = patternInsertionReason(model);
   const inspector = Option.getOrUndefined(
     !model.minimalMode && selectedNode
       ? portInspectorContext(model.editor, selectedNode.id, policy, {
@@ -423,7 +547,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               zlozEdgeEndpointSelect(
                 h,
                 context,
-                (message) => Message.ObservedZlozInput({ message }),
+                (message) => observedInput({ message }),
                 [h.Style({ width: '100%', 'min-height': '36px', margin: '6px 0' })],
                 options,
               ),
@@ -439,6 +563,267 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
     history: [
+      h.div(
+        [h.Role('group'), h.AriaLabel('Edition playback')],
+        [
+          h.label(
+            [h.Class('workbench-field')],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Checked(model.historyPlayback !== null),
+                h.OnClick(Message.ClickedPlaybackEnabled()),
+              ]),
+              'Enable edition playback',
+            ],
+          ),
+          ...(playback && playbackContext
+            ? [
+                zlozPlaybackControls(h, playbackContext, playbackInput, {
+                  attributes: [h.Class('workbench-playback-transport')],
+                  renderControl: (action, builder, onEvent) =>
+                    zlozPlaybackControl(
+                      builder,
+                      action,
+                      onEvent,
+                      [
+                        builder.Style({
+                          display: 'inline-flex',
+                          gap: '6px',
+                          'align-items': 'center',
+                          padding: '8px 12px',
+                          'border-radius': '999px',
+                          border: '1px solid var(--rule)',
+                          background: 'var(--panel)',
+                          color: 'var(--ink)',
+                        }),
+                      ],
+                      [
+                        builder.span([builder.AriaHidden(true)], [playbackIcons[action.name]]),
+                        action.label,
+                      ],
+                    ),
+                  renderStatus: (context, builder) =>
+                    zlozPlaybackStatus(
+                      builder,
+                      context,
+                      [
+                        builder.Style({
+                          display: 'flex',
+                          gap: '8px',
+                          'align-items': 'center',
+                          'flex-wrap': 'wrap',
+                        }),
+                      ],
+                      [
+                        builder.span(
+                          [
+                            builder.AriaHidden(true),
+                            builder.Style({
+                              background: 'var(--blue)',
+                              color: 'white',
+                              padding: '3px 7px',
+                              'border-radius': '4px',
+                              'font-size': '10px',
+                              'letter-spacing': '0.06em',
+                            }),
+                          ],
+                          ['TIMELINE'],
+                        ),
+                        context.statusText,
+                      ],
+                    ),
+                  renderReason: (context, builder) =>
+                    zlozPlaybackReason(builder, context, [
+                      builder.Style({
+                        'border-left': '2px solid var(--blue)',
+                        'padding-left': '10px',
+                        color: 'var(--muted)',
+                      }),
+                    ]),
+                  renderLayout: (parts, _context, builder) => [
+                    ...(parts.status ? [parts.status] : []),
+                    builder.div(
+                      [builder.Style({ display: 'flex', gap: '6px', 'flex-wrap': 'wrap' })],
+                      parts.controls,
+                    ),
+                    ...(parts.reason ? [parts.reason] : []),
+                  ],
+                }),
+                ...(scrubberContext
+                  ? [
+                      zlozEditionScrubber(h, scrubberContext, seekInput, {
+                        attributes: [
+                          h.Class('workbench-edition-scrubber'),
+                          h.Style({ padding: '12px 0', display: 'grid', gap: '8px' }),
+                        ],
+                        renderInput: (context, builder, onSeek) =>
+                          zlozEditionScrubberInput(builder, context, onSeek, [
+                            builder.Style({ width: '100%', 'accent-color': 'var(--blue)' }),
+                          ]),
+                        renderReadout: (context, builder) =>
+                          zlozEditionScrubberReadout(
+                            builder,
+                            context,
+                            [
+                              builder.Style({
+                                display: 'block',
+                                'font-weight': '600',
+                                'font-size': '12px',
+                              }),
+                            ],
+                            [builder.span([builder.AriaHidden(true)], ['◇ ']), context.valueText],
+                          ),
+                        renderOpen: (context, builder, onSeek) =>
+                          zlozEditionSeekButton(builder, context, onSeek, [
+                            builder.Style({
+                              'justify-self': 'start',
+                              padding: '7px 12px',
+                              'border-radius': '999px',
+                              border: '1px solid var(--rule)',
+                              background: 'var(--panel)',
+                              color: 'var(--ink)',
+                            }),
+                          ]),
+                      }),
+                    ]
+                  : []),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    'Edition interval',
+                    h.select(
+                      [
+                        h.AriaLabel('Edition interval'),
+                        h.Value(String(playback.intervalMs)),
+                        h.OnChange((value) =>
+                          Message.SelectedPlaybackInterval({ intervalMs: Number(value) }),
+                        ),
+                      ],
+                      [
+                        h.option([h.Value('1000')], ['1 second']),
+                        h.option([h.Value('2000')], ['2 seconds']),
+                        h.option([h.Value('4000')], ['4 seconds']),
+                      ],
+                    ),
+                  ],
+                ),
+                h.p(
+                  [],
+                  [
+                    'Automatic playback pauses for reduced motion, hidden pages and manual inspection. Previous, Next and Rewind remain available. Ghost controls below remain yours.',
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
+      h.p([h.AriaLabel('Active model')], [`Model: ${model.modelIdentity.name}`]),
+      ...(model.modelIdentity.origin
+        ? [
+            h.p(
+              [h.AriaLabel('Model lineage')],
+              [
+                `Forked from ${model.modelIdentity.origin.modelName} · ${model.modelIdentity.origin.edition.name}`,
+              ],
+            ),
+          ]
+        : []),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Working model',
+          h.select(
+            [
+              h.AriaLabel('Working model'),
+              h.Value(model.modelIdentity.id),
+              h.Disabled(busyModelSession),
+              h.OnChange((id) => Message.SelectedWorkingModel({ id })),
+            ],
+            [
+              h.option([h.Value(model.modelIdentity.id)], [model.modelIdentity.name]),
+              ...model.savedModels.map((item) =>
+                h.option([h.Value(item.identity.id)], [item.identity.name]),
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'New model name',
+          h.input([
+            h.AriaLabel('New model name'),
+            h.Value(model.forkName),
+            h.OnInput((name) => Message.ChangedForkName({ name })),
+          ]),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.protectEditionFork),
+            h.OnClick(Message.ClickedEditionForkProtection()),
+          ]),
+          'Protect edition forking',
+        ],
+      ),
+      ...(model.protectEditionFork
+        ? [h.p([h.Role('status')], ['Edition forking is protected in this workspace.'])]
+        : []),
+      button(
+        'Fork edition',
+        Message.ClickedForkEdition(),
+        !selectedEdition || !model.forkName.trim() || busyModelSession || model.protectEditionFork,
+      ),
+      h.p(
+        [],
+        [
+          'Creates a separate editable model with its own Undo. The source stays available in Working model.',
+        ],
+      ),
+      button('Export model with lineage', Message.ClickedExportModel()),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.protectModelImport),
+            h.OnClick(Message.ClickedModelImportProtection()),
+          ]),
+          'Protect model import',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Open model JSON (up to 5 MiB)',
+          h.input([
+            h.Key(`model-import-${model.modelImport?.id ?? 'ready'}`),
+            h.Type('file'),
+            h.Accept('application/json,.json'),
+            h.AriaLabel('Open model JSON'),
+            h.Disabled(busyModelSession || model.protectModelImport),
+            h.OnFileChange((files) => Message.ChoseModelDocumentFiles({ files })),
+          ]),
+        ],
+      ),
+      ...(model.modelImport
+        ? [
+            h.p([h.Role('status')], ['Reading model document…']),
+            button('Cancel model import', Message.ClickedCancelModelImport()),
+          ]
+        : []),
+
+      h.p(
+        [],
+        [
+          'Models are kept in this tab. Export and reopen model JSON to preserve identity, editions and origin. Diagram-only files omit this metadata.',
+        ],
+      ),
       h.p(
         [h.Role('status'), h.AriaLabel('History mode')],
         [
@@ -468,6 +853,97 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           model.importing !== null,
       ),
       button('Load Order history example', Message.ClickedOrderHistory()),
+      button('Load scrubber history example', Message.ClickedScrubberHistory()),
+      button('Load causal audit example', Message.ClickedAuditExample()),
+      h.h3([], ['Causal findings']),
+      h.p(
+        [],
+        [
+          'Compare semantic findings independently of the visible edition. Resolved findings open the baseline; introduced and persisting findings open the target.',
+        ],
+      ),
+      ...(auditControls
+        ? [
+            zlozAuditComparisonControls(h, auditControls, auditRequest, {
+              attributes: [
+                h.Style({
+                  display: 'grid',
+                  gap: '8px',
+                  padding: '12px',
+                  border: '1px solid var(--rule)',
+                  borderRadius: '8px',
+                }),
+              ],
+              showCounts: !model.minimalMode && model.diagnosticsEnabled,
+              renderStatus: () =>
+                model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+              renderBaseline: (control, builder, onRequest) =>
+                builder.label(
+                  [builder.Class('workbench-field')],
+                  [control.label, zlozAuditEditionSelect(builder, control, onRequest)],
+                ),
+              renderTarget: (control, builder, onRequest) =>
+                builder.label(
+                  [builder.Class('workbench-field')],
+                  [control.label, zlozAuditEditionSelect(builder, control, onRequest)],
+                ),
+              renderFilter: (control, builder, onRequest) =>
+                builder.label(
+                  [
+                    builder.Key(control.kind),
+                    builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+                  ],
+                  [
+                    zlozAuditFindingFilter(builder, control, onRequest),
+                    control.label,
+                    ...(!model.minimalMode && model.diagnosticsEnabled
+                      ? [` · ${control.count}`]
+                      : []),
+                  ],
+                ),
+              renderEntry: (entry, builder, onRequest) =>
+                builder.li(
+                  [
+                    builder.Key(`${entry.kind}:${entry.finding.edgeId}:${entry.finding.code}`),
+                    builder.Style({ listStyle: 'none', marginBottom: '8px' }),
+                  ],
+                  [
+                    zlozAuditFindingButton(
+                      builder,
+                      entry,
+                      onRequest,
+                      [
+                        builder.Style({
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '10px',
+                          border: '1px solid var(--rule)',
+                          borderRadius: '6px',
+                          background: 'var(--panel)',
+                        }),
+                      ],
+                      [
+                        builder.strong(
+                          [builder.Style({ display: 'block', textTransform: 'capitalize' })],
+                          [entry.kind],
+                        ),
+                        builder.span([], [entry.label]),
+                        builder.small(
+                          [builder.Style({ display: 'block' })],
+                          [entry.source.kind === 'current' ? 'Current graph' : entry.source.name],
+                        ),
+                      ],
+                    ),
+                    builder.small(
+                      [builder.Style({ display: 'block', padding: '4px 0' })],
+                      [entry.finding.message],
+                    ),
+                    ...(entry.reason ? [builder.p([], [entry.reason])] : []),
+                  ],
+                ),
+            }),
+          ]
+        : []),
       h.label(
         [h.Class('workbench-field')],
         [
@@ -475,6 +951,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           h.select(
             [
               h.AriaLabel('Rewind to edition'),
+              h.Disabled(
+                model.active !== null ||
+                  model.importing !== null ||
+                  workingEditor.gesture.type !== 'idle',
+              ),
               h.Value(model.historyReview?.editionId ?? ''),
               h.Disabled(workingEditor.gesture.type !== 'idle'),
               h.OnChange((id) =>
@@ -489,45 +970,39 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
       button('Return to present', Message.ClickedHistoryPresent(), model.historyReview === null),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Compare with',
-          h.select(
-            [
-              h.AriaLabel('History comparison baseline'),
-              h.Value(model.historyBaselineId ?? ''),
-              h.Disabled(model.historyReview === null),
-              h.OnChange((id) => Message.SelectedHistoryBaseline({ id })),
-            ],
-            [
-              h.option([h.Value('')], ['No comparison']),
-              ...model.editions
-                .filter((edition) => edition.id !== model.historyReview?.editionId)
-                .map((edition) => h.option([h.Value(edition.id)], [edition.name])),
-            ],
-          ),
-        ],
-      ),
-      ...(['enabled', 'nodes', 'edges', 'movements'] as const).map((part) =>
-        h.label(
-          [h.Class('workbench-field')],
-          [
-            h.input([
-              h.Type('checkbox'),
-              h.Checked(model.historyGhosts[part]),
-              h.OnClick(Message.ClickedHistoryGhost({ part })),
-            ]),
-            (
-              {
-                enabled: 'Show comparison ghosts',
-                nodes: 'Node ghosts',
-                edges: 'Edge ghosts',
-                movements: 'Movement connectors',
-              } as const
-            )[part],
+      zlozHistoryComparisonControls(
+        h,
+        comparisonControls,
+        (request) =>
+          request.type === 'BaselineSelected'
+            ? Message.SelectedHistoryBaseline({ id: request.editionId ?? '' })
+            : request.type === 'GhostVisibilityChanged'
+              ? Message.ChangedHistoryGhostVisibility({ part: request.part, value: request.value })
+              : Message.ClickedHistoryGhost({ part: request.part }),
+        {
+          attributes: [
+            h.Style({
+              display: 'grid',
+              gap: '8px',
+              padding: '12px',
+              border: '1px solid var(--rule)',
+              borderRadius: '8px',
+            }),
           ],
-        ),
+          renderBaseline: (control, builder, onRequest) =>
+            builder.label(
+              [builder.Class('workbench-field')],
+              ['Compare with', zlozHistoryBaselineSelect(builder, control, onRequest)],
+            ),
+          renderGhost: (control, builder, onRequest) =>
+            builder.label(
+              [
+                builder.Key(control.part),
+                builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+              ],
+              [zlozHistoryGhostToggle(builder, control, onRequest), control.label],
+            ),
+        },
       ),
       h.p(
         [],
@@ -535,26 +1010,62 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           'Dashed marks show earlier geometry; dotted marks show removals. Labels identify Added, Removed and Previous states, and arrows show movement. Ghosts are read-only and never enter the model. Minimal mode hides this layer while retaining your choices.',
         ],
       ),
-      ...(comparison
-        ? [
-            h.ul(
-              [h.AriaLabel('History changes')],
+      zlozHistoryChangeNavigator(
+        h,
+        changeNavigator,
+        {
+          onFilter: (kind) => Message.ClickedHistoryChangeFilter({ kind }),
+          onFocus: (request) =>
+            Message.ClickedHistoryChange({
+              ...request,
+              modelId: model.modelIdentity.id,
+              epoch: model.modelEpoch,
+            }),
+        },
+        {
+          attributes: [h.Style({ display: 'grid', gap: '8px' })],
+          renderStatus: () => (model.minimalMode ? null : undefined),
+          renderFilter: (control, builder, onFilter) =>
+            builder.label(
+              [builder.Key(control.kind), builder.Style({ display: 'flex', gap: '8px' })],
+              [zlozHistoryChangeFilter(builder, control, onFilter), control.label],
+            ),
+          renderEntry: (entry, builder, onFocus) =>
+            builder.li(
+              [builder.Key(`${entry.entity}:${entry.id}`)],
               [
-                ...comparison.nodes.map((change) =>
-                  h.li(
-                    [],
-                    [
-                      `${change.kind}: ${(change.after ?? change.before)?.label} · ${change.semanticChanged ? 'model' : ''}${change.semanticChanged && change.layoutChanged ? ' + ' : ''}${change.layoutChanged ? 'layout' : ''}`,
-                    ],
-                  ),
-                ),
-                ...comparison.edges.map((change) =>
-                  h.li([], [`${change.kind} connection: ${change.id}`]),
+                zlozHistoryChangeButton(
+                  builder,
+                  entry,
+                  onFocus,
+                  [
+                    builder.Style({
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px',
+                      marginBottom: '4px',
+                    }),
+                  ],
+                  [
+                    builder.span([builder.Style({ fontWeight: '650' })], [entry.kind]),
+                    ` ${entry.entity}: ${entry.label}`,
+                    builder.small(
+                      [builder.Style({ display: 'block' })],
+                      [
+                        entry.semanticChanged && entry.layoutChanged
+                          ? 'Model + layout'
+                          : entry.semanticChanged
+                            ? 'Model'
+                            : 'Layout',
+                      ],
+                    ),
+                    ...(entry.reason ? [builder.span([], [` · ${entry.reason}`])] : []),
+                  ],
                 ),
               ],
             ),
-          ]
-        : []),
+        },
+      ),
       h.label(
         [h.Class('workbench-field')],
         [
@@ -644,11 +1155,56 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.p(
         [],
         [
-          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks and playback are later slices.',
+          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model and playback is a later slice.',
         ],
       ),
     ],
     diagram: [
+      h.div(
+        [h.Role('group'), h.AriaLabel('Insert architecture patterns')],
+        [
+          h.p(
+            [],
+            [
+              'Add a pattern beside your diagram. Existing content stays; each insertion is one Undo step.',
+            ],
+          ),
+          h.label(
+            [],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Checked(model.protectPatternInsertion),
+                h.OnClick(Message.ClickedPatternInsertionProtection()),
+              ]),
+              'Protect pattern insertion',
+            ],
+          ),
+          button(
+            'Insert C4 context pattern',
+            Message.ClickedInsertPattern({ pattern: 'c4-context' }),
+            insertionReason !== null,
+          ),
+          button(
+            'Insert DDD aggregate pattern',
+            Message.ClickedInsertPattern({ pattern: 'ddd-aggregate' }),
+            insertionReason !== null,
+          ),
+          button(
+            'Insert event-storming pattern',
+            Message.ClickedInsertPattern({ pattern: 'event-storming' }),
+            insertionReason !== null,
+          ),
+          ...(insertionReason === null
+            ? []
+            : [
+                h.p(
+                  [h.Role('status'), h.AriaLabel('Pattern insertion protection reason')],
+                  [insertionReason!],
+                ),
+              ]),
+        ],
+      ),
       h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
         'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
       ]),
@@ -662,6 +1218,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }),
               ],
               [
+                button(
+                  'Open event-storming example',
+                  Message.SelectedExample({ example: 'event-storming' }),
+                ),
                 button('Open release workflow', Message.SelectedExample({ example: 'release' })),
                 button(
                   'Open C4 system context',
@@ -707,8 +1267,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.div(
               [h.Role('group'), h.AriaLabel('Graph actions')],
               [
-                button('Undo', Message.ObservedZlozInput({ message: { type: 'UndoPressed' } })),
-                button('Redo', Message.ObservedZlozInput({ message: { type: 'RedoPressed' } })),
+                button(
+                  'Undo',
+                  observedInput({ message: { type: 'UndoPressed' } }),
+                  model.editor.past.length === 0,
+                ),
+                button(
+                  'Redo',
+                  observedInput({ message: { type: 'RedoPressed' } }),
+                  model.editor.future.length === 0,
+                ),
               ],
             ),
           ]
@@ -731,7 +1299,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     h.Type('button'),
                     h.AriaPressed(String(model.editor.snapToGrid)),
                     h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(Message.ObservedZlozInput({ message: { type: 'GridSnapToggled' } })),
+                    h.OnClick(observedInput({ message: { type: 'GridSnapToggled' } })),
                   ],
                   ['Snap to grid'],
                 ),
@@ -740,9 +1308,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     h.Type('button'),
                     h.AriaPressed(String(model.editor.snapToAlignment)),
                     h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(
-                      Message.ObservedZlozInput({ message: { type: 'AlignmentSnapToggled' } }),
-                    ),
+                    h.OnClick(observedInput({ message: { type: 'AlignmentSnapToggled' } })),
                   ],
                   ['Snap to nodes'],
                 ),
@@ -796,7 +1362,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                             ),
                             h.Style({ width: '72px', 'min-height': '32px' }),
                             h.OnChange((value) =>
-                              Message.ObservedZlozInput({
+                              observedInput({
                                 message: { type: 'GridSpacingChanged', spacing: Number(value) },
                               }),
                             ),
@@ -811,19 +1377,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   Message.ClickedArrange({ engine: 'force' }),
                   !supportsForceLayout(model.editor.graph),
                 ),
-                button(
-                  'Group selection',
-                  Message.ObservedZlozInput({ message: { type: 'SelectionGrouped' } }),
-                ),
-                button(
-                  'Ungroup',
-                  Message.ObservedZlozInput({ message: { type: 'SelectionUngrouped' } }),
-                ),
+                button('Group selection', observedInput({ message: { type: 'SelectionGrouped' } })),
+                button('Ungroup', observedInput({ message: { type: 'SelectionUngrouped' } })),
                 ...(selectedNode?.kind === 'group'
                   ? [
                       button(
                         'Fit group to contents',
-                        Message.ObservedZlozInput({
+                        observedInput({
                           message: { type: 'GroupFitClicked', id: selectedNode.id },
                         }),
                         model.editor.readOnly ||
@@ -837,7 +1397,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
                             }),
                           ),
@@ -854,7 +1414,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.extent === 'parent')),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'NodeContainmentToggled', id: selectedNode.id },
                             }),
                           ),
@@ -867,7 +1427,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.expandParent ?? false)),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'NodeExpansionToggled', id: selectedNode.id },
                             }),
                           ),
@@ -876,14 +1436,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       ),
                     ]
                   : []),
-                button('Copy', Message.ObservedZlozInput({ message: { type: 'CopyPressed' } })),
-                button('Paste', Message.ObservedZlozInput({ message: { type: 'PastePressed' } })),
+                button('Copy', observedInput({ message: { type: 'CopyPressed' } })),
+                button('Paste', observedInput({ message: { type: 'PastePressed' } })),
+                button('Duplicate', observedInput({ message: { type: 'DuplicatePressed' } })),
                 button(
-                  'Duplicate',
-                  Message.ObservedZlozInput({ message: { type: 'DuplicatePressed' } }),
+                  'Undo',
+                  observedInput({ message: { type: 'UndoPressed' } }),
+                  model.editor.past.length === 0,
                 ),
-                button('Undo', Message.ObservedZlozInput({ message: { type: 'UndoPressed' } })),
-                button('Redo', Message.ObservedZlozInput({ message: { type: 'RedoPressed' } })),
+                button(
+                  'Redo',
+                  observedInput({ message: { type: 'RedoPressed' } }),
+                  model.editor.future.length === 0,
+                ),
                 h.button(
                   [
                     h.Type('button'),
@@ -900,10 +1465,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   ],
                   ['Protect Review input'],
                 ),
-                button(
-                  'Delete selected',
-                  Message.ObservedZlozInput({ message: { type: 'DeletePressed' } }),
-                ),
+                button('Delete selected', observedInput({ message: { type: 'DeletePressed' } })),
                 h.label(
                   [],
                   [
@@ -1017,6 +1579,179 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             : []),
         ],
       ),
+      ...(model.nodeDesign === 'event-storming'
+        ? [
+            h.div(
+              [h.Role('group'), h.AriaLabel('Event-storming relationships')],
+              [
+                h.h2([], ['Causal relationships']),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    'Inspect relationship',
+                    h.select(
+                      [
+                        h.AriaLabel('Inspect relationship'),
+                        h.Value(selectedEdge?.id ?? ''),
+                        h.OnChange((id) =>
+                          zlozInput(
+                            id
+                              ? { type: 'EdgeSelected', id, additive: false }
+                              : { type: 'SelectionCleared' },
+                          ),
+                        ),
+                      ],
+                      [
+                        h.option([h.Value('')], ['Choose a connection']),
+                        ...model.editor.graph.edges.map((edge) =>
+                          h.option([h.Value(edge.id)], [edge.label || edge.id]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                h.p(
+                  [h.Role('status'), h.AriaLabel('Relationship edit feedback')],
+                  [model.editor.notice],
+                ),
+                h.p(
+                  [h.AriaLabel('Event-storming role legend')],
+                  [
+                    'Actor · Command · Aggregate · Domain Event · Policy. These are editable modelling conventions, not executable business rules.',
+                  ],
+                ),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    h.input([
+                      h.Type('checkbox'),
+                      h.Checked(model.semanticRelationships),
+                      h.Disabled(model.historyReview !== null),
+                      h.OnClick(Message.ClickedSemanticRelationships()),
+                    ]),
+                    'Validate causal relationships',
+                  ],
+                ),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    h.input([
+                      h.Type('checkbox'),
+                      h.Checked(model.customStormingRelationships),
+                      h.Disabled(model.historyReview !== null),
+                      h.OnClick(Message.ClickedCustomStormingRelationships()),
+                    ]),
+                    'Enable custom Delegates convention',
+                  ],
+                ),
+                h.p(
+                  [],
+                  [
+                    'The custom convention permits command → command links. Changing conventions never rewrites existing models.',
+                  ],
+                ),
+                button(
+                  'Add delegated command connection',
+                  Message.ClickedDelegatedRelationship({
+                    modelId: model.modelIdentity.id,
+                    epoch: model.modelEpoch,
+                  }),
+                  !delegatedRelationship(model),
+                ),
+                h.ul(
+                  [h.AriaLabel('Causal relationship report')],
+                  model.editor.graph.edges.map((edge) => {
+                    const decision = resolveEventStormingRelationship(
+                      model.editor.graph,
+                      edge,
+                      workbenchRelationshipOptions(model),
+                    );
+                    return h.li(
+                      [h.Key(edge.id)],
+                      [
+                        h.strong([], [edge.label || edge.id]),
+                        ' · ',
+                        decision.type === 'allowed'
+                          ? `${decision.rule.label} (${decision.inferred ? 'inferred' : 'typed'})`
+                          : decision.type === 'blocked'
+                            ? decision.reason
+                            : 'Unrelated connection',
+                      ],
+                    );
+                  }),
+                ),
+                zlozEventStormingRelationshipControls(
+                  h,
+                  relationshipControls,
+                  (request) =>
+                    request.type === 'RelationshipSelected'
+                      ? Message.SelectedCausalRelationship({
+                          edgeId: request.edgeId,
+                          key: request.key,
+                          modelId: model.modelIdentity.id,
+                          epoch: model.modelEpoch,
+                        })
+                      : Message.ClickedRelationshipInference({
+                          edgeId: request.edgeId,
+                          modelId: model.modelIdentity.id,
+                          epoch: model.modelEpoch,
+                        }),
+                  {
+                    attributes: [
+                      h.Style({
+                        padding: '12px',
+                        border: '1px solid var(--rule)',
+                        borderRadius: '8px',
+                        display: 'grid',
+                        gap: '8px',
+                      }),
+                    ],
+                    renderSelect: (context, builder, onRequest) =>
+                      builder.label(
+                        [builder.Class('workbench-field')],
+                        [
+                          context.label,
+                          zlozEventStormingRelationshipSelect(builder, context, onRequest),
+                        ],
+                      ),
+                    renderInference: (action, builder, onRequest) =>
+                      zlozEventStormingRelationshipInference(
+                        builder,
+                        action,
+                        onRequest,
+                        [builder.Style({ padding: '8px' })],
+                        [action.label],
+                      ),
+                    renderStatus: (context, builder) =>
+                      zlozEventStormingRelationshipStatus(
+                        builder,
+                        context,
+                        [],
+                        [builder.strong([], ['Semantic contract · ']), context.statusText],
+                      ),
+                  },
+                ),
+                button(
+                  'Open connection tools',
+                  Message.SelectedWorkbenchSection({ section: 'ports' }),
+                ),
+                ...(selectedEdge && incompatibleRelationship
+                  ? [
+                      button(
+                        'Try incompatible relationship',
+                        zlozInput({
+                          type: 'EdgeArchitectureChanged',
+                          id: selectedEdge.id,
+                          architecture: incompatibleRelationship,
+                        }),
+                        relationshipEditingBlocked,
+                      ),
+                    ]
+                  : []),
+              ],
+            ),
+          ]
+        : []),
       ...(model.nodeDesign === 'ddd'
         ? [
             h.div(
@@ -1084,6 +1819,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.option(
                 [h.Value('c4'), h.Selected(model.nodeDesign === 'c4')],
                 ['C4 · package presets'],
+              ),
+              h.option(
+                [h.Value('event-storming'), h.Selected(model.nodeDesign === 'event-storming')],
+                ['Event-storming · package notes'],
               ),
               h.option(
                 [h.Value('ddd'), h.Selected(model.nodeDesign === 'ddd')],
@@ -1422,7 +2161,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.Value(model.editor.boxSelectionMatch),
               h.Disabled(model.editor.gesture.type !== 'idle'),
               h.OnChange((value) =>
-                Message.ObservedZlozInput({
+                observedInput({
                   message: {
                     type: 'BoxSelectionMatchChanged',
                     match: Schema.decodeUnknownSync(Schema.Literals(['full', 'partial']))(value),
@@ -1545,7 +2284,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Checked(model.editor.fitViewPadding === 96),
             h.Disabled(model.editor.gesture.type !== 'idle'),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'ViewportConstraintsChanged',
                   zoomLimits:
@@ -1567,7 +2306,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Type('checkbox'),
             h.Checked(model.editor.fitViewDuration > 0),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'FitViewDurationChanged',
                   duration: model.editor.fitViewDuration === 0 ? 400 : 0,
@@ -1650,7 +2389,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Checked((model.editor.connectionSnapHysteresis ?? 0) > 0),
             h.Disabled(model.editor.gesture.type !== 'idle'),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'ConnectionSnapHysteresisChanged',
                   distance: model.editor.connectionSnapHysteresis ? 0 : 12,
@@ -1998,6 +2737,36 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     ],
     policies: [
       h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.semanticRelationships),
+            h.Disabled(model.historyReview !== null),
+            h.OnClick(Message.ClickedSemanticRelationships()),
+          ]),
+          'Validate causal relationships',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.customStormingRelationships),
+            h.Disabled(model.historyReview !== null),
+            h.OnClick(Message.ClickedCustomStormingRelationships()),
+          ]),
+          'Enable custom Delegates convention',
+        ],
+      ),
+      h.p(
+        [],
+        [
+          'Causal conventions are opt-in and independent of node artwork. Disable validation here to keep unresolved workshop drafts.',
+        ],
+      ),
+      h.label(
         [
           h.Style({
             display: 'inline-flex',
@@ -2099,7 +2868,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                         h.AriaLabel('Edge path'),
                         h.Disabled(model.editor.readOnly),
                         h.OnChange((value) =>
-                          Message.ObservedZlozInput({
+                          observedInput({
                             message: {
                               type: 'EdgePathStyleChanged',
                               id: selectedEdge.id,
@@ -2123,13 +2892,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ),
                 button(
                   'Solid edge',
-                  Message.ObservedZlozInput({
+                  observedInput({
                     message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'solid' },
                   }),
                 ),
                 button(
                   'Dashed edge',
-                  Message.ObservedZlozInput({
+                  observedInput({
                     message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'dashed' },
                   }),
                 ),
@@ -2524,7 +3293,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               zlozViewportControl(
                 builder,
                 action,
-                (event) => Message.ObservedZlozInput({ message: event }),
+                (event) => observedInput({ message: event }),
                 [
                   builder.Style({
                     'min-width': '44px',
@@ -2577,7 +3346,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             return zlozMinimap(
               builder,
               context,
-              (event) => Message.ObservedZlozInput({ message: event }),
+              (event) => observedInput({ message: event }),
               [
                 builder.Style({
                   position: 'relative',
@@ -2684,11 +3453,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ...(model.showWorldAnnotation && !model.historyReview
                   ? [releaseGateAnnotation(context, builder)]
                   : []),
-                ...(comparison &&
-                model.historyReview &&
-                model.historyGhosts.enabled &&
-                !model.minimalMode
-                  ? [zlozHistoryGhosts(builder, comparison, model.historyGhosts)!]
+                ...(comparison && model.historyReview && comparisonControls.effectiveGhosts.enabled
+                  ? [zlozHistoryGhosts(builder, comparison, comparisonControls.effectiveGhosts)!]
                   : []),
               ],
             ),
@@ -2701,8 +3467,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               : model.nodeDesign === 'c4'
                 ? model.retainNodeViews
                   ? retainedC4Node
-                  : zlozC4Node
-                : model.nodeDesign === 'ddd'
+                  : (context, builder) =>
+                      zlozEventStormingNode(context, builder) ??
+                      zlozC4Node(context, builder) ??
+                      zlozDddNode(context, builder, dddOptionsWithoutCache)
+                : model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming'
                   ? model.retainNodeViews
                     ? retainedDddNode
                     : unretainedDddNode
@@ -2712,11 +3481,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             if (model.nodeDesign === 'c4')
               return model.retainNodeViews
                 ? retainedC4Group(context, builder)
-                : zlozC4Group(context, builder);
-            if (model.nodeDesign === 'ddd')
+                : (zlozC4Group(context, builder) ??
+                    zlozDddGroup(context, builder, dddOptionsWithoutCache));
+            if (model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming')
               return model.retainNodeViews
                 ? retainedDddGroup(context, builder)
-                : zlozDddGroup(context, builder, dddOptionsWithoutCache);
+                : (zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
+                    zlozC4Group(context, builder));
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews
               ? retainedOrbitGroup(context, builder)
@@ -2734,7 +3505,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.nodeToolbarDesign === 'compact'
               ? compactNodeToolbar(context, builder)
               : undefined,
-          edgeToolbar: true,
+          edgeToolbar: !(
+            model.nodeDesign === 'event-storming' &&
+            model.sidebarSection === 'diagram' &&
+            !model.sidebarCollapsed
+          ),
           edgeReconnection: true,
           connectionCreation: true,
           renderConnectionCreation: (context, builder) =>
@@ -2819,6 +3594,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     !model.minimalMode && diagnostics.measurements,
                     model.editor.readOnly ||
                       (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
+                    zlozInput,
                   )
               : renderDefaultNode,
         }),

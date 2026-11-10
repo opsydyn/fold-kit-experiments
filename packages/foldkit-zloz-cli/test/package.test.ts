@@ -6,6 +6,16 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import {
+  createEventStormingPattern,
+  serializeGraph,
+  eventStormingRelationshipRules,
+  captureModelDocument,
+  captureEdition,
+  serializeModelDocument,
+  parseSnapshot,
+} from '@opsydyn/foldkit-zloz';
+
 import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
 import manifest from '../package.json';
@@ -77,13 +87,262 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(help.code).toBe(0);
     expect(help.stdout).toContain('validate');
     expect(help.stdout).toContain('mermaid');
+    expect(help.stdout).toContain('relationships');
+    expect(help.stdout).toContain('review');
     expect(help.stderr).toBe('');
     const version = await run([bin, '--version']);
     expect(version.code).toBe(0);
     expect(version.stdout).toContain(manifest.version);
     const modelFile = path.join(directory, 'model.json');
     await writeFile(modelFile, graph);
+    const checkpoint = captureEdition({
+      id: 'baseline',
+      name: 'Baseline',
+      snapshot: parseSnapshot(graph),
+    });
+    const modelText = serializeModelDocument(
+      captureModelDocument({
+        id: 'alternative',
+        name: 'Alternative',
+        snapshot: checkpoint.snapshot,
+        editions: [checkpoint],
+        origin: { modelId: 'parent', modelName: 'Parent', edition: checkpoint },
+      }),
+    );
+    const portableFile = path.join(directory, 'portable.model.json');
+    await writeFile(portableFile, modelText);
+    const causal = createEventStormingPattern();
+    const firstCausal = causal.edges[0];
+    if (!firstCausal) throw new Error('Missing causal fixture');
+    const customText = serializeGraph({
+      ...causal,
+      edges: [
+        {
+          ...firstCausal,
+          architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+        },
+      ],
+    });
+    const customRules = path.join(directory, 'causal-rules.json');
+    const comparisonText = serializeModelDocument({
+      id: 'audit-comparison',
+      name: 'Audit comparison',
+      origin: null,
+      snapshot: {
+        graph: {
+          ...causal,
+          edges: [
+            {
+              ...firstCausal,
+              architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+            },
+          ],
+        },
+      },
+      editions: [
+        { id: 'baseline', name: 'Baseline', snapshot: { graph: causal } },
+        {
+          id: 'custom',
+          name: 'Custom',
+          snapshot: {
+            graph: {
+              ...causal,
+              edges: [
+                {
+                  ...firstCausal,
+                  architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    const comparisonFile = path.join(directory, 'comparison.model.json');
+    await writeFile(comparisonFile, comparisonText);
+    await writeFile(
+      customRules,
+      JSON.stringify({
+        version: 1,
+        rules: [
+          ...eventStormingRelationshipRules,
+          {
+            architecture: { family: 'event-storming', role: 'custom', name: 'approves' },
+            sources: ['actor'],
+            targets: ['command'],
+            label: 'Approves',
+          },
+        ],
+      }),
+    );
     for (const runtime of ['node', 'bun']) {
+      const packet = await run([
+        runtime,
+        bin,
+        'review',
+        'packet',
+        '--baseline',
+        'baseline',
+        '-i',
+        comparisonFile,
+        '--loss-policy',
+        'report',
+      ]);
+      expect(packet.code).toBe(0);
+      expect(packet.stderr).toBe('');
+      expect(JSON.parse(packet.stdout)).toMatchObject({
+        operation: 'review-packet',
+        status: 'created',
+        data: { format: 'foldkit-zloz-review', comparison: { summary: { introduced: 1 } } },
+      });
+      const strictPacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'baseline'],
+        comparisonText,
+      );
+      expect(strictPacket.code).toBe(1);
+      expect(strictPacket.stderr).toBe('');
+      expect(JSON.parse(strictPacket.stdout).status).toBe('rejected');
+      const customPacket = await run(
+        [
+          runtime,
+          bin,
+          'review',
+          'packet',
+          '--baseline',
+          'baseline',
+          '--rules',
+          customRules,
+          '--loss-policy',
+          'report',
+        ],
+        comparisonText,
+      );
+      expect(customPacket.code).toBe(0);
+      expect(customPacket.stderr).toBe('');
+      expect(JSON.parse(customPacket.stdout).data.conventions.source).toBe('custom');
+      expect(JSON.parse(customPacket.stdout).data.comparison.summary.introduced).toBe(0);
+      expect(JSON.stringify(JSON.parse(customPacket.stdout).data)).not.toContain(customRules);
+      const missingPacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'absent', '--loss-policy', 'report'],
+        comparisonText,
+      );
+      expect(missingPacket.code).toBe(2);
+      expect(missingPacket.stderr).toBe('');
+      expect(JSON.parse(missingPacket.stdout).diagnostics[0].code).toBe('unknown-baseline');
+      const regression = await run([
+        runtime,
+        bin,
+        'relationships',
+        'compare',
+        '--baseline',
+        'baseline',
+        '-i',
+        comparisonFile,
+      ]);
+      expect(regression.code).toBe(1);
+      expect(regression.stderr).toBe('');
+      expect(JSON.parse(regression.stdout)).toMatchObject({
+        operation: 'relationships-compare',
+        status: 'compared',
+        data: { summary: { introduced: 1, resolved: 0, persisting: 0 } },
+      });
+      const persisting = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'custom'],
+        comparisonText,
+      );
+      expect(persisting.code).toBe(0);
+      expect(persisting.stderr).toBe('');
+      expect(JSON.parse(persisting.stdout).data.summary).toEqual({
+        introduced: 0,
+        resolved: 0,
+        persisting: 1,
+      });
+      const resolution = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'custom', '--edition', 'baseline'],
+        comparisonText,
+      );
+      expect(resolution.code).toBe(0);
+      expect(resolution.stderr).toBe('');
+      expect(JSON.parse(resolution.stdout).data.summary.resolved).toBe(1);
+      const conventionComparison = await run(
+        [
+          runtime,
+          bin,
+          'relationships',
+          'compare',
+          '--baseline',
+          'baseline',
+          '--rules',
+          customRules,
+        ],
+        comparisonText,
+      );
+      expect(conventionComparison.code).toBe(0);
+      expect(conventionComparison.stderr).toBe('');
+      expect(JSON.parse(conventionComparison.stdout).data.summary.introduced).toBe(0);
+      const missingEdition = await run(
+        [runtime, bin, 'relationships', 'compare', '--baseline', 'absent'],
+        comparisonText,
+      );
+      expect(missingEdition.code).toBe(2);
+      expect(missingEdition.stderr).toBe('');
+      expect(JSON.parse(missingEdition.stdout).diagnostics[0].code).toBe('unknown-baseline');
+      const audited = await run([runtime, bin, 'relationships', 'audit'], serializeGraph(causal));
+      expect(audited.code).toBe(0);
+      expect(audited.stderr).toBe('');
+      expect(JSON.parse(audited.stdout).data.summary).toEqual({
+        edges: 4,
+        typed: 4,
+        inferred: 0,
+        unrelated: 0,
+        blocked: 0,
+      });
+      const incompatible = await run([runtime, bin, 'relationships', 'audit'], customText);
+      expect(incompatible.code).toBe(1);
+      expect(incompatible.stderr).toBe('');
+      expect(JSON.parse(incompatible.stdout).diagnostics[0].code).toBe(
+        'relationship-unknown-relationship',
+      );
+      const customAudit = await run(
+        [runtime, bin, 'relationships', 'audit', '--rules', customRules],
+        customText,
+      );
+      expect(customAudit.code).toBe(0);
+      expect(customAudit.stderr).toBe('');
+      expect(JSON.parse(customAudit.stdout).data.entries[0].relationshipKey).toBe(
+        'custom:approves',
+      );
+      const badRules = await run([runtime, bin, 'relationships', 'audit', '--rules', '-'], empty);
+      expect(badRules.code).toBe(2);
+      expect(badRules.stderr).toBe('');
+      expect(JSON.parse(badRules.stdout).diagnostics[0].code).toBe('invalid-rules');
+      const portable = await run([runtime, bin, 'validate', '--input', portableFile]);
+      expect(portable.code).toBe(0);
+      expect(JSON.parse(portable.stdout).model).toEqual({
+        id: 'alternative',
+        name: 'Alternative',
+        editions: 1,
+        origin: { modelId: 'parent', editionId: 'baseline' },
+      });
+      const strictModel = await run([runtime, bin, 'mermaid', 'export', '-i', portableFile]);
+      expect(strictModel.code).toBe(1);
+      expect(
+        JSON.parse(strictModel.stdout).diagnostics.map((d: { code: string }) => d.code),
+      ).toContain('model-metadata-omitted');
+      const projected = await run([
+        runtime,
+        bin,
+        'mermaid',
+        'export',
+        '-i',
+        portableFile,
+        '--loss-policy',
+        'report',
+      ]);
+      expect(projected.code).toBe(0);
+      expect(
+        JSON.parse(projected.stdout).diagnostics.map((d: { code: string }) => d.code),
+      ).toContain('model-metadata-omitted');
       const valid = await run([runtime, bin, 'validate'], empty);
       expect(valid.code).toBe(0);
       expect(JSON.parse(valid.stdout).status).toBe('valid');
@@ -120,6 +379,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       expect(JSON.parse(missing.stdout).diagnostics[0].code).toBe('input-unavailable');
     }
     expect(await readFile(modelFile, 'utf8')).toBe(graph);
+    expect(await readFile(portableFile, 'utf8')).toBe(modelText);
+    expect(await readFile(comparisonFile, 'utf8')).toBe(comparisonText);
     const tooLarge = path.join(directory, 'oversized.json');
     await writeFile(tooLarge, ' '.repeat(1_048_577));
     const limited = await run([bin, 'validate', '-i', tooLarge]);
@@ -135,8 +396,10 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { run, cliProtocol, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
-const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result;`,
+      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const packet:Extract<CliResponse,{status:'created'}>['data']['format']='foldkit-zloz-review'; void packet; void CliReviewInputRejected;
+const comparison:Extract<CliResponse,{status:'compared'}>['data']['summary']={introduced:0,resolved:1,persisting:2}; void comparison; void CliAuditRegression;
+const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,
     );
     const tsc = path.join(root, 'packages/foldkit-zloz-cli/node_modules/.bin/tsc');
     for (const mode of ['Bundler', 'NodeNext'])

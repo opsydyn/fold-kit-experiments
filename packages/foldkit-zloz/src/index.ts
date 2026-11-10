@@ -56,6 +56,7 @@ export {
   defaultFitViewPadding,
   defaultZoomLimits,
   fitViewport,
+  fitNodes,
   minimapGeometry,
   portAnchor,
   portPosition,
@@ -176,3 +177,151 @@ export type {
   ZlozEditionRestoreDecision,
   ZlozEditionRestoreResult,
 } from './edition-restore';
+export {
+  captureModelDocument,
+  parseModelDocument,
+  serializeModelDocument,
+  forkEdition,
+  createModelEditor,
+} from './model-document';
+export type {
+  ZlozModelDocument,
+  ZlozModelIdentity,
+  ZlozModelOrigin,
+  ZlozEditionForkPolicy,
+  ZlozEditionForkResult,
+} from './model-document';
+export { createArchitecturePattern, insertPattern } from './patterns';
+export type {
+  ArchitecturePattern,
+  ZlozPatternInsertionPolicy,
+  ZlozPatternInsertionOptions,
+  ZlozPatternInsertionResult,
+} from './patterns';
+export {
+  createEditionPlayback,
+  updateEditionPlayback,
+  playbackEditionId,
+  editionPlaybackReason,
+} from './edition-playback';
+export type {
+  ZlozEditionPlayback,
+  ZlozEditionPlaybackOptions,
+  ZlozEditionPlaybackEvent,
+} from './edition-playback';
+export { resolveEditionPlaybackControls } from './playback-controls';
+export type {
+  ZlozPlaybackControlName,
+  ZlozPlaybackControlEvent,
+  ZlozPlaybackControl,
+  ZlozPlaybackControlsContext,
+  ZlozPlaybackControlsOptions,
+} from './playback-controls';
+export {
+  resolveEditionScrubber,
+  editionScrubberRequest,
+  resolveEditionSeek,
+} from './edition-scrubber';
+export type {
+  ZlozEditionSeekRequest,
+  ZlozEditionSeekDecision,
+  ZlozEditionScrubberEntry,
+  ZlozEditionScrubberOptions,
+  ZlozEditionScrubberContext,
+} from './edition-scrubber';
+
+export {
+  resolveHistoryComparisonControls,
+  resolveHistoryComparisonRequest,
+} from './history-comparison-controls';
+export type {
+  ZlozHistoryGhostPart,
+  ZlozHistoryGhostVisibility,
+  ZlozComparisonEdition,
+  ZlozHistoryComparisonControlsState,
+  ZlozHistoryComparisonRequest,
+  ZlozHistoryComparisonControlsOptions,
+  ZlozHistoryComparisonDecision,
+  ZlozComparisonChoice,
+  ZlozHistoryBaselineControl,
+  ZlozHistoryGhostControl,
+  ZlozHistoryComparisonControlsContext,
+} from './history-comparison-controls';
+
+export {
+  resolveHistoryChangeNavigator,
+  resolveHistoryChangeFocus,
+} from './history-change-navigator';
+export type {
+  ZlozHistoryChangeKind,
+  ZlozHistoryChangeFilters,
+  ZlozHistoryChangeItem,
+  ZlozHistoryChangeFocusRequest,
+  ZlozHistoryChangeEntry,
+  ZlozHistoryChangeFilter,
+  ZlozHistoryChangeNavigatorOptions,
+  ZlozHistoryChangeNavigatorContext,
+  ZlozHistoryChangeFocusTarget,
+  ZlozHistoryChangeFocusDecision,
+} from './history-change-navigator';
+
+export { isEdgeArchitecture } from './architecture';
+export {
+  eventStormingRelationshipRules,
+  eventStormingRelationshipKey,
+  eventStormingParticipantRole,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipPolicy,
+} from './event-storming-relationships';
+export type {
+  EventStormingParticipantRole,
+  ZlozEventStormingRelationshipRule,
+  ZlozEventStormingRelationshipOptions,
+  ZlozEventStormingRelationshipDecision,
+} from './event-storming-relationships';
+export { createEventStormingPattern } from './patterns';
+
+export {
+  resolveEventStormingRelationshipControls,
+  resolveEventStormingRelationshipRequest,
+} from './relationship-controls';
+export type {
+  ZlozEventStormingRelationshipRequest,
+  ZlozEventStormingRelationshipControlsOptions,
+  ZlozEventStormingRelationshipChoice,
+  ZlozEventStormingRelationshipInference,
+  ZlozEventStormingRelationshipControlsContext,
+  ZlozEventStormingRelationshipEditDecision,
+} from './relationship-controls';
+
+export { auditEventStormingRelationships } from './relationship-audit';
+export type {
+  ZlozRelationshipAuditCode,
+  ZlozEventStormingRelationshipAuditEntry,
+  ZlozEventStormingRelationshipAudit,
+} from './relationship-audit';
+export { compareModelEventStormingRelationships } from './relationship-audit-comparison';
+export type {
+  ZlozRelationshipAuditFinding,
+  ZlozRelationshipAuditSource,
+  ZlozRelationshipAuditSelection,
+  ZlozRelationshipAuditComparison,
+  ZlozRelationshipAuditComparisonDecision,
+} from './relationship-audit-comparison';
+export {
+  resolveAuditComparisonControls,
+  resolveAuditComparisonRequest,
+} from './audit-comparison-controls';
+export type {
+  ZlozAuditFindingKind,
+  ZlozAuditComparisonState,
+  ZlozAuditFindingFocusRequest,
+  ZlozAuditComparisonRequest,
+  ZlozAuditFindingItem,
+  ZlozAuditFindingEntry,
+  ZlozAuditEditionControl,
+  ZlozAuditFindingFilter,
+  ZlozAuditComparisonControlsOptions,
+  ZlozAuditComparisonControlsContext,
+  ZlozAuditComparisonDecision,
+} from './audit-comparison-controls';

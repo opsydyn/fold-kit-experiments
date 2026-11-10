@@ -1,7 +1,7 @@
 {
   "name": "@opsydyn/foldkit-zloz-cli",
   "version": "0.1.0",
-  "description": "Effect CLI for Zloz model validation and loss-aware Mermaid export.",
+  "description": "Effect CLI for Zloz model validation, causal relationship audits and loss-aware Mermaid export.",
   "keywords": [
     "architecture",
     "cli",

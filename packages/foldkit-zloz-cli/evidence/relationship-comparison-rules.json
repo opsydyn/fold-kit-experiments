@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "architecture": { "family": "event-storming", "role": "issues" },
+      "sources": ["actor"],
+      "targets": ["command"],
+      "label": "Issues"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "handles" },
+      "sources": ["command"],
+      "targets": ["aggregate"],
+      "label": "Handled by"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "emits" },
+      "sources": ["aggregate"],
+      "targets": ["domain-event"],
+      "label": "Emits"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "produces" },
+      "sources": ["command"],
+      "targets": ["domain-event"],
+      "label": "Produces"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "activates" },
+      "sources": ["domain-event"],
+      "targets": ["policy"],
+      "label": "Activates"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "triggers" },
+      "sources": ["policy"],
+      "targets": ["command"],
+      "label": "Triggers"
+    },
+    {
+      "architecture": { "family": "event-storming", "role": "custom", "name": "approves" },
+      "sources": ["actor"],
+      "targets": ["command"],
+      "label": "Approves"
+    }
+  ]
+}

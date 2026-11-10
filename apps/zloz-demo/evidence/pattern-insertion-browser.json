@@ -1,0 +1,13 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "live protection and visible reason",
+    "additive DDD insertion preserves existing graph and model identity",
+    "one Undo removes complete grouped fragment",
+    "Redo restores exact insertion",
+    "C4 insertion and independent Undo",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

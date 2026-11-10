@@ -37,9 +37,9 @@ test('rewind and navigation reject workbench mutations and return to the exact w
   expect(historical.historyBaselineId).toBe('order-start');
   const blocked = update(historical, Message.SelectedExample({ example: 'c4-context' })).model;
   expect(blocked.editor).toBe(editor);
-  expect(update(blocked, Message.SucceededLoad({ json: 'invalid stale load' })).model.editor).toBe(
-    editor,
-  );
+  expect(
+    update(blocked, Message.SucceededImport({ id: -1, json: 'invalid stale load' })).model.editor,
+  ).toBe(editor);
   expect(
     update(blocked, Message.ObservedZlozInput({ message: { type: 'DeletePressed' } })).model.editor,
   ).toBe(editor);
@@ -72,4 +72,36 @@ test('returning after a resize refreshes only surface measurement, preserving do
   expect(present.editor.graph).toBe(examples.editor.graph);
   expect(present.editor.viewport).toBe(examples.editor.viewport);
   expect(present.editor.past).toBe(examples.editor.past);
+});
+
+test('comparison requests preserve stale baselines and independently retained preferences without editing history', () => {
+  const examples = update(init().model, Message.ClickedOrderHistory()).model;
+  const reviewing = update(examples, Message.SelectedHistoryEdition({ id: 'order-evolved' })).model;
+  for (const id of ['missing', 'order-evolved']) {
+    expect(update(reviewing, Message.SelectedHistoryBaseline({ id })).model.historyBaselineId).toBe(
+      'order-start',
+    );
+  }
+  const off = update(reviewing, Message.ClickedHistoryGhost({ part: 'nodes' })).model;
+  const master = update(off, Message.ClickedHistoryGhost({ part: 'enabled' })).model;
+  const restored = update(master, Message.ClickedHistoryGhost({ part: 'enabled' })).model;
+  expect(restored.historyGhosts.nodes).toBe(false);
+  expect(restored.historyGhosts.enabled).toBe(off.historyGhosts.enabled);
+  expect(restored.editor).toBe(reviewing.editor);
+  expect(restored.historyReview).toBe(reviewing.historyReview);
+  expect(restored.editions).toBe(reviewing.editions);
+  const cleared = update(restored, Message.SelectedHistoryBaseline({ id: '' })).model;
+  expect(cleared.historyBaselineId).toBeNull();
+});
+
+test('custom comparison editors can set an absolute visibility value idempotently during review', () => {
+  const examples = update(init().model, Message.ClickedOrderHistory()).model;
+  const reviewing = update(examples, Message.SelectedHistoryEdition({ id: 'order-evolved' })).model;
+  const set = Message.ChangedHistoryGhostVisibility({ part: 'nodes', value: false });
+  const first = update(reviewing, set).model;
+  const second = update(first, set).model;
+  expect(first.historyGhosts.nodes).toBe(false);
+  expect(second).toBe(first);
+  expect(second.editor).toBe(reviewing.editor);
+  expect(second.historyReview).toBe(reviewing.historyReview);
 });

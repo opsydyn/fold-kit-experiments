@@ -1,0 +1,19 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "public controls with custom cards in the left sidebar",
+    "independent baseline and target identity",
+    "resolved finding reveals an existing baseline-only edge",
+    "introduced/persisting findings open target edition",
+    "native Enter retains keyboard focus",
+    "filter subsets and empty status",
+    "explicit current target remains independent of review camera",
+    "focus pauses playback and old ticks do not advance review",
+    "reduced-motion manual navigation",
+    "minimal and diagnostics settings hide counts without disabling controls",
+    "working snapshot and existing Undo preserved",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

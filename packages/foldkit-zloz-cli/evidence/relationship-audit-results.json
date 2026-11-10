@@ -1,0 +1,775 @@
+{
+  "result": "passed",
+  "checks": [
+    "Node/Bun real executable",
+    "file and stdin documents",
+    "typed/inferred/blocked classification",
+    "custom data-only conventions",
+    "0/1/2 exit and JSON framing",
+    "input fixtures unchanged"
+  ],
+  "runs": [
+    {
+      "runtime": "node",
+      "example": "compatible-file",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 5,
+            "typed": 5,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Issues.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "issues"
+              },
+              "relationshipKey": "issues",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:1",
+              "edgeLabel": "Handled by",
+              "source": {
+                "node": "note:1",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:2",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Handled by.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "handles"
+              },
+              "relationshipKey": "handles",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:2",
+              "edgeLabel": "Emits",
+              "source": {
+                "node": "note:2",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:3",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Emits.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "emits"
+              },
+              "relationshipKey": "emits",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:3",
+              "edgeLabel": "Whenever",
+              "source": {
+                "node": "note:3",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:4",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Activates.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "activates"
+              },
+              "relationshipKey": "activates",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:4",
+              "edgeLabel": "Then",
+              "source": {
+                "node": "note:4",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:5",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Triggers.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "triggers"
+              },
+              "relationshipKey": "triggers",
+              "status": "typed"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "incompatible-stdin",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "incompatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 1
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "status": "blocked",
+              "code": "incompatible-roles",
+              "message": "This convention does not allow emits from actor to command.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "emits"
+              },
+              "relationshipKey": "emits"
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "step:0",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "inferred-stdin",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 1,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Inferred relationship: Issues.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "issues"
+              },
+              "relationshipKey": "issues",
+              "status": "inferred"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "custom-default",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "incompatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 1
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "status": "blocked",
+              "code": "unknown-relationship",
+              "message": "The selected relationship is not available in this convention.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "custom",
+                "name": "approves"
+              },
+              "relationshipKey": "custom:approves"
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "step:0",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "custom-rules",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "file",
+          "input": "packages/foldkit-zloz-cli/evidence/relationship-audit-rules.json"
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 1,
+            "typed": 1,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Approves.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "custom",
+                "name": "approves"
+              },
+              "relationshipKey": "custom:approves",
+              "status": "typed"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "rejected",
+        "diagnostics": [
+          {
+            "code": "invalid-json",
+            "message": "Input must be valid JSON.",
+            "dimension": "syntax",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "reserved-rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "rejected",
+        "diagnostics": [
+          {
+            "code": "invalid-rules",
+            "message": "Rules must be a JSON file; stdin is reserved for model input.",
+            "dimension": "semantics",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "compatible-file",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 5,
+            "typed": 5,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Issues.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "issues"
+              },
+              "relationshipKey": "issues",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:1",
+              "edgeLabel": "Handled by",
+              "source": {
+                "node": "note:1",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:2",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Handled by.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "handles"
+              },
+              "relationshipKey": "handles",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:2",
+              "edgeLabel": "Emits",
+              "source": {
+                "node": "note:2",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:3",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Emits.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "emits"
+              },
+              "relationshipKey": "emits",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:3",
+              "edgeLabel": "Whenever",
+              "source": {
+                "node": "note:3",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:4",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Activates.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "activates"
+              },
+              "relationshipKey": "activates",
+              "status": "typed"
+            },
+            {
+              "edgeId": "step:4",
+              "edgeLabel": "Then",
+              "source": {
+                "node": "note:4",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:5",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Triggers.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "triggers"
+              },
+              "relationshipKey": "triggers",
+              "status": "typed"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "incompatible-stdin",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "incompatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 1
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "status": "blocked",
+              "code": "incompatible-roles",
+              "message": "This convention does not allow emits from actor to command.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "emits"
+              },
+              "relationshipKey": "emits"
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-incompatible-roles",
+            "message": "This convention does not allow emits from actor to command.",
+            "subject": "step:0",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "inferred-stdin",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 1,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Inferred relationship: Issues.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "issues"
+              },
+              "relationshipKey": "issues",
+              "status": "inferred"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "custom-default",
+      "exitCode": 1,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "builtin",
+          "input": null
+        },
+        "data": {
+          "status": "incompatible",
+          "summary": {
+            "edges": 1,
+            "typed": 0,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 1
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "status": "blocked",
+              "code": "unknown-relationship",
+              "message": "The selected relationship is not available in this convention.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "custom",
+                "name": "approves"
+              },
+              "relationshipKey": "custom:approves"
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "code": "relationship-unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "subject": "step:0",
+            "severity": "error",
+            "dimension": "semantics"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "custom-rules",
+      "exitCode": 0,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "audited",
+        "scope": "current-graph",
+        "modelId": null,
+        "conventions": {
+          "source": "file",
+          "input": "packages/foldkit-zloz-cli/evidence/relationship-audit-rules.json"
+        },
+        "data": {
+          "status": "compatible",
+          "summary": {
+            "edges": 1,
+            "typed": 1,
+            "inferred": 0,
+            "unrelated": 0,
+            "blocked": 0
+          },
+          "entries": [
+            {
+              "edgeId": "step:0",
+              "edgeLabel": "Issues",
+              "source": {
+                "node": "note:0",
+                "port": "out"
+              },
+              "target": {
+                "node": "note:1",
+                "port": "in"
+              },
+              "code": "compatible",
+              "message": "Typed relationship: Approves.",
+              "architecture": {
+                "family": "event-storming",
+                "role": "custom",
+                "name": "approves"
+              },
+              "relationshipKey": "custom:approves",
+              "status": "typed"
+            }
+          ]
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "rejected",
+        "diagnostics": [
+          {
+            "code": "invalid-json",
+            "message": "Input must be valid JSON.",
+            "dimension": "syntax",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "reserved-rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "protocol": "foldkit-zloz-cli/v1",
+        "operation": "relationships-audit",
+        "status": "rejected",
+        "diagnostics": [
+          {
+            "code": "invalid-rules",
+            "message": "Rules must be a JSON file; stdin is reserved for model input.",
+            "dimension": "semantics",
+            "subject": "-",
+            "severity": "error"
+          }
+        ]
+      }
+    }
+  ]
+}

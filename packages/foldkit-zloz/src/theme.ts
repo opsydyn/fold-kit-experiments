@@ -1,4 +1,8 @@
 const tokenProperties = {
+  eventStormingCommand: '--flow-event-storming-command',
+  eventStormingEvent: '--flow-event-storming-event',
+  eventStormingPolicy: '--flow-event-storming-policy',
+  eventStormingActor: '--flow-event-storming-actor',
   background: '--flow-background',
   canvasBorder: '--flow-canvas-border',
   gridLine: '--flow-grid-line',
@@ -40,6 +44,10 @@ export type ZlozTheme = Readonly<{
 export const zlozLightTheme = Object.freeze({
   colorScheme: 'light',
   tokens: Object.freeze({
+    eventStormingCommand: '#2563eb',
+    eventStormingEvent: '#c2410c',
+    eventStormingPolicy: '#7e22ce',
+    eventStormingActor: '#a16207',
     background: '#eef2f6',
     canvasBorder: '#94a3b8',
     gridLine: '#94a3b855',
@@ -70,6 +78,10 @@ export const zlozLightTheme = Object.freeze({
 export const zlozDarkTheme = Object.freeze({
   colorScheme: 'dark',
   tokens: Object.freeze({
+    eventStormingCommand: '#93c5fd',
+    eventStormingEvent: '#fdba74',
+    eventStormingPolicy: '#d8b4fe',
+    eventStormingActor: '#fde047',
     background: '#111827',
     canvasBorder: '#596780',
     gridLine: '#94a3b84d',

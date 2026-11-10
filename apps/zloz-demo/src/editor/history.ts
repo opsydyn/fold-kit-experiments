@@ -13,12 +13,39 @@ import type { Model } from './model';
 
 /** All other app actions fail closed while a historical editor is displayed. */
 export function historyAllowsMessage(message: Message): boolean {
-  if (message._tag === 'ObservedZlozInput') {
+  if (message._tag === 'ObservedZlozInput' || message._tag === 'ObservedModelInput') {
     // SAFETY: the view emits EditorEvent values through this Schema.Unknown message field.
     const event = message.message as EditorEvent;
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'ClickedScrubberHistory',
+    'ClickedAuditExample',
+    'ObservedAuditComparisonInput',
+    'SelectedPlaybackEdition',
+    'AdvancedEditionPlayback',
+    'ClickedPlaybackEnabled',
+    'ClickedPlaybackPlay',
+    'ClickedPlaybackPause',
+    'ClickedPlaybackRewind',
+    'ClickedPlaybackPrevious',
+    'ClickedPlaybackNext',
+    'SelectedPlaybackInterval',
+    'ChangedPlaybackReducedMotion',
+    'ChangedPlaybackVisibility',
+    'ChoseModelDocumentFiles',
+    'SucceededModelDocumentImport',
+    'FailedModelDocumentImport',
+    'ClickedCancelModelImport',
+    'CompletedCancelModelImport',
+    'ClickedModelImportProtection',
+    'ChangedForkName',
+    'ClickedForkEdition',
+    'SelectedWorkingModel',
+    'ClickedEditionForkProtection',
+    'ClickedExportModel',
+    'CompletedExport',
+    'FailedExport',
     'ChoseEditionArchiveFiles',
     'SucceededEditionArchiveImport',
     'FailedEditionArchiveImport',
@@ -30,8 +57,11 @@ export function historyAllowsMessage(message: Message): boolean {
     'ClickedEditionRestoreProtection',
     'SelectedHistoryEdition',
     'ClickedHistoryPresent',
+    'ClickedHistoryChangeFilter',
+    'ClickedHistoryChange',
     'SelectedHistoryBaseline',
     'ClickedHistoryGhost',
+    'ChangedHistoryGhostVisibility',
     'ClickedExportEditions',
     'CompletedExportEditions',
     'FailedExportEditions',
@@ -114,4 +144,39 @@ export function editionRestorePolicy(model: Model): ZlozEditionRestorePolicy {
     canRestoreEdition: () =>
       model.protectEditionRestore ? 'Edition restore is protected in this workspace.' : null,
   };
+}
+
+/** Synthetic named checkpoints for exercising direct seeking; not a business change log. */
+export function scrubberEditions(): readonly ZlozEdition[] {
+  const [original, evolved] = orderEditions();
+  const names = [
+    'Sketch',
+    'Language review',
+    'Aggregate review',
+    'Policy review',
+    'Delivery introduced',
+    'Delivery review',
+    'Boundary review',
+    'Final review',
+  ];
+  return names.map((name, index) => {
+    const source = index < 4 ? original! : evolved!;
+    const graph = {
+      ...source.snapshot.graph,
+      nodes: source.snapshot.graph.nodes.map((node) =>
+        node.id === 'order'
+          ? {
+              ...node,
+              label: index < 2 ? 'Order' : 'Sales order',
+              position: { ...node.position, x: node.position.x + index * 14 },
+            }
+          : node,
+      ),
+    };
+    return captureEdition({
+      id: `scrubber-order-${index}`,
+      name: `Ordering · ${name}`,
+      snapshot: { graph },
+    });
+  });
 }

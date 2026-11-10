@@ -56,7 +56,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
 
     const source = `import { createEditor } from '@opsydyn/foldkit-zloz';
-import { exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
+import { createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
 const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: {x:0,y:0}, size: {width:200,height:100}, ports: [] }], edges: [] });
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
@@ -67,6 +67,9 @@ const nested = exportMermaid({ nodes: [
  { id: 'leaf', parentId: 'inner', label: 'Leaf', position: {x:20,y:20}, size: {width:100,height:80}, ports: [] }
 ], edges: [] }, { lossPolicy: 'report' });
 if (nested.status !== 'converted' || nested.value.identity.nodes[1]?.kind !== 'group' || nested.value.identity.nodes[1]?.parentId !== 'outer' || !nested.value.source.includes('subgraph')) throw new Error('Nested contract failed');
+const packet: ZlozReviewPacketResult = createReviewPacket({id:'review',name:'Review',origin:null,snapshot:{graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{graph:editor.graph}}]},{baselineId:'base'},{lossPolicy:'report'});
+if(packet.status!=='created'||packet.value.baseline.source.id!=='base'||packet.value.format!=='foldkit-zloz-review'||packet.value.conventions.rules.length!==6||packet.value.projections.selected.direction!=='LR')throw new Error('Review packet contract failed');
+const portable=JSON.parse(JSON.stringify(packet.value)); if(portable.selected.snapshot.graph.nodes[0].id!=='end')throw new Error('Packet portability failed');
 console.log('mermaid-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');

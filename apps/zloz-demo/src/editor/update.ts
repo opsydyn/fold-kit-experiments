@@ -1,14 +1,19 @@
 import {
   applyLayout,
+  resolveHistoryComparisonRequest,
+  updateEditionPlayback,
+  createEventStormingPattern,
   appendEdition,
   mergeEditions,
   resolveEditionRestore,
   restoreEdition,
   type ZlozEdition,
+  type ZlozModelDocument,
   captureEdition,
   createHistoryReview,
   updateHistoryReview,
   serializeEditions,
+  serializeModelDocument,
   createEditor,
   fitViewport,
   layoutRequest,
@@ -21,6 +26,7 @@ import {
   type EditorState,
   type ZlozGraph,
   type ZlozSnapshot,
+  type ZlozAuditComparisonRequest,
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
@@ -34,6 +40,7 @@ import {
 import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
+import { loadAuditExample, updateWorkbenchAudit } from './audit-comparison';
 import {
   createC4ContextGraph,
   createC4ContainerGraph,
@@ -43,7 +50,9 @@ import {
   ArrangeFlow,
   ExportZlozEditions,
   ImportZlozEditions,
+  ImportZlozModel,
   ExportFlow,
+  ExportZlozModel,
   ExportMermaidBundle,
   ImportZloz,
   LoadZloz,
@@ -52,12 +61,15 @@ import {
 } from './command';
 import { createDddOrderGraph } from './ddd-examples';
 import { workbenchPolicy } from './editor-policy';
+import { delegatedRelationship } from './event-storming-relationships';
 import {
   historyAllowsMessage,
   orderEditions,
+  scrubberEditions,
   editionArchiveByteLimit,
   editionRestorePolicy,
 } from './history';
+import { focusWorkbenchHistoryChange } from './history-navigation';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
@@ -68,8 +80,26 @@ import {
   portSnappingGraph,
   type Model,
 } from './model';
+import {
+  forkWorkingEdition,
+  selectWorkingModel,
+  workbenchDocument,
+  openModelDocument,
+  modelSessionBusy,
+} from './model-sessions';
+import { insertWorkbenchPattern } from './pattern-insertion';
+import {
+  toggleHistoryPlayback,
+  controlHistoryPlayback,
+  seekHistoryPlayback,
+  tickHistoryPlayback,
+  pauseHistoryPlayback,
+  playbackInterruptedBy,
+  reconcileHistoryPlayback,
+} from './playback';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
+import { editWorkbenchRelationship } from './relationship-controls';
 import { searchDiagram } from './search';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
@@ -83,6 +113,38 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if (
+    message._tag === 'ObservedModelInput' &&
+    (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
+  )
+    return { model };
+  if (playbackInterruptedBy(message)) {
+    const paused = pauseHistoryPlayback(model);
+    if (paused !== model) return update(paused, message);
+  }
+  const cancelModelImport = () =>
+    model.modelImport
+      ? [
+          ImportZlozModel.Interrupt({ id: model.modelImport.id }, () =>
+            Message.CompletedCancelModelImport(),
+          ),
+        ]
+      : [];
+  if (
+    model.modelImport &&
+    new Set<string>([
+      'ClickedLoad',
+      'ChoseImportFiles',
+      'ChoseEditionArchiveFiles',
+      'ClickedArrange',
+    ]).has(message._tag)
+  )
+    return {
+      model: {
+        ...model,
+        notice: 'Finish or cancel model import before starting another document operation.',
+      },
+    };
   const cancelEditionImport = () =>
     model.editionImport
       ? [
@@ -165,7 +227,139 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       clipboard: model.editor.clipboard,
     };
   };
-  const result: Return<Model, Message> = Message.match(message, {
+  const outcome: Return<Model, Message> = Message.match(message, {
+    ClickedScrubberHistory: () => {
+      const decision = mergeEditions(model.editions, scrubberEditions());
+      return {
+        model:
+          decision.type === 'blocked'
+            ? { ...model, notice: decision.reason }
+            : {
+                ...model,
+                editions: decision.editions,
+                notice: 'Named sample history is available. Your working model is preserved.',
+              },
+      };
+    },
+    SelectedPlaybackEdition: (input) => ({ model: seekHistoryPlayback(model, input) }),
+    AdvancedEditionPlayback: (message) => ({ model: tickHistoryPlayback(model, message) }),
+    ClickedPlaybackEnabled: () => ({ model: toggleHistoryPlayback(model) }),
+    ClickedPlaybackPlay: () => ({ model: controlHistoryPlayback(model, { type: 'PlayClicked' }) }),
+    ClickedPlaybackPause: () => ({
+      model: controlHistoryPlayback(model, { type: 'PauseClicked' }),
+    }),
+    ClickedPlaybackRewind: () => ({
+      model: controlHistoryPlayback(model, { type: 'RewindClicked' }),
+    }),
+    ClickedPlaybackPrevious: () => ({
+      model: controlHistoryPlayback(model, { type: 'PreviousClicked' }),
+    }),
+    ClickedPlaybackNext: () => ({ model: controlHistoryPlayback(model, { type: 'NextClicked' }) }),
+    SelectedPlaybackInterval: ({ intervalMs }) => ({
+      model: controlHistoryPlayback(model, { type: 'IntervalChanged', intervalMs }),
+    }),
+    ChangedPlaybackReducedMotion: ({ reducedMotion }) => ({
+      model: controlHistoryPlayback(
+        { ...model, playbackReducedMotion: reducedMotion },
+        { type: 'ReducedMotionChanged', reducedMotion },
+      ),
+    }),
+    ChangedPlaybackVisibility: ({ visible }) => ({
+      model: visible
+        ? { ...model, playbackVisible: true }
+        : pauseHistoryPlayback({ ...model, playbackVisible: false }),
+    }),
+    ClickedPatternInsertionProtection: () => ({
+      model: { ...model, protectPatternInsertion: !model.protectPatternInsertion },
+    }),
+    ClickedInsertPattern: ({ pattern }) => ({ model: insertWorkbenchPattern(model, pattern) }),
+    ClickedModelImportProtection: () => ({
+      model: { ...model, protectModelImport: !model.protectModelImport },
+    }),
+    ChoseModelDocumentFiles: ({ files }) => {
+      if (!files.length)
+        return { model: { ...model, modelImport: null }, commands: cancelModelImport() };
+      if (files.length !== 1 || files[0]!.size > editionArchiveByteLimit)
+        return {
+          model: {
+            ...model,
+            modelImport: null,
+            notice: 'Choose one model JSON file up to 5 MiB. Existing models are preserved.',
+          },
+          commands: cancelModelImport(),
+        };
+      if (modelSessionBusy({ ...model, modelImport: null }) || model.protectModelImport)
+        return {
+          model: {
+            ...model,
+            notice: 'Finish active operations and allow model import before opening a model.',
+          },
+        };
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          modelImport: {
+            id,
+            epoch: model.modelEpoch,
+            revision: model.editor.revision,
+            graph: model.editor.graph,
+          },
+          notice: 'Reading model document…',
+        },
+        commands: [...cancelModelImport(), ImportZlozModel({ id, file: files[0]! })],
+      };
+    },
+    ClickedCancelModelImport: () => ({
+      model: {
+        ...model,
+        modelImport: null,
+        notice: 'Model import cancelled. Existing models are preserved.',
+      },
+      commands: cancelModelImport(),
+    }),
+    CompletedCancelModelImport: () => ({ model }),
+    FailedModelDocumentImport: ({ id }) =>
+      model.modelImport?.id === id
+        ? {
+            model: {
+              ...model,
+              modelImport: null,
+              notice:
+                'Invalid, unsupported or unreadable model JSON. Existing models are preserved.',
+            },
+          }
+        : { model },
+    SucceededModelDocumentImport: ({ id, document: raw }) => {
+      const request = model.modelImport;
+      if (!request || request.id !== id) return { model };
+      const ready = { ...model, modelImport: null };
+      if (
+        request.epoch !== model.modelEpoch ||
+        request.revision !== model.editor.revision ||
+        request.graph !== model.editor.graph
+      )
+        return {
+          model: {
+            ...ready,
+            notice: 'The source session changed while reading. Choose the model file again.',
+          },
+        };
+      // SAFETY: ImportZlozModel validates this document through the canonical model codec before dispatch.
+      return { model: openModelDocument(ready, raw as ZlozModelDocument) };
+    },
+    ObservedModelInput: ({ message }) => update(model, Message.ObservedZlozInput({ message })),
+    ChangedForkName: ({ name }) => ({ model: { ...model, forkName: name } }),
+    ClickedEditionForkProtection: () => ({
+      model: { ...model, protectEditionFork: !model.protectEditionFork },
+    }),
+    ClickedForkEdition: () => ({ model: forkWorkingEdition(model) }),
+    SelectedWorkingModel: ({ id }) => ({ model: selectWorkingModel(model, id) }),
+    ClickedExportModel: () => ({
+      model,
+      commands: [ExportZlozModel({ json: serializeModelDocument(workbenchDocument(model)) })],
+    }),
     ChoseEditionArchiveFiles: ({ files }) => {
       if (files.length === 0)
         return {
@@ -287,6 +481,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           editor,
+          modelEpoch: model.modelEpoch + 1,
           editionRestore: null,
           historyReview: null,
           historyBaselineId: null,
@@ -350,10 +545,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         notice: 'Two example editions loaded. Your working model is preserved.',
       },
     }),
+    ClickedAuditExample: () => ({ model: loadAuditExample(model) }),
+    ObservedAuditComparisonInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: the public comparison view emits typed requests through this Schema.Unknown field; the resolver rechecks current identity and policy.
+      const request = raw as ZlozAuditComparisonRequest;
+      return { model: updateWorkbenchAudit(model, request, modelId, epoch) };
+    },
     SelectedHistoryEdition: ({ id }) => {
       const index = model.editions.findIndex((edition) => edition.id === id);
       const edition = model.editions[index];
-      if (!edition || model.editor.gesture.type !== 'idle') return { model };
+      if (!edition || model.editor.gesture.type !== 'idle' || model.active || model.importing)
+        return { model };
       const source = model.historyReview
         ? { ...model.editor, surface: model.historyReview.editor.surface }
         : model.editor;
@@ -361,9 +563,19 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: {
           ...model,
+          modelEpoch: model.modelEpoch + 1,
           historyReview: edition.snapshot.viewport
             ? review
             : updateHistoryReview(review, { type: 'FitViewClicked' }),
+          historyPlayback: model.historyPlayback
+            ? {
+                ...model.historyPlayback,
+                cursor: updateEditionPlayback(model.historyPlayback.cursor, {
+                  type: 'EditionSelected',
+                  id,
+                }),
+              }
+            : null,
           historyBaselineId: model.editions[index - 1]?.id ?? null,
           editionRestore: null,
           active: null,
@@ -382,6 +594,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: {
           ...model,
+          modelEpoch: model.modelEpoch + 1,
           editor: sameSurface ? model.editor : { ...model.editor, surface },
           historyReview: null,
           editionRestore: null,
@@ -390,23 +603,54 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
-    SelectedHistoryBaseline: ({ id }) => ({
+    ClickedHistoryChangeFilter: ({ kind }) => ({
       model: {
         ...model,
-        historyBaselineId:
-          id &&
-          id !== model.historyReview?.editionId &&
-          model.editions.some((edition) => edition.id === id)
-            ? id
-            : null,
+        historyChangeFilters: {
+          ...model.historyChangeFilters,
+          [kind]: !model.historyChangeFilters[kind],
+        },
       },
     }),
-    ClickedHistoryGhost: ({ part }) => ({
-      model: {
-        ...model,
-        historyGhosts: { ...model.historyGhosts, [part]: !model.historyGhosts[part] },
-      },
-    }),
+    ClickedHistoryChange: (input) => ({ model: focusWorkbenchHistoryChange(model, input) }),
+    SelectedHistoryBaseline: ({ id }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'BaselineSelected', editionId: id || null },
+      );
+      return {
+        model:
+          decision.type === 'ready'
+            ? { ...model, historyBaselineId: decision.state.baselineId }
+            : model,
+      };
+    },
+    ClickedHistoryGhost: ({ part }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'GhostVisibilityToggled', part },
+      );
+      return {
+        model:
+          decision.type === 'ready' ? { ...model, historyGhosts: decision.state.ghosts } : model,
+      };
+    },
+    ChangedHistoryGhostVisibility: ({ part, value }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'GhostVisibilityChanged', part, value },
+      );
+      return {
+        model:
+          decision.type === 'ready' ? { ...model, historyGhosts: decision.state.ghosts } : model,
+      };
+    },
     ClickedExportEditions: () => ({
       model,
       commands: [ExportZlozEditions({ json: serializeEditions(model.editions) })],
@@ -442,39 +686,44 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     },
     SelectedExample: ({ example }) => {
       const graph =
-        example === 'large-workflow'
-          ? createLargeWorkflowGraph()
-          : example === 'protected-orbits'
-            ? createProtectedWorkflowGraph()
-            : example === 'ddd-orders'
-              ? createDddOrderGraph()
-              : example === 'c4-context'
-                ? createC4ContextGraph()
-                : example === 'c4-nested-containers'
-                  ? createC4NestedContainerGraph()
-                  : example === 'c4-containers'
-                    ? createC4ContainerGraph()
-                    : {
-                        release: initialGraph,
-                        onion: onionGraph,
-                        'grouped-onion': groupedOnionGraph,
-                        'port-snapping': portSnappingGraph,
-                      }[example];
+        example === 'event-storming'
+          ? createEventStormingPattern({ includeAggregate: true })
+          : example === 'large-workflow'
+            ? createLargeWorkflowGraph()
+            : example === 'protected-orbits'
+              ? createProtectedWorkflowGraph()
+              : example === 'ddd-orders'
+                ? createDddOrderGraph()
+                : example === 'c4-context'
+                  ? createC4ContextGraph()
+                  : example === 'c4-nested-containers'
+                    ? createC4NestedContainerGraph()
+                    : example === 'c4-containers'
+                      ? createC4ContainerGraph()
+                      : {
+                          release: initialGraph,
+                          onion: onionGraph,
+                          'grouped-onion': groupedOnionGraph,
+                          'port-snapping': portSnappingGraph,
+                        }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
           ...model,
           editor,
+          semanticRelationships: example === 'event-storming' ? true : model.semanticRelationships,
           nodeDesign:
-            example === 'protected-orbits'
-              ? 'orbits'
-              : example === 'ddd-orders'
-                ? 'ddd'
-                : example === 'c4-context' ||
-                    example === 'c4-containers' ||
-                    example === 'c4-nested-containers'
-                  ? 'c4'
-                  : model.nodeDesign,
+            example === 'event-storming'
+              ? 'event-storming'
+              : example === 'protected-orbits'
+                ? 'orbits'
+                : example === 'ddd-orders'
+                  ? 'ddd'
+                  : example === 'c4-context' ||
+                      example === 'c4-containers' ||
+                      example === 'c4-nested-containers'
+                    ? 'c4'
+                    : model.nodeDesign,
           retainNodeViews: example === 'protected-orbits' || model.retainNodeViews,
           customPorts: example === 'protected-orbits' || model.customPorts,
           mixedPortProtection: example === 'protected-orbits' || model.mixedPortProtection,
@@ -797,6 +1046,40 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),
+    SelectedCausalRelationship: (input) => ({
+      model: editWorkbenchRelationship(model, { ...input, type: 'RelationshipSelected' }),
+    }),
+    ClickedRelationshipInference: (input) => ({
+      model: editWorkbenchRelationship(model, { ...input, type: 'InferenceApplied' }),
+    }),
+    ClickedSemanticRelationships: () => ({
+      model: { ...model, semanticRelationships: !model.semanticRelationships },
+    }),
+    ClickedCustomStormingRelationships: () => ({
+      model: { ...model, customStormingRelationships: !model.customStormingRelationships },
+    }),
+    ClickedDelegatedRelationship: ({ modelId, epoch }) => {
+      if (
+        modelId !== model.modelIdentity.id ||
+        epoch !== model.modelEpoch ||
+        modelSessionBusy(model) ||
+        model.editor.readOnly
+      )
+        return { model };
+      const edge = delegatedRelationship(model);
+      return {
+        model: edge
+          ? {
+              ...model,
+              editor: updateEditor(
+                model.editor,
+                { type: 'ConnectionCreated', edge },
+                workbenchPolicy(model),
+              ),
+            }
+          : model,
+      };
+    },
     SelectedEdgeLabelDesign: ({ edgeLabelDesign }) => ({ model: { ...model, edgeLabelDesign } }),
     SelectedEdgeDesign: ({ edgeDesign }) => ({ model: { ...model, edgeDesign } }),
     SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),
@@ -1009,6 +1292,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           editor,
           active: null,
           importing: null,
+          modelEpoch: model.modelEpoch + 1,
           notice: 'JSON diagram imported.',
         },
       };
@@ -1017,7 +1301,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model,
       commands: [SaveZloz({ json: snapshotJson() })],
     }),
-    ClickedLoad: () => ({ model, commands: [LoadZloz()] }),
+    ClickedLoad: () => {
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          importing: { id, revision: model.editor.revision },
+          notice: 'Reading saved diagram…',
+        },
+        commands: [LoadZloz({ id })],
+      };
+    },
     SucceededSave: () => ({ model: { ...model, notice: 'Saved on this browser.' } }),
     FailedStorage: () => ({
       model: {
@@ -1025,16 +1320,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         notice: 'Saved graph unavailable or invalid. Your current graph is preserved.',
       },
     }),
-    SucceededLoad: ({ json }) => ({
-      model: {
-        ...model,
-        editor: restoreDocument(parseSnapshot(json), false),
-        active: null,
-        importing: null,
-        notice: 'Saved graph loaded.',
-      },
-    }),
   });
+  const result = { ...outcome, model: reconcileHistoryPlayback(model, outcome.model) };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
   const invalidLabel =

@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "package controls with custom selector, inference and status rendering",
+    "unfamiliar stored keys remain selected without clearing metadata",
+    "custom catalogue restoration enables explicit inference",
+    "repeated inference is disabled without new Undo entries",
+    "inference Undo and Redo preserve custom descriptors",
+    "package aggregate process and five typed causal links",
+    "opt-in rejection exposes reasons without modifying the model",
+    "custom Delegates convention creates a typed relationship",
+    "atomic connection Undo and Redo preserve typed metadata",
+    "incompatible native options are disabled with validation enabled",
+    "validation off permits unresolved drafts with visible diagnostics",
+    "inferred legacy meaning can be explicitly applied",
+    "exported model retains builtin and named custom descriptors",
+    "sidebar inspector keeps the canvas clear; connection tools remain available in Ports",
+    "light/dark visual captures"
+  ],
+  "pageErrors": []
+}

@@ -158,7 +158,7 @@ Astro is the demonstration shell. Prioritize the following bounded slices:
    [qualification receipt](../apps/zloz-demo/evidence/history.md). The subsequent
    [import/restore slice](../apps/zloz-demo/evidence/edition-restore.md) adds atomic
    archive merge and explicit graph-only restore with one Undo, required freshness
-   and live policy checks. Forks, playback and automatic persistence remain open.
+   and live policy checks. The fork slice adds separate model identity, pinned immediate origin, an independent editor/Undo and model JSON; playback and automatic persistence remain open.
    Start with named
    immutable editions, read-only rewind and return to the present; then semantic/
    layout comparison and explicit restore or fork into a new working model.
@@ -181,9 +181,81 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** fork an edition into a separate working model with explicit
-lineage, keeping this distinct from restoring the current graph. Archive import,
-read-only rewind, comparison ghosts and undoable restore provide the local baseline. DDD renderers retain the current
+**Recommended next:** composable packet export controls in the workbench: use the
+chosen audit baseline/target, preview scope and conversion losses, then explicitly
+consent to a JSON download through the public builder. Preserve the current graph
+and Undo. Keep packet import and executable agent actions outside that UI slice.
+
+Portable review packets are implemented locally in the optional Mermaid package
+and Effect CLI. Chosen snapshots, model/source identity, a complete data-only
+convention catalogue, audit comparison and both Mermaid projections travel in a
+versioned JSON envelope. Conversion losses require report-mode consent; errors
+reject atomically. Artifact creation is separate from semantic regression gating.
+There is no packet import, workbench export UI or publication in this slice.
+
+A package-level read-only causal audit and Effect CLI command are implemented
+locally. Reports classify every edge in deterministic identity order, preserve
+typed/inferred/unrelated distinctions and return structured semantic reasons.
+The CLI scopes model audits to the current graph and supports bounded data-only
+custom rule catalogues, with distinct compatibility and input-error exits.
+
+Edition-aware audit comparison is implemented locally at package and Effect CLI
+level. Explicit owned baseline/target editions (or current graph as target) use
+one convention and report introduced, resolved and persisting findings with both
+full audits. Comparison exit 1 gates new findings; existing incompatibilities stay
+visible even when there is no regression. Missing IDs fail closed. No UI,
+serialization migration or publication is claimed for this slice.
+
+Composable audit comparison controls are implemented locally in the package and
+demonstrated in the workbench sidebar. Baseline/target selection stays independent
+of the displayed camera. Category filters, custom finding cards and source-aware
+reveal keep resolved edges on the baseline and other findings on the target.
+Requests recheck model/comparison/finding identity, filters and host protection;
+the host also checks epochs, pauses playback for navigation and preserves working
+graph/Undo. Numeric status/counts follow minimal mode and global diagnostics.
+
+Composable causal controls are implemented locally: a pure current-edge context,
+identity-safe request resolver, native select/inference/status/reason helpers and
+nullable rendering/layout slots. The workbench consumes the public controls with
+custom wrappers and rechecks target/model scope, current conventions and policy.
+Unknown stored meanings remain visible, and inference is explicitly undoable.
+
+Typed causal relationships are implemented locally with six default conventions,
+named custom rules, extensible role interpretation, strict descriptor syntax,
+opt-in composed policies and undoable semantic edits. The detailed workbench
+process adds an aggregate root and demonstrates unresolved drafts, readable
+protection reasons and custom Delegates relationships. Mermaid discloses semantic
+loss instead of silently claiming descriptor fidelity.
+
+Package-owned change navigation is implemented locally with composable kind
+filters, accessible entries, explicit scoped focus requests and live protection
+reasons. The workbench demonstrates custom badges, current/removed geometry
+focus and playback pause while preserving the working model and Undo.
+Package-owned comparison controls are implemented locally: identity-safe baseline
+selection, independently retained ghost preferences, minimal-mode visibility,
+visible host restrictions and native composable Foldkit controls. The workbench
+uses the public contract for controls and effective canvas visibility.
+The edition scrubber is implemented locally with identity-based seeking, custom
+labels/value text, native range/Open helpers, renderer slots and host session
+guards. An eight-checkpoint workbench sample demonstrates direct navigation. Composable package playback controls, status,
+availability reasons, ordered subsets and renderer/layout slots are implemented
+locally; the workbench uses the public helpers with a custom visual composition. Opt-in deterministic edition playback, pause,
+rewind and reduced-motion handling are implemented locally, using existing
+read-only projections and optional ghost comparisons.
+Event-storming command, domain-event, policy and actor notes, a composable package
+renderer and process starter are now implemented locally with existing geometry,
+serialization and atomic insertion APIs. Atomic pattern insertion is
+implemented locally with validated self-contained fragments, explicit ID maps,
+live policies, C4/DDD starters and one Undo per insertion. Model-document
+workbench import and CLI validation are now implemented locally with explicit
+identity conflicts and conversion-loss reporting. Forking is implemented locally with package-owned
+model identity, pinned source edition, independent editing/Undo, policy checks,
+session switching and an explicit model codec. Graph/snapshot/edition v1 remain
+unchanged. The existing diagram importer remains graph/snapshot-only; Open model
+JSON and CLI readDocument preserve the full envelope. Mermaid projection requires
+explicit loss consent. See [the adapter qualification receipt](../apps/zloz-demo/evidence/model-import.md)
+and [the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
+DDD renderers retain the current
 descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
 with people, explore how its architecture evolves, and review/communicate the
 same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.

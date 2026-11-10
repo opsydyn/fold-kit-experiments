@@ -276,3 +276,24 @@ custom text/attributes/layout and numeric readout control support host styling
 and diagnostics. See the
 [package example](../packages/foldkit-zloz/README.md#composable-audit-comparison-controls)
 and [ADR 0034](adr/0034-compose-audit-comparison-controls.md).
+
+### Portable review packets
+
+The optional Mermaid package exports `createReviewPacket`, `ZlozReviewPacket`,
+`ZlozReviewPacketOptions`, `ZlozReviewPacketDiagnostic`, `ZlozReviewSnapshot` and
+`ZlozReviewPacketResult`. The pure builder composes core comparison and loss-aware
+projections into a versioned, selected-snapshot export. The complete data-only
+catalogue travels with chosen snapshots, findings and Mermaid identity metadata.
+Core remains independent of the optional adapter. See the
+[packet contract](../packages/foldkit-zloz-mermaid/README.md#portable-review-packets).
+
+The Effect CLI adds `review packet --baseline <id> [--edition <id>]` with existing
+input/rules/direction/loss-policy flags and `CliReviewInputRejected`. Creation
+exits 0 even with introduced findings; projection rejection exits 1 and invalid
+input/selectors exit 2. See the
+[CLI contract](../packages/foldkit-zloz-cli/README.md#portable-review-packets)
+and [ADR 0035](adr/0035-export-portable-review-packets.md).
+
+`CliDiagnostic` also exposes an exact optional `side` field for packet diagnostics,
+including projection rejection. Its schema retains that field when decoding;
+existing command diagnostics omit it and retain their original JSON shape.

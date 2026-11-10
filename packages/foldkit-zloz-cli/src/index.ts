@@ -11,6 +11,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import {
   exportMermaid,
+  createReviewPacket,
   type MermaidDirection,
   type MermaidLossPolicy,
 } from '@opsydyn/foldkit-zloz-mermaid';
@@ -26,6 +27,7 @@ import {
   CliConversionRejected,
   CliAuditIncompatible,
   CliAuditRegression,
+  CliReviewInputRejected,
   CliInvocationRejected,
   encodeResponse,
   type CliOperation,
@@ -42,6 +44,7 @@ export {
   CliConversionRejected,
   CliAuditIncompatible,
   CliAuditRegression,
+  CliReviewInputRejected,
   CliInvocationRejected,
 } from './protocol';
 export type { CliOperation, CliResponse } from './protocol';
@@ -70,6 +73,24 @@ function rejectInput(operation: Operation, error: CliInputError) {
 function readForOperation(operation: Operation, input: string) {
   return readDocument(input).pipe(
     Effect.catchTag(['CliInputError'], (error) => rejectInput(operation, error)),
+  );
+}
+function requireModel(document: CliDocument, input: string, operation: Operation) {
+  const result = Match.value(document).pipe(
+    Match.when({ kind: 'model' }, ({ document }) => Result.succeed(document)),
+    Match.orElse(() =>
+      Result.fail(
+        new CliInputError({
+          code: 'model-required',
+          message: 'Edition comparison requires a Zloz model document.',
+          dimension: 'identity',
+          subject: input,
+        }),
+      ),
+    ),
+  );
+  return Effect.fromResult(result).pipe(
+    Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
   );
 }
 function execute(
@@ -236,23 +257,7 @@ function executeComparison(
     });
     const options = yield* readingRules;
     const document = yield* readForOperation('relationships-compare', input);
-    const modelResult = Match.value(document).pipe(
-      Match.when({ kind: 'model' }, ({ document }) => Result.succeed(document)),
-      Match.orElse(() =>
-        Result.fail(
-          new CliInputError({
-            code: 'model-required',
-            message: 'Edition comparison requires a Zloz model document.',
-            dimension: 'identity',
-            subject: input,
-          }),
-        ),
-      ),
-    );
-    const selectingModel = Effect.fromResult(modelResult).pipe(
-      Effect.catchTag('CliInputError', (error) => rejectInput('relationships-compare', error)),
-    );
-    const model = yield* selectingModel;
+    const model = yield* requireModel(document, input, 'relationships-compare');
     const selection = Option.match(edition, {
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
@@ -303,6 +308,64 @@ function executeComparison(
     yield* reporting;
   });
   return comparing.pipe(Effect.withSpan('zloz.cli.compareRelationships'));
+}
+function executeReviewPacket(
+  input: string,
+  baselineId: string,
+  edition: Option.Option<string>,
+  rules: Option.Option<string>,
+  direction: MermaidDirection,
+  lossPolicy: MermaidLossPolicy,
+) {
+  const creating = Effect.gen(function* () {
+    const readingRules = Option.match(rules, {
+      onNone: () => Effect.succeed<ZlozEventStormingRelationshipOptions>({}),
+      onSome: readAuditRules('review-packet'),
+    });
+    const options = yield* readingRules;
+    const document = yield* readForOperation('review-packet', input);
+    const model = yield* requireModel(document, input, 'review-packet');
+    const selection = Option.match(edition, {
+      onNone: () => ({ baselineId }),
+      onSome: (selectedId) => ({ baselineId, selectedId }),
+    });
+    const result = createReviewPacket(model, selection, {
+      direction,
+      lossPolicy,
+      rules: options.rules,
+    });
+    const response = Match.value(result).pipe(
+      Match.when(
+        { status: 'created' },
+        ({ value, diagnostics }): CliResponse => ({
+          protocol: cliProtocol,
+          operation: 'review-packet',
+          status: 'created',
+          scope: 'selected-snapshots',
+          data: value,
+          diagnostics,
+        }),
+      ),
+      Match.orElse(
+        ({ diagnostics }): CliResponse => ({
+          protocol: cliProtocol,
+          operation: 'review-packet',
+          status: 'rejected',
+          diagnostics,
+        }),
+      ),
+    );
+    yield* writeResponse(response);
+    const finishing = Match.value(result).pipe(
+      Match.when({ status: 'created' }, ({ value }) => Result.succeed(value)),
+      Match.when({ status: 'rejected', reason: 'input' }, () =>
+        Result.fail(new CliReviewInputRejected()),
+      ),
+      Match.orElse(() => Result.fail(new CliConversionRejected())),
+    );
+    yield* Effect.fromResult(finishing);
+  });
+  return creating.pipe(Effect.withSpan('zloz.cli.createReviewPacket'));
 }
 const input = Flag.String('input').pipe(
   Flag.withAlias('i'),
@@ -365,11 +428,32 @@ const relationshipsCommand = Command.make('relationships').pipe(
   Command.withDescription('Event-storming causal relationship tools.'),
   Command.withSubcommands([auditCommand, compareCommand]),
 );
+const packetCommand = Command.make(
+  'packet',
+  { input, rules, baseline, edition, direction, lossPolicy },
+  (config) =>
+    executeReviewPacket(
+      config.input,
+      config.baseline,
+      config.edition,
+      config.rules,
+      config.direction,
+      config.lossPolicy,
+    ),
+).pipe(
+  Command.withDescription(
+    'Create a portable selected-snapshot review packet with audit findings and loss-aware Mermaid projections.',
+  ),
+);
+const reviewCommand = Command.make('review').pipe(
+  Command.withDescription('Portable architecture review artifacts.'),
+  Command.withSubcommands([packetCommand]),
+);
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(
     'Compose systems. Connect ideas. Validate and audit Zloz models; export Mermaid as JSON.',
   ),
-  Command.withSubcommands([validate, mermaidCommand, relationshipsCommand]),
+  Command.withSubcommands([validate, mermaidCommand, relationshipsCommand, reviewCommand]),
 );
 
 type InvalidInvocation = Extract<CliOutput.Presenter.Event, { readonly _tag: 'InvalidInvocation' }>;

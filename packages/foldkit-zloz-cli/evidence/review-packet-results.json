@@ -1,0 +1,3039 @@
+{
+  "result": "passed",
+  "runtimes": {
+    "node": "v24.15.0",
+    "bun": "1.4.4"
+  },
+  "checks": [
+    "real Node/Bun executable",
+    "file and stdin input",
+    "atomic strict/report projection behavior",
+    "audit findings do not fail artifact creation",
+    "explicit/current/same selectors",
+    "data-only conventions travel without file paths",
+    "audit reproduced from every created JSON packet",
+    "nested C4 identity and Unicode edges",
+    "0/1/2 exits and JSON framing",
+    "input fixture bytes unchanged"
+  ],
+  "runs": [
+    {
+      "runtime": "node",
+      "example": "strict-file",
+      "exitCode": 1,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "report-current",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "TB",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "report-edition",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "same-edition",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 1
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "custom-rules",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "custom",
+            "ruleCount": 7
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "nested-c4",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "boundary"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "orders"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "boundary"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "orders"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "empty-strict",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "reject"
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "unknown-baseline",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "packet",
+            "code": "unknown-baseline",
+            "severity": "error",
+            "subject": "missing"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "unknown-target",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "packet",
+            "code": "unknown-edition",
+            "severity": "error",
+            "subject": "missing"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "unsupported-projection",
+      "exitCode": 1,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "graph-rejected",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "model-required",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-json",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "invalid-rules",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-rules",
+            "severity": "error",
+            "subject": "packages/foldkit-zloz-cli/evidence/review-packet-invalid-rules.json"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-rules",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "missing-baseline-argument",
+      "exitCode": 2,
+      "response": {
+        "operation": "invocation",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-arguments",
+            "severity": "error",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "node",
+      "example": "invalid-direction",
+      "exitCode": 2,
+      "response": {
+        "operation": "invocation",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-arguments",
+            "severity": "error",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "strict-file",
+      "exitCode": 1,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "report-current",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "TB",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "report-edition",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 1,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "same-edition",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "selected": {
+            "kind": "edition",
+            "id": "after",
+            "name": "After"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 1
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "custom-rules",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "custom",
+            "ruleCount": 7
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "viewport-omitted",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "nested-c4",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "report"
+          }
+        },
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "boundary"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "orders"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "boundary"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "orders"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "empty-strict",
+      "exitCode": 0,
+      "response": {
+        "operation": "review-packet",
+        "status": "created",
+        "packet": {
+          "format": "foldkit-zloz-review",
+          "version": 1,
+          "baseline": {
+            "kind": "edition",
+            "id": "before",
+            "name": "Before"
+          },
+          "selected": {
+            "kind": "current"
+          },
+          "conventions": {
+            "source": "builtin",
+            "ruleCount": 6
+          },
+          "summary": {
+            "introduced": 0,
+            "resolved": 0,
+            "persisting": 0
+          },
+          "projectionOptions": {
+            "direction": "LR",
+            "lossPolicy": "reject"
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "unknown-baseline",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "packet",
+            "code": "unknown-baseline",
+            "severity": "error",
+            "subject": "missing"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "unknown-target",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "packet",
+            "code": "unknown-edition",
+            "severity": "error",
+            "subject": "missing"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "unsupported-projection",
+      "exitCode": 1,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "baseline",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:0"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:1"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:2"
+          },
+          {
+            "side": "baseline",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "step:3"
+          },
+          {
+            "side": "baseline",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "baseline",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:0"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:1"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:2"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:3"
+          },
+          {
+            "side": "selected",
+            "code": "node-fields-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "port-details-omitted",
+            "severity": "loss",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "unsupported-label-encoding",
+            "severity": "error",
+            "subject": "note:4"
+          },
+          {
+            "side": "selected",
+            "code": "edge-fields-omitted",
+            "severity": "loss",
+            "subject": "支付:edge"
+          },
+          {
+            "side": "selected",
+            "code": "layout-omitted",
+            "severity": "loss",
+            "subject": null
+          },
+          {
+            "side": "selected",
+            "code": "identity-map-required",
+            "severity": "loss",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "graph-rejected",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "model-required",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "invalid-json",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-json",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "invalid-rules",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-rules",
+            "severity": "error",
+            "subject": "packages/foldkit-zloz-cli/evidence/review-packet-invalid-rules.json"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "rules-stdin",
+      "exitCode": 2,
+      "response": {
+        "operation": "review-packet",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-rules",
+            "severity": "error",
+            "subject": "-"
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "missing-baseline-argument",
+      "exitCode": 2,
+      "response": {
+        "operation": "invocation",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-arguments",
+            "severity": "error",
+            "subject": null
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "bun",
+      "example": "invalid-direction",
+      "exitCode": 2,
+      "response": {
+        "operation": "invocation",
+        "status": "rejected",
+        "packet": null,
+        "diagnostics": [
+          {
+            "side": null,
+            "code": "invalid-arguments",
+            "severity": "error",
+            "subject": null
+          }
+        ]
+      }
+    }
+  ]
+}

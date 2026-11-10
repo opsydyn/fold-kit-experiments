@@ -255,3 +255,48 @@ valid and report all existing findings as persisting. The original audit command
 and its exit semantics are unchanged.
 
 See the [executable comparison evidence](evidence/relationship-comparison.md).
+
+## Portable review packets
+
+```sh
+zloz review packet -i model.json --baseline before --loss-policy report > review.json
+zloz review packet -i model.json --baseline before --edition after --direction TB --rules conventions.json --loss-policy report
+cat model.json | zloz review packet --baseline before
+```
+
+The command composes the public packet builder in the optional Mermaid package.
+It requires a model document and explicit owned baseline ID. Omit `--edition` to
+review the current graph; provide it to choose an owned target edition. There is
+no fallback to another edition or lineage traversal. The same bounded UTF-8 input
+and data-only `--rules` contracts apply. No input file is rewritten.
+
+One JSON response plus newline uses operation `review-packet`, status `created`,
+scope `selected-snapshots`, `data: ZlozReviewPacket` and side-scoped conversion
+`diagnostics`. `review.json` therefore contains the CLI envelope; its `data` is the
+standalone packet (`format: foldkit-zloz-review`, `version: 1`). The packet retains
+chosen snapshots, model/source identity, exact convention data, audit comparison,
+projection options, both Mermaid bundles/identity maps and conversion diagnostics.
+It contains no host file paths, executable rules, unrelated archive or lineage.
+Chosen authored graph data and cameras are included. Keep the full JSON to retain
+what Mermaid omits; a packet is not a full-model backup or an importable model file.
+
+Mermaid omissions reject unless `--loss-policy report` explicitly consents. That
+consent applies to both projections; errors still reject and no partial packet is
+emitted. `--direction` supports LR/RL/TB/BT. Default direction is LR. Empty selected
+snapshots with no camera can export under strict policy without losses.
+
+| Exit | Meaning                                                                            |
+| ---- | ---------------------------------------------------------------------------------- |
+| 0    | Complete packet created, including packets with introduced or persisting findings. |
+| 1    | Projection losses/errors rejected packet creation; no data is emitted.             |
+| 2    | Rejected document, rules, selectors, invocation or I/O.                            |
+
+Top-level diagnostics describe projections and carry `side: baseline | selected |
+packet` where produced by the builder. Semantic findings are in
+`data.comparison`. Use `relationships compare` to gate introduced findings or
+`relationships audit` to gate any incompatibility; packet export is artifact
+creation. `CliReviewInputRejected` distinguishes builder input/selector rejection
+for embedders. Existing command output and exit meanings remain unchanged.
+
+See the [packet type contract](../foldkit-zloz-mermaid/README.md#portable-review-packets)
+and [executable evidence](evidence/review-packet.md).

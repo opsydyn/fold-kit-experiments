@@ -13,9 +13,9 @@ import {
   serializeGraph,
   eventStormingRelationshipRules,
 } from '@opsydyn/foldkit-zloz';
-import { Cause, Effect, Exit, Runtime, Sink, Stdio, Stream } from 'effect';
+import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effect';
 
-import { run } from '../src/index';
+import { run, CliDiagnostic } from '../src/index';
 
 const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
 const graph =
@@ -140,6 +140,83 @@ test('relationship audit is an Effect command with a distinct audited response',
     unrelated: 0,
     blocked: 0,
   });
+});
+
+test('review packets require explicit loss consent but creation succeeds even with introduced findings', async () => {
+  const graph = createEventStormingPattern(),
+    first = graph.edges[0];
+  assert(first);
+  const model = {
+    id: 'review',
+    name: 'Review',
+    origin: null,
+    snapshot: {
+      graph: {
+        ...graph,
+        edges: [
+          { ...first, architecture: { family: 'event-storming' as const, role: 'emits' as const } },
+        ],
+      },
+    },
+    editions: [{ id: 'before', name: 'Before', snapshot: { graph } }],
+  };
+  const text = serializeModelDocument(model);
+  const strict = await invoke(['review', 'packet', '--baseline', 'before'], text);
+  expect(strict.code).toBe(1);
+  expect(JSON.parse(strict.text)).toMatchObject({ operation: 'review-packet', status: 'rejected' });
+  expect(
+    JSON.parse(strict.text).diagnostics.some(
+      (item: { side: string; severity: string }) =>
+        item.side === 'baseline' && item.severity === 'loss',
+    ),
+  ).toBe(true);
+  const scopedDiagnostic = JSON.parse(strict.text).diagnostics.find(
+    (item: { side?: string }) => item.side === 'baseline',
+  );
+  expect(Schema.decodeUnknownSync(CliDiagnostic)(scopedDiagnostic).side).toBe('baseline');
+  const reported = await invoke(
+    ['review', 'packet', '--baseline', 'before', '--loss-policy', 'report', '--direction', 'TB'],
+    text,
+  );
+  expect(reported.code).toBe(0);
+  const packet = JSON.parse(reported.text);
+  expect(packet).toMatchObject({
+    protocol: 'foldkit-zloz-cli/v1',
+    operation: 'review-packet',
+    status: 'created',
+    scope: 'selected-snapshots',
+  });
+  expect(packet.data.format).toBe('foldkit-zloz-review');
+  expect(packet.data.comparison.summary.introduced).toBe(1);
+  expect(packet.data.projections.selected.source).toStartWith('flowchart TB\n');
+  const same = await invoke(
+    ['review', 'packet', '--baseline', 'before', '--edition', 'before', '--loss-policy', 'report'],
+    text,
+  );
+  expect(same.code).toBe(0);
+  expect(JSON.parse(same.text).data.selected.source.id).toBe('before');
+  expect(JSON.parse(same.text).data.comparison.summary.introduced).toBe(0);
+  for (const args of [
+    ['--baseline', 'missing'],
+    ['--baseline', 'before', '--edition', 'missing'],
+  ]) {
+    const result = await invoke(['review', 'packet', ...args, '--loss-policy', 'report'], text);
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text).diagnostics[0].subject).toBe('missing');
+  }
+  const noModel = await invoke(['review', 'packet', '--baseline', 'before'], empty);
+  expect(noModel.code).toBe(2);
+  expect(JSON.parse(noModel.text).diagnostics[0].code).toBe('model-required');
+  const invalid = await invoke(['review', 'packet', '--baseline', 'before'], '{bad');
+  expect(invalid.code).toBe(2);
+  expect(JSON.parse(invalid.text).diagnostics[0].code).toBe('invalid-json');
+  const noStdinRules = await invoke(
+    ['review', 'packet', '--baseline', 'before', '--rules', '-'],
+    text,
+  );
+  expect(noStdinRules.code).toBe(2);
+  expect(JSON.parse(noStdinRules.text).diagnostics[0].code).toBe('invalid-rules');
+  expect(serializeModelDocument(model)).toBe(text);
 });
 
 test('edition comparison gates on introduced findings and selects only explicit model editions', async () => {
@@ -353,6 +430,23 @@ test('data-only rule files support named custom meaning and reject malformed, du
           persisting: 0,
         });
         expect(JSON.parse(sharedRules.text).data.baseline.audit.summary.typed).toBe(1);
+        const portable = await invoke(
+          [
+            'review',
+            'packet',
+            '--baseline',
+            'custom-baseline',
+            '--rules',
+            file,
+            '--loss-policy',
+            'report',
+          ],
+          customModel,
+        );
+        expect(portable.code).toBe(0);
+        expect(JSON.parse(portable.text).data.conventions.rules[0].label).toBe('Approves');
+        expect(JSON.stringify(JSON.parse(portable.text).data)).not.toContain(file);
+        expect(await readFile(file, 'utf8')).toBe(rules);
         for (const invalid of [
           { version: 2, rules: [rule] },
           { version: 1, rules: [rule, rule] },

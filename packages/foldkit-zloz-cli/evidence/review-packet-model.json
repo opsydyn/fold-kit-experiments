@@ -1,0 +1,257 @@
+{
+  "format": "foldkit-zloz-model",
+  "version": 1,
+  "document": {
+    "id": "orders",
+    "name": "Orders",
+    "snapshot": {
+      "graph": {
+        "nodes": [
+          {
+            "id": "note:0",
+            "label": "Customer",
+            "architecture": { "family": "event-storming", "role": "actor" },
+            "position": { "x": 0, "y": 40 },
+            "size": { "width": 220, "height": 160 },
+            "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+            "appearance": { "shape": "rectangle" }
+          },
+          {
+            "id": "note:1",
+            "label": "Place order",
+            "architecture": { "family": "event-storming", "role": "command" },
+            "position": { "x": 340, "y": 40 },
+            "size": { "width": 220, "height": 160 },
+            "ports": [
+              { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+              { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+            ],
+            "appearance": { "shape": "rectangle" }
+          },
+          {
+            "id": "note:2",
+            "label": "Order placed",
+            "architecture": { "family": "event-storming", "role": "domain-event" },
+            "position": { "x": 680, "y": 40 },
+            "size": { "width": 220, "height": 160 },
+            "ports": [
+              { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+              { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+            ],
+            "appearance": { "shape": "rectangle" }
+          },
+          {
+            "id": "note:3",
+            "label": "When order placed, request payment",
+            "architecture": { "family": "event-storming", "role": "policy" },
+            "position": { "x": 1020, "y": 40 },
+            "size": { "width": 220, "height": 160 },
+            "ports": [
+              { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+              { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+            ],
+            "appearance": { "shape": "rectangle" }
+          },
+          {
+            "id": "note:4",
+            "label": "Request payment",
+            "architecture": { "family": "event-storming", "role": "command" },
+            "position": { "x": 1360, "y": 40 },
+            "size": { "width": 220, "height": 160 },
+            "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+            "appearance": { "shape": "rectangle" }
+          }
+        ],
+        "edges": [
+          {
+            "id": "支付:edge",
+            "label": "Issues",
+            "architecture": { "family": "event-storming", "role": "custom", "name": "approves" },
+            "source": { "node": "note:0", "port": "out" },
+            "target": { "node": "note:1", "port": "in" }
+          }
+        ]
+      },
+      "viewport": { "x": 4, "y": 8, "zoom": 1 }
+    },
+    "editions": [
+      {
+        "id": "before",
+        "name": "Before",
+        "snapshot": {
+          "graph": {
+            "nodes": [
+              {
+                "id": "note:0",
+                "label": "Customer",
+                "architecture": { "family": "event-storming", "role": "actor" },
+                "position": { "x": 0, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:1",
+                "label": "Place order",
+                "architecture": { "family": "event-storming", "role": "command" },
+                "position": { "x": 340, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:2",
+                "label": "Order placed",
+                "architecture": { "family": "event-storming", "role": "domain-event" },
+                "position": { "x": 680, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:3",
+                "label": "When order placed, request payment",
+                "architecture": { "family": "event-storming", "role": "policy" },
+                "position": { "x": 1020, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:4",
+                "label": "Request payment",
+                "architecture": { "family": "event-storming", "role": "command" },
+                "position": { "x": 1360, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                "appearance": { "shape": "rectangle" }
+              }
+            ],
+            "edges": [
+              {
+                "id": "step:0",
+                "label": "Issues",
+                "architecture": { "family": "event-storming", "role": "issues" },
+                "source": { "node": "note:0", "port": "out" },
+                "target": { "node": "note:1", "port": "in" }
+              },
+              {
+                "id": "step:1",
+                "label": "Produces",
+                "architecture": { "family": "event-storming", "role": "produces" },
+                "source": { "node": "note:1", "port": "out" },
+                "target": { "node": "note:2", "port": "in" }
+              },
+              {
+                "id": "step:2",
+                "label": "Whenever",
+                "architecture": { "family": "event-storming", "role": "activates" },
+                "source": { "node": "note:2", "port": "out" },
+                "target": { "node": "note:3", "port": "in" }
+              },
+              {
+                "id": "step:3",
+                "label": "Then",
+                "architecture": { "family": "event-storming", "role": "triggers" },
+                "source": { "node": "note:3", "port": "out" },
+                "target": { "node": "note:4", "port": "in" }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "after",
+        "name": "After",
+        "snapshot": {
+          "graph": {
+            "nodes": [
+              {
+                "id": "note:0",
+                "label": "Customer",
+                "architecture": { "family": "event-storming", "role": "actor" },
+                "position": { "x": 0, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:1",
+                "label": "Place order",
+                "architecture": { "family": "event-storming", "role": "command" },
+                "position": { "x": 340, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:2",
+                "label": "Order placed",
+                "architecture": { "family": "event-storming", "role": "domain-event" },
+                "position": { "x": 680, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:3",
+                "label": "When order placed, request payment",
+                "architecture": { "family": "event-storming", "role": "policy" },
+                "position": { "x": 1020, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [
+                  { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                  { "id": "out", "kind": "output", "side": "right", "offset": 0.5 }
+                ],
+                "appearance": { "shape": "rectangle" }
+              },
+              {
+                "id": "note:4",
+                "label": "Request payment",
+                "architecture": { "family": "event-storming", "role": "command" },
+                "position": { "x": 1360, "y": 40 },
+                "size": { "width": 220, "height": 160 },
+                "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                "appearance": { "shape": "rectangle" }
+              }
+            ],
+            "edges": [
+              {
+                "id": "支付:edge",
+                "label": "Issues",
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "custom",
+                  "name": "approves"
+                },
+                "source": { "node": "note:0", "port": "out" },
+                "target": { "node": "note:1", "port": "in" }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "unrelated",
+        "name": "unrelated-archive-sentinel",
+        "snapshot": { "graph": { "nodes": [], "edges": [] } }
+      }
+    ],
+    "origin": null
+  }
+}

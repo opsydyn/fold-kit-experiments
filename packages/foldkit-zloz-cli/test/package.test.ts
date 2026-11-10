@@ -88,6 +88,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(help.stdout).toContain('validate');
     expect(help.stdout).toContain('mermaid');
     expect(help.stdout).toContain('relationships');
+    expect(help.stdout).toContain('review');
     expect(help.stderr).toBe('');
     const version = await run([bin, '--version']);
     expect(version.code).toBe(0);
@@ -175,6 +176,59 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       }),
     );
     for (const runtime of ['node', 'bun']) {
+      const packet = await run([
+        runtime,
+        bin,
+        'review',
+        'packet',
+        '--baseline',
+        'baseline',
+        '-i',
+        comparisonFile,
+        '--loss-policy',
+        'report',
+      ]);
+      expect(packet.code).toBe(0);
+      expect(packet.stderr).toBe('');
+      expect(JSON.parse(packet.stdout)).toMatchObject({
+        operation: 'review-packet',
+        status: 'created',
+        data: { format: 'foldkit-zloz-review', comparison: { summary: { introduced: 1 } } },
+      });
+      const strictPacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'baseline'],
+        comparisonText,
+      );
+      expect(strictPacket.code).toBe(1);
+      expect(strictPacket.stderr).toBe('');
+      expect(JSON.parse(strictPacket.stdout).status).toBe('rejected');
+      const customPacket = await run(
+        [
+          runtime,
+          bin,
+          'review',
+          'packet',
+          '--baseline',
+          'baseline',
+          '--rules',
+          customRules,
+          '--loss-policy',
+          'report',
+        ],
+        comparisonText,
+      );
+      expect(customPacket.code).toBe(0);
+      expect(customPacket.stderr).toBe('');
+      expect(JSON.parse(customPacket.stdout).data.conventions.source).toBe('custom');
+      expect(JSON.parse(customPacket.stdout).data.comparison.summary.introduced).toBe(0);
+      expect(JSON.stringify(JSON.parse(customPacket.stdout).data)).not.toContain(customRules);
+      const missingPacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'absent', '--loss-policy', 'report'],
+        comparisonText,
+      );
+      expect(missingPacket.code).toBe(2);
+      expect(missingPacket.stderr).toBe('');
+      expect(JSON.parse(missingPacket.stdout).diagnostics[0].code).toBe('unknown-baseline');
       const regression = await run([
         runtime,
         bin,
@@ -342,7 +396,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const packet:Extract<CliResponse,{status:'created'}>['data']['format']='foldkit-zloz-review'; void packet; void CliReviewInputRejected;
 const comparison:Extract<CliResponse,{status:'compared'}>['data']['summary']={introduced:0,resolved:1,persisting:2}; void comparison; void CliAuditRegression;
 const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,
     );

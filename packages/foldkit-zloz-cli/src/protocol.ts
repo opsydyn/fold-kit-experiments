@@ -2,7 +2,11 @@ import type {
   ZlozEventStormingRelationshipAudit,
   ZlozRelationshipAuditComparison,
 } from '@opsydyn/foldkit-zloz';
-import type { MermaidBundle } from '@opsydyn/foldkit-zloz-mermaid';
+import type {
+  MermaidBundle,
+  ZlozReviewPacket,
+  ZlozReviewPacketDiagnostic,
+} from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
 export const cliProtocol = 'foldkit-zloz-cli/v1';
@@ -11,6 +15,7 @@ export type CliOperation =
   | 'mermaid-export'
   | 'relationships-audit'
   | 'relationships-compare'
+  | 'review-packet'
   | 'invocation';
 export const CliDiagnostic = Schema.Struct({
   code: Schema.String,
@@ -18,6 +23,8 @@ export const CliDiagnostic = Schema.Struct({
   subject: Schema.NullOr(Schema.String),
   severity: Schema.Literals(['error', 'loss']),
   dimension: Schema.Literals(['syntax', 'semantics', 'identity', 'layout', 'io']),
+  /** Present for packet conversion diagnostics; other commands retain their existing shape. */
+  side: Schema.optionalKey(Schema.Literals(['packet', 'baseline', 'selected'])),
 });
 export type CliDiagnostic = typeof CliDiagnostic.Type;
 export type CliResponse =
@@ -33,6 +40,14 @@ export type CliResponse =
         origin: Readonly<{ modelId: string; editionId: string }> | null;
       }>;
       diagnostics: readonly CliDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'review-packet';
+      status: 'created';
+      scope: 'selected-snapshots';
+      data: ZlozReviewPacket;
+      diagnostics: readonly ZlozReviewPacketDiagnostic[];
     }>
   | Readonly<{
       protocol: typeof cliProtocol;
@@ -102,6 +117,10 @@ export class CliAuditIncompatible extends Data.TaggedError('CliAuditIncompatible
 }
 export class CliAuditRegression extends Data.TaggedError('CliAuditRegression') {
   readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+export class CliReviewInputRejected extends Data.TaggedError('CliReviewInputRejected') {
+  readonly [Runtime.errorExitCode] = 2;
   readonly [Runtime.errorReported] = false;
 }
 export class CliInvocationRejected extends Data.TaggedError('CliInvocationRejected') {

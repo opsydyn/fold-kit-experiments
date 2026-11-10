@@ -2,7 +2,7 @@
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
 FoldKit or Effect dependency is installed. Requires the matching Zloz core peer.
-Version 0.1.0 is a local release candidate; npm publication has not been performed.
+Version 0.2.0 is a local release candidate; npm publication has not been performed.
 
 After publication:
 
@@ -84,3 +84,66 @@ bun run --filter @opsydyn/foldkit-zloz-mermaid pack:check
 The packed-consumer test installs only the core and exporter into a temporary
 npm project and checks TypeScript Bundler/NodeNext plus Node/Bun execution.
 See [ADR 0008](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0008-export-mermaid-through-an-optional-package.md).
+
+## Portable review packets
+
+`createReviewPacket` composes the core edition audit and both Mermaid projections
+without I/O, clocks, generated IDs or editor state:
+
+```ts
+import { createReviewPacket } from '@opsydyn/foldkit-zloz-mermaid';
+
+const result = createReviewPacket(
+  document,
+  { baselineId: 'before', selectedId: 'after' }, // Omit selectedId for current graph.
+  { direction: 'LR', lossPolicy: 'report', rules: conventions },
+);
+if (result.status === 'created') {
+  const packet = result.value;
+  // Host owns download/storage. Keep the complete JSON, not only the Mermaid source.
+  console.log(JSON.stringify(packet));
+} else {
+  console.log(result.reason, result.diagnostics);
+}
+```
+
+A packet has `format: 'foldkit-zloz-review'`, `version: 1` and
+`scope: 'selected-snapshots'`. Its public `ZlozReviewPacket` contract contains:
+
+- `model`: model ID and name.
+- `baseline` and `selected`: explicit source references and complete detached
+  canonical snapshots, including authored graph data and any camera.
+- `conventions`: builtin/custom provenance, the complete rule catalogue and
+  `roleInterpretation: 'zloz-event-storming/v1'`. It contains no file paths or
+  executable callbacks; exported rules reproduce the audit independently of
+  future default catalogues. Rules replace defaults when supplied.
+- `comparison`: both audits, introduced/resolved/persisting findings and counts.
+- `projectionOptions`, `projections.baseline` and `projections.selected`: chosen
+  direction/loss policy and full Mermaid bundles with original-ID metadata.
+- `diagnostics`: conversion losses/errors scoped to `baseline`, `selected` or
+  `packet`. Semantic findings remain in `comparison`.
+
+Only the chosen snapshots travel. Unrelated editions, origin/lineage, working
+editor/Undo and host file paths are outside the packet. This export preserves
+chosen authored data; it is not a backup of the entire model or a packet import
+API. Save the full JSON to retain semantic metadata omitted from Mermaid.
+
+Projection losses **reject by default**, even when canonical data is retained
+elsewhere in the packet. `report` explicitly consents to Mermaid omissions on
+both sides; it never permits errors. Camera omission is reported per side. Either
+side failing rejects the whole export with no partial packet. The existing label,
+source-size, nested-subgraph, alias and identity contracts apply unchanged.
+
+A created packet can contain newly introduced audit findings: successful artifact
+creation does not mean a compatible model. Selector/options failures return
+`{ status: 'rejected', reason: 'input', diagnostics }`; conversion failures use
+`reason: 'projection'`. Malformed canonical models or semantically invalid rule
+catalogues throw the existing core validation error. Core remains the authority
+for rules and model validation. Unknown option/rule fields and callback-based
+interpretation reject; use core directly for nonportable `roleOf` customization.
+
+The package additionally exports `ZlozReviewPacketOptions`,
+`ZlozReviewPacketDiagnostic`, `ZlozReviewSnapshot` and `ZlozReviewPacketResult`.
+Packet JSON round-trip tests reproduce its audit using only the chosen snapshots
+and exported rules. The optional adapter still installs no Effect, Foldkit,
+Mermaid parser, browser or layout engine. See [ADR 0035](../../docs/adr/0035-export-portable-review-packets.md).

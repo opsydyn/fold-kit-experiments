@@ -181,11 +181,17 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** portable review packets: package/CLI export of an explicit
-baseline/target, convention provenance, audit delta and loss-aware Mermaid
-projections so architecture reviews can travel into documentation and agent
-workflows without depending on a workbench session. Keep imports and executable
-agent changes outside the first read-only packet slice.
+**Recommended next:** composable packet export controls in the workbench: use the
+chosen audit baseline/target, preview scope and conversion losses, then explicitly
+consent to a JSON download through the public builder. Preserve the current graph
+and Undo. Keep packet import and executable agent actions outside that UI slice.
+
+Portable review packets are implemented locally in the optional Mermaid package
+and Effect CLI. Chosen snapshots, model/source identity, a complete data-only
+convention catalogue, audit comparison and both Mermaid projections travel in a
+versioned JSON envelope. Conversion losses require report-mode consent; errors
+reject atomically. Artifact creation is separate from semantic regression gating.
+There is no packet import, workbench export UI or publication in this slice.
 
 A package-level read-only causal audit and Effect CLI command are implemented
 locally. Reports classify every edge in deterministic identity order, preserve

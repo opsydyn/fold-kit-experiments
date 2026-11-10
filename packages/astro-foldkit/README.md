@@ -75,20 +75,30 @@ export default lazyApp(() => import('./main'));
 
 ```ts
 // src/apps/counter/main.ts
+import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 type Message = 'Inc' | 'Dec';
 
-export const Model = null;
+// `Model` is a runtime Schema, not a plain value: FoldKit reads `Model.ast`
+// while the island hydrates. A non-Schema `Model` type-checks, because the
+// contract types it as `unknown`, then fails at hydration.
+export const Model = Schema.Number;
+export type Model = typeof Model.Type;
+
 export const init = () => ({ model: 0 });
-export const update = (model: number, message: Message) => ({
+export const update = (model: Model, message: Message) => ({
   model: message === 'Inc' ? model + 1 : model - 1,
 });
-export const view = (model: number, h: HtmlBuilder<Message>): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: `Counter: ${model}`,
   body: h.button([h.OnClick('Inc')], [String(model)]),
 });
 ```
+
+A string-union `Message` keeps this example small. Applications with more than a
+couple of messages should use `defineMessageUnion` from `foldkit/message`, as
+the [astro-foldkit skill](../../skills/astro-foldkit) and the demo apps do.
 
 Use the app in an Astro page:
 
@@ -96,8 +106,13 @@ Use the app in an Astro page:
 ---
 import Counter from '../apps/counter/app'
 ---
-<Counter client:load />
+<Counter client:load noMeta />
 ```
+
+`noMeta` keeps the island from writing `document.title` on every render tick,
+which is what you want whenever the Astro page owns its own title — in
+particular on any page carrying more than one island. Drop it only when this
+island is meant to own the page title. See [`noMeta`](#nometa).
 
 For `lazyApp` / `defineApp`, the server renderer emits a deterministic
 `<div data-foldkit-island="true"></div>` mount shell. It does not load or
@@ -325,6 +340,24 @@ Prevents the FoldKit program from overwriting `document.title`. Use this wheneve
 Both `noMeta` and `noMeta={true}` are accepted. The wrapper pins only the
 Document `title`; FoldKit still applies `lang` and `dir` from the app's current
 Document.
+
+`noMeta` is declared on the default `EmptyProps`. Supplying your own `Props` to
+`lazyApp<Props>` replaces that type, so re-declare the prop to keep the opt-out
+available:
+
+```ts
+// src/apps/chart/app.ts
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+
+import type { ChartProps } from './main';
+
+type Props = ChartProps & { readonly noMeta?: boolean | '' };
+
+export default lazyApp<Props>(() => import('./main'));
+```
+
+Without it, `<Chart client:load noMeta />` fails to type-check with
+`Property 'noMeta' does not exist`.
 
 ## Architecture
 

@@ -2,24 +2,23 @@
 
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.2.0...foldkit-zloz-v0.3.0) (2026-11-10)
 
-
 ### Features
 
-* **zloz:** add architecture modelling, edition review and portable packets ([2e66a84](https://github.com/opsydyn/fold-kit-experiments/commit/2e66a8480cce21cca285ba97a8092f5971eeadbb))
-* **zloz:** add composable edition scrubber and identity-safe seeking ([40e5a90](https://github.com/opsydyn/fold-kit-experiments/commit/40e5a9055a2e3a25c118c86309344360479ba0a1))
-* **zloz:** add composable history change navigation ([b1f41a6](https://github.com/opsydyn/fold-kit-experiments/commit/b1f41a650a659ae3a4cc896d391ee23c75243414))
-* **zloz:** add event-storming notes and composable process presets ([5d10abe](https://github.com/opsydyn/fold-kit-experiments/commit/5d10abe24e92bc4ef420edc15d009d844dc56f55))
-* **zloz:** add opt-in edition playback with reduced-motion handling ([4ae864f](https://github.com/opsydyn/fold-kit-experiments/commit/4ae864f7944b2247434024f24bcb3a74abb67a7e))
-* **zloz:** audit causal relationships through Effect CLI ([936f629](https://github.com/opsydyn/fold-kit-experiments/commit/936f62975f0c13e55314c9b288f1b9578593ca0a))
-* **zloz:** compare edition relationship audit findings ([34b30e2](https://github.com/opsydyn/fold-kit-experiments/commit/34b30e295b8827776e5137859d121fbbf68b418f))
-* **zloz:** compose audit comparison controls and source reveal ([a070eba](https://github.com/opsydyn/fold-kit-experiments/commit/a070ebab760fc16efbae5e0beba524e89a0aea7c))
-* **zloz:** compose causal relationship controls ([f2eac50](https://github.com/opsydyn/fold-kit-experiments/commit/f2eac50edd51deb616c0ef56f6b56cb2f07714a3))
-* **zloz:** compose history comparison controls ([ea3af7a](https://github.com/opsydyn/fold-kit-experiments/commit/ea3af7a6b1cc61061364fd07ff94ce2d99a8fdbc))
-* **zloz:** expose composable playback controls and availability ([80390d6](https://github.com/opsydyn/fold-kit-experiments/commit/80390d68a20cb0e07e5cada6d930f48f70590896))
-* **zloz:** fork editions into independent models with pinned lineage ([466f351](https://github.com/opsydyn/fold-kit-experiments/commit/466f351d69c50b568d91d758dcd5bce6adafdd08))
-* **zloz:** import portable models and validate lineage through Effect CLI ([16a3571](https://github.com/opsydyn/fold-kit-experiments/commit/16a3571f387b8cc913c0d44c43cc7f7e386ada1d))
-* **zloz:** insert architecture patterns as atomic graph changes ([35d1646](https://github.com/opsydyn/fold-kit-experiments/commit/35d1646e473608eefe2fe3049ec3191ba9f12e6b))
-* **zloz:** type event-storming causal relationships ([6eabc9a](https://github.com/opsydyn/fold-kit-experiments/commit/6eabc9a4c54e8fc2b0468bbdc21aa863f9fb3e4e))
+- **zloz:** add architecture modelling, edition review and portable packets ([2e66a84](https://github.com/opsydyn/fold-kit-experiments/commit/2e66a8480cce21cca285ba97a8092f5971eeadbb))
+- **zloz:** add composable edition scrubber and identity-safe seeking ([40e5a90](https://github.com/opsydyn/fold-kit-experiments/commit/40e5a9055a2e3a25c118c86309344360479ba0a1))
+- **zloz:** add composable history change navigation ([b1f41a6](https://github.com/opsydyn/fold-kit-experiments/commit/b1f41a650a659ae3a4cc896d391ee23c75243414))
+- **zloz:** add event-storming notes and composable process presets ([5d10abe](https://github.com/opsydyn/fold-kit-experiments/commit/5d10abe24e92bc4ef420edc15d009d844dc56f55))
+- **zloz:** add opt-in edition playback with reduced-motion handling ([4ae864f](https://github.com/opsydyn/fold-kit-experiments/commit/4ae864f7944b2247434024f24bcb3a74abb67a7e))
+- **zloz:** audit causal relationships through Effect CLI ([936f629](https://github.com/opsydyn/fold-kit-experiments/commit/936f62975f0c13e55314c9b288f1b9578593ca0a))
+- **zloz:** compare edition relationship audit findings ([34b30e2](https://github.com/opsydyn/fold-kit-experiments/commit/34b30e295b8827776e5137859d121fbbf68b418f))
+- **zloz:** compose audit comparison controls and source reveal ([a070eba](https://github.com/opsydyn/fold-kit-experiments/commit/a070ebab760fc16efbae5e0beba524e89a0aea7c))
+- **zloz:** compose causal relationship controls ([f2eac50](https://github.com/opsydyn/fold-kit-experiments/commit/f2eac50edd51deb616c0ef56f6b56cb2f07714a3))
+- **zloz:** compose history comparison controls ([ea3af7a](https://github.com/opsydyn/fold-kit-experiments/commit/ea3af7a6b1cc61061364fd07ff94ce2d99a8fdbc))
+- **zloz:** expose composable playback controls and availability ([80390d6](https://github.com/opsydyn/fold-kit-experiments/commit/80390d68a20cb0e07e5cada6d930f48f70590896))
+- **zloz:** fork editions into independent models with pinned lineage ([466f351](https://github.com/opsydyn/fold-kit-experiments/commit/466f351d69c50b568d91d758dcd5bce6adafdd08))
+- **zloz:** import portable models and validate lineage through Effect CLI ([16a3571](https://github.com/opsydyn/fold-kit-experiments/commit/16a3571f387b8cc913c0d44c43cc7f7e386ada1d))
+- **zloz:** insert architecture patterns as atomic graph changes ([35d1646](https://github.com/opsydyn/fold-kit-experiments/commit/35d1646e473608eefe2fe3049ec3191ba9f12e6b))
+- **zloz:** type event-storming causal relationships ([6eabc9a](https://github.com/opsydyn/fold-kit-experiments/commit/6eabc9a4c54e8fc2b0468bbdc21aa863f9fb3e4e))
 
 ## [0.2.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.1.1...foldkit-zloz-v0.2.0) (2026-11-09)
 

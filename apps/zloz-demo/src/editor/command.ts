@@ -258,3 +258,29 @@ export const ImportZlozModel = Command.define('ImportZlozModel', {
       }),
     ),
 });
+
+export const DownloadConversionReceipt = Command.define('DownloadConversionReceipt', {
+  args: {
+    json: Schema.String,
+    sequence: Schema.Number,
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    receiptId: Schema.String,
+  },
+  messages: [Message.CompletedConversionReceiptDownload, Message.FailedConversionReceiptDownload],
+  execute: ({ json, sequence, modelId, epoch, receiptId }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `foldkit-zloz.conversion-${sequence}.json`,
+      });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedConversionReceiptDownload({ modelId, epoch, receiptId }),
+        onFailure: () => Message.FailedConversionReceiptDownload({ modelId, epoch, receiptId }),
+      }),
+    ),
+});

@@ -1,10 +1,13 @@
 import {
   eventStormingRelationshipPolicy,
   dddRelationshipPolicy,
+  resolveDddRelationship,
+  resolveEventStormingRelationship,
+  type ZlozEventStormingDddApplyPolicy,
   type EditorPolicy,
   type ZlozNode,
 } from '@opsydyn/foldkit-zloz';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 import { workbenchRelationshipOptions } from './event-storming-relationships';
 import type { Model } from './model';
@@ -148,15 +151,13 @@ function baseWorkbenchPolicy({
     : resizePolicy;
 }
 
-export function workbenchPolicy(
-  model: Parameters<typeof baseWorkbenchPolicy>[0] &
-    Pick<
-      Model,
-      'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'
-    >,
+type WorkbenchPolicyModel = Parameters<typeof baseWorkbenchPolicy>[0] &
+  Pick<Model, 'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'>;
+function editingWorkbenchPolicy(
+  model: WorkbenchPolicyModel,
 ): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const base = baseWorkbenchPolicy(model);
-  const editing: EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> = {
+  return {
     ...base,
     canChangeEdgeArchitecture: (edge, next, graph) =>
       base.canChangeEdgeArchitecture?.(edge, next, graph) ??
@@ -164,13 +165,66 @@ export function workbenchPolicy(
         ? 'Orders–Billing meaning is managed by the architecture team. Disable contract protection to edit.'
         : null),
   };
+}
+export function workbenchPolicy(
+  model: WorkbenchPolicyModel,
+): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
+  const editing = editingWorkbenchPolicy(model);
   return model.semanticRelationships
     ? {
         ...eventStormingRelationshipPolicy(
           workbenchRelationshipOptions(model),
           dddRelationshipPolicy({}, editing),
         ),
-        canReconnect: base.canReconnect,
+        canReconnect: editing.canReconnect,
       }
     : editing;
+}
+/** Conversion checks complete final semantics; individual edits keep source-graph semantics above. */
+export function workbenchConversionPolicy(
+  model: WorkbenchPolicyModel & Pick<Model, 'protectMappingApply'>,
+): ZlozEventStormingDddApplyPolicy {
+  type Guard = NonNullable<ZlozEventStormingDddApplyPolicy['canApplyEventStormingDddConversion']>;
+  function resolve(
+    plan: Parameters<Guard>[0],
+    target: Parameters<Guard>[1],
+  ): Option.Option<string> {
+    if (model.protectMappingApply)
+      return Option.some('Conversion Apply is protected in this workbench.');
+    if (!model.semanticRelationships) return Option.none();
+    const changedNodes = new Set(plan.changes.nodes.map((change) => change.nodeId));
+    const changedEdges = new Set(plan.changes.edges.map((change) => change.edgeId));
+    for (const edge of target.snapshot.graph.edges) {
+      if (
+        !changedEdges.has(edge.id) &&
+        !changedNodes.has(edge.source.node) &&
+        !changedNodes.has(edge.target.node)
+      )
+        continue;
+      const decision =
+        edge.architecture?.family === 'ddd'
+          ? resolveDddRelationship(
+              target.snapshot.graph,
+              {
+                sourceNodeId: edge.source.node,
+                targetNodeId: edge.target.node,
+                architecture: edge.architecture,
+              },
+              plan.mappings.relationships,
+            )
+          : resolveEventStormingRelationship(
+              target.snapshot.graph,
+              edge,
+              workbenchRelationshipOptions(model),
+            );
+      if (decision.type === 'blocked')
+        return Option.some(`${edge.label || edge.id}: ${decision.reason}`);
+    }
+    return Option.none();
+  }
+  return {
+    ...editingWorkbenchPolicy(model),
+    // The public editor policy uses null for an allowed decision.
+    canApplyEventStormingDddConversion: (plan, target) => Option.getOrNull(resolve(plan, target)),
+  };
 }

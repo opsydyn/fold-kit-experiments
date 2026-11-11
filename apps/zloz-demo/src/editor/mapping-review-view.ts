@@ -54,7 +54,7 @@ function conversionPlanPanel(
           h.p(
             [],
             [
-              'Original source graph, camera, editions and ancestry are captured for this review. Nothing has been converted.',
+              'Original source graph, camera, editions and ancestry are captured for this review. Previewing does not apply further changes.',
             ],
           ),
           h.details(
@@ -135,7 +135,90 @@ function conversionPlanPanel(
                 'Acknowledgement records review only. The source model and Undo history are unchanged. Uncheck to withdraw it.',
             ],
           ),
+          h.label(
+            [h.Class('workbench-field')],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Checked(model.protectMappingApply),
+                h.Disabled(context.reason !== null),
+                h.OnClick(Message.ClickedMappingApplyProtection()),
+              ]),
+              'Protect conversion Apply',
+            ],
+          ),
+          h.button(
+            [
+              h.Type('button'),
+              h.AriaLabel('Apply DDD conversion'),
+              h.AriaDescribedBy('mapping-apply-reason'),
+              h.Disabled(context.applyReason !== null),
+              h.OnClick(
+                Message.ClickedApplyMappingConversion({
+                  ...context.scope,
+                  generation: model.mappingConsentRun,
+                  planKey: plan.key,
+                }),
+              ),
+            ],
+            ['Apply DDD conversion'],
+          ),
+          h.p(
+            [h.Id('mapping-apply-reason')],
+            [
+              context.applyReason ??
+                'Apply the reviewed meanings together as one Undo step and retain the full provenance receipt in this tab.',
+            ],
+          ),
         ],
+      ),
+    ],
+  );
+}
+
+function retainedReceiptsPanel(
+  model: Model,
+  h: HtmlBuilder<Message>,
+  context: ReturnType<typeof workbenchMappingReview>,
+) {
+  if (!context.receipts.length) return null;
+  return h.section(
+    [h.AriaLabel('Retained conversion receipts'), h.Class('mapping-receipts')],
+    [
+      h.h3([], ['Retained conversion receipts']),
+      h.p(
+        [],
+        [
+          'Retained in this tab, independent of Undo. Download receipts to keep provenance after closing the tab. Model-only JSON does not include them.',
+        ],
+      ),
+      ...[...context.receipts].reverse().map((saved) =>
+        h.details(
+          [h.Key(saved.id)],
+          [
+            h.summary([], [`Receipt ${saved.sequence} · ${saved.conversion.source.document.name}`]),
+            h.p(
+              [],
+              [
+                'The complete original and converted documents, fork ancestry and reviewed mappings are retained. This is a historical receipt, not a claim about the current diagram.',
+              ],
+            ),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaLabel(`Download conversion receipt ${saved.sequence}`),
+                h.OnClick(
+                  Message.ClickedDownloadConversionReceipt({
+                    modelId: model.modelIdentity.id,
+                    epoch: model.modelEpoch,
+                    receiptId: saved.id,
+                  }),
+                ),
+              ],
+              [`Download conversion receipt ${saved.sequence}`],
+            ),
+          ],
+        ),
       ),
     ],
   );
@@ -168,7 +251,7 @@ export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
       h.p(
         [h.Class('mapping-review-intro')],
         [
-          'Preview only. Review workshop intent before modelling it as DDD. Choices do not change the canvas or Undo.',
+          'Review workshop intent before modelling it as DDD. Preview choices leave the canvas unchanged; acknowledged Apply commits one Undo step.',
         ],
       ),
       ...(diagnostics
@@ -325,9 +408,12 @@ export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
           ]
         : []),
       conversionPlanPanel(model, h, context),
+      ...(context.receipts.length ? [retainedReceiptsPanel(model, h, context)] : []),
       h.p(
         [h.Class('mapping-review-footer')],
-        ['No conversion has been applied. Keep the workshop model as the source of truth.'],
+        [
+          'Preview choices do not apply changes. Use the guarded Apply control to publish a reviewed conversion and retain its receipt.',
+        ],
       ),
       ...(context.items.length
         ? [

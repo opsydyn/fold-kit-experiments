@@ -79,6 +79,9 @@ import {
   reconcileMappingReview,
   updateMappingReview,
   updateMappingLossAcknowledgement,
+  applyWorkbenchMapping,
+  downloadWorkbenchConversion,
+  conversionDownloadFeedback,
 } from './mapping-review';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
@@ -716,6 +719,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedMappingLossAcknowledgement: (request) => ({
       model: updateMappingLossAcknowledgement(model, request),
+    }),
+    ClickedApplyMappingConversion: (request) => ({ model: applyWorkbenchMapping(model, request) }),
+    ClickedMappingApplyProtection: () => ({
+      model:
+        model.historyReview || modelSessionBusy(model)
+          ? model
+          : { ...model, protectMappingApply: !model.protectMappingApply },
+    }),
+    ClickedDownloadConversionReceipt: (input) => downloadWorkbenchConversion(model, input),
+    CompletedConversionReceiptDownload: (input) => ({
+      model: conversionDownloadFeedback(model, input, true),
+    }),
+    FailedConversionReceiptDownload: (input) => ({
+      model: conversionDownloadFeedback(model, input, false),
     }),
     ClickedResetMappingReview: (request) => ({
       model: updateMappingReview(model, { ...request, type: 'ResetClicked' }),

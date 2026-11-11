@@ -219,6 +219,30 @@ export const Message = defineMessageUnion({
     generation: Schema.Number,
     accepted: Schema.Boolean,
   },
+  ClickedApplyMappingConversion: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    planKey: Schema.String,
+    generation: Schema.Number,
+  },
+  ClickedMappingApplyProtection: {},
+  ClickedDownloadConversionReceipt: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    receiptId: Schema.String,
+  },
+  CompletedConversionReceiptDownload: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    receiptId: Schema.String,
+  },
+  FailedConversionReceiptDownload: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    receiptId: Schema.String,
+  },
   ClickedResetMappingReview: {
     modelId: Schema.String,
     epoch: Schema.Number,

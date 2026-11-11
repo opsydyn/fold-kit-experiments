@@ -612,8 +612,8 @@ prospective semantic-loss reasons beside the unchanged source canvas.
 Choices are temporary and reset when the displayed source/session changes. They do
 not enter graph JSON, editions or Undo. History supports inspection while choices
 are disabled with an explanation. Minimal/global diagnostics hide optional numeric
-summary badges while preserving functional choices and reasons. Conversion is a
-separate feature; no mapping is applied by this panel.
+summary badges while preserving functional choices and reasons. Preview choices
+leave the graph untouched; guarded Apply below publishes an acknowledged conversion.
 
 See [local browser evidence](evidence/mapping-review.md) for light/dark captures and
 source-preservation checks.
@@ -626,7 +626,29 @@ it to withdraw. Source, camera, mapping, archive and model/history changes inval
 it. The app also rejects old checkbox callbacks after a change-and-revert.
 
 Provenance and loss reasons remain available with diagnostics hidden. Acknowledgement
-is temporary UI state and is absent from exported model JSON and Undo. This review
-does not perform conversion or grant editing permission; there is no Apply control.
+is temporary UI state and is absent from exported model JSON and Undo. Acknowledgement
+records review; the Apply control independently rechecks current source and policies.
 See [plan review evidence](evidence/mapping-plan.md) for the real fork/provenance flow
 and light/dark captures.
+
+### Apply and retain conversion receipts
+
+After resolving or explicitly retaining uncertain mappings, acknowledge the listed
+losses in **Conversion plan review** and choose **Apply DDD conversion**. The package
+transaction checks the live source, lifecycle, loss consent and current editing
+policy. **Protect conversion Apply** demonstrates a live veto with a visible reason.
+Enabled semantic conventions validate the complete final affected graph; editing
+protections remain in force. Failed or stale Apply publishes neither editor changes
+nor a receipt.
+
+Success publishes the editor and complete immutable receipt in one Foldkit update.
+One Undo restores the source graph; Redo restores the conversion. **Retained conversion
+receipts** remain independent of those graph actions, source edits and model switches.
+Each active model shows its own receipts. **Download conversion receipt** exports
+the package's full original/converted model and mapping envelope through a Command.
+Failures leave the receipt retained for retry. Receipts live in this tab: download
+them to preserve provenance after closing it. Model-only JSON does not contain the
+receipt collection. No automatic persistence, receipt import or replay is provided.
+
+See [Apply browser evidence](evidence/mapping-apply.md) for source/target equality,
+Undo/Redo, per-model retention, policy guards and light/dark captures.

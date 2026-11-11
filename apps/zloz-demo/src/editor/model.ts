@@ -8,6 +8,7 @@ import {
   type LayoutRequest,
   type ZlozAuditComparisonState,
   type ZlozEventStormingDddLossConsent,
+  type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
 import {
   resolveZlozDiagnostics,
@@ -280,6 +281,12 @@ const MappingReview = Schema.Struct({
 });
 export type MappingReviewDraft = typeof MappingReview.Type;
 
+export type RetainedMappingReceipt = Readonly<{
+  id: string;
+  sequence: number;
+  conversion: ZlozEventStormingDddConversion;
+}>;
+
 export const WorkbenchSection = Schema.Literals([
   'diagram',
   'appearance',
@@ -299,6 +306,11 @@ export const Model = Schema.Struct({
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
   ),
   mappingConsentRun: Schema.Number,
+  mappingReceipts: Schema.Array(
+    Schema.Struct({ id: Schema.String, sequence: Schema.Number, conversion: Schema.Unknown }),
+  ),
+  mappingReceiptSequence: Schema.Number,
+  protectMappingApply: Schema.Boolean,
   mappingReviewNotice: Schema.String,
   sidebarSection: WorkbenchSection,
   sidebarCollapsed: Schema.Boolean,
@@ -415,6 +427,9 @@ export type Model = Readonly<{
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
+  mappingReceipts: readonly RetainedMappingReceipt[];
+  mappingReceiptSequence: number;
+  protectMappingApply: boolean;
   mappingReviewNotice: string;
   sidebarSection: WorkbenchSection;
   sidebarCollapsed: boolean;
@@ -521,6 +536,9 @@ export const init = (namespace = 'test-workbench') => ({
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,
+    mappingReceipts: [],
+    mappingReceiptSequence: 0,
+    protectMappingApply: false,
     mappingReviewNotice: '',
     sidebarSection: 'diagram',
     sidebarCollapsed: false,

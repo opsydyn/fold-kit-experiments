@@ -255,8 +255,15 @@ ancestry. Late vetoes preserve the editor; Undo/Redo covers the complete graph c
 See [ADR 0045](adr/0045-apply-ddd-conversion-atomically-with-portable-provenance.md)
 and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-apply.md).
 
-**Recommended next:** wire guarded Apply and portable receipt retention/download
-into the workbench, publishing editor and receipt in one Foldkit update. Proposed positioning to
+**Workbench Apply and receipt retention — implemented on this branch, unreleased:**
+Mapping review rechecks the package transaction, current source/consent and complete
+final-state semantics, then publishes editor plus a per-model retained receipt in
+one Foldkit update. Receipt download is a scoped Command; Undo/Redo and model switches
+preserve immutable provenance. See [ADR 0046](adr/0046-publish-workbench-apply-and-receipts-together.md)
+and [local evidence](../apps/zloz-demo/evidence/mapping-apply.md).
+
+**Recommended next:** reopen portable conversion receipts for read-only before/after
+comparison in the workbench. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

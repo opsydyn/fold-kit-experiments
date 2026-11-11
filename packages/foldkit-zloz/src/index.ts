@@ -364,3 +364,12 @@ export type {
   ZlozDddDownstreamRole,
   ZlozDddRelationshipEditDecision,
 } from './ddd-relationship-controls';
+
+export { previewEventStormingDddMapping } from './event-storming-ddd-preview';
+export type {
+  ZlozEventStormingDddMappingOptions,
+  ZlozEventStormingDddNodePreview,
+  ZlozEventStormingDddEdgePreview,
+  ZlozEventStormingDddDisclosure,
+  ZlozEventStormingDddPreview,
+} from './event-storming-ddd-preview';

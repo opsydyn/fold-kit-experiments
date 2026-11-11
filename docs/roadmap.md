@@ -218,8 +218,15 @@ and custom workbench wrappers show protected fields without hiding stored meanin
 See [ADR 0040](adr/0040-compose-ddd-relationship-editing-controls.md) and
 [local evidence](../apps/zloz-demo/evidence/ddd-relationship-controls.md).
 
-**Recommended next:** item 1, a bounded headless EventStorming-to-DDD mapping preview
-before adding conversion actions. Proposed positioning to
+**Workshop mapping preview — implemented on this branch, unreleased:** a pure
+package API proposes EventStorming-to-DDD node and incident-edge mappings, keeps
+ambiguous intent explicit, accepts per-ID choices and reports prospective semantic
+loss without changing the graph/history. Existing DDD anchors and unrelated C4
+meaning remain preserved. See [ADR 0041](adr/0041-preview-event-storming-ddd-mappings.md)
+and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-preview.md).
+
+**Recommended next:** compose the read-only mapping preview in the workbench,
+showing explicit choices, ambiguity and loss reasons before conversion actions. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

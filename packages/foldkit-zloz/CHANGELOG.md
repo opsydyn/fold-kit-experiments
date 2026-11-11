@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a pure EventStorming-to-DDD mapping preview with explicit per-ID choices, unresolved intent, DDD compatibility and prospective semantic-loss disclosures.
+
 - Add composable DDD pattern and side-role editing controls with live policy/revision checks and native Foldkit helpers.
 
 - Add context-map starter, semantic projection, composable connectors and participant badges.

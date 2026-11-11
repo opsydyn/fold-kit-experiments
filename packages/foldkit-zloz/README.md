@@ -3566,3 +3566,60 @@ Orders–Billing meaning-edit veto in the real host policy. Protection also cove
 direct metadata events. Read-only history and stale model/epoch/revision requests
 cannot change working content. No new codec, dependency, audit/CLI command,
 publication or deployment. See [ADR 0040](../../docs/adr/0040-compose-ddd-relationship-editing-controls.md).
+
+### EventStorming-to-DDD mapping preview
+
+`previewEventStormingDddMapping` is a pure, headless advisory API. It inspects
+EventStorming notes and incident edges in graph order and returns `nodes`, `edges`
+and prospective `disclosures`. Each decision carries the original descriptor, its
+source ID and a human-readable reason. It never changes the graph or Undo history,
+returns no converted graph/event, and makes no editing-permission claim.
+
+```typescript
+import { previewEventStormingDddMapping } from '@opsydyn/foldkit-zloz';
+
+const preview = previewEventStormingDddMapping(graph, {
+  nodes: [
+    { nodeId: 'place-order', architecture: { family: 'ddd', role: 'domain-service' } },
+    { nodeId: 'customer', architecture: null }, // retain the workshop actor
+  ],
+  edges: [
+    { edgeId: 'issues-order', architecture: null }, // retain causal meaning
+  ],
+});
+
+for (const decision of preview.nodes) {
+  if (decision.type === 'proposed') {
+    console.log(decision.nodeId, decision.architecture, decision.origin);
+  } else if (decision.type === 'ambiguous') {
+    console.log(decision.nodeId, decision.candidates, decision.reason);
+  }
+}
+console.log(preview.edges, preview.disclosures);
+```
+
+Defaults propose a named domain event as a DDD domain event. Commands remain
+ambiguous between non-exhaustive aggregate-root/domain-service interpretations;
+policies remain ambiguous even with one domain-service candidate. Actors are
+unmapped. An explicit valid DDD node choice resolves intent for this preview;
+null retains the source. Source descriptions are inherited unless the target
+explicitly supplies one. Selecting aggregate on a card rejects: the API does not
+create frames, change kind, geometry, parentage or ports.
+
+Only an authored causal `emits` proposes tactical DDD `emits`, and only when the
+proposed endpoints satisfy `resolveDddRelationship`. Other causal/custom/untyped
+edges stay unmapped unless explicitly chosen or retained. Edge choices can be
+`blocked` by endpoint roles or the replacement `relationships.rules` catalogue.
+Already-authored DDD edges are checked and retained; workshop choices cannot
+remap them. C4 nodes, existing DDD anchors and unrelated edges are left alone.
+Duplicate, missing, foreign IDs and malformed choices/catalogues throw `ZlozError`
+before returning a preview. Ordinary ambiguity is returned as data.
+
+Every proposed reserved workshop descriptor replacement produces a
+`workshop-meaning-replaced` disclosure. This is prospective semantic loss, not a
+claim that conversion occurred or is lossless. Source meaning is detached in the
+preview, not persisted as provenance. Retaining an edge explicitly makes no DDD
+compatibility claim. Recompute after source/choices/conventions change. A future
+conversion must independently enforce model identity, freshness, live edit policy,
+lifecycle, loss consent, provenance preservation and atomic Undo; this API grants
+none of those. UI, conversion and C4 mapping remain separate slices.

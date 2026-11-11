@@ -349,3 +349,18 @@ export type {
   ZlozContextMapParticipant,
   ZlozContextMapBadge,
 } from './context-map';
+export {
+  resolveDddRelationshipControls,
+  resolveDddRelationshipRequest,
+} from './ddd-relationship-controls';
+export type {
+  ZlozDddRelationshipRequest,
+  ZlozDddRelationshipControlsContext,
+  ZlozDddRelationshipControlsOptions,
+  ZlozDddRelationshipChoice,
+  ZlozDddUpstreamControl,
+  ZlozDddDownstreamChoice,
+  ZlozDddUpstreamRole,
+  ZlozDddDownstreamRole,
+  ZlozDddRelationshipEditDecision,
+} from './ddd-relationship-controls';

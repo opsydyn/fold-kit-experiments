@@ -150,16 +150,27 @@ function baseWorkbenchPolicy({
 
 export function workbenchPolicy(
   model: Parameters<typeof baseWorkbenchPolicy>[0] &
-    Pick<Model, 'semanticRelationships' | 'customStormingRelationships'>,
+    Pick<
+      Model,
+      'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'
+    >,
 ): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const base = baseWorkbenchPolicy(model);
+  const editing: EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> = {
+    ...base,
+    canChangeEdgeArchitecture: (edge, next, graph) =>
+      base.canChangeEdgeArchitecture?.(edge, next, graph) ??
+      (model.protectDddRelationships && edge.id === 'orders-billing'
+        ? 'Orders–Billing meaning is managed by the architecture team. Disable contract protection to edit.'
+        : null),
+  };
   return model.semanticRelationships
     ? {
         ...eventStormingRelationshipPolicy(
           workbenchRelationshipOptions(model),
-          dddRelationshipPolicy({}, base),
+          dddRelationshipPolicy({}, editing),
         ),
         canReconnect: base.canReconnect,
       }
-    : base;
+    : editing;
 }

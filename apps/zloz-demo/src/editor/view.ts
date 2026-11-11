@@ -24,6 +24,11 @@ import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
   zlozView,
+  zlozDddRelationshipControls,
+  zlozDddRelationshipPatternSelect,
+  zlozDddUpstreamRole,
+  zlozDddDownstreamRoleSelect,
+  zlozDddRelationshipReasons,
   zlozContextMapConnector,
   zlozContextMapLabel,
   zlozContextMapParticipant,
@@ -95,6 +100,7 @@ import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchAuditContext } from './audit-comparison';
+import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import {
   delegatedRelationship,
@@ -495,6 +501,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.historyReview !== null ||
     model.editor.gesture.type !== 'idle';
   const relationshipControls = relationshipControlsContext(model);
+  const dddControls = workbenchDddControls(model);
+  const hasDddNodes = model.editor.graph.nodes.some((node) => node.architecture?.family === 'ddd');
+  const dddInspectorVisible =
+    hasDddNodes && model.sidebarSection === 'inspect' && !model.sidebarCollapsed;
   const incompatibleRelationship = selectedEdge
     ? causalRules.find(
         (rule) =>
@@ -2985,6 +2995,122 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ),
     ],
     inspect: [
+      ...(hasDddNodes
+        ? [
+            h.h2([], ['DDD relationship']),
+            h.label(
+              [h.Class('workbench-field')],
+              [
+                'Inspect DDD relationship',
+                h.select(
+                  [
+                    h.AriaLabel('Inspect DDD relationship'),
+                    h.Value(selectedEdge?.id ?? ''),
+                    h.OnChange((id) =>
+                      zlozInput(
+                        id
+                          ? { type: 'EdgeSelected', id, additive: false }
+                          : { type: 'SelectionCleared' },
+                      ),
+                    ),
+                  ],
+                  [
+                    h.option([h.Value('')], ['Choose a connection']),
+                    ...model.editor.graph.edges.map((edge) =>
+                      h.option(
+                        [h.Value(edge.id), h.Selected(edge.id === selectedEdge?.id)],
+                        [edge.label || edge.id],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            h.label(
+              [h.Class('workbench-field')],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectDddRelationships),
+                  h.Disabled(model.historyReview !== null || busyModelSession),
+                  h.OnClick(Message.ClickedDddRelationshipProtection()),
+                ]),
+                'Protect Orders–Billing meaning edits',
+              ],
+            ),
+            zlozDddRelationshipControls(
+              h,
+              dddControls,
+              (request) => Message.ObservedDddRelationshipInput({ request, modelId, epoch }),
+              {
+                attributes: [
+                  h.Style({
+                    display: 'grid',
+                    gap: '10px',
+                    padding: '12px',
+                    border: '1px solid var(--rule)',
+                    borderRadius: '8px',
+                  }),
+                ],
+                renderPattern: (context, builder, onRequest) =>
+                  builder.label(
+                    [builder.Class('workbench-field')],
+                    [
+                      builder.strong([], ['Pattern contract']),
+                      zlozDddRelationshipPatternSelect(builder, context, onRequest),
+                    ],
+                  ),
+                renderUpstream: (control, context, builder, onRequest) =>
+                  builder.label(
+                    [
+                      builder.Key(control.role),
+                      builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+                    ],
+                    [
+                      zlozDddUpstreamRole(builder, context, control, onRequest),
+                      builder.span([], [control.label]),
+                    ],
+                  ),
+                renderDownstream: (context, builder, onRequest) => {
+                  const select = zlozDddDownstreamRoleSelect(builder, context, onRequest);
+                  return select
+                    ? builder.label(
+                        [builder.Class('workbench-field')],
+                        ['Downstream contract', select],
+                      )
+                    : null;
+                },
+                renderStatus: () =>
+                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+                renderReasons: (context, builder) => {
+                  const reason =
+                    context.reason ??
+                    context.pattern.reason ??
+                    context.downstream?.reason ??
+                    context.upstream.find((control) => control.reason !== null)?.reason;
+                  const details = zlozDddRelationshipReasons(builder, context);
+                  return builder.div(
+                    [],
+                    [
+                      ...(reason
+                        ? [builder.p([builder.AriaLabel('DDD protection reason')], [reason])]
+                        : []),
+                      builder.p([], ['Each change can be undone.']),
+                      ...(details
+                        ? [
+                            builder.details(
+                              [],
+                              [builder.summary([], ['Pattern compatibility details']), details],
+                            ),
+                          ]
+                        : []),
+                    ],
+                  );
+                },
+              },
+            ),
+          ]
+        : []),
       ...(!model.minimalMode && selectedEdge
         ? [
             h.div(
@@ -3669,11 +3795,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.nodeToolbarDesign === 'compact'
               ? compactNodeToolbar(context, builder)
               : undefined,
-          edgeToolbar: !(
-            model.nodeDesign === 'event-storming' &&
-            model.sidebarSection === 'diagram' &&
-            !model.sidebarCollapsed
-          ),
+          edgeToolbar:
+            !dddInspectorVisible &&
+            !(
+              model.nodeDesign === 'event-storming' &&
+              model.sidebarSection === 'diagram' &&
+              !model.sidebarCollapsed
+            ),
           edgeReconnection: true,
           connectionCreation: true,
           renderConnectionCreation: (context, builder) =>

@@ -3498,3 +3498,71 @@ separately opt-in. Context cards have real ports; portless-frame projection and
 storage remain outside this slice. The workbench demonstrates both themes and a
 presentation toggle that retains the authored model. No publication or deployment.
 See [ADR 0039](../../docs/adr/0039-compose-context-map-presentation.md).
+
+## Composable DDD relationship controls (unreleased)
+
+The headless root exports `resolveDddRelationshipControls` and
+`resolveDddRelationshipRequest`. Context, options, request/decision, choice,
+upstream/downstream role and control types are public `ZlozDdd*` contracts. The
+optional Foldkit entry exports `zlozDddRelationshipControls`,
+`zlozDddRelationshipPatternSelect`, `zlozDddUpstreamRole`,
+`zlozDddDownstreamRoleSelect`, `zlozDddRelationshipStatus`,
+`zlozDddRelationshipReasons`, `ZlozDddRelationshipControlsViewOptions` and
+`ZlozDddRelationshipControlsParts`.
+
+```ts
+import {
+  resolveDddRelationshipControls,
+  resolveDddRelationshipRequest,
+  dddRelationshipPolicy,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+import { zlozDddRelationshipControls } from '@opsydyn/foldkit-zloz/foldkit';
+
+const options = { policy: dddRelationshipPolicy(conventions, hostPolicy), conventions };
+const context = resolveDddRelationshipControls(editor, inspectedEdgeId, options);
+const controls = zlozDddRelationshipControls(h, context, onRequest, {
+  renderStatus: () => (minimalMode ? null : undefined),
+});
+// In the host update, recheck current editor/inspector and live options:
+const decision = resolveDddRelationshipRequest(editor, inspectedEdgeId, request, options);
+if (decision.type === 'ready') {
+  const nextEditor = updateEditor(editor, decision.event, options.policy);
+}
+```
+
+Requests carry edge identity and editor revision plus a pattern key or side-role
+intent. They never carry a saved descriptor or permission result. Changed graph
+revision (including Undo/Redo), missing/replaced inspector targets and unknown
+choices return ignored. Current read-only, gestures, host busy reasons and policy
+vetoes return blocked with a reason. Hosts additionally check their model/session
+identity and active inspector, then apply ready events immediately with the same
+policy. A ready result is not authorization for a later or different editor.
+
+Pattern choices expose `compatibilityReason` independently of permission `reason`.
+Only the supplied editing policy enforces conventions; display never silently
+turns validation on. Custom catalogues and labels are supported. Stored unknown
+custom meaning stays visible as a current-only choice. An explicit clear removes
+DDD meaning; foreign EventStorming descriptors are protected from this inspector.
+No DDD inference or automatic family conversion is performed.
+
+Pattern changes retain authored description. Directional-to-directional changes
+preserve authored side roles, including **absence** rather than injecting catalogue
+defaults. Explicit symmetric/tactical/custom transitions remove unsupported side
+fields as the same undoable edit. Upstream checkboxes preserve role ordering;
+removing the last role removes the field. Downstream offers an explicit None.
+Same-value changes are no-ops. Existing canonical codecs, semantic comparison and
+Undo/Redo own the resulting graph behavior; there is no independent form draft.
+
+Native helpers retain selected values, keyboard semantics, disabled state and
+accessible reasons. Pattern, each upstream role, downstream, status, reasons and
+layout have independent replace/omit seams; undefined retains defaults, null omits
+a part. Helper attributes and label options allow custom presentation. Functional
+editing/reasons do not depend on numeric diagnostics. Keep custom callbacks pure;
+control state and callback lifetime belong to the host.
+
+The workbench exposes a custom composition in **Inspect**, with a switchable
+Orders–Billing meaning-edit veto in the real host policy. Protection also covers
+direct metadata events. Read-only history and stale model/epoch/revision requests
+cannot change working content. No new codec, dependency, audit/CLI command,
+publication or deployment. See [ADR 0040](../../docs/adr/0040-compose-ddd-relationship-editing-controls.md).

@@ -171,10 +171,10 @@ preserves identity, editions and origin that diagram-only imports omit.
 
 ### Remaining work, in priority order
 
-1. **DDD relationship controls and workshop mappings:** add composable package
-   controls for relationship patterns and side roles, with live protection reasons
-   and undoable edits. Then extend EventStorming workshop patterns with deliberate
-   DDD/C4 mappings. Portless-frame projection/storage remains a separate decision.
+1. **EventStorming workshop mappings:** define explicit mappings from discovered
+   process notes to DDD/C4 concepts, with preview, preserved identity and honest
+   conversion-loss reporting. Keep uncertain workshop intent valid. Portless-frame
+   projection/storage remains a separate decision.
 2. **Review and agent lifecycle:** validate/import review packets, then validated
    modelling patches, dry runs and reviewable changes. No automatic writable-agent
    rollout or collaboration runtime is claimed.
@@ -211,7 +211,15 @@ light/dark themes, custom source badges, native editing/Undo and a presentation
 toggle independent of diagnostic visibility. See [ADR 0039](adr/0039-compose-context-map-presentation.md)
 and [local evidence](../apps/zloz-demo/evidence/context-map.md).
 
-**Recommended next:** item 1, composable DDD relationship and side-role controls. Proposed positioning to
+**DDD editing controls — implemented on this branch, unreleased:** package-owned
+pattern/side-role controls recheck inspector/revision and live policy, preserve
+authored descriptions/absence and apply ordinary undoable events. Native helpers
+and custom workbench wrappers show protected fields without hiding stored meaning.
+See [ADR 0040](adr/0040-compose-ddd-relationship-editing-controls.md) and
+[local evidence](../apps/zloz-demo/evidence/ddd-relationship-controls.md).
+
+**Recommended next:** item 1, a bounded headless EventStorming-to-DDD mapping preview
+before adding conversion actions. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

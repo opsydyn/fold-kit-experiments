@@ -2891,3 +2891,15 @@ export type {
   ZlozContextMapParticipantOptions,
   ZlozContextMapLabelParts,
 } from './context-map-view';
+export {
+  zlozDddRelationshipControls,
+  zlozDddRelationshipPatternSelect,
+  zlozDddUpstreamRole,
+  zlozDddDownstreamRoleSelect,
+  zlozDddRelationshipStatus,
+  zlozDddRelationshipReasons,
+} from './ddd-relationship-controls-view';
+export type {
+  ZlozDddRelationshipControlsViewOptions,
+  ZlozDddRelationshipControlsParts,
+} from './ddd-relationship-controls-view';

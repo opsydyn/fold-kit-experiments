@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add composable DDD pattern and side-role editing controls with live policy/revision checks and native Foldkit helpers.
+
 - Add context-map starter, semantic projection, composable connectors and participant badges.
 - Allow custom semantic labels on unlabeled edges while retaining default fallback visibility.
 

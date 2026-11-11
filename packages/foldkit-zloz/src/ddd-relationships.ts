@@ -128,7 +128,8 @@ export function dddRelationshipKey(value: DddEdgeArchitecture): string {
 function isRuleLabel(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
-function checkedRules(options: ZlozDddRelationshipOptions) {
+/** @internal Shared convention validation for contexts and policies. */
+export function checkedDddRelationshipRules(options: ZlozDddRelationshipOptions) {
   const rules = options.rules ?? dddRelationshipRules;
   const keys = new Set<string>();
   for (const item of rules) {
@@ -176,7 +177,7 @@ export function resolveDddRelationship(
   relationship: ZlozDddRelationship,
   options: ZlozDddRelationshipOptions = {},
 ): ZlozDddRelationshipDecision {
-  const rules = checkedRules(options),
+  const rules = checkedDddRelationshipRules(options),
     architecture = relationship.architecture;
   if (!isDddEdgeArchitecture(architecture))
     return {
@@ -269,7 +270,7 @@ export function dddRelationshipPolicy(
   options: ZlozDddRelationshipOptions = {},
   base: EditorPolicy = {},
 ): EditorPolicy {
-  checkedRules(options);
+  checkedDddRelationshipRules(options);
   return {
     ...base,
     canConnect: (edge, graph) =>

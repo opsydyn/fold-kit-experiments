@@ -1,3 +1,4 @@
+import type { ZlozDddRelationshipRequest } from '@opsydyn/foldkit-zloz';
 import {
   applyLayout,
   resolveHistoryComparisonRequest,
@@ -62,6 +63,7 @@ import {
   SaveZloz,
 } from './command';
 import { createDddOrderGraph } from './ddd-examples';
+import { editWorkbenchDddRelationship } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import { delegatedRelationship } from './event-storming-relationships';
 import {
@@ -1073,6 +1075,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedRelationshipInference: (input) => ({
       model: editWorkbenchRelationship(model, { ...input, type: 'InferenceApplied' }),
+    }),
+    ObservedDddRelationshipInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: public DDD controls emit typed requests through Schema.Unknown; the resolver rechecks edge/revision and live protection, while the host checks model/session/inspector.
+      const request = raw as ZlozDddRelationshipRequest;
+      return { model: editWorkbenchDddRelationship(model, request, modelId, epoch) };
+    },
+    ClickedDddRelationshipProtection: () => ({
+      model:
+        model.historyReview || modelSessionBusy(model)
+          ? model
+          : { ...model, protectDddRelationships: !model.protectDddRelationships },
     }),
     ClickedContextMapPresentation: () => ({
       model: { ...model, contextMapPresentation: !model.contextMapPresentation },

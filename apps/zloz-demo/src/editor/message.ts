@@ -195,6 +195,12 @@ export const Message = defineMessageUnion({
     epoch: Schema.Number,
     edgeId: Schema.String,
   },
+  ObservedDddRelationshipInput: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    request: Schema.Unknown,
+  },
+  ClickedDddRelationshipProtection: {},
   ClickedContextMapPresentation: {},
   ClickedSemanticRelationships: {},
   ClickedCustomStormingRelationships: {},

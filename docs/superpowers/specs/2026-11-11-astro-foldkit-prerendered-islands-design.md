@@ -19,12 +19,12 @@ Three findings from a report site that ports its charts and a data grid to
 FoldKit under Astro:
 
 1. **`client:visible` cannot work for a FoldKit island.** Astro's directive
-   observes an island's *children*, because `astro-island` is
+   observes an island's _children_, because `astro-island` is
    `display: contents`:
 
    ```js
    // astro/dist/runtime/client/visible.js
-   for (const child of el.children) io.observe(child)
+   for (const child of el.children) io.observe(child);
    ```
 
    A FoldKit island's only child is the empty mount shell, which measures 0x0.
@@ -51,12 +51,12 @@ FoldKit under Astro:
 ### Opt-in, per island
 
 ```ts
-export default lazyApp<Props>(() => import('./main'), { prerender: true })
+export default lazyApp<Props>(() => import('./main'), { prerender: true });
 ```
 
 Islands that do not pass it behave exactly as before, down to the byte: the
 server emits the same empty mount. The option sits on `lazyApp` rather than on
-the Astro usage because whether an island *can* render on the server is a fact
+the Astro usage because whether an island _can_ render on the server is a fact
 about its `init`, which the module knows and the page does not.
 
 ### Static markup, not hydration

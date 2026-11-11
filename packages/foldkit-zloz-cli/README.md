@@ -1,7 +1,7 @@
 # Foldkit Zloz CLI
 
 An independent Effect CLI package for validating Zloz models, auditing causal relationships and exporting
-Mermaid bundles. **Local 0.1.0 candidate; not published to npm.** No Mermaid parser,
+Mermaid bundles. **Private workspace package; not published to npm.** No Mermaid parser,
 browser, Foldkit runtime or layout engine is installed by this package.
 
 ## Use in this workspace
@@ -13,7 +13,9 @@ node packages/foldkit-zloz-cli/dist/bin.mjs validate --input packages/foldkit-zl
 node packages/foldkit-zloz-cli/dist/bin.mjs mermaid export -i packages/foldkit-zloz-cli/evidence/example.json --loss-policy report --direction TB
 ```
 
-The packaged executable is `zloz`. After installing a qualified local tarball:
+The manifest is marked `private: true` to prevent npm publication. Local tarballs
+remain installation/type-contract fixtures only. The packaged executable is
+`zloz`. After installing a qualified local tarball:
 
 ```sh
 zloz validate -i diagram.json

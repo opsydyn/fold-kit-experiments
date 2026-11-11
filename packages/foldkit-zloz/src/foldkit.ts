@@ -1987,7 +1987,8 @@ export function zlozView<M>(
     const labelEditable = !state.readOnly && selectionDisabledReason === undefined;
     const draft =
       labelEditable && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
-    if (!labelPosition || (!draft && !edge.label && (!labelEditable || !selected))) return [];
+    const defaultLabelVisible = Boolean(draft || edge.label || (labelEditable && selected));
+    if (!labelPosition || (!defaultLabelVisible && !options.renderEdgeLabel)) return [];
     const context: ZlozEdgeLabelContext = {
       edge,
       labelPosition,
@@ -2012,7 +2013,7 @@ export function zlozView<M>(
           ],
         ))
       : options.renderEdgeLabel?.(context, h);
-    if (content === null) return [];
+    if (content === null || (!defaultLabelVisible && content === undefined)) return [];
     return [
       h.div(
         [
@@ -2878,3 +2879,15 @@ export type {
   ZlozEventStormingRelationshipControlsParts,
   ZlozEventStormingRelationshipControlsViewOptions,
 } from './relationship-controls-view';
+
+export {
+  zlozContextMapConnector,
+  zlozContextMapLabel,
+  zlozContextMapParticipant,
+} from './context-map-view';
+export type {
+  ZlozContextMapConnectorOptions,
+  ZlozContextMapLabelOptions,
+  ZlozContextMapParticipantOptions,
+  ZlozContextMapLabelParts,
+} from './context-map-view';

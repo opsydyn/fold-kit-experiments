@@ -3424,3 +3424,77 @@ snapshots. Their existing relationship audit remains **EventStorming-only**:
 DDD edges are unrelated to that audit, not certified compatible DDD models. No new
 DDD CLI audit, renderer, context-map pattern, publication or deployment is included.
 See [ADR 0038](../../docs/adr/0038-define-ddd-relationship-contracts.md).
+
+## Composable context maps (unreleased)
+
+The headless root exports `createContextMapPattern` and
+`resolveContextMapRelationship`, plus `ZlozContextMapRelationship`,
+`ZlozContextMapParticipant` and `ZlozContextMapBadge`. The detached starter has four
+ordinary ported bounded-context cards and examples of upstream/downstream,
+customer/supplier, shared kernel and partnership. `createArchitecturePattern('context-map')`
+uses the same factory; `insertPattern` retains its existing policy, remapping and
+one-Undo transaction.
+
+```ts
+import { createContextMapPattern, resolveContextMapRelationship } from '@opsydyn/foldkit-zloz';
+import {
+  zlozView,
+  zlozContextMapConnector,
+  zlozContextMapLabel,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+// In view: resolve from the current displayed graph, including read-only review.
+const meanings = new Map(
+  editor.graph.edges.flatMap((edge) => {
+    const relationship = resolveContextMapRelationship(editor.graph, edge);
+    return relationship ? [[edge.id, relationship] as const] : [];
+  }),
+);
+const canvas = zlozView(h, editor, {
+  id: 'context-map',
+  label: 'Context map',
+  onEvent,
+  renderEdge: (context, h) => {
+    const meaning = meanings.get(context.edge.id);
+    return meaning ? zlozContextMapConnector(h, context, meaning) : undefined;
+  },
+  renderEdgeLabel: (context, h) => {
+    const meaning = meanings.get(context.edge.id);
+    return meaning ? zlozContextMapLabel(h, context, meaning, onEvent) : undefined;
+  },
+});
+```
+
+`resolveContextMapRelationship(graph, edge, conventions?)` returns null outside
+strategic DDD meaning. It derives pattern, intended directed/symmetric/unknown
+presentation, source/target names, full side-role badge descriptions and any
+restriction from the existing DDD convention. Custom catalogues are supported.
+Unknown custom meanings have no assumed arrow direction. A known builtin omitted
+from the current convention still shows its authored direction plus an explicit
+restriction. This is presentation of intent, not a DDD audit or technical data flow.
+
+The optional entry also exports `zlozContextMapParticipant`,
+`ZlozContextMapConnectorOptions`, `ZlozContextMapLabelOptions`,
+`ZlozContextMapParticipantOptions` and `ZlozContextMapLabelParts`. All use the host
+builder and existing theme variables. Use `edgeAppearance` for color/width/dashes;
+connectors share the resolved geometry and preserve native hit targets. Symmetric
+links have no arrow by default. Marker override and a nullable custom path renderer
+are explicit choices. Supply matching current edge/relationship contexts.
+
+Label pattern, authored name, both participants, reason and layout are replaceable
+or nullable. Participant name/badge renderers and attributes allow custom visual
+language. Parts inside the native edit action must be inert; use the existing
+`renderEdgeLabelEditor` hook for interactive forms. Native actions respect read-only
+and selection restrictions, with full side-role accessible descriptions. Semantic
+badges do not depend on numeric diagnostics; omit parts deliberately through view
+configuration when desired.
+
+Custom label callbacks can render unlabeled, unselected and read-only edges.
+Returning undefined preserves previous default visibility; null suppresses content.
+A missing geometry label anchor still suppresses the label. No placeholder label
+or document edit is required to display semantics. Rendering does not change
+source/target, graph data, Undo, selection or policies. DDD validation remains
+separately opt-in. Context cards have real ports; portless-frame projection and
+storage remain outside this slice. The workbench demonstrates both themes and a
+presentation toggle that retains the authored model. No publication or deployment.
+See [ADR 0039](../../docs/adr/0039-compose-context-map-presentation.md).

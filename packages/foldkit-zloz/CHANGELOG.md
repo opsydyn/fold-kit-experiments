@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add context-map starter, semantic projection, composable connectors and participant badges.
+- Allow custom semantic labels on unlabeled edges while retaining default fallback visibility.
+
 - Add typed tactical and strategic DDD relationship contracts, pure resolution and opt-in editor policy.
 - Preserve DDD descriptors across codecs, Undo and history; protect them from causal-only controls and audits.
 

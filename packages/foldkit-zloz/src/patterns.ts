@@ -1,11 +1,12 @@
 import { createArchitectureNode } from './architecture-node';
 import { connectionReason } from './connection-validation';
+import { createContextMapPattern } from './context-map';
 import { commitGraph } from './editor';
 import { copyGraph, validateGraph, ZlozError } from './graph';
 import type { EditorPolicy, EditorState, Point, ZlozGraph } from './types';
 
 /** Built-in starter diagrams. These describe notation, not enforced business invariants. */
-export type ArchitecturePattern = 'c4-context' | 'ddd-aggregate' | 'event-storming';
+export type ArchitecturePattern = 'c4-context' | 'ddd-aggregate' | 'event-storming' | 'context-map';
 export type ZlozPatternInsertionPolicy = EditorPolicy &
   Readonly<{
     /** Complete remapped fragment and current graph, before any publication. */
@@ -28,6 +29,7 @@ export type ZlozPatternInsertionResult =
 
 /** Fresh, detached graph; customize it or pass any self-contained graph to insertPattern. */
 export function createArchitecturePattern(pattern: ArchitecturePattern): ZlozGraph {
+  if (pattern === 'context-map') return createContextMapPattern();
   if (pattern === 'event-storming') return createEventStormingPattern();
   const ddd = pattern === 'ddd-aggregate';
   if (pattern !== 'ddd-aggregate' && pattern !== 'c4-context')

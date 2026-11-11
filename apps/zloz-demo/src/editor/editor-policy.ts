@@ -1,5 +1,6 @@
 import {
   eventStormingRelationshipPolicy,
+  dddRelationshipPolicy,
   type EditorPolicy,
   type ZlozNode,
 } from '@opsydyn/foldkit-zloz';
@@ -154,7 +155,10 @@ export function workbenchPolicy(
   const base = baseWorkbenchPolicy(model);
   return model.semanticRelationships
     ? {
-        ...eventStormingRelationshipPolicy(workbenchRelationshipOptions(model), base),
+        ...eventStormingRelationshipPolicy(
+          workbenchRelationshipOptions(model),
+          dddRelationshipPolicy({}, base),
+        ),
         canReconnect: base.canReconnect,
       }
     : base;

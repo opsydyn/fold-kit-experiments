@@ -342,3 +342,10 @@ export type {
   ZlozAuditComparisonControlsContext,
   ZlozAuditComparisonDecision,
 } from './audit-comparison-controls';
+
+export { resolveContextMapRelationship, createContextMapPattern } from './context-map';
+export type {
+  ZlozContextMapRelationship,
+  ZlozContextMapParticipant,
+  ZlozContextMapBadge,
+} from './context-map';

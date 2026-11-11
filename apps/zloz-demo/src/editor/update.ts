@@ -3,6 +3,7 @@ import {
   resolveHistoryComparisonRequest,
   updateEditionPlayback,
   createEventStormingPattern,
+  createContextMapPattern,
   appendEdition,
   mergeEditions,
   resolveEditionRestore,
@@ -702,38 +703,43 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     },
     SelectedExample: ({ example }) => {
       const graph =
-        example === 'event-storming'
-          ? createEventStormingPattern({ includeAggregate: true })
-          : example === 'large-workflow'
-            ? createLargeWorkflowGraph()
-            : example === 'protected-orbits'
-              ? createProtectedWorkflowGraph()
-              : example === 'ddd-orders'
-                ? createDddOrderGraph()
-                : example === 'c4-context'
-                  ? createC4ContextGraph()
-                  : example === 'c4-nested-containers'
-                    ? createC4NestedContainerGraph()
-                    : example === 'c4-containers'
-                      ? createC4ContainerGraph()
-                      : {
-                          release: initialGraph,
-                          onion: onionGraph,
-                          'grouped-onion': groupedOnionGraph,
-                          'port-snapping': portSnappingGraph,
-                        }[example];
+        example === 'context-map'
+          ? createContextMapPattern()
+          : example === 'event-storming'
+            ? createEventStormingPattern({ includeAggregate: true })
+            : example === 'large-workflow'
+              ? createLargeWorkflowGraph()
+              : example === 'protected-orbits'
+                ? createProtectedWorkflowGraph()
+                : example === 'ddd-orders'
+                  ? createDddOrderGraph()
+                  : example === 'c4-context'
+                    ? createC4ContextGraph()
+                    : example === 'c4-nested-containers'
+                      ? createC4NestedContainerGraph()
+                      : example === 'c4-containers'
+                        ? createC4ContainerGraph()
+                        : {
+                            release: initialGraph,
+                            onion: onionGraph,
+                            'grouped-onion': groupedOnionGraph,
+                            'port-snapping': portSnappingGraph,
+                          }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
           ...model,
           editor,
-          semanticRelationships: example === 'event-storming' ? true : model.semanticRelationships,
+          semanticRelationships:
+            example === 'event-storming' || example === 'context-map'
+              ? true
+              : model.semanticRelationships,
           nodeDesign:
             example === 'event-storming'
               ? 'event-storming'
               : example === 'protected-orbits'
                 ? 'orbits'
-                : example === 'ddd-orders'
+                : example === 'ddd-orders' || example === 'context-map'
                   ? 'ddd'
                   : example === 'c4-context' ||
                       example === 'c4-containers' ||
@@ -1067,6 +1073,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedRelationshipInference: (input) => ({
       model: editWorkbenchRelationship(model, { ...input, type: 'InferenceApplied' }),
+    }),
+    ClickedContextMapPresentation: () => ({
+      model: { ...model, contextMapPresentation: !model.contextMapPresentation },
     }),
     ClickedSemanticRelationships: () => ({
       model: { ...model, semanticRelationships: !model.semanticRelationships },

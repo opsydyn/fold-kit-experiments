@@ -71,7 +71,7 @@ async function run() {
     'triggers',
   ]);
   await expect(
-    page.getByRole('checkbox', { name: 'Validate causal relationships', exact: true }),
+    page.getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true }),
   ).toBeChecked();
   await button('Add delegated command connection').click();
   await expect(page.getByLabel('Relationship edit feedback', { exact: true })).toContainText(
@@ -103,7 +103,7 @@ async function run() {
   );
   expect((await document()).value.snapshot.graph).toEqual(base.value.snapshot.graph);
   await page
-    .getByRole('checkbox', { name: 'Validate causal relationships', exact: true })
+    .getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true })
     .uncheck();
   await type().selectOption('emits');
   await expect(
@@ -112,7 +112,9 @@ async function run() {
   expect((await document()).value.snapshot.graph.edges[0].architecture.role).toBe('emits');
   await button('Undo').click();
   await inspect().selectOption('step:0');
-  await page.getByRole('checkbox', { name: 'Validate causal relationships', exact: true }).check();
+  await page
+    .getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true })
+    .check();
   await type().selectOption('');
   await expect(
     page.getByRole('list', { name: 'Causal relationship report', exact: true }),
@@ -139,7 +141,7 @@ async function run() {
   );
   expect((await document()).value.snapshot.graph).toEqual(exported.value.snapshot.graph);
   await page
-    .getByRole('checkbox', { name: 'Validate causal relationships', exact: true })
+    .getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true })
     .uncheck();
   await type().selectOption('');
   await expect(button('Apply inferred relationship')).toBeDisabled();
@@ -158,7 +160,9 @@ async function run() {
   ).toBeUndefined();
   await button('Redo').click();
   expect((await document()).value.snapshot.graph).toEqual(exported.value.snapshot.graph);
-  await page.getByRole('checkbox', { name: 'Validate causal relationships', exact: true }).check();
+  await page
+    .getByRole('checkbox', { name: 'Validate DDD and causal relationships', exact: true })
+    .check();
   await inspect().selectOption('step:0');
   await expect(page.getByRole('group', { name: 'Selected edge actions', exact: true })).toHaveCount(
     0,

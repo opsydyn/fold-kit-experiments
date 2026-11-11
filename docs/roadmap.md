@@ -171,11 +171,10 @@ preserves identity, editions and origin that diagram-only imports omit.
 
 ### Remaining work, in priority order
 
-1. **Context-map presentation and workshop mappings:** build on the headless DDD
-   relationship contract with composable strategic connectors, side-role badges
-   and a starter example using connectable context cards. Preserve portless frame
-   boundaries; frame projection is a separate design decision. Extend EventStorming
-   workshop patterns with deliberate DDD/C4 mappings afterward.
+1. **DDD relationship controls and workshop mappings:** add composable package
+   controls for relationship patterns and side roles, with live protection reasons
+   and undoable edits. Then extend EventStorming workshop patterns with deliberate
+   DDD/C4 mappings. Portless-frame projection/storage remains a separate decision.
 2. **Review and agent lifecycle:** validate/import review packets, then validated
    modelling patches, dry runs and reviewable changes. No automatic writable-agent
    rollout or collaboration runtime is claimed.
@@ -205,7 +204,14 @@ Undo. Causal tooling remains family-scoped; logical frame references do not crea
 drawable group endpoints. See [ADR 0038](adr/0038-define-ddd-relationship-contracts.md)
 and the [package qualification receipt](../packages/foldkit-zloz/evidence/ddd-relationships.md).
 
-**Recommended next:** item 1, context-map presentation using the approved meaning contract. Proposed positioning to
+**Context-map presentation — implemented on this branch, unreleased:** package
+projection, connectors and labels share existing geometry/interaction contracts;
+a four-context starter uses real ports and atomic insertion. The workbench shows
+light/dark themes, custom source badges, native editing/Undo and a presentation
+toggle independent of diagnostic visibility. See [ADR 0039](adr/0039-compose-context-map-presentation.md)
+and [local evidence](../apps/zloz-demo/evidence/context-map.md).
+
+**Recommended next:** item 1, composable DDD relationship and side-role controls. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

@@ -2,6 +2,7 @@ import {
   resolveEdgeReconnection,
   resolveEventStormingRelationship,
   eventStormingRelationshipRules,
+  resolveContextMapRelationship,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -23,6 +24,9 @@ import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
   zlozView,
+  zlozContextMapConnector,
+  zlozContextMapLabel,
+  zlozContextMapParticipant,
   zlozEventStormingRelationshipControls,
   zlozEventStormingRelationshipSelect,
   zlozEventStormingRelationshipInference,
@@ -387,6 +391,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     });
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
+  const hasContextMap = model.editor.graph.edges.some(
+    (edge) => edge.architecture?.family === 'ddd' && edge.architecture.scope === 'strategic',
+  );
+  const contextMapRelationships = new Map(
+    model.contextMapPresentation
+      ? model.editor.graph.edges.flatMap((edge) => {
+          const relation = resolveContextMapRelationship(model.editor.graph, edge);
+          return relation ? [[edge.id, relation] as const] : [];
+        })
+      : [],
+  );
   const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
@@ -1284,6 +1299,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             Message.ClickedInsertPattern({ pattern: 'event-storming' }),
             insertionReason !== null,
           ),
+          button(
+            'Insert context-map starter',
+            Message.ClickedInsertPattern({ pattern: 'context-map' }),
+            insertionReason !== null,
+          ),
           ...(insertionReason === null
             ? []
             : [
@@ -1328,6 +1348,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   'Open DDD Order aggregate',
                   Message.SelectedExample({ example: 'ddd-orders' }),
                 ),
+                button('Open DDD context map', Message.SelectedExample({ example: 'context-map' })),
                 button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
                 button(
                   'Open grouped Onion Architecture',
@@ -1718,7 +1739,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       h.Disabled(model.historyReview !== null),
                       h.OnClick(Message.ClickedSemanticRelationships()),
                     ]),
-                    'Validate causal relationships',
+                    'Validate DDD and causal relationships',
                   ],
                 ),
                 h.label(
@@ -1846,11 +1867,22 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.div(
               [h.Class('ddd-diagram-caption')],
               [
-                h.h2([], ['Ordering · domain model']),
+                h.h2(
+                  [],
+                  [
+                    hasContextMap
+                      ? 'Context map · strategic relationships'
+                      : 'Ordering · domain model',
+                  ],
+                ),
                 h.p(
                   [],
                   [
-                    'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
+                    hasContextMap
+                      ? model.contextMapPresentation
+                        ? 'Connectable context cards show authored influence and cooperation. Arrows describe upstream/downstream influence, not message flow. Symmetric partnerships and shared kernels have no arrow.'
+                        : 'Context-map presentation is disabled. Strategic meaning remains in the model.'
+                      : 'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
                   ],
                 ),
                 h.ul(
@@ -1888,6 +1920,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         : []),
     ],
     appearance: [
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.contextMapPresentation),
+            h.OnClick(Message.ClickedContextMapPresentation()),
+          ]),
+          'Context-map presentation',
+        ],
+      ),
       h.label(
         [h.Class('workbench-field')],
         [
@@ -2834,7 +2877,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Disabled(model.historyReview !== null),
             h.OnClick(Message.ClickedSemanticRelationships()),
           ]),
-          'Validate causal relationships',
+          'Validate DDD and causal relationships',
         ],
       ),
       h.label(
@@ -3482,8 +3525,40 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           doubleClickZoom: model.doubleClickZoom,
           spaceToPan: model.spaceToPan,
           middleButtonPan: model.middleButtonPan,
-          renderEdgeLabel: (context, builder) =>
-            model.edgeLabelDesign === 'badge' ? edgeBadge(context, builder) : undefined,
+          renderEdge: (context, builder) => {
+            const relationship = contextMapRelationships.get(context.edge.id);
+            return relationship
+              ? zlozContextMapConnector(builder, context, relationship)
+              : undefined;
+          },
+          renderEdgeLabel: (context, builder) => {
+            const relationship = contextMapRelationships.get(context.edge.id);
+            return relationship
+              ? zlozContextMapLabel(builder, context, relationship, zlozInput, {
+                  renderSource: (participant, _relationship, h) =>
+                    participant.badges.length
+                      ? zlozContextMapParticipant(h, participant, {
+                          renderBadge: (badge, h) =>
+                            h.span(
+                              [
+                                h.Title(badge.description),
+                                h.AriaLabel(badge.description),
+                                h.Style({
+                                  border: '1px solid var(--flow-node-border)',
+                                  borderRadius: '999px',
+                                  padding: '1px 5px',
+                                  fontWeight: '650',
+                                }),
+                              ],
+                              [badge.text],
+                            ),
+                        })
+                      : undefined,
+                })
+              : model.edgeLabelDesign === 'badge'
+                ? edgeBadge(context, builder)
+                : undefined;
+          },
           renderEdgeLabelEditor: (context, builder) =>
             model.edgeLabelDesign === 'badge' ? edgeBadgeEditor(context, builder) : undefined,
           connectionGeometry: (context) => {

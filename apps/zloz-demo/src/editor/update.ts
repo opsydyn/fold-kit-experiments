@@ -75,7 +75,11 @@ import {
 } from './history';
 import { focusWorkbenchHistoryChange } from './history-navigation';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
-import { reconcileMappingReview, updateMappingReview } from './mapping-review';
+import {
+  reconcileMappingReview,
+  updateMappingReview,
+  updateMappingLossAcknowledgement,
+} from './mapping-review';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -709,6 +713,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedMappingReviewChoice: (request) => ({
       model: updateMappingReview(model, { ...request, type: 'ChoiceSelected' }),
+    }),
+    ClickedMappingLossAcknowledgement: (request) => ({
+      model: updateMappingLossAcknowledgement(model, request),
     }),
     ClickedResetMappingReview: (request) => ({
       model: updateMappingReview(model, { ...request, type: 'ResetClicked' }),
@@ -1374,7 +1381,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
   });
   const result = {
     ...outcome,
-    model: reconcileMappingReview(reconcileHistoryPlayback(model, outcome.model)),
+    model: reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
   };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;

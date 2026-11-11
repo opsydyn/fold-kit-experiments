@@ -2,14 +2,14 @@ import {
   architectureNodePresets,
   dddRelationshipKey,
   dddRelationshipRules,
-  previewEventStormingDddMapping,
+  resolveEventStormingDddConversionConsent,
   serializeGraph,
   type DddNodeArchitecture,
   type ZlozEventStormingDddMappingOptions,
 } from '@opsydyn/foldkit-zloz';
 
 import type { Model, MappingReviewDraft } from './model';
-import { modelSessionBusy } from './model-sessions';
+import { modelSessionBusy, workbenchDocument } from './model-sessions';
 
 export type MappingReviewScope = Pick<
   MappingReviewDraft,
@@ -69,7 +69,16 @@ export function workbenchMappingReview(model: Model) {
   const current = scope(model),
     stored = draft(model, current),
     graph = source(model).graph;
-  const preview = previewEventStormingDddMapping(graph, mappingOptions(stored));
+  const conversion = resolveEventStormingDddConversionConsent(
+    {
+      document: workbenchDocument({ ...model, editor: source(model) }),
+      sessionId: `${model.modelNamespace}:${model.modelEpoch}:${model.historyReview?.editionId ?? 'working'}`,
+      revision: current.revision,
+    },
+    mappingOptions(stored),
+    model.mappingLossConsent,
+  );
+  const preview = conversion.plan.preview;
   const items = [
     ...preview.nodes.map((decision) => ({
       kind: 'node' as const,
@@ -107,6 +116,18 @@ export function workbenchMappingReview(model: Model) {
       ? 'Finish active edits, imports or layout before choosing mappings.'
       : null;
   return {
+    conversion,
+    sourceLabel: model.historyReview
+      ? `Edition · ${model.editions.find((edition) => edition.id === model.historyReview?.editionId)?.name ?? model.historyReview.editionId}`
+      : 'Working model',
+    acknowledged: reason === null && conversion.type === 'consented',
+    acknowledgementReason:
+      reason ??
+      (conversion.type === 'blocked'
+        ? 'Resolve or explicitly retain every uncertain mapping and incompatible relationship before acknowledging losses.'
+        : conversion.type === 'unchanged'
+          ? 'This plan has no semantic replacements; loss acknowledgement is unnecessary.'
+          : null),
     scope: current,
     stored,
     preview,
@@ -139,6 +160,8 @@ export function updateMappingReview(model: Model, request: MappingReviewRequest)
     return {
       ...model,
       mappingReview: { ...current, choices: [] },
+      mappingLossConsent: null,
+      mappingConsentRun: model.mappingConsentRun + 1,
       mappingReviewNotice: 'Using convention proposals. The source graph is unchanged.',
     };
   }
@@ -167,17 +190,67 @@ export function updateMappingReview(model: Model, request: MappingReviewRequest)
   return {
     ...model,
     mappingReview: { ...current, selectedKey: item.key, choices },
+    mappingLossConsent: null,
+    mappingConsentRun: model.mappingConsentRun + 1,
     mappingReviewNotice:
       'Preview choice recorded. The source graph and Undo history are unchanged.',
   };
 }
-/** A changed source never revives old choices, including after Undo returns the same graph values. */
-export function reconcileMappingReview(next: Model): Model {
-  if (!next.mappingReview || matches(next.mappingReview, scope(next))) return next;
+export function updateMappingLossAcknowledgement(
+  model: Model,
+  request: MappingReviewScope &
+    Readonly<{ planKey: string; generation: number; accepted: boolean }>,
+): Model {
+  if (
+    model.sidebarSection !== 'mapping' ||
+    model.sidebarCollapsed ||
+    request.generation !== model.mappingConsentRun ||
+    !matches(scope(model), request)
+  )
+    return model;
+  const context = workbenchMappingReview(model);
+  if (context.acknowledgementReason !== null || context.conversion.plan.key !== request.planKey)
+    return model;
+  return {
+    ...model,
+    mappingLossConsent: request.accepted ? { planKey: request.planKey, accepted: true } : null,
+    mappingConsentRun: request.accepted ? model.mappingConsentRun : model.mappingConsentRun + 1,
+    mappingReviewNotice: request.accepted
+      ? 'Losses acknowledged for this exact plan. The source model is unchanged.'
+      : 'Loss acknowledgement cleared. The source model is unchanged.',
+  };
+}
+/** Source/provenance changes never revive old choices or old checkbox callbacks after a revert. */
+export function reconcileMappingReview(previous: Model, next: Model): Model {
+  const before = source(previous),
+    after = source(next);
+  const sourceChanged =
+    previous.modelEpoch !== next.modelEpoch ||
+    previous.modelIdentity !== next.modelIdentity ||
+    previous.editions !== next.editions ||
+    before.graph !== after.graph ||
+    before.viewport !== after.viewport ||
+    before.revision !== after.revision ||
+    previous.historyReview?.editionId !== next.historyReview?.editionId;
+  const protectionChanged = modelSessionBusy(previous) !== modelSessionBusy(next);
+  const invalidDraft = next.mappingReview !== null && !matches(next.mappingReview, scope(next));
+  const invalidConsent =
+    next.mappingLossConsent !== null &&
+    (sourceChanged ||
+      next.historyReview !== null ||
+      modelSessionBusy(next) ||
+      workbenchMappingReview(next).conversion.type !== 'consented');
+  if (!invalidDraft && !sourceChanged && !protectionChanged && !invalidConsent) return next;
   return {
     ...next,
-    mappingReview: null,
-    mappingReviewNotice:
-      'Source changed; temporary mapping choices reset. Review the current proposals.',
+    mappingReview: invalidDraft ? null : next.mappingReview,
+    mappingLossConsent:
+      invalidConsent || sourceChanged || protectionChanged ? null : next.mappingLossConsent,
+    mappingConsentRun: Math.max(previous.mappingConsentRun, next.mappingConsentRun) + 1,
+    mappingReviewNotice: invalidDraft
+      ? 'Source changed; temporary mapping choices and loss acknowledgement reset. Review the current proposals.'
+      : previous.mappingLossConsent !== null
+        ? 'Plan changed or became unavailable; loss acknowledgement cleared. Review the current plan.'
+        : next.mappingReviewNotice,
   };
 }

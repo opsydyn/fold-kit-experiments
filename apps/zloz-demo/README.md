@@ -617,3 +617,16 @@ separate feature; no mapping is applied by this panel.
 
 See [local browser evidence](evidence/mapping-review.md) for light/dark captures and
 source-preservation checks.
+
+Inside **Mapping review**, expand **Conversion plan review** to inspect source
+provenance, blockers and all prospective semantic losses. Resolve uncertain mappings
+or explicitly keep their workshop meaning before acknowledging losses. The native
+checkbox records acknowledgement only for the exact current package plan; uncheck
+it to withdraw. Source, camera, mapping, archive and model/history changes invalidate
+it. The app also rejects old checkbox callbacks after a change-and-revert.
+
+Provenance and loss reasons remain available with diagnostics hidden. Acknowledgement
+is temporary UI state and is absent from exported model JSON and Undo. This review
+does not perform conversion or grant editing permission; there is no Apply control.
+See [plan review evidence](evidence/mapping-plan.md) for the real fork/provenance flow
+and light/dark captures.

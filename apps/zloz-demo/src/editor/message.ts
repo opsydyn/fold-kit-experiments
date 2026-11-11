@@ -210,6 +210,15 @@ export const Message = defineMessageUnion({
     key: Schema.String,
     value: Schema.String,
   },
+  ClickedMappingLossAcknowledgement: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    planKey: Schema.String,
+    generation: Schema.Number,
+    accepted: Schema.Boolean,
+  },
   ClickedResetMappingReview: {
     modelId: Schema.String,
     epoch: Schema.Number,

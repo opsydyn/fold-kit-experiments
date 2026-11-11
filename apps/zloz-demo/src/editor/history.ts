@@ -24,6 +24,7 @@ export function historyAllowsMessage(message: Message): boolean {
     'SelectedMappingReviewItem',
     'SelectedMappingReviewChoice',
     'ClickedResetMappingReview',
+    'ClickedMappingLossAcknowledgement',
     'ClickedContextMapPresentation',
     'ClickedAuditExample',
     'ObservedReviewPacketInput',

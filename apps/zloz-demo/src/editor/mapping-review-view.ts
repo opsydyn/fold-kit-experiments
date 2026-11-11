@@ -4,6 +4,143 @@ import { workbenchMappingReview } from './mapping-review';
 import { Message } from './message';
 import type { Model } from './model';
 
+function conversionPlanPanel(
+  model: Model,
+  h: HtmlBuilder<Message>,
+  context: ReturnType<typeof workbenchMappingReview>,
+) {
+  const { plan } = context.conversion;
+  const document = plan.provenance.document;
+  const status = {
+    blocked: 'Resolve remaining mappings',
+    unchanged: 'No conversion changes',
+    'consent-required': 'Loss acknowledgement needed',
+    consented: 'Losses acknowledged for this plan',
+  }[context.conversion.type];
+  return h.details(
+    [h.Key('conversion-plan'), h.Id('mapping-conversion-plan'), h.Class('mapping-plan')],
+    [
+      h.summary([], ['Conversion plan review']),
+      h.section(
+        [h.AriaLabel('Conversion plan review')],
+        [
+          h.p(
+            [
+              h.Role('status'),
+              h.AriaLabel('Conversion plan status'),
+              h.Class('mapping-plan-status'),
+            ],
+            [status],
+          ),
+          h.h3([], ['Source provenance']),
+          h.dl(
+            [h.Class('mapping-provenance')],
+            [
+              h.dt([], ['Model']),
+              h.dd([], [document.name]),
+              h.dt([], ['Snapshot']),
+              h.dd([], [context.sourceLabel]),
+              h.dt([], ['Fork ancestry']),
+              h.dd(
+                [],
+                [
+                  document.origin
+                    ? `${document.origin.modelName} · ${document.origin.edition.name}`
+                    : 'Original model · no fork parent',
+                ],
+              ),
+            ],
+          ),
+          h.p(
+            [],
+            [
+              'Original source graph, camera, editions and ancestry are captured for this review. Nothing has been converted.',
+            ],
+          ),
+          h.details(
+            [h.Class('mapping-source-details')],
+            [
+              h.summary([], ['Source identifiers']),
+              h.p([], [`Model ID: ${document.id}`]),
+              ...(model.historyReview
+                ? [h.p([], [`Edition ID: ${model.historyReview.editionId}`])]
+                : []),
+            ],
+          ),
+          ...(plan.type === 'blocked'
+            ? [
+                h.h4([], ['Unresolved mappings']),
+                h.ul(
+                  [h.AriaLabel('Conversion plan blockers')],
+                  plan.blockers.map((blocker) =>
+                    h.li(
+                      [h.Key(`${blocker.kind}:${blocker.id}`)],
+                      [
+                        `${context.items.find((item) => item.kind === blocker.kind && item.id === blocker.id)?.label ?? blocker.id}: ${blocker.reason}`,
+                      ],
+                    ),
+                  ),
+                ),
+              ]
+            : []),
+          ...(plan.preview.disclosures.length
+            ? [
+                h.h4([], ['All prospective semantic losses']),
+                h.ul(
+                  [h.AriaLabel('Plan semantic losses')],
+                  plan.preview.disclosures.map((loss) =>
+                    h.li(
+                      [h.Key(`${loss.kind}:${loss.id}`)],
+                      [
+                        h.strong(
+                          [],
+                          [
+                            context.items.find(
+                              (item) => item.kind === loss.kind && item.id === loss.id,
+                            )?.label ?? loss.id,
+                          ],
+                        ),
+                        h.p([], [loss.reason]),
+                      ],
+                    ),
+                  ),
+                ),
+              ]
+            : []),
+          h.label(
+            [h.Class('workbench-field mapping-acknowledgement')],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.AriaLabel('Acknowledge plan losses'),
+                h.Checked(context.acknowledged),
+                h.Disabled(context.acknowledgementReason !== null),
+                h.AriaDescribedBy('mapping-plan-acknowledgement-reason'),
+                h.OnClick(
+                  Message.ClickedMappingLossAcknowledgement({
+                    ...context.scope,
+                    generation: model.mappingConsentRun,
+                    planKey: plan.key,
+                    accepted: !context.acknowledged,
+                  }),
+                ),
+              ]),
+              'I acknowledge all listed semantic losses for this plan',
+            ],
+          ),
+          h.p(
+            [h.Id('mapping-plan-acknowledgement-reason')],
+            [
+              context.acknowledgementReason ??
+                'Acknowledgement records review only. The source model and Undo history are unchanged. Uncheck to withdraw it.',
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
 export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const context = workbenchMappingReview(model),
     { selected, preview } = context;
@@ -187,24 +324,7 @@ export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
             ),
           ]
         : []),
-      ...(preview.disclosures.length
-        ? [
-            h.details(
-              [h.Class('mapping-losses')],
-              [
-                h.summary([], ['All prospective semantic losses']),
-                ...preview.disclosures.map((loss) =>
-                  h.p(
-                    [h.Key(`${loss.kind}:${loss.id}`)],
-                    [
-                      `${context.items.find((item) => item.kind === loss.kind && item.id === loss.id)?.label ?? loss.id}: ${loss.reason}`,
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ]
-        : []),
+      conversionPlanPanel(model, h, context),
       h.p(
         [h.Class('mapping-review-footer')],
         ['No conversion has been applied. Keep the workshop model as the source of truth.'],

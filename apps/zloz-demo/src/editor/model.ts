@@ -7,6 +7,7 @@ import {
   type ZlozGraph,
   type LayoutRequest,
   type ZlozAuditComparisonState,
+  type ZlozEventStormingDddLossConsent,
 } from '@opsydyn/foldkit-zloz';
 import {
   resolveZlozDiagnostics,
@@ -294,6 +295,10 @@ export const WorkbenchSection = Schema.Literals([
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
   mappingReview: Schema.NullOr(MappingReview),
+  mappingLossConsent: Schema.NullOr(
+    Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
+  ),
+  mappingConsentRun: Schema.Number,
   mappingReviewNotice: Schema.String,
   sidebarSection: WorkbenchSection,
   sidebarCollapsed: Schema.Boolean,
@@ -408,6 +413,8 @@ export const Model = Schema.Struct({
 });
 export type Model = Readonly<{
   mappingReview: MappingReviewDraft | null;
+  mappingLossConsent: ZlozEventStormingDddLossConsent | null;
+  mappingConsentRun: number;
   mappingReviewNotice: string;
   sidebarSection: WorkbenchSection;
   sidebarCollapsed: boolean;
@@ -512,6 +519,8 @@ export type Model = Readonly<{
 export const init = (namespace = 'test-workbench') => ({
   model: {
     mappingReview: null,
+    mappingLossConsent: null,
+    mappingConsentRun: 0,
     mappingReviewNotice: '',
     sidebarSection: 'diagram',
     sidebarCollapsed: false,

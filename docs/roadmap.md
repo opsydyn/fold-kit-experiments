@@ -239,8 +239,17 @@ bound to a freshly rebuilt exact plan; it grants no edit permission. See
 [ADR 0043](adr/0043-plan-workshop-conversion-and-loss-consent.md) and
 [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-conversion-plan.md).
 
-**Recommended next:** compose plan provenance and exact-plan loss acknowledgement
-in the workbench mapping review before implementing Apply. Proposed positioning to
+**Plan provenance and loss acknowledgement — implemented on this branch, unreleased:**
+the Mapping review sidebar composes the package plan/consent resolver, shows source
+and fork provenance, blockers and all prospective losses, and records only transient
+exact-plan acknowledgement. Callback generations prevent revival after withdrawal
+or source change-and-revert. Graph, Undo and authoritative exports remain unchanged.
+See [ADR 0044](adr/0044-review-plan-provenance-and-losses-in-workbench.md) and
+[local evidence](../apps/zloz-demo/evidence/mapping-plan.md).
+
+**Recommended next:** define provenance retention and package-level atomic Apply
+with live freshness/policy/lifecycle/consent checks and one Undo, before adding its
+workbench control. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

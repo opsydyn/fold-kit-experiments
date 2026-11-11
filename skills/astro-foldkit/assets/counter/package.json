@@ -11,7 +11,7 @@
   "dependencies": {
     "@effect/platform-browser": "4.1.0",
     "@opsydyn/astro-foldkit": "0.9.3",
-    "astro": "7.4.0",
+    "astro": "7.4.11",
     "effect": "4.1.0",
     "foldkit": "0.170.0"
   },

@@ -13,7 +13,7 @@ Commands and remote-data policy. No chart package is required.
 
 Read the consumer's manifest, lockfile and installed package exports before
 choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
-`0.9.3`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.0`. `0.9.3` peers on FoldKit
+`0.9.3`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.9.3` peers on FoldKit
 `>=0.170.0 <0.171.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
 release of the integration, not this one. This is a tested
 baseline, not a claim about the latest release or every supported Astro version.

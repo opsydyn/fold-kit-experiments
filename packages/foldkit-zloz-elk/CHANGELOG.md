@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-elk-v0.2.0...foldkit-zloz-elk-v0.3.0) (2026-11-10)
+
+### Miscellaneous Chores
+
+- **foldkit-zloz-elk:** Synchronize foldkit-zloz versions
+
 ## [0.2.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-elk-v0.1.1...foldkit-zloz-elk-v0.2.0) (2026-11-09)
 
 ### Miscellaneous Chores

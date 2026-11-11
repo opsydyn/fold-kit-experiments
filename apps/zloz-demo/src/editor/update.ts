@@ -111,6 +111,7 @@ import {
 } from './playback';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
+import { updateReceiptReview, receiptAllowsMessage, isReceiptMessage } from './receipt-review';
 import { editWorkbenchRelationship } from './relationship-controls';
 import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
@@ -126,6 +127,8 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if (model.receiptReview && !isReceiptMessage(message) && !receiptAllowsMessage(message))
+    return { model };
   if (
     message._tag === 'ObservedModelInput' &&
     (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
@@ -179,7 +182,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? { model }
         : { model: { ...model, historyReview } };
     }
-    if (!historyAllowsMessage(message)) return { model };
+    if (!historyAllowsMessage(message) && !isReceiptMessage(message)) return { model };
   }
   const changedPosition = (change: ZlozPortPositionDraftChange): Return<Model, Message> => ({
     model: model.portPositionDraft
@@ -720,6 +723,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedMappingLossAcknowledgement: (request) => ({
       model: updateMappingLossAcknowledgement(model, request),
     }),
+    ChoseConversionReceiptFiles: () => updateReceiptReview(model, message),
+    SucceededConversionReceiptRead: () => updateReceiptReview(model, message),
+    FailedConversionReceiptRead: () => updateReceiptReview(model, message),
+    ClickedCancelReceiptRead: () => updateReceiptReview(model, message),
+    ClickedCloseReceiptReview: () => updateReceiptReview(model, message),
+    SelectedReceiptSide: () => updateReceiptReview(model, message),
+    ObservedReceiptInput: () => updateReceiptReview(model, message),
     ClickedApplyMappingConversion: (request) => ({ model: applyWorkbenchMapping(model, request) }),
     ClickedMappingApplyProtection: () => ({
       model:

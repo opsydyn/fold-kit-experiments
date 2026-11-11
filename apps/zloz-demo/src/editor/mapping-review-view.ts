@@ -3,6 +3,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { workbenchMappingReview } from './mapping-review';
 import { Message } from './message';
 import type { Model } from './model';
+import { receiptReviewPanel } from './receipt-review';
 
 function conversionPlanPanel(
   model: Model,
@@ -225,6 +226,7 @@ function retainedReceiptsPanel(
 }
 
 export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
+  if (model.receiptReview) return receiptReviewPanel(model, h);
   const context = workbenchMappingReview(model),
     { selected, preview } = context;
   const diagnostics = model.diagnosticsEnabled && !model.minimalMode && model.diagnostics.status;
@@ -407,7 +409,8 @@ export function mappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
             ),
           ]
         : []),
-      conversionPlanPanel(model, h, context),
+      receiptReviewPanel(model, h),
+      ...(!model.receiptReview ? [conversionPlanPanel(model, h, context)] : []),
       ...(context.receipts.length ? [retainedReceiptsPanel(model, h, context)] : []),
       h.p(
         [h.Class('mapping-review-footer')],

@@ -219,6 +219,17 @@ export const Message = defineMessageUnion({
     generation: Schema.Number,
     accepted: Schema.Boolean,
   },
+  ChoseConversionReceiptFiles: { files: Schema.Array(Schema.instanceOf(File)) },
+  SucceededConversionReceiptRead: { id: Schema.Number, json: Schema.String },
+  FailedConversionReceiptRead: { id: Schema.Number },
+  ClickedCancelReceiptRead: {},
+  ClickedCloseReceiptReview: {},
+  SelectedReceiptSide: { id: Schema.Number, side: Schema.Literals(['before', 'after']) },
+  ObservedReceiptInput: {
+    id: Schema.Number,
+    side: Schema.Literals(['before', 'after']),
+    message: Schema.Unknown,
+  },
   ClickedApplyMappingConversion: {
     modelId: Schema.String,
     epoch: Schema.Number,

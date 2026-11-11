@@ -7,6 +7,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
 import type { Model, WorkbenchSection } from './model';
+import { receiptReviewCanvas } from './receipt-review';
 
 export type WorkbenchControls = Readonly<Record<WorkbenchSection, readonly Html[]>>;
 const sections: readonly (readonly [WorkbenchSection, string])[] = [
@@ -97,7 +98,17 @@ export function workbenchLayout(
         [h.Class('workbench-sidebar'), h.AriaLabel('Workbench controls')],
         [
           h.a(
-            [h.Class('workbench-skip'), h.Href('#' + encodeURIComponent(parts.canvasId))],
+            [
+              h.Class('workbench-skip'),
+              h.Href(
+                '#' +
+                  encodeURIComponent(
+                    model.receiptReview
+                      ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
+                      : parts.canvasId,
+                  ),
+              ),
+            ],
             ['Skip to canvas'],
           ),
           h.div(
@@ -158,6 +169,11 @@ export function workbenchLayout(
                     [
                       h.Key(section),
                       h.Type('button'),
+                      h.Disabled(
+                        model.receiptReview !== null &&
+                          section !== 'mapping' &&
+                          section !== 'diagnostics',
+                      ),
                       h.AriaPressed(String(model.sidebarSection === section)),
                       h.AriaControls(`workbench-${section}`),
                       h.OnClick(Message.SelectedWorkbenchSection({ section })),
@@ -197,8 +213,8 @@ export function workbenchLayout(
           h.Style({ position: 'relative' }),
         ],
         [
-          parts.canvas,
-          ...(model.historyReview
+          model.receiptReview ? receiptReviewCanvas(model, h) : parts.canvas,
+          ...(model.historyReview && !model.receiptReview
             ? [
                 h.div(
                   [

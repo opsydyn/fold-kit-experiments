@@ -284,3 +284,26 @@ export const DownloadConversionReceipt = Command.define('DownloadConversionRecei
       }),
     ),
 });
+
+export const ReadConversionReceipt = Command.define('ReadConversionReceipt', {
+  args: { id: Schema.Number, file: Schema.instanceOf(File) },
+  messages: [Message.SucceededConversionReceiptRead, Message.FailedConversionReceiptRead],
+  execute: ({ id, file }) =>
+    Effect.gen(function* () {
+      if (file.size > editionArchiveByteLimit)
+        return yield* Effect.fail(
+          new EditionArchiveTooLarge({ byteLimit: editionArchiveByteLimit }),
+        );
+      const buffer = yield* Effect.tryPromise(() => file.arrayBuffer());
+      if (buffer.byteLength > editionArchiveByteLimit)
+        return yield* Effect.fail(
+          new EditionArchiveTooLarge({ byteLimit: editionArchiveByteLimit }),
+        );
+      return yield* Effect.try(() => new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+    }).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededConversionReceiptRead({ id, json }),
+        onFailure: () => Message.FailedConversionReceiptRead({ id }),
+      }),
+    ),
+});

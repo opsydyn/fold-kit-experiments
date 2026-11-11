@@ -652,3 +652,23 @@ receipt collection. No automatic persistence, receipt import or replay is provid
 
 See [Apply browser evidence](evidence/mapping-apply.md) for source/target equality,
 Undo/Redo, per-model retention, policy guards and light/dark captures.
+
+### Reopen a downloaded conversion receipt
+
+In **Mapping review**, choose **Open conversion receipt** and select the downloaded
+`foldkit-zloz.conversion-*.json` file (UTF-8 v1 JSON, up to 5 MiB). The workbench
+validates its original/converted documents and opens a detached **read-only receipt**
+canvas. Use **Before conversion**, **After conversion** and **Fit receipt diagram**
+to inspect the recorded change. The sidebar shows semantic/layout differences,
+ancestry, source identifiers and recorded loss reasons. Theme and minimal diagnostics
+remain available; editing controls are unavailable during comparison.
+
+**Return to working model** or **Close comparison** restores the exact working
+editor and Undo history, including any edition you were inspecting. Opening a
+receipt never activates its model, appends an Apply receipt or grants loss consent.
+Validation checks data consistency, not authorship. Invalid or tampered files leave
+the last valid comparison intact; retry or cancel the pending read. Comparison state
+is tab-local; reopen the original file after closing the tab.
+
+See [local browser evidence](evidence/receipt-review.md) and
+[ADR 0047](../../docs/adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md).

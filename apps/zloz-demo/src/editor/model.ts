@@ -19,6 +19,7 @@ import {
 import { Schema } from 'effect';
 
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
+import type { ReceiptReview } from './receipt-review';
 
 export const initialGraph: ZlozGraph = {
   nodes: [
@@ -306,6 +307,12 @@ export const Model = Schema.Struct({
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
   ),
   mappingConsentRun: Schema.Number,
+  receiptReview: Schema.NullOr(Schema.Unknown),
+  receiptRead: Schema.NullOr(
+    Schema.Struct({ id: Schema.Number, modelId: Schema.String, epoch: Schema.Number }),
+  ),
+  receiptReadRun: Schema.Number,
+  receiptReviewNotice: Schema.String,
   mappingReceipts: Schema.Array(
     Schema.Struct({ id: Schema.String, sequence: Schema.Number, conversion: Schema.Unknown }),
   ),
@@ -427,6 +434,10 @@ export type Model = Readonly<{
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
+  receiptReview: ReceiptReview | null;
+  receiptRead: Readonly<{ id: number; modelId: string; epoch: number }> | null;
+  receiptReadRun: number;
+  receiptReviewNotice: string;
   mappingReceipts: readonly RetainedMappingReceipt[];
   mappingReceiptSequence: number;
   protectMappingApply: boolean;
@@ -536,6 +547,10 @@ export const init = (namespace = 'test-workbench') => ({
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,
+    receiptReview: null,
+    receiptRead: null,
+    receiptReadRun: 0,
+    receiptReviewNotice: '',
     mappingReceipts: [],
     mappingReceiptSequence: 0,
     protectMappingApply: false,

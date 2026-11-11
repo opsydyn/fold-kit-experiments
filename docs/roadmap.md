@@ -262,8 +262,15 @@ one Foldkit update. Receipt download is a scoped Command; Undo/Redo and model sw
 preserve immutable provenance. See [ADR 0046](adr/0046-publish-workbench-apply-and-receipts-together.md)
 and [local evidence](../apps/zloz-demo/evidence/mapping-apply.md).
 
-**Recommended next:** reopen portable conversion receipts for read-only before/after
-comparison in the workbench. Proposed positioning to
+**Portable receipt reopening — implemented on this branch, unreleased:**
+Mapping review validates downloaded receipts and shows a detached read-only
+Before/After canvas, recorded changes, ancestry and loss reasons. Working models,
+Undo and consent remain unchanged; invalid input preserves the last good comparison.
+See [ADR 0047](adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md) and
+[local evidence](../apps/zloz-demo/evidence/receipt-review.md).
+
+**Recommended next:** select a recorded change to focus its node or connection on
+either side using existing history navigation primitives. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

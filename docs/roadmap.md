@@ -60,12 +60,11 @@ modelling toolkit within that family.
 - **Open by nature:** models should travel beyond the editor rather than remain
   trapped inside it.
 
-### Planned delivery
+### Brand and site delivery
 
-1. **Brand and naming migration.** Inventory public copy, documentation, package
-   names, imports, types, routes and examples before applying the Flow → Zloz
-   rename. Decide technical names and compatibility/migration handling explicitly;
-   external branding does not by itself rename existing APIs or saved formats.
+1. **Brand and naming migration — delivered.** Public packages, imports, routes
+   and API documentation use Zloz. Saved-data compatibility and deprecated
+   source aliases are documented separately in the migration guide.
 2. **Distinct Zloz logo and shared family identity.** Create a logo representing
    Zloz, while following the styling, typography and visual identity established
    by the Viz and Three promo sites. Define reusable assets and light/dark usage.
@@ -92,9 +91,10 @@ modelling toolkit within that family.
 5. **Cloudflare hosting.** Published and qualified: [workbench](https://zloz.opsydyn.xyz/)
    and [promo](https://opsydyn.github.io/fold-kit-experiments/zloz/).
    Both website deployments are independent of npm publication.
-6. **Publication last.** Finish feature work and site qualification before the
-   npm publication slice. Verify chosen ASCII package names, migration guidance,
-   packed-consumer behavior and release automation at that boundary.
+6. **Initial npm publication — delivered.** Core, ELK, force and Mermaid packages
+   are available as `@opsydyn/foldkit-zloz*` at **0.3.0**. Future releases still
+   require packed-consumer and release qualification; website delivery does not
+   establish registry correctness.
 
 The current implementation uses `packages/foldkit-zloz*` and
 `apps/zloz-demo`. Its [nested Mermaid export](../apps/zloz-demo/evidence/mermaid-subgraphs.md)
@@ -119,8 +119,8 @@ separate. The historical imperative fidelity driver is not the production CLI.
 **Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
 record candidate package mappings, compatibility boundaries, family styling,
-logo directions and promo/demo information architecture. Their technical names
-remain proposals for implementation review. The user selected **B — Nested frame**
+logo directions and promo/demo information architecture. They are historical planning records; the ASCII technical names have since
+been implemented. The user selected **B — Nested frame**
 after reviewing the three SVG concepts.
 
 **Next bounded promo slice:** export the edited Compose graph as canonical JSON
@@ -131,134 +131,74 @@ themes; a separate dark-green identity is not intended. The separate
 feature recommendation for searchable sidebar settings remains on the workbench
 track.
 
-**Suggested workbench UX follow-up:** make the mini map discoverable in Navigation
-with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse the
-existing `overview` flag and respect global diagnostics/Minimal mode. This is a
-proposed follow-up prompted by the user's difficulty locating the control.
+**Mini map discoverability — delivered:** Navigation exposes a **Mini map** toggle
+using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
-## Zloz core: parity and domain modelling — 2026-11-08
+## Zloz core: parity and domain modelling — reconciled 2026-11-11
 
-**Status:** review completed; proposed delivery order, not implemented features.
-The [current core assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
-records capability gaps, package ownership, compatibility constraints and the
-claim-to-evidence map. Full React Flow parity and competitive superiority are
-not established.
+**Current baseline:** feature PR [#118](https://github.com/opsydyn/fold-kit-experiments/pull/118)
+and release PR [#119](https://github.com/opsydyn/fold-kit-experiments/pull/119) are merged.
+Core, ELK, force and Mermaid npm `latest` are **0.3.0**. The standalone Effect CLI
+remains unpublished. The documentation/private-CLI cleanup in
+[PR #120](https://github.com/opsydyn/fold-kit-experiments/pull/120) is green and open,
+not yet part of main. Do not treat an open PR as delivered.
 
-Maintain two tracks: a reliable, customizable editor floor and a differentiated
-architecture modelling lifecycle. Package-owned functionality stays reusable;
-Astro is the demonstration shell. Prioritize the following bounded slices:
+The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
+is a historical gap analysis, not a current inventory. Full React Flow parity,
+performance superiority and a validated competitive USP remain unestablished.
 
-1. **DDD preset renderers — implemented locally:** all eight existing semantic
-   roles have composable node/group presentation and a light/dark Order aggregate
-   demo. See the [qualification receipt](../apps/zloz-demo/evidence/ddd-renderers.md).
-2. **History and time travel — first slice implemented locally:** a first-class
-   product pillar. Core owns named immutable editions, a separate versioned archive,
-   read-only review and semantic/layout comparison. The optional Foldkit ghost
-   layer composes with the History sidebar and Order editions demo. See the
-   [qualification receipt](../apps/zloz-demo/evidence/history.md). The subsequent
-   [import/restore slice](../apps/zloz-demo/evidence/edition-restore.md) adds atomic
-   archive merge and explicit graph-only restore with one Undo, required freshness
-   and live policy checks. The fork slice adds separate model identity, pinned immediate origin, an independent editor/Undo and model JSON; playback and automatic persistence remain open.
-   Start with named
-   immutable editions, read-only rewind and return to the present; then semantic/
-   layout comparison and explicit restore or fork into a new working model.
-   Include opt-in ghost nodes/edges, previous positions and movement connectors
-   like Tech Radar, with clear change states and independent visibility controls.
-   Establish the contract before expanding persisted domain vocabulary.
-3. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
-   policy checks, full rollback and one Undo per insertion.
-4. **DDD relationships/context maps:** typed tactical and strategic meaning,
-   serialization and conversion-loss handling; respect portless group boundaries.
-5. **EventStorming discovery:** explicit compatibility decision, configurable
-   semantic cards, optional links and valid uncertainty; then workshop patterns
-   and deliberate links to DDD/C4 concepts.
-6. **Agent modelling operations:** build on the standalone CLI with validated
-   patches, dry runs and reviewable changes; no automatic writable-agent rollout.
+Maintain two tracks: a reliable, customizable editor floor and an architecture
+modelling lifecycle. Package-owned functionality stays reusable; Astro composes
+and demonstrates it.
 
-Alongside these, evaluate authored edge waypoints, palette/drop workflows and
-image export against architecture tasks. Coordinate collaboration with its
-separate proposal; no collaboration runtime is claimed here. Keep accessible
-interaction and unrestricted visual composition in each slice. Retain the later
-comprehensive a11y qualification gate and publication-last decision.
+### Delivered capabilities
 
-**Recommended next:** composable packet export controls in the workbench: use the
-chosen audit baseline/target, preview scope and conversion losses, then explicitly
-consent to a JSON download through the public builder. Preserve the current graph
-and Undo. Keep packet import and executable agent actions outside that UI slice.
+| Capability                                 | Current scope and evidence                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture presentation                  | C4 presets and eight DDD roles, composable node/group renderers, light/dark demos. [DDD receipt](../apps/zloz-demo/evidence/ddd-renderers.md).                                                                                                                                                                                                                                                                      |
+| Atomic patterns                            | Validated fragments, deterministic ID remapping, live policies, rollback, C4/DDD starters and one Undo. [Pattern receipt](../apps/zloz-demo/evidence/pattern-insertion.md).                                                                                                                                                                                                                                         |
+| EventStorming discovery                    | Semantic cards, process starter, typed causal links, custom data-only conventions, undoable meaning and composable editing controls. [Discovery](../apps/zloz-demo/evidence/event-storming.md), [relationships](../apps/zloz-demo/evidence/relationships.md), [controls](../apps/zloz-demo/evidence/relationship-controls.md).                                                                                      |
+| History and comparison                     | Immutable named editions, read-only rewind, ghost geometry, semantic/layout comparison, comparison controls and change navigation. [History](../apps/zloz-demo/evidence/history.md), [comparison](../apps/zloz-demo/evidence/comparison-controls.md), [navigation](../apps/zloz-demo/evidence/change-navigator.md).                                                                                                 |
+| Playback                                   | Opt-in playback, pause/rewind, reduced-motion handling, composable transport and identity-based scrubber. [Engine](../apps/zloz-demo/evidence/edition-playback.md), [controls](../apps/zloz-demo/evidence/playback-controls.md), [scrubber](../apps/zloz-demo/evidence/edition-scrubber.md).                                                                                                                        |
+| Restore, forks and model portability       | Guarded graph-only restore with one Undo; separate model identity, pinned origin and independent Undo for forks; canonical model JSON import/export and CLI validation. [Restore](../apps/zloz-demo/evidence/edition-restore.md), [forks](../apps/zloz-demo/evidence/model-forks.md), [import](../apps/zloz-demo/evidence/model-import.md).                                                                         |
+| Causal audit and edition-aware audit delta | Package and Effect CLI reports; introduced/resolved/persisting findings; composable workbench controls, filters and source-aware reveal. Artifact creation and regression gating are separate. [CLI audit](../packages/foldkit-zloz-cli/evidence/relationship-audit.md), [comparison](../packages/foldkit-zloz-cli/evidence/relationship-comparison.md), [workbench](../apps/zloz-demo/evidence/audit-controls.md). |
+| Portable review packets                    | Optional Mermaid package and CLI combine chosen snapshots, source/model identity, convention catalogue, audit comparison and both Mermaid projections. Loss reporting requires explicit opt-in; errors reject atomically. [Packet receipt](../packages/foldkit-zloz-cli/evidence/review-packet.md).                                                                                                                 |
 
-Portable review packets are implemented locally in the optional Mermaid package
-and Effect CLI. Chosen snapshots, model/source identity, a complete data-only
-convention catalogue, audit comparison and both Mermaid projections travel in a
-versioned JSON envelope. Conversion losses require report-mode consent; errors
-reject atomically. Artifact creation is separate from semantic regression gating.
-There is no packet import, workbench export UI or publication in this slice.
+These receipts qualify their stated local/package/CLI surfaces. They do not prove
+that every feature is deployed, comprehensively accessible or faster than another
+editor. Graph/snapshot/edition v1 compatibility remains unchanged; full model JSON
+preserves identity, editions and origin that diagram-only imports omit.
 
-A package-level read-only causal audit and Effect CLI command are implemented
-locally. Reports classify every edge in deterministic identity order, preserve
-typed/inferred/unrelated distinctions and return structured semantic reasons.
-The CLI scopes model audits to the current graph and supports bounded data-only
-custom rule catalogues, with distinct compatibility and input-error exits.
+### Remaining work, in priority order
 
-Edition-aware audit comparison is implemented locally at package and Effect CLI
-level. Explicit owned baseline/target editions (or current graph as target) use
-one convention and report introduced, resolved and persisting findings with both
-full audits. Comparison exit 1 gates new findings; existing incompatibilities stay
-visible even when there is no regression. Missing IDs fail closed. No UI,
-serialization migration or publication is claimed for this slice.
+1. **Workbench review-packet export:** package-owned composable controls using the
+   chosen audit baseline/target; scope and loss preview; explicit loss consent and
+   JSON download. Recheck freshness and host protection; preserve graph and Undo.
+   Packet import and executable agent actions are outside this slice.
+2. **DDD relationships and context maps:** tactical/strategic relationship meaning,
+   serialization and conversion-loss disclosure; preserve portless boundaries.
+   Extend EventStorming workshop patterns with deliberate DDD/C4 mappings.
+3. **Review and agent lifecycle:** validate/import review packets, then validated
+   modelling patches, dry runs and reviewable changes. No automatic writable-agent
+   rollout or collaboration runtime is claimed.
+4. **Editor gaps and qualification:** reassess authored edge waypoints, palette/drop
+   workflows and image export against architecture tasks. Refresh the parity
+   matrix, representative performance benchmarks and comprehensive accessibility
+   evidence before making parity or superiority claims.
+5. **Release follow-through:** merge the independently reviewed cleanup PR; retain
+   a consolidated 0.3.0 registry artifact/provenance/consumer receipt. This roadmap
+   update does not authorize another publication or deployment.
 
-Composable audit comparison controls are implemented locally in the package and
-demonstrated in the workbench sidebar. Baseline/target selection stays independent
-of the displayed camera. Category filters, custom finding cards and source-aware
-reveal keep resolved edges on the baseline and other findings on the target.
-Requests recheck model/comparison/finding identity, filters and host protection;
-the host also checks epochs, pauses playback for navigation and preserves working
-graph/Undo. Numeric status/counts follow minimal mode and global diagnostics.
+Automatic persistence and collaboration remain separate future work. The team MVP
+is a separate proposed planning stream, beginning with runtime/auth qualification;
+it is not an implemented capability or an instruction to activate infrastructure.
+Accessible interaction, unrestricted visual composition and diagnostics preferences
+remain requirements in each feature slice, with a later comprehensive a11y gate.
 
-Composable causal controls are implemented locally: a pure current-edge context,
-identity-safe request resolver, native select/inference/status/reason helpers and
-nullable rendering/layout slots. The workbench consumes the public controls with
-custom wrappers and rechecks target/model scope, current conventions and policy.
-Unknown stored meanings remain visible, and inference is explicitly undoable.
-
-Typed causal relationships are implemented locally with six default conventions,
-named custom rules, extensible role interpretation, strict descriptor syntax,
-opt-in composed policies and undoable semantic edits. The detailed workbench
-process adds an aggregate root and demonstrates unresolved drafts, readable
-protection reasons and custom Delegates relationships. Mermaid discloses semantic
-loss instead of silently claiming descriptor fidelity.
-
-Package-owned change navigation is implemented locally with composable kind
-filters, accessible entries, explicit scoped focus requests and live protection
-reasons. The workbench demonstrates custom badges, current/removed geometry
-focus and playback pause while preserving the working model and Undo.
-Package-owned comparison controls are implemented locally: identity-safe baseline
-selection, independently retained ghost preferences, minimal-mode visibility,
-visible host restrictions and native composable Foldkit controls. The workbench
-uses the public contract for controls and effective canvas visibility.
-The edition scrubber is implemented locally with identity-based seeking, custom
-labels/value text, native range/Open helpers, renderer slots and host session
-guards. An eight-checkpoint workbench sample demonstrates direct navigation. Composable package playback controls, status,
-availability reasons, ordered subsets and renderer/layout slots are implemented
-locally; the workbench uses the public helpers with a custom visual composition. Opt-in deterministic edition playback, pause,
-rewind and reduced-motion handling are implemented locally, using existing
-read-only projections and optional ghost comparisons.
-Event-storming command, domain-event, policy and actor notes, a composable package
-renderer and process starter are now implemented locally with existing geometry,
-serialization and atomic insertion APIs. Atomic pattern insertion is
-implemented locally with validated self-contained fragments, explicit ID maps,
-live policies, C4/DDD starters and one Undo per insertion. Model-document
-workbench import and CLI validation are now implemented locally with explicit
-identity conflicts and conversion-loss reporting. Forking is implemented locally with package-owned
-model identity, pinned source edition, independent editing/Undo, policy checks,
-session switching and an explicit model codec. Graph/snapshot/edition v1 remain
-unchanged. The existing diagram importer remains graph/snapshot-only; Open model
-JSON and CLI readDocument preserve the full envelope. Mermaid projection requires
-explicit loss consent. See [the adapter qualification receipt](../apps/zloz-demo/evidence/model-import.md)
-and [the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
-DDD renderers retain the current
-descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
-with people, explore how its architecture evolves, and review/communicate the
-same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.
+**Recommended next:** item 1, workbench packet export. Proposed positioning to
+validate: model a domain with people, explore its evolution and review/communicate
+the same portable model with human and agent tooling. Shapes alone, Undo and layout
+examples do not establish a USP.
 
 ## Release: Keyed Chart Comparison
 

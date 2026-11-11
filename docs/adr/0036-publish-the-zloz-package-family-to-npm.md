@@ -2,38 +2,41 @@
 
 ## Status
 
-**Proposed**, 2026-11-10. Supersedes the npm-publication clause of ADR 0014.
-Extends ADRs 0011, 0015 and 0016. Not authorized until the user accepts it.
+**Accepted; initial publication completed at 0.3.0**, verified 2026-11-11.
+Supersedes the npm-publication clause of ADR 0014 and extends ADRs 0011, 0015
+and 0016. The original 2026-11-10 proposal targeted 0.2.0; the linked release
+advanced to 0.3.0 before publication. This record does not authorize another release.
 
-ADR 0014 states: "No npm publish workflow, release tag or package publication is
+At proposal time, ADR 0014 stated: "No npm publish workflow, release tag or package publication is
 authorized." That clause was scoped to the website publication it governed, but
-it is the repository's only standing statement on Zloz npm release, so reversing
-it needs a decision of its own rather than a workflow dispatch.
+it was the repository's only standing statement on Zloz npm release. Reversing
+it needed a decision of its own rather than a workflow dispatch.
 
-ADR number 0036 is used because 0021–0035 already exist on unmerged branches
-while `main` carries up to 0020. Renumber if those land first.
+ADR number 0036 was reserved while 0021–0035 were on unmerged branches. Those
+decisions have since landed; this record retains its original number.
 
 ## Context
 
-The four packages `@opsydyn/foldkit-zloz`, `-elk`, `-force` and `-mermaid` are at
-0.2.0 in `.release-please-manifest.json` and in their manifests, and are absent
-from the npm registry. The package README describes them as release candidates.
+At proposal time, the four packages `@opsydyn/foldkit-zloz`, `-elk`, `-force` and
+`-mermaid` were unpublished 0.2.0 candidates. Release PR #119 subsequently advanced
+the linked family to 0.3.0. All four now have 0.3.0 as their npm `latest` version;
+see the execution record below.
 
-Nothing is missing from the delivery path. The `publish` workflow already lists
+At proposal time, the delivery path already existed. The `publish` workflow lists
 all four as `workflow_dispatch` choices, builds the core first, runs the family's
 tests, then packs and publishes each tarball with `--access public --provenance`.
 `docs/releases/foldkit-zloz.md` already specifies the package contract, the local
-qualification sequence and the publication ordering. The gap is authorization and
-a qualification receipt, not engineering.
+qualification sequence and the publication ordering. The original gap was authorization and
+a qualification receipt, rather than missing release engineering.
 
 The consumer pressure is concrete. A separate assessment of porting Płanetnik's
-report site to FoldKit identifies `@xyflow/react` (≈1,460 LOC in one component)
+report site to FoldKit identified `@xyflow/react` (≈1,460 LOC in one component)
 as the single largest dependency with no consumable FoldKit replacement, solely
-because Zloz is unpublished. That is one consumer, not a market.
+because Zloz was unpublished. That was one consumer, not a market.
 
 ## Decision
 
-Authorize publication of the four Zloz packages at 0.2.0 from a reviewed `main`
+Publish the four Zloz packages at **0.3.0** from a reviewed `main`
 ref, using the existing `publish` workflow in the order
 `foldkit-zloz` → `foldkit-zloz-elk` → `foldkit-zloz-force` → `foldkit-zloz-mermaid`,
 verifying registry contents between each.
@@ -42,13 +45,12 @@ verifying registry contents between each.
 release-please manifest and the workflow's choices, and ADR 0016 scoped it as a
 standalone CLI rather than a published package.
 
-Do not publish while `packages/foldkit-zloz-mermaid` has uncommitted work. At the
-time of writing its `src/index.ts` is mid-rewrite (−367 lines) with two untracked
-new source files. Publish from committed, reviewed, CI-green commits only.
+The Mermaid rewrite was committed and merged in PR #118 before the 0.3.0 release.
+Publication must continue to use committed, reviewed, CI-green refs only.
 
 ## Consequences
 
-- Four package names become publicly claimed and their 0.2.0 export maps become a
+- Four package names are now publicly claimed and their 0.3.0 export maps are a
   public contract. Pre-1.0 allows breaking changes in a minor bump, which
   `docs/releases/foldkit-zloz.md` already states, but npm consumers will pin
   anyway and deprecation is cheaper than unpublication. npm unpublish is
@@ -64,9 +66,9 @@ new source files. Publish from committed, reviewed, CI-green commits only.
 - The promo and workbench deployments are untouched; ADR 0014's website decisions
   stand in full apart from the publication clause.
 
-## Options considered
+## Options considered (original 0.2.0 proposal)
 
-1. **Publish all four at 0.2.0 (proposed).** Matches the documented contract,
+1. **Publish all four at 0.2.0 (original proposal).** Matches the documented contract,
    the linked-versions grouping and the adapters' peer pins. Costs an
    irreversible public commitment at a pre-1.0 maturity.
 2. **Publish only `@opsydyn/foldkit-zloz`.** Smaller surface, but the force
@@ -88,16 +90,24 @@ expected to change the public shape, option 3 or 4 is better than option 1.
 
 ## Follow-up work
 
-- Land the in-flight `foldkit-zloz-mermaid` rewrite and re-run qualification
-  before any publish — owner: whoever owns `codex/zloz-relationship-audit`.
 - Record a publication receipt (registry version, contents, provenance, and a
   registry-installed consumer check) as `docs/releases/foldkit-zloz.md` requires.
-- Reconcile the package README's "0.1.0 release candidates" wording with the
-  actual 0.2.0 version.
-- Decide whether `foldkit-zloz-cli` is ever published; if not, say so in its
-  manifest with `"private": true`.
+- Keep the CLI private (`"private": true`). Local tarballs qualify installation
+  and types only; any future CLI publication requires a separate decision.
 
 ## Review date
 
 At the first 1.0 candidate, or when the React Flow parity gaps close — whichever
 comes first.
+
+## Execution record
+
+Verified on 2026-11-11: [release PR #119](https://github.com/opsydyn/fold-kit-experiments/pull/119)
+merged the linked 0.3.0 release, and npm reports `latest: 0.3.0` for
+[core](https://www.npmjs.com/package/@opsydyn/foldkit-zloz/v/0.3.0),
+[ELK](https://www.npmjs.com/package/@opsydyn/foldkit-zloz-elk/v/0.3.0),
+[force](https://www.npmjs.com/package/@opsydyn/foldkit-zloz-force/v/0.3.0) and
+[Mermaid](https://www.npmjs.com/package/@opsydyn/foldkit-zloz-mermaid/v/0.3.0).
+The 0.2.0 references in the original alternatives above describe the proposal,
+not the shipped version. This registry-version check does not replace the
+publication provenance and consumer receipt required by the release guide.

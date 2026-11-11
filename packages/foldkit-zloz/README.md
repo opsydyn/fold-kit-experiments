@@ -5,11 +5,9 @@ no runtime dependencies. The optional `/foldkit` entry renders HTML nodes and SV
 edges through your existing FoldKit builder. ELK is available separately as
 `@opsydyn/foldkit-zloz-elk`.
 
-Version 0.1.0 is a local release candidate; npm publication has not been performed.
+`@opsydyn/foldkit-zloz` is available on npm.
 
 ## Install
-
-After publication:
 
 ```sh
 npm install @opsydyn/foldkit-zloz
@@ -17,7 +15,7 @@ npm install @opsydyn/foldkit-zloz
 npm install foldkit@0.170.0 effect@4.1.0 @effect/platform-browser@4.1.0
 ```
 
-For this checkout, use the checked tarball described in
+For workspace development, use the checked local tarball described in
 [the publication guide](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md). ESM only, Node 22+
 for tooling. The view is for browsers; pure imports do not access browser globals.
 The tested view baseline is FoldKit 0.170.0 / Effect 4.1.0. Both are optional peers.

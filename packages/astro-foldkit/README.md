@@ -120,6 +120,38 @@ execute the FoldKit application during SSR; the application is loaded and
 embedded only by the client renderer. Astro still owns the outer island
 serialisation and client directive behavior.
 
+### Pre-rendered islands (opt-in)
+
+An island can put its first paint in the HTML:
+
+```ts
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+
+export default lazyApp<Props>(() => import('./main'), { prerender: true });
+```
+
+The server then loads the module and runs `init` and `view` over the props
+Astro already serialises, filling the same mount shell instead of leaving it
+empty. The markup is static. Nothing hydrates it, and the client replaces it on
+boot exactly as it replaces an empty mount; because both sides run the same
+pure `init` and `view` over the same props, the replacement is the same markup.
+
+It carries no hydration stamp and no Flags payload, so any number of
+pre-rendered islands may share one document — unlike a `definePage` owner, of
+which a document may hold one. No build identity is involved, and no Astro
+request context is read.
+
+Two consequences are worth knowing:
+
+- `init` and `view` run on the server. An island whose `init` touches a
+  browser-only resource must leave this off. Opting in and failing fails the
+  render rather than quietly falling back to the empty mount, because an author
+  who asked for markup should be told they did not get it.
+- `client:visible` only works for an island that opts in. Astro's directive
+  observes an island's children, because `astro-island` is `display: contents`;
+  an empty mount measures 0x0 and never intersects, so the island silently
+  never hydrates. A pre-rendered island has size, and the directive works.
+
 FoldKit replaces the inner mount, not the outer `<astro-island>`. The outer
 element remains Astro's lifecycle owner, including for empty `client:only`
 hosts, where the client renderer creates an inner mount. Nested islands keep

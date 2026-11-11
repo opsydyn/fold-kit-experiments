@@ -69,8 +69,8 @@ documents. Applications own storage and migration beyond document version 1.
 
 The package owns architecture semantics and outline geometry independently of the
 Astro example. C4 artwork is opt-in through the public presets below; the generic
-FoldKit view keeps its existing defaults. DDD artwork and pattern builders remain
-subsequent slices.
+Foldkit view keeps its existing defaults. Composable DDD renderers and atomic
+pattern builders are also available through the package APIs below.
 
 ```ts
 import {
@@ -3327,3 +3327,100 @@ helpers retain model-derived selection, protection and descriptions. `showCounts
 hides numeric filter and status readouts without changing preferences. Hosts can
 bind it to diagnostics or minimal mode and omit status through its render slot.
 Rendering preferences do not replace functional protection policies.
+
+## DDD relationship contracts (unreleased)
+
+DDD meaning is an optional reserved edge descriptor, independent of label, shape
+and host-owned data. The root exports `DddEdgeArchitecture`,
+`ZlozDddRelationship`, `ZlozDddRelationshipRule`,
+`ZlozDddRelationshipOptions`, `ZlozDddRelationshipDecision`,
+`isDddEdgeArchitecture`, `dddRelationshipRules`, `dddRelationshipKey`,
+`resolveDddRelationship` and `dddRelationshipPolicy`.
+
+```ts
+import {
+  resolveDddRelationship,
+  dddRelationshipPolicy,
+  updateEditor,
+  type DddEdgeArchitecture,
+} from '@opsydyn/foldkit-zloz';
+
+const architecture: DddEdgeArchitecture = {
+  family: 'ddd',
+  scope: 'strategic',
+  role: 'upstream-downstream',
+  upstream: ['open-host-service', 'published-language'],
+  downstream: 'anti-corruption-layer',
+};
+const decision = resolveDddRelationship(graph, {
+  sourceNodeId: 'orders',
+  targetNodeId: 'billing',
+  architecture,
+});
+// On a real edge with valid output/input ports; host vetoes still apply.
+const policy = dddRelationshipPolicy({}, hostPolicy);
+const next = updateEditor(
+  editor,
+  {
+    type: 'EdgeArchitectureChanged',
+    id: 'orders-to-billing',
+    architecture,
+  },
+  policy,
+);
+```
+
+| Scope     | Built-in meaning                       | Default participant convention                                                         |
+| --------- | -------------------------------------- | -------------------------------------------------------------------------------------- |
+| Tactical  | references                             | entity/value object/aggregate root/domain service → entity/value object/aggregate root |
+| Tactical  | contains                               | aggregate/aggregate root/entity/value object → entity/value object/aggregate root      |
+| Tactical  | emits                                  | aggregate/aggregate root/entity/domain service → DDD domain event                      |
+| Tactical  | persists                               | repository → entity/aggregate root                                                     |
+| Tactical  | uses                                   | entity/aggregate root/domain service → domain service/repository                       |
+| Strategic | partnership, shared-kernel             | two distinct bounded contexts; symmetric                                               |
+| Strategic | upstream-downstream, customer-supplier | source upstream/supplier → target downstream/customer                                  |
+
+These tactical roles are Zloz conventions, not a universal DDD grammar. A
+`contains` annotation does not assign `parentId`, and influence direction is not
+necessarily message/data flow. Directional strategic roles optionally accept a
+nonempty, duplicate-free upstream list of `open-host-service` and
+`published-language`, and one downstream choice of `conformist` or
+`anti-corruption-layer`. Symmetric roles do not accept side fields. List order is
+retained as authored. Description is optional on every descriptor. Reserved fields
+reject unknown keys, mixed scopes and misplaced side roles. `isEdgeArchitecture`
+recognizes both supported families; use `isDddEdgeArchitecture` or
+`isEventStormingEdgeArchitecture` to narrow a family-specific consumer.
+
+Named custom meaning uses `{ family: 'ddd', scope, role: 'custom', name }`.
+Supply a complete replacement `rules` catalogue to recognize it, including
+allowed DDD participant roles, label and directed/symmetric interpretation. Keys
+include scope, so tactical and strategic names do not collide. Custom rules cannot
+change the direction of a built-in pattern or mix strategic and tactical roles.
+Unknown custom descriptors remain portable; the current convention returns an
+explicit blocked reason. No inference writes meaning onto untyped connections.
+
+Logical validation references node IDs and can inspect portless aggregate/context
+frames. It does **not** create an edge, attach a port, serialize a second relation
+store or relax graph validity. Persisted graph edges still need real output/input
+ports. Use connectable bounded-context cards for strategic edges today; frame
+projection and context-map renderers/starters are subsequent slices.
+
+`dddRelationshipPolicy(options, base)` is opt-in and composes host vetoes with
+creation/reconnection, edge-meaning and incident node-role checks. Untyped and
+other-family edges remain outside that grammar. Compose with
+`eventStormingRelationshipPolicy` in either order. Causal controls display existing
+DDD meaning as protected and never infer over or clear it. Clearing via the normal
+edge edit is explicit and undoable. Import and Undo/Redo preserve snapshots even
+when a later modelling convention changes. Read-only and gesture guards remain.
+
+Graph/snapshot/edition/model envelopes remain v1. Role lists are detached at the
+edit boundary; equal descriptors do not create an Undo step or increment revision.
+Meaning changes appear in edition comparison. Old readers may reject unfamiliar
+DDD descriptors; equal format versions do not promise old-reader semantics.
+
+Mermaid retains ordinary geometry/endpoints but reports omitted DDD meaning;
+strict export rejects losses. Review packets preserve the full descriptors in
+snapshots. Their existing relationship audit remains **EventStorming-only**:
+DDD edges are unrelated to that audit, not certified compatible DDD models. No new
+DDD CLI audit, renderer, context-map pattern, publication or deployment is included.
+See [ADR 0038](../../docs/adr/0038-define-ddd-relationship-contracts.md).

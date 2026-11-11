@@ -47,7 +47,8 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
+import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};
@@ -70,6 +71,14 @@ const controls:ZlozPlaybackControlsContext=resolveEditionPlaybackControls(playba
 if(controls.statusText!=='Paused · First')throw new Error('Missing typed controls');
 const seek:ZlozEditionSeekRequest=editionScrubberRequest(resolveEditionScrubber(playback),'1');
 if(seek.editionId!=='b')throw new Error('Missing typed seek');
+const dddRelation:DddEdgeArchitecture={family:'ddd',scope:'strategic',role:'upstream-downstream',upstream:['open-host-service','published-language'],downstream:'anti-corruption-layer'};
+// @ts-expect-error Tactical meaning cannot carry strategic side roles
+const mixedScope:DddEdgeArchitecture={family:'ddd',scope:'tactical',role:'references',downstream:'conformist'};
+// @ts-expect-error Symmetric partnerships have no upstream annotations
+const symmetricSide:DddEdgeArchitecture={family:'ddd',scope:'strategic',role:'partnership',upstream:['published-language']};
+const context=(id:string)=>({id,label:id,kind:'group' as const,position:{x:0,y:0},size:{width:100,height:100},ports:[],architecture:{family:'ddd' as const,role:'bounded-context' as const}});
+const meaning=resolveDddRelationship({nodes:[context('up'),context('down')],edges:[]},{sourceNodeId:'up',targetNodeId:'down',architecture:dddRelation});
+if(meaning.type!=='allowed'||meaning.direction!=='directed'||!isDddEdgeArchitecture(dddRelation)||typeof dddRelationshipPolicy().canConnect!=='function')throw new Error('Missing headless DDD contracts');
 console.log('headless-architecture-ok');
 `;
     const architectureConsumer = path.join(directory, 'architecture.mts');

@@ -3,7 +3,7 @@ import {
   compareModelEventStormingRelationships,
   auditEventStormingRelationships,
   eventStormingRelationshipRules,
-  isEdgeArchitecture,
+  isEventStormingEdgeArchitecture,
   type ZlozModelDocument,
   type ZlozSnapshot,
   type ZlozRelationshipAuditSelection,
@@ -82,7 +82,7 @@ function isDataRule(value: unknown): value is ZlozEventStormingRelationshipRule 
     Object.keys(value).every((key) =>
       ['architecture', 'sources', 'targets', 'label'].includes(key),
     ) &&
-    isEdgeArchitecture(value.architecture) &&
+    isEventStormingEdgeArchitecture(value.architecture) &&
     typeof value.label === 'string' &&
     Array.isArray(value.sources) &&
     value.sources.every(isString) &&

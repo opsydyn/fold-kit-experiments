@@ -1,11 +1,14 @@
-import { auditEventStormingRelationships, isEdgeArchitecture } from '@opsydyn/foldkit-zloz';
+import {
+  auditEventStormingRelationships,
+  isEventStormingEdgeArchitecture,
+} from '@opsydyn/foldkit-zloz';
 import { Effect, Schema } from 'effect';
 
 import { readJsonInput } from './io';
 import { CliInputError } from './protocol';
 const Role = Schema.Literals(['actor', 'command', 'aggregate', 'domain-event', 'policy']);
 const Rule = Schema.Struct({
-  architecture: Schema.declare(isEdgeArchitecture),
+  architecture: Schema.declare(isEventStormingEdgeArchitecture),
   sources: Schema.Array(Role),
   targets: Schema.Array(Role),
   label: Schema.String,

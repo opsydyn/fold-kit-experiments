@@ -1,4 +1,7 @@
-import { isEdgeArchitecture, type EventStormingEdgeArchitecture } from './architecture';
+import {
+  isEventStormingEdgeArchitecture,
+  type EventStormingEdgeArchitecture,
+} from './architecture';
 import { ZlozError } from './graph';
 import type { EditorPolicy, ZlozEdge, ZlozGraph, ZlozNode } from './types';
 export type EventStormingParticipantRole =
@@ -80,7 +83,7 @@ export function checkedEventStormingRelationshipRules(
   const ids = new Set<string>();
   for (const item of rules) {
     if (
-      !isEdgeArchitecture(item.architecture) ||
+      !isEventStormingEdgeArchitecture(item.architecture) ||
       !item.label.trim() ||
       !item.sources.length ||
       !item.targets.length ||
@@ -104,6 +107,8 @@ export function resolveEventStormingRelationship(
   options: ZlozEventStormingRelationshipOptions = {},
 ): ZlozEventStormingRelationshipDecision {
   const rules = checkedEventStormingRelationshipRules(options);
+  if (edge.architecture && edge.architecture.family !== 'event-storming')
+    return { type: 'unrelated' };
   const source = graph.nodes.find((node) => node.id === edge.source.node),
     target = graph.nodes.find((node) => node.id === edge.target.node);
   if (!source || !target)

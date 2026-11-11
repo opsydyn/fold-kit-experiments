@@ -265,7 +265,24 @@ export type {
   ZlozHistoryChangeFocusDecision,
 } from './history-change-navigator';
 
-export { isEdgeArchitecture } from './architecture';
+export {
+  isEdgeArchitecture,
+  isEventStormingEdgeArchitecture,
+  isDddEdgeArchitecture,
+} from './architecture';
+export type { DddEdgeArchitecture } from './architecture';
+export {
+  dddRelationshipRules,
+  dddRelationshipKey,
+  resolveDddRelationship,
+  dddRelationshipPolicy,
+} from './ddd-relationships';
+export type {
+  ZlozDddRelationship,
+  ZlozDddRelationshipRule,
+  ZlozDddRelationshipOptions,
+  ZlozDddRelationshipDecision,
+} from './ddd-relationships';
 export {
   eventStormingRelationshipRules,
   eventStormingRelationshipKey,

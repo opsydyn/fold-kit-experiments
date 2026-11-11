@@ -382,6 +382,16 @@ test('data-only rule files support named custom meaning and reject malformed, du
           targets: ['command'],
           label: 'Approves',
         };
+        await writeFile(
+          file,
+          JSON.stringify({
+            version: 1,
+            rules: [{ ...rule, architecture: { family: 'ddd', scope: 'tactical', role: 'emits' } }],
+          }),
+        );
+        const foreign = await invoke(['relationships', 'audit', '--rules', file], text);
+        expect(foreign.code).toBe(2);
+        expect(JSON.parse(foreign.text).diagnostics[0].code).toBe('invalid-rules');
         const rules = JSON.stringify({ version: 1, rules: [rule] });
         await writeFile(file, rules);
         expect((await invoke(['relationships', 'audit'], text)).code).toBe(1);
@@ -500,4 +510,27 @@ test('data-only rule files support named custom meaning and reject malformed, du
     (directory) => Effect.promise(() => rm(directory, { recursive: true, force: true })),
   );
   await Effect.runPromise(fixture);
+});
+
+test('CLI validation accepts DDD wire meaning while its causal audit reports it as unrelated', async () => {
+  const source = createEventStormingPattern(),
+    first = source.edges[0];
+  assert(first);
+  const text = serializeGraph({
+    nodes: source.nodes.map((node) => ({
+      ...node,
+      architecture: { family: 'ddd', role: 'entity' },
+    })),
+    edges: [{ ...first, architecture: { family: 'ddd', scope: 'tactical', role: 'references' } }],
+  });
+  expect((await invoke(['validate'], text)).code).toBe(0);
+  const result = await invoke(['relationships', 'audit'], text);
+  expect(result.code).toBe(0);
+  expect(JSON.parse(result.text).data.summary).toEqual({
+    edges: 1,
+    typed: 0,
+    inferred: 0,
+    unrelated: 1,
+    blocked: 0,
+  });
 });

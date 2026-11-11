@@ -87,7 +87,7 @@ test('custom rules and node interpretation use the existing resolver; incompatib
   };
   const report = auditEventStormingRelationships(custom, options);
   expect(report.status).toBe('compatible');
-  expect(report.entries[0]?.architecture).toEqual(custom.edges[0]?.architecture);
+  expect(report.entries[0]?.architecture).toEqual(options.rules[0]?.architecture);
   expect(auditEventStormingRelationships({ nodes: [], edges: [] }).summary).toEqual({
     edges: 0,
     typed: 0,

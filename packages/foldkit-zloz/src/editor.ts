@@ -5,6 +5,7 @@ import {
   sameGuides,
   type ResizeAlignment,
 } from './alignment';
+import { copyEdgeArchitecture, sameEdgeArchitecture } from './architecture';
 import { connectionReason, portKind, proposedEdge } from './connection-validation';
 import { resolveDeletion } from './deletion';
 import {
@@ -2012,25 +2013,13 @@ export function updateEditor(
       const next: ZlozEdge =
         event.architecture === null
           ? without
-          : { ...edge, architecture: { ...event.architecture } };
+          : { ...edge, architecture: copyEdgeArchitecture(event.architecture) };
       const graph = {
         ...state.graph,
         edges: state.graph.edges.map((item) => (item.id === edge.id ? next : item)),
       };
       validateGraph(graph);
-      const value = next.architecture;
-      if (
-        value === undefined
-          ? previous === undefined
-          : previous !== undefined &&
-            Object.keys(value).length === Object.keys(previous).length &&
-            Object.entries(value).every(([key, item]) =>
-              Object.entries(previous).some(
-                ([otherKey, other]) => key === otherKey && item === other,
-              ),
-            )
-      )
-        return state;
+      if (sameEdgeArchitecture(previous, next.architecture)) return state;
       const veto = policy.canChangeEdgeArchitecture?.(edge, next, state.graph);
       const reason = veto == null ? null : veto.trim() || 'Relationship editing is unavailable.';
       return reason === null

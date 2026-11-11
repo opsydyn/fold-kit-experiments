@@ -3,12 +3,34 @@ import { describe, expect, it } from 'bun:test';
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
+import { defineApp } from '../../src/define-app';
 import { definePage } from '../../src/define-page';
 import { check, renderToStaticMarkup } from '../../src/server';
 import type { AstroProps } from '../../src/server';
 import type { PageConfig } from '../../src/types';
 
 const component = Object.assign(() => {}, { __foldkit: true as const });
+
+type IslandProps = { readonly label: string; readonly noMeta?: boolean | '' };
+type IslandModel = { readonly label: string };
+type IslandMessage = { readonly _tag: 'NoOp' };
+
+const islandConfig = {
+  Model: {},
+  init: (props: IslandProps) => ({
+    model: { label: props.label },
+    commands: [{ _tag: 'IgnoredCommand' }],
+  }),
+  update: (model: IslandModel, _message: IslandMessage) => ({ model }),
+  view: (model: IslandModel, h: HtmlBuilder<IslandMessage>): Document => ({
+    title: `Island ${model.label}`,
+    body: h.section([], [`island:${model.label}`]),
+  }),
+};
+
+// SAFETY: The test fixture establishes this value before the assertion.
+const makeIsland = (options?: { readonly prerender?: boolean }) =>
+  defineApp<IslandProps>(() => Promise.resolve(islandConfig as never), options);
 
 type Flags = {
   readonly locale: string;
@@ -96,6 +118,114 @@ describe('astro-foldkit server renderer', () => {
       renderToStaticMarkup.call({ result }, makePage(), { locale: 'en' }, {}),
     ).rejects.toThrow('one FoldKit page');
     delete process.env.FOLDKIT_BUILD_ID;
+  });
+
+  it('still renders the empty shell for an island that did not opt in', async () => {
+    const rendered = await renderToStaticMarkup.call({}, makeIsland(), { label: 'a' }, {});
+    expect(rendered).toEqual({ html: '<div data-foldkit-island="true"></div>' });
+  });
+
+  it('renders an opted-in island into the mount the client already looks for', async () => {
+    const rendered = await renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+
+    expect(rendered.html).toStartWith('<div data-foldkit-island="true">');
+    expect(rendered.html).toEndWith('</div>');
+    expect(rendered.html).toContain('island:a');
+  });
+
+  it('renders island markup from the props, so two islands differ', async () => {
+    const first = await renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+    const second = await renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender: true }),
+      { label: 'b' },
+      {},
+    );
+
+    expect(first.html).toContain('island:a');
+    expect(second.html).toContain('island:b');
+  });
+
+  it('stamps no hydration root on a pre-rendered island, so several may share a page', async () => {
+    const rendered = await renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+
+    expect(rendered.html).not.toContain('data-foldkit-app');
+    expect(rendered.html).not.toContain('data-foldkit-flags');
+  });
+
+  it('needs no build identity, because nothing hydrates the markup', async () => {
+    delete process.env.FOLDKIT_BUILD_ID;
+    const rendered = await renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+
+    expect(rendered.html).toContain('island:a');
+    expect(rendered.html).not.toContain('data-foldkit-build');
+  });
+
+  it('needs no Astro result, because an island reads no request', async () => {
+    const rendered = await renderToStaticMarkup.call(
+      undefined,
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+    expect(rendered.html).toContain('island:a');
+  });
+
+  it('does not claim page ownership, so an opted-in island may repeat', async () => {
+    const result = makeResult();
+    await renderToStaticMarkup.call(
+      { result },
+      makeIsland({ prerender: true }),
+      { label: 'a' },
+      {},
+    );
+    const second = await renderToStaticMarkup.call(
+      { result },
+      makeIsland({ prerender: true }),
+      { label: 'b' },
+      {},
+    );
+
+    expect(second.html).toContain('island:b');
+  });
+
+  it('fails closed when an opted-in island cannot render', async () => {
+    const broken = defineApp<IslandProps>(
+      () =>
+        // SAFETY: The test fixture establishes this value before the assertion.
+        Promise.resolve({
+          ...islandConfig,
+          init: () => {
+            // oxlint-disable-next-line linteffect/no-adhoc-domain-error -- the throw is the fixture: it stands for an init that touches a browser-only resource during a server render.
+            throw new Error('init touched the browser');
+          },
+        } as never),
+      { prerender: true },
+    );
+
+    await expect(renderToStaticMarkup.call({}, broken, { label: 'a' }, {})).rejects.toThrow(
+      'init touched the browser',
+    );
   });
 
   it('fails closed for page rendering when the build identity is missing', async () => {

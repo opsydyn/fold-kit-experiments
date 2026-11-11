@@ -30,6 +30,7 @@ import {
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
+import type { ZlozReviewPacketRequest } from '@opsydyn/foldkit-zloz-mermaid';
 import {
   portInspectorContext,
   portPositionDraft,
@@ -100,6 +101,7 @@ import {
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { editWorkbenchRelationship } from './relationship-controls';
+import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
@@ -544,6 +546,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         sidebarSection: 'history' as const,
         notice: 'Two example editions loaded. Your working model is preserved.',
       },
+    }),
+    ObservedReviewPacketInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: the public packet controls emit typed requests through Schema.Unknown; the resolver rechecks exact content, consent and host protection.
+      const request = raw as ZlozReviewPacketRequest;
+      return updateWorkbenchPacket(model, request, modelId, epoch);
+    },
+    CompletedReviewPacketDownload: () => ({
+      model: {
+        ...model,
+        notice: 'Review packet downloaded. Working graph and Undo are unchanged.',
+      },
+    }),
+    FailedReviewPacketDownload: () => ({
+      model: { ...model, notice: 'Could not download the review packet. Try again.' },
     }),
     ClickedAuditExample: () => ({ model: loadAuditExample(model) }),
     ObservedAuditComparisonInput: ({ modelId, epoch, request: raw }) => {

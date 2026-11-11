@@ -8,3 +8,12 @@ export type {
   ZlozReviewPacket,
   ZlozReviewPacketResult,
 } from './review-packet';
+export { resolveReviewPacketControls, resolveReviewPacketRequest } from './review-packet-controls';
+export type {
+  ZlozReviewPacketSelection,
+  ZlozReviewPacketExportState,
+  ZlozReviewPacketRequest,
+  ZlozReviewPacketControlsOptions,
+  ZlozReviewPacketControlsContext,
+  ZlozReviewPacketDecision,
+} from './review-packet-controls';

@@ -21,8 +21,8 @@ recorded in the [release notes](releases/foldkit-0.167.md).
 
 ## Zloz: brand and product direction — 2026-11-08
 
-**Status:** user-defined roadmap direction. Brand migration, new sites and hosting
-are planned delivery slices; this entry records their intended scope.
+**Status:** brand migration, identity assets, promo and workbench hosting are
+delivered. The remaining improvements are tracked below.
 
 ### Name and positioning
 
@@ -171,21 +171,17 @@ preserves identity, editions and origin that diagram-only imports omit.
 
 ### Remaining work, in priority order
 
-1. **Workbench review-packet export:** package-owned composable controls using the
-   chosen audit baseline/target; scope and loss preview; explicit loss consent and
-   JSON download. Recheck freshness and host protection; preserve graph and Undo.
-   Packet import and executable agent actions are outside this slice.
-2. **DDD relationships and context maps:** tactical/strategic relationship meaning,
+1. **DDD relationships and context maps:** tactical/strategic relationship meaning,
    serialization and conversion-loss disclosure; preserve portless boundaries.
    Extend EventStorming workshop patterns with deliberate DDD/C4 mappings.
-3. **Review and agent lifecycle:** validate/import review packets, then validated
+2. **Review and agent lifecycle:** validate/import review packets, then validated
    modelling patches, dry runs and reviewable changes. No automatic writable-agent
    rollout or collaboration runtime is claimed.
-4. **Editor gaps and qualification:** reassess authored edge waypoints, palette/drop
+3. **Editor gaps and qualification:** reassess authored edge waypoints, palette/drop
    workflows and image export against architecture tasks. Refresh the parity
    matrix, representative performance benchmarks and comprehensive accessibility
    evidence before making parity or superiority claims.
-5. **Release follow-through:** merge the independently reviewed cleanup PR; retain
+4. **Release follow-through:** merge the independently reviewed cleanup PR; retain
    a consolidated 0.3.0 registry artifact/provenance/consumer receipt. This roadmap
    update does not authorize another publication or deployment.
 
@@ -195,7 +191,12 @@ it is not an implemented capability or an instruction to activate infrastructure
 Accessible interaction, unrestricted visual composition and diagnostics preferences
 remain requirements in each feature slice, with a later comprehensive a11y gate.
 
-**Recommended next:** item 1, workbench packet export. Proposed positioning to
+**Implemented on this branch, unreleased:** composable packet preview/consent
+controls in the optional Mermaid adapter and History sidebar, using chosen audit
+sources, exact-content freshness and host protection without changing graph/Undo.
+See the [workbench receipt](../apps/zloz-demo/evidence/review-packet-controls.md).
+
+**Recommended next:** item 1, DDD relationship contracts and context-map primitives. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

@@ -365,6 +365,7 @@ export const Model = Schema.Struct({
   playbackReducedMotion: Schema.NullOr(Schema.Boolean),
   playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
+  reviewPacketConsentKey: Schema.NullOr(Schema.String),
   auditComparison: Schema.Unknown,
   historyChangeFilters: Schema.Struct({
     added: Schema.Boolean,
@@ -472,6 +473,7 @@ export type Model = Readonly<{
   playbackReducedMotion: boolean | null;
   playbackVisible: boolean;
   historyBaselineId: string | null;
+  reviewPacketConsentKey: string | null;
   auditComparison: ZlozAuditComparisonState;
   historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
@@ -568,6 +570,7 @@ export const init = (namespace = 'test-workbench') => ({
     playbackReducedMotion: null,
     playbackVisible: false,
     historyBaselineId: null,
+    reviewPacketConsentKey: null,
     auditComparison: {
       baselineId: null,
       selectedId: null,

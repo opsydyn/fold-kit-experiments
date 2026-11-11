@@ -7,6 +7,7 @@
     "../foldkit-zloz-force/src/index.ts",
     "../foldkit-zloz-force/src/eligibility.ts",
     "../foldkit-zloz-mermaid/src/index.ts",
+    "../foldkit-zloz-mermaid/src/foldkit.ts",
     "../foldkit-zloz-cli/src/index.ts"
   ],
   "entryPointStrategy": "resolve",

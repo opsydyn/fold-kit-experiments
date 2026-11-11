@@ -173,6 +173,26 @@ export const ExportMermaidBundle = Command.define('ExportMermaidBundle', {
     ),
 });
 
+export const ExportReviewPacket = Command.define('ExportReviewPacket', {
+  args: { json: Schema.String },
+  messages: [Message.CompletedReviewPacketDownload, Message.FailedReviewPacketDownload],
+  execute: ({ json }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: 'foldkit-zloz.review.json',
+      });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedReviewPacketDownload(),
+        onFailure: () => Message.FailedReviewPacketDownload(),
+      }),
+    ),
+});
+
 export const ExportZlozEditions = Command.define('ExportZlozEditions', {
   args: { json: Schema.String },
   messages: [Message.CompletedExportEditions, Message.FailedExportEditions],

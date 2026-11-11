@@ -20,6 +20,7 @@ import {
   type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
+import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
   zlozView,
   zlozEventStormingRelationshipControls,
@@ -87,7 +88,7 @@ import {
   type ZlozNodeRenderContext,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option, Schema } from 'effect';
-import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
+import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchAuditContext } from './audit-comparison';
 import { workbenchPolicy } from './editor-policy';
@@ -153,6 +154,7 @@ import {
   canvasStatusCard,
 } from './presentation';
 import { relationshipControlsContext } from './relationship-controls';
+import { workbenchPacketContext } from './review-packet';
 import { searchDiagram } from './search';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
@@ -375,12 +377,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const comparison = workbenchHistoryComparison(model);
   const changeNavigator = historyChangeNavigatorContext(model, comparison);
+  const packetControls = model.sidebarSection === 'history' ? workbenchPacketContext(model) : null;
   const auditControls = model.sidebarSection === 'history' ? workbenchAuditContext(model) : null;
   const auditRequest = (request: ZlozAuditComparisonRequest) =>
     Message.ObservedAuditComparisonInput({
       request,
-      modelId: model.modelIdentity.id,
-      epoch: model.modelEpoch,
+      modelId,
+      epoch,
     });
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
@@ -855,6 +858,92 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       button('Load Order history example', Message.ClickedOrderHistory()),
       button('Load scrubber history example', Message.ClickedScrubberHistory()),
       button('Load causal audit example', Message.ClickedAuditExample()),
+      h.h3([], ['Portable review']),
+      ...(packetControls
+        ? [
+            zlozReviewPacketControls(
+              h,
+              packetControls,
+              (request) => Message.ObservedReviewPacketInput({ request, modelId, epoch }),
+              {
+                attributes: [
+                  h.Style({
+                    display: 'grid',
+                    gap: '8px',
+                    padding: '12px',
+                    border: '1px solid var(--rule)',
+                    borderRadius: '8px',
+                  }),
+                ],
+                showCounts: !model.minimalMode && model.diagnosticsEnabled,
+                renderStatus: () =>
+                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+                renderScope: (context, builder) =>
+                  builder.div(
+                    [],
+                    [
+                      builder.strong([], ['Selected snapshots only']),
+                      builder.p([builder.AriaLabel('Review packet scope')], [context.scopeText]),
+                    ],
+                  ),
+                renderLayout: (parts, _context, builder) => [
+                  ...[parts.scope, parts.status].filter((item): item is Html => item !== null),
+                  ...(parts.diagnostics.length
+                    ? [
+                        builder.details(
+                          [],
+                          [
+                            builder.summary([], ['Inspect projection losses']),
+                            builder.ul(
+                              [
+                                builder.AriaLabel('Review packet diagnostics'),
+                                builder.Style({
+                                  maxHeight: '220px',
+                                  overflow: 'auto',
+                                  padding: '0',
+                                  margin: '8px 0',
+                                }),
+                              ],
+                              parts.diagnostics,
+                            ),
+                          ],
+                        ),
+                      ]
+                    : []),
+                  ...[parts.consent, parts.reason, parts.download].filter(
+                    (item): item is Html => item !== null,
+                  ),
+                ],
+                renderDiagnostic: (item, builder) =>
+                  builder.li(
+                    [
+                      builder.Style({
+                        listStyle: 'none',
+                        padding: '8px',
+                        marginBottom: '4px',
+                        borderLeft: '3px solid var(--rule)',
+                        background: 'var(--panel)',
+                      }),
+                    ],
+                    [
+                      builder.strong(
+                        [],
+                        [
+                          item.side === 'baseline'
+                            ? 'Baseline'
+                            : item.side === 'selected'
+                              ? 'Target'
+                              : 'Packet',
+                        ],
+                      ),
+                      ` · ${item.severity}${item.subject ? ` · ${item.subject}` : ''}`,
+                      builder.p([], [item.message]),
+                    ],
+                  ),
+              },
+            ),
+          ]
+        : []),
       h.h3([], ['Causal findings']),
       h.p(
         [],
@@ -1155,7 +1244,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.p(
         [],
         [
-          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model and playback is a later slice.',
+          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model. Playback uses read-only editions.',
         ],
       ),
     ],

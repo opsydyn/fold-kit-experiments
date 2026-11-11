@@ -78,6 +78,13 @@ export const Message = defineMessageUnion({
   ClickedCaptureEdition: {},
   ClickedOrderHistory: {},
   ClickedAuditExample: {},
+  ObservedReviewPacketInput: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    request: Schema.Unknown,
+  },
+  CompletedReviewPacketDownload: {},
+  FailedReviewPacketDownload: {},
   ObservedAuditComparisonInput: {
     modelId: Schema.String,
     epoch: Schema.Number,

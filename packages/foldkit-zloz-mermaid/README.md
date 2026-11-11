@@ -1,10 +1,9 @@
 # Foldkit Zloz Mermaid
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
-FoldKit or Effect dependency is installed. Requires the matching Zloz core peer.
-Version 0.2.0 is a local release candidate; npm publication has not been performed.
-
-After publication:
+Foldkit or Effect dependency is installed by the headless entry. Requires the
+matching Zloz core peer. The published baseline is 0.3.0; the export controls below
+are the next unreleased feature.
 
 ```sh
 npm install @opsydyn/foldkit-zloz @opsydyn/foldkit-zloz-mermaid
@@ -147,3 +146,57 @@ The package additionally exports `ZlozReviewPacketOptions`,
 Packet JSON round-trip tests reproduce its audit using only the chosen snapshots
 and exported rules. The optional adapter still installs no Effect, Foldkit,
 Mermaid parser, browser or layout engine. See [ADR 0035](../../docs/adr/0035-export-portable-review-packets.md).
+
+## Composable review-packet controls (unreleased)
+
+The root entry exports `resolveReviewPacketControls` and
+`resolveReviewPacketRequest`. The optional `/foldkit` entry exports
+`zlozReviewPacketControls`, `zlozReviewPacketConsent`, `zlozReviewPacketDownload`
+and their view/parts types. Install matching `foldkit` to use the native controls;
+it remains an optional peer and is not installed for headless consumers.
+
+```ts
+import {
+  resolveReviewPacketControls,
+  resolveReviewPacketRequest,
+} from '@opsydyn/foldkit-zloz-mermaid';
+import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+
+const selection = { baselineId: 'before', selectedId: null }; // null = current
+const state = { consentKey: null }; // host-owned, ephemeral Foldkit model state
+const context = resolveReviewPacketControls(document, selection, state, {
+  blockedReason: null, // supply live host protection; direction and data-only rules are optional
+});
+const controls = zlozReviewPacketControls(
+  h,
+  context,
+  (request) => Message.ObservedReviewPacketInput({ request }),
+  {
+    showCounts: !minimalMode && diagnosticsEnabled,
+    renderStatus: () => (minimalMode || !diagnosticsEnabled ? null : undefined),
+  },
+);
+// In update: rebuild with the current document, selection, state and options.
+const decision = resolveReviewPacketRequest(document, selection, state, request);
+// ready: retain decision.state; blocked: show decision.reason;
+// download: pass decision.packet to a host Command, never perform I/O in update.
+```
+
+Preview materializes report-mode projections in memory. Scope text discloses that
+both full authored snapshots and cameras travel; only Mermaid omissions need
+loss consent. Projection errors always block download. Consent and requests use
+an opaque, exact-content key; a fresh resolution catches changes to chosen sources,
+model identity/name, graph/camera, conventions and projection direction. The key
+contains packet data: keep it ephemeral, do not log it, put it in DOM attributes or
+use it as an authentication credential. Hosts also check session identity/epoch
+and current protection before acting; they own storage/download and any playback
+pause. Unrelated history changes do not alter a selected-snapshot packet.
+
+Every part has a nullable/custom renderer, with independent attributes, labels,
+layout and count visibility. Custom diagnostics own list-item semantics. Native
+checkbox/button helpers retain disabled state and accessible protection reasons.
+Hiding a part never bypasses the pure request resolver. Counts can disappear in
+minimal mode while functional scope, losses and reasons remain available. No
+packet import, graph mutation or new Undo entry is implied. Exact serialization
+costs packet-sized memory and projection work while previewing; no performance
+claim is made. See [ADR 0037](../../docs/adr/0037-compose-review-packet-export-controls.md).

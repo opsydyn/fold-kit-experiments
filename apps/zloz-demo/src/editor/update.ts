@@ -75,6 +75,7 @@ import {
 } from './history';
 import { focusWorkbenchHistoryChange } from './history-navigation';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
+import { reconcileMappingReview, updateMappingReview } from './mapping-review';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -703,6 +704,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },
+    SelectedMappingReviewItem: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ItemSelected' }),
+    }),
+    SelectedMappingReviewChoice: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ChoiceSelected' }),
+    }),
+    ClickedResetMappingReview: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ResetClicked' }),
+    }),
     SelectedExample: ({ example }) => {
       const graph =
         example === 'context-map'
@@ -732,6 +742,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           editor,
+          mappingReview: null,
+          mappingReviewNotice: '',
+          modelEpoch: model.modelEpoch + 1,
           semanticRelationships:
             example === 'event-storming' || example === 'context-map'
               ? true
@@ -1359,7 +1372,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
   });
-  const result = { ...outcome, model: reconcileHistoryPlayback(model, outcome.model) };
+  const result = {
+    ...outcome,
+    model: reconcileMappingReview(reconcileHistoryPlayback(model, outcome.model)),
+  };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
   const invalidLabel =

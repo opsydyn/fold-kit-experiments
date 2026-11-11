@@ -17,6 +17,7 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['ports', 'Ports'],
   ['policies', 'Policies'],
   ['inspect', 'Inspect'],
+  ['mapping', 'Mapping review'],
   ['diagnostics', 'Diagnostics'],
   ['export', 'Mermaid export'],
 ];

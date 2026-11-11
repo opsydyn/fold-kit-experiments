@@ -263,6 +263,22 @@ const PortLabelDraft = Schema.Struct({
   text: Schema.String,
 });
 
+const MappingReview = Schema.Struct({
+  modelId: Schema.String,
+  epoch: Schema.Number,
+  revision: Schema.Number,
+  sourceKey: Schema.String,
+  selectedKey: Schema.NullOr(Schema.String),
+  choices: Schema.Array(
+    Schema.Struct({
+      kind: Schema.Literals(['node', 'edge']),
+      id: Schema.String,
+      value: Schema.String,
+    }),
+  ),
+});
+export type MappingReviewDraft = typeof MappingReview.Type;
+
 export const WorkbenchSection = Schema.Literals([
   'diagram',
   'appearance',
@@ -270,12 +286,15 @@ export const WorkbenchSection = Schema.Literals([
   'ports',
   'policies',
   'inspect',
+  'mapping',
   'diagnostics',
   'export',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  mappingReview: Schema.NullOr(MappingReview),
+  mappingReviewNotice: Schema.String,
   sidebarSection: WorkbenchSection,
   sidebarCollapsed: Schema.Boolean,
   keyboardPortTargets: Schema.Boolean,
@@ -388,6 +407,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  mappingReview: MappingReviewDraft | null;
+  mappingReviewNotice: string;
   sidebarSection: WorkbenchSection;
   sidebarCollapsed: boolean;
   keyboardPortTargets: boolean;
@@ -490,6 +511,8 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    mappingReview: null,
+    mappingReviewNotice: '',
     sidebarSection: 'diagram',
     sidebarCollapsed: false,
     keyboardPortTargets: false,

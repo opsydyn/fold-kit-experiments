@@ -21,6 +21,9 @@ export function historyAllowsMessage(message: Message): boolean {
   return new Set<string>([
     'ClickedScrubberHistory',
     'ObservedDddRelationshipInput',
+    'SelectedMappingReviewItem',
+    'SelectedMappingReviewChoice',
+    'ClickedResetMappingReview',
     'ClickedContextMapPresentation',
     'ClickedAuditExample',
     'ObservedReviewPacketInput',

@@ -108,6 +108,7 @@ import {
 } from './event-storming-relationships';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
+import { mappingReviewPanel } from './mapping-review-view';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -395,6 +396,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       modelId,
       epoch,
     });
+  const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const hasContextMap = model.editor.graph.edges.some(
@@ -2994,6 +2996,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
+    mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
       ...(hasDddNodes
         ? [

@@ -122,6 +122,23 @@ button, input, select { font: inherit; }
 .workbench-sidebar [aria-label='Graph actions'] > button { flex: 1 1 120px; }
 .workbench-sidebar fieldset { min-width: 0; }
 
+.mapping-review-intro { margin-top: 0; }
+.mapping-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.mapping-summary span, .mapping-status { display: inline-block; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 650; }
+.mapping-decision { border: 1px solid var(--rule); border-radius: 8px; padding: 14px 12px; margin: 12px 0; }
+.mapping-decision h3 { margin: 10px 0 6px; font-size: 16px; }
+.mapping-decision[data-mapping-state='ambiguous'] { border-inline-start: 3px solid var(--gold); }
+.mapping-decision[data-mapping-state='blocked'] { border-inline-start: 3px solid var(--coral); }
+.mapping-decision[data-mapping-state='proposed'] { border-inline-start: 3px solid var(--blue); }
+.mapping-decision .mapping-source { margin: 6px 0; font-size: 12px; overflow-wrap: anywhere; }
+.mapping-target { font-weight: 650; }
+.mapping-loss { border-top: 1px solid var(--rule); margin-top: 14px; padding-top: 10px; }
+.mapping-loss h4 { margin: 0; font-size: 13px; }
+.mapping-loss p { margin-bottom: 0; }
+.mapping-losses { margin: 16px 0; }
+.mapping-losses summary { cursor: pointer; font-weight: 650; }
+.mapping-review-footer { font-size: 12px; }
+
 .workbench-sidebar pre { font-size: 11px; }
 .workbench-notice { position: relative; flex: 0 0 auto; border-top: 1px solid var(--rule); padding: 8px 16px; font-size: 12px; }
 .workbench-notice p { margin: 0; }

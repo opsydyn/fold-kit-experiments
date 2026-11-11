@@ -600,3 +600,20 @@ Inspect contains selected-item/port controls and the connection list. Diagnostic
 opens its options directly. The Mermaid section retains explicit loss consent
 and nested hierarchy metadata. Diagram handles, contextual editing and feedback
 remain on the canvas. See [layout evidence](evidence/sidebar.md).
+
+### Workshop mapping review
+
+Open **Diagram → Open event-storming example**, then **Mapping review**. Inspect a
+node or connection, use convention proposals, choose explicit DDD meaning or keep
+the workshop meaning. The panel composes the package's
+`previewEventStormingDddMapping`; it displays ambiguity, incompatibility and
+prospective semantic-loss reasons beside the unchanged source canvas.
+
+Choices are temporary and reset when the displayed source/session changes. They do
+not enter graph JSON, editions or Undo. History supports inspection while choices
+are disabled with an explanation. Minimal/global diagnostics hide optional numeric
+summary badges while preserving functional choices and reasons. Conversion is a
+separate feature; no mapping is applied by this panel.
+
+See [local browser evidence](evidence/mapping-review.md) for light/dark captures and
+source-preservation checks.

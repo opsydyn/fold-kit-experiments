@@ -195,6 +195,27 @@ export const Message = defineMessageUnion({
     epoch: Schema.Number,
     edgeId: Schema.String,
   },
+  SelectedMappingReviewItem: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    key: Schema.String,
+  },
+  SelectedMappingReviewChoice: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    key: Schema.String,
+    value: Schema.String,
+  },
+  ClickedResetMappingReview: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+  },
   ObservedDddRelationshipInput: {
     modelId: Schema.String,
     epoch: Schema.Number,

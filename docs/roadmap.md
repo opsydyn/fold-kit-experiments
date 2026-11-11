@@ -225,8 +225,15 @@ loss without changing the graph/history. Existing DDD anchors and unrelated C4
 meaning remain preserved. See [ADR 0041](adr/0041-preview-event-storming-ddd-mappings.md)
 and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-preview.md).
 
-**Recommended next:** compose the read-only mapping preview in the workbench,
-showing explicit choices, ambiguity and loss reasons before conversion actions. Proposed positioning to
+**Mapping review panel — implemented on this branch, unreleased:** the left
+sidebar composes the package preview with explicit choices, native inspection,
+ambiguity/compatibility/loss reasons and independent diagnostics preferences.
+Temporary choices are source/session scoped and leave graph, Undo and lineage
+unchanged. See [ADR 0042](adr/0042-compose-workshop-mapping-review.md) and
+[local evidence](../apps/zloz-demo/evidence/mapping-review.md).
+
+**Recommended next:** define a headless conversion plan contract with explicit
+source provenance and loss consent before adding an apply transaction. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

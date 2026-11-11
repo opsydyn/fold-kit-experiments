@@ -386,3 +386,15 @@ export type {
   ZlozEventStormingDddLossConsent,
   ZlozEventStormingDddConversionConsentDecision,
 } from './event-storming-ddd-conversion-plan';
+
+export {
+  applyEventStormingDddConversion,
+  serializeEventStormingDddConversion,
+  parseEventStormingDddConversion,
+} from './event-storming-ddd-apply';
+export type {
+  ZlozEventStormingDddConversion,
+  ZlozEventStormingDddApplyPolicy,
+  ZlozEventStormingDddApplyOptions,
+  ZlozEventStormingDddApplyResult,
+} from './event-storming-ddd-apply';

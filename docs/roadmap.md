@@ -247,9 +247,16 @@ or source change-and-revert. Graph, Undo and authoritative exports remain unchan
 See [ADR 0044](adr/0044-review-plan-provenance-and-losses-in-workbench.md) and
 [local evidence](../apps/zloz-demo/evidence/mapping-plan.md).
 
-**Recommended next:** define provenance retention and package-level atomic Apply
-with live freshness/policy/lifecycle/consent checks and one Undo, before adding its
-workbench control. Proposed positioning to
+**Atomic package Apply — implemented on this branch, unreleased:** the core
+rebuilds and validates the live plan/consent, stages descriptor-only replacements,
+checks whole/granular policies and commits once. Portable conversion receipts retain
+full source, target and mapping provenance independently of unchanged model v1/fork
+ancestry. Late vetoes preserve the editor; Undo/Redo covers the complete graph change.
+See [ADR 0045](adr/0045-apply-ddd-conversion-atomically-with-portable-provenance.md)
+and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-apply.md).
+
+**Recommended next:** wire guarded Apply and portable receipt retention/download
+into the workbench, publishing editor and receipt in one Foldkit update. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

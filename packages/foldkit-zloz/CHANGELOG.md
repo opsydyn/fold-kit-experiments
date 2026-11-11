@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add atomic EventStorming-to-DDD Apply with live source/consent/lifecycle/policy checks, one graph Undo and portable before/after provenance receipts.
+
 - Add headless EventStorming-to-DDD conversion plans with pinned source provenance, whole-plan blockers and exact-plan affirmative loss consent; no Apply transaction.
 
 - Add a pure EventStorming-to-DDD mapping preview with explicit per-ID choices, unresolved intent, DDD compatibility and prospective semantic-loss disclosures.

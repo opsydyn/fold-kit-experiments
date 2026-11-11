@@ -3682,4 +3682,76 @@ be recovered with the existing model JSON codec, but conversion provenance still
 needs a storage decision at the future apply boundary. `consented` is neither
 editing permission nor proof of a human decision. A future Apply must recheck live
 source/session/revision, policy, lifecycle, Undo, loss consent and provenance
-retention atomically. This slice adds no Apply, CLI or workbench consent control.
+retention atomically. Planning and acknowledgement remain separate from the atomic Apply API below.
+
+### Atomic Apply and portable provenance
+
+`applyEventStormingDddConversion` rebuilds the plan from the live editor and current
+source document/session. It requires exact source graph, camera and revision,
+resolved mappings, explicit all-loss consent, enabled Undo and current lifecycle
+and policy checks. No-op returns the same editor without a receipt. Expected vetoes
+return `blocked` with the original editor; malformed input or a throwing host policy
+throws without publishing a partial edit.
+
+```typescript
+import {
+  applyEventStormingDddConversion,
+  captureModelDocument,
+  serializeEventStormingDddConversion,
+} from '@opsydyn/foldkit-zloz';
+
+const liveSource = {
+  document: captureModelDocument({
+    ...document,
+    snapshot: { graph: editor.graph, viewport: editor.viewport },
+  }),
+  sessionId: currentSourceSessionId,
+  revision: editor.revision,
+};
+const result = applyEventStormingDddConversion(editor, liveSource, {
+  mappings: reviewedMappingChoices,
+  consent: recordedLossConsent, // affirmative exact-plan record, or null
+  policy: currentEditingPolicy,
+  blockedReason: currentHostBusyReason, // e.g. pending import/layout/external draft
+});
+if (result.type === 'applied') {
+  // Publish both values in one host Model update; run storage/export in a Command.
+  const nextEditor = result.editor;
+  const conversion = result.conversion;
+  const portableProvenance = serializeEventStormingDddConversion(conversion);
+}
+```
+
+Only reserved architecture descriptors change. Node/edge IDs, ports, wiring,
+parentage, labels, geometry, appearance and host data survive. The result has one
+new graph Undo step; Undo restores the whole source graph and Redo restores the
+whole converted graph. Camera and surviving selection remain. Model identity/name,
+editions and fork `origin` are preserved in the returned target document.
+
+`canApplyEventStormingDddConversion(plan, targetDocument)` can veto the complete
+transaction using its fully validated final state. Existing
+`canChangeNodeArchitecture` / `canChangeEdgeArchitecture` hooks then check every
+replacement with their normal **current graph** contract. All callback inputs are
+detached frozen values. A strict source-oriented semantic policy may reject an
+otherwise valid target; the whole-transaction hook offers final-state inspection,
+not an override of granular vetoes. Policies must remain pure and synchronous.
+Read-only, active gestures/connections/label drafts/camera fits and host busy reasons
+block conversion. Hosts supply current session/metadata and external busy conditions;
+no cached consent, plan or imported receipt grants permission.
+
+`result.conversion` is an immutable, unsigned receipt with the complete original
+source, effective mappings, loss-acceptance claim and converted document. Keep or
+export the **entire receipt** to retain provenance. Saving only
+`conversion.document` as model JSON omits conversion receipts. The package performs
+no file/storage write. Hosts publish editor and receipt together, then persist them
+through their own Command/adapter. Graph Undo does not erase the historical receipt.
+
+`serializeEventStormingDddConversion` and `parseEventStormingDddConversion` use an
+independent `foldkit-zloz-ddd-conversion` v1 envelope. Parsing validates both model
+v1 documents, mappings and exact descriptor-only target consistency. It rejects
+unknown versions/fields, missing acknowledgement, unresolved mappings and extra
+changes such as renamed nodes or altered model metadata. It never applies edits or
+proves a human/author identity. Existing graph/model/edition formats stay unchanged;
+fork ancestry is never used to store conversion provenance. Receipt size and source
+validation cost are unqualified for large models. The workbench Apply control remains
+a separate slice.

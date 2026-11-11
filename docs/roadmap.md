@@ -232,8 +232,15 @@ Temporary choices are source/session scoped and leave graph, Undo and lineage
 unchanged. See [ADR 0042](adr/0042-compose-workshop-mapping-review.md) and
 [local evidence](../apps/zloz-demo/evidence/mapping-review.md).
 
-**Recommended next:** define a headless conversion plan contract with explicit
-source provenance and loss consent before adding an apply transaction. Proposed positioning to
+**Conversion plan contract — implemented on this branch, unreleased:** package-owned
+plans pin complete source provenance and host session/revision, list same-ID
+semantic replacements and block unresolved intent. Explicit all-loss consent is
+bound to a freshly rebuilt exact plan; it grants no edit permission. See
+[ADR 0043](adr/0043-plan-workshop-conversion-and-loss-consent.md) and
+[package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-conversion-plan.md).
+
+**Recommended next:** compose plan provenance and exact-plan loss acknowledgement
+in the workbench mapping review before implementing Apply. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

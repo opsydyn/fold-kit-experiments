@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add headless EventStorming-to-DDD conversion plans with pinned source provenance, whole-plan blockers and exact-plan affirmative loss consent; no Apply transaction.
+
 - Add a pure EventStorming-to-DDD mapping preview with explicit per-ID choices, unresolved intent, DDD compatibility and prospective semantic-loss disclosures.
 
 - Add composable DDD pattern and side-role editing controls with live policy/revision checks and native Foldkit helpers.

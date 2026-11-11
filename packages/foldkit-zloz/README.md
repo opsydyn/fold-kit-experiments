@@ -3623,3 +3623,63 @@ compatibility claim. Recompute after source/choices/conventions change. A future
 conversion must independently enforce model identity, freshness, live edit policy,
 lifecycle, loss consent, provenance preservation and atomic Undo; this API grants
 none of those. UI, conversion and C4 mapping remain separate slices.
+
+### Conversion plans and loss consent
+
+`createEventStormingDddConversionPlan` builds an ephemeral headless review plan from
+a complete source document and mapping choices. The host supplies a nonempty
+`sessionId` and safe nonnegative `revision`; advance the session when replacing the
+source, including reopening identical graph values. The API captures a detached,
+deeply frozen source document as `plan.provenance.document`, preserving identity,
+camera, graph/host data, editions and fork ancestry. This is review provenance,
+separate from the document's `origin`; it is not persisted by the planner.
+
+```typescript
+import {
+  createEventStormingDddConversionPlan,
+  resolveEventStormingDddConversionConsent,
+  type ZlozEventStormingDddLossConsent,
+} from '@opsydyn/foldkit-zloz';
+
+const source = { document, sessionId: sourceSessionId, revision: editor.revision };
+const plan = createEventStormingDddConversionPlan(source, mappingChoices);
+
+if (plan.type === 'blocked') {
+  console.log(plan.blockers); // resolve or explicitly retain uncertain meaning
+} else if (plan.type === 'reviewable') {
+  console.log(plan.changes, plan.preview.disclosures);
+  // Only after the host records explicit acceptance of every displayed loss:
+  const consent: ZlozEventStormingDddLossConsent = {
+    planKey: plan.key,
+    accepted: true,
+  };
+  const review = resolveEventStormingDddConversionConsent(source, mappingChoices, consent);
+  console.log(review.type); // consented is a review condition; no Apply occurs
+}
+```
+
+Unresolved ambiguity, unmapped intent and incompatible edges block the whole plan;
+blocked plans expose no partial `changes` list. Explicit null choices retain source
+meaning. A resolved plan with replacements is `reviewable`; all-retained or unrelated
+sources are `unchanged`. Proposed changes replace reserved descriptors at the same
+node/edge IDs. No converted graph, events, new IDs, frames or structural edits are
+returned. Retained causal edges make no compatibility claim and may still be vetoed
+by a future host policy.
+
+The consent resolver always rebuilds from the current source and mappings. Without
+an affirmative record matching the exact plan, it returns `consent-required`.
+Pass null to revoke consent. Blockers cannot be bypassed by acceptance. Source
+identity/content/camera/editions/ancestry, session/revision, mapping targets and the
+effective DDD catalogue are all bound into the key, even when loss IDs are unchanged.
+`plan.mappings` retains detached explicit choices and the effective catalogue for
+reproducing the review. Keys use exact encoding, so ordering differences can also
+invalidate consent conservatively. Keys contain source data: do not log them,
+place them in the DOM or treat them as credentials. No portable plan codec or
+cryptographic authenticity is claimed.
+
+The planner never writes graph, Undo, document or editions. The source document can
+be recovered with the existing model JSON codec, but conversion provenance still
+needs a storage decision at the future apply boundary. `consented` is neither
+editing permission nor proof of a human decision. A future Apply must recheck live
+source/session/revision, policy, lifecycle, Undo, loss consent and provenance
+retention atomically. This slice adds no Apply, CLI or workbench consent control.

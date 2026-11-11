@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
@@ -69,6 +69,15 @@ const mapping:ZlozEventStormingDddPreview=previewEventStormingDddMapping(storm.e
 if(!mapping.nodes.some(n=>n.type==='ambiguous')||!mapping.disclosures.some(d=>d.kind==='node'))throw new Error('Missing headless workshop mapping preview');
 // @ts-expect-error A preview does not expose an executable converted graph
 const convertedGraph=mapping.graph;
+const conversionSource={document:{id:'workshop-consumer',name:'Workshop',snapshot:{graph:storm.editor.graph},editions:[],origin:null},sessionId:'consumer-session',revision:storm.editor.revision};
+const conversionPlan=createEventStormingDddConversionPlan(conversionSource,{nodes:mapping.nodes.filter(n=>n.type!=='proposed').map(n=>({nodeId:n.nodeId,architecture:null})),edges:mapping.edges.filter(e=>e.type!=='proposed'&&e.type!=='retained').map(e=>({edgeId:e.edgeId,architecture:null}))});
+if(conversionPlan.type!=='reviewable'||conversionPlan.changes.nodes.length!==1)throw new Error('Missing reviewable conversion plan');
+const lossConsent:ZlozEventStormingDddLossConsent={planKey:conversionPlan.key,accepted:true};
+// @ts-expect-error A declining value is not an affirmative consent record
+const declinedConsent:ZlozEventStormingDddLossConsent={planKey:conversionPlan.key,accepted:false};
+if(resolveEventStormingDddConversionConsent(conversionSource,conversionPlan.mappings,lossConsent).type!=='consented')throw new Error('Missing exact-plan consent');
+// @ts-expect-error A conversion plan exposes no converted graph or Apply event
+const plannedGraph=conversionPlan.graph;
 const playback:ZlozEditionPlayback=createEditionPlayback(['a','b'],{reducedMotion:false});
 if(playbackEditionId(updateEditionPlayback(playback,{type:'NextClicked'}))!=='b')throw new Error('Missing typed playback');
 const controls:ZlozPlaybackControlsContext=resolveEditionPlaybackControls(playback,{editionLabel:'First'});

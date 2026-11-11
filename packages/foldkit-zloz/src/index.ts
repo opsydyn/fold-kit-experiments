@@ -373,3 +373,16 @@ export type {
   ZlozEventStormingDddDisclosure,
   ZlozEventStormingDddPreview,
 } from './event-storming-ddd-preview';
+
+export {
+  createEventStormingDddConversionPlan,
+  resolveEventStormingDddConversionConsent,
+} from './event-storming-ddd-conversion-plan';
+export type {
+  ZlozEventStormingDddConversionSource,
+  ZlozEventStormingDddConversionBlocker,
+  ZlozEventStormingDddConversionChanges,
+  ZlozEventStormingDddConversionPlan,
+  ZlozEventStormingDddLossConsent,
+  ZlozEventStormingDddConversionConsentDecision,
+} from './event-storming-ddd-conversion-plan';

@@ -47,11 +47,20 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
+import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
+const svgOptions:ZlozSvgExportOptions={title:'Packed architecture',region:{type:'model',padding:20},theme:{colorScheme:'dark'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}};
+// @ts-expect-error Export must explicitly declare renderer coverage
+const missingSvgCoverage:ZlozSvgExportOptions={title:'Missing coverage',region:svgOptions.region,theme:svgOptions.theme,background:svgOptions.background,font:svgOptions.font};
+// @ts-expect-error A portable theme cannot defer to the host system scheme
+const systemSvgTheme:ZlozSvgExportOptions['theme']={colorScheme:'system'};
+const svgPlan=planSvgExport(waypointEditor,svgOptions);
+if(svgPlan.type!=='reviewable'||svgPlan.background!==null||svgPlan.viewBox.width<=0||!svgPlan.findings.some(f=>f.code==='font-unverified')||waypointEditor.past.length!==0)throw new Error('Missing detached SVG planning contract');
+
 const bends:readonly ZlozEdgeWaypoint[]=[{id:'turn',position:{x:900,y:700}}];
 const waypointRequest:ZlozEdgeWaypointEdit={id:waypointEditor.graph.edges[0].id,revision:waypointEditor.revision,waypoints:bends};
 // @ts-expect-error Every delayed edit carries its source revision

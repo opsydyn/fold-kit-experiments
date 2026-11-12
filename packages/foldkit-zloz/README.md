@@ -217,6 +217,93 @@ is a normalized graph placement contract, not an OS drag-and-drop parser. No gra
 wire format changes. The workbench demonstrates native/custom cards and shared
 C4/DDD placement with live protection and one Undo.
 
+## SVG export planning (unreleased)
+
+`planSvgExport` defines the package-owned boundary before file writing or PNG:
+
+```ts
+import { planSvgExport } from '@opsydyn/foldkit-zloz';
+
+const plan = planSvgExport(
+  { graph, viewport },
+  {
+    title: 'Order platform',
+    description: 'Canonical architecture model',
+    region: { type: 'model', padding: 24 },
+    scale: 1,
+    theme: { colorScheme: 'dark', tokens: { edge: '#98beff' } },
+    background: { type: 'transparent' },
+    font: { family: 'Inter', size: 14, weight: 400 },
+    renderers: { nodes: 'built-in', edges: 'built-in' },
+  },
+);
+// Review plan.findings. `reviewable` is a plan, not an emitted or qualified SVG.
+```
+
+Use `{ type: 'viewport', size: { width, height } }` with an explicit camera for a
+CSS-pixel viewport crop, or `{ type: 'bounds', bounds: { x, y, width, height } }`
+for a world-space crop. Viewport output dimensions retain surface pixels times
+scale; its world viewBox accounts for pan/zoom. All graph items remain available
+for crossing edges and clipping. These are canonical-model crops, not live DOM,
+filtered/collapsed UI or transient layout-route snapshots.
+
+Model bounds include authored node/group boxes, edge bends and declared custom
+SVG bounds, then add padding. Empty models use a 1×1 world artboard. Automatic
+bounds are explicitly estimated: labels, strokes, port artwork and custom curves
+can extend beyond them. Font substitution, wrapping and ink bounds are unverified.
+A later writer must qualify actual files. Explicit crops are not silently enlarged.
+
+Themes resolve shared light/dark colors into an export-specific paint subset and
+numeric edge width. Background is `theme`, `transparent` or `{ type: 'color',
+value: '#ffffff' }`. Supported paints are literal hex, `none`, `transparent`, and
+space-separated numeric `rgb(...)` with optional alpha. Resolve CSS/Pleat variables
+before planning; host-dependent or unsupported values block with reasons. This
+contract reproduces declared paint inputs, not arbitrary host CSS. Title/description
+and graph labels remain literal text for a future writer to escape safely.
+
+Renderer coverage is mandatory because core cannot infer custom UI from graph data.
+Node declarations cover body/port/badge artwork; edge declarations cover paths, labels
+and markers. Host-only overlays are outside this canonical-model contract.
+Use `unknown` for undeclared node/edge coverage. Override known items explicitly:
+
+```ts
+const renderers = {
+  nodes: 'unknown',
+  edges: 'built-in',
+  overrides: [
+    {
+      target: { kind: 'node', id: 'orders' },
+      renderer: {
+        type: 'svg',
+        id: 'orders-card',
+        version: '1',
+        bounds: { x: 0, y: 0, width: 240, height: 160 },
+        fidelity: 'approximate',
+        reason: 'Interactive HTML editor becomes static text',
+      },
+    },
+  ],
+} as const;
+```
+
+A `svg` declaration remains unverified, including declared `equivalent` fidelity;
+`approximate` adds a loss finding. `fallback`, `omit` and `unsupported` take visible
+reasons. Omission is per graphic; it does not remove graph nodes or rewrite their
+connections. Connections to omitted nodes receive a separate finding. Duplicate or
+missing override targets reject. These are adapter declarations, not executable
+SVG/HTML callbacks or proof that a renderer exists.
+
+Declare image/font/stylesheet assets with `id`, `kind` and `availability`
+(`embedded`, `external`, `missing`). External/missing resources block; embedded
+resources still need byte/resource qualification. `font.assetId` must name a declared
+font asset. The planner never fetches resources or reads installed fonts.
+
+Findings identify document/item/theme/asset, code, severity and reason. Unsupported
+findings make the plan `blocked`; other plans are `reviewable`, retaining all loss
+and uncertainty reports. Plans detach inputs and preserve editor/history. They are
+ephemeral, with no graph wire-version change. SVG serialization, downloads, visual
+qualification and PNG remain subsequent work.
+
 ## Authored edge waypoints
 
 Named world-space bends are document data, independent of transient layout routes:

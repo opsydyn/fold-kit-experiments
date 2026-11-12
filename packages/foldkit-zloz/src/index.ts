@@ -441,3 +441,19 @@ export type {
   ZlozPlacementInput,
   ZlozPlacementControlsContext,
 } from './placement-controls';
+
+export { planSvgExport } from './svg-export';
+export type {
+  ZlozSvgBounds,
+  ZlozSvgRegion,
+  ZlozSvgTarget,
+  ZlozSvgRenderer,
+  ZlozSvgRendererOverride,
+  ZlozSvgAsset,
+  ZlozSvgFont,
+  ZlozSvgExportOptions,
+  ZlozSvgFinding,
+  ZlozSvgPaint,
+  ZlozSvgThemeTokens,
+  ZlozSvgExportPlan,
+} from './svg-export';

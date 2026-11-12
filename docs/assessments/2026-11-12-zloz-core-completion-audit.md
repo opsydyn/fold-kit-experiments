@@ -141,6 +141,13 @@ be reported rather than silently omitted. Export must preserve the model/Undo.
 Qualify emitted files with real browser captures and representative groups, ports,
 labels and custom nodes. A developer screenshot script is not the public API.
 
+**Delivery update:** the approved contract slice adds pure package SVG planning,
+explicit region/theme/background/font/asset inputs and custom-renderer fidelity
+findings. See [ADR 0052](../adr/0052-plan-portable-svg-export.md) and
+[local contract qualification](../../packages/foldkit-zloz/evidence/svg-export.md).
+SVG writing/downloads, actual file/browser qualification and PNG remain open.
+Planning output is not emitted-file evidence.
+
 ### P1 — strict portable review packet reopening
 
 `foldkit-zloz-review` v1 packets contain chosen snapshots, conventions, audit delta

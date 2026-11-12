@@ -181,7 +181,8 @@ are the current checklist; historical receipts qualify only their stated scope.
 
 1. **Editor floor (E1–E3):** E1 waypoint data/controls and E2 normalized palette
    placement/interaction are implemented below, with package tests and local
-   browser evidence. Optional image export (E3) is next. Physical-device/manual AT
+   browser evidence. The E3 SVG planning contract is implemented below; SVG
+   writing/visual qualification remains next, before PNG. Physical-device/manual AT
    acceptance remains distinct from synthetic and Chromium qualification; these
    branch additions are unreleased.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
@@ -340,9 +341,16 @@ fresh origin samples, cancellation and live protection. The workbench supplies C
 and DDD cards with a native/custom switch. See
 [interaction evidence](../apps/zloz-demo/evidence/palette.md).
 
-**Recommended next:** E3 image export — define a reusable SVG export contract with
-explicit bounds, themes, labels and custom-renderer fidelity reporting before PNG.
-Keep core data portable and optional browser IO separate. Alchemy remains deferred.
+**SVG export contract — implemented on this branch, unreleased:** pure package
+planning for canonical model/camera/explicit bounds, shared theme paints, backgrounds,
+font/assets and renderer coverage. Item-addressed findings distinguish omission,
+fallback, unverified adapters and unsupported content. No SVG file is emitted yet.
+See [ADR 0052](adr/0052-plan-portable-svg-export.md) and
+[contract evidence](../packages/foldkit-zloz/evidence/svg-export.md).
+
+**Recommended next:** implement the bounded SVG writer against this plan, with
+representative groups, ports, labels and custom-adapter emitted-file/browser evidence.
+Keep PNG and Alchemy deferred.
 
 ## Release: Keyed Chart Comparison
 

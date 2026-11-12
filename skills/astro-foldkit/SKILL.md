@@ -13,7 +13,7 @@ Commands and remote-data policy. No chart package is required.
 
 Read the consumer's manifest, lockfile and installed package exports before
 choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
-`0.9.3`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.9.3` peers on FoldKit
+`0.10.0`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.10.0` peers on FoldKit
 `>=0.170.0 <0.171.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
 release of the integration, not this one. This is a tested
 baseline, not a claim about the latest release or every supported Astro version.
@@ -28,13 +28,13 @@ upstream checkout is useful only after checking its version against the consumer
 
 ## Choose ownership
 
-| Need                                       | Entry point                      | Server behaviour                   |
-| ------------------------------------------ | -------------------------------- | ---------------------------------- |
-| Interactive widget in an Astro-owned page  | `lazyApp` from `/define-app`     | Mount shell only                   |
-| FoldKit owns the page content and metadata | `definePage` from `/define-page` | SSG or request SSR, then hydration |
+| Need                                       | Entry point                      | Server behaviour                                         |
+| ------------------------------------------ | -------------------------------- | -------------------------------------------------------- |
+| A component in an Astro-owned page         | `lazyApp` from `/define-app`     | Empty mount; with `{ prerender: true }`, the island's markup |
+| FoldKit owns the page content and metadata | `definePage` from `/define-page` | SSG or request SSR, then hydration                       |
 
-Both use `client:load` for interactivity. `defineApp` is the compatible alias of
-`lazyApp`. Keep a literal loader at this intentional lazy entry boundary:
+For an island, choose when its JavaScript runs separately, as below.
+`defineApp` is the compatible alias of `lazyApp`. Keep a literal loader at this intentional lazy entry boundary:
 `() => import('./main')` for the example island, `() => import('./page-main')`
 for its page owner. Use static imports elsewhere. The loaded module exports real
 `Model` and `Message` schemas plus `init`, `update` and `view`; server pages also
@@ -45,9 +45,42 @@ not supply a Flags Effect. To reuse an app, add a separate page module that
 re-exports the application and adds `Flags`, as the example does.
 
 Start with the [standalone counter](assets/counter/package.json). Its `/` route
-is a client island; `/page/` prerenders the same application. It has no sibling
-skill, workspace or Viz dependency. See [integration details](references/integration.md)
-for request SSR, navigation, troubleshooting and verification.
+is a pre-rendered client island; `/page/` prerenders the same application as a
+page owner. It has no sibling skill, workspace or Viz dependency. See
+[integration details](references/integration.md) for request SSR, navigation,
+troubleshooting and verification.
+
+## Choose when JavaScript runs
+
+Default an island to `lazyApp(load, { prerender: true })` when its `init` and
+`view` are pure. Its markup is then in the HTML, it has size, and every client
+directive works. Leave it off only when `init` touches a browser-only resource:
+the server render would throw, and a failed pre-render fails the build on
+purpose.
+
+Then pick the directive per island:
+
+- **Read, never touched** (most charts): no directive. Astro emits no island and
+  no script, so the pre-rendered markup is the whole component. Keep what a hover
+  readout showed as an SVG `<title>` on each mark — a native tooltip that needs
+  no runtime.
+- **Interactive, below the fold**: `client:visible`. It needs `prerender: true`:
+  Astro observes an island's children, and an empty mount is 0x0, so it never
+  intersects and never hydrates.
+- **Interactive at once**: `client:load` or `client:idle`.
+
+The FoldKit runtime is shared, so a single island hydrating at load pays for all
+of it, and making the other islands static then saves only their own chunks.
+Aim for no island hydrating at load: pre-render everything, leave readable
+islands without a directive, and put the interactive one on `client:visible`.
+On a measured report page with three charts and a data grid, that took
+JavaScript at load from 377 KB to none, with the grid's 351 KB arriving only
+when it was scrolled to.
+
+The renderer warns once per component about the two arrangements that fail
+silently: no directive without `prerender`, which never displays anything, and
+`client:visible` without `prerender`, which never hydrates. Treat either
+warning as a bug, not noise.
 
 ## Keep the boundaries intact
 

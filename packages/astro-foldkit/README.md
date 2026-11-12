@@ -152,6 +152,52 @@ Two consequences are worth knowing:
   an empty mount measures 0x0 and never intersects, so the island silently
   never hydrates. A pre-rendered island has size, and the directive works.
 
+### Choosing when JavaScript runs
+
+Pre-rendering separates two decisions that used to be one: whether an island
+appears in the HTML, and whether it ships JavaScript. Make them per island.
+
+| Island needs                | Write                                             | JavaScript at load           |
+| --------------------------- | ------------------------------------------------- | ---------------------------- |
+| To be read, never touched   | `prerender: true`, **no directive**               | none for this island         |
+| Interaction, below the fold | `prerender: true`, `client:visible`               | none until it is scrolled to |
+| Interaction, immediately    | `prerender: true`, `client:load` or `client:idle` | the runtime, at load         |
+| A browser-only `init`       | no `prerender`, `client:load` or `client:idle`    | the runtime, at load         |
+
+An island with no directive is Astro's ordinary static component: Astro emits
+no `<astro-island>` element and no script, so a pre-rendered FoldKit chart with
+no directive is complete HTML and nothing else. Most charts in a report are
+never interacted with, and this is how they should ship.
+
+One thing decides how much any of this saves: **the FoldKit runtime is shared,
+so one island that hydrates at load pays for all of it.** Making three of four
+islands static saves their own chunks and serialised props, not the runtime the
+fourth still needs. The large win comes when _nothing_ on the page hydrates at
+load. The pattern that gets there is to pre-render everything, leave the
+readable islands without a directive, and give the one interactive island
+`client:visible` if it sits below the fold.
+
+Measured on a report page with three charts and a data grid over 7,729 rows:
+
+| Configuration                                                 | JavaScript at load   | After scrolling to the grid |
+| ------------------------------------------------------------- | -------------------- | --------------------------- |
+| Four islands, `client:load`                                   | 377 KB, 17 requests  | —                           |
+| Three charts static, grid `client:load`                       | 351 KB, 8 requests   | —                           |
+| Everything pre-rendered, charts static, grid `client:visible` | **0 KB, 0 requests** | 351 KB, 8 requests          |
+
+In the last configuration the whole report, the grid's first page included,
+renders before any JavaScript runs. A chart that loses its hover readout by
+going static can keep the information as a native SVG `<title>` on each mark,
+which the browser shows as a tooltip and which costs no runtime.
+
+The renderer warns at build and dev time about the two arrangements that fail
+without an error, each once per component:
+
+- an island with **no directive and no `prerender`** renders an empty mount and
+  ships nothing, so it never displays anything;
+- an island with **`client:visible` and no `prerender`** never intersects, for
+  the reason above, so it never hydrates.
+
 FoldKit replaces the inner mount, not the outer `<astro-island>`. The outer
 element remains Astro's lifecycle owner, including for empty `client:only`
 hosts, where the client renderer creates an inner mount. Nested islands keep

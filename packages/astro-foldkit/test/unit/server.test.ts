@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, spyOn } from 'bun:test';
 
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
@@ -233,5 +233,75 @@ describe('astro-foldkit server renderer', () => {
     await expect(
       renderToStaticMarkup.call({ result: makeResult() }, makePage(), { locale: 'en' }, {}),
     ).rejects.toMatchObject({ _tag: 'MissingBuildId' });
+  });
+});
+
+describe('astro-foldkit island diagnostics', () => {
+  // Each test names its own component: warnings are deduplicated per component
+  // for the life of the module, as they would be across a dev session.
+  const render = (name: string, hydrate: string | undefined, prerender: boolean) =>
+    renderToStaticMarkup.call(
+      {},
+      makeIsland({ prerender }),
+      { label: 'a' },
+      {},
+      hydrate === undefined ? { displayName: name } : { displayName: name, hydrate },
+    );
+
+  let restoreWarn: (() => void) | undefined;
+
+  const warnings = () => {
+    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    restoreWarn = () => spy.mockRestore();
+    return spy;
+  };
+
+  afterEach(() => {
+    restoreWarn?.();
+    restoreWarn = undefined;
+  });
+
+  it('warns when an island has no directive and is not pre-rendered, because it can never show anything', async () => {
+    const warn = warnings();
+    await render('DeadIsland', undefined, false);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('DeadIsland');
+    expect(String(warn.mock.calls[0]?.[0])).toContain('prerender: true');
+  });
+
+  it('warns when client:visible is used without pre-rendering, because the empty mount never intersects', async () => {
+    const warn = warnings();
+    await render('InvisibleIsland', 'visible', false);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('client:visible');
+    expect(String(warn.mock.calls[0]?.[0])).toContain('InvisibleIsland');
+  });
+
+  it('stays quiet for client:load without pre-rendering, which hydrates whatever its size', async () => {
+    const warn = warnings();
+    await render('LoadIsland', 'load', false);
+    await render('IdleIsland', 'idle', false);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('stays quiet for a pre-rendered island, with or without a directive', async () => {
+    const warn = warnings();
+    await render('StaticIsland', undefined, true);
+    await render('VisibleIsland', 'visible', true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns once per component, not once per render', async () => {
+    const warn = warnings();
+    await render('RepeatedIsland', undefined, false);
+    await render('RepeatedIsland', undefined, false);
+    await render('RepeatedIsland', undefined, false);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('still renders the shell it warned about, so a warning never breaks a build', async () => {
+    warnings();
+    const rendered = await render('ShellIsland', undefined, false);
+    expect(rendered).toEqual({ html: '<div data-foldkit-island="true"></div>' });
   });
 });

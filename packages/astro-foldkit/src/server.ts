@@ -112,6 +112,51 @@ const renderIsland = async <Props extends AstroProps>(
   return { html: islandMount(rendered.html) };
 };
 
+/**
+ * What Astro passes a renderer about the component it is rendering: its name,
+ * and the client directive it carries, if any. A `client:only` component never
+ * reaches the renderer, so it never appears here.
+ */
+export type AstroRenderMetadata = Readonly<{
+  displayName?: string;
+  hydrate?: string;
+}>;
+
+const warnedIslands = new Set<string>();
+
+const warnOnce = (key: string, message: string): void => {
+  if (warnedIslands.has(key)) return;
+  warnedIslands.add(key);
+  console.warn(message);
+};
+
+/**
+ * Names the two ways an island that is not pre-rendered fails without an
+ * error, both of which leave it as the empty mount shell forever.
+ *
+ * With no client directive, nothing ever replaces the shell, so the island
+ * renders nothing and ships nothing. With `client:visible`, Astro observes the
+ * island's children because `astro-island` is `display: contents`; the empty
+ * mount measures 0x0, a zero-area target never intersects, and the island never
+ * hydrates. Other directives fire whatever the island's size.
+ *
+ * Both warn rather than fail: the shell is still valid output, and a warning
+ * should never be what breaks a build.
+ */
+const diagnoseShellIsland = (metadata: AstroRenderMetadata | undefined): void => {
+  const name = metadata?.displayName ?? 'A FoldKit island';
+  if (metadata?.hydrate === undefined)
+    warnOnce(
+      `${name}:no-directive`,
+      `[astro-foldkit] ${name} has no client directive and is not pre-rendered, so it renders an empty mount and ships no JavaScript: it will never display anything. Pass { prerender: true } to lazyApp to render it as static HTML, or add a client directive.`,
+    );
+  else if (metadata.hydrate === 'visible')
+    warnOnce(
+      `${name}:visible`,
+      `[astro-foldkit] ${name} uses client:visible but is not pre-rendered. Astro observes an island's children, and an empty FoldKit mount measures 0x0, so it never intersects and the island never hydrates. Pass { prerender: true } to lazyApp, or use client:load or client:idle.`,
+    );
+};
+
 export async function check<Component>(component: Component): Promise<boolean> {
   return isFoldkitApp(component) || isFoldkitPage(component);
 }
@@ -121,9 +166,11 @@ export async function renderToStaticMarkup(
   component: AstroComponentInput,
   props: AstroProps,
   slots: AstroSlots,
+  metadata?: AstroRenderMetadata,
 ): Promise<{ html: string }> {
   if (isFoldkitPage(component)) return renderPage(this?.result, component, props, slots);
   if (isPrerenderedApp(component)) return renderIsland(component, props);
+  diagnoseShellIsland(metadata);
   return { html: islandMount('') };
 }
 

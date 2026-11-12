@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 
 import foldkit from '../../src/index';
 
@@ -18,8 +20,10 @@ const configuredBuildId = async (integration: ReturnType<typeof foldkit>) => {
   const updateCalls: Array<{ readonly vite?: { readonly plugins?: ReadonlyArray<unknown> } }> = [];
   const setup = integration.hooks['astro:config:setup'];
   if (setup === undefined) throw new Error('Expected astro:config:setup hook');
+  const root = pathToFileURL(`${tmpdir()}/astro-foldkit-no-project/`);
   // SAFETY: The test fixture establishes this value before the assertion.
   setup({
+    config: { root, srcDir: new URL('src/', root) },
     addClientDirective: () => {},
     addRenderer: () => {},
     updateConfig: (config: { readonly vite?: { readonly plugins?: ReadonlyArray<unknown> } }) => {

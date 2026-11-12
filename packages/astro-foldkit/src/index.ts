@@ -4,6 +4,7 @@ import { foldkit as foldkitVitePlugin } from '@foldkit/vite-plugin';
 import type { AstroIntegration } from 'astro';
 
 import type { InteractionOptions } from './directive-interaction';
+import { islandScanPlugin } from './island-scan';
 
 export type { InteractionOptions } from './directive-interaction';
 export type { NavigationConfig, NavigationEvent, NavigationPhase } from './navigation';
@@ -32,7 +33,7 @@ export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroI
   return {
     name: 'astro-foldkit',
     hooks: {
-      'astro:config:setup': ({ addClientDirective, addRenderer, updateConfig }) => {
+      'astro:config:setup': ({ config, addClientDirective, addRenderer, updateConfig }) => {
         addRenderer({
           name: 'astro-foldkit',
           clientEntrypoint: fileURLToPath(new URL('./client.mjs', import.meta.url)),
@@ -44,7 +45,10 @@ export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroI
         });
         updateConfig({
           vite: {
-            plugins: [foldkitVitePlugin(options.server)],
+            plugins: [
+              foldkitVitePlugin(options.server),
+              islandScanPlugin(fileURLToPath(config.root), fileURLToPath(config.srcDir)),
+            ],
           },
         });
       },

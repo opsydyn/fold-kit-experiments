@@ -1,3 +1,4 @@
+import type { ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
 import type { ZlozDddRelationshipRequest } from '@opsydyn/foldkit-zloz';
 import {
   applyLayout,
@@ -99,6 +100,7 @@ import {
   openModelDocument,
   modelSessionBusy,
 } from './model-sessions';
+import { updateWorkbenchPlacement } from './palette';
 import { insertWorkbenchPattern } from './pattern-insertion';
 import {
   toggleHistoryPlayback,
@@ -244,6 +246,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const outcome: Return<Model, Message> = Message.match(message, {
+    ObservedPlacementInput: ({ input }) => ({
+      model: updateWorkbenchPlacement(
+        model,
+        /* SAFETY: the package placement host emits only typed placement input facts. */ input as ZlozPlacementInput,
+      ),
+    }),
+    ClickedCustomPalette: () => ({ model: { ...model, customPalette: !model.customPalette } }),
     ClickedScrubberHistory: () => {
       const decision = mergeEditions(model.editions, scrubberEditions());
       return {

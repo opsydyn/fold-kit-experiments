@@ -82,3 +82,7 @@ Architecture/boundary, delivery and test reviews are self-review. Boundaries are
 measurements/IO and eventual interaction. Public preview copies have unqualified
 large-graph cost; no performance improvement is claimed. Recommendation:
 **needs review**, then the bounded E2 interaction slice.
+
+**Follow-up delivery:** native/custom package controls and workbench interaction
+are now qualified separately in the [interaction receipt](../../../apps/zloz-demo/evidence/palette.md).
+The headless receipt above retains its original scope and baseline.

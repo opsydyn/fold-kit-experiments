@@ -147,6 +147,76 @@ Placement state is ephemeral; canonical graph/snapshot/model v1 formats remain
 unchanged. Native/custom palette, pointer/touch and keyboard UI adapters follow
 this headless slice.
 
+## Native and custom placement palettes
+
+The optional Foldkit adapter composes the headless contract. Core exports
+`ZlozPaletteEntry`, `ZlozPalettePolicy`, `ZlozPlacementInput`,
+`resolvePlacementControls`, `updatePlacementControls` and `placementForScope`.
+Each catalogue entry supplies a stable ID, label and the normalized placement
+intent above; its source may be palette or external.
+
+```ts
+import { resolvePlacementControls, updatePlacementControls } from '@opsydyn/foldkit-zloz';
+import {
+  zlozPlacementHost,
+  zlozPalette,
+  zlozPaletteEntry,
+  zlozPlacementPreview,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+// In the host update, using current editor, scope, catalogue and policies:
+const result = updatePlacementControls(model.placement, context, entries, input, policy);
+// Publish result.editor, result.placement and result.notice together in Model.
+
+// In the host view; onInput maps package facts to your own Foldkit Message:
+const controls = resolvePlacementControls(model.placement, context, entries, policy);
+const palette = zlozPalette(h, controls, onInput, {
+  diagnostics,
+  renderEntry: (entry, builder) =>
+    zlozPaletteEntry(
+      builder,
+      entry,
+      [builder.Class('my-palette-card')],
+      [builder.strong([], [entry.label])],
+    ),
+});
+// Wrap palette and zlozView under zlozPlacementHost(h, controls, onInput, attrs, children).
+// In zlozView's renderWorldOverlay, return zlozPlacementPreview(builder, controls).
+```
+
+One stable `zlozPlacementHost` contains one canvas and its palette. It scopes the
+Live input resource and releases listeners/capture on unmount. Cards use native
+buttons with shared pointer and keyboard behavior. Drag with mouse/touch, or
+activate a card then tap the canvas. Releasing inside applies once; outside retains
+the pending placement. Escape, pointer cancellation/lost capture and window blur
+cancel without Undo. A plain card click keeps the centre preview available.
+
+Keyboard activation previews at the measured canvas centre. Arrows move, Shift
+accelerates, Alt bypasses snapping, Enter places, Escape cancels. Apply/Cancel
+buttons provide explicit alternatives. Sidebar controls and editable fields keep
+their native keys. Unmeasured/stale projections reject; use a new target or restart.
+`PlacementAccepted` pins `targetRevision` so old controls cannot accept new targets.
+
+`canStartPlacement` protects catalogue activation. Position-dependent `canPlace`
+and existing insertion/connection/port policies stay live at preview/Apply. A
+removed catalogue entry does not revoke an already captured intent; express that
+in the live Apply policy. Change scope on editor/controller replacement;
+`placementForScope` explicitly returns a fresh session when scope changes.
+
+Compose `zlozPaletteEntry` and `zlozPlacementAction` for custom layouts. An internal
+frame retains touch behavior when button styles are replaced. The palette
+supports custom entry/status renderers (`undefined` falls back; `null` omits).
+`zlozPlacementPreview` is decorative world-space artwork; use the public preview
+context to draw other shapes. Instructions and position/snap measurements respect
+passed diagnostics; protection reasons and controls remain available in minimal
+mode. The host chooses whether to render any part at all.
+
+The browser adapter measures canvas origin for every pointer sample. Additional
+CSS transforms, native file/DataTransfer parsing and IO belong to the host; this
+is a normalized graph placement contract, not an OS drag-and-drop parser. No graph
+wire format changes. The workbench demonstrates native/custom cards and shared
+C4/DDD placement with live protection and one Undo.
+
 ## Authored edge waypoints
 
 Named world-space bends are document data, independent of transient layout routes:

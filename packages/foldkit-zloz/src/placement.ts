@@ -353,6 +353,44 @@ function snapPoint(
     };
   return { type: 'none', raw, position: { ...raw } };
 }
+/** Internal projection freshness, independent of destination validity or host policy. */
+export function placementTargetFreshnessReason(
+  state: Extract<ZlozPlacement, { type: 'placing' }>,
+  context: ZlozPlacementContext,
+): string | null {
+  const editor = context.editor;
+  if (state.revision !== editor.revision) return 'The graph changed; start placement again.';
+  const unavailable = patternInsertionReason(editor);
+  if (unavailable !== null) return unavailable;
+  const sample = state.sample;
+  if (!sample) return 'Choose a placement target first.';
+  const { target, viewport, surface, origin } = sample;
+  if (
+    sample.grid !== (state.intent.snapping?.grid ?? editor.snapToGrid) ||
+    (sample.grid && sample.gridSpacing !== editor.gridSpacing)
+  )
+    return 'Snapping changed; choose the placement target again.';
+  if (target.space !== 'world') {
+    if (
+      !surface ||
+      !editor.surface ||
+      !samePoint(viewport, editor.viewport) ||
+      viewport.zoom !== editor.viewport.zoom ||
+      surface.width !== editor.surface.width ||
+      surface.height !== editor.surface.height
+    )
+      return 'The canvas changed or is unmeasured; choose the target again.';
+    if (
+      target.space === 'client' &&
+      (!origin || !context.origin || !samePoint(origin, context.origin))
+    )
+      return 'The canvas moved or its origin is unmeasured; choose the target again.';
+  } else if (usesAnchors(state.intent) && viewport.zoom !== editor.viewport.zoom)
+    return 'Zoom changed; choose the snapping target again.';
+  if (usesAnchors(state.intent) && sample.presentationKey !== presentationKey(editor))
+    return 'Visible anchors changed; choose the target again.';
+  return null;
+}
 function preparePlacement(
   state: ZlozPlacement,
   context: ZlozPlacementContext,
@@ -372,31 +410,9 @@ function preparePlacement(
   if (unavailable !== null) return blocked(unavailable);
   const sample = state.sample;
   if (!sample) return { type: 'pending' as const };
-  const { target, viewport, surface, origin } = sample;
-  if (
-    sample.grid !== (state.intent.snapping?.grid ?? editor.snapToGrid) ||
-    (sample.grid && sample.gridSpacing !== editor.gridSpacing)
-  )
-    return blocked('Snapping changed; choose the placement target again.');
-  if (target.space !== 'world') {
-    if (
-      !surface ||
-      !editor.surface ||
-      !samePoint(viewport, editor.viewport) ||
-      viewport.zoom !== editor.viewport.zoom ||
-      surface.width !== editor.surface.width ||
-      surface.height !== editor.surface.height
-    )
-      return blocked('The canvas changed or is unmeasured; choose the target again.');
-    if (
-      target.space === 'client' &&
-      (!origin || !context.origin || !samePoint(origin, context.origin))
-    )
-      return blocked('The canvas moved or its origin is unmeasured; choose the target again.');
-  } else if (usesAnchors(state.intent) && viewport.zoom !== editor.viewport.zoom)
-    return blocked('Zoom changed; choose the snapping target again.');
-  if (usesAnchors(state.intent) && sample.presentationKey !== presentationKey(editor))
-    return blocked('Visible anchors changed; choose the target again.');
+  const { target, surface, origin } = sample;
+  const freshness = placementTargetFreshnessReason(state, context);
+  if (freshness !== null) return blocked(freshness);
   const local =
     target.space === 'client' && origin
       ? { x: target.point.x - origin.x, y: target.point.y - origin.y }

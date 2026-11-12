@@ -2965,3 +2965,13 @@ export type {
   ZlozDddRelationshipControlsViewOptions,
   ZlozDddRelationshipControlsParts,
 } from './ddd-relationship-controls-view';
+
+export {
+  zlozPlacementHost,
+  zlozPaletteEntry,
+  zlozPalette,
+  zlozPlacementAction,
+  zlozPlacementPreview,
+} from './placement-controls-view';
+export type { ZlozPaletteViewOptions } from './placement-controls-view';
+export { bindPlacementInput } from './placement-input';

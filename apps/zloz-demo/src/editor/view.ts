@@ -18,6 +18,7 @@ import {
   type EdgePathStyle,
   type ZlozNode,
   type EditorEvent,
+  type ZlozPlacementInput,
   type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
@@ -96,6 +97,12 @@ import {
   type ZlozBackground,
   type ZlozNodeRenderContext,
 } from '@opsydyn/foldkit-zloz/foldkit';
+import {
+  zlozPlacementHost,
+  zlozPalette,
+  zlozPaletteEntry,
+  zlozPlacementPreview,
+} from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
@@ -137,6 +144,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { workbenchPlacement } from './palette';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
 import { nextPort } from './port-editing';
@@ -520,6 +528,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       )?.architecture
     : undefined;
   const insertionReason = patternInsertionReason(model);
+  const placementControls = workbenchPlacement(model);
+  const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
     !model.minimalMode && selectedNode
       ? portInspectorContext(model.editor, selectedNode.id, policy, {
@@ -1298,6 +1308,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'Protect pattern insertion',
             ],
           ),
+          h.h3([], ['Placement palette']),
+          button(
+            model.customPalette ? 'Use native palette' : 'Use custom palette',
+            Message.ClickedCustomPalette(),
+          ),
+          zlozPalette(h, placementControls, placementInput, {
+            diagnostics,
+            renderEntry: model.customPalette
+              ? (entry, builder) =>
+                  zlozPaletteEntry(
+                    builder,
+                    entry,
+                    [
+                      builder.Style({
+                        'border-radius': '16px',
+                        border: '2px dashed var(--flow-selection)',
+                        padding: '14px',
+                        display: 'grid',
+                        gap: '4px',
+                      }),
+                    ],
+                    [
+                      builder.strong([], ['◇ ' + entry.label]),
+                      builder.span([], ['Compose a new system element']),
+                    ],
+                  )
+              : undefined,
+          }),
           button(
             'Insert C4 context pattern',
             Message.ClickedInsertPattern({ pattern: 'c4-context' }),
@@ -3519,7 +3557,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   return {
     title,
-    body: h.div(
+    body: zlozPlacementHost(
+      h,
+      placementControls,
+      placementInput,
       [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
       [
         zlozView(h, model.editor, {
@@ -3777,6 +3818,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             builder.div(
               [],
               [
+                ...[zlozPlacementPreview(builder, placementControls)].flatMap((preview) =>
+                  preview === null ? [] : [preview],
+                ),
                 ...(model.showWorldAnnotation && !model.historyReview
                   ? [releaseGateAnnotation(context, builder)]
                   : []),

@@ -1,5 +1,7 @@
 import {
   createEditor,
+  createPlacement,
+  type ZlozPlacement,
   type EditorState,
   type ZlozEdition,
   type ZlozEditionPlayback,
@@ -304,6 +306,8 @@ export const WorkbenchSection = Schema.Literals([
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  placement: Schema.Unknown,
+  customPalette: Schema.Boolean,
   mappingReview: Schema.NullOr(MappingReview),
   mappingLossConsent: Schema.NullOr(
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
@@ -435,6 +439,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  placement: ZlozPlacement;
+  customPalette: boolean;
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
@@ -550,6 +556,8 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    placement: createPlacement(`root:${namespace}/0`),
+    customPalette: false,
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,

@@ -429,3 +429,15 @@ export type {
   ZlozPlacementPreview,
   ZlozPlacementResult,
 } from './placement';
+
+export {
+  resolvePlacementControls,
+  updatePlacementControls,
+  placementForScope,
+} from './placement-controls';
+export type {
+  ZlozPaletteEntry,
+  ZlozPalettePolicy,
+  ZlozPlacementInput,
+  ZlozPlacementControlsContext,
+} from './placement-controls';

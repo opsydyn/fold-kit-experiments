@@ -179,11 +179,11 @@ Core is **not complete**. The detailed
 [audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
 are the current checklist; historical receipts qualify only their stated scope.
 
-1. **Editor floor (E1–E3):** E2 palette/external-placement interaction follows the
-   headless contract below, then optional image export (E3). E1 waypoint data and
-   controls are implemented below. Layout routes and custom
-   renderers do not supply an authored-waypoint lifecycle. Each needs public
-   contracts, policy/Undo/cancellation tests and consumer/workbench evidence.
+1. **Editor floor (E1–E3):** E1 waypoint data/controls and E2 normalized palette
+   placement/interaction are implemented below, with package tests and local
+   browser evidence. Optional image export (E3) is next. Physical-device/manual AT
+   acceptance remains distinct from synthetic and Chromium qualification; these
+   branch additions are unreleased.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
    reopening, then validated modelling patches and dry runs with guarded atomic
    Apply. Conversion receipt reopening already exists; it is a different format
@@ -333,10 +333,16 @@ old callbacks. Pattern insertion shares private proposal preparation, preserving
 its existing public contract. See [ADR 0051](adr/0051-plan-and-apply-headless-placement.md)
 and [package evidence](../packages/foldkit-zloz/evidence/placement.md).
 
-**Recommended next:** E2 interaction — composable native/custom palette controls,
-pointer/touch and keyboard placement, live origin measurement, preview/reasons and
-cancel/Apply. Demonstrate it in the left-sidebar workbench with light/dark/minimal
-visual evidence. Keep the package contract authoritative; Alchemy remains deferred.
+**Palette interaction — implemented on this branch, unreleased:** core control
+resolver/update facts and optional native/custom Foldkit entry/action/host/preview
+helpers. A scoped input resource supports mouse/touch and keyboard placement,
+fresh origin samples, cancellation and live protection. The workbench supplies C4
+and DDD cards with a native/custom switch. See
+[interaction evidence](../apps/zloz-demo/evidence/palette.md).
+
+**Recommended next:** E3 image export — define a reusable SVG export contract with
+explicit bounds, themes, labels and custom-renderer fidelity reporting before PNG.
+Keep core data portable and optional browser IO separate. Alchemy remains deferred.
 
 ## Release: Keyed Chart Comparison
 

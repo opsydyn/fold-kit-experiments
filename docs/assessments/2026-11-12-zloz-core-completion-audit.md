@@ -126,8 +126,11 @@ normalized palette/external graph sources, explicit coordinate/parent targets,
 grid/node-frame snapping, detached preview and guarded atomic Apply. See
 [ADR 0051](../adr/0051-plan-and-apply-headless-placement.md) and
 [package qualification](../../packages/foldkit-zloz/evidence/placement.md).
-Native/custom palette interaction, measured DOM adapters and workbench visual
-acceptance remain open; synthetic coordinate tests do not establish device parity.
+The approved interaction follow-up adds native/custom package controls, a scoped
+DOM input resource and workbench mouse/keyboard/Chromium touch evidence. See
+[interaction qualification](../../apps/zloz-demo/evidence/palette.md). Physical-device
+and manual AT acceptance remain unobserved; Chromium emulation is not device parity.
+OS file/MIME parsing remains host-owned; no arbitrary HTML import is claimed.
 
 ### E3 — image export
 

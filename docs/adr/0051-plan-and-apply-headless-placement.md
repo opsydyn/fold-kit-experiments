@@ -105,3 +105,55 @@ large graphs; benchmark qualification remains separate, with no speed claim.
 Rollback before release is a local commit revert. Once consumers depend on these
 public contracts, scope/coordinate and freshness changes need an explicit
 compatibility decision rather than silently changing placement semantics.
+
+## Approved interaction extension — 2026-11-12
+
+The next approved E2 slice composes this contract without changing its persistence
+or transaction boundary. Core adds `resolvePlacementControls`,
+`updatePlacementControls`, `placementForScope`, palette entries/policies and typed
+input facts. The optional Foldkit adapter adds native/custom palette entry, action,
+preview and host helpers plus a Live-scoped input resource, following the existing
+waypoint controls and input Mount conventions. No new dependency is required.
+
+One stable placement host contains one canvas and its palette. Native resource
+state is limited to pointer capture/identity; graph and pending placement remain
+in Model. Pointer samples remeasure canvas origin on every move/release. Mouse
+or touch can drag from a card or activate a card then tap the canvas. Release
+inside commits once; release outside retains the pending session without inserting.
+Pointer cancellation, lost capture, Escape and window blur discard the session.
+The host owns normalization of additional CSS transforms and OS file/MIME parsing.
+External entries still supply normalized graph intents, never executable content.
+
+Keyboard activation starts at the measured canvas centre. Arrows nudge, Shift
+accelerates, Alt bypasses snapping, Enter places and Escape cancels. Native action
+buttons retain ordinary activation; unrelated sidebar controls and editable fields
+retain their keys. Apply actions pin target revision; stale view samples cannot
+be silently rebased by a keyboard nudge. Hosts must change scope when replacing
+an editor/controller incarnation. `placementForScope` makes that reset explicit.
+
+`canStartPlacement` protects catalogue entry activation, independently of the
+position-dependent `canPlace`/insertion/connection policies rechecked on preview
+and Apply. Removing a palette card does not revoke an already captured intent;
+use a live Apply policy for revocation. A policy reason remains visible in minimal
+mode. Instructions and position/snap readouts are independently suppressible.
+Custom cards compose the same native button helper, while render callbacks support
+fallback (`undefined`) and intentional omission (`null`). Preview artwork can be
+replaced through the existing world overlay, with the package context as input.
+
+The workbench supplies C4 person and DDD bounded-context content, a native/custom
+switch and its existing insertion protection. It publishes returned editor and
+placement in one update, with model ID/epoch scope isolation. Package rules do not
+move into Astro. Alternatives rejected: app-only pointer handlers (not reusable),
+HTML drag-and-drop as the sole interaction (not a touch/keyboard flow), and adding
+another editor gesture transaction (duplicates the accepted headless contract).
+
+Verification adds reducer, scoped native listener, rendered semantics/minimal
+mode, packed consumer and workbench publication tests. Chromium checks exercise
+keyboard, actual mouse drag and emulated touch, live protection, cancellation,
+Undo and light/dark/minimal designs. Captures prove local browser rendering, not
+physical-device or manual assistive-technology acceptance. Root checks/tests,
+production workbench build and TypeDoc remain required. See the
+[interaction evidence](../../apps/zloz-demo/evidence/palette.md).
+Alchemy remains deferred. Boundary verdict: **safe with noted risk** (host-supplied
+measurements and unqualified large-graph preview cost). Architecture, delivery and
+test-quality review are self-review; no independent reviewer is claimed.

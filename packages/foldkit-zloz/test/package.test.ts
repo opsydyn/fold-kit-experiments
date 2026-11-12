@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
@@ -79,6 +79,12 @@ const placementPreview=resolvePlacement(pendingPlacement,placementContext);
 if(placementPreview.type!=='ready'||placementContext.editor.graph.nodes.length!==0)throw new Error('Missing pure placement preview');
 const placed=applyPlacement(pendingPlacement,placementContext,placementPreview.request);
 if(placed.type!=='placed'||placed.editor.past.length!==1||placed.editor.graph.nodes[0].position.x!==20||placed.placement.type!=='idle')throw new Error('Missing atomic scoped placement');
+const paletteEntries=[{id:'card',label:'C4 card',intent:{source:{type:'palette' as const,id:'card'},fragment:createArchitecturePattern('c4-context'),anchor:{x:30,y:65}}}];
+const paletteContext={...placementContext,editor:{...placementContext.editor,surface:{width:800,height:600}}};
+const paletteStarted=updatePlacementControls(createPlacement(paletteContext.scope),paletteContext,paletteEntries,{type:'PaletteEntryActivated',scope:paletteContext.scope,generation:0,id:'card'});
+const paletteControls=resolvePlacementControls(paletteStarted.placement,paletteContext,paletteEntries);
+const paletteApplied=updatePlacementControls(paletteStarted.placement,paletteContext,paletteEntries,{type:'PlacementAccepted',scope:paletteContext.scope,generation:paletteControls.generation,targetRevision:paletteControls.targetRevision});
+if(paletteApplied.editor.past.length!==1||paletteApplied.placement.type!=='idle')throw new Error('Missing portable palette controls');
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};

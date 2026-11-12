@@ -20,6 +20,7 @@ const configuredBuildId = async (integration: ReturnType<typeof foldkit>) => {
   if (setup === undefined) throw new Error('Expected astro:config:setup hook');
   // SAFETY: The test fixture establishes this value before the assertion.
   setup({
+    addClientDirective: () => {},
     addRenderer: () => {},
     updateConfig: (config: { readonly vite?: { readonly plugins?: ReadonlyArray<unknown> } }) => {
       updateCalls.push(config);

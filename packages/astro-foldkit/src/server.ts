@@ -131,14 +131,17 @@ const warnOnce = (key: string, message: string): void => {
 };
 
 /**
- * Names the two ways an island that is not pre-rendered fails without an
- * error, both of which leave it as the empty mount shell forever.
+ * Names the ways an island that is not pre-rendered silently misbehaves. Two
+ * leave it as the empty mount shell forever.
  *
  * With no client directive, nothing ever replaces the shell, so the island
  * renders nothing and ships nothing. With `client:visible`, Astro observes the
  * island's children because `astro-island` is `display: contents`; the empty
  * mount measures 0x0, a zero-area target never intersects, and the island never
  * hydrates. Other directives fire whatever the island's size.
+ *
+ * `client:interaction` on a shell does not fail, but it cannot do its job: it
+ * waits for input on markup the shell does not have, so it hydrates at once.
  *
  * Both warn rather than fail: the shell is still valid output, and a warning
  * should never be what breaks a build.
@@ -149,6 +152,11 @@ const diagnoseShellIsland = (metadata: AstroRenderMetadata | undefined): void =>
     warnOnce(
       `${name}:no-directive`,
       `[astro-foldkit] ${name} has no client directive and is not pre-rendered, so it renders an empty mount and ships no JavaScript: it will never display anything. Pass { prerender: true } to lazyApp to render it as static HTML, or add a client directive.`,
+    );
+  else if (metadata.hydrate === 'interaction')
+    warnOnce(
+      `${name}:interaction`,
+      `[astro-foldkit] ${name} uses client:interaction but is not pre-rendered. It waits for the reader to interact with the island's markup, and an empty FoldKit mount has none, so it hydrates at once, as client:load would. Pass { prerender: true } to lazyApp, or use client:load or client:idle.`,
     );
   else if (metadata.hydrate === 'visible')
     warnOnce(

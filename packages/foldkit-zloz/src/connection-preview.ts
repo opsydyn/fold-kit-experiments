@@ -64,7 +64,12 @@ export function resolveConnectionPreview(
   const source = from.group ? groupBoundaryPoint(from.group, to.point) : from.point;
   const target = to.group ? groupBoundaryPoint(to.group, from.point) : to.point;
   const edge = state.graph.edges.find((edge) => edge.id === drag.reconnect?.id);
-  const builtIn = geometryBetween(source, target, edge?.pathStyle);
+  const builtIn = geometryBetween(
+    source,
+    target,
+    edge?.pathStyle,
+    from.group || to.group ? undefined : edge?.waypoints?.map(({ position }) => position),
+  );
   const defaultGeometry = { path: builtIn.path, labelPosition: builtIn.center };
   const feedback: ZlozConnectionFeedback = drag.target
     ? { type: 'valid', endpoint: drag.target }

@@ -1,4 +1,5 @@
 import { validNodeArchitectureFields, isEdgeArchitecture } from './architecture';
+import { validEdgeWaypoints } from './edge-waypoints';
 import type {
   Endpoint,
   ZlozEdge,
@@ -167,6 +168,7 @@ function isEdge(value: unknown): value is ZlozEdge {
     isEndpoint(value.source) &&
     'target' in value &&
     isEndpoint(value.target) &&
+    (!('waypoints' in value) || validEdgeWaypoints(value.waypoints)) &&
     (!('pathStyle' in value) ||
       value.pathStyle === 'straight' ||
       value.pathStyle === 'stepped' ||

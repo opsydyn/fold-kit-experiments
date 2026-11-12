@@ -179,8 +179,8 @@ Core is **not complete**. The detailed
 [audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
 are the current checklist; historical receipts qualify only their stated scope.
 
-1. **Editor floor (E1–E3):** persistent authored edge waypoints first, then reusable
-   palette/external placement and optional image export. Layout routes and custom
+1. **Editor floor (E1–E3):** composable authoring handles for the packaged waypoint
+   contract first, then reusable palette/external placement and optional image export. Layout routes and custom
    renderers do not supply an authored-waypoint lifecycle. Each needs public
    contracts, policy/Undo/cancellation tests and consumer/workbench evidence.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
@@ -306,12 +306,21 @@ See [local evidence](../apps/zloz-demo/evidence/receipt-side.md).
 until the core Zloz roadmap is complete. The assessment remains a proposal; no
 adapter implementation or dependency adoption is scheduled ahead of core work.
 
-**Recommended next:** E1 — define the headless authored edge-waypoint contract,
-including portable geometry, layout precedence, live policy checks and one Undo;
-then add composable editing handles in a follow-up slice. Proposed positioning
-remains to validate: model a domain with people, explore its evolution and
-review/communicate the same portable model with human and agent tooling. Shapes,
-Undo and layout examples alone do not establish a USP.
+**Authored edge waypoints — implemented on this branch, unreleased:** named
+world-space bends, finite/identity validation, public preview/edit contract, live
+revision/policy/protection checks, one Undo and additive v1 persistence. Shared
+geometry covers labels/hit paths, reconnection preview, culling, fit/reveal,
+overview and history. Copy/pattern insertion translates bends; layout and endpoint
+moves preserve their authored world positions. Native authoring controls remain
+open. See [ADR 0049](adr/0049-author-portable-edge-waypoints.md) and
+[package evidence](../packages/foldkit-zloz/evidence/edge-waypoints.md).
+
+**Recommended next:** E1 interaction — composable waypoint handles and feedback
+with pointer/keyboard editing, cancel/bypass and one Undo per completed gesture.
+Demonstrate native and custom controls in the light/dark/minimal workbench. Keep
+the package headless contract authoritative. Proposed positioning remains a
+hypothesis: model a domain with people, explore its evolution and review/communicate
+the same portable model with human and agent tooling.
 
 ## Release: Keyed Chart Comparison
 

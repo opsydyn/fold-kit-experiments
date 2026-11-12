@@ -8,6 +8,8 @@ import {
 import { copyEdgeArchitecture, sameEdgeArchitecture } from './architecture';
 import { connectionReason, portKind, proposedEdge } from './connection-validation';
 import { resolveDeletion } from './deletion';
+import { resolveEdgeWaypointEdit } from './edge-waypoint-edit';
+import { edgeWaypointBounds, translateEdgeWaypoints } from './edge-waypoints';
 import {
   boxBounds,
   clampZoom,
@@ -448,7 +450,7 @@ function insertFragment(
     return node.parentId === undefined ? copy : { ...copy, parentId: remap(node.parentId) };
   });
   const edges = fragment.edges.map((edge) => ({
-    ...edge,
+    ...translateEdgeWaypoints(edge, { x: offset, y: offset }),
     id: nextId(),
     source: { ...edge.source, node: remap(edge.source.node) },
     target: { ...edge.target, node: remap(edge.target.node) },
@@ -703,6 +705,8 @@ function expandRevealAncestors(state: EditorState, targets: readonly ZlozNode[])
 }
 
 function storedRouteBounds(state: EditorState, edge: ZlozEdge) {
+  if (edge.waypoints)
+    return edge.waypoints.map(({ position }) => ({ position, size: { width: 0, height: 0 } }));
   if (edge.pathStyle !== undefined) return [];
   return (
     state.routes
@@ -775,6 +779,18 @@ export function updateEditor(
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  if (event.type === 'EdgeWaypointsChanged') {
+    const decision = resolveEdgeWaypointEdit(state, event, policy);
+    if (decision.type === 'blocked') return { ...state, notice: decision.reason };
+    if (decision.type === 'unchanged') return state;
+    return {
+      ...commitGraph(state, {
+        ...state.graph,
+        edges: state.graph.edges.map((edge) => (edge.id === event.id ? decision.edge : edge)),
+      }),
+      routes: state.routes,
+    };
+  }
   if (event.type === 'FitViewAnimationFrame') return advanceFit(state, event);
   if (event.type === 'NodeFocusChanged')
     return (state.focusedNodeId ?? null) === event.id
@@ -1047,7 +1063,13 @@ export function updateEditor(
       const nodes =
         event.type === 'FitSelectionClicked'
           ? selectionBounds(state)
-          : presentEditorGroups(state).nodes;
+          : (() => {
+              const presentation = presentVisibleGraph(state);
+              return [
+                ...presentation.nodes,
+                ...edgeWaypointBounds(presentation.edges, presentation.hiddenBy),
+              ];
+            })();
       if (nodes.length === 0) return state;
       return fitEditorBounds(state, surface, nodes);
     }
@@ -1098,7 +1120,7 @@ export function updateEditor(
       const { surface, viewport } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
       finitePoint(event.point);
-      const presentation = presentEditorGroups(state);
+      const presentation = presentVisibleGraph(state);
       if (state.visibility && presentation.nodes.length === 0) return state;
       const { x, y, width, height } = minimapGeometry(presentation, surface, viewport);
       const worldX = x + Math.max(0, Math.min(1, event.point.x)) * width;

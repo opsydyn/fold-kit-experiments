@@ -1,8 +1,9 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Literal graph outline assertions. */
 import { expect, test } from 'bun:test';
 
-import { createArchitecturePattern, type ZlozGraph } from '@opsydyn/foldkit-zloz';
+import { createArchitecturePattern, parseGraph, type ZlozGraph } from '@opsydyn/foldkit-zloz';
 
+import waypointFixture from '../../foldkit-zloz/test/fixtures/waypoints-v1.json';
 import { exportMermaid, mermaidProtocol, mermaidSourceLimit } from '../src/index';
 
 const graph: ZlozGraph = {
@@ -230,4 +231,16 @@ test('typed causal relationships are explicitly reported as semantic conversion 
     ),
   ).toHaveLength(4);
   expect(exportMermaid(source, { lossPolicy: 'reject' }).status).not.toBe('converted');
+});
+
+test('authored waypoint geometry is an explicit projection loss, never silently promised', () => {
+  const result = exportMermaid(parseGraph(JSON.stringify(waypointFixture)), {
+    lossPolicy: 'report',
+  });
+  expect(result.status).toBe('converted');
+  expect(
+    result.diagnostics.some(
+      (item) => item.code === 'edge-fields-omitted' && item.message.includes('waypoints'),
+    ),
+  ).toBe(true);
 });

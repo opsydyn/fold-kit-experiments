@@ -256,9 +256,17 @@ export function compareEditions(
     edges: changes(
       before.edges,
       after.edges,
-      ({ pathStyle: _path, ...meaning }) => meaning,
-      (edge) => ({ pathStyle: edge.pathStyle, path: edgePath(before, edge) }),
-      (edge) => ({ pathStyle: edge.pathStyle, path: edgePath(after, edge) }),
+      ({ pathStyle: _path, waypoints: _waypoints, ...meaning }) => meaning,
+      (edge) => ({
+        pathStyle: edge.pathStyle,
+        waypoints: edge.waypoints,
+        path: edgePath(before, edge),
+      }),
+      (edge) => ({
+        pathStyle: edge.pathStyle,
+        waypoints: edge.waypoints,
+        path: edgePath(after, edge),
+      }),
     ),
   };
 }

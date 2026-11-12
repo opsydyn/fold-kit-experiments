@@ -84,7 +84,12 @@ export function viewportItems(
     };
     // Built-in straight, stepped and smooth segments stay inside their endpoint envelope.
     // Routed paths can leave that envelope, so include every routed point.
-    for (const point of routes.get(edge.id) ?? []) {
+    const projected =
+      presentation.hiddenBy.has(edge.source.node) || presentation.hiddenBy.has(edge.target.node);
+    const points = projected
+      ? []
+      : (edge.waypoints?.map(({ position }) => position) ?? routes.get(edge.id) ?? []);
+    for (const point of points) {
       edgeBounds.left = Math.min(edgeBounds.left, point.x);
       edgeBounds.top = Math.min(edgeBounds.top, point.y);
       edgeBounds.right = Math.max(edgeBounds.right, point.x);

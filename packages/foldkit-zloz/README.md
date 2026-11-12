@@ -65,6 +65,50 @@ history entries. Undo and measurements advance the revision used to reject stale
 layout results. Selection, viewport, gestures and history are excluded from saved
 documents. Applications own storage and migration beyond document version 1.
 
+## Authored edge waypoints
+
+Named world-space bends are document data, independent of transient layout routes:
+
+```ts
+import {
+  createArchitecturePattern,
+  createEditor,
+  resolveEdgeWaypointEdit,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+
+const waypointEditor = createEditor(createArchitecturePattern('ddd-aggregate'));
+const connection = waypointEditor.graph.edges[0];
+if (!connection) throw new Error('The starter requires a connection');
+const request = {
+  id: connection.id,
+  revision: waypointEditor.revision,
+  waypoints: [{ id: 'outside-boundary', position: { x: 480, y: 240 } }],
+};
+const preview = resolveEdgeWaypointEdit(waypointEditor, request);
+// If allowed, display preview.edge without publishing it, or discard the draft.
+const next = updateEditor(waypointEditor, { type: 'EdgeWaypointsChanged', ...request });
+```
+
+The reducer rechecks live revision, visibility, idle state, read-only/Undo settings
+and `canChangeEdgeWaypoints(edge, next, graph)`. Blockers have visible reasons;
+accepted replacements are detached and create one Undo entry. Preview is pure;
+reset with `waypoints: null`. A non-empty list requires unique non-blank edge-local
+IDs and finite coordinates. Empty lists are invalid. A no-op creates no history.
+
+Authored bends form a polyline between live port anchors and override style/layout
+routing. Custom geometry policies retain final control; path and arc-length label
+anchor are shared by default renderers, hit targets and reconnection previews.
+Endpoint/group movement and layout retain world-space bends; copy/paste and pattern
+insertion translate them with the fragment. Collapsed endpoints temporarily use
+projected group geometry. Minimap, fit/reveal, culling and history include bends;
+edition comparison treats their identity/position as layout rather than meaning.
+
+The optional field round-trips through existing v1 graph, snapshot, model and
+edition codecs. Older readers can retain it, but older renderers cannot display
+it. Mermaid reports waypoint geometry as projection loss. Native editing handles
+and workbench authoring controls are a follow-up; this is the reusable headless API.
+
 ## Headless C4 and DDD nodes
 
 The package owns architecture semantics and outline geometry independently of the

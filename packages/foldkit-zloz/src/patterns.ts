@@ -1,6 +1,7 @@
 import { createArchitectureNode } from './architecture-node';
 import { connectionReason } from './connection-validation';
 import { createContextMapPattern } from './context-map';
+import { translateEdgeWaypoints } from './edge-waypoints';
 import { commitGraph } from './editor';
 import { copyGraph, validateGraph, ZlozError } from './graph';
 import type { EditorPolicy, EditorState, Point, ZlozGraph } from './types';
@@ -133,7 +134,7 @@ export function insertPattern(
         : { ...copy, parentId: nodeIds.get(node.parentId)! };
     }),
     edges: detached.edges.map((edge) => ({
-      ...edge,
+      ...translateEdgeWaypoints(edge, offset),
       id: edgeIds.get(edge.id)!,
       source: { ...edge.source, node: nodeIds.get(edge.source.node)! },
       target: { ...edge.target, node: nodeIds.get(edge.target.node)! },

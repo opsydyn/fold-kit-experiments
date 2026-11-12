@@ -138,13 +138,28 @@ export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
 /** The endpoint of an existing directed edge. */
 export type EdgeEnd = 'source' | 'target';
 
+/** Stable within its edge. Position is an authored world-space bend, not an endpoint. */
+export type ZlozEdgeWaypoint = Readonly<{ id: string; position: Point }>;
+/** Replace all bends atomically. Null restores automatic geometry; revision guards delayed requests. */
+export type ZlozEdgeWaypointEdit = Readonly<{
+  id: string;
+  revision: number;
+  waypoints: readonly ZlozEdgeWaypoint[] | null;
+}>;
+export type ZlozEdgeWaypointEditDecision =
+  | Readonly<{ type: 'unchanged' }>
+  | Readonly<{ type: 'blocked'; reason: string }>
+  | Readonly<{ type: 'allowed'; edge: ZlozEdge }>;
+
 /** A directed output-to-input connection with stable identity and JSON-compatible metadata. */
 export type ZlozEdge = Readonly<{
   id: string;
   source: Endpoint;
   target: Endpoint;
-  /** Omit to use the layout route, with a straight fallback. */
+  /** Used without authored waypoints. Omit to use the layout route, with a straight fallback. */
   pathStyle?: EdgePathStyle;
+  /** Non-empty ordered bends, with unique non-blank IDs. Overrides pathStyle and layout routes. */
+  waypoints?: readonly ZlozEdgeWaypoint[];
   architecture?: ZlozEdgeArchitecture;
   label?: string;
   data?: JsonValue;
@@ -153,6 +168,7 @@ export type ZlozEdge = Readonly<{
 export type ZlozGraph = Readonly<{ nodes: readonly ZlozNode[]; edges: readonly ZlozEdge[] }>;
 /** Versioned document content. Graph-only documents omit the camera. */
 export type ZlozSnapshot = Readonly<{ graph: ZlozGraph; viewport?: Viewport }>;
+/** Transient engine output, including endpoints. Authored bends live on ZlozEdge.waypoints. */
 export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
 export type AlignmentGuide = Readonly<{
   /** A fixed x draws a vertical guide; a fixed y draws a horizontal guide. */
@@ -346,6 +362,8 @@ export type PortEditCandidate = Readonly<{
 
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
+  /** Veto authored bends independently of semantic meaning or reconnection. */
+  canChangeEdgeWaypoints?: (edge: ZlozEdge, next: ZlozEdge, graph: ZlozGraph) => string | null;
   /** Veto semantic changes; receives current node, validated proposed node and current graph. */
   canChangeNodeArchitecture?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
   /** Veto semantic metadata edits independently of wiring and route changes. */
@@ -377,6 +395,7 @@ export type EditorPolicy = Readonly<{
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
+  | Readonly<{ type: 'EdgeWaypointsChanged' } & ZlozEdgeWaypointEdit>
   | Readonly<{ type: 'ContextOpened'; context: EditorContext; anchorToNode?: boolean }>
   | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'ConnectionListToggled' }>

@@ -1,3 +1,4 @@
+import { edgeWaypointBounds } from './edge-waypoints';
 import { ZlozError } from './graph';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names.
 import { nodeShapeBoundaryPoint } from './node-shape';
@@ -140,7 +141,9 @@ export function fittedGroupBounds(contents: readonly ZlozNode[]) {
 }
 
 export function minimapGeometry(
-  graph: Pick<ZlozGraph, 'nodes'>,
+  graph: Pick<ZlozGraph, 'nodes'> &
+    Partial<Pick<ZlozGraph, 'edges'>> &
+    Readonly<{ hiddenBy?: ReadonlyMap<string, ZlozNode> }>,
   surface: Size,
   viewport: Viewport,
 ): ZlozMinimapGeometry {
@@ -160,6 +163,12 @@ export function minimapGeometry(
     right = Math.max(right, node.position.x + node.size.width);
     bottom = Math.max(bottom, node.position.y + node.size.height);
   }
+  for (const { position } of edgeWaypointBounds(graph.edges ?? [], graph.hiddenBy)) {
+    left = Math.min(left, position.x);
+    top = Math.min(top, position.y);
+    right = Math.max(right, position.x);
+    bottom = Math.max(bottom, position.y);
+  }
   const height = Math.max(bottom - top, (right - left) / 1.6) * 1.08;
   const width = height * 1.6;
   return {
@@ -177,7 +186,7 @@ export function fitViewport(
   padding = defaultFitViewPadding,
   zoomLimits: ZoomLimits = defaultZoomLimits,
 ): Viewport {
-  return fitNodes(graph.nodes, size, padding, zoomLimits);
+  return fitNodes([...graph.nodes, ...edgeWaypointBounds(graph.edges)], size, padding, zoomLimits);
 }
 
 export function fitNodes(
@@ -259,15 +268,30 @@ export function edgeGeometry(
   route?: readonly Point[],
   groups?: Readonly<{ source: ZlozNode | undefined; target: ZlozNode | undefined }>,
 ) {
-  if (edge.pathStyle === undefined && route && !groups?.source && !groups?.target) {
+  const projected = groups?.source || groups?.target;
+  if (!edge.waypoints && edge.pathStyle === undefined && route && !projected) {
     return { path: polyline(route), center: polylineMidpoint(route) };
   }
   const { source: start, target: end } = edgeEndpoints(graph, edge, groups);
-  return geometryBetween(start, end, edge.pathStyle);
+  return geometryBetween(
+    start,
+    end,
+    edge.pathStyle,
+    projected ? undefined : edge.waypoints?.map(({ position }) => position),
+  );
 }
 
 /** Shared built-in path geometry for committed edges and incomplete connection previews. */
-export function geometryBetween(start: Point, end: Point, style?: EdgePathStyle) {
+export function geometryBetween(
+  start: Point,
+  end: Point,
+  style?: EdgePathStyle,
+  waypoints?: readonly Point[],
+) {
+  if (waypoints?.length) {
+    const points = [start, ...waypoints, end];
+    return { path: polyline(points), center: polylineMidpoint(points) };
+  }
   const center = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
   if (style === 'stepped' || style === 'smooth') {
     const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y);

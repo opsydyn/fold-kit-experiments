@@ -47,8 +47,19 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
+import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
+const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
+const bends:readonly ZlozEdgeWaypoint[]=[{id:'turn',position:{x:900,y:700}}];
+const waypointRequest:ZlozEdgeWaypointEdit={id:waypointEditor.graph.edges[0].id,revision:waypointEditor.revision,waypoints:bends};
+// @ts-expect-error Every delayed edit carries its source revision
+const missingWaypointRevision:ZlozEdgeWaypointEdit={id:'edge',waypoints:null};
+const waypointDecision:ZlozEdgeWaypointEditDecision=resolveEdgeWaypointEdit(waypointEditor,waypointRequest);
+if(waypointDecision.type!=='allowed')throw new Error('Missing waypoint preview');
+const waypointEdited=updateEditor(waypointEditor,{type:'EdgeWaypointsChanged',...waypointRequest});
+const waypointRestored=parseWaypointGraph(serializeWaypointGraph(waypointEdited.graph));
+if(waypointEdited.past.length!==1||!waypointPath(waypointRestored,waypointRestored.edges[0]).includes('900,700'))throw new Error('Missing portable waypoint transaction');
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};

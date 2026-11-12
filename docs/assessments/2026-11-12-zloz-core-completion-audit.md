@@ -8,8 +8,9 @@ whose inventory remains historical.
 
 **Core is not complete, and full React Flow parity is not established.** The
 EventStorming-to-DDD conversion lifecycle is implemented locally; repeating that
-work would miss the remaining editor and portability gaps. The next recommended
-slice is a headless authored edge-waypoint contract, before its editing UI.
+work would miss the remaining editor and portability gaps. The recommended next
+slice at the audit baseline was a headless authored edge-waypoint contract,
+before its editing UI. The E1 delivery update below records subsequent progress.
 
 ## Scope and evidence rules
 
@@ -79,8 +80,15 @@ app-only demonstration does not close a missing reusable contract.
 
 ### E1 — authored edge waypoints (first)
 
-Current `EditorState.routes` stores layout results. `ZlozEdge` has no authored
-waypoint field; a route returned by ELK is not a portable user edit.
+Original audit gap: `EditorState.routes` stores layout results; at `03e972b`,
+`ZlozEdge` had no authored waypoint field. A route returned by ELK is not a portable
+user edit.
+
+**Delivery update:** the approved headless waypoint contract is implemented on this
+branch; see [ADR 0049](../adr/0049-author-portable-edge-waypoints.md) and
+[package qualification](../../packages/foldkit-zloz/evidence/edge-waypoints.md).
+Composable pointer/keyboard editing handles and workbench visual evidence remain
+open. This update does not retroactively change the original audit baseline.
 
 Completion requires:
 

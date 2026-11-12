@@ -85,26 +85,45 @@ export function createArchitecturePattern(pattern: ArchitecturePattern): ZlozGra
   return graph;
 }
 
-/** Synchronous, policy-aware transaction. Invalid input throws; expected vetoes preserve editor identity. */
-export function insertPattern(
+/** Shared insertion availability; no candidate or transaction is constructed. */
+export function patternInsertionReason(state: EditorState, hasNodes = true): string | null {
+  if (state.readOnly) return 'The working model is read-only.';
+  if (state.gesture.type !== 'idle' || state.connection !== null || state.edgeLabelDraft !== null)
+    return 'Finish active edits before inserting a pattern.';
+  if (hasNodes && state.historyLimit === 0) return 'Enable graph Undo before inserting a pattern.';
+  return null;
+}
+
+/** Internal validated proposal; publication belongs to the calling transaction. */
+export type PatternPreparation =
+  | Readonly<{
+      type: 'ready';
+      graph: ZlozGraph;
+      fragment: ZlozGraph;
+      selectedNodes: readonly string[];
+      nodeIds: ReadonlyMap<string, string>;
+      edgeIds: ReadonlyMap<string, string>;
+    }>
+  | Extract<ZlozPatternInsertionResult, { type: 'blocked' | 'unchanged' }>;
+/** Validate and detach a complete proposal without publishing an editor or history entry. */
+export function preparePatternInsertion(
   state: EditorState,
   fragment: ZlozGraph,
   options: ZlozPatternInsertionOptions = {},
-): ZlozPatternInsertionResult {
+  parent?: Readonly<{ id: string; constrain: boolean }>,
+): PatternPreparation {
   validateGraph(fragment);
   const offset = options.offset ?? { x: 0, y: 0 };
   if (!Number.isFinite(offset.x) || !Number.isFinite(offset.y))
     throw new ZlozError('invalid-edit', 'Pattern offset must be finite.');
-  const blocked = (reason: string): ZlozPatternInsertionResult => ({
+  const blocked = (reason: string): Extract<ZlozPatternInsertionResult, { type: 'blocked' }> => ({
     type: 'blocked',
     editor: state,
     reason: reason.trim() || 'Pattern insertion is protected.',
   });
-  if (state.readOnly) return blocked('The working model is read-only.');
-  if (state.gesture.type !== 'idle' || state.connection !== null || state.edgeLabelDraft !== null)
-    return blocked('Finish active edits before inserting a pattern.');
+  const reason = patternInsertionReason(state, fragment.nodes.length > 0);
+  if (reason !== null) return blocked(reason);
   if (fragment.nodes.length === 0) return { type: 'unchanged', editor: state };
-  if (state.historyLimit === 0) return blocked('Enable graph Undo before inserting a pattern.');
   const occupied = new Set(
     [...state.graph.nodes, ...state.graph.edges, ...fragment.nodes, ...fragment.edges].map(
       (item) => item.id,
@@ -129,9 +148,10 @@ export function insertPattern(
         id: nodeIds.get(node.id)!,
         position: { x: node.position.x + offset.x, y: node.position.y + offset.y },
       };
-      return node.parentId === undefined
-        ? copy
-        : { ...copy, parentId: nodeIds.get(node.parentId)! };
+      if (node.parentId !== undefined) return { ...copy, parentId: nodeIds.get(node.parentId)! };
+      if (!parent) return copy;
+      const owned = { ...copy, parentId: parent.id };
+      return parent.constrain ? { ...owned, extent: 'parent' as const } : owned;
     }),
     edges: detached.edges.map((edge) => ({
       ...translateEdgeWaypoints(edge, offset),
@@ -157,22 +177,35 @@ export function insertPattern(
     );
     if (reason !== null) return blocked(reason);
   }
+  const roots = new Set(
+    fragment.nodes
+      .filter((node) => node.parentId === undefined)
+      .map((node) => nodeIds.get(node.id)),
+  );
   const selectedNodes = inserted.nodes
-    .filter(
-      (node) =>
-        node.parentId === undefined && (policy.canSelectNode?.(node, graph) ?? null) === null,
-    )
+    .filter((node) => roots.has(node.id) && (policy.canSelectNode?.(node, graph) ?? null) === null)
     .map((node) => node.id);
+  return { type: 'ready', graph, fragment: inserted, selectedNodes, nodeIds, edgeIds };
+}
+
+/** Synchronous, policy-aware transaction. Invalid input throws; expected vetoes preserve editor identity. */
+export function insertPattern(
+  state: EditorState,
+  fragment: ZlozGraph,
+  options: ZlozPatternInsertionOptions = {},
+): ZlozPatternInsertionResult {
+  const prepared = preparePatternInsertion(state, fragment, options);
+  if (prepared.type !== 'ready') return prepared;
   return {
     type: 'inserted',
     editor: {
-      ...commitGraph(state, graph),
-      selectedNodes,
+      ...commitGraph(state, prepared.graph),
+      selectedNodes: prepared.selectedNodes,
       selectedEdges: [],
-      notice: `${inserted.nodes.length} pattern nodes inserted`,
+      notice: `${prepared.fragment.nodes.length} pattern nodes inserted`,
     },
-    nodeIds,
-    edgeIds,
+    nodeIds: prepared.nodeIds,
+    edgeIds: prepared.edgeIds,
   };
 }
 

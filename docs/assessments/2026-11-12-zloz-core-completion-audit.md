@@ -121,6 +121,14 @@ may own the palette content and native file/drag adapters. Tests must exercise
 nested/scrolled/zoomed placement and rejected insertion without mutation; record
 light/dark/custom palette evidence.
 
+**Delivery update:** the approved headless contract now supplies scoped sessions,
+normalized palette/external graph sources, explicit coordinate/parent targets,
+grid/node-frame snapping, detached preview and guarded atomic Apply. See
+[ADR 0051](../adr/0051-plan-and-apply-headless-placement.md) and
+[package qualification](../../packages/foldkit-zloz/evidence/placement.md).
+Native/custom palette interaction, measured DOM adapters and workbench visual
+acceptance remain open; synthetic coordinate tests do not establish device parity.
+
 ### E3 — image export
 
 Define an optional reusable SVG/PNG export boundary, with explicit bounds,

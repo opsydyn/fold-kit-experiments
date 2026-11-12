@@ -65,6 +65,88 @@ history entries. Undo and measurements advance the revision used to reject stale
 layout results. Selection, viewport, gestures and history are excluded from saved
 documents. Applications own storage and migration beyond document version 1.
 
+## Headless palette and external placement
+
+Palette cards and normalized external graph fragments use the same pure contract:
+
+```ts
+import {
+  createArchitecturePattern,
+  createEditor,
+  createPlacement,
+  updatePlacement,
+  resolvePlacement,
+  applyPlacement,
+} from '@opsydyn/foldkit-zloz';
+
+const context = {
+  scope: 'orders/editor-session-1',
+  editor: createEditor({ nodes: [], edges: [] }),
+};
+const idle = createPlacement(context.scope);
+const started = updatePlacement(idle, context, {
+  type: 'PlacementStarted',
+  scope: context.scope,
+  generation: idle.generation,
+  intent: {
+    source: { type: 'palette', id: 'c4-context' },
+    fragment: createArchitecturePattern('c4-context'),
+    anchor: { x: 30, y: 65 },
+    snapping: { grid: true, anchorDistance: 12, anchors: ['center'] },
+  },
+});
+const positioned = updatePlacement(started, context, {
+  type: 'PlacementTargetChanged',
+  scope: context.scope,
+  generation: started.generation,
+  target: { space: 'world', point: { x: 100, y: 200 } },
+});
+const preview = resolvePlacement(positioned, context);
+if (preview.type === 'ready') {
+  const result = applyPlacement(positioned, context, preview.request);
+  // On 'placed', publish result.editor and result.placement together in the host Model.
+}
+```
+
+Use a fresh scope when replacing the editor/controller, normally from the host's
+model/session identity. Start captures an immutable source, not a live palette
+object. Cancel with `PlacementCancelled` carrying current scope/generation.
+Preview/cancel leave graph and Undo/Redo unchanged. Apply rebuilds against live
+context and policy; the request pins the reviewed source generation and target
+sample. Old callbacks, changed graph revisions and late vetoes cannot publish.
+Successful Apply is one Undo transaction and ends the session.
+
+`world` targets need no measured surface. `screen` points are canvas-local CSS
+pixels; `client` points use `context.origin` for the current canvas origin. Both
+screen/client modes require `editor.surface`. Zoom, size and scroll-origin changes
+require a fresh target sample. Adapters own current DOM measurements, parsing,
+files/HTML transfers and normalization of additional CSS transforms. External
+sources supply graphs (for example from `parseGraph`), never executable content.
+
+Grid snapping inherits the editor unless overridden. Opt-in visible node-frame
+centre/corner snapping uses a CSS-pixel radius and deterministic ties; empty
+`anchors` disables it. `snapBypassed: true` on a target disables both rules. Snap
+feedback exposes raw/resolved points and a typed anchor when attracted. It does
+not imply collision avoidance or automatic connections.
+
+Set `parentId` on a target for explicit group membership. Only fragment roots
+attach; internal relationships and authored bends are remapped/translated, with
+world coordinates preserved. By default all inserted nodes must fit and roots
+receive parent containment. `constrainToParent: false` permits unconstrained
+membership. No existing group is resized. A missing, hidden or collapsed parent
+blocks with a reason.
+
+Pass the current `ZlozPlacementPolicy` to both preview and Apply. `canPlace`
+receives source metadata and the complete remapped proposal; existing
+`canInsertPattern`, connection/port and selection policies remain composed.
+Read-only/busy/Undo-disabled states reject without changing the editor. The source
+kind/ID and preview request grant no authority. Candidate copies are detached;
+mutating a preview cannot change the captured source or authorize an altered Apply.
+
+Placement state is ephemeral; canonical graph/snapshot/model v1 formats remain
+unchanged. Native/custom palette, pointer/touch and keyboard UI adapters follow
+this headless slice.
+
 ## Authored edge waypoints
 
 Named world-space bends are document data, independent of transient layout routes:

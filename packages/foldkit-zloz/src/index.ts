@@ -411,3 +411,21 @@ export type {
   ZlozEdgeWaypointHandleContext,
   ZlozEdgeWaypointControlsContext,
 } from './waypoint-controls';
+
+export { createPlacement, updatePlacement, resolvePlacement, applyPlacement } from './placement';
+export type {
+  ZlozPlacementSource,
+  ZlozPlacementAnchor,
+  ZlozPlacementIntent,
+  ZlozPlacementTarget,
+  ZlozPlacementTargetSample,
+  ZlozPlacementContext,
+  ZlozPlacement,
+  ZlozPlacementEvent,
+  ZlozPlacementRequest,
+  ZlozPlacementSnap,
+  ZlozPlacementCandidate,
+  ZlozPlacementPolicy,
+  ZlozPlacementPreview,
+  ZlozPlacementResult,
+} from './placement';

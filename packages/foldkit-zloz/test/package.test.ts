@@ -47,7 +47,8 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
+import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
@@ -68,6 +69,16 @@ if(waypointPreview.type!=='allowed'||waypointPreview.edge.waypoints?.[0]?.positi
 if(updateEditor(waypointDrag,{type:'PointerReleased',pointer:1}).past.length!==2)throw new Error('Missing one-Undo drag');
 
 if(waypointEdited.past.length!==1||!waypointPath(waypointRestored,waypointRestored.edges[0]).includes('900,700'))throw new Error('Missing portable waypoint transaction');
+const placementContext:ZlozPlacementContext={scope:'packed/model-session',editor:createEditor({nodes:[],edges:[]})};
+// @ts-expect-error External data is a normalized graph, never an executable source kind
+const invalidPlacementSource:ZlozPlacementSource={type:'script',id:'bad'};
+let pendingPlacement=createPlacement(placementContext.scope);
+pendingPlacement=updatePlacement(pendingPlacement,placementContext,{type:'PlacementStarted',scope:placementContext.scope,generation:pendingPlacement.generation,intent:{source:{type:'external',id:'portable'},fragment:createArchitecturePattern('c4-context'),anchor:{x:30,y:65}}});
+pendingPlacement=updatePlacement(pendingPlacement,placementContext,{type:'PlacementTargetChanged',scope:placementContext.scope,generation:pendingPlacement.generation,target:{space:'world',point:{x:20,y:40}}});
+const placementPreview=resolvePlacement(pendingPlacement,placementContext);
+if(placementPreview.type!=='ready'||placementContext.editor.graph.nodes.length!==0)throw new Error('Missing pure placement preview');
+const placed=applyPlacement(pendingPlacement,placementContext,placementPreview.request);
+if(placed.type!=='placed'||placed.editor.past.length!==1||placed.editor.graph.nodes[0].position.x!==20||placed.placement.type!=='idle')throw new Error('Missing atomic scoped placement');
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};

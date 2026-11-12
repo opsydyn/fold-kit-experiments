@@ -179,8 +179,9 @@ Core is **not complete**. The detailed
 [audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
 are the current checklist; historical receipts qualify only their stated scope.
 
-1. **Editor floor (E1–E3):** reusable palette/external placement (E2) next, then
-   optional image export (E3). E1 waypoint data and controls are implemented below. Layout routes and custom
+1. **Editor floor (E1–E3):** E2 palette/external-placement interaction follows the
+   headless contract below, then optional image export (E3). E1 waypoint data and
+   controls are implemented below. Layout routes and custom
    renderers do not supply an authored-waypoint lifecycle. Each needs public
    contracts, policy/Undo/cancellation tests and consumer/workbench evidence.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
@@ -324,11 +325,18 @@ The workbench offers Off/Native/Custom designs and independent bend protection.
 See [ADR 0050](adr/0050-compose-waypoint-interaction-controls.md) and
 [local qualification](../apps/zloz-demo/evidence/waypoint-controls.md).
 
-**Recommended next:** E2 — define the headless palette/external-placement contract:
-screen-to-world conversion, snapping, source/target placement intent, live policies,
-cancel/stale rejection and one atomic Undo. Then compose native/custom palette
-controls in the workbench. Alchemy remains deferred; core completion still needs
-the remaining feature, scope-decision and qualification gates.
+**Headless palette/external placement — implemented on this branch, unreleased:**
+immutable scoped sessions, explicit world/screen/client targets, grid and optional
+node-frame anchor snapping, parent intent, live policy/freshness checks and one
+atomic Undo. Preview is detached and non-publishing; cancel/restart/commit reject
+old callbacks. Pattern insertion shares private proposal preparation, preserving
+its existing public contract. See [ADR 0051](adr/0051-plan-and-apply-headless-placement.md)
+and [package evidence](../packages/foldkit-zloz/evidence/placement.md).
+
+**Recommended next:** E2 interaction — composable native/custom palette controls,
+pointer/touch and keyboard placement, live origin measurement, preview/reasons and
+cancel/Apply. Demonstrate it in the left-sidebar workbench with light/dark/minimal
+visual evidence. Keep the package contract authoritative; Alchemy remains deferred.
 
 ## Release: Keyed Chart Comparison
 

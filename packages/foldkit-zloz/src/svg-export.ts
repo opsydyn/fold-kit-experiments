@@ -136,7 +136,7 @@ function bounds(value: ZlozSvgBounds): ZlozSvgBounds {
     invalid('Export bounds must have finite extents.');
   return { x: value.x, y: value.y, width: value.width, height: value.height };
 }
-function portablePaint(value: string): boolean {
+export function portablePaint(value: string): boolean {
   if (
     value === 'none' ||
     value === 'transparent' ||

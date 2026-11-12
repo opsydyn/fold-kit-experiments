@@ -145,8 +145,12 @@ labels and custom nodes. A developer screenshot script is not the public API.
 explicit region/theme/background/font/asset inputs and custom-renderer fidelity
 findings. See [ADR 0052](../adr/0052-plan-portable-svg-export.md) and
 [local contract qualification](../../packages/foldkit-zloz/evidence/svg-export.md).
-SVG writing/downloads, actual file/browser qualification and PNG remain open.
-Planning output is not emitted-file evidence.
+The follow-up bounded writer now emits canonical SVG and binds typed vector adapters,
+with actual light/dark/custom/crop/transparent file/browser qualification. See
+[ADR 0053](../adr/0053-write-svg-through-typed-primitives.md) and
+[writer evidence](../../packages/foldkit-zloz/evidence/svg-writer.md). Review/download UI,
+resource-byte embedding, broader browser/font qualification and PNG remain open.
+Planning output alone remains distinct from emitted-file evidence.
 
 ### P1 — strict portable review packet reopening
 

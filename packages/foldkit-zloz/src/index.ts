@@ -457,3 +457,13 @@ export type {
   ZlozSvgThemeTokens,
   ZlozSvgExportPlan,
 } from './svg-export';
+
+export { writeSvgExport } from './svg-writer';
+export type {
+  ZlozSvgPrimitive,
+  ZlozSvgAdapterContext,
+  ZlozSvgAdapter,
+  ZlozSvgWriteOptions,
+  ZlozSvgWriteFinding,
+  ZlozSvgWriteResult,
+} from './svg-writer';

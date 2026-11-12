@@ -301,8 +301,59 @@ font asset. The planner never fetches resources or reads installed fonts.
 Findings identify document/item/theme/asset, code, severity and reason. Unsupported
 findings make the plan `blocked`; other plans are `reviewable`, retaining all loss
 and uncertainty reports. Plans detach inputs and preserve editor/history. They are
-ephemeral, with no graph wire-version change. SVG serialization, downloads, visual
+ephemeral, with no graph wire-version change. The bounded writer below implements SVG serialization. Downloads, broader visual
 qualification and PNG remain subsequent work.
+
+## Standalone SVG writing (unreleased)
+
+```ts
+import { writeSvgExport } from '@opsydyn/foldkit-zloz';
+
+const result = writeSvgExport(snapshot, exportOptions, {
+  idPrefix: 'orders-diagram',
+  allowLosses: false,
+});
+if (result.type === 'written') {
+  // result.svg is standalone XML. Use a host Command/CLI adapter to save/download it.
+  // Review result.findings, including unverified bounds/fonts and custom fidelity.
+}
+```
+
+The writer rebuilds its plan from current inputs. Blocked results contain no SVG;
+losses need explicit `allowLosses: true`. A written file retains all uncertainty
+findings and does not claim DOM parity. Canonical group/node outlines, ports/labels,
+connections/arrows, authored bends and node architecture metadata use shared geometry
+and paints. Dimensions, background and clipping follow the chosen export region.
+DDD/EventStorming edge notation and side-role artwork require an adapter or explicit
+`semantic-edge-fallback` loss acknowledgement; a plain arrow is not semantic parity.
+Editor, camera and Undo remain unchanged. Title/description and all text/identifiers
+are escaped, and characters XML cannot represent block output.
+
+Bind custom SVG declarations with `adapters: [{ id, version, render }]`. Exact
+ID/version must match. The frozen context discriminates `kind: 'node'` with `node`,
+or `kind: 'edge'` with `edge`, `source` and `target`; both include resolved theme and
+font. Render in world coordinates, returning a non-empty array of `ZlozSvgPrimitive`.
+Adapters replace the complete item, including custom port/label artwork. They must
+be pure synchronous host functions; the package does not sandbox arbitrary code.
+
+Primitives support rect, circle, line, polygon, polyline, text and translated groups.
+Paints are supported literals; opacity, stroke width, coordinates and dimensions
+are validated. Text supports newlines, anchor, size and weight. Unknown fields/tags,
+raw markup/CSS/paths, URL paints and active/HTML content reject rather than silently
+omitting content. Use a declared `omit` for intentional omission. Mutation or callback
+failure blocks atomically; read `result.findings` for writer-level reasons.
+
+Embedded font/image/stylesheet declarations currently block too: declaration metadata
+is not validated resource bytes. No fetching or foreignObject is used. Font substitution,
+wrapping and ink bounds remain unverified. Defaults are 10,000 drawing primitives,
+depth 32 and 2,000,000 output UTF-16 code units, configurable through `maxPrimitives`,
+`maxDepth` and `maxCharacters`. These are output/recursion limits, not a peak-memory
+or rendering-speed claim. Supply unique XML-safe `idPrefix` values for multiple inline
+exports. The default prefix is suitable for separate standalone files.
+
+Representative emitted files and browser captures are linked in the
+[writer evidence](evidence/svg-writer.md). Workbench review/download controls,
+resource embedding and PNG are subsequent work.
 
 ## Authored edge waypoints
 

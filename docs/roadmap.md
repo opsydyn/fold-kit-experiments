@@ -182,7 +182,8 @@ are the current checklist; historical receipts qualify only their stated scope.
 1. **Editor floor (E1–E3):** E1 waypoint data/controls and E2 normalized palette
    placement/interaction are implemented below, with package tests and local
    browser evidence. The E3 SVG planning contract is implemented below; SVG
-   writing/visual qualification remains next, before PNG. Physical-device/manual AT
+   writing and representative browser qualification are implemented below;
+   SVG review/download controls remain next, before PNG. Physical-device/manual AT
    acceptance remains distinct from synthetic and Chromium qualification; these
    branch additions are unreleased.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
@@ -348,8 +349,15 @@ fallback, unverified adapters and unsupported content. No SVG file is emitted ye
 See [ADR 0052](adr/0052-plan-portable-svg-export.md) and
 [contract evidence](../packages/foldkit-zloz/evidence/svg-export.md).
 
-**Recommended next:** implement the bounded SVG writer against this plan, with
-representative groups, ports, labels and custom-adapter emitted-file/browser evidence.
+**SVG writer — implemented on this branch, unreleased:** standalone canonical SVG
+strings, shared geometry/labels/ports, safe typed vector adapters, atomic rejection,
+explicit loss acknowledgement and retained uncertainty. Real light/dark/custom/crop/
+transparent files have local Chromium evidence. Resource-byte embedding is unsupported.
+See [ADR 0053](adr/0053-write-svg-through-typed-primitives.md) and
+[writer evidence](../packages/foldkit-zloz/evidence/svg-writer.md).
+
+**Recommended next:** package-owned SVG review/download controls in the workbench,
+with region/theme/background choices, visible findings and explicit loss acceptance.
 Keep PNG and Alchemy deferred.
 
 ## Release: Keyed Chart Comparison

@@ -87,3 +87,7 @@ Verdict: **safe with noted risk** for host declaration completeness, nominal bou
 and unqualified large-model copying cost. The boundary preserves package ownership
 without browser/IO dependencies. Before release rollback is a local commit revert;
 no persisted document migration is required.
+
+**Follow-up delivery:** the bounded standalone writer and actual file/browser
+qualification are recorded in the [writer receipt](svg-writer.md). The planning
+receipt above retains its original source baseline and scope.

@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
@@ -60,6 +60,10 @@ const missingSvgCoverage:ZlozSvgExportOptions={title:'Missing coverage',region:s
 const systemSvgTheme:ZlozSvgExportOptions['theme']={colorScheme:'system'};
 const svgPlan=planSvgExport(waypointEditor,svgOptions);
 if(svgPlan.type!=='reviewable'||svgPlan.background!==null||svgPlan.viewBox.width<=0||!svgPlan.findings.some(f=>f.code==='font-unverified')||waypointEditor.past.length!==0)throw new Error('Missing detached SVG planning contract');
+// @ts-expect-error Raw executable markup is not a portable SVG primitive
+const rawSvg:ZlozSvgPrimitive={type:'raw',markup:'<script/>'};
+const writtenSvg=writeSvgExport(waypointEditor,svgOptions);
+if(writtenSvg.type!=='written'||!writtenSvg.svg.includes('xmlns="http://www.w3.org/2000/svg"')||!writtenSvg.svg.includes('clipPath')||waypointEditor.past.length!==0)throw new Error('Missing standalone SVG writer');
 
 const bends:readonly ZlozEdgeWaypoint[]=[{id:'turn',position:{x:900,y:700}}];
 const waypointRequest:ZlozEdgeWaypointEdit={id:waypointEditor.graph.edges[0].id,revision:waypointEditor.revision,waypoints:bends};

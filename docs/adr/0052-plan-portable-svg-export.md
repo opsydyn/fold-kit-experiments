@@ -105,3 +105,7 @@ if changed after consumers adopt it.
 Before release rollback is a local commit revert, with no data migration. Next:
 implement the bounded SVG writer and representative emitted-file/browser evidence
 from this contract. Keep PNG and Alchemy deferred.
+
+**Approved follow-up:** [ADR 0053](0053-write-svg-through-typed-primitives.md) implements
+the bounded writer with typed adapters and emitted-file/browser evidence. The planning
+record above retains its original scope; resource embedding and PNG remain deferred.

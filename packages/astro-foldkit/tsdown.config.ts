@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     client: 'src/client.ts',
+    'directive-interaction': 'src/directive-interaction.ts',
     server: 'src/server.ts',
     'server-render': 'src/server-render.ts',
     'build-id': 'src/build-id.ts',

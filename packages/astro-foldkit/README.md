@@ -161,6 +161,7 @@ appears in the HTML, and whether it ships JavaScript. Make them per island.
 | --------------------------- | ------------------------------------------------- | ---------------------------- |
 | To be read, never touched   | `prerender: true`, **no directive**               | none for this island         |
 | Interaction, below the fold | `prerender: true`, `client:visible`               | none until it is scrolled to |
+| Interaction, by a few       | `prerender: true`, `client:interaction`           | none until it is touched     |
 | Interaction, immediately    | `prerender: true`, `client:load` or `client:idle` | the runtime, at load         |
 | A browser-only `init`       | no `prerender`, `client:load` or `client:idle`    | the runtime, at load         |
 
@@ -190,13 +191,52 @@ renders before any JavaScript runs. A chart that loses its hover readout by
 going static can keep the information as a native SVG `<title>` on each mark,
 which the browser shows as a tooltip and which costs no runtime.
 
-The renderer warns at build and dev time about the two arrangements that fail
+#### `client:interaction`
+
+The integration adds a `client:interaction` directive. It hydrates a
+pre-rendered island on the reader's first pointer press, focus or key press
+inside it, and replays what they did before it booted:
+
+```astro
+<Counter client:interaction />
+<Counter client:interaction={{ hover: true }} />
+```
+
+FoldKit renders an island fresh rather than adopting the pre-rendered markup,
+so without help the click that started the download would be lost, and text
+typed into the static markup would disappear in the swap. The directive records
+clicks, field edits and focus inside the island, in order, and replays them
+onto the matching elements of the first client render: a field edit arrives as
+`input` and `change` events, a click as a click, and focus and the caret are
+restored. Elements are matched by position, which holds because server and
+client run the same pure `init` and `view`. A step whose element has changed,
+or is now disabled, is skipped. A run of edits to one field replays as its
+final value. With `{ hover: true }` a mouse pointer over the island also starts
+the download, which usually finishes before the click.
+
+The pre-rendered markup never reacts, so replay is faithful only up to the
+first point where the application would have changed the DOM. Typing into a
+field, pressing a button that clears it, then typing again replays the button
+press correctly but leaves the field holding everything typed.
+
+Choose it over `client:visible` only when most readers who see the island never
+use it, and its controls work in the pre-rendered markup. Every interaction
+waits for the download first. On the report page above, under Slow 4G and a
+4× CPU slowdown on a phone viewport, the grid's search was usable 1.65 s after
+the tap with `client:interaction`, against immediately with `client:visible`,
+which had already spent 172 KB while the reader scrolled. That grid also keeps
+its controls disabled until its rows arrive, so the reader's first tap does
+nothing but start the download: `client:visible` is the better choice there.
+
+The renderer warns at build and dev time about the arrangements that misbehave
 without an error, each once per component:
 
 - an island with **no directive and no `prerender`** renders an empty mount and
   ships nothing, so it never displays anything;
 - an island with **`client:visible` and no `prerender`** never intersects, for
-  the reason above, so it never hydrates.
+  the reason above, so it never hydrates;
+- an island with **`client:interaction` and no `prerender`** has no markup to
+  interact with, so it hydrates at once, as `client:load` would.
 
 FoldKit replaces the inner mount, not the outer `<astro-island>`. The outer
 element remains Astro's lifecycle owner, including for empty `client:only`

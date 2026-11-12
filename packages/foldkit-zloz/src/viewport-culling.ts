@@ -67,6 +67,7 @@ export function viewportItems(
   const edges = presentation.edges.filter((edge) => {
     if (
       selectedEdges.has(edge.id) ||
+      (gesture.type === 'edge-waypoint-drag' && gesture.id === edge.id) ||
       edge.label ||
       state.edgeLabelDraft?.id === edge.id ||
       (state.context?.kind === 'edge' && state.context.id === edge.id) ||

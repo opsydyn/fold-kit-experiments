@@ -199,6 +199,8 @@ export type ContextMenuDesign = typeof ContextMenuDesign.Type;
 export const NodeToolbarDesign = Schema.Literals(['off', 'standard', 'compact']);
 export type NodeToolbarDesign = typeof NodeToolbarDesign.Type;
 
+export const WaypointDesign = Schema.Literals(['off', 'native', 'custom']);
+export type WaypointDesign = typeof WaypointDesign.Type;
 export const EdgeToolbarDesign = Schema.Literals(['standard', 'compact']);
 export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
 
@@ -377,6 +379,8 @@ export const Model = Schema.Struct({
   connectionListDesign: ConnectionListDesign,
   contextMenuDesign: ContextMenuDesign,
   nodeToolbarDesign: NodeToolbarDesign,
+  waypointDesign: WaypointDesign,
+  protectWaypointEdits: Schema.Boolean,
   edgeToolbarDesign: EdgeToolbarDesign,
   protectDddRelationships: Schema.Boolean,
   contextMapPresentation: Schema.Boolean,
@@ -494,6 +498,8 @@ export type Model = Readonly<{
   connectionListDesign: ConnectionListDesign;
   contextMenuDesign: ContextMenuDesign;
   nodeToolbarDesign: NodeToolbarDesign;
+  waypointDesign: WaypointDesign;
+  protectWaypointEdits: boolean;
   edgeToolbarDesign: EdgeToolbarDesign;
   protectDddRelationships: boolean;
   contextMapPresentation: boolean;
@@ -609,6 +615,8 @@ export const init = (namespace = 'test-workbench') => ({
     contextMenuDesign: 'standard',
     nodeToolbarDesign: 'off',
     edgeToolbarDesign: 'standard',
+    waypointDesign: 'native',
+    protectWaypointEdits: false,
     protectDddRelationships: false,
     contextMapPresentation: true,
     semanticRelationships: false,

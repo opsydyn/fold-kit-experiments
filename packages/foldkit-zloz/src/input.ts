@@ -28,6 +28,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   let spaceHeld = false;
   let middlePanning = false;
   let anchorDragging = false;
+  let waypointDragging = false;
   let anchorModifier: ZlozPortAnchorSnapBypassModifier | undefined;
   const configuredAnchorModifier = (): ZlozPortAnchorSnapBypassModifier | undefined => {
     const key = element.dataset.flowPortAnchorSnapBypass;
@@ -61,6 +62,18 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const node = handle.getAttribute('data-flow-anchor-node');
     const port = handle.getAttribute('data-flow-anchor-port');
     return node && port ? { node, port } : undefined;
+  };
+  const waypointAt = (target: Element | null) => {
+    const handle = target?.closest('[data-flow-waypoint]');
+    if (!handle || handle.closest('[data-flow-surface]') !== element) return undefined;
+    const id = handle.getAttribute('data-flow-waypoint-edge');
+    const waypointId = handle.getAttribute('data-flow-waypoint');
+    const rawRevision = handle.getAttribute('data-flow-waypoint-revision');
+    if (rawRevision === null) return undefined;
+    const revision = Number(rawRevision);
+    return id && waypointId && Number.isInteger(revision) && revision >= 0
+      ? { id, waypointId, revision, handle }
+      : undefined;
   };
   const cornerOf = (handle: Element | null | undefined) => {
     const corner = handle?.getAttribute('data-flow-resize-corner');
@@ -199,6 +212,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     captured = null;
     middlePanning = false;
     anchorDragging = false;
+    waypointDragging = false;
     anchorModifier = undefined;
     wire = null;
     nodeDragOrigin = null;
@@ -303,7 +317,9 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (
       !target ||
       editable(target) ||
-      target.closest('[data-flow-port]:disabled,[data-flow-anchor-port]:disabled') ||
+      target.closest(
+        '[data-flow-port]:disabled,[data-flow-anchor-port]:disabled,[data-flow-waypoint]:disabled',
+      ) ||
       target.closest('[data-flow-minimap], [data-flow-minimap-frame]')
     )
       return;
@@ -326,6 +342,25 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       }
     }
     if (captured !== null || pinching) return;
+    const waypoint = waypointAt(target);
+    if (waypoint && element.dataset.flowReadonly !== 'true') {
+      waypointDragging = true;
+      captured = event.pointerId;
+      element.setPointerCapture(event.pointerId);
+      if (waypoint.handle instanceof window.HTMLElement)
+        waypoint.handle.focus({ preventScroll: true });
+      event.preventDefault();
+      emit({
+        type: 'EdgeWaypointDragStarted',
+        id: waypoint.id,
+        waypointId: waypoint.waypointId,
+        revision: waypoint.revision,
+        pointer: event.pointerId,
+        point: point(event),
+        snapBypassed: event.altKey,
+      });
+      return;
+    }
     const anchor = anchorEndpointAt(target);
     if (anchor && element.dataset.flowReadonly !== 'true') {
       anchorDragging = true;
@@ -436,9 +471,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       ...wireTargets(event),
     };
     emit(
-      anchorDragging && anchorModifier
-        ? { ...input, portAnchorSnapBypassed: modifierHeld(event, anchorModifier) }
-        : input,
+      waypointDragging
+        ? { ...input, waypointSnapBypassed: event.altKey }
+        : anchorDragging && anchorModifier
+          ? { ...input, portAnchorSnapBypassed: modifierHeld(event, anchorModifier) }
+          : input,
     );
   };
   listen('pointermove', (event) => {
@@ -512,7 +549,12 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       else backgroundClickCount += 1;
       backgroundPressed = false;
     }
-    if (!target || editable(target)) return;
+    if (!target) return;
+    if (target.closest('[data-flow-waypoint-remove]')) {
+      element.focus({ preventScroll: true });
+      return;
+    }
+    if (editable(target)) return;
     const minimap =
       target.closest('[data-flow-minimap]') ??
       target.closest('[data-flow-minimap-frame]')?.querySelector('[data-flow-minimap]');
@@ -585,6 +627,12 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   });
   listen('keydown', (event) => {
     if (!(event instanceof window.KeyboardEvent)) return;
+    if (waypointDragging && captured !== null && event.key === 'Alt') {
+      event.preventDefault();
+      if (!event.repeat)
+        emit({ type: 'EdgeWaypointSnapBypassChanged', pointer: captured, bypassed: event.altKey });
+      return;
+    }
     if (anchorDragging && captured !== null && anchorModifier && event.key === anchorModifier) {
       event.preventDefault();
       if (!event.repeat)
@@ -620,6 +668,49 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       return;
     }
     if (!target || editable(target)) return;
+    const waypoint = waypointAt(target);
+    if (
+      waypoint &&
+      ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Delete', 'Backspace'].includes(event.key)
+    ) {
+      event.preventDefault();
+      if (
+        waypoint.handle.matches(':disabled') ||
+        element.dataset.flowReadonly === 'true' ||
+        captured !== null ||
+        pinching ||
+        event.ctrlKey ||
+        event.metaKey
+      )
+        return;
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        element.focus({ preventScroll: true });
+        if (!event.repeat)
+          emit({
+            type: 'EdgeWaypointRemoved',
+            id: waypoint.id,
+            waypointId: waypoint.waypointId,
+            revision: waypoint.revision,
+          });
+      } else {
+        const configured = Number(waypoint.handle.getAttribute('data-flow-waypoint-step'));
+        const step =
+          (event.altKey ? 1 : Number.isFinite(configured) && configured > 0 ? configured : 1) *
+          (event.shiftKey ? 10 : 1);
+        emit({
+          type: 'EdgeWaypointNudged',
+          id: waypoint.id,
+          waypointId: waypoint.waypointId,
+          revision: waypoint.revision,
+          delta: {
+            x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
+            y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0,
+          },
+          snapBypassed: event.altKey,
+        });
+      }
+      return;
+    }
     const anchor = anchorEndpointAt(target);
     if (
       anchor &&
@@ -751,6 +842,17 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     emit(input);
   });
   listen('keyup', (event) => {
+    if (
+      event instanceof window.KeyboardEvent &&
+      waypointDragging &&
+      captured !== null &&
+      event.key === 'Alt'
+    ) {
+      event.preventDefault();
+      emit({ type: 'EdgeWaypointSnapBypassChanged', pointer: captured, bypassed: event.altKey });
+      return;
+    }
+
     if (
       event instanceof window.KeyboardEvent &&
       anchorDragging &&

@@ -87,8 +87,12 @@ user edit.
 **Delivery update:** the approved headless waypoint contract is implemented on this
 branch; see [ADR 0049](../adr/0049-author-portable-edge-waypoints.md) and
 [package qualification](../../packages/foldkit-zloz/evidence/edge-waypoints.md).
-Composable pointer/keyboard editing handles and workbench visual evidence remain
-open. This update does not retroactively change the original audit baseline.
+The subsequent approved interaction slice adds composable pointer/keyboard
+controls and local light/dark/minimal evidence; see
+[ADR 0050](../adr/0050-compose-waypoint-interaction-controls.md) and
+[workbench qualification](../../apps/zloz-demo/evidence/waypoint-controls.md).
+Comprehensive qualification gates remain open. These updates do not retroactively
+change the original audit baseline.
 
 Completion requires:
 

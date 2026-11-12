@@ -18,6 +18,7 @@ import {
   EdgeLabelDesign,
   NodeToolbarDesign,
   EdgeToolbarDesign,
+  WaypointDesign,
   ContextMenuDesign,
   ConnectionListDesign,
   ResizeReadoutDesign,
@@ -183,6 +184,8 @@ export const Message = defineMessageUnion({
   SelectedConnectionListDesign: { connectionListDesign: ConnectionListDesign },
   SelectedContextMenuDesign: { contextMenuDesign: ContextMenuDesign },
   SelectedNodeToolbarDesign: { nodeToolbarDesign: NodeToolbarDesign },
+  SelectedWaypointDesign: { waypointDesign: WaypointDesign },
+  ClickedWaypointProtection: {},
   SelectedEdgeToolbarDesign: { edgeToolbarDesign: EdgeToolbarDesign },
   SelectedCausalRelationship: {
     modelId: Schema.String,

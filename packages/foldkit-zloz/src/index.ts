@@ -402,3 +402,12 @@ export type {
   ZlozEventStormingDddApplyOptions,
   ZlozEventStormingDddApplyResult,
 } from './event-storming-ddd-apply';
+
+export { resolveEdgeWaypointPreview } from './waypoint-interaction';
+
+export { resolveEdgeWaypointControls } from './waypoint-controls';
+export type {
+  ZlozEdgeWaypointAction,
+  ZlozEdgeWaypointHandleContext,
+  ZlozEdgeWaypointControlsContext,
+} from './waypoint-controls';

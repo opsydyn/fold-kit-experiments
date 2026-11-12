@@ -152,13 +152,18 @@ function baseWorkbenchPolicy({
 }
 
 type WorkbenchPolicyModel = Parameters<typeof baseWorkbenchPolicy>[0] &
-  Pick<Model, 'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'>;
+  Pick<Model, 'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'> &
+  Partial<Pick<Model, 'protectWaypointEdits'>>;
 function editingWorkbenchPolicy(
   model: WorkbenchPolicyModel,
 ): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const base = baseWorkbenchPolicy(model);
   return {
     ...base,
+    canChangeEdgeWaypoints: () =>
+      model.protectWaypointEdits
+        ? 'Routing is managed by the architecture team. Disable bend protection to edit.'
+        : null,
     canChangeEdgeArchitecture: (edge, next, graph) =>
       base.canChangeEdgeArchitecture?.(edge, next, graph) ??
       (model.protectDddRelationships && edge.id === 'orders-billing'

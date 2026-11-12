@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
@@ -59,6 +59,14 @@ const waypointDecision:ZlozEdgeWaypointEditDecision=resolveEdgeWaypointEdit(wayp
 if(waypointDecision.type!=='allowed')throw new Error('Missing waypoint preview');
 const waypointEdited=updateEditor(waypointEditor,{type:'EdgeWaypointsChanged',...waypointRequest});
 const waypointRestored=parseWaypointGraph(serializeWaypointGraph(waypointEdited.graph));
+const waypointControls=resolveEdgeWaypointControls(waypointEdited,waypointRequest.id);
+if(waypointControls?.handles[0]?.waypoint.id!=='turn')throw new Error('Missing composable controls');
+let waypointDrag=updateEditor(waypointEdited,{type:'EdgeWaypointDragStarted',id:waypointRequest.id,waypointId:'turn',revision:waypointEdited.revision,pointer:1,point:{x:0,y:0}});
+waypointDrag=updateEditor(waypointDrag,{type:'PointerMoved',pointer:1,point:{x:20,y:0}});
+const waypointPreview=resolveEdgeWaypointPreview(waypointDrag);
+if(waypointPreview.type!=='allowed'||waypointPreview.edge.waypoints?.[0]?.position.x!==920||waypointDrag.graph!==waypointEdited.graph)throw new Error('Missing pure transient drag');
+if(updateEditor(waypointDrag,{type:'PointerReleased',pointer:1}).past.length!==2)throw new Error('Missing one-Undo drag');
+
 if(waypointEdited.past.length!==1||!waypointPath(waypointRestored,waypointRestored.edges[0]).includes('900,700'))throw new Error('Missing portable waypoint transaction');
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed

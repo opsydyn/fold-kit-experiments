@@ -106,8 +106,41 @@ edition comparison treats their identity/position as layout rather than meaning.
 
 The optional field round-trips through existing v1 graph, snapshot, model and
 edition codecs. Older readers can retain it, but older renderers cannot display
-it. Mermaid reports waypoint geometry as projection loss. Native editing handles
-and workbench authoring controls are a follow-up; this is the reusable headless API.
+it. Mermaid reports waypoint geometry as projection loss. Composable interaction is available through the optional Foldkit adapter:
+
+```ts
+import { zlozView } from '@opsydyn/foldkit-zloz/foldkit';
+
+const canvas = zlozView(h, editor, {
+  id: 'architecture',
+  label: 'Architecture',
+  onEvent,
+  edgeWaypoints: true,
+  canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
+});
+```
+
+Select a connection to add, remove or reset bends. Drag a handle to preview; release
+publishes one Undo transaction. Escape cancels. Arrow keys move in grid steps or
+world units, Shift accelerates and Alt bypasses the grid, including modifier-only
+updates during a drag. Each keyboard action is one Undo. Delete removes the focused
+bend and returns focus to the canvas. A late policy veto or graph revision change
+cannot publish the preview; the canonical graph and exports stay unchanged until
+release. Additional bends split the longest authored segment rather than stacking
+handles at the same anchor.
+
+`resolveEdgeWaypointControls` and `resolveEdgeWaypointPreview` are pure core APIs.
+Override `renderEdgeWaypoints` to compose `zlozEdgeWaypointHandle`,
+`zlozEdgeWaypointAction` and `zlozEdgeWaypointReadout`, or return null to hide all
+controls. Undefined keeps the default. The callback receives `diagnostics`; respect
+`measurements` and `instructions` when displaying optional feedback. The readout
+helper already suppresses measurements. Native semantics are independent of artwork;
+attributes/children and readout attributes are composable. Default actions dock
+inside the measured canvas; context exposes both the route anchor and panel bounds
+for a designer's own placement. Theme tokens style controls in light and dark mode. `waypointLabelOffset` controls
+the CSS-pixel displacement of labels that meet a selected handle (default 32px
+above it; `{ x: 0, y: 0 }` disables the displacement without changing geometry).
+Set `edgeWaypoints: false` to remove controls without changing authored data.
 
 ## Headless C4 and DDD nodes
 

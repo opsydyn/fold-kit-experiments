@@ -642,3 +642,77 @@ test('relocated minimap normalizes its plane once, ignores disabled input and re
   button.click();
   expect(events).toHaveLength(2);
 });
+
+test('waypoint handles delegate keyboard editing, preserve modifiers and never delete the whole edge', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  Object.defineProperty(globalThis, 'KeyboardEvent', {
+    value: window.KeyboardEvent,
+    configurable: true,
+  });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.tabIndex = 0;
+  surface.innerHTML =
+    '<button data-flow-waypoint="bend" data-flow-waypoint-edge="e" data-flow-waypoint-revision="7" data-flow-waypoint-step="20">Move</button><input>';
+  document.body.append(surface);
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => events.push(event));
+  events.length = 0;
+  const handle = surface.querySelector('button');
+  if (!handle) throw new Error('Expected handle');
+  const key = (key: string, options: KeyboardEventInit = {}) =>
+    handle.dispatchEvent(
+      new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options }),
+    );
+  key('ArrowRight');
+  key('ArrowUp', { shiftKey: true });
+  key('ArrowLeft', { altKey: true });
+  expect(events).toEqual([
+    {
+      type: 'EdgeWaypointNudged',
+      id: 'e',
+      waypointId: 'bend',
+      revision: 7,
+      delta: { x: 20, y: 0 },
+      snapBypassed: false,
+    },
+    {
+      type: 'EdgeWaypointNudged',
+      id: 'e',
+      waypointId: 'bend',
+      revision: 7,
+      delta: { x: 0, y: -200 },
+      snapBypassed: false,
+    },
+    {
+      type: 'EdgeWaypointNudged',
+      id: 'e',
+      waypointId: 'bend',
+      revision: 7,
+      delta: { x: -1, y: 0 },
+      snapBypassed: true,
+    },
+  ]);
+  events.length = 0;
+  handle.focus();
+  key('Delete');
+  expect(events).toEqual([
+    { type: 'EdgeWaypointRemoved', id: 'e', waypointId: 'bend', revision: 7 },
+  ]);
+  expect(document.activeElement).toBe(surface);
+  events.length = 0;
+  handle.disabled = true;
+  key('ArrowRight');
+  expect(events).toEqual([]);
+  handle.disabled = false;
+  surface.dataset.flowReadonly = 'true';
+  key('Delete');
+  expect(events).toEqual([]);
+  surface.dataset.flowReadonly = 'false';
+  key('ArrowRight', { ctrlKey: true });
+  expect(events).toEqual([]);
+  release();
+  key('ArrowRight');
+  expect(events).toEqual([]);
+});

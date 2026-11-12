@@ -1117,6 +1117,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedNodeToolbarDesign: ({ nodeToolbarDesign }) => ({
       model: { ...model, nodeToolbarDesign },
     }),
+    SelectedWaypointDesign: ({ waypointDesign }) => ({ model: { ...model, waypointDesign } }),
+    ClickedWaypointProtection: () => ({
+      model: { ...model, protectWaypointEdits: !model.protectWaypointEdits },
+    }),
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),

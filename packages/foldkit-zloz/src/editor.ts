@@ -66,6 +66,12 @@ import type {
   ResizeHandle,
   Viewport,
 } from './types';
+import {
+  startEdgeWaypointDrag,
+  moveEdgeWaypointDrag,
+  nudgeEdgeWaypointRequest,
+  resolveEdgeWaypointPreview,
+} from './waypoint-interaction';
 
 function validateFitViewPadding(padding: number): void {
   if (!Number.isFinite(padding) || padding < 0)
@@ -779,6 +785,35 @@ export function updateEditor(
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  if (event.type === 'EdgeWaypointRemoved') {
+    const edge = state.graph.edges.find((edge) => edge.id === event.id);
+    if (!edge?.waypoints?.some((waypoint) => waypoint.id === event.waypointId)) return state;
+    const waypoints = edge.waypoints.filter((waypoint) => waypoint.id !== event.waypointId);
+    return updateEditor(
+      state,
+      {
+        type: 'EdgeWaypointsChanged',
+        id: event.id,
+        revision: event.revision,
+        waypoints: waypoints.length ? waypoints : null,
+      },
+      policy,
+    );
+  }
+  if (event.type === 'EdgeWaypointDragStarted')
+    return startEdgeWaypointDrag(cancelFit(state), event, policy);
+  if (event.type === 'EdgeWaypointNudged') {
+    const request = nudgeEdgeWaypointRequest(state, event);
+    return request
+      ? updateEditor(state, { type: 'EdgeWaypointsChanged', ...request }, policy)
+      : state;
+  }
+  if (event.type === 'EdgeWaypointSnapBypassChanged') {
+    const drag = state.gesture;
+    return drag.type === 'edge-waypoint-drag' && drag.pointer === event.pointer
+      ? moveEdgeWaypointDrag(state, drag.point, event.bypassed, policy)
+      : state;
+  }
   if (event.type === 'EdgeWaypointsChanged') {
     const decision = resolveEdgeWaypointEdit(state, event, policy);
     if (decision.type === 'blocked') return { ...state, notice: decision.reason };
@@ -1274,6 +1309,13 @@ export function updateEditor(
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       finitePoint(event.point);
+      if (gesture.type === 'edge-waypoint-drag')
+        return moveEdgeWaypointDrag(
+          state,
+          event.point,
+          event.waypointSnapBypassed ?? gesture.bypassed,
+          policy,
+        );
       if (gesture.type === 'port-anchor-drag') {
         const reason = state.readOnly
           ? 'This diagram is read-only.'
@@ -1522,6 +1564,26 @@ export function updateEditor(
     }
     case 'PointerReleased': {
       const gesture = state.gesture;
+      if (gesture.type === 'edge-waypoint-drag') {
+        if (gesture.pointer !== event.pointer) return state;
+        const check = resolveEdgeWaypointPreview(state, policy);
+        const idle: EditorState = { ...state, gesture: { type: 'idle' } };
+        return check.type === 'blocked'
+          ? { ...idle, notice: check.reason }
+          : check.type === 'allowed'
+            ? updateEditor(
+                idle,
+                {
+                  type: 'EdgeWaypointsChanged',
+                  id: gesture.id,
+                  revision: gesture.revision,
+                  waypoints: check.edge.waypoints ?? null,
+                },
+                policy,
+              )
+            : idle;
+      }
+
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       if (gesture.type === 'port-anchor-drag') {

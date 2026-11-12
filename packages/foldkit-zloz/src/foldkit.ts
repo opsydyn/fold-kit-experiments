@@ -2,6 +2,18 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+import {
+  resolveEdgeWaypointControls,
+  type ZlozEdgeWaypointControlsContext,
+} from './waypoint-controls';
+import { zlozEdgeWaypoints } from './waypoint-controls-view';
+import { resolveEdgeWaypointPreview } from './waypoint-interaction';
+export {
+  zlozEdgeWaypoints,
+  zlozEdgeWaypointHandle,
+  zlozEdgeWaypointAction,
+  zlozEdgeWaypointReadout,
+} from './waypoint-controls-view';
 export {
   zlozEndpointSearchInput,
   zlozEndpointSearchClear,
@@ -241,7 +253,7 @@ export { resolveZlozDiagnostics } from './diagnostics';
 export type { ZlozDiagnostics, ZlozDiagnosticOptions } from './diagnostics';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type ZlozEdgeGeometryPolicy } from './edge-geometry';
-import { boxBounds, portBoundaryPosition } from './geometry';
+import { boxBounds, finitePoint, portBoundaryPosition } from './geometry';
 import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
 import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 export type {
@@ -498,6 +510,19 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     canResizeNode?: EditorPolicy['canResizeNode'];
     canSelectNode?: EditorPolicy['canSelectNode'];
     canSelectEdge?: EditorPolicy['canSelectEdge'];
+    /** Opt-in controls for the selected visible connection. */
+    edgeWaypoints?: boolean;
+    /** CSS-pixel label displacement when a selected authored bend meets its anchor. Defaults to { x: 0, y: -32 }; zero disables. */
+    waypointLabelOffset?: Point;
+    canChangeEdgeWaypoints?: EditorPolicy['canChangeEdgeWaypoints'];
+    /** Undefined uses the default; null hides controls. Native helpers retain delegated input. */
+    renderEdgeWaypoints?:
+      | ((
+          context: ZlozEdgeWaypointControlsContext & Readonly<{ diagnostics: ZlozDiagnostics }>,
+          h: HtmlBuilder<M>,
+        ) => Html | null | undefined)
+      | undefined;
+
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: ZlozEdgeToolbarContext,
@@ -1629,6 +1654,7 @@ export function zlozView<M>(
     (!Number.isFinite(doubleClickZoomFactor) || doubleClickZoomFactor <= 1)
   )
     throw new RangeError('Double-click zoom factor must be finite and greater than 1');
+  if (options.waypointLabelOffset) finitePoint(options.waypointLabelOffset);
   const diagnostics = resolveZlozDiagnostics(options);
   const presentation = presentVisibleGraph(state);
   const selectionPreview =
@@ -1914,16 +1940,23 @@ export function zlozView<M>(
       );
   const nodeLayer = options.nodeViewCache && !canRetainNodes ? [nodeLayerFrame(h, nodes)] : nodes;
   const markerId = `${options.id}-arrow`;
-  const edgeGeometries = canvas.edges.map((edge) => ({
-    edge,
-    selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
-    ...resolveEdgeGeometry(state.graph, edge, {
-      policy: options.edgeGeometry,
-      route: routes.get(edge.id),
-      sourceGroup: presentation.hiddenBy.get(edge.source.node),
-      targetGroup: presentation.hiddenBy.get(edge.target.node),
-    }),
-  }));
+  const waypointPreview = resolveEdgeWaypointPreview(state, options);
+  const edgeGeometries = canvas.edges.map((stored) => {
+    const edge =
+      waypointPreview.type === 'allowed' && waypointPreview.edge.id === stored.id
+        ? waypointPreview.edge
+        : stored;
+    return {
+      edge,
+      selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
+      ...resolveEdgeGeometry(state.graph, edge, {
+        policy: options.edgeGeometry,
+        route: routes.get(edge.id),
+        sourceGroup: presentation.hiddenBy.get(edge.source.node),
+        targetGroup: presentation.hiddenBy.get(edge.target.node),
+      }),
+    };
+  });
   const toolbarEnabled = options.edgeToolbar === true && !state.readOnly;
   const toolbarId = `${encodeURIComponent(options.id)}-edge-actions`;
   const activeEdge =
@@ -1984,6 +2017,21 @@ export function zlozView<M>(
   };
   const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition, selectionDisabledReason }) => {
     const selected = state.selectedEdges.includes(edge.id);
+    const offsetLabel =
+      options.edgeWaypoints &&
+      selected &&
+      !presentation.hiddenBy.has(edge.source.node) &&
+      !presentation.hiddenBy.has(edge.target.node) &&
+      labelPosition &&
+      edge.waypoints?.some(
+        ({ position }) =>
+          Math.hypot(position.x - labelPosition.x, position.y - labelPosition.y) *
+            state.viewport.zoom <
+          28,
+      );
+    const labelOffset = offsetLabel
+      ? (options.waypointLabelOffset ?? { x: 0, y: -32 })
+      : { x: 0, y: 0 };
     const labelEditable = !state.readOnly && selectionDisabledReason === undefined;
     const draft =
       labelEditable && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
@@ -2021,8 +2069,8 @@ export function zlozView<M>(
           h.DataAttribute('flow-no-drag', ''),
           h.Style({
             position: 'absolute',
-            left: `${labelPosition.x}px`,
-            top: `${labelPosition.y}px`,
+            left: `${labelPosition.x + labelOffset.x / state.viewport.zoom}px`,
+            top: `${labelPosition.y + labelOffset.y / state.viewport.zoom}px`,
             transform: 'translate(-50%, -50%)',
             'pointer-events': labelEditable ? 'auto' : 'none',
             'z-index': draft ? '2' : 'auto',
@@ -2446,6 +2494,20 @@ export function zlozView<M>(
           ),
           ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
           ...edgeLabels,
+          ...(options.edgeWaypoints && state.selectedEdges.length === 1
+            ? (() => {
+                const selectedId = state.selectedEdges[0];
+                if (selectedId === undefined) return [];
+                const context = resolveEdgeWaypointControls(state, selectedId, options);
+                if (!context || !visibleEdges.some((edge) => edge.id === context.edge.id))
+                  return [];
+                const custom = options.renderEdgeWaypoints?.({ ...context, diagnostics }, h);
+                return custom === null
+                  ? []
+                  : [custom ?? zlozEdgeWaypoints(h, context, options.onEvent, diagnostics)];
+              })()
+            : []),
+
           ...(worldOverlay === null || worldOverlay === undefined
             ? []
             : [

@@ -179,8 +179,8 @@ Core is **not complete**. The detailed
 [audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
 are the current checklist; historical receipts qualify only their stated scope.
 
-1. **Editor floor (E1–E3):** composable authoring handles for the packaged waypoint
-   contract first, then reusable palette/external placement and optional image export. Layout routes and custom
+1. **Editor floor (E1–E3):** reusable palette/external placement (E2) next, then
+   optional image export (E3). E1 waypoint data and controls are implemented below. Layout routes and custom
    renderers do not supply an authored-waypoint lifecycle. Each needs public
    contracts, policy/Undo/cancellation tests and consumer/workbench evidence.
 2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
@@ -315,12 +315,20 @@ moves preserve their authored world positions. Native authoring controls remain
 open. See [ADR 0049](adr/0049-author-portable-edge-waypoints.md) and
 [package evidence](../packages/foldkit-zloz/evidence/edge-waypoints.md).
 
-**Recommended next:** E1 interaction — composable waypoint handles and feedback
-with pointer/keyboard editing, cancel/bypass and one Undo per completed gesture.
-Demonstrate native and custom controls in the light/dark/minimal workbench. Keep
-the package headless contract authoritative. Proposed positioning remains a
-hypothesis: model a domain with people, explore its evolution and review/communicate
-the same portable model with human and agent tooling.
+**Composable waypoint controls — implemented on this branch, unreleased:** public
+transient gesture/preview and control resolvers, native handle/action/readout helpers
+and an opt-in Foldkit slot. Pointer drag commits once on release; Escape discards,
+arrow keys nudge, Alt bypasses the grid and Delete removes the focused bend. Live
+policy/revision checks, diagnostics preferences and light/dark themes remain shared.
+The workbench offers Off/Native/Custom designs and independent bend protection.
+See [ADR 0050](adr/0050-compose-waypoint-interaction-controls.md) and
+[local qualification](../apps/zloz-demo/evidence/waypoint-controls.md).
+
+**Recommended next:** E2 — define the headless palette/external-placement contract:
+screen-to-world conversion, snapping, source/target placement intent, live policies,
+cancel/stale rejection and one atomic Undo. Then compose native/custom palette
+controls in the workbench. Alchemy remains deferred; core completion still needs
+the remaining feature, scope-decision and qualification gates.
 
 ## Release: Keyed Chart Comparison
 

@@ -125,6 +125,7 @@ import {
   EdgeLabelDesign,
   NodeToolbarDesign,
   EdgeToolbarDesign,
+  WaypointDesign,
   ContextMenuDesign,
   ConnectionListDesign,
   ResizeReadoutDesign,
@@ -168,6 +169,7 @@ import { relationshipControlsContext } from './relationship-controls';
 import { workbenchPacketContext } from './review-packet';
 import { searchDiagram } from './search';
 import { workbenchThemes } from './theme';
+import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
 
 type WorkbenchEdgeHooks = {
@@ -2096,6 +2098,38 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.label(
         [h.Class('workbench-field')],
         [
+          'Waypoint controls',
+          h.select(
+            [
+              h.AriaLabel('Waypoint controls'),
+              h.Value(model.waypointDesign),
+              h.OnChange((value) =>
+                Message.SelectedWaypointDesign({
+                  waypointDesign: Schema.decodeUnknownSync(WaypointDesign)(value),
+                }),
+              ),
+            ],
+            ['off', 'native', 'custom'].map((value) =>
+              h.option([h.Value(value), h.Selected(model.waypointDesign === value)], [value]),
+            ),
+          ),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-check')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.AriaLabel('Protect bend editing'),
+            h.Checked(model.protectWaypointEdits),
+            h.OnClick(Message.ClickedWaypointProtection()),
+          ]),
+          'Protect bend editing',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
           'Context menus',
           h.select(
             [
@@ -3805,6 +3839,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               model.sidebarSection === 'diagram' &&
               !model.sidebarCollapsed
             ),
+          edgeWaypoints: model.waypointDesign !== 'off',
+          canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
+          renderEdgeWaypoints:
+            model.waypointDesign === 'custom'
+              ? (context, builder) => customWaypointControls(context, builder, zlozInput)
+              : undefined,
           edgeReconnection: true,
           connectionCreation: true,
           renderConnectionCreation: (context, builder) =>

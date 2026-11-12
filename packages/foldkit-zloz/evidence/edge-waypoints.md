@@ -16,6 +16,11 @@ in the commit containing this receipt. Decision: [ADR 0049](../../../docs/adr/00
 - **next:** needs review; then compose pointer/keyboard waypoint controls and native
   and custom workbench examples in light/dark/minimal mode.
 
+**Follow-up delivery:** the approved interaction slice now supplies package-level
+native/custom controls and workbench evidence. See the
+[interaction receipt](../../../apps/zloz-demo/evidence/waypoint-controls.md).
+This receipt retains the earlier headless slice's scope and source baseline.
+
 ## Contract and ownership
 
 Core exports `ZlozEdgeWaypoint`, `ZlozEdgeWaypointEdit`,

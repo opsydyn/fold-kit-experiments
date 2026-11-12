@@ -196,6 +196,17 @@ type NodeGesture = Readonly<{
   ids: readonly string[];
 }>;
 export type Gesture =
+  | Readonly<{
+      type: 'edge-waypoint-drag';
+      id: string;
+      waypointId: string;
+      revision: number;
+      pointer: number;
+      origin: Point;
+      start: Point;
+      point: Point;
+      bypassed: boolean;
+    }>
   | Readonly<{ type: 'idle' }>
   | Readonly<{
       type: 'port-anchor-drag';
@@ -396,6 +407,25 @@ export type EditorPolicy = Readonly<{
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
   | Readonly<{ type: 'EdgeWaypointsChanged' } & ZlozEdgeWaypointEdit>
+  | Readonly<{
+      type: 'EdgeWaypointDragStarted';
+      id: string;
+      waypointId: string;
+      revision: number;
+      pointer: number;
+      point: Point;
+      snapBypassed?: boolean;
+    }>
+  | Readonly<{
+      type: 'EdgeWaypointNudged';
+      id: string;
+      waypointId: string;
+      revision: number;
+      delta: Point;
+      snapBypassed?: boolean;
+    }>
+  | Readonly<{ type: 'EdgeWaypointRemoved'; id: string; waypointId: string; revision: number }>
+  | Readonly<{ type: 'EdgeWaypointSnapBypassChanged'; pointer: number; bypassed: boolean }>
   | Readonly<{ type: 'ContextOpened'; context: EditorContext; anchorToNode?: boolean }>
   | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'ConnectionListToggled' }>
@@ -441,6 +471,7 @@ export type EditorEvent =
       /** Nearby rendered ports in ascending distance order, used only without an exact target. */
       nearbyTargets?: readonly NearbyTarget[];
       portAnchorSnapBypassed?: boolean;
+      waypointSnapBypassed?: boolean;
     }>
   | Readonly<{
       type: 'DragPanned';

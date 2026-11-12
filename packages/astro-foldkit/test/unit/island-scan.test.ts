@@ -26,6 +26,7 @@ const scanPlugin = (root: string): VitePlugin | undefined => {
   // SAFETY: The test fixture supplies only the setup members the integration reads.
   setup({
     config: { root: pathToFileURL(`${root}/`), srcDir: pathToFileURL(`${root}/src/`) },
+    addClientDirective: () => {},
     addRenderer: () => {},
     updateConfig: (config: { readonly vite?: { readonly plugins?: ReadonlyArray<unknown> } }) => {
       updates.push(config);

@@ -277,6 +277,14 @@ describe('astro-foldkit island diagnostics', () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain('InvisibleIsland');
   });
 
+  it('warns when client:interaction is used without pre-rendering, because the empty mount has nothing to wait on', async () => {
+    const warn = warnings();
+    await render('UntouchableIsland', 'interaction', false);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('client:interaction');
+    expect(String(warn.mock.calls[0]?.[0])).toContain('UntouchableIsland');
+  });
+
   it('stays quiet for client:load without pre-rendering, which hydrates whatever its size', async () => {
     const warn = warnings();
     await render('LoadIsland', 'load', false);
@@ -288,6 +296,7 @@ describe('astro-foldkit island diagnostics', () => {
     const warn = warnings();
     await render('StaticIsland', undefined, true);
     await render('VisibleIsland', 'visible', true);
+    await render('InteractionIsland', 'interaction', true);
     expect(warn).not.toHaveBeenCalled();
   });
 

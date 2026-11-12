@@ -24,6 +24,7 @@ const configuredBuildId = async (integration: ReturnType<typeof foldkit>) => {
   // SAFETY: The test fixture establishes this value before the assertion.
   setup({
     config: { root, srcDir: new URL('src/', root) },
+    addClientDirective: () => {},
     addRenderer: () => {},
     updateConfig: (config: { readonly vite?: { readonly plugins?: ReadonlyArray<unknown> } }) => {
       updateCalls.push(config);

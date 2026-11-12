@@ -78,6 +78,13 @@ function focusOptions(model: Model) {
       item.change.kind === 'removed' ? 'This change is absent on this side of the receipt.' : null,
   };
 }
+function sideAvailability(model: Model): string | null {
+  return !model.receiptReview?.focusedChange &&
+    !model.receiptRead &&
+    model.receiptReview?.editor.gesture.type === 'idle'
+    ? null
+    : focusOptions(model).blockedReason;
+}
 export function receiptChangeNavigation(model: Model, side: ReceiptReview['side']) {
   return resolveHistoryChangeNavigator(
     model.receiptReview ? receiptComparison(model.receiptReview, side) : null,
@@ -181,6 +188,7 @@ const receiptMessages = new Set<string>([
   'ClickedCancelReceiptRead',
   'ClickedCloseReceiptReview',
   'SelectedReceiptSide',
+  'ClickedReceiptOverview',
   'ObservedReceiptInput',
   'ClickedReceiptChange',
   'ClickedReceiptChangeStep',
@@ -283,6 +291,23 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
     Match.tag('SelectedReceiptSide', (input): Return<Model, Message> => {
       const review = model.receiptReview;
       if (!review || review.id !== input.id || review.side === input.side) return { model };
+      if (model.sidebarSection !== 'mapping' || model.sidebarCollapsed) return { model };
+      const reason = sideAvailability(model);
+      if (reason) return { model: { ...model, receiptReviewNotice: reason } };
+      if (review.focusedChange) {
+        const comparison = receiptComparison(review, input.side);
+        const decision = resolveHistoryChangeFocus(
+          comparison,
+          {
+            baselineId: comparison.baseline.id,
+            selectedId: comparison.selected.id,
+            ...review.focusedChange,
+          },
+          focusOptions(model),
+        );
+        return { model: focusReceipt(model, input.side, decision) };
+      }
+
       return {
         model: {
           ...model,
@@ -292,6 +317,30 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
             focusedChange: null,
             editor: preview(review.receipt, input.side),
           },
+        },
+      };
+    }),
+    Match.tag('ClickedReceiptOverview', (input): Return<Model, Message> => {
+      const review = model.receiptReview;
+      if (
+        !review ||
+        review.id !== input.id ||
+        review.side !== input.side ||
+        model.sidebarSection !== 'mapping' ||
+        model.sidebarCollapsed
+      )
+        return { model };
+      const reason = focusOptions(model).blockedReason;
+      if (reason) return { model: { ...model, receiptReviewNotice: reason } };
+      const next = updateHistoryReview(
+        { editionId: String(review.id), editor: review.editor },
+        { type: 'FitViewClicked' },
+      );
+      return {
+        model: {
+          ...model,
+          receiptReview: { ...review, focusedChange: null, editor: next.editor },
+          receiptReviewNotice: `Showing receipt overview ${review.side} conversion. Selection cleared; working model preserved.`,
         },
       };
     }),
@@ -377,6 +426,8 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const review = model.receiptReview;
   const changes = review ? receiptComparison(review) : null;
   const steps = receiptChangeSteps(model);
+  const sideReason = sideAvailability(model);
+  const overviewReason = focusOptions(model).blockedReason;
   const navigation = {
     before: receiptChangeNavigation(model, 'before'),
     after: receiptChangeNavigation(model, 'after'),
@@ -451,6 +502,8 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
                     [
                       h.Type('button'),
                       h.AriaPressed(review.side === side ? 'true' : 'false'),
+                      h.Disabled(sideReason !== null),
+                      ...(sideReason ? [h.AriaDescribedBy('receipt-navigation-reason')] : []),
                       h.OnClick(Message.SelectedReceiptSide({ id: review.id, side })),
                     ],
                     [side === 'before' ? 'Before conversion' : 'After conversion'],
@@ -459,15 +512,11 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
                 h.button(
                   [
                     h.Type('button'),
-                    h.OnClick(
-                      Message.ObservedReceiptInput({
-                        id: review.id,
-                        side: review.side,
-                        message: { type: 'FitViewClicked' },
-                      }),
-                    ),
+                    h.Disabled(overviewReason !== null),
+                    ...(overviewReason ? [h.AriaDescribedBy('receipt-navigation-reason')] : []),
+                    h.OnClick(Message.ClickedReceiptOverview({ id: review.id, side: review.side })),
                   ],
-                  ['Fit receipt diagram'],
+                  ['Show receipt overview'],
                 ),
                 h.button(
                   [h.Type('button'), h.OnClick(Message.ClickedCloseReceiptReview())],
@@ -475,6 +524,9 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
                 ),
               ],
             ),
+            ...(sideReason || overviewReason
+              ? [h.p([h.Id('receipt-navigation-reason')], [sideReason ?? overviewReason ?? ''])]
+              : []),
             h.details(
               [],
               [

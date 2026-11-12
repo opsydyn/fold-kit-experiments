@@ -246,7 +246,7 @@ async function run() {
   await page.screenshot({
     path: fileURLToPath(new URL('receipt-focus-dark.png', import.meta.url)),
   });
-  await review.getByRole('button', { name: 'Fit receipt diagram', exact: true }).click();
+  await review.getByRole('button', { name: 'Show receipt overview', exact: true }).click();
   await expect(review.locator('.receipt-change--focused')).toHaveCount(0);
   await section('Diagnostics');
   await button('Minimal mode').click();

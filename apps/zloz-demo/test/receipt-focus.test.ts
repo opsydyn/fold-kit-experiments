@@ -16,7 +16,11 @@ import type { HtmlBuilder } from 'foldkit/html';
 
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
-import { receiptChangeNavigation, receiptReviewPanel } from '../src/editor/receipt-review';
+import {
+  receiptChangeNavigation,
+  receiptChangeSteps,
+  receiptReviewPanel,
+} from '../src/editor/receipt-review';
 import { update } from '../src/editor/update';
 async function ready() {
   const graph = {
@@ -199,7 +203,7 @@ test('stale scopes, unknown changes, hidden controls, loading, missing measureme
   const closed = update(model, Message.ClickedCloseReceiptReview()).model;
   expect(update(closed, message).model).toBe(closed);
 });
-test('side reset and manual navigation clear the focus marker; measurement callbacks retain it', async () => {
+test('side switches and measurement callbacks retain focus; manual navigation clears it', async () => {
   const model = await ready(),
     focused = update(model, request(model, 'after', 'node', 'event')).model;
   const review = focused.receiptReview;
@@ -227,7 +231,7 @@ test('side reset and manual navigation clear the focus marker; measurement callb
     focused,
     Message.SelectedReceiptSide({ id: review.id, side: 'before' }),
   ).model;
-  expect(reset.receiptReview?.focusedChange).toBeNull();
+  expect(reset.receiptReview?.focusedChange).toEqual({ entity: 'node', id: 'event' });
   preserved(model, reset);
 });
 test('native focus controls and unavailable reasons remain visible with minimal diagnostics', async () => {
@@ -260,6 +264,8 @@ test('native focus controls and unavailable reasons remain visible with minimal 
   expect(html).toContain('Focus node Order placed before conversion');
   expect(html).toContain('Focus connection Emits after conversion');
   expect(html).toContain('Waiting for the receipt canvas measurement');
+  expect(html).toMatch(/<button\b(?=[^>]*disabled)[^>]*>Show receipt overview<\/button>/u);
+  expect(html).toContain('aria-describedby="receipt-navigation-reason"');
   expect(html).toMatch(
     /<button\b(?=[^>]*aria-label="Focus node Order placed before conversion")(?=[^>]*disabled)[^>]*>/u,
   );
@@ -407,4 +413,108 @@ test('minimal-mode transport exposes its position and native boundary reasons', 
   expect(html).toMatch(
     /<button\b(?=[^>]*aria-label="Next receipt change")(?=[^>]*disabled)[^>]*>/u,
   );
+});
+
+test('switching sides keeps the focused node or connection and its traversal position', async () => {
+  const start = await ready();
+  for (const [entity, id, center] of [
+    ['node', 'event', { x: 1020, y: 480 }],
+    ['edge', 'emits', { x: 570, y: 280 }],
+  ] as const) {
+    let model = update(start, request(start, 'after', entity, id)).model;
+    for (const side of ['before', 'after'] as const) {
+      assert(model.receiptReview);
+      const previous = model;
+      model = update(
+        model,
+        Message.SelectedReceiptSide({ id: model.receiptReview.id, side }),
+      ).model;
+      const review = model.receiptReview;
+      assert(review);
+      expect(review.side).toBe(side);
+      expect(review.focusedChange).toEqual({ entity, id });
+      expect(review.editor.viewport.x + center.x * review.editor.viewport.zoom).toBeCloseTo(500);
+      expect(review.editor.viewport.y + center.y * review.editor.viewport.zoom).toBeCloseTo(300);
+      expect(receiptChangeSteps(model).position).toBe(entity === 'node' ? 1 : 2);
+      expect(review.editor.graph.nodes[1]?.architecture?.family).toBe(
+        side === 'before' ? 'event-storming' : 'ddd',
+      );
+      preserved(previous, model);
+      const stale = update(
+        model,
+        Message.ObservedReceiptInput({
+          id: review.id,
+          side: side === 'before' ? 'after' : 'before',
+          message: { type: 'ViewportNudged', delta: { x: 90, y: 0 } },
+        }),
+      ).model;
+      expect(stale).toBe(model);
+    }
+  }
+});
+test('explicit overview clears the cursor even when the camera already frames the full graph', async () => {
+  const start = await ready(),
+    focused = update(start, request(start, 'after', 'edge', 'emits')).model;
+  assert(focused.receiptReview);
+  const model = {
+    ...focused,
+    receiptReview: {
+      ...focused.receiptReview,
+      editor: {
+        ...focused.receiptReview.editor,
+        zoomLimits: { minZoom: 0.1, maxZoom: focused.receiptReview.editor.viewport.zoom },
+      },
+    },
+  };
+  const result = update(
+    model,
+    Message.ClickedReceiptOverview({ id: model.receiptReview.id, side: 'after' }),
+  );
+  expect(result.commands ?? []).toEqual([]);
+  expect(result.model.receiptReview?.focusedChange).toBeNull();
+  expect(result.model.receiptReview?.side).toBe('after');
+  expect(result.model.receiptReview?.editor.viewport).toEqual(model.receiptReview.editor.viewport);
+  expect(receiptChangeSteps(result.model).position).toBeNull();
+  expect(result.model.receiptReviewNotice).toContain('overview');
+  preserved(model, result.model);
+});
+test('side continuity and overview recheck current availability and visible receipt scope', async () => {
+  const start = await ready(),
+    model = update(start, request(start, 'after', 'node', 'event')).model;
+  const review = model.receiptReview;
+  assert(review);
+  for (const changed of [
+    { ...model, sidebarCollapsed: true },
+    { ...model, sidebarSection: 'diagnostics' as const },
+    {
+      ...model,
+      receiptRead: { id: 1000, modelId: model.modelIdentity.id, epoch: model.modelEpoch },
+    },
+    { ...model, receiptReview: { ...review, editor: { ...review.editor, surface: null } } },
+    {
+      ...model,
+      receiptReview: {
+        ...review,
+        editor: updateEditor(review.editor, {
+          type: 'PanStarted',
+          pointer: 1,
+          point: { x: 20, y: 20 },
+        }),
+      },
+    },
+  ]) {
+    for (const message of [
+      Message.SelectedReceiptSide({ id: review.id, side: 'before' }),
+      Message.ClickedReceiptOverview({ id: review.id, side: 'after' }),
+    ]) {
+      const next = update(changed, message).model;
+      expect(next.receiptReview).toBe(changed.receiptReview);
+      preserved(changed, next);
+    }
+  }
+  for (const message of [
+    Message.ClickedReceiptOverview({ id: review.id - 1, side: 'after' }),
+    Message.ClickedReceiptOverview({ id: review.id, side: 'before' }),
+  ])
+    expect(update(model, message).model).toBe(model);
 });

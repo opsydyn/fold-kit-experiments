@@ -648,7 +648,8 @@ Each active model shows its own receipts. **Download conversion receipt** export
 the package's full original/converted model and mapping envelope through a Command.
 Failures leave the receipt retained for retry. Receipts live in this tab: download
 them to preserve provenance after closing it. Model-only JSON does not contain the
-receipt collection. No automatic persistence, receipt import or replay is provided.
+receipt collection. No automatic persistence or conversion replay is provided. Downloaded receipts
+can be reopened for read-only comparison, as described below.
 
 See [Apply browser evidence](evidence/mapping-apply.md) for source/target equality,
 Undo/Redo, per-model retention, policy guards and light/dark captures.
@@ -658,7 +659,7 @@ Undo/Redo, per-model retention, policy guards and light/dark captures.
 In **Mapping review**, choose **Open conversion receipt** and select the downloaded
 `foldkit-zloz.conversion-*.json` file (UTF-8 v1 JSON, up to 5 MiB). The workbench
 validates its original/converted documents and opens a detached **read-only receipt**
-canvas. Use **Before conversion**, **After conversion** and **Fit receipt diagram**
+canvas. Use **Before conversion**, **After conversion** and **Show receipt overview**
 to inspect the recorded change. The sidebar shows semantic/layout differences,
 ancestry, source identifiers and recorded loss reasons. Theme and minimal diagnostics
 remain available; editing controls are unavailable during comparison.
@@ -689,3 +690,12 @@ end and show why they are unavailable. The position readout remains available in
 minimal mode. Stale queued clicks cannot advance from a different receipt, side
 or selection. This composes the package's public `resolveHistoryChangeStep` with
 the existing detached focus adapter. See [step navigation evidence](evidence/receipt-step.md).
+
+Switching **Before conversion** / **After conversion** now keeps the focused node
+or connection and its Previous/Next position. **Show receipt overview** explicitly
+clears selection and fits all nodes without changing the comparison side. These
+controls recheck current receipt scope and show availability reasons for pending
+reads, gestures or missing canvas measurement. No focused change means side
+switching uses the recorded snapshot camera.
+
+See [side continuity and overview evidence](evidence/receipt-side.md).

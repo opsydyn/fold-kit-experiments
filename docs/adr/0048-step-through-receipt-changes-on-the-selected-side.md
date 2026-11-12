@@ -52,5 +52,22 @@ checks keyboard Next, Previous/Next on both sides, boundary reasons, direct focu
 manual reset and exact working-document preservation after closing. Run root lint,
 typecheck and tests, plus production and API documentation builds.
 
-Next bounded navigation slice: preserve the focused change when explicitly
-switching Before/After, while keeping overview reset an explicit action.
+## Follow-up: focused side continuity, 2026-11-12
+
+Implemented the approved next slice through the existing public focus resolver.
+Explicit Before/After switching carries the current stable entity identity into
+that side's comparison and refocuses it, preserving traversal position. Availability,
+receipt identity and panel visibility are rechecked before changing the review.
+An unavailable target preserves the previous side, camera and marker.
+
+The explicit Show receipt overview control replaces Fit receipt diagram. It sends
+a scoped camera-only message, clears the cursor even when the camera already fits,
+and fits all nodes on the current side. Pending reads, active gestures and missing
+measurement block it with a visible reason; stale receipt/side callbacks cannot
+reset another view. With no focused change, side switching retains the existing
+recorded-snapshot camera behavior. Native buttons keep keyboard focus and continue
+to operate in minimal mode. Working editor, Undo, consent, receipts and history
+remain unchanged. No public API or persistent schema change is required.
+
+The core roadmap remains the priority. Alchemy Domain integration is deferred
+until completion of that roadmap by the user's explicit instruction.

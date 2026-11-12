@@ -204,7 +204,7 @@ async function run() {
   await before.press('Enter');
   await expect(before).toHaveAttribute('aria-pressed', 'true');
   await expect(canvas.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(0);
-  await review.getByRole('button', { name: 'Fit receipt diagram', exact: true }).click();
+  await review.getByRole('button', { name: 'Show receipt overview', exact: true }).click();
   await expect(canvas.locator('[data-zloz-event-storming-type="domain-event"]')).toHaveCount(1);
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await page.getByLabel('Workbench settings', { exact: true }).evaluate((element) => {
@@ -215,7 +215,7 @@ async function run() {
   });
   await review.getByRole('button', { name: 'After conversion', exact: true }).click();
   await expect(canvas.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(1);
-  await review.getByRole('button', { name: 'Fit receipt diagram', exact: true }).click();
+  await review.getByRole('button', { name: 'Show receipt overview', exact: true }).click();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await expect(page.locator('[data-flow-workbench-color-scheme="dark"]')).toHaveCount(1);
   await page.screenshot({

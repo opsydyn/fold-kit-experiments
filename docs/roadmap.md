@@ -283,8 +283,18 @@ show position and stop at boundaries; stale cursor/side callbacks cannot advance
 See [ADR 0048](adr/0048-step-through-receipt-changes-on-the-selected-side.md) and
 [local evidence](../apps/zloz-demo/evidence/receipt-step.md).
 
-**Recommended next navigation slice:** preserve the focused change across explicit
-Before/After switches, with an explicit overview reset. Proposed positioning to
+**Receipt side continuity and overview — implemented on this branch, unreleased:**
+Before/After switches preserve focused node/connection identity, camera focus and
+traversal position. Show receipt overview clears selection and fits all nodes on
+the chosen side. Live availability guards preserve the previous view on rejection.
+See [local evidence](../apps/zloz-demo/evidence/receipt-side.md).
+
+**Deferred integration:** Alchemy Domain is deferred by user decision (2026-11-12)
+until the core Zloz roadmap is complete. The assessment remains a proposal; no
+adapter implementation or dependency adoption is scheduled ahead of core work.
+
+**Recommended next:** reconcile remaining core parity and roadmap gaps against
+public package exports and evidence, then select the next package-level slice. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

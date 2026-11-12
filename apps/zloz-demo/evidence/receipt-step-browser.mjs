@@ -251,11 +251,8 @@ async function run() {
     path: fileURLToPath(new URL('receipt-step-light.png', import.meta.url)),
   });
   await side('after').click();
-  await expect(position).toContainText('No change selected');
-  await expect(next).toBeEnabled();
-  await next.click();
-  await expect(position).toHaveText('Change 1 of 2');
   await expect(side('after')).toHaveAttribute('aria-pressed', 'true');
+  await expect(position).toHaveText('Change 1 of 2');
   await centered(['[data-flow-ddd-node="domain-event"]']);
   await next.click();
   await expect(position).toHaveText('Change 2 of 2');
@@ -279,7 +276,7 @@ async function run() {
   await next.click();
   await expect(position).toHaveText('Change 2 of 2');
   await expect(side('after')).toHaveAttribute('aria-pressed', 'true');
-  await review.getByRole('button', { name: 'Fit receipt diagram', exact: true }).click();
+  await review.getByRole('button', { name: 'Show receipt overview', exact: true }).click();
   await expect(position).toContainText('No change selected');
   await expect(previous).toBeDisabled();
   await expect(next).toBeEnabled();

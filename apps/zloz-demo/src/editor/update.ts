@@ -729,6 +729,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedCancelReceiptRead: () => updateReceiptReview(model, message),
     ClickedCloseReceiptReview: () => updateReceiptReview(model, message),
     SelectedReceiptSide: () => updateReceiptReview(model, message),
+    ClickedReceiptOverview: () => updateReceiptReview(model, message),
     ClickedReceiptChange: () => updateReceiptReview(model, message),
     ClickedReceiptChangeStep: () => updateReceiptReview(model, message),
     ObservedReceiptInput: () => updateReceiptReview(model, message),

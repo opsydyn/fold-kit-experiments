@@ -467,3 +467,22 @@ export type {
   ZlozSvgWriteFinding,
   ZlozSvgWriteResult,
 } from './svg-writer';
+
+export {
+  createSvgReview,
+  svgReviewForScope,
+  resolveSvgReview,
+  updateSvgReview,
+} from './svg-review';
+export type {
+  ZlozSvgReviewPreferences,
+  ZlozSvgReviewState,
+  ZlozSvgReviewChoice,
+  ZlozSvgReviewRegion,
+  ZlozSvgReviewContext,
+  ZlozSvgReviewIdentity,
+  ZlozSvgReviewRequest,
+  ZlozSvgDownload,
+  ZlozSvgReviewControls,
+  ZlozSvgReviewUpdate,
+} from './svg-review';

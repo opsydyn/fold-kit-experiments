@@ -20,6 +20,7 @@ import { ReadConversionReceipt } from '../src/editor/command';
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { receiptComparison, receiptReviewPanel } from '../src/editor/receipt-review';
+import { workbenchSvgReview } from '../src/editor/svg-review';
 import { update } from '../src/editor/update';
 
 function receiptJson() {
@@ -275,4 +276,30 @@ test('the read Command rejects excessive bytes before accessing file contents', 
   );
   expect(response).toEqual(Message.FailedConversionReceiptRead({ id: 92 }));
   expect(reads).toBe(0);
+});
+
+test('an SVG download can settle while a read-only receipt comparison is open', async () => {
+  const initial = init().model;
+  const controls = workbenchSvgReview(initial);
+  const pending = update(
+    initial,
+    Message.ObservedSvgReviewInput({
+      request: { ...controls.identity, type: 'SvgDownloadRequested' },
+    }),
+  ).model;
+  assert(pending.svgReview.download.type === 'pending');
+  const opened = await open(pending);
+  assert(opened.receiptReview);
+  const settled = update(
+    opened,
+    Message.CompletedSvgDownload({
+      scope: pending.svgReview.scope,
+      generation: pending.svgReview.generation,
+      key: pending.svgReview.download.key,
+      run: pending.svgReview.download.run,
+    }),
+  ).model;
+  expect(settled.svgReview.download.type).toBe('idle');
+  expect(settled.receiptReview).toBe(opened.receiptReview);
+  expect(settled.editor).toBe(pending.editor);
 });

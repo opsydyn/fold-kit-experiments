@@ -47,7 +47,8 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
@@ -64,6 +65,13 @@ if(svgPlan.type!=='reviewable'||svgPlan.background!==null||svgPlan.viewBox.width
 const rawSvg:ZlozSvgPrimitive={type:'raw',markup:'<script/>'};
 const writtenSvg=writeSvgExport(waypointEditor,svgOptions);
 if(writtenSvg.type!=='written'||!writtenSvg.svg.includes('xmlns="http://www.w3.org/2000/svg"')||!writtenSvg.svg.includes('clipPath')||waypointEditor.past.length!==0)throw new Error('Missing standalone SVG writer');
+const svgReviewContext:ZlozSvgReviewContext={scope:'packed/review',sourceRevision:0,snapshot:waypointEditor,title:'Packed SVG review',theme:{colorScheme:'dark'},renderers:{nodes:'built-in',edges:'built-in'}};
+const svgReviewState=createSvgReview(svgReviewContext.scope);
+const svgControls=resolveSvgReview(svgReviewState,svgReviewContext);
+const svgDownload=updateSvgReview(svgReviewState,svgReviewContext,{...svgControls.identity,type:'SvgDownloadRequested'});
+if(!svgDownload.payload||!svgDownload.payload.svg.includes('<svg')||svgDownload.state.download.type!=='pending')throw new Error('Missing reviewed SVG download payload');
+const staleSvg=updateSvgReview(svgReviewState,{...svgReviewContext,sourceRevision:1},{...svgControls.identity,type:'SvgDownloadRequested'});
+if(staleSvg.payload!==null)throw new Error('Stale SVG review downloaded');
 
 const bends:readonly ZlozEdgeWaypoint[]=[{id:'turn',position:{x:900,y:700}}];
 const waypointRequest:ZlozEdgeWaypointEdit={id:waypointEditor.graph.edges[0].id,revision:waypointEditor.revision,waypoints:bends};

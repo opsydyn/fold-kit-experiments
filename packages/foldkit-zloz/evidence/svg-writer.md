@@ -101,3 +101,6 @@ Architecture/boundary, delivery and test-quality reviews are self-review. Verdic
 **safe with noted risk** for trusted adapter purity, nominal bounds, resource limits
 and unqualified large-graph cost. No dependency was added. Rollback before release
 is a local commit revert with no data migration.
+
+The subsequent package controls and actual download evidence are recorded in
+[SVG review qualification](../../../apps/zloz-demo/evidence/svg-review.md).

@@ -161,6 +161,8 @@ const allowed = new Set<string>([
   'ClickedDiagnosticsEnabled',
   'ClickedDiagnostic',
   'CompletedConversionReceiptDownload',
+  'CompletedSvgDownload',
+  'FailedSvgDownload',
   'FailedConversionReceiptDownload',
 ]);
 export function receiptAllowsMessage(message: Message) {

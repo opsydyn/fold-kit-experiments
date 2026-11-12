@@ -20,6 +20,11 @@ export function historyAllowsMessage(message: Message): boolean {
   }
   return new Set<string>([
     'ClickedScrubberHistory',
+    'ObservedSvgReviewInput',
+    'ClickedSvgDownloadProtection',
+    'ClickedCustomSvgReview',
+    'CompletedSvgDownload',
+    'FailedSvgDownload',
     'ObservedDddRelationshipInput',
     'SelectedMappingReviewItem',
     'SelectedMappingReviewChoice',

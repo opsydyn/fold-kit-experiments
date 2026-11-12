@@ -301,7 +301,7 @@ font asset. The planner never fetches resources or reads installed fonts.
 Findings identify document/item/theme/asset, code, severity and reason. Unsupported
 findings make the plan `blocked`; other plans are `reviewable`, retaining all loss
 and uncertainty reports. Plans detach inputs and preserve editor/history. They are
-ephemeral, with no graph wire-version change. The bounded writer below implements SVG serialization. Downloads, broader visual
+ephemeral, with no graph wire-version change. The bounded writer below implements SVG serialization. Reusable review/download controls are described below; broader visual
 qualification and PNG remain subsequent work.
 
 ## Standalone SVG writing (unreleased)
@@ -352,8 +352,52 @@ or rendering-speed claim. Supply unique XML-safe `idPrefix` values for multiple 
 exports. The default prefix is suitable for separate standalone files.
 
 Representative emitted files and browser captures are linked in the
-[writer evidence](evidence/svg-writer.md). Workbench review/download controls,
-resource embedding and PNG are subsequent work.
+[writer evidence](evidence/svg-writer.md). Resource embedding and PNG remain subsequent work.
+
+## SVG review and download controls (unreleased)
+
+Core exports `createSvgReview(scope)`, `svgReviewForScope(state, scope)`,
+`resolveSvgReview(state, context)` and `updateSvgReview(state, context, request)`.
+The context supplies the snapshot, a source revision, title, literal theme and renderer
+fidelity declarations. Optional catalogs configure model/viewport/custom bounds,
+themes and backgrounds; `canDownload` returns a live protection reason or `null`.
+Advance `sourceRevision` on every edit and Undo, or use unique immutable snapshot IDs.
+Use a fresh scope for each model/controller incarnation.
+
+```ts
+import { createSvgReview, resolveSvgReview, updateSvgReview } from '@opsydyn/foldkit-zloz';
+import { zlozSvgReview } from '@opsydyn/foldkit-zloz/foldkit';
+
+const review = createSvgReview(context.scope);
+const controls = resolveSvgReview(review, context);
+const view = zlozSvgReview(h, controls, onReviewRequest, { diagnostics });
+// In update, always pass current inputs, rather than a cached controls projection:
+const next = updateSvgReview(review, context, request);
+// Publish next.state. Only next.payload authorizes a host Command to download its
+// captured svg/fileName; report SvgDownloadSettled with its scope/generation/key/run.
+```
+
+Final writer findings stay visible. Unsupported output blocks download; reported
+losses need explicit acceptance for the exact source revision, options, bytes and
+findings. Settings, edit then Undo, viewport changes or changed adapter output clear
+approval. Whole-model camera motion does not. Live protection can deny download
+without revoking approval of unchanged content. Review is a host workflow, not an
+access-control boundary. Keys are exact strings; large-model recomputation costs
+remain unqualified. IO never edits the model or creates an Undo entry.
+
+`zlozSvgReview` includes labeled native choices, a static SVG image preview, findings,
+loss checkbox, guarded download and visible status. Slots replace settings, preview,
+individual/all findings, acceptance, download, status, readout or complete layout:
+`undefined` uses the default and `null` omits a region. Helpers `zlozSvgReviewSelect`,
+`zlozSvgLossCheckbox`, `zlozSvgDownloadButton` and `zlozSvgReviewPreview` support custom
+presentation. Supply distinct `idPrefix` values for concurrent widgets. The controller
+still enforces approval regardless of presentation. Diagnostic instruction/measurement
+settings hide optional prose/readouts, retaining findings and functional controls.
+
+See [workbench evidence](../../apps/zloz-demo/evidence/svg-review.md) and
+[ADR 0054](../../docs/adr/0054-review-svg-before-host-download.md). Browser completion
+means handoff, not confirmed OS saving. Font/resource embedding, PNG and Alchemy
+remain deferred.
 
 ## Authored edge waypoints
 

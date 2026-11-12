@@ -148,8 +148,12 @@ findings. See [ADR 0052](../adr/0052-plan-portable-svg-export.md) and
 The follow-up bounded writer now emits canonical SVG and binds typed vector adapters,
 with actual light/dark/custom/crop/transparent file/browser qualification. See
 [ADR 0053](../adr/0053-write-svg-through-typed-primitives.md) and
-[writer evidence](../../packages/foldkit-zloz/evidence/svg-writer.md). Review/download UI,
-resource-byte embedding, broader browser/font qualification and PNG remain open.
+[writer evidence](../../packages/foldkit-zloz/evidence/svg-writer.md). Package-level
+review/download controls now expose exact-artifact loss acceptance, live protection,
+composable findings/controls and native/custom light/dark/minimal workbench views.
+See [ADR 0054](../adr/0054-review-svg-before-host-download.md) and
+[download qualification](../../apps/zloz-demo/evidence/svg-review.md).
+Resource-byte embedding, broader browser/font qualification and PNG remain open.
 Planning output alone remains distinct from emitted-file evidence.
 
 ### P1 — strict portable review packet reopening

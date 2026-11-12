@@ -23,6 +23,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { zlozSvgReview, zlozSvgDownloadButton } from '@opsydyn/foldkit-zloz/foldkit';
 import {
   zlozView,
   zlozDddRelationshipControls,
@@ -176,6 +177,7 @@ import {
 import { relationshipControlsContext } from './relationship-controls';
 import { workbenchPacketContext } from './review-packet';
 import { searchDiagram } from './search';
+import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
@@ -1287,6 +1289,77 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
+    svg:
+      model.sidebarSection === 'svg' && !model.sidebarCollapsed
+        ? [
+            h.p([], ['Canonical model artwork, with visible portability and fidelity findings.']),
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectSvgDownloads),
+                  h.OnClick(Message.ClickedSvgDownloadProtection()),
+                ]),
+                'Protect SVG downloads',
+              ],
+            ),
+            button(
+              model.customSvgReview ? 'Use native SVG controls' : 'Use custom SVG controls',
+              Message.ClickedCustomSvgReview(),
+            ),
+            zlozSvgReview(
+              h,
+              workbenchSvgReview(model),
+              (request) => Message.ObservedSvgReviewInput({ request }),
+              {
+                diagnostics,
+                renderFinding: model.customSvgReview
+                  ? (finding, builder) =>
+                      builder.li(
+                        [
+                          builder.Class('svg-finding-card'),
+                          builder.Style({
+                            border: '1px solid var(--rule)',
+                            padding: '10px',
+                            'border-radius': '8px',
+                            'margin-bottom': '8px',
+                            'list-style': 'none',
+                          }),
+                        ],
+                        [
+                          builder.strong(
+                            [],
+                            [
+                              `${finding.severity.toUpperCase()} · ${finding.target.kind}${'id' in finding.target ? ` ${finding.target.id}` : ''}`,
+                            ],
+                          ),
+                          builder.p([], [finding.reason]),
+                        ],
+                      )
+                  : undefined,
+                renderDownload: model.customSvgReview
+                  ? (context, builder, onRequest) =>
+                      zlozSvgDownloadButton(
+                        builder,
+                        context,
+                        onRequest,
+                        [
+                          builder.Style({
+                            background: 'var(--blue)',
+                            color: 'var(--paper)',
+                            padding: '12px',
+                            'border-radius': '8px',
+                            border: '0',
+                          }),
+                        ],
+                        ['↓ Download reviewed SVG'],
+                      )
+                  : undefined,
+              },
+            ),
+          ]
+        : [],
     diagram: [
       h.div(
         [h.Role('group'), h.AriaLabel('Insert architecture patterns')],

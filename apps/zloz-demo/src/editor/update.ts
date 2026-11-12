@@ -1,3 +1,4 @@
+import type { ZlozSvgReviewRequest } from '@opsydyn/foldkit-zloz';
 import type { ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
 import type { ZlozDddRelationshipRequest } from '@opsydyn/foldkit-zloz';
 import {
@@ -117,6 +118,7 @@ import { updateReceiptReview, receiptAllowsMessage, isReceiptMessage } from './r
 import { editWorkbenchRelationship } from './relationship-controls';
 import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
+import { updateWorkbenchSvgReview } from './svg-review';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -246,6 +248,28 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const outcome: Return<Model, Message> = Message.match(message, {
+    ObservedSvgReviewInput: ({ request }) => {
+      // SAFETY: the package SVG review helpers emit only ZlozSvgReviewRequest facts.
+      return updateWorkbenchSvgReview(model, request as ZlozSvgReviewRequest);
+    },
+    ClickedSvgDownloadProtection: () => ({
+      model: { ...model, protectSvgDownloads: !model.protectSvgDownloads },
+    }),
+    ClickedCustomSvgReview: () => ({
+      model: { ...model, customSvgReview: !model.customSvgReview },
+    }),
+    CompletedSvgDownload: (request) =>
+      updateWorkbenchSvgReview(model, {
+        ...request,
+        type: 'SvgDownloadSettled',
+        outcome: 'succeeded',
+      }),
+    FailedSvgDownload: (request) =>
+      updateWorkbenchSvgReview(model, {
+        ...request,
+        type: 'SvgDownloadSettled',
+        outcome: 'failed',
+      }),
     ObservedPlacementInput: ({ input }) => ({
       model: updateWorkbenchPlacement(
         model,

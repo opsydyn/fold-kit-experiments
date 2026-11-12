@@ -307,3 +307,27 @@ export const ReadConversionReceipt = Command.define('ReadConversionReceipt', {
       }),
     ),
 });
+
+export const DownloadSvg = Command.define('DownloadSvg', {
+  args: {
+    svg: Schema.String,
+    fileName: Schema.String,
+    scope: Schema.String,
+    generation: Schema.Number,
+    key: Schema.String,
+    run: Schema.Number,
+  },
+  messages: [Message.CompletedSvgDownload, Message.FailedSvgDownload],
+  execute: ({ svg, fileName, scope, generation, key, run }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+      const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedSvgDownload({ scope, generation, key, run }),
+        onFailure: () => Message.FailedSvgDownload({ scope, generation, key, run }),
+      }),
+    ),
+});

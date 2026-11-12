@@ -1,5 +1,7 @@
 import {
   createEditor,
+  createSvgReview,
+  type ZlozSvgReviewState,
   createPlacement,
   type ZlozPlacement,
   type EditorState,
@@ -302,10 +304,14 @@ export const WorkbenchSection = Schema.Literals([
   'mapping',
   'diagnostics',
   'export',
+  'svg',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  svgReview: Schema.Unknown,
+  protectSvgDownloads: Schema.Boolean,
+  customSvgReview: Schema.Boolean,
   placement: Schema.Unknown,
   customPalette: Schema.Boolean,
   mappingReview: Schema.NullOr(MappingReview),
@@ -439,6 +445,9 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  svgReview: ZlozSvgReviewState;
+  protectSvgDownloads: boolean;
+  customSvgReview: boolean;
   placement: ZlozPlacement;
   customPalette: boolean;
   mappingReview: MappingReviewDraft | null;
@@ -556,6 +565,9 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    svgReview: createSvgReview(`root:${namespace}/0`),
+    protectSvgDownloads: false,
+    customSvgReview: false,
     placement: createPlacement(`root:${namespace}/0`),
     customPalette: false,
     mappingReview: null,

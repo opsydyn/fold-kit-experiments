@@ -31,6 +31,21 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ObservedSvgReviewInput: { request: Schema.Unknown },
+  ClickedSvgDownloadProtection: {},
+  ClickedCustomSvgReview: {},
+  CompletedSvgDownload: {
+    scope: Schema.String,
+    generation: Schema.Number,
+    key: Schema.String,
+    run: Schema.Number,
+  },
+  FailedSvgDownload: {
+    scope: Schema.String,
+    generation: Schema.Number,
+    key: Schema.String,
+    run: Schema.Number,
+  },
   ObservedPlacementInput: { input: Schema.Unknown },
   ClickedCustomPalette: {},
   ClickedScrubberHistory: {},

@@ -134,14 +134,18 @@ track.
 **Mini map discoverability — delivered:** Navigation exposes a **Mini map** toggle
 using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
-## Zloz core: parity and domain modelling — reconciled 2026-11-11
+## Zloz core: parity and domain modelling — reconciled 2026-11-12
 
-**Current baseline:** feature PR [#118](https://github.com/opsydyn/fold-kit-experiments/pull/118)
-and release PR [#119](https://github.com/opsydyn/fold-kit-experiments/pull/119) are merged.
-Core, ELK, force and Mermaid npm `latest` are **0.3.0**. The standalone Effect CLI
-remains unpublished. The documentation/private-CLI cleanup in
-[PR #120](https://github.com/opsydyn/fold-kit-experiments/pull/120) is green and open,
-not yet part of main. Do not treat an open PR as delivered.
+**Source baseline:** `03e972b` on the isolated `codex/zloz-context-map` branch.
+Package manifests identify 0.3.0; branch implementation, registry publication and
+hosted deployment are separate states. This reconciliation does not verify current
+PR/CI/registry status and authorizes no npm publication or deployment. The Effect
+CLI publication remains deferred; this branch lacks the ADR-required
+`private: true` manifest guard, tracked in the audit as R1.
+
+The [core completion audit](assessments/2026-11-12-zloz-core-completion-audit.md)
+maps public APIs to source, tests and recorded evidence, separates completed DDD
+conversion from remaining portability work, and defines the closure criteria below.
 
 The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
 is a historical gap analysis, not a current inventory. Full React Flow parity,
@@ -169,28 +173,37 @@ that every feature is deployed, comprehensively accessible or faster than anothe
 editor. Graph/snapshot/edition v1 compatibility remains unchanged; full model JSON
 preserves identity, editions and origin that diagram-only imports omit.
 
-### Remaining work, in priority order
+### Remaining work and completion criteria
 
-1. **EventStorming workshop mappings:** define explicit mappings from discovered
-   process notes to DDD/C4 concepts, with preview, preserved identity and honest
-   conversion-loss reporting. Keep uncertain workshop intent valid. Portless-frame
-   projection/storage remains a separate decision.
-2. **Review and agent lifecycle:** validate/import review packets, then validated
-   modelling patches, dry runs and reviewable changes. No automatic writable-agent
-   rollout or collaboration runtime is claimed.
-3. **Editor gaps and qualification:** reassess authored edge waypoints, palette/drop
-   workflows and image export against architecture tasks. Refresh the parity
-   matrix, representative performance benchmarks and comprehensive accessibility
-   evidence before making parity or superiority claims.
-4. **Release follow-through:** merge the independently reviewed cleanup PR; retain
-   a consolidated 0.3.0 registry artifact/provenance/consumer receipt. This roadmap
-   update does not authorize another publication or deployment.
+Core is **not complete**. The detailed
+[audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
+are the current checklist; historical receipts qualify only their stated scope.
 
-Automatic persistence and collaboration remain separate future work. The team MVP
-is a separate proposed planning stream, beginning with runtime/auth qualification;
-it is not an implemented capability or an instruction to activate infrastructure.
-Accessible interaction, unrestricted visual composition and diagnostics preferences
-remain requirements in each feature slice, with a later comprehensive a11y gate.
+1. **Editor floor (E1–E3):** persistent authored edge waypoints first, then reusable
+   palette/external placement and optional image export. Layout routes and custom
+   renderers do not supply an authored-waypoint lifecycle. Each needs public
+   contracts, policy/Undo/cancellation tests and consumer/workbench evidence.
+2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
+   reopening, then validated modelling patches and dry runs with guarded atomic
+   Apply. Conversion receipt reopening already exists; it is a different format
+   from review packets and does not close packet import.
+3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
+   broader EventStorming vocabulary, C4 mapping, DDD audit coverage, loose
+   connections, group contracts, layout envelope and advanced catalogue features.
+   EventStorming-to-DDD preview, consent, Apply and portable provenance are already
+   implemented below. Unresolved scope is not parity and requires an explicit
+   decision rather than an implied exclusion.
+4. **Qualification (Q1–Q4):** refresh packed consumer/SSR-hydration evidence and
+   representative benchmarks with agreed budgets. Run comprehensive accessibility
+   and device acceptance after functional work; accessible interaction remains a
+   requirement in every slice. Close all feature rows and scope decisions with
+   linked acceptance evidence before declaring bounded core completion.
+
+Release follow-through is a separate gate: reviewed commits/PR, current CI,
+package identity and artifact/provenance/consumer qualification before separately
+approved publication or deployment. Automatic persistence, collaboration and team
+runtime remain separate planning streams; no infrastructure activation is implied.
+Keep unrestricted visual composition and diagnostics preferences first class.
 
 **Implemented on this branch, unreleased:** composable packet preview/consent
 controls in the optional Mermaid adapter and History sidebar, using chosen audit
@@ -293,11 +306,12 @@ See [local evidence](../apps/zloz-demo/evidence/receipt-side.md).
 until the core Zloz roadmap is complete. The assessment remains a proposal; no
 adapter implementation or dependency adoption is scheduled ahead of core work.
 
-**Recommended next:** reconcile remaining core parity and roadmap gaps against
-public package exports and evidence, then select the next package-level slice. Proposed positioning to
-validate: model a domain with people, explore its evolution and review/communicate
-the same portable model with human and agent tooling. Shapes alone, Undo and layout
-examples do not establish a USP.
+**Recommended next:** E1 — define the headless authored edge-waypoint contract,
+including portable geometry, layout precedence, live policy checks and one Undo;
+then add composable editing handles in a follow-up slice. Proposed positioning
+remains to validate: model a domain with people, explore its evolution and
+review/communicate the same portable model with human and agent tooling. Shapes,
+Undo and layout examples alone do not establish a USP.
 
 ## Release: Keyed Chart Comparison
 

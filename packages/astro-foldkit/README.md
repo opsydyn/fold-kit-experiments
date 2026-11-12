@@ -1,13 +1,13 @@
 # @opsydyn/astro-foldkit
 
 Astro integration and renderer for [FoldKit](https://foldkit.dev), with
-client-only islands and an opt-in server-rendered page path.
+islands that can pre-render, and an opt-in server-rendered page path.
 
-FoldKit is an Elm Architecture runtime built on [Effect](https://effect.website). This package registers FoldKit as an Astro renderer so you can drop any FoldKit app into a `.astro` page as a component and hydrate it with `client:load`.
+FoldKit is an Elm Architecture runtime built on [Effect](https://effect.website). This package registers FoldKit as an Astro renderer so you can drop any FoldKit app into a `.astro` page as a component, and choose per island whether and when it ships JavaScript.
 
 There are two deliberately separate entry paths:
 
-- `lazyApp` / `defineApp` keeps the existing client-only island contract. Astro receives a deterministic mount shell and FoldKit starts in the browser.
+- `lazyApp` / `defineApp` registers an island. By default Astro receives a deterministic empty mount shell and FoldKit starts in the browser. With `{ prerender: true }` the island's first render is in the HTML, so it can ship with no directive and no JavaScript, or hydrate later with `client:visible` or this package's `client:interaction`. See [Choosing when JavaScript runs](#choosing-when-javascript-runs).
 - `definePage` opts one FoldKit application into SSG or request SSR. The server emits FoldKit HTML and public Flags, and `client:load` hydrates that exact DOM.
 
 ## Installation
@@ -26,8 +26,9 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` targets FoldKit `0.167.x` to `0.169.x`, stable Effect
-`4.0.0`, and the matching `@foldkit/vite-plugin` `0.28.x` line.
+`@opsydyn/astro-foldkit` targets FoldKit `0.170.x`, Effect `4.1.x`, and the
+matching `@foldkit/vite-plugin` `0.29.x` line. An application on an older FoldKit
+needs an older release of this integration.
 Applications can define interruptible work with
 `Command.define(name, { interrupt: true, ... })` inside their own update loop;
 this integration continues to own Astro rendering, hydration, and lifecycle
@@ -59,8 +60,9 @@ in public HTML, so it must not contain secrets. Do not reuse it across deploymen
 with different rendering inputs. Blank `server.buildId` options are rejected, and FoldKit
 fails closed when neither a compiled identity nor an explicit override is available.
 
-See the [0.167 migration guide](../../docs/migrations/foldkit-0.167.md) for the
-subscription API changes and package compatibility checks.
+See the [FoldKit 0.170 release notes](../../docs/releases/foldkit-0.170.md) for
+the move to Effect 4.1, and the [0.167 migration guide](../../docs/migrations/foldkit-0.167.md)
+for the earlier subscription API changes.
 
 ## Defining an app
 
@@ -115,10 +117,16 @@ particular on any page carrying more than one island. Drop it only when this
 island is meant to own the page title. See [`noMeta`](#nometa).
 
 For `lazyApp` / `defineApp`, the server renderer emits a deterministic
-`<div data-foldkit-island="true"></div>` mount shell. It does not load or
-execute the FoldKit application during SSR; the application is loaded and
-embedded only by the client renderer. Astro still owns the outer island
-serialisation and client directive behavior.
+`<div data-foldkit-island="true"></div>` mount shell. Unless the island opts
+into [pre-rendering](#pre-rendered-islands-opt-in), it does not load or execute
+the FoldKit application during SSR; the application is loaded and embedded only
+by the client renderer. Astro still owns the outer island serialisation and
+client directive behavior.
+
+In development the integration also adds every module that imports
+`define-app` or `define-page` to Vite's dependency scan, so an island's
+dependencies are bundled when the dev server starts rather than on the first
+request that loads it.
 
 ### Pre-rendered islands (opt-in)
 
@@ -543,7 +551,9 @@ Schema/value. `defineApp` keeps the existing props-based `init` contract.
 | `@opsydyn/astro-foldkit/define-page` | `definePage`, `PageConfig`, and page Flags context types  |
 | `@opsydyn/astro-foldkit/server`      | Server-only `resolvePageDocument` metadata resolver       |
 
-The root entry point also exports the `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types.
+The root entry point also exports the `InteractionOptions`, `NavigationConfig`,
+`NavigationEvent`, and `NavigationPhase` types, and declares the
+`client:interaction` directive on Astro's `AstroClientDirectives`.
 
 ## Embedding
 
@@ -680,7 +690,8 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.167.0 < 0.170.0` |
+| `effect`  | `~4.1.0`              |
+| `foldkit` | `≥ 0.170.0 < 0.171.0` |
 
 ## Stateflow Observatory example
 

@@ -486,3 +486,10 @@ export type {
   ZlozSvgReviewControls,
   ZlozSvgReviewUpdate,
 } from './svg-review';
+
+export { validateSvgFontResource } from './svg-font';
+export type {
+  ZlozSvgFontResource,
+  ZlozSvgFontValidation,
+  ZlozSvgFontFailureCode,
+} from './svg-font';

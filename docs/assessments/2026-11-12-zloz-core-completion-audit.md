@@ -153,7 +153,11 @@ review/download controls now expose exact-artifact loss acceptance, live protect
 composable findings/controls and native/custom light/dark/minimal workbench views.
 See [ADR 0054](../adr/0054-review-svg-before-host-download.md) and
 [download qualification](../../apps/zloz-demo/evidence/svg-review.md).
-Resource-byte embedding, broader browser/font qualification and PNG remain open.
+Selected trusted TrueType font bytes now have structural validation, bounded
+embedding and asset-targeted failures; review approval binds the resulting bytes.
+See [ADR 0055](../adr/0055-embed-bounded-truetype-font-resources.md) and
+[font qualification](../../packages/foldkit-zloz/evidence/svg-font.md).
+Broader font formats, other resources, browser/font qualification and PNG remain open.
 Planning output alone remains distinct from emitted-file evidence.
 
 ### P1 — strict portable review packet reopening

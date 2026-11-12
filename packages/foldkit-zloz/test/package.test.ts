@@ -47,14 +47,24 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
 import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
+const invalidFont:ZlozSvgFontResource={assetId:'font',format:'truetype',bytes:new Uint8Array([0,1,2])};
+if(validateSvgFontResource(invalidFont).type!=='invalid')throw new Error('Missing font validation contract');
+// @ts-expect-error URL resources cannot substitute for font bytes
+const remoteFont:ZlozSvgFontResource={assetId:'font',format:'truetype',url:'https://example.com/font.ttf'};
+
 const svgOptions:ZlozSvgExportOptions={title:'Packed architecture',region:{type:'model',padding:20},theme:{colorScheme:'dark'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}};
+const packedFontBytes=Uint8Array.from(atob('${(await readFile(new URL('./fixtures/font/inter-latin-400.ttf', import.meta.url))).toString('base64')}'), character=>character.charCodeAt(0));
+const packedFont:ZlozSvgFontResource={assetId:'packed-font',format:'truetype',bytes:packedFontBytes};
+const fontSvg=writeSvgExport(waypointEditor,{...svgOptions,font:{...svgOptions.font,assetId:'packed-font'},assets:[{id:'packed-font',kind:'font',availability:'embedded'}]},{fontResources:[packedFont]});
+if(fontSvg.type!=='written'||!fontSvg.svg.includes('data:font/ttf;base64,')||!fontSvg.svg.includes('@font-face'))throw new Error('Missing portable font embedding');
+
 // @ts-expect-error Export must explicitly declare renderer coverage
 const missingSvgCoverage:ZlozSvgExportOptions={title:'Missing coverage',region:svgOptions.region,theme:svgOptions.theme,background:svgOptions.background,font:svgOptions.font};
 // @ts-expect-error A portable theme cannot defer to the host system scheme

@@ -343,8 +343,9 @@ raw markup/CSS/paths, URL paints and active/HTML content reject rather than sile
 omitting content. Use a declared `omit` for intentional omission. Mutation or callback
 failure blocks atomically; read `result.findings` for writer-level reasons.
 
-Embedded font/image/stylesheet declarations currently block too: declaration metadata
-is not validated resource bytes. No fetching or foreignObject is used. Font substitution,
+Embedded declarations alone are insufficient: selected TrueType fonts need validated
+byte resources (below); images and stylesheets remain unsupported. No fetching or
+foreignObject is used. Font substitution,
 wrapping and ink bounds remain unverified. Defaults are 10,000 drawing primitives,
 depth 32 and 2,000,000 output UTF-16 code units, configurable through `maxPrimitives`,
 `maxDepth` and `maxCharacters`. These are output/recursion limits, not a peak-memory
@@ -396,8 +397,67 @@ settings hide optional prose/readouts, retaining findings and functional control
 
 See [workbench evidence](../../apps/zloz-demo/evidence/svg-review.md) and
 [ADR 0054](../../docs/adr/0054-review-svg-before-host-download.md). Browser completion
-means handoff, not confirmed OS saving. Font/resource embedding, PNG and Alchemy
+means handoff, not confirmed OS saving. Broader font formats/resources, PNG and Alchemy
 remain deferred.
+
+## Embedded TrueType fonts (unreleased)
+
+Supply trusted single-face TrueType sfnt bytes through `fontResources`, binding the
+selected `font.assetId` to an asset declared as an embedded font:
+
+```ts
+import { validateSvgFontResource, writeSvgExport } from '@opsydyn/foldkit-zloz';
+
+const resource = { assetId: 'inter', format: 'truetype', bytes: fontBytes } as const;
+const validation = validateSvgFontResource(resource);
+if (validation.type === 'invalid') {
+  console.log(validation.code, validation.reason);
+}
+const result = writeSvgExport(
+  snapshot,
+  {
+    ...exportOptions,
+    font: { family: 'Inter', size: 14, weight: 400, assetId: 'inter' },
+    assets: [{ id: 'inter', kind: 'font', availability: 'embedded' }],
+  },
+  { fontResources: [resource], maxFontBytes: 1_048_576 },
+);
+// Read final result.findings. The writer revalidates bytes on every call.
+```
+
+Validation checks bounded file/directory structure, aligned non-overlapping table
+ranges, checksums, required table sizes and basic header/glyph-location consistency.
+A valid result exposes `byteLength`, `tableCount`, the OS/2 `weight` and a copied,
+encoded `dataUrl`. It is structural evidence, **not a font sanitizer** or proof of
+correct glyph programs, layout tables, browser decoding, coverage, shaping or ink
+bounds. Use trusted fonts you may distribute. Restricted/bitmap-only embedding
+flags reject; flags alone do not grant a license.
+
+Default byte budget is 1 MiB per face; `maxBytes` (validator) / `maxFontBytes`
+(writer) must be safe integers from 1 to 16 MiB. The total SVG `maxCharacters`
+limit also includes base64 font data. Source bytes are copied before validation
+and encoding, including Buffer inputs and views with nonzero offsets. No IO,
+installed-font discovery, URL fetching or decompression occurs.
+
+Only the selected declared embedded font can bind one resource. Missing bytes,
+duplicates and undeclared/unreferenced resources block with asset-targeted
+`font-resource-missing` / `font-resource-unexpected` findings. Invalid structure,
+unsupported formats and exceeded byte budgets produce `font-resource-invalid`,
+`font-format-unsupported` and `font-resource-limit` respectively. No partial SVG
+is returned, and loss acceptance cannot override these failures.
+
+The initial format excludes WOFF/WOFF2, collections, CFF, variable and color/bitmap
+fonts. Successful output uses a generated family and package-owned `@font-face`
+with a `data:font/ttf;base64` source and the face's declared weight. No host family
+string, font name metadata, raw CSS or URL is inserted into the style block.
+Use distinct `idPrefix` values when embedding several SVGs inline so their generated
+font families and fragment IDs stay distinct. Style selection/synthetic weights and
+metrics remain unverified in findings.
+Changed bytes participate in the existing exact-artifact review identity, so prior
+loss approval cannot authorize a different embedded font.
+
+See [ADR 0055](../../docs/adr/0055-embed-bounded-truetype-font-resources.md) and
+[font qualification](evidence/svg-font.md). PNG and Alchemy remain deferred.
 
 ## Authored edge waypoints
 

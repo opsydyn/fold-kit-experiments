@@ -117,7 +117,7 @@ test('losses require explicit acknowledgement; resources and unknown renderers n
     },
   );
   expect(asset.type).toBe('blocked');
-  expect(asset.findings.some((f) => f.code === 'resource-unsupported')).toBe(true);
+  expect(asset.findings.some((f) => f.code === 'font-resource-missing')).toBe(true);
 });
 
 test('custom failures, context mutation and unrepresentable XML block atomically, preserving caller inputs', () => {

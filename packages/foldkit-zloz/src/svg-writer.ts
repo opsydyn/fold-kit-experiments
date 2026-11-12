@@ -11,6 +11,11 @@ import {
   type ZlozSvgFinding,
   type ZlozSvgTarget,
 } from './svg-export';
+import {
+  validateSvgFontResource,
+  type ZlozSvgFontResource,
+  type ZlozSvgFontFailureCode,
+} from './svg-font';
 import type { Point, ZlozSnapshot, ZlozNode, ZlozEdge } from './types';
 
 type Paint = Readonly<{ fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }>;
@@ -46,6 +51,8 @@ export type ZlozSvgAdapter = Readonly<{
 }>;
 export type ZlozSvgWriteOptions = Readonly<{
   adapters?: readonly ZlozSvgAdapter[];
+  fontResources?: readonly ZlozSvgFontResource[];
+  maxFontBytes?: number;
   allowLosses?: boolean;
   idPrefix?: string;
   maxPrimitives?: number;
@@ -58,6 +65,9 @@ export type ZlozSvgWriteFinding = Readonly<
       | ZlozSvgFinding['code']
       | 'adapter-missing'
       | 'adapter-failed'
+      | ZlozSvgFontFailureCode
+      | 'font-resource-missing'
+      | 'font-resource-unexpected'
       | 'resource-unsupported'
       | 'loss-consent-required'
       | 'svg-output-invalid'
@@ -241,13 +251,74 @@ export function writeSvgExport(
       invalid('Adapters need unique non-blank ID/version pairs.');
     adapters.set(key, adapter);
   }
-  for (const asset of plan.assets)
-    if (asset.availability === 'embedded')
+  let fontStyle = '',
+    embeddedFamily: string | null = null;
+  const resources = new Map<string, ZlozSvgFontResource>();
+  for (const resource of writing.fontResources ?? []) {
+    if (
+      resources.has(resource.assetId) ||
+      resource.assetId !== plan.font.assetId ||
+      !plan.assets.some(
+        (a) => a.id === resource.assetId && a.kind === 'font' && a.availability === 'embedded',
+      )
+    ) {
+      add(
+        'font-resource-unexpected',
+        { kind: 'asset', id: resource.assetId },
+        'Font bytes must bind uniquely to the selected embedded font asset.',
+      );
+    } else resources.set(resource.assetId, resource);
+  }
+  for (const asset of plan.assets) {
+    if (asset.availability !== 'embedded') continue;
+    if (asset.kind !== 'font' || asset.id !== plan.font.assetId) {
       add(
         'resource-unsupported',
         { kind: 'asset', id: asset.id },
-        'This bounded writer accepts no resource bytes; embedded fonts/images/stylesheets require a subsequent resource adapter.',
+        'Only the selected embedded TrueType font has a byte-resource adapter; images and stylesheets remain unsupported.',
       );
+      continue;
+    }
+    const resource = resources.get(asset.id);
+    if (!resource) {
+      add(
+        'font-resource-missing',
+        { kind: 'asset', id: asset.id },
+        'Supply bytes for the selected embedded font asset.',
+      );
+      continue;
+    }
+    const validation = validateSvgFontResource(
+      resource,
+      writing.maxFontBytes === undefined ? {} : { maxBytes: writing.maxFontBytes },
+    );
+    if (validation.type === 'invalid') {
+      add(validation.code, { kind: 'asset', id: asset.id }, validation.reason);
+      continue;
+    }
+    embeddedFamily = `${prefix}-font`;
+    fontStyle = `<style>@font-face{font-family:'${embeddedFamily}';src:url(${validation.dataUrl}) format('truetype');font-weight:${validation.weight};font-style:normal;}</style>`;
+    for (let index = 0; index < findings.length; index++) {
+      const finding = findings[index];
+      if (!finding) continue;
+      if (
+        finding.code === 'asset-unverified' &&
+        finding.target.kind === 'asset' &&
+        finding.target.id === asset.id
+      )
+        findings[index] = {
+          ...finding,
+          reason:
+            'Embedded TrueType container/header checks passed; glyph programs, layout tables and browser decoding remain unverified.',
+        };
+      if (finding.code === 'font-unverified')
+        findings[index] = {
+          ...finding,
+          reason:
+            'Embedded TrueType bytes passed structural checks; glyph coverage, shaping, synthetic variants, wrapping and ink bounds remain unverified.',
+        };
+    }
+  }
   for (const item of plan.items) {
     if (
       item.target.kind !== 'edge' ||
@@ -395,7 +466,7 @@ export function writeSvgExport(
       plan.background === null
         ? ''
         : `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="${xml(plan.background)}"/>`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${plan.size.width}" height="${plan.size.height}" viewBox="${b.x} ${b.y} ${b.width} ${b.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" font-family="${xml(textFamily(plan.font.family))}"><title id="${prefix}-title">${xml(plan.title)}</title><desc id="${prefix}-description">${xml(plan.description)}</desc><defs><clipPath id="${prefix}-clip" clipPathUnits="userSpaceOnUse"><rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}"/></clipPath><marker id="${prefix}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="${xml(t.edge)}"/></marker></defs><g clip-path="url(#${prefix}-clip)">${background}${ordered}</g></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${plan.size.width}" height="${plan.size.height}" viewBox="${b.x} ${b.y} ${b.width} ${b.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" font-family="${xml(embeddedFamily ?? textFamily(plan.font.family))}"><title id="${prefix}-title">${xml(plan.title)}</title><desc id="${prefix}-description">${xml(plan.description)}</desc><defs>${fontStyle}<clipPath id="${prefix}-clip" clipPathUnits="userSpaceOnUse"><rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}"/></clipPath><marker id="${prefix}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="${xml(t.edge)}"/></marker></defs><g clip-path="url(#${prefix}-clip)">${background}${ordered}</g></svg>`;
     if (svg.length > maxCharacters) invalid('SVG output character budget exceeded.');
     return { type: 'written', svg, plan, findings };
   } catch (error) {

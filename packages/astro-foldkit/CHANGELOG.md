@@ -2,17 +2,15 @@
 
 ## [0.12.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.11.0...astro-foldkit-v0.12.0) (2026-11-12)
 
-
 ### Features
 
-* **astro-foldkit:** add a client:interaction directive that replays early input ([9e2afa8](https://github.com/opsydyn/fold-kit-experiments/commit/9e2afa848cefa0accb1cc58767b1389c652239df))
-* **astro-foldkit:** add a client:interaction directive that replays early input ([0ddee8a](https://github.com/opsydyn/fold-kit-experiments/commit/0ddee8a79f8b84ea4fdfb097524faa873830da2f))
-
+- **astro-foldkit:** add a client:interaction directive that replays early input ([9e2afa8](https://github.com/opsydyn/fold-kit-experiments/commit/9e2afa848cefa0accb1cc58767b1389c652239df))
+- **astro-foldkit:** add a client:interaction directive that replays early input ([0ddee8a](https://github.com/opsydyn/fold-kit-experiments/commit/0ddee8a79f8b84ea4fdfb097524faa873830da2f))
 
 ### Bug Fixes
 
-* **astro-foldkit:** pre-bundle island dependencies before the first request ([13c8a73](https://github.com/opsydyn/fold-kit-experiments/commit/13c8a73c46b4458d4513a10e26fc4780e05e2838))
-* **astro-foldkit:** pre-bundle island dependencies before the first request ([a5b52c1](https://github.com/opsydyn/fold-kit-experiments/commit/a5b52c18e2207af6d71e2e4c58032ec720b2172e))
+- **astro-foldkit:** pre-bundle island dependencies before the first request ([13c8a73](https://github.com/opsydyn/fold-kit-experiments/commit/13c8a73c46b4458d4513a10e26fc4780e05e2838))
+- **astro-foldkit:** pre-bundle island dependencies before the first request ([a5b52c1](https://github.com/opsydyn/fold-kit-experiments/commit/a5b52c18e2207af6d71e2e4c58032ec720b2172e))
 
 ## [0.11.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.10.0...astro-foldkit-v0.11.0) (2026-11-12)
 

@@ -1,9 +1,12 @@
 import {
   captureEdition,
+  resolveHistoryChangeNavigator,
+  resolveHistoryChangeFocus,
   compareEditions,
   createModelEditor,
   createEventStormingDddConversionPlan,
   type ZlozNode,
+  type ZlozHistoryChangeItem,
   type ZlozEdge,
   parseEventStormingDddConversion,
   updateHistoryReview,
@@ -13,6 +16,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import {
   zlozView,
+  zlozHistoryChangeButton,
   zlozC4Node,
   zlozDddNode,
   zlozEventStormingNode,
@@ -34,6 +38,7 @@ export type ReceiptReview = Readonly<{
   id: number;
   receipt: ZlozEventStormingDddConversion;
   side: 'before' | 'after';
+  focusedChange: Readonly<{ entity: 'node' | 'edge'; id: string }> | null;
   editor: EditorState;
 }>;
 function preview(receipt: ZlozEventStormingDddConversion, side: ReceiptReview['side']) {
@@ -44,18 +49,36 @@ function preview(receipt: ZlozEventStormingDddConversion, side: ReceiptReview['s
     zoomLimits: { minZoom: Math.min(0.1, zoom), maxZoom: Math.max(4, zoom) },
   });
 }
-export function receiptComparison(review: ReceiptReview) {
-  return compareEditions(
-    captureEdition({
-      id: 'receipt-before',
-      name: 'Before conversion',
-      snapshot: review.receipt.source.document.snapshot,
-    }),
-    captureEdition({
-      id: 'receipt-after',
-      name: 'After conversion',
-      snapshot: review.receipt.document.snapshot,
-    }),
+export function receiptComparison(review: ReceiptReview, side: ReceiptReview['side'] = 'after') {
+  const before = captureEdition({
+    id: 'receipt-before',
+    name: 'Before conversion',
+    snapshot: review.receipt.source.document.snapshot,
+  });
+  const after = captureEdition({
+    id: 'receipt-after',
+    name: 'After conversion',
+    snapshot: review.receipt.document.snapshot,
+  });
+  return side === 'before' ? compareEditions(after, before) : compareEditions(before, after);
+}
+function focusOptions(model: Model) {
+  return {
+    blockedReason: model.receiptRead
+      ? 'Finish or cancel the receipt read before focusing changes.'
+      : !model.receiptReview?.editor.surface
+        ? 'Waiting for the receipt canvas measurement.'
+        : model.receiptReview.editor.gesture.type !== 'idle'
+          ? 'Finish the receipt canvas gesture before focusing changes.'
+          : null,
+    focusReason: (item: ZlozHistoryChangeItem) =>
+      item.change.kind === 'removed' ? 'This change is absent on this side of the receipt.' : null,
+  };
+}
+export function receiptChangeNavigation(model: Model, side: ReceiptReview['side']) {
+  return resolveHistoryChangeNavigator(
+    model.receiptReview ? receiptComparison(model.receiptReview, side) : null,
+    focusOptions(model),
   );
 }
 const allowed = new Set<string>([
@@ -99,6 +122,7 @@ const receiptMessages = new Set<string>([
   'ClickedCloseReceiptReview',
   'SelectedReceiptSide',
   'ObservedReceiptInput',
+  'ClickedReceiptChange',
 ]);
 export function isReceiptMessage(message: Message) {
   return receiptMessages.has(message._tag);
@@ -173,6 +197,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
             id: input.id,
             receipt,
             side: 'after',
+            focusedChange: null,
             editor: preview(receipt, 'after'),
           },
           sidebarSection: 'mapping',
@@ -203,8 +228,48 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
           receiptReview: {
             ...review,
             side: input.side,
+            focusedChange: null,
             editor: preview(review.receipt, input.side),
           },
+        },
+      };
+    }),
+    Match.tag('ClickedReceiptChange', (input): Return<Model, Message> => {
+      const review = model.receiptReview;
+      if (
+        !review ||
+        review.id !== input.reviewId ||
+        model.sidebarSection !== 'mapping' ||
+        model.sidebarCollapsed
+      )
+        return { model };
+      const decision = resolveHistoryChangeFocus(
+        receiptComparison(review, input.side),
+        input,
+        focusOptions(model),
+      );
+      if (decision.type === 'ignored') return { model };
+      if (decision.type === 'blocked')
+        return { model: { ...model, receiptReviewNotice: decision.reason } };
+      if (decision.target.side !== 'selected') return { model };
+      const editor =
+        review.side === input.side
+          ? review.editor
+          : { ...preview(review.receipt, input.side), surface: review.editor.surface };
+      const next = updateHistoryReview(
+        { editionId: String(review.id), editor },
+        decision.target.event,
+      );
+      return {
+        model: {
+          ...model,
+          receiptReview: {
+            ...review,
+            side: input.side,
+            focusedChange: { entity: input.entity, id: input.id },
+            editor: next.editor,
+          },
+          receiptReviewNotice: `Focused ${input.entity === 'node' ? 'node' : 'connection'} ${decision.entry.label} ${input.side} conversion.`,
         },
       };
     }),
@@ -212,13 +277,29 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
       const review = model.receiptReview;
       if (!review || review.id !== input.id || review.side !== input.side) return { model };
       // SAFETY: only the detached zlozView emits this input. The package adapter rejects non-navigation events.
+      const event = input.message as EditorEvent;
       const next = updateHistoryReview(
         { editionId: String(review.id), editor: review.editor },
-        input.message as EditorEvent,
+        event,
       );
       return next.editor === review.editor
         ? { model }
-        : { model: { ...model, receiptReview: { ...review, editor: next.editor } } };
+        : {
+            model: {
+              ...model,
+              receiptReview: {
+                ...review,
+                editor: next.editor,
+                focusedChange:
+                  event.type === 'SurfaceMeasured' ||
+                  event.type === 'FitViewAnimationFrame' ||
+                  (next.editor.viewport === review.editor.viewport &&
+                    next.editor.gesture.type === 'idle')
+                    ? review.focusedChange
+                    : null,
+              },
+            },
+          };
     }),
     Match.orElse(() => ({ model })),
   );
@@ -233,6 +314,10 @@ function meaning(value: ZlozNode | ZlozEdge | null): string {
 export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const review = model.receiptReview;
   const changes = review ? receiptComparison(review) : null;
+  const navigation = {
+    before: receiptChangeNavigation(model, 'before'),
+    after: receiptChangeNavigation(model, 'after'),
+  };
   const losses = review
     ? createEventStormingDddConversionPlan(review.receipt.source, review.receipt.mappings).preview
         .disclosures
@@ -340,18 +425,37 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
               ],
             ),
             h.h4([], ['Recorded changes']),
+            h.p(
+              [],
+              [
+                'Focus a recorded change before or after conversion. Only the read-only receipt camera moves.',
+              ],
+            ),
+            ...(navigation.before.reason
+              ? [h.p([h.Id('receipt-change-focus-reason')], [navigation.before.reason])]
+              : []),
             h.ul(
               [h.AriaLabel('Receipt changes')],
               [
-                ...changes.nodes.map((change) => ({ entity: 'Node', change })),
-                ...changes.edges.map((change) => ({ entity: 'Connection', change })),
+                ...changes.nodes.map((change) => ({ entity: 'node' as const, change })),
+                ...changes.edges.map((change) => ({ entity: 'edge' as const, change })),
               ].map(({ entity, change }) =>
                 h.li(
-                  [h.Key(`${entity}:${change.id}`)],
+                  [
+                    h.Key(`${entity}:${change.id}`),
+                    h.Class(
+                      review.focusedChange?.entity === entity &&
+                        review.focusedChange.id === change.id
+                        ? 'receipt-change receipt-change--focused'
+                        : 'receipt-change',
+                    ),
+                  ],
                   [
                     h.strong(
                       [],
-                      [`${entity} · ${change.after?.label || change.before?.label || change.id}`],
+                      [
+                        `${entity === 'node' ? 'Node' : 'Connection'} · ${change.after?.label || change.before?.label || change.id}`,
+                      ],
                     ),
                     h.p(
                       [],
@@ -361,6 +465,46 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
                     ),
                     h.p([], [`Before: ${meaning(change.before)}`]),
                     h.p([], [`After: ${meaning(change.after)}`]),
+                    h.div(
+                      [h.Class('receipt-change-actions')],
+                      (['before', 'after'] as const).flatMap((side) => {
+                        const entry = navigation[side].entries.find(
+                          (item) => item.entity === entity && item.id === change.id,
+                        );
+                        return entry
+                          ? [
+                              h.span(
+                                [h.Key(side)],
+                                [
+                                  zlozHistoryChangeButton(
+                                    h,
+                                    entry,
+                                    (request) =>
+                                      Message.ClickedReceiptChange({
+                                        reviewId: review.id,
+                                        side,
+                                        ...request,
+                                      }),
+                                    [
+                                      h.AriaPressed(
+                                        review.side === side &&
+                                          review.focusedChange?.entity === entity &&
+                                          review.focusedChange.id === change.id
+                                          ? 'true'
+                                          : 'false',
+                                      ),
+                                    ],
+                                    [side === 'before' ? 'Focus before' : 'Focus after'],
+                                    {
+                                      label: `Focus ${entity === 'node' ? 'node' : 'connection'} ${entry.label} ${side} conversion`,
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ]
+                          : [];
+                      }),
+                    ),
                   ],
                 ),
               ),

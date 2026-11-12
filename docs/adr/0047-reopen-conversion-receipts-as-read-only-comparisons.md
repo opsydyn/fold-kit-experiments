@@ -63,5 +63,25 @@ an actual downloaded Apply receipt in a fresh page, checks both semantic rendere
 keyboard selection, final working-document equality, rejection recovery and
 light/dark captures. Run root lint/format, typecheck and tests.
 
-Next bounded slice: select a recorded change to focus its node or connection on
-either side using the existing history navigation primitives.
+## Follow-up: recorded change focus, 2026-11-12
+
+Implemented the approved next slice using public `resolveHistoryChangeNavigator`,
+`resolveHistoryChangeFocus`, `zlozHistoryChangeButton` and `updateHistoryReview`.
+The requested side is the comparison's selected side: Before reverses the edition
+comparison, so the package resolves the original geometry without restoring data.
+Buttons carry the receipt generation, side, edition pair, entity and stable ID.
+The handler rechecks the current visible panel, receipt, comparison membership,
+read-in-progress, canvas measurement and gesture state. An absent-side entry is
+unavailable rather than silently framing different-side geometry.
+
+Switching sides reconstructs a detached editor from the recorded snapshot and
+reuses the current canvas measurement for camera focus; it does not apply or copy
+content into the working graph. The chosen row is transient review state. Manual
+camera changes, gestures and explicit side resets clear it. Fresh input bindings
+emit idle capture cancellation: this must preserve the row when the camera has
+not moved. A browser-found regression is covered directly. Native buttons retain
+keyboard focus and availability reasons remain visible with minimal diagnostics.
+No public API, file format, dependency or persistent model schema changes.
+
+Next bounded slice: Previous/Next change navigation that preserves the chosen
+comparison side.

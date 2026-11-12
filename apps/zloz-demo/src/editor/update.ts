@@ -729,6 +729,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedCancelReceiptRead: () => updateReceiptReview(model, message),
     ClickedCloseReceiptReview: () => updateReceiptReview(model, message),
     SelectedReceiptSide: () => updateReceiptReview(model, message),
+    ClickedReceiptChange: () => updateReceiptReview(model, message),
     ObservedReceiptInput: () => updateReceiptReview(model, message),
     ClickedApplyMappingConversion: (request) => ({ model: applyWorkbenchMapping(model, request) }),
     ClickedMappingApplyProtection: () => ({

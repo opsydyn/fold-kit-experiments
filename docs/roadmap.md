@@ -269,8 +269,15 @@ Undo and consent remain unchanged; invalid input preserves the last good compari
 See [ADR 0047](adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md) and
 [local evidence](../apps/zloz-demo/evidence/receipt-review.md).
 
-**Recommended next:** select a recorded change to focus its node or connection on
-either side using existing history navigation primitives. Proposed positioning to
+**Receipt change focus — implemented on this branch, unreleased:**
+Recorded nodes and connections have explicit Focus before/after controls backed
+by public history navigation primitives. Scope, membership, surface and gesture
+checks guard detached camera changes; native focus, selected-row feedback and
+minimal-mode controls preserve the working graph and receipt. See
+[local evidence](../apps/zloz-demo/evidence/receipt-focus.md).
+
+**Recommended next:** Previous/Next change navigation that preserves the chosen
+comparison side. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

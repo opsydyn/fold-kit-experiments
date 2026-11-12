@@ -672,3 +672,13 @@ is tab-local; reopen the original file after closing the tab.
 
 See [local browser evidence](evidence/receipt-review.md) and
 [ADR 0047](../../docs/adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md).
+
+Each recorded change also has **Focus before** and **Focus after** controls. They
+select that side and frame the node or the connection's endpoints using Zloz's
+public history navigation primitives. The chosen row is highlighted, and native
+buttons retain keyboard focus. If the canvas is not measured, a gesture is active
+or another receipt is being read, controls show the reason they are unavailable.
+Manual camera navigation clears the marker; mount-time capture cancellation does
+not. The receipt, working model and Undo history remain unchanged.
+
+See [receipt focus evidence](evidence/receipt-focus.md).

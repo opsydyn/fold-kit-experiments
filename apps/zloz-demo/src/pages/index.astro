@@ -157,8 +157,12 @@ button, input, select { font: inherit; }
 .receipt-canvas > [data-flow-surface] { flex: 1; min-height: 0; }
 .receipt-canvas-banner { padding: 12px 16px; background: var(--panel); color: var(--ink); border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .receipt-review { border: 1px solid var(--rule); border-radius: 8px; padding: 12px; margin-block: 16px; }
-.receipt-review p, .receipt-review li { overflow-wrap: anywhere; }
+.receipt-review p, .receipt-change-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.receipt-change--focused { border-left: 3px solid var(--blue); padding-left: 8px; }
+.receipt-review li { overflow-wrap: anywhere; }
 .receipt-review ul { padding-left: 18px; }
+.receipt-change-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.receipt-change--focused { border-left: 3px solid var(--blue); padding-left: 8px; }
 .receipt-review li { border-top: 1px solid var(--rule); padding-block: 12px; }
 .receipt-side-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .receipt-side-controls [aria-pressed='true'] { border-color: var(--blue); color: var(--blue); }

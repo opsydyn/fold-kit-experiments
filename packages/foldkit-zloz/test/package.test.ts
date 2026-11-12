@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
 import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
@@ -62,6 +62,9 @@ const remoteFont:ZlozSvgFontResource={assetId:'font',format:'truetype',url:'http
 const svgOptions:ZlozSvgExportOptions={title:'Packed architecture',region:{type:'model',padding:20},theme:{colorScheme:'dark'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}};
 const packedFontBytes=Uint8Array.from(atob('${(await readFile(new URL('./fixtures/font/inter-latin-400.ttf', import.meta.url))).toString('base64')}'), character=>character.charCodeAt(0));
 const packedFont:ZlozSvgFontResource={assetId:'packed-font',format:'truetype',bytes:packedFontBytes};
+const fontCoverage=inspectSvgFontCoverage(packedFont,'Orders 漢😀');
+if(fontCoverage.type!=='checked'||fontCoverage.missingCodePoints.join(',')!=='28450,128512')throw new Error('Missing scalar glyph coverage');
+
 const fontSvg=writeSvgExport(waypointEditor,{...svgOptions,font:{...svgOptions.font,assetId:'packed-font'},assets:[{id:'packed-font',kind:'font',availability:'embedded'}]},{fontResources:[packedFont]});
 if(fontSvg.type!=='written'||!fontSvg.svg.includes('data:font/ttf;base64,')||!fontSvg.svg.includes('@font-face'))throw new Error('Missing portable font embedding');
 

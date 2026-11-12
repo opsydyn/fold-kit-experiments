@@ -54,11 +54,13 @@ function base64(bytes: Uint8Array): string {
   chunks.push(block);
   return chunks.join('');
 }
-/** No IO or platform font APIs. Copies bytes; budgets are checked before copying/encoding. */
-export function validateSvgFontResource(
+/** Internal owned bytes and validation share one snapshot; bytes never reach host adapters. */
+export function prepareSvgFontResource(
   resource: ZlozSvgFontResource,
   options: Readonly<{ maxBytes?: number }> = {},
-): ZlozSvgFontValidation {
+):
+  | (Extract<ZlozSvgFontValidation, { type: 'valid' }> & Readonly<{ bytes: Uint8Array }>)
+  | Extract<ZlozSvgFontValidation, { type: 'invalid' }> {
   const maxBytes = options.maxBytes ?? 1048576;
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 16777216)
     throw new ZlozError('invalid-edit', 'Font maxBytes must be an integer from 1 to 16777216.');
@@ -217,6 +219,7 @@ export function validateSvgFontResource(
       fail('Font flags disallow outline embedding or restrict embedding.');
     return {
       type: 'valid',
+      bytes,
       byteLength: bytes.length,
       tableCount: count,
       weight,
@@ -227,4 +230,20 @@ export function validateSvgFontResource(
       return { type: 'invalid', code: error.code, reason: error.message };
     throw error;
   }
+}
+
+/** No IO or platform font APIs. Copies bytes; budgets are checked before copying/encoding. */
+export function validateSvgFontResource(
+  resource: ZlozSvgFontResource,
+  options: Readonly<{ maxBytes?: number }> = {},
+): ZlozSvgFontValidation {
+  const prepared = prepareSvgFontResource(resource, options);
+  if (prepared.type === 'invalid') return prepared;
+  return {
+    type: 'valid',
+    byteLength: prepared.byteLength,
+    tableCount: prepared.tableCount,
+    weight: prepared.weight,
+    dataUrl: prepared.dataUrl,
+  };
 }

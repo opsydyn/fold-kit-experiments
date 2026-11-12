@@ -1,0 +1,98 @@
+{
+  "coverage": {
+    "type": "checked",
+    "format": 4,
+    "checkedCodePoints": 8,
+    "missingCodePoints": [28450, 128512],
+    "unverifiedCodePoints": []
+  },
+  "beforeAcceptance": {
+    "type": "blocked",
+    "findings": [
+      {
+        "code": "asset-unverified",
+        "severity": "unverified",
+        "target": {
+          "kind": "asset",
+          "id": "inter"
+        },
+        "reason": "Embedded TrueType container/header checks passed; glyph programs, layout tables and browser decoding remain unverified."
+      },
+      {
+        "code": "bounds-estimated",
+        "severity": "unverified",
+        "target": {
+          "kind": "document"
+        },
+        "reason": "Authored envelopes, bends and declared custom bounds exclude unmeasured text ink, strokes, port artwork, custom geometry and transient layout routes. Padding is explicit, not a fit guarantee."
+      },
+      {
+        "code": "font-unverified",
+        "severity": "unverified",
+        "target": {
+          "kind": "document"
+        },
+        "reason": "Default Unicode cmap mappings were checked; glyph programs, shaping, variation sequences, synthetic variants, wrapping and ink bounds remain unverified."
+      },
+      {
+        "code": "font-glyph-missing",
+        "severity": "loss",
+        "target": {
+          "kind": "node",
+          "id": "source"
+        },
+        "codePoints": [28450, 128512],
+        "reason": "Embedded font has no default glyph for U+6F22, U+1F600; 2 unique code point(s) may substitute or render as missing glyphs."
+      },
+      {
+        "code": "loss-consent-required",
+        "severity": "unsupported",
+        "target": {
+          "kind": "document"
+        },
+        "reason": "Set allowLosses explicitly to accept the reported export losses."
+      }
+    ]
+  },
+  "afterAcceptance": {
+    "type": "written",
+    "findings": [
+      {
+        "code": "asset-unverified",
+        "severity": "unverified",
+        "target": {
+          "kind": "asset",
+          "id": "inter"
+        },
+        "reason": "Embedded TrueType container/header checks passed; glyph programs, layout tables and browser decoding remain unverified."
+      },
+      {
+        "code": "bounds-estimated",
+        "severity": "unverified",
+        "target": {
+          "kind": "document"
+        },
+        "reason": "Authored envelopes, bends and declared custom bounds exclude unmeasured text ink, strokes, port artwork, custom geometry and transient layout routes. Padding is explicit, not a fit guarantee."
+      },
+      {
+        "code": "font-unverified",
+        "severity": "unverified",
+        "target": {
+          "kind": "document"
+        },
+        "reason": "Default Unicode cmap mappings were checked; glyph programs, shaping, variation sequences, synthetic variants, wrapping and ink bounds remain unverified."
+      },
+      {
+        "code": "font-glyph-missing",
+        "severity": "loss",
+        "target": {
+          "kind": "node",
+          "id": "source"
+        },
+        "codePoints": [28450, 128512],
+        "reason": "Embedded font has no default glyph for U+6F22, U+1F600; 2 unique code point(s) may substitute or render as missing glyphs."
+      }
+    ]
+  },
+  "editorUnchanged": true
+}

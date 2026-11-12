@@ -12,10 +12,11 @@ import {
   type ZlozSvgTarget,
 } from './svg-export';
 import {
-  validateSvgFontResource,
+  prepareSvgFontResource,
   type ZlozSvgFontResource,
   type ZlozSvgFontFailureCode,
 } from './svg-font';
+import { prepareSvgFontCoverage, type PreparedSvgFontCoverage } from './svg-font-coverage';
 import type { Point, ZlozSnapshot, ZlozNode, ZlozEdge } from './types';
 
 type Paint = Readonly<{ fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }>;
@@ -66,12 +67,18 @@ export type ZlozSvgWriteFinding = Readonly<
       | 'adapter-missing'
       | 'adapter-failed'
       | ZlozSvgFontFailureCode
+      | 'font-cmap-invalid'
+      | 'font-text-invalid'
+      | 'font-coverage-limit'
+      | 'font-glyph-missing'
+      | 'font-coverage-unverified'
       | 'font-resource-missing'
       | 'font-resource-unexpected'
       | 'resource-unsupported'
       | 'loss-consent-required'
       | 'svg-output-invalid'
       | 'semantic-edge-fallback';
+    codePoints?: readonly number[];
   }
 >;
 export type ZlozSvgWriteResult = Readonly<{
@@ -154,6 +161,7 @@ function primitiveWriter(
   options: ZlozSvgWriteOptions,
   font: ZlozSvgExportPlan['font'],
   textColor: string,
+  onText: (text: string) => void,
 ) {
   const max = budget(options.maxPrimitives ?? 10000, 'maxPrimitives'),
     depth = budget(options.maxDepth ?? 32, 'maxDepth');
@@ -191,13 +199,15 @@ function primitiveWriter(
           invalid('SVG point lists are incomplete.');
         return `<${value.type} points="${value.points.map(point).join(' ')}" ${paint(value)}/>`;
       case 'text': {
+        const text = value.text;
+        onText(text);
         checkedKeys(value, [...drawing, 'position', 'text', 'anchor', 'size', 'weight']);
         const anchor = value.anchor ?? 'start';
         if (!['start', 'middle', 'end'].includes(anchor)) invalid('Invalid SVG text anchor.');
         const size = positive(value.size ?? font.size),
           weight = value.weight ?? font.weight;
         if (finite(weight) < 1 || weight > 1000) invalid('Invalid SVG font weight.');
-        return `<text x="${finite(value.position.x)}" y="${finite(value.position.y)}" text-anchor="${anchor}" font-size="${size}" font-weight="${weight}" ${paint({ ...value, fill: value.fill ?? textColor }, true)}>${value.text
+        return `<text x="${finite(value.position.x)}" y="${finite(value.position.y)}" text-anchor="${anchor}" font-size="${size}" font-weight="${weight}" ${paint({ ...value, fill: value.fill ?? textColor }, true)}>${text
           .split(/\r\n|\r|\n/u)
           .map(
             (line, index) =>
@@ -251,6 +261,7 @@ export function writeSvgExport(
       invalid('Adapters need unique non-blank ID/version pairs.');
     adapters.set(key, adapter);
   }
+  let fontCoverage: PreparedSvgFontCoverage | null = null;
   let fontStyle = '',
     embeddedFamily: string | null = null;
   const resources = new Map<string, ZlozSvgFontResource>();
@@ -288,7 +299,7 @@ export function writeSvgExport(
       );
       continue;
     }
-    const validation = validateSvgFontResource(
+    const validation = prepareSvgFontResource(
       resource,
       writing.maxFontBytes === undefined ? {} : { maxBytes: writing.maxFontBytes },
     );
@@ -296,6 +307,18 @@ export function writeSvgExport(
       add(validation.code, { kind: 'asset', id: asset.id }, validation.reason);
       continue;
     }
+    fontCoverage = prepareSvgFontCoverage(validation.bytes);
+    if (fontCoverage.type === 'invalid') {
+      add(fontCoverage.code, { kind: 'asset', id: asset.id }, fontCoverage.reason);
+      continue;
+    }
+    if (fontCoverage.type === 'unverified')
+      findings.push({
+        code: 'font-coverage-unverified',
+        severity: 'unverified',
+        target: { kind: 'asset', id: asset.id },
+        reason: fontCoverage.reason,
+      });
     embeddedFamily = `${prefix}-font`;
     fontStyle = `<style>@font-face{font-family:'${embeddedFamily}';src:url(${validation.dataUrl}) format('truetype');font-weight:${validation.weight};font-style:normal;}</style>`;
     for (let index = 0; index < findings.length; index++) {
@@ -315,7 +338,9 @@ export function writeSvgExport(
         findings[index] = {
           ...finding,
           reason:
-            'Embedded TrueType bytes passed structural checks; glyph coverage, shaping, synthetic variants, wrapping and ink bounds remain unverified.',
+            fontCoverage.type === 'ready'
+              ? 'Default Unicode cmap mappings were checked; glyph programs, shaping, variation sequences, synthetic variants, wrapping and ink bounds remain unverified.'
+              : 'Embedded TrueType bytes passed structural checks; glyph coverage, shaping, synthetic variants, wrapping and ink bounds remain unverified.',
         };
     }
   }
@@ -352,7 +377,13 @@ export function writeSvgExport(
       );
   if (findings.some((f) => f.severity === 'unsupported'))
     return { type: 'blocked', plan, findings };
-  const { render, reserve } = primitiveWriter(writing, plan.font, plan.theme.tokens.nodeColor),
+  let renderedText: string[] = [];
+  const { render, reserve } = primitiveWriter(
+      writing,
+      plan.font,
+      plan.theme.tokens.nodeColor,
+      (text) => renderedText.push(text),
+    ),
     t = plan.theme.tokens,
     width = plan.theme.edgeWidth ?? 1;
   const output = new Map<string, string>();
@@ -362,6 +393,7 @@ export function writeSvgExport(
       output.set(itemKey(item.target), '');
       continue;
     }
+    renderedText = [];
     // oxlint-disable-next-line linteffect/no-try-catch -- Peer-free core translates synchronous host adapter/XML failures into atomic blocked results.
     try {
       let artwork = '';
@@ -424,6 +456,42 @@ export function writeSvgExport(
             weight: plan.font.weight,
           });
       }
+      if (fontCoverage?.type === 'ready') {
+        const missing = new Set<number>(),
+          uncertain = new Set<number>();
+        for (const text of renderedText) {
+          const checked = fontCoverage.inspect(text, maxCharacters);
+          if (checked.type === 'invalid') add(checked.code, item.target, checked.reason);
+          if (checked.type === 'checked') {
+            for (const cp of checked.missingCodePoints) missing.add(cp);
+            for (const cp of checked.unverifiedCodePoints) uncertain.add(cp);
+          }
+        }
+        const report = (
+          points: Set<number>,
+          code: 'font-glyph-missing' | 'font-coverage-unverified',
+          severity: 'loss' | 'unverified',
+        ) => {
+          if (points.size === 0) return;
+          const codePoints = [...points].sort((a, b) => a - b),
+            shown = codePoints
+              .slice(0, 16)
+              .map((cp) => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`)
+              .join(', ');
+          findings.push({
+            code,
+            severity,
+            target: item.target,
+            codePoints,
+            reason:
+              code === 'font-glyph-missing'
+                ? `Embedded font has no default glyph for ${shown}${codePoints.length > 16 ? ' …' : ''}; ${codePoints.length} unique code point(s) may substitute or render as missing glyphs.`
+                : `Sequence/default-ignorable characters ${shown} require shaping or variation handling; their coverage remains unverified.`,
+          });
+        };
+        report(missing, 'font-glyph-missing', 'loss');
+        report(uncertain, 'font-coverage-unverified', 'unverified');
+      }
       output.set(
         itemKey(item.target),
         `<g data-zloz-export-${item.target.kind}="${xml(item.target.id)}">${artwork}</g>`,
@@ -438,6 +506,14 @@ export function writeSvgExport(
   }
   if (findings.some((f) => f.severity === 'unsupported'))
     return { type: 'blocked', plan, findings };
+  if (writing.allowLosses !== true && findings.some((f) => f.severity === 'loss')) {
+    add(
+      'loss-consent-required',
+      { kind: 'document' },
+      'Set allowLosses explicitly to accept the reported export losses.',
+    );
+    return { type: 'blocked', plan, findings };
+  }
   // oxlint-disable-next-line linteffect/no-try-catch -- Peer-free XML boundary reports document validation failures without partial output.
   try {
     const b = plan.viewBox;

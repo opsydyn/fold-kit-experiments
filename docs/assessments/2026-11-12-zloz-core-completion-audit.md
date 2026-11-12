@@ -157,7 +157,12 @@ Selected trusted TrueType font bytes now have structural validation, bounded
 embedding and asset-targeted failures; review approval binds the resulting bytes.
 See [ADR 0055](../adr/0055-embed-bounded-truetype-font-resources.md) and
 [font qualification](../../packages/foldkit-zloz/evidence/svg-font.md).
-Broader font formats, other resources, browser/font qualification and PNG remain open.
+Headless default glyph coverage now checks formats 4/12 against emitted text,
+reports missing mappings as consent-controlled losses, and preserves unknown
+mapping/sequence status. Malformed mappings block. See
+[ADR 0056](../adr/0056-report-default-glyph-coverage-for-emitted-text.md) and
+[coverage evidence](../../packages/foldkit-zloz/evidence/svg-font-coverage.md).
+Broader font formats, other resources, shaping/browser/font qualification and PNG remain open.
 Planning output alone remains distinct from emitted-file evidence.
 
 ### P1 — strict portable review packet reopening

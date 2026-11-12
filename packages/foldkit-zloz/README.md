@@ -459,6 +459,53 @@ loss approval cannot authorize a different embedded font.
 See [ADR 0055](../../docs/adr/0055-embed-bounded-truetype-font-resources.md) and
 [font qualification](evidence/svg-font.md). PNG and Alchemy remain deferred.
 
+## Default glyph coverage (unreleased)
+
+`inspectSvgFontCoverage(resource, text, { maxBytes?, maxCharacters? })` validates
+and owns font bytes, then checks a default Unicode cmap. The result is `checked`,
+`unverified` or `invalid`. Checked results expose `format` (4 or 12), the count of
+unique checked scalars, sorted `missingCodePoints` and `unverifiedCodePoints`.
+
+```ts
+import { inspectSvgFontCoverage } from '@opsydyn/foldkit-zloz';
+
+const coverage = inspectSvgFontCoverage(resource, 'Orders 漢😀');
+if (coverage.type === 'checked') {
+  // Unicode numbers, not UTF-16 surrogate halves. Missing glyph index 0 is a loss.
+  console.log(coverage.missingCodePoints);
+} else {
+  console.log(coverage.reason);
+}
+```
+
+Selection consistently prefers one full-repertoire Unicode mapping over BMP
+mappings, with Windows preferred over an equivalent Unicode-platform profile.
+Maps are not unioned. Formats 4/12 require the matching BMP/full-repertoire profile;
+other formats/profiles or absent Unicode maps stay unverified. Malformed selected
+maps produce `font-cmap-invalid`, including bad bounds/order/ranges/glyph indices.
+CR/LF/tab delimiters are excluded. Default-ignorable scalars such as joiners and
+variation selectors remain unverified; they are not automatically missing glyphs.
+Unpaired surrogates reject with `font-text-invalid`. Default text limit is 2,000,000
+UTF-16 code units; exceeding `maxCharacters` returns `font-coverage-limit`. Invalid
+budget configuration throws the existing core error. Font-byte limits still apply.
+
+The SVG writer automatically checks **emitted** text, including ports, architecture
+metadata, edges and nested custom text primitives. Omitted/replaced labels and
+root title/description metadata do not generate false glyph findings. Targeted
+`font-glyph-missing` findings are losses and require existing explicit acceptance.
+Their structured `codePoints` arrays retain all unique missing scalars; reasons
+show the first 16. `font-coverage-unverified` findings retain unknown sequence or
+mapping status. Malformed maps block even with loss acceptance enabled. All findings
+participate in the existing exact-artifact SVG review identity.
+
+A default cmap mapping proves neither shaping/sequence behavior nor actual fallback
+font selection or successful rendering. Glyph programs, combining-mark placement,
+variation handling, synthetic variants, wrapping and ink bounds remain unqualified.
+System fonts have no portable bytes to inspect and retain unverified findings.
+See [coverage evidence](evidence/svg-font-coverage.md) and
+[ADR 0056](../../docs/adr/0056-report-default-glyph-coverage-for-emitted-text.md).
+PNG and Alchemy remain deferred.
+
 ## Authored edge waypoints
 
 Named world-space bends are document data, independent of transient layout routes:

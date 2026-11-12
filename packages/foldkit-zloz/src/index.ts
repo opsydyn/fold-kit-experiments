@@ -493,3 +493,6 @@ export type {
   ZlozSvgFontValidation,
   ZlozSvgFontFailureCode,
 } from './svg-font';
+
+export { inspectSvgFontCoverage } from './svg-font-coverage';
+export type { ZlozSvgFontCoverage } from './svg-font-coverage';

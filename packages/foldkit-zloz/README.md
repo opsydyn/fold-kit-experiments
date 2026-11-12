@@ -3755,3 +3755,29 @@ proves a human/author identity. Existing graph/model/edition formats stay unchan
 fork ancestry is never used to store conversion provenance. Receipt size and source
 validation cost are unqualified for large models. The workbench Apply control remains
 a separate slice.
+
+### Previous/Next change traversal
+
+`resolveHistoryChangeStep(comparison, current, direction, options)` composes the
+public change navigator and focus resolver. `current` is a
+`ZlozHistoryChangeCursor` (`{ entity, id }`) or `null`; `direction` is `'previous'`
+or `'next'`. Next starts with the first visible entry when no change is focused.
+First/last boundaries stop without wrapping. Filters, current membership and live
+focus vetoes are rechecked, and unavailable candidates are never silently skipped.
+The result is the existing `ZlozHistoryChangeFocusDecision`; hosts own the cursor
+and apply ready targets to the appropriate detached review.
+
+```ts
+import { resolveHistoryChangeStep } from '@opsydyn/foldkit-zloz';
+
+const step = resolveHistoryChangeStep(comparison, current, 'next', options);
+if (step.type === 'ready') {
+  // Store the identity after focusing step.target in the comparison's review.
+  const cursor = { entity: step.entry.entity, id: step.entry.id };
+}
+```
+
+For a Before/After UI, orient the comparison so the chosen side is its selected
+edition, and retain that orientation when stepping. Hosts should also reject
+stale receipt, side and cursor callbacks. The helper performs no graph edits,
+persistence or DOM focus changes.

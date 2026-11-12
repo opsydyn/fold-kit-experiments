@@ -2,6 +2,9 @@ import {
   captureEdition,
   resolveHistoryChangeNavigator,
   resolveHistoryChangeFocus,
+  resolveHistoryChangeStep,
+  type ZlozHistoryChangeCursor,
+  type ZlozHistoryChangeFocusDecision,
   compareEditions,
   createModelEditor,
   createEventStormingDddConversionPlan,
@@ -38,7 +41,7 @@ export type ReceiptReview = Readonly<{
   id: number;
   receipt: ZlozEventStormingDddConversion;
   side: 'before' | 'after';
-  focusedChange: Readonly<{ entity: 'node' | 'edge'; id: string }> | null;
+  focusedChange: ZlozHistoryChangeCursor | null;
   editor: EditorState;
 }>;
 function preview(receipt: ZlozEventStormingDddConversion, side: ReceiptReview['side']) {
@@ -80,6 +83,63 @@ export function receiptChangeNavigation(model: Model, side: ReceiptReview['side'
     model.receiptReview ? receiptComparison(model.receiptReview, side) : null,
     focusOptions(model),
   );
+}
+export function receiptChangeSteps(model: Model) {
+  const review = model.receiptReview;
+  const comparison = review ? receiptComparison(review, review.side) : null;
+  const entries = resolveHistoryChangeNavigator(comparison, focusOptions(model)).entries;
+  const index = review?.focusedChange
+    ? entries.findIndex((entry) => sameCursor(entry, review.focusedChange))
+    : -1;
+  return {
+    previous: resolveHistoryChangeStep(
+      comparison,
+      review?.focusedChange ?? null,
+      'previous',
+      focusOptions(model),
+    ),
+    next: resolveHistoryChangeStep(
+      comparison,
+      review?.focusedChange ?? null,
+      'next',
+      focusOptions(model),
+    ),
+    position: index >= 0 ? index + 1 : null,
+    total: entries.length,
+  };
+}
+function sameCursor(
+  left: ZlozHistoryChangeCursor | null,
+  right: ZlozHistoryChangeCursor | null,
+): boolean {
+  return left === null || right === null
+    ? left === right
+    : left.entity === right.entity && left.id === right.id;
+}
+function focusReceipt(
+  model: Model,
+  side: ReceiptReview['side'],
+  decision: ZlozHistoryChangeFocusDecision,
+): Model {
+  const review = model.receiptReview;
+  if (!review || decision.type === 'ignored') return model;
+  if (decision.type === 'blocked') return { ...model, receiptReviewNotice: decision.reason };
+  if (decision.target.side !== 'selected') return model;
+  const editor =
+    review.side === side
+      ? review.editor
+      : { ...preview(review.receipt, side), surface: review.editor.surface };
+  const next = updateHistoryReview({ editionId: String(review.id), editor }, decision.target.event);
+  return {
+    ...model,
+    receiptReview: {
+      ...review,
+      side,
+      focusedChange: { entity: decision.entry.entity, id: decision.entry.id },
+      editor: next.editor,
+    },
+    receiptReviewNotice: `Focused ${decision.entry.entity === 'node' ? 'node' : 'connection'} ${decision.entry.label} ${side} conversion.`,
+  };
 }
 const allowed = new Set<string>([
   'SelectedWorkbenchSection',
@@ -123,6 +183,7 @@ const receiptMessages = new Set<string>([
   'SelectedReceiptSide',
   'ObservedReceiptInput',
   'ClickedReceiptChange',
+  'ClickedReceiptChangeStep',
 ]);
 export function isReceiptMessage(message: Message) {
   return receiptMessages.has(message._tag);
@@ -248,29 +309,30 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
         input,
         focusOptions(model),
       );
-      if (decision.type === 'ignored') return { model };
-      if (decision.type === 'blocked')
-        return { model: { ...model, receiptReviewNotice: decision.reason } };
-      if (decision.target.side !== 'selected') return { model };
-      const editor =
-        review.side === input.side
-          ? review.editor
-          : { ...preview(review.receipt, input.side), surface: review.editor.surface };
-      const next = updateHistoryReview(
-        { editionId: String(review.id), editor },
-        decision.target.event,
-      );
+      return { model: focusReceipt(model, input.side, decision) };
+    }),
+    Match.tag('ClickedReceiptChangeStep', (input): Return<Model, Message> => {
+      const review = model.receiptReview;
+      if (
+        !review ||
+        review.id !== input.reviewId ||
+        review.side !== input.side ||
+        !sameCursor(input.from, review.focusedChange) ||
+        model.sidebarSection !== 'mapping' ||
+        model.sidebarCollapsed
+      )
+        return { model };
       return {
-        model: {
-          ...model,
-          receiptReview: {
-            ...review,
-            side: input.side,
-            focusedChange: { entity: input.entity, id: input.id },
-            editor: next.editor,
-          },
-          receiptReviewNotice: `Focused ${input.entity === 'node' ? 'node' : 'connection'} ${decision.entry.label} ${input.side} conversion.`,
-        },
+        model: focusReceipt(
+          model,
+          review.side,
+          resolveHistoryChangeStep(
+            receiptComparison(review, review.side),
+            review.focusedChange,
+            input.direction,
+            focusOptions(model),
+          ),
+        ),
       };
     }),
     Match.tag('ObservedReceiptInput', (input): Return<Model, Message> => {
@@ -314,6 +376,7 @@ function meaning(value: ZlozNode | ZlozEdge | null): string {
 export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const review = model.receiptReview;
   const changes = review ? receiptComparison(review) : null;
+  const steps = receiptChangeSteps(model);
   const navigation = {
     before: receiptChangeNavigation(model, 'before'),
     after: receiptChangeNavigation(model, 'after'),
@@ -425,6 +488,58 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
               ],
             ),
             h.h4([], ['Recorded changes']),
+            h.div(
+              [
+                h.Class('receipt-change-actions'),
+                h.Role('group'),
+                h.AriaLabel('Receipt change navigation'),
+              ],
+              (['previous', 'next'] as const).map((direction) => {
+                const decision = steps[direction];
+                const reason =
+                  decision.type === 'blocked'
+                    ? decision.reason
+                    : decision.type === 'ignored'
+                      ? 'Choose an available change.'
+                      : null;
+                return h.span(
+                  [h.Key(direction)],
+                  [
+                    h.button(
+                      [
+                        h.Type('button'),
+                        h.AriaLabel(
+                          direction === 'previous'
+                            ? 'Previous receipt change'
+                            : 'Next receipt change',
+                        ),
+                        h.Disabled(decision.type !== 'ready'),
+                        ...(reason ? [h.AriaDescribedBy(`receipt-step-${direction}-reason`)] : []),
+                        h.OnClick(
+                          Message.ClickedReceiptChangeStep({
+                            reviewId: review.id,
+                            side: review.side,
+                            direction,
+                            from: review.focusedChange,
+                          }),
+                        ),
+                      ],
+                      [direction === 'previous' ? 'Previous change' : 'Next change'],
+                    ),
+                    ...(reason ? [h.p([h.Id(`receipt-step-${direction}-reason`)], [reason])] : []),
+                  ],
+                );
+              }),
+            ),
+            h.p(
+              [h.Id('receipt-change-position'), h.AriaLive('polite')],
+              [
+                steps.position === null
+                  ? `No change selected · ${steps.total} changes`
+                  : `Change ${steps.position} of ${steps.total}`,
+              ],
+            ),
+
             h.p(
               [],
               [

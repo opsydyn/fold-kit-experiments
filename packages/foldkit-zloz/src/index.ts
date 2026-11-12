@@ -251,8 +251,11 @@ export type {
 export {
   resolveHistoryChangeNavigator,
   resolveHistoryChangeFocus,
+  resolveHistoryChangeStep,
 } from './history-change-navigator';
 export type {
+  ZlozHistoryChangeCursor,
+  ZlozHistoryChangeStepDirection,
   ZlozHistoryChangeKind,
   ZlozHistoryChangeFilters,
   ZlozHistoryChangeItem,

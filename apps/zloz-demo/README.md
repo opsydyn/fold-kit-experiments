@@ -682,3 +682,10 @@ Manual camera navigation clears the marker; mount-time capture cancellation does
 not. The receipt, working model and Undo history remain unchanged.
 
 See [receipt focus evidence](evidence/receipt-focus.md).
+
+**Previous change** and **Next change** walk recorded changes while keeping the
+chosen Before/After side. Next starts at the first change; controls stop at each
+end and show why they are unavailable. The position readout remains available in
+minimal mode. Stale queued clicks cannot advance from a different receipt, side
+or selection. This composes the package's public `resolveHistoryChangeStep` with
+the existing detached focus adapter. See [step navigation evidence](evidence/receipt-step.md).

@@ -5,6 +5,7 @@ import {
   compareEditions,
   resolveHistoryChangeNavigator,
   resolveHistoryChangeFocus,
+  resolveHistoryChangeStep,
   type ZlozNode,
 } from '../src/index';
 const node = (id: string, x: number): ZlozNode => ({
@@ -148,4 +149,81 @@ test('current edge focus uses the edge namespace and customizable labels preserv
     event: { type: 'EdgeRevealRequested', id: 'link' },
   });
   expect(context.entries.filter((entry) => entry.id === 'link')).toHaveLength(2);
+});
+
+test('step navigation starts at the first entry and respects both ends without wrapping', () => {
+  const first = resolveHistoryChangeStep(comparison, null, 'next');
+  expect(first.type).toBe('ready');
+  if (first.type === 'ready')
+    expect([first.entry.entity, first.entry.id]).toEqual(['node', 'added']);
+  expect(resolveHistoryChangeStep(comparison, null, 'previous')).toEqual({
+    type: 'blocked',
+    reason: 'Choose a change before moving backwards.',
+  });
+  expect(resolveHistoryChangeStep(comparison, { entity: 'node', id: 'added' }, 'previous')).toEqual(
+    { type: 'blocked', reason: 'First change reached.' },
+  );
+  expect(resolveHistoryChangeStep(comparison, { entity: 'edge', id: 'link' }, 'next')).toEqual({
+    type: 'blocked',
+    reason: 'Last change reached.',
+  });
+  const next = resolveHistoryChangeStep(comparison, { entity: 'node', id: 'added' }, 'next');
+  if (next.type !== 'ready') throw new TypeError('Expected next change');
+  expect(next.target).toEqual({
+    side: 'selected',
+    editionId: 'after',
+    event: { type: 'NodeRevealRequested', id: 'link' },
+  });
+});
+test('step navigation uses stable node/edge identity and delegates original-side removal geometry', () => {
+  const step = resolveHistoryChangeStep(comparison, { entity: 'node', id: 'removed' }, 'next');
+  if (step.type !== 'ready') throw new TypeError('Expected connection step');
+  expect(step.entry.entity).toBe('edge');
+  expect(step.entry.id).toBe('link');
+  expect(step.target.side).toBe('baseline');
+  const previous = resolveHistoryChangeStep(comparison, { entity: 'edge', id: 'link' }, 'previous');
+  if (previous.type !== 'ready' || previous.target.side !== 'baseline')
+    throw new TypeError('Expected previous geometry');
+  expect(previous.target.nodes.map((value) => value.id)).toEqual(['removed']);
+});
+test('steps recheck live filters, current membership and vetoes without skipping an unavailable candidate', () => {
+  expect(resolveHistoryChangeStep(null, null, 'next')).toEqual({ type: 'ignored' });
+  expect(resolveHistoryChangeStep(comparison, { entity: 'node', id: 'missing' }, 'next')).toEqual({
+    type: 'ignored',
+  });
+  expect(
+    resolveHistoryChangeStep(comparison, { entity: 'node', id: 'added' }, 'next', {
+      filters: { added: false },
+    }),
+  ).toEqual({ type: 'ignored' });
+  expect(
+    resolveHistoryChangeStep(comparison, null, 'next', {
+      filters: { added: false, changed: false, removed: false },
+    }),
+  ).toEqual({ type: 'blocked', reason: 'No changes available.' });
+  expect(resolveHistoryChangeStep(comparison, null, 'next', { blockedReason: 'Busy' })).toEqual({
+    type: 'blocked',
+    reason: 'Busy',
+  });
+  expect(
+    resolveHistoryChangeStep(comparison, null, 'next', {
+      focusReason: () => 'Unavailable on this side',
+    }),
+  ).toEqual({ type: 'blocked', reason: 'Unavailable on this side' });
+  expect(resolveHistoryChangeNavigator(comparison).entries.map((entry) => entry.kind)).toEqual([
+    'added',
+    'changed',
+    'removed',
+    'removed',
+  ]);
+});
+test('reversing the comparison preserves its selected edition when stepping', () => {
+  const reversed = compareEditions(after, before);
+  const step = resolveHistoryChangeStep(reversed, { entity: 'node', id: 'added' }, 'next');
+  if (step.type !== 'ready') throw new TypeError('Expected changed node');
+  expect(step.target).toEqual({
+    side: 'selected',
+    editionId: 'before',
+    event: { type: 'NodeRevealRequested', id: 'link' },
+  });
 });

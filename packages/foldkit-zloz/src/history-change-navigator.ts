@@ -186,3 +186,41 @@ export function resolveHistoryChangeFocus(
         target: { side: 'baseline', editionId: comparison.baseline.id, nodes },
       };
 }
+
+/** Last focused entity identity, owned by the host; never an array position. */
+export type ZlozHistoryChangeCursor = Readonly<
+  Pick<ZlozHistoryChangeFocusRequest, 'entity' | 'id'>
+>;
+export type ZlozHistoryChangeStepDirection = 'previous' | 'next';
+/**
+ * Resolve adjacent visible changes through the same live focus rules.
+ * Next starts at the first entry when there is no cursor. Boundaries do not wrap.
+ * A cursor excluded by current filters is ignored; unavailable candidates are not skipped.
+ * The comparison's selected edition remains authoritative for selected-side targets.
+ */
+export function resolveHistoryChangeStep(
+  comparison: ZlozHistoryComparison | null,
+  current: ZlozHistoryChangeCursor | null,
+  direction: ZlozHistoryChangeStepDirection,
+  options: ZlozHistoryChangeNavigatorOptions = {},
+): ZlozHistoryChangeFocusDecision {
+  if (!comparison) return { type: 'ignored' };
+  const context = resolveHistoryChangeNavigator(comparison, options);
+  if (context.reason) return { type: 'blocked', reason: context.reason };
+  if (!context.entries.length) return { type: 'blocked', reason: 'No changes available.' };
+  const index = current
+    ? context.entries.findIndex(
+        (entry) => entry.entity === current.entity && entry.id === current.id,
+      )
+    : -1;
+  if (current && index < 0) return { type: 'ignored' };
+  if (!current && direction === 'previous')
+    return { type: 'blocked', reason: 'Choose a change before moving backwards.' };
+  const target = context.entries[index + (direction === 'next' ? 1 : -1)];
+  if (!target)
+    return {
+      type: 'blocked',
+      reason: direction === 'next' ? 'Last change reached.' : 'First change reached.',
+    };
+  return resolveHistoryChangeFocus(comparison, target.request, options);
+}

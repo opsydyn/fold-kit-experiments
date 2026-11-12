@@ -224,6 +224,14 @@ export const Message = defineMessageUnion({
   FailedConversionReceiptRead: { id: Schema.Number },
   ClickedCancelReceiptRead: {},
   ClickedCloseReceiptReview: {},
+  ClickedReceiptChangeStep: {
+    reviewId: Schema.Number,
+    side: Schema.Literals(['before', 'after']),
+    direction: Schema.Literals(['previous', 'next']),
+    from: Schema.NullOr(
+      Schema.Struct({ entity: Schema.Literals(['node', 'edge']), id: Schema.String }),
+    ),
+  },
   ClickedReceiptChange: {
     reviewId: Schema.Number,
     side: Schema.Literals(['before', 'after']),

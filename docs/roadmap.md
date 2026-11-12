@@ -276,8 +276,15 @@ checks guard detached camera changes; native focus, selected-row feedback and
 minimal-mode controls preserve the working graph and receipt. See
 [local evidence](../apps/zloz-demo/evidence/receipt-focus.md).
 
-**Recommended next:** Previous/Next change navigation that preserves the chosen
-comparison side. Proposed positioning to
+**Receipt change stepping — implemented on this branch, unreleased:**
+The core package exposes pure stable-identity Previous/Next resolution through
+existing focus/filter contracts. Workbench controls preserve the chosen side,
+show position and stop at boundaries; stale cursor/side callbacks cannot advance.
+See [ADR 0048](adr/0048-step-through-receipt-changes-on-the-selected-side.md) and
+[local evidence](../apps/zloz-demo/evidence/receipt-step.md).
+
+**Recommended next navigation slice:** preserve the focused change across explicit
+Before/After switches, with an explicit overview reset. Proposed positioning to
 validate: model a domain with people, explore its evolution and review/communicate
 the same portable model with human and agent tooling. Shapes alone, Undo and layout
 examples do not establish a USP.

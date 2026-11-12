@@ -33,8 +33,10 @@ weakening typechecking or adding source-path aliases.
 
 For typed islands, include reserved props such as `noMeta?: boolean | ''` in the
 `lazyApp<Props>` type when they are used. Validate serialized application props
-in `init`. The no-JavaScript response is a mount shell, not the app's content;
-provide truthful fallback content when the task needs it.
+in `init`. Without `prerender`, the no-JavaScript response is an empty mount
+shell, not the app's content, so provide truthful fallback content when the task
+needs it. With `{ prerender: true }` it is the island's own first render, inert
+until a client directive hydrates it; say so where interaction matters.
 
 For page owners, the `flags` callback receives `{ request, url, params, props }`
 and returns public Flags synchronously. Validate those values with Effect Schema.
@@ -87,7 +89,7 @@ interrupt only. Do not reload from the interrupt outcome after exit; distinguish
 that from user-requested replacement. Correlate outcomes and ignore stale results.
 Do not depend on an interrupt completion being processed before unmount disposal.
 
-These guarantees describe the island bridge in version 0.9.3. Its page-owner
+These guarantees describe the island bridge in version 0.10.0. Its page-owner
 hydration path does not attach that same explicit bridge/disposal handler. Verify
 the installed implementation before promising retained-page lifecycle support.
 
@@ -100,6 +102,8 @@ the installed implementation before promising retained-page lifecycle support.
 | Browser imports Node-only modules         | Trace imports from client entry; keep resolver, credentials and server loaders in Astro frontmatter/server modules                |
 | Page title changes unexpectedly           | Island `noMeta` and ownership; it does not suppress lang/dir                                                                      |
 | Navigation reloads after exit             | App-owned cancellation intent, correlation and outcome policy                                                                     |
+| `client:visible` island never hydrates    | Add `{ prerender: true }`: an empty mount is 0x0, so Astro's observer never fires. The renderer warns about this                  |
+| Island shows nothing and ships no script  | It has neither a directive nor `prerender`; add one. The renderer warns about this                                                |
 
 Run a clean consumer install when workspace resolution could hide a missing
 dependency. Report lint, types, build, initial-HTML and browser results separately.

@@ -89,7 +89,8 @@ interrupt only. Do not reload from the interrupt outcome after exit; distinguish
 that from user-requested replacement. Correlate outcomes and ignore stale results.
 Do not depend on an interrupt completion being processed before unmount disposal.
 
-These guarantees describe the island bridge in version 0.10.0. Its page-owner
+These guarantees describe the island bridge in version 0.12.0, unchanged since
+0.10.0. Its page-owner
 hydration path does not attach that same explicit bridge/disposal handler. Verify
 the installed implementation before promising retained-page lifecycle support.
 
@@ -104,6 +105,8 @@ the installed implementation before promising retained-page lifecycle support.
 | Navigation reloads after exit             | App-owned cancellation intent, correlation and outcome policy                                                                     |
 | `client:visible` island never hydrates    | Add `{ prerender: true }`: an empty mount is 0x0, so Astro's observer never fires. The renderer warns about this                  |
 | Island shows nothing and ships no script  | It has neither a directive nor `prerender`; add one. The renderer warns about this                                                |
+| `client:interaction` island loads at once | Add `{ prerender: true }`: with no markup there is nothing to interact with. The renderer warns about this                        |
+| Dev: island 504s or reloads on first load | Upgrade to 0.12.0, which pre-bundles island dependencies at dev-server start; production builds were never affected               |
 
 Run a clean consumer install when workspace resolution could hide a missing
 dependency. Report lint, types, build, initial-HTML and browser results separately.

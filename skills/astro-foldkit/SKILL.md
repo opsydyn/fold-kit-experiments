@@ -13,7 +13,7 @@ Commands and remote-data policy. No chart package is required.
 
 Read the consumer's manifest, lockfile and installed package exports before
 choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
-`0.10.0`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.10.0` peers on FoldKit
+`0.12.0`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.12.0` peers on FoldKit
 `>=0.170.0 <0.171.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
 release of the integration, not this one. This is a tested
 baseline, not a claim about the latest release or every supported Astro version.
@@ -67,6 +67,14 @@ Then pick the directive per island:
 - **Interactive, below the fold**: `client:visible`. It needs `prerender: true`:
   Astro observes an island's children, and an empty mount is 0x0, so it never
   intersects and never hydrates.
+- **Interactive, but used by few readers**: `client:interaction` (0.12.0+). It
+  loads nothing until a pointer press, focus or key press inside the island,
+  then replays those clicks, edits and focus onto the booted app;
+  `{ hover: true }` also starts on mouse hover. It needs `prerender: true` too.
+  Every first interaction waits for the download, so prefer `client:visible`
+  unless most readers never touch the island, and never for an island whose
+  controls stay disabled until data arrives: there the first tap only starts
+  the download.
 - **Interactive at once**: `client:load` or `client:idle`.
 
 The FoldKit runtime is shared, so a single island hydrating at load pays for all
@@ -77,10 +85,11 @@ On a measured report page with three charts and a data grid, that took
 JavaScript at load from 377 KB to none, with the grid's 351 KB arriving only
 when it was scrolled to.
 
-The renderer warns once per component about the two arrangements that fail
-silently: no directive without `prerender`, which never displays anything, and
-`client:visible` without `prerender`, which never hydrates. Treat either
-warning as a bug, not noise.
+The renderer warns once per component about the arrangements that fail
+silently: no directive without `prerender`, which never displays anything;
+`client:visible` without `prerender`, which never hydrates; and
+`client:interaction` without `prerender`, which has nothing to interact with and
+hydrates at once. Treat any of these warnings as a bug, not noise.
 
 ## Keep the boundaries intact
 

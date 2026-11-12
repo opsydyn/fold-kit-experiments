@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.10.0...astro-foldkit-v0.11.0) (2026-11-12)
+
+### Features
+
+- **astro-foldkit:** warn about islands that fail silently ([166dc12](https://github.com/opsydyn/fold-kit-experiments/commit/166dc12f752ccb1ec499a18196b40600d0d481dd))
+- **astro-foldkit:** warn about islands that fail silently ([232e940](https://github.com/opsydyn/fold-kit-experiments/commit/232e94023d5181e049d6d964a93220d364d06fff))
+
 ## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.3...astro-foldkit-v0.10.0) (2026-11-11)
 
 ### Features

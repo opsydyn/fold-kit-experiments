@@ -4,14 +4,12 @@
 
 ### Features
 
-- **astro-foldkit:** warn about islands that fail silently ([166dc12](https://github.com/opsydyn/fold-kit-experiments/commit/166dc12f752ccb1ec499a18196b40600d0d481dd))
 - **astro-foldkit:** warn about islands that fail silently ([232e940](https://github.com/opsydyn/fold-kit-experiments/commit/232e94023d5181e049d6d964a93220d364d06fff))
 
 ## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.3...astro-foldkit-v0.10.0) (2026-11-11)
 
 ### Features
 
-- **astro-foldkit:** let an island pre-render its first paint ([46011d0](https://github.com/opsydyn/fold-kit-experiments/commit/46011d037531541d405a86b1d4079114fe547476))
 - **astro-foldkit:** let an island pre-render its first paint ([ae06ae9](https://github.com/opsydyn/fold-kit-experiments/commit/ae06ae9df22a8cbf094cfe3a9a28ef48da5cf51d))
 
 ## [0.9.3](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.2...astro-foldkit-v0.9.3) (2026-10-29)

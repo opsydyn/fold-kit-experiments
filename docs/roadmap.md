@@ -50,16 +50,18 @@ JSON-serialisable spec that suits generated charts and other languages.
       scales, and ticks and default labels follow the scale. Time axes default to UTC so
       server and browser agree. Existing configurations are unchanged.
       [Design](superpowers/specs/2026-11-13-scale-generic-cartesian-design.md).
-- [ ] Statistical transforms: least-squares linear and polynomial fits with
+- [x] Statistical transforms: least-squares linear and polynomial fits with
       confidence bands, LOESS, ECDF, QQ quantiles and moving windows.
-- [ ] Two-dimensional binning, rectangular and hexagonal, feeding a cell geometry.
-- [ ] Cell geometry (`chart/cells`) promoted from the heatmap, calendar-heatmap and
-      correlation-matrix demos.
-- [ ] Downsampling for long series: LTTB and min-max (M4).
+- [x] Two-dimensional binning, rectangular and hexagonal, feeding a cell geometry.
+- [x] Cell geometry (`chart/cells`) for the heatmap, calendar-heatmap and
+      correlation-matrix shapes. Moving those demos onto it belongs with the 0.19.0
+      promotions.
+- [x] Downsampling for long series: LTTB and min-max (M4).
 
 **Exit criteria:** the web app shows a log-scaled time series, a regression with its
 confidence band and a 100,000-point series downsampled to the plot width, each
 server-rendered with axes from the chart layer.
+Met by the web app's `/data-science` page, which adds a hexagonal density view.
 
 ### 0.19.0 — Grammar of marks (design first)
 

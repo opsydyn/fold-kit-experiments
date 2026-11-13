@@ -301,6 +301,43 @@ const geometry = lineGeometry(rows, accessors, {
   way on every machine; log labels mark powers of the base in SI notation.
 - Histograms stay linear; categorical axes remain in `chart/bars`.
 
+## Statistics, binning and downsampling (unreleased)
+
+Pure functions for the overlays and density views data-science charts need.
+All skip non-finite values; the web app's `/data-science` page uses each one.
+
+```ts
+import {
+  linearRegression,
+  loess,
+  polynomialRegression,
+} from '@opsydyn/foldkit-viz/math/regression';
+import { ecdf, movingWindow, qqNormal } from '@opsydyn/foldkit-viz/math/stats';
+import { hexbin, rectBins } from '@opsydyn/foldkit-viz/math/bin2d';
+import { cellGeometry } from '@opsydyn/foldkit-viz/chart/cells';
+import { lttb, m4 } from '@opsydyn/foldkit-viz/math/downsample';
+
+const fit = linearRegression(rows, { x: (r) => r.dose, y: (r) => r.response });
+fit.interval(5); // { fit, lower, upper }: the 95% confidence interval for the mean at x = 5
+const curve = loess(rows, { x: (r) => r.dose, y: (r) => r.response }, { bandwidth: 0.4 });
+const drawn = m4(series, { x: (p) => p.t, y: (p) => p.v }, { width: 800 }); // one column per pixel
+```
+
+- `math/regression`: `polynomialRegression` of any degree and `linearRegression`,
+  with R squared, `predict` and confidence intervals from Student's t, fitted on
+  centred x so epoch-millisecond x stays accurate; `loess` with robustness
+  iterations.
+- `math/stats` adds `ecdf`, `qqNormal`, `movingWindow` (mean, median, sum, min,
+  max; trailing or centred), `normalQuantile` and `studentTQuantile`.
+- `math/bin2d`: `rectBins` for 2D histograms in data units; `hexbin` and
+  `hexagonPath` for hexagonal density in pixel space, after d3-hexbin.
+- `chart/cells`: `cellGeometry` lays out heatmaps, calendar heatmaps and
+  correlation matrices; `foldkit/cartesian` adds `cellSeries` and `hexSeries`.
+- `math/downsample`: `lttb` keeps the shape at a target point count; `m4` keeps
+  each pixel column's first, last, lowest and highest point, so the drawn line
+  matches the full one. Both return original rows in order and handle a
+  million points in under 50 ms.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

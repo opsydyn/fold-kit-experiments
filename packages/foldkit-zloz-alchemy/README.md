@@ -115,3 +115,57 @@ visible losses. Its host boundary is limited to 1 MiB UTF-8, depth 16 and 16,384
 values, rejecting duplicate keys and bad framing before projection. It does not
 load the SDK or execute uploaded code. This is local demo evidence, not publication
 or broader compatibility. See [workbench qualification](../../apps/zloz-demo/evidence/alchemy-review.md).
+
+## Finding navigation (portable entry)
+
+`resolveAlchemyFindingNavigator(projection, preview, { scope, blockedReason? })`
+returns accessible labels, immutable finding requests, target/selection feedback and
+explicit availability reasons. `resolveAlchemyFindingReveal` rechecks a request at
+activation and returns either a blocked reason or a restricted core event recipe.
+Both functions are headless and remain SDK/Effect/browser-free.
+
+```typescript
+import {
+  resolveAlchemyFindingNavigator,
+  resolveAlchemyFindingReveal,
+} from '@opsydyn/foldkit-zloz-alchemy';
+import { updateHistoryReview } from '@opsydyn/foldkit-zloz';
+
+// preview is the matching host-owned, measured read-only EditorState.
+// Replace the scope whenever a different review instance is opened.
+const options = { scope: 'descriptor-review:17' };
+const controls = resolveAlchemyFindingNavigator(projection, preview, options);
+const entry = controls.entries.find((item) => item.finding.sourceId === sourceId);
+if (entry?.request && entry.reason === null) {
+  const action = resolveAlchemyFindingReveal(projection, preview, entry.request, options);
+  if (action.type === 'ready') {
+    const next = action.events.reduce((review, event) => updateHistoryReview(review, event), {
+      editionId: options.scope,
+      editor: preview,
+    });
+    // Publish next.editor only into this detached preview.
+  }
+}
+```
+
+Requests use finding code/source ID, the host scope and the full canonical source
+descriptor, not row numbers or stored camera coordinates. Content changes reject
+old requests even under a reused revision. Equivalent source reorder remains valid;
+aliases keep their source IDs. The source key is a stale-control check, not a secret,
+signature or permission. Hosts supply an actual validated projection and its matching
+editor; this is not another untrusted-data decoder.
+
+Declaration findings reveal a node; source relations reveal their represented edge.
+Containment coverage reveals its child node, without inventing an edge. Unbound,
+missing, ambiguous and hidden targets have disabled reasons. The live editor must
+be read-only, measured and idle. Core visibility rules protect hidden nodes/edges
+and endpoints. `blockedReason` lets the host protect reads or apply its own renderer
+restrictions; activation recomputes availability rather than trusting an old control.
+
+Compose the **whole recipe in one update**: clear selection, reveal/expand the
+current target, then select it. Reveal must precede selection for collapsed targets
+when visibility filtering is active. This changes only preview navigation/selection
+and collapsed-view state; graph/Undo remain unchanged. The helper itself executes
+nothing. The workbench's Domain review demonstrates native keyboard buttons,
+selection feedback and reasons even in Minimal mode. See
+[finding navigation evidence](../../apps/zloz-demo/evidence/alchemy-finding.md).

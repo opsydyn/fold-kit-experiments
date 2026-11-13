@@ -63,10 +63,18 @@ test('packed portable entry has no SDK/Effect runtime or type imports; SDK entry
     await cp(path.join(here, 'test/fixtures/bank.json'), path.join(dir, 'bank.json'));
     await writeFile(
       path.join(dir, 'portable.ts'),
-      `import {projectAlchemyDescriptor,decodeAlchemyDescriptor,serializeAlchemyDescriptor} from '@opsydyn/foldkit-zloz-alchemy';
+      `import {projectAlchemyDescriptor,decodeAlchemyDescriptor,serializeAlchemyDescriptor,resolveAlchemyFindingNavigator,resolveAlchemyFindingReveal} from '@opsydyn/foldkit-zloz-alchemy';
+import {createEditor,updateEditor,updateHistoryReview} from '@opsydyn/foldkit-zloz';
 const value=decodeAlchemyDescriptor(${await readFile(path.join(here, 'test/fixtures/bank.json'), 'utf8')});
 const plan=projectAlchemyDescriptor(JSON.parse(serializeAlchemyDescriptor(value)));
 if(plan.type!=='reviewable'||plan.nativeReadModels.length!==1||plan.nativeConsumption.length!==1||plan.coverage.length!==23)throw new Error('Portable entry failed');
+const preview=updateEditor(createEditor(plan.graph,{readOnly:true}),{type:'SurfaceMeasured',size:{width:900,height:600}});
+const item=resolveAlchemyFindingNavigator(plan,preview,{scope:'packed/1'}).entries.find(e=>e.label==='Ledger (stream)');
+if(!item?.request)throw new Error('Missing finding navigation');
+const reveal=resolveAlchemyFindingReveal(plan,preview,item.request,{scope:'packed/1'});
+if(reveal.type!=='ready')throw new Error('Missing reveal recipe');
+const moved=reveal.events.reduce((review,event)=>updateHistoryReview(review,event),{editionId:'packed',editor:preview});
+if(moved.editor.selectedNodes[0]!=='example%2Fbank/Bank/stream/Ledger'||moved.editor.graph!==preview.graph||moved.editor.past.length!==0)throw new Error('Reveal mutated source');
 console.log('portable-ok');`,
     );
     for (const [module, resolution] of [

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { updateEditor } from '@opsydyn/foldkit-zloz';
 import { Effect } from 'effect';
 
+import { workbenchAlchemyFindings } from '../src/editor/alchemy-review';
 import { decodeAlchemyText, alchemyTextLimits } from '../src/editor/alchemy-text';
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
@@ -177,4 +178,77 @@ test('conflicting reads cannot open a descriptor review; latest read wins', asyn
   expect(newest.alchemyReview.review?.projection.source.source.revision).toBe('fixture-v2');
   expect(update(newest, await Effect.runPromise(first.commands[0].effect)).model).toBe(newest);
   preserved(selected, newest);
+});
+
+test('finding navigation selects/reveals only the detached target, rejects stale and protected requests, and survives rejected replacement text', () => {
+  const source = init().model;
+  let model = open(source);
+  const review = model.alchemyReview.review;
+  assert(review);
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id: review.id,
+      message: { type: 'SurfaceMeasured', size: { width: 900, height: 600 } },
+    }),
+  ).model;
+  const navigator = workbenchAlchemyFindings(model);
+  assert(navigator);
+  const node = navigator.entries.find(
+    (e) => e.finding.sourceId === 'example%2Fbank/Bank/stream/Ledger',
+  );
+  const edge = navigator.entries.find((e) => e.label === 'entry-type: MoneyDeposited → Ledger');
+  assert(node?.request && edge?.request && edge.target);
+  const revealed = update(
+    model,
+    Message.ClickedAlchemyFinding({ id: review.id, request: node.request }),
+  ).model;
+  expect(revealed.alchemyReview.review?.editor.selectedNodes).toEqual([
+    'example%2Fbank/Bank/stream/Ledger',
+  ]);
+  expect(revealed.alchemyReview.notice).toContain('Revealed Ledger');
+  preserved(source, revealed);
+  expect(revealed.alchemyReview.review?.editor.graph).toBe(
+    model.alchemyReview.review?.editor.graph,
+  );
+  expect(revealed.alchemyReview.review?.editor.past).toBe(model.alchemyReview.review?.editor.past);
+  const related = update(
+    revealed,
+    Message.ClickedAlchemyFinding({ id: review.id, request: edge.request }),
+  ).model;
+  expect(related.alchemyReview.review?.editor.selectedEdges).toEqual([edge.target.id]);
+  expect(related.alchemyReview.review?.editor.selectedNodes).toEqual([]);
+  preserved(source, related);
+  const invalid = open(related, '{}');
+  const retry = update(
+    invalid,
+    Message.ClickedAlchemyFinding({ id: review.id, request: node.request }),
+  ).model;
+  expect(retry.alchemyReview.review?.editor.selectedNodes).toEqual([
+    'example%2Fbank/Bank/stream/Ledger',
+  ]);
+  const replacement = open(retry, sample.replace('fixture-v1', 'fixture-v2'));
+  expect(
+    update(replacement, Message.ClickedAlchemyFinding({ id: review.id, request: node.request }))
+      .model,
+  ).toBe(replacement);
+  const current = replacement.alchemyReview.review;
+  assert(current);
+  const forged = update(
+    replacement,
+    Message.ClickedAlchemyFinding({ id: current.id, request: node.request }),
+  ).model;
+  expect(forged.alchemyReview.review?.editor).toBe(current.editor);
+  expect(forged.alchemyReview.notice).toContain('different review');
+  const pending = update(
+    retry,
+    Message.ChoseAlchemyFiles({ files: [new File([sample], 'pending.json')] }),
+  ).model;
+  const blocked = update(
+    pending,
+    Message.ClickedAlchemyFinding({ id: review.id, request: node.request }),
+  ).model;
+  expect(blocked.alchemyReview.review?.editor).toBe(pending.alchemyReview.review?.editor);
+  expect(blocked.alchemyReview.notice).toContain('read');
+  expect(workbenchAlchemyFindings(pending)?.entries.every((e) => e.reason !== null)).toBe(true);
 });

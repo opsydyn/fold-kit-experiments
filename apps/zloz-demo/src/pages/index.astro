@@ -162,7 +162,11 @@ button, input, select { font: inherit; }
 .alchemy-provenance { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 6px 12px; overflow-wrap: anywhere; }
 .alchemy-provenance dd { margin: 0; }
 .alchemy-review ul { padding-inline-start: 18px; margin: 0; }
-.alchemy-review li { margin-block: 10px; }
+.alchemy-review li { margin-block: 10px; padding: 10px; border: 1px solid var(--rule); border-radius: 6px; }
+.alchemy-review li[data-alchemy-finding-selected='true'] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.alchemy-review .alchemy-finding-label { margin-block: 6px; font-weight: 650; overflow-wrap: anywhere; }
+.alchemy-review li button { margin-top: 8px; }
+.alchemy-review li details { margin-top: 8px; }
 .alchemy-review code { font-size: 11px; overflow-wrap: anywhere; }
 .alchemy-canvas .receipt-canvas-banner { flex-wrap: wrap; }
 .alchemy-canvas .receipt-canvas-banner button { color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 12px; }

@@ -668,3 +668,21 @@ and [tests/browser/visual evidence](../apps/zloz-demo/evidence/alchemy-review.md
 This completes the descriptor-review slice proposed above, not broader D/C/Q
 closure. Next proposed slice: package-level source-fact navigation linking each
 finding to its node or relation in the detached canvas. Recommendation: **needs review**.
+
+**Package-level finding navigation — implemented locally (2026-11-13):**
+The private portable adapter now resolves findings into source-linked node/relation
+navigation recipes. Requests bind host review scope plus full canonical descriptor
+content and finding identity; activation rechecks live read-only/measurement/gesture,
+protection, coverage, target/endpoints and core visibility. Missing/ambiguous/hidden
+facts have explicit reasons. Recipes reveal collapsed targets before selection,
+without graph/Undo changes. Native workbench Reveal buttons preserve keyboard focus,
+show selected-target feedback and compose with Minimal mode, invalid-input retention
+and review replacement guards. SDK imports, Apply, execution and publication remain
+outside this slice; existing compatibility gates remain unchanged.
+See [ADR 0069](adr/0069-reveal-portable-findings-with-scoped-navigation-recipes.md),
+[portable API](../packages/foldkit-zloz-alchemy/README.md#finding-navigation-portable-entry)
+and [tests/visual evidence](../apps/zloz-demo/evidence/alchemy-finding.md).
+This completes the finding-navigation slice above, not general Domain fidelity or
+broader D/C/Q closure. Next proposed slice: opt-in descriptor-preview layout using
+the existing ELK adapter, preserving source identity/findings while improving dense
+relation-label readability. Recommendation: **needs review**.

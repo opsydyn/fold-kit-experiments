@@ -8,3 +8,13 @@ export {
   AlchemyAdapterError,
 } from './descriptor';
 export { projectAlchemyDescriptor } from './projection';
+export { resolveAlchemyFindingNavigator, resolveAlchemyFindingReveal } from './finding-navigation';
+export type {
+  AlchemyFindingNavigationOptions,
+  AlchemyFindingRevealRequest,
+  AlchemyFindingTarget,
+  AlchemyFindingNavigationEvent,
+  AlchemyFindingNavigationEntry,
+  AlchemyFindingNavigator,
+  AlchemyFindingRevealDecision,
+} from './finding-navigation';

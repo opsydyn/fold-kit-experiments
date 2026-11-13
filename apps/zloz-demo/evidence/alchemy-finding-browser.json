@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "keyboard example opening and finding reveal without stealing focus",
+    "node and relation selection feedback, with exactly one target selected",
+    "finding navigation survives rejected descriptor replacement",
+    "detached native read-model and all 23 source facts",
+    "nine visible loss/unverified findings and host provenance",
+    "editing unavailable, selected node survives Delete, unsupported collapse control omitted",
+    "collapsed rail Fit targets detached canvas",
+    "light/dark and Minimal mode retain findings",
+    "oversized paste restores previous bounded draft and review",
+    "escaped duplicate keys rejected without replacing preview",
+    "invalid UTF-8 preserves preview; valid file replaces revision",
+    "working model and lineage unchanged after close",
+    "no page errors or external network requests"
+  ],
+  "pageErrors": []
+}

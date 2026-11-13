@@ -824,6 +824,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedPacketOpeningProtection: () => updatePacketReader(model, message),
     ChangedAlchemyText: () => updateAlchemyReview(model, message),
     ClickedAlchemyReview: () => updateAlchemyReview(model, message),
+    ClickedAlchemyFinding: () => updateAlchemyReview(model, message),
     ClickedAlchemyExample: () => updateAlchemyReview(model, message),
     ChoseAlchemyFiles: () => updateAlchemyReview(model, message),
     SucceededAlchemyRead: () => updateAlchemyReview(model, message),

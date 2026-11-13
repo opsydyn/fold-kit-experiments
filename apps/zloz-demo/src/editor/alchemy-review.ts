@@ -1,5 +1,9 @@
 import { createEditor, updateHistoryReview, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import {
+  resolveAlchemyFindingNavigator,
+  resolveAlchemyFindingReveal,
+} from '@opsydyn/foldkit-zloz-alchemy';
+import {
   zlozView,
   zlozDddNode,
   zlozDddGroup,
@@ -20,6 +24,7 @@ import { workbenchThemes } from './theme';
 const own = new Set([
   'ChangedAlchemyText',
   'ClickedAlchemyReview',
+  'ClickedAlchemyFinding',
   'ClickedAlchemyExample',
   'ChoseAlchemyFiles',
   'SucceededAlchemyRead',
@@ -104,6 +109,22 @@ function matches(model: Model, run: number) {
     pending.epoch === model.modelEpoch
   );
 }
+function findingOptions(model: Model) {
+  return {
+    scope: `alchemy:${model.alchemyReview.review?.id ?? 'none'}`,
+    blockedReason: model.alchemyReview.pending
+      ? 'Finish or cancel the descriptor read before revealing findings.'
+      : model.sidebarCollapsed || model.sidebarSection !== 'alchemy'
+        ? 'Show Domain review before revealing a finding.'
+        : null,
+  };
+}
+export function workbenchAlchemyFindings(model: Model) {
+  const review = model.alchemyReview.review;
+  return review
+    ? resolveAlchemyFindingNavigator(review.projection, review.editor, findingOptions(model))
+    : null;
+}
 export function updateAlchemyReview(model: Model, message: Message): Return<Model, Message> {
   const state = model.alchemyReview;
   const write = (next: AlchemyReviewState): Return<Model, Message> => ({
@@ -128,6 +149,24 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
             notice: 'Draft changed. Choose Review descriptor to replace the preview.',
           }),
     ),
+    Match.tag('ClickedAlchemyFinding', ({ id, request }) => {
+      const review = state.review;
+      if (!review || review.id !== id) return { model };
+      const decision = resolveAlchemyFindingReveal(
+        review.projection,
+        review.editor,
+        request,
+        findingOptions(model),
+      );
+      if (decision.type === 'blocked') return write({ ...state, notice: decision.reason });
+      let next = { editionId: String(id), editor: review.editor };
+      for (const event of decision.events) next = updateHistoryReview(next, event);
+      return write({
+        ...state,
+        review: { ...review, editor: next.editor },
+        notice: `Revealed ${decision.label}. Working model and Undo preserved.`,
+      });
+    }),
     Match.tag('ClickedAlchemyReview', () => {
       const reason = openReason(model);
       return reason ? write({ ...state, notice: reason }) : { model: publish(model, state.text) };
@@ -220,7 +259,8 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
 export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const state = model.alchemyReview,
     review = state.review,
-    reason = openReason(model);
+    reason = openReason(model),
+    navigator = workbenchAlchemyFindings(model);
   return h.div(
     [h.Class('alchemy-review')],
     [
@@ -326,16 +366,44 @@ export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
             h.h3([], ['Losses and unverified meaning']),
             h.ul(
               [h.AriaLabel('Descriptor findings')],
-              review.projection.findings.map((f) =>
-                h.li(
-                  [],
+              (navigator?.entries ?? []).map((entry, index) => {
+                const f = entry.finding,
+                  reasonId = `alchemy-finding-${review.id}-${index}-reason`;
+                return h.li(
+                  [
+                    h.Key(JSON.stringify([f.code, f.sourceId])),
+                    h.DataAttribute('alchemy-finding-selected', String(entry.selected)),
+                  ],
                   [
                     h.strong([], [`${f.severity}: ${f.code}`]),
+                    h.p([h.Class('alchemy-finding-label')], [entry.label]),
                     h.p([], [f.reason]),
-                    ...(f.sourceId ? [h.code([], [f.sourceId])] : []),
+                    ...(f.sourceId
+                      ? [h.details([], [h.summary([], ['Source fact']), h.code([], [f.sourceId])])]
+                      : []),
+                    h.button(
+                      [
+                        h.Type('button'),
+                        h.AriaLabel(`Reveal ${entry.label}`),
+                        h.Disabled(entry.reason !== null || entry.request === null),
+                        ...(entry.reason ? [h.AriaDescribedBy(reasonId)] : []),
+                        ...(entry.request
+                          ? [
+                              h.OnClick(
+                                Message.ClickedAlchemyFinding({
+                                  id: review.id,
+                                  request: entry.request,
+                                }),
+                              ),
+                            ]
+                          : []),
+                      ],
+                      [entry.target?.entity === 'edge' ? 'Reveal relation' : 'Reveal node'],
+                    ),
+                    ...(entry.reason ? [h.p([h.Id(reasonId)], [entry.reason])] : []),
                   ],
-                ),
-              ),
+                );
+              }),
             ),
             h.button(
               [h.Type('button'), h.OnClick(Message.ClickedCloseAlchemyReview())],

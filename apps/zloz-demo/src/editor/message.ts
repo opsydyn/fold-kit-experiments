@@ -276,6 +276,15 @@ export const Message = defineMessageUnion({
   ClickedCancelReceiptRead: {},
   ChangedAlchemyText: { text: Schema.String },
   ClickedAlchemyReview: {},
+  ClickedAlchemyFinding: {
+    id: Schema.Number,
+    request: Schema.Struct({
+      scope: Schema.String,
+      sourceKey: Schema.String,
+      code: Schema.String,
+      sourceId: Schema.NullOr(Schema.String),
+    }),
+  },
   ClickedAlchemyExample: {},
   ChoseAlchemyFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   SucceededAlchemyRead: { run: Schema.Number, json: Schema.String },

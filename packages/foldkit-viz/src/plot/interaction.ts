@@ -16,7 +16,7 @@ export type ClientRect = Readonly<{ left: number; top: number; width: number; he
 export function pointerToPlot(
   client: ClientPoint,
   rect: ClientRect,
-  geometry: PlotGeometry,
+  geometry: Pick<PlotGeometry, 'width' | 'height'>,
 ): ClientPoint {
   const sx = rect.width > 0 ? geometry.width / rect.width : 1;
   const sy = rect.height > 0 ? geometry.height / rect.height : 1;
@@ -138,7 +138,12 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
         if (g.kind === 'points') {
           const id =
             owners.push({ facet: facet.key, mark: mark.index, key: g.key, dense: true }) - 1;
+          const { plot } = facet;
           for (let i = 0; i < g.count; i += 1) {
+            const px = g.xs[i] ?? 0,
+              py = g.ys[i] ?? 0;
+            // Points outside the plot area, such as past a zoomed axis, are not drawn.
+            if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) continue;
             xs[n] = g.xs[i] ?? 0;
             ys[n] = g.ys[i] ?? 0;
             owner[n] = id;

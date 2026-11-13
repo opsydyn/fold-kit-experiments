@@ -166,3 +166,15 @@ describe('highlights', () => {
     ).toThrow('marks[0].highlight.field: field "colour" is missing from the data');
   });
 });
+
+it('leaves points outside a zoomed plot area out of the index', () => {
+  const zoomed = compilePlot({
+    ...base,
+    data: rows,
+    x: { domain: [4, 6] },
+    marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
+  });
+  const index = indexPlot(zoomed);
+  expect(index.size).toBe(1);
+  expect(index.nearest(200, 100)?.row).toBe(1);
+});

@@ -33,6 +33,7 @@ const recorder = () => {
     stroke: record('stroke'),
     fillText: record('fillText'),
     translate: record('translate'),
+    clip: record('clip'),
   };
   const count = (name: string): number => calls.filter(([n]) => n === name).length;
   return { ctx, calls, count };
@@ -75,6 +76,7 @@ describe('canvas painter', () => {
     const { ctx, calls, count } = recorder();
     paintPlot(ctx, geometry, { makePath: fakePath });
     expect(count('translate')).toBe(4);
+    expect(count('clip')).toBe(1);
     expect(calls.filter(([n]) => n === 'fill').every((call) => call.length === 3)).toBe(true);
   });
 

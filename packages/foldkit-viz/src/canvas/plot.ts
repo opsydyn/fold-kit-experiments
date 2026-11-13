@@ -36,6 +36,7 @@ export type PlotCanvasContext = {
   stroke(path?: PlotPath): void;
   fillText(text: string, x: number, y: number): void;
   translate(x: number, y: number): void;
+  clip(): void;
 };
 
 export type PlotCanvasColors = Readonly<{
@@ -253,7 +254,13 @@ export function paintPlot(
     paintGrid(ctx, facet, settings);
     if (facet.x !== null) paintAxis(ctx, facet, facet.x, settings);
     if (facet.y !== null) paintAxis(ctx, facet, facet.y, settings);
+    // Marks stay inside their plot area, so a zoomed axis never paints over the axes.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(facet.plot.left, facet.plot.top, facet.plot.width, facet.plot.height);
+    ctx.clip();
     for (const mark of facet.marks) for (const g of mark.graphics) paintGraphic(ctx, g, settings);
+    ctx.restore();
   }
 }
 

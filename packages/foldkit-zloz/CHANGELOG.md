@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in detached SVG layout planning with exact-source/renderer freshness, effective route/label bounds and explicit fidelity findings; reject retained geometry in the canonical writer until its adapter is qualified.
+
 - Add opt-in intrinsic C4/DDD group-heading measurement with size-free spacing specs, complete-batch validation and source/revision/renderer/visibility freshness, sharing scoped resources with edge measurement.
 
 - Add explicit group-header layout envelopes, shared C4/DDD header geometry and atomic child-area validation without changing graph persistence.

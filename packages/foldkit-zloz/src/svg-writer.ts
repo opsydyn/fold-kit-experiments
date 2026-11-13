@@ -64,6 +64,7 @@ export type ZlozSvgWriteFinding = Readonly<
   Omit<ZlozSvgFinding, 'code'> & {
     code:
       | ZlozSvgFinding['code']
+      | 'layout-writer-unsupported'
       | 'adapter-missing'
       | 'adapter-failed'
       | ZlozSvgFontFailureCode
@@ -251,6 +252,12 @@ export function writeSvgExport(
     target: ZlozSvgFinding['target'],
     reason: string,
   ) => findings.push({ code, severity: 'unsupported', target, reason });
+  if (plan.layout?.routes.length)
+    add(
+      'layout-writer-unsupported',
+      { kind: 'document' },
+      'Retained layout is currently a planning contract. The canonical writer cannot yet reproduce these routes and label anchors; omit layout explicitly for canonical export.',
+    );
   const prefix = writing.idPrefix ?? 'zloz-export';
   if (!/^[A-Za-z_][\w.-]*$/u.test(prefix)) invalid('SVG idPrefix must be an XML-safe identifier.');
   const maxCharacters = budget(writing.maxCharacters ?? 2000000, 'maxCharacters');

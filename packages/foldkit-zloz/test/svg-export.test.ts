@@ -2,6 +2,9 @@ import { expect, test } from 'bun:test';
 
 import {
   planSvgExport,
+  captureSvgLayout,
+  serializeGraph,
+  writeSvgExport,
   createEditor,
   type ZlozSvgExportOptions,
   type ZlozGraph,
@@ -301,4 +304,172 @@ test('empty models have a finite artboard; plans preserve literal text and stabl
   expect(JSON.stringify(editor)).toBe(before);
   expect(one.graph).not.toBe(editor.graph);
   expect(one.graph.edges).not.toBe(editor.graph.edges);
+});
+
+const routedEditor = () => ({
+  ...createEditor(graph),
+  routes: [
+    {
+      id: 'ab',
+      points: [
+        { x: -200, y: 40 },
+        { x: 500, y: 40 },
+      ],
+      label: { position: { x: 420, y: -200 }, size: { width: 160, height: 30 } },
+    },
+  ],
+});
+const routedOptions = (editor = routedEditor()): ZlozSvgExportOptions => ({
+  ...options,
+  layout: { snapshot: captureSvgLayout(editor, 'labels-v1'), renderKey: 'labels-v1' },
+});
+test('layout export is opt-in, detached and bound to exact source and renderer configuration', () => {
+  const editor = routedEditor();
+  // Authored bends take precedence over retained routes, just as on the canvas.
+  const authored = planSvgExport(editor, routedOptions(editor));
+  expect(authored.contentBounds).toEqual({ x: -40, y: -80, width: 340, height: 330 });
+  expect(authored.findings.some((f) => f.code === 'layout-route-overridden')).toBe(true);
+  const plain = {
+    ...editor,
+    graph: { ...graph, edges: graph.edges.map(({ waypoints: _waypoints, ...edge }) => edge) },
+  };
+  const before = JSON.stringify(plain);
+  const captured = captureSvgLayout(plain, 'labels-v1');
+  expect(captured.source).toBe(serializeGraph(plain.graph));
+  const plan = planSvgExport(plain, {
+    ...options,
+    layout: { snapshot: captured, renderKey: 'labels-v1' },
+  });
+  expect(plan.contentBounds).toEqual({ x: -200, y: -200, width: 780, height: 450 });
+  expect(plan.viewBox).toEqual({ x: -210, y: -210, width: 800, height: 470 });
+  expect(plan.layout?.routes[0]?.label?.position).toEqual({ x: 420, y: -200 });
+  expect(plan.findings.find((f) => f.code === 'layout-label-content-unverified')?.target).toEqual({
+    kind: 'edge',
+    id: 'ab',
+  });
+  Object.assign(captured.routes[0]?.points[0] ?? {}, { x: 900 });
+  expect(plan.layout?.routes[0]?.points[0]?.x).toBe(-200);
+  expect(JSON.stringify(plain)).toBe(before);
+  expect(planSvgExport(plain, options).layout).toBeUndefined();
+});
+test('stale graph or render keys block layout without using old geometry', () => {
+  const editor = routedEditor(),
+    configured = routedOptions(editor);
+  const changed = {
+    ...editor,
+    graph: { ...graph, nodes: graph.nodes.map((n) => ({ ...n, label: n.label + ' changed' })) },
+  };
+  for (const [source, settings] of [
+    [changed, configured],
+    [editor, { ...configured, layout: { ...configured.layout!, renderKey: 'labels-v2' } }],
+  ] as const) {
+    const plan = planSvgExport(source, settings);
+    expect(plan.type).toBe('blocked');
+    expect(plan.layout).toBeUndefined();
+    expect(plan.findings.find((f) => f.code === 'layout-stale')?.severity).toBe('unsupported');
+  }
+});
+test('invalid routes and label envelopes reject atomically at capture and plan boundaries', () => {
+  const editor = routedEditor();
+  const route = editor.routes[0]!;
+  const invalid = [
+    [route, route],
+    [{ ...route, id: 'missing' }],
+    [{ ...route, points: [{ x: 0, y: 0 }] }],
+    [
+      {
+        ...route,
+        points: [
+          { x: Infinity, y: 0 },
+          { x: 0, y: 0 },
+        ],
+      },
+    ],
+    [{ ...route, label: { ...route.label, size: { width: 0, height: 1 } } }],
+    [
+      {
+        ...route,
+        label: {
+          position: { x: Number.MAX_VALUE, y: 0 },
+          size: { width: Number.MAX_VALUE, height: 1 },
+        },
+      },
+    ],
+  ];
+  for (const routes of invalid) {
+    expect(() => captureSvgLayout({ ...editor, routes }, 'labels-v1')).toThrow();
+    expect(() =>
+      planSvgExport(editor, {
+        ...options,
+        layout: {
+          snapshot: { source: serializeGraph(graph), renderKey: 'labels-v1', routes },
+          renderKey: 'labels-v1',
+        },
+      }),
+    ).toThrow();
+  }
+  expect(() => captureSvgLayout(editor, ' ')).toThrow();
+});
+test('planned retained geometry cannot silently fall through the canonical writer', () => {
+  const editor = routedEditor();
+  const result = writeSvgExport(editor, routedOptions(editor), { allowLosses: true });
+  expect(result.type).toBe('blocked');
+  expect(result.findings.find((f) => f.code === 'layout-writer-unsupported')?.severity).toBe(
+    'unsupported',
+  );
+  expect('svg' in result).toBe(false);
+  expect(writeSvgExport(editor, options, { allowLosses: true }).type).toBe('written');
+});
+
+test('explicit crops stay fixed; authored styles and custom vector bounds own precedence', () => {
+  const editor = routedEditor();
+  const styled = {
+    ...editor,
+    graph: {
+      ...graph,
+      edges: graph.edges.map(({ waypoints: _waypoints, ...edge }) => ({
+        ...edge,
+        pathStyle: 'straight' as const,
+      })),
+    },
+  };
+  const plan = planSvgExport(styled, {
+    ...options,
+    layout: { snapshot: captureSvgLayout(styled, 'v1'), renderKey: 'v1' },
+  });
+  expect(plan.contentBounds).toEqual({ x: 0, y: 0, width: 300, height: 250 });
+  const cropped = planSvgExport(editor, {
+    ...routedOptions(editor),
+    region: { type: 'bounds', bounds: { x: 1, y: 2, width: 3, height: 4 } },
+  });
+  expect(cropped.viewBox).toEqual({ x: 1, y: 2, width: 3, height: 4 });
+  const plain = {
+    ...editor,
+    graph: { ...graph, edges: graph.edges.map(({ waypoints: _waypoints, ...edge }) => edge) },
+  };
+  for (const renderer of [
+    { type: 'omit', reason: 'Badge omitted' },
+    {
+      type: 'svg',
+      id: 'custom',
+      version: '1',
+      bounds: { x: 0, y: 0, width: 10, height: 10 },
+      fidelity: 'equivalent',
+      reason: 'Own vector bounds',
+    },
+  ] as const) {
+    const custom = planSvgExport(plain, {
+      ...options,
+      layout: { snapshot: captureSvgLayout(plain, 'v1'), renderKey: 'v1' },
+      renderers: {
+        ...options.renderers,
+        overrides: [{ target: { kind: 'edge', id: 'ab' }, renderer }],
+      },
+    });
+    expect(custom.contentBounds).toEqual({ x: 0, y: 0, width: 300, height: 250 });
+  }
+  expect(captureSvgLayout({ ...editor, routes: [] }, 'v1').routes).toEqual([]);
+  expect(() =>
+    captureSvgLayout({ ...editor, edgeLabelDraft: { id: 'ab', text: 'editing' } }, 'v1'),
+  ).toThrow();
 });

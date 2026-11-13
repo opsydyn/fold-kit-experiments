@@ -442,6 +442,9 @@ export type {
   ZlozPlacementControlsContext,
 } from './placement-controls';
 
+export { captureSvgLayout } from './svg-layout';
+export type { ZlozSvgLayoutSnapshot, ZlozSvgLayoutOptions } from './svg-layout';
+
 export { planSvgExport } from './svg-export';
 export type {
   ZlozSvgBounds,

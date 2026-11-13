@@ -4913,3 +4913,39 @@ This is a typed lifecycle contract, not a decoder for unknown input. Overflow,
 shadows, local transforms, portals, SVG content and later resources are outside the
 border-box snapshot. Use explicit remeasurement for changes; reserve separate
 controls through padding or custom control slots.
+
+### Retained layout SVG planning (unreleased)
+
+`captureSvgLayout(editor, renderKey)` captures detached world-space routes and
+label envelopes from an idle editor. Pass the current renderer key separately:
+
+```typescript
+import { captureSvgLayout, planSvgExport } from '@opsydyn/foldkit-zloz';
+
+const retained = captureSvgLayout(editor, rendererKey);
+const plan = planSvgExport(editor, {
+  ...svgOptions,
+  layout: { snapshot: retained, renderKey: rendererKey },
+});
+```
+
+The exact graph and current key must match the capture. Changed source or key
+produces blocking `layout-stale`; invalid current route/label batches reject.
+Capture and planning copy nested geometry without changing graph or Undo. Partial
+route coverage is allowed. Author-defined waypoints/pathStyle override retained
+geometry, matching the canvas. Whole-model nominal bounds include effective route
+points and labelled edge envelopes; explicit crops stay fixed. Custom SVG renderers
+own their declared bounds. Measured envelopes never qualify custom badge/editor
+content: declare a vector adapter, fallback or omission for the complete edge.
+Custom headings remain covered by node renderer declarations.
+
+Hosts own key correctness and live-route invalidation. Recompute stale layout
+before capturing with a new key; relabelling old geometry with a new key does not
+make it current. Include theme/font/label/renderer configuration in the key.
+Font ink, strokes, collapsed presentation and unsupplied overlays remain outside
+this contract. It is a typed in-process snapshot, not a wire decoder or attestation.
+
+This slice adds planning only. `writeSvgExport` blocks non-empty retained layout
+with `layout-writer-unsupported`, even with `allowLosses`; it cannot silently export
+a different layout. Omit `layout` explicitly for existing canonical SVG behavior.
+Review controls and PNG do not adopt retained geometry automatically.

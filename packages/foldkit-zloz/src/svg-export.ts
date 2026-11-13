@@ -1,4 +1,5 @@
-import { copyGraph, ZlozError } from './graph';
+import { copyGraph, serializeGraph, ZlozError } from './graph';
+import { copySvgRoutes, type ZlozSvgLayoutOptions, type ZlozSvgLayoutSnapshot } from './svg-layout';
 import { zlozLightTheme, zlozDarkTheme, type ZlozColorScheme } from './theme';
 import type { Point, Size, ZlozGraph, ZlozSnapshot } from './types';
 
@@ -53,9 +54,14 @@ export type ZlozSvgExportOptions = Readonly<{
     overrides?: readonly ZlozSvgRendererOverride[];
   }>;
   assets?: readonly ZlozSvgAsset[];
+  /** Opt-in retained geometry; the canonical writer blocks until its layout adapter is implemented. */
+  layout?: ZlozSvgLayoutOptions;
 }>;
 export type ZlozSvgFinding = Readonly<{
   code:
+    | 'layout-stale'
+    | 'layout-route-overridden'
+    | 'layout-label-content-unverified'
     | 'bounds-estimated'
     | 'font-unverified'
     | 'theme-unresolved'
@@ -92,6 +98,7 @@ export type ZlozSvgPaint = (typeof paints)[number];
 export type ZlozSvgThemeTokens = Readonly<Partial<Record<ZlozSvgPaint | 'edgeWidth', string>>>;
 export type ZlozSvgExportPlan = Readonly<{
   format: 'svg';
+  layout?: ZlozSvgLayoutSnapshot;
   /** Reviewable is a planning result, never authorization to write a file or a fidelity guarantee. */
   type: 'reviewable' | 'blocked';
   title: string;
@@ -177,7 +184,11 @@ function renderer(value: ZlozSvgRenderer): ZlozSvgRenderer {
 function key(target: ZlozSvgTarget) {
   return `${target.kind}:${target.id}`;
 }
-function contentBounds(graph: ZlozGraph, items: readonly ZlozSvgRendererOverride[]): ZlozSvgBounds {
+function contentBounds(
+  graph: ZlozGraph,
+  items: readonly ZlozSvgRendererOverride[],
+  layout?: ZlozSvgLayoutSnapshot,
+): ZlozSvgBounds {
   let left = Infinity,
     top = Infinity,
     right = -Infinity,
@@ -192,6 +203,23 @@ function contentBounds(graph: ZlozGraph, items: readonly ZlozSvgRendererOverride
     include(node.position.x, node.position.y, node.size.width, node.size.height);
   for (const edge of graph.edges)
     for (const bend of edge.waypoints ?? []) include(bend.position.x, bend.position.y);
+  for (const route of layout?.routes ?? []) {
+    const edge = graph.edges.find((edge) => edge.id === route.id);
+    const item = items.find((item) => item.target.kind === 'edge' && item.target.id === route.id);
+    // Match native geometry precedence; declared SVG adapters own their explicit bounds.
+    if (
+      !edge ||
+      edge.waypoints ||
+      edge.pathStyle !== undefined ||
+      (item?.renderer.type !== 'built-in' && item?.renderer.type !== 'fallback')
+    )
+      continue;
+    for (const point of route.points) include(point.x, point.y);
+    if (route.label && edge.label) {
+      const b = route.label;
+      include(b.position.x, b.position.y, b.size.width, b.size.height);
+    }
+  }
   for (const item of items)
     if (item.renderer.type === 'svg') {
       const b = item.renderer.bounds;
@@ -407,7 +435,47 @@ export function planSvgExport(
         ? 'System fonts are not embedded; glyph substitution, text wrapping and ink bounds are unverified.'
         : 'Declared font bytes, glyph coverage, text wrapping and ink bounds require writer qualification.',
     );
-  const content = contentBounds(graph, items);
+  let layout: ZlozSvgLayoutSnapshot | undefined;
+  if (options.layout) {
+    const captured = options.layout.snapshot;
+    text(options.layout.renderKey);
+    text(captured.renderKey);
+    if (
+      captured.source !== serializeGraph(graph) ||
+      captured.renderKey !== options.layout.renderKey
+    )
+      add(
+        'layout-stale',
+        'unsupported',
+        { kind: 'document' },
+        'Retained layout does not match the exact exported graph and current renderer key. Capture fresh layout.',
+      );
+    else {
+      layout = {
+        source: captured.source,
+        renderKey: captured.renderKey,
+        routes: copySvgRoutes(graph, captured.routes),
+      };
+      for (const route of layout.routes) {
+        const edge = graph.edges.find((edge) => edge.id === route.id);
+        if (edge?.waypoints || edge?.pathStyle !== undefined)
+          add(
+            'layout-route-overridden',
+            'unverified',
+            { kind: 'edge', id: route.id },
+            'Authored waypoints or pathStyle override this retained route and its label anchor, matching native geometry precedence.',
+          );
+        else if (route.label && edge?.label)
+          add(
+            'layout-label-content-unverified',
+            'unverified',
+            { kind: 'edge', id: route.id },
+            'The world-space label envelope and anchor do not reproduce custom badges, editors, wrapping or font ink. Declare a vector adapter, explicit fallback or omission for custom label content.',
+          );
+      }
+    }
+  }
+  const content = contentBounds(graph, items, layout);
   let region: ZlozSvgRegion;
   let viewBox: ZlozSvgBounds;
   let size: Size;
@@ -429,7 +497,7 @@ export function planSvgExport(
           'bounds-estimated',
           'unverified',
           { kind: 'document' },
-          'Authored envelopes, bends and declared custom bounds exclude unmeasured text ink, strokes, port artwork, custom geometry and transient layout routes. Padding is explicit, not a fit guarantee.',
+          'Authored envelopes, bends, declared custom bounds and opted-in effective routes/label envelopes exclude unmeasured text ink, strokes, port artwork and custom geometry. Unprovided transient routes are excluded. Padding is explicit, not a fit guarantee.',
         );
       break;
     }
@@ -457,7 +525,7 @@ export function planSvgExport(
       return invalid('Unknown export region.');
   }
   findings.sort(compareFindings);
-  return {
+  const plan: ZlozSvgExportPlan = {
     format: 'svg',
     type: findings.some((f) => f.severity === 'unsupported') ? 'blocked' : 'reviewable',
     title,
@@ -475,4 +543,5 @@ export function planSvgExport(
     assets,
     findings,
   };
+  return layout === undefined ? plan : { ...plan, layout };
 }

@@ -774,3 +774,17 @@ Next proposed slice: define opt-in SVG export fidelity for retained layout route
 and measured label anchors, with explicit custom-renderer findings, before extending
 PNG. Recommendation: **needs review**. No export behavior or publishing is changed
 by this recommendation.
+
+**Retained layout SVG contract — implemented locally (2026-11-13), unreleased:**
+Core captures detached routes/label envelopes and plans their effective bounds
+against exact source and host renderer keys. Invalid/stale batches and custom
+content limitations are explicit; authored geometry keeps native precedence.
+The writer blocks non-empty retained layout until the rendering slice. Defaults,
+working history, review controls and PNG remain unchanged. See
+[ADR 0075](adr/0075-plan-retained-layout-svg-fidelity.md) and
+[contract evidence](assessments/2026-11-13-zloz-svg-layout-contract.md).
+This closes the preceding contract proposal. D/C/Q and publication gates remain.
+
+Next proposed slice: consume retained routes and label anchors in the SVG writer
+and vector-adapter context, qualify emitted files, and expose explicit workbench
+review opt-in before extending PNG. Recommendation: **needs review**.

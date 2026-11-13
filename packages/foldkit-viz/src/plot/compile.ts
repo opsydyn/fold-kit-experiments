@@ -8,6 +8,25 @@ import * as schemes from '../math/schemes.js';
 import { movingWindow } from '../math/stats.js';
 import { area } from '../shape/area.js';
 import { line } from '../shape/line.js';
+import {
+  channelOf,
+  fail,
+  fieldOf,
+  isConstant,
+  isFlag,
+  isNumber,
+  isText,
+  ISO_DATE,
+  keysOf,
+  numeric,
+  paintOf,
+  read,
+  requireScale,
+  titlesOf,
+  withTitle,
+} from './channels.js';
+import type { AxisName, ChannelName, ColorScale, Context, PositionScale } from './channels.js';
+import { boxGraphics, linkGraphics, violinGraphics } from './marks-statistical.js';
 import type {
   Channel,
   ColorScaleSpec,
@@ -34,43 +53,7 @@ import type {
  * Every rejection is a RangeError whose message starts with the spec path.
  */
 
-const fail = (path: string, message: string): never => {
-  throw new RangeError(`${path}: ${message}`);
-};
-
-// ── Channels ──────────────────────────────────────────────────────────────────
-
-/** Guards for raw JSON values: the spec is the I/O boundary, parsed here. */
-const isNumber = (value: unknown): value is number => typeof value === 'number';
-const isText = (value: unknown): value is string => typeof value === 'string';
-const isFlag = (value: unknown): value is boolean => typeof value === 'boolean';
-
-const isConstant = (channel: unknown): channel is Readonly<{ value: Value }> =>
-  typeof channel === 'object' && channel !== null && 'value' in channel;
-
-const fieldOf = (channel: Channel | undefined): string | undefined =>
-  isText(channel) ? channel : undefined;
-
-function read(rows: ReadonlyArray<Row>, channel: Channel, path: string): ReadonlyArray<Value> {
-  if (isConstant(channel)) return rows.map(() => channel.value);
-  if (!isText(channel) || channel === '') return fail(path, 'must be a field name or { value }');
-  if (rows.length > 0 && !rows.some((row) => Object.hasOwn(row, channel)))
-    fail(path, `field "${channel}" is missing from the data`);
-  return rows.map((row) => row[channel] ?? null);
-}
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
-
-/** A value as a number on a continuous axis: numbers as they are, ISO dates as epoch ms. */
-const numeric = (value: Value): number => {
-  if (isNumber(value)) return value;
-  if (isText(value) && ISO_DATE.test(value)) return Date.parse(value);
-  return Number.NaN;
-};
-
 // ── Marks: what each takes ────────────────────────────────────────────────────
-
-type ChannelName = 'x' | 'y' | 'y0' | 'r' | 'fill' | 'stroke' | 'text' | 'title';
 
 type MarkRule = Readonly<{
   required: ReadonlyArray<ChannelName>;
@@ -80,7 +63,10 @@ const MARKS = {
   dot: { required: ['x', 'y'], channels: ['x', 'y', 'r', 'fill', 'stroke', 'title'] },
   line: { required: ['x', 'y'], channels: ['x', 'y', 'stroke', 'title'] },
   area: { required: ['x', 'y'], channels: ['x', 'y', 'y0', 'fill', 'title'] },
-  bar: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  bar: { required: ['x', 'y'], channels: ['x', 'y', 'x0', 'y0', 'fill', 'stroke', 'title'] },
+  box: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  violin: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  link: { required: ['x1', 'y1'], channels: ['x1', 'y1', 'x2', 'y2', 'stroke', 'title'] },
   rule: { required: [], channels: ['x', 'y', 'stroke', 'title'] },
   text: { required: ['x', 'y', 'text'], channels: ['x', 'y', 'text', 'fill', 'title'] },
   cell: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
@@ -97,6 +83,7 @@ const OPTIONS = new Set([
   'anchor',
   'dx',
   'dy',
+  'bandwidth',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -148,27 +135,6 @@ function validateMark(mark: MarkSpec, path: string): void {
     });
   }
 }
-
-const channelOf = (mark: MarkSpec, name: ChannelName): Channel | undefined => {
-  switch (name) {
-    case 'x':
-      return 'x' in mark ? mark.x : undefined;
-    case 'y':
-      return 'y' in mark ? mark.y : undefined;
-    case 'y0':
-      return 'y0' in mark ? mark.y0 : undefined;
-    case 'r':
-      return 'r' in mark ? mark.r : undefined;
-    case 'fill':
-      return 'fill' in mark ? mark.fill : undefined;
-    case 'stroke':
-      return 'stroke' in mark ? mark.stroke : undefined;
-    case 'text':
-      return 'text' in mark ? mark.text : undefined;
-    case 'title':
-      return mark.title;
-  }
-};
 
 // ── Facets ────────────────────────────────────────────────────────────────────
 
@@ -353,19 +319,7 @@ function applyTransform(
 
 // ── Scales ────────────────────────────────────────────────────────────────────
 
-type AxisName = 'x' | 'y';
 type ScaleType = NonNullable<PositionScaleSpec['type']>;
-
-type PositionScale = Readonly<{
-  axis: PlotAxis;
-  /** Centre of a band, or the projected value; undefined when it cannot be placed. */
-  place: (value: Value) => number | undefined;
-  /** Start of a band; equal to place for continuous scales. */
-  start: (value: Value) => number | undefined;
-  bandwidth: number;
-  /** Where a bar or area starts: zero when in range, otherwise the low edge. */
-  baseline: number;
-}>;
 
 type ScaleInfo = Readonly<{
   type: ScaleType;
@@ -392,26 +346,33 @@ const axisScaleOf = (type: ScaleType, spec: PositionScaleSpec): AxisScale => {
 };
 
 /** Which channels feed each position axis, and whether a mark wants that axis to include zero. */
+/** The channels that place a mark along each axis. */
+const AXIS_CHANNELS = {
+  x: ['x', 'x0', 'x1', 'x2'],
+  y: ['y', 'y0', 'y1', 'y2'],
+} satisfies Readonly<Record<AxisName, ReadonlyArray<ChannelName>>>;
+
 function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
   const source: Value[] = [];
   const values: Value[] = [];
   const fields = new Set<string>();
   let zero = false;
   for (const p of prepared) {
-    const original = channelOf(p.mark, axis);
-    if (original === undefined) continue;
-    const field = fieldOf(original);
-    if (field !== undefined) fields.add(field);
-    source.push(...read(p.source, original, `${p.path}.${axis}`));
-    const channel = axis === 'x' ? (p.x ?? original) : (p.y ?? original);
-    values.push(...read(p.rows, channel, `${p.path}.${axis}`));
+    for (const name of AXIS_CHANNELS[axis]) {
+      const original = channelOf(p.mark, name);
+      if (original === undefined) continue;
+      const field = fieldOf(original);
+      if (field !== undefined && name === axis) fields.add(field);
+      source.push(...read(p.source, original, `${p.path}.${name}`));
+      // A transform rewrites the main channel of each axis; the others read the rows as they are.
+      const remapped = name === 'x' ? p.x : name === 'y' ? p.y : undefined;
+      values.push(...read(p.rows, remapped ?? original, `${p.path}.${name}`));
+    }
     if (axis === 'y' && p.band !== undefined)
       values.push(...p.band.flatMap((r) => [r[LO] ?? null, r[HI] ?? null]));
-    if (axis === 'y' && p.mark.mark === 'area') {
-      if (p.mark.y0 === undefined) zero = true;
-      else values.push(...read(p.rows, p.mark.y0, `${p.path}.y0`));
-    }
-    if (p.mark.mark === 'bar') zero = true;
+    // Areas and bars grow from zero unless they name where they start.
+    if (axis === 'y' && p.mark.mark === 'area' && p.mark.y0 === undefined) zero = true;
+    if (p.mark.mark === 'bar' && p.mark.y0 === undefined && p.mark.x0 === undefined) zero = true;
   }
   return { source, values, fields: [...fields], zero };
 }
@@ -431,7 +392,7 @@ function resolveScale(
   spec: PositionScaleSpec = {},
 ): ScaleInfo | null {
   const { source, values, fields, zero } = axisValues(prepared, axis);
-  const usedByBar = prepared.some((p) => p.mark.mark === 'bar' || p.mark.mark === 'cell');
+  const usedByBar = prepared.some((p) => ['bar', 'cell', 'box', 'violin'].includes(p.mark.mark));
   if (source.length === 0 && spec.domain === undefined && !usedByBar) return null;
   const type = spec.type ?? inferType(source, axis);
   const label = spec.label ?? (fields.length === 1 ? (fields[0] ?? '') : '');
@@ -566,8 +527,6 @@ const SCHEMES: Readonly<Record<string, ReadonlyArray<string>>> = Object.fromEntr
   ),
 );
 
-type ColorScale = Readonly<{ paint: (value: Value) => string; legend: Legend | null }>;
-
 const COLOR_CHANNELS = ['fill', 'stroke'] as const;
 
 function resolveColor(
@@ -593,11 +552,14 @@ function resolveColor(
     (type === 'categorical' ? 'tableau10' : type === 'sequential' ? 'viridis' : 'rdBu');
   const scheme = SCHEMES[schemeName];
   if (scheme === undefined) return fail('color.scheme', `unknown scheme "${schemeName}"`);
+  if (spec.range !== undefined && spec.range.length === 0)
+    fail('color.range', 'needs at least one colour');
   if (type === 'categorical') {
+    const palette = spec.range ?? scheme;
     const domain =
       spec.domain === undefined ? [...new Set(present.map(String))] : spec.domain.map(String);
     const paint = (v: Value) =>
-      scheme[Math.max(0, domain.indexOf(String(v))) % scheme.length] ?? 'currentColor';
+      palette[Math.max(0, domain.indexOf(String(v))) % palette.length] ?? 'currentColor';
     return {
       paint,
       legend: showLegend
@@ -654,43 +616,6 @@ function resolveSize(prepared: ReadonlyArray<Prepared>, spec: PlotSpec): (value:
 }
 
 // ── Mark geometry ─────────────────────────────────────────────────────────────
-
-type Context = Readonly<{
-  x: PositionScale | null;
-  y: PositionScale | null;
-  color: ColorScale | null;
-  size: (value: Value) => number;
-  bounds: PlotBounds;
-}>;
-
-const paintOf = (
-  rows: ReadonlyArray<Row>,
-  channel: Channel | undefined,
-  path: string,
-  context: Context,
-  fallback: string,
-): ReadonlyArray<string> => {
-  if (channel === undefined) return rows.map(() => fallback);
-  if (isConstant(channel)) return rows.map(() => String(channel.value ?? fallback));
-  const color = context.color;
-  return read(rows, channel, path).map((v) => (color === null ? fallback : color.paint(v)));
-};
-
-const titlesOf = (rows: ReadonlyArray<Row>, channel: Channel | undefined, path: string) =>
-  channel === undefined
-    ? rows.map(() => undefined)
-    : read(rows, channel, path).map((v) => (v === null ? undefined : String(v)));
-
-const keysOf = (rows: ReadonlyArray<Row>, mark: MarkSpec, index: number): ReadonlyArray<string> =>
-  rows.map((row, i) =>
-    mark.key !== undefined && row[mark.key] !== undefined ? String(row[mark.key]) : `${index}:${i}`,
-  );
-
-const withTitle = (title: string | undefined) => (title === undefined ? {} : { title });
-
-function requireScale(scale: PositionScale | null, path: string, axis: AxisName): PositionScale {
-  return scale ?? fail(`${path}.${axis}`, 'no scale could be resolved for this axis');
-}
 
 function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
   const { mark, rows, path, index } = p;
@@ -839,6 +764,10 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
         fail(path, 'a bar mark needs exactly one band axis');
       const xs = read(rows, mark.x, `${path}.x`),
         ys = read(rows, mark.y, `${path}.y`);
+      // Interval bars start where y0 (or x0) says; others start at zero.
+      const from = vertical ? mark.y0 : mark.x0;
+      const starts =
+        from === undefined ? undefined : read(rows, from, `${path}.${vertical ? 'y0' : 'x0'}`);
       const fills = paintOf(rows, mark.fill, `${path}.fill`, context, 'currentColor');
       const strokes = paintOf(rows, mark.stroke, `${path}.stroke`, context, 'none');
       return rows.flatMap((_, i) => {
@@ -846,9 +775,10 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
           value = vertical ? y : x;
         const start = category.start(vertical ? (xs[i] ?? null) : (ys[i] ?? null));
         const end = value.place(vertical ? (ys[i] ?? null) : (xs[i] ?? null));
-        if (start === undefined || end === undefined) return [];
-        const lo = Math.min(end, value.baseline),
-          extent = Math.abs(end - value.baseline);
+        const base = starts === undefined ? value.baseline : value.place(starts[i] ?? null);
+        if (start === undefined || end === undefined || base === undefined) return [];
+        const lo = Math.min(end, base),
+          extent = Math.abs(end - base);
         const rect = vertical
           ? { x: start, y: lo, width: category.bandwidth, height: extent }
           : { x: lo, y: start, width: extent, height: category.bandwidth };
@@ -865,6 +795,12 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
         ];
       });
     }
+    case 'box':
+      return boxGraphics(mark, rows, path, context);
+    case 'violin':
+      return violinGraphics(mark, rows, path, context);
+    case 'link':
+      return linkGraphics(mark, rows, path, index, context);
     case 'rule': {
       const vertical = mark.x !== undefined;
       const scale = requireScale(vertical ? context.x : context.y, path, vertical ? 'x' : 'y');

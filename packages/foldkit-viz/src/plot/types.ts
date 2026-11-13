@@ -28,6 +28,8 @@ export type ColorScaleSpec = Readonly<{
   /** Any scheme in math/schemes. Defaults: tableau10, viridis, rdBu. */
   scheme?: string;
   domain?: readonly [number, number] | ReadonlyArray<string>;
+  /** Categorical only: explicit colours, in domain order, instead of a scheme. */
+  range?: ReadonlyArray<string>;
   legend?: boolean;
   label?: string;
 }>;
@@ -89,7 +91,41 @@ export type AreaMark = CommonMark &
     transform?: WindowTransform | ReadonlyArray<WindowTransform>;
   }>;
 export type BarMark = CommonMark &
-  Readonly<{ mark: 'bar'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
+  Readonly<{
+    mark: 'bar';
+    x: Channel;
+    y: Channel;
+    /** Where a vertical bar starts instead of zero, for interval bars such as candle bodies. */
+    y0?: Channel;
+    /** Where a horizontal bar starts instead of zero. */
+    x0?: Channel;
+    fill?: Channel;
+    stroke?: Channel;
+  }>;
+/** A box plot per category: one axis a band of categories, the other the values. */
+export type BoxMark = CommonMark &
+  Readonly<{ mark: 'box'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
+/** A mirrored kernel density per category, with its median. */
+export type ViolinMark = CommonMark &
+  Readonly<{
+    mark: 'violin';
+    x: Channel;
+    y: Channel;
+    fill?: Channel;
+    stroke?: Channel;
+    /** Kernel bandwidth in value units. Default: Silverman's rule per group. */
+    bandwidth?: number;
+  }>;
+/** Straight segments from (x1, y1) to (x2, y2); x2 and y2 default to x1 and y1. */
+export type LinkMark = CommonMark &
+  Readonly<{
+    mark: 'link';
+    x1: Channel;
+    y1: Channel;
+    x2?: Channel;
+    y2?: Channel;
+    stroke?: Channel;
+  }>;
 export type RuleMark = CommonMark &
   Readonly<{ mark: 'rule'; x?: Channel; y?: Channel; stroke?: Channel }>;
 export type TextMark = CommonMark &
@@ -106,7 +142,17 @@ export type TextMark = CommonMark &
 export type CellMark = CommonMark &
   Readonly<{ mark: 'cell'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
 
-export type MarkSpec = DotMark | LineMark | AreaMark | BarMark | RuleMark | TextMark | CellMark;
+export type MarkSpec =
+  | DotMark
+  | LineMark
+  | AreaMark
+  | BarMark
+  | RuleMark
+  | TextMark
+  | CellMark
+  | BoxMark
+  | ViolinMark
+  | LinkMark;
 export type MarkType = MarkSpec['mark'];
 
 export type PlotSpec = Readonly<{

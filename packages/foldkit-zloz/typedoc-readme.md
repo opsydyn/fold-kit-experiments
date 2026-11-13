@@ -500,6 +500,23 @@ Existing membership, world geometry, strict codecs, history and Undo apply.
 is the opt-in causal catalogue for external systems. The original catalogue remains
 unchanged for portable builtin-packet compatibility; hotspots/lanes are not causal
 roles. DDD preview leaves these roles unmapped until explicit retention/mapping and
-loss acceptance. Artwork is deferred: existing note views decline new roles, and
-SVG requires a host adapter or explicit fidelity fallback. See the README and
+loss acceptance. Native artwork is now available through
+{@link FoldKit.zlozEventStormingNode | zlozEventStormingNode} and
+{@link FoldKit.zlozEventStormingGroup | zlozEventStormingGroup}. Portable SVG still
+requires a host adapter or explicit fidelity fallback. See the README and
 ADR 0081 for exact role/kind/port, status, conversion and compatibility boundaries.
+
+## Workshop editing and presentation
+
+{@link Core.createEventStormingWorkshopPattern | createEventStormingWorkshopPattern}
+provides an illustrative native starter. Use
+{@link Core.resolveEventStormingWorkshopControls | resolveEventStormingWorkshopControls}
+and {@link Core.resolveEventStormingWorkshopRequest | resolveEventStormingWorkshopRequest}
+for fresh selected-node role/status edits with live protection and ordinary Undo.
+{@link FoldKit.zlozEventStormingWorkshopControls | zlozEventStormingWorkshopControls}
+composes explicit native status buttons, role selectors and visible reasons, with
+replace/omit hooks. {@link FoldKit.zlozWorkshopStatusButton | zlozWorkshopStatusButton}
+and {@link FoldKit.zlozWorkshopSelect | zlozWorkshopSelect} support custom layouts.
+Native node/lane content, semantic descriptions, header geometry, body caching and
+scoped light/dark tokens remain independent of diagnostics. See the README and
+ADR 0082 for exact freshness, selection, policy and portable-export limits.

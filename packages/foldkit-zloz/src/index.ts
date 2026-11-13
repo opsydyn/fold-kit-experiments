@@ -635,3 +635,18 @@ export type {
 } from './architecture';
 
 export { eventStormingWorkshopRelationshipRules } from './event-storming-relationships';
+
+export {
+  resolveEventStormingWorkshopControls,
+  resolveEventStormingWorkshopRequest,
+} from './workshop-controls';
+export type {
+  ZlozWorkshopScope,
+  ZlozWorkshopRequest,
+  ZlozWorkshopChoice,
+  ZlozWorkshopSelect,
+  ZlozWorkshopControlsContext,
+  ZlozWorkshopControlsOptions,
+  ZlozWorkshopDecision,
+} from './workshop-controls';
+export { createEventStormingWorkshopPattern } from './workshop-pattern';

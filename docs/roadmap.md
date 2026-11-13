@@ -897,7 +897,22 @@ See [ADR 0081](adr/0081-define-eventstorming-workshop-semantics.md) and
 This closes the approved headless vocabulary contract, not renderer, D1b/C/Q/R
 qualification. No npm publishing or deployment.
 
-**Recommended next:** composable external-system, hotspot and lane renderers and
-workbench controls, using these contracts with light/dark themes, visible hotspot
-status, native keyboard/portless behavior, diagnostics preferences and existing Undo.
-Keep EventStorming-to-C4 conversion and compatibility/release decisions separate.
+**Native workshop presentation/editing — implemented locally (2026-11-13), unreleased:**
+Package node/lane renderers now support external-system participants, open/resolved
+hotspots and organizational frames using native geometry, sockets/collapse/resize,
+shared headers and optional body caching. Status/content/controls and semantic
+handle descriptions are composable, with scoped light/dark accent tokens. Pure
+role/status controls recheck selection, visibility, revision, descriptor, lifecycle
+and live policy before ordinary Undoable events. Explicit native status buttons,
+visible protection reasons and custom layouts stay usable independently of numeric
+diagnostics. Port additions to annotations/groups return capability denials without
+changing graph/Undo. A public starter and Astro Inspect demo show opt-in conventions,
+custom badges, facilitator protection, history read-only state and native keyboard
+controls. See [ADR 0082](adr/0082-compose-workshop-renderers-and-controls.md) and
+[tests/light-dark evidence](../apps/zloz-demo/evidence/workshop.md).
+This closes the approved native presentation slice. Built-in portable SVG/PNG
+artwork remains gated; causal defaults, codecs, D1b/C/Q/R and publication are unchanged.
+
+**Recommended next:** qualify portable workshop SVG artwork and hotspot status
+fidelity through the existing export review boundary, then prove PNG uses that same
+qualified projection. Keep EventStorming-to-C4 conversion separately scoped.

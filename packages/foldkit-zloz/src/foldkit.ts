@@ -2920,7 +2920,7 @@ export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics'
 
 export { zlozHistoryGhosts } from './history-ghosts';
 export type { ZlozHistoryGhostOptions } from './history-ghosts';
-export { zlozEventStormingNode } from './event-storming-renderer';
+export { zlozEventStormingNode, zlozEventStormingGroup } from './event-storming-renderer';
 export type {
   ZlozEventStormingContentContext,
   ZlozEventStormingContentRenderer,
@@ -3065,3 +3065,10 @@ export {
   zlozDddAuditReason,
 } from './ddd-audit-controls-view';
 export type { ZlozDddAuditParts, ZlozDddAuditViewOptions } from './ddd-audit-controls-view';
+
+export {
+  zlozEventStormingWorkshopControls,
+  zlozWorkshopSelect,
+  zlozWorkshopStatusButton,
+} from './workshop-controls-view';
+export type { ZlozWorkshopParts, ZlozWorkshopViewOptions } from './workshop-controls-view';

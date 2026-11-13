@@ -58,6 +58,7 @@ import {
   zlozPlaybackStatus,
   zlozPlaybackReason,
   zlozEventStormingNode,
+  zlozEventStormingGroup,
   type ZlozEventStormingNodeOptions,
   zlozHistoryGhosts,
   zlozGroupFrame,
@@ -187,6 +188,7 @@ import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
+import { workshopPanel } from './workshop-view';
 
 type WorkbenchEdgeHooks = {
   edgeGeometry?: typeof raisedEdge;
@@ -196,7 +198,30 @@ type WorkbenchEdgeHooks = {
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createZlozNodeBodyCache();
 const orbitBodyCache = createZlozNodeBodyCache();
+const stormOptionsWithoutCache: ZlozEventStormingNodeOptions<Message> = {
+  renderStatus: ({ architecture }, builder) =>
+    architecture.role === 'hotspot'
+      ? builder.span(
+          [
+            builder.DataAttribute('workbench-hotspot', architecture.status),
+            builder.Style({
+              border: '1px solid currentColor',
+              borderRadius: '999px',
+              padding: '3px 10px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color:
+                architecture.status === 'resolved'
+                  ? 'var(--zloz-event-storming-hotspot-resolved)'
+                  : 'var(--zloz-event-storming-hotspot-open)',
+            }),
+          ],
+          [architecture.status === 'open' ? 'Discuss · open' : 'Agreed · resolved'],
+        )
+      : null,
+};
 const stormOptions: ZlozEventStormingNodeOptions<Message> = {
+  ...stormOptionsWithoutCache,
   bodyCache: createZlozNodeBodyCache(),
 };
 const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
@@ -205,7 +230,9 @@ const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>)
   zlozC4Node(context, h, c4Options) ??
   zlozDddNode(context, h, dddOptions);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Group(context, h, c4Options) ?? zlozDddGroup(context, h, dddOptions);
+  zlozEventStormingGroup(context, h, stormOptions) ??
+  zlozC4Group(context, h, c4Options) ??
+  zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
   renderBadge: ({ architecture }, h) =>
     architecture.role === 'aggregate-root'
@@ -217,7 +244,7 @@ const dddOptions: ZlozDddNodeOptions<Message> = {
   bodyCache: createZlozNodeBodyCache(),
 };
 const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h) ??
+  zlozEventStormingNode(context, h, stormOptionsWithoutCache) ??
   zlozDddNode(context, h, dddOptionsWithoutCache) ??
   zlozC4Node(context, h);
 const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -225,7 +252,9 @@ const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>
   zlozDddNode(context, h, dddOptions) ??
   zlozC4Node(context, h, c4Options);
 const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddGroup(context, h, dddOptions) ?? zlozC4Group(context, h, c4Options);
+  zlozEventStormingGroup(context, h, stormOptions) ??
+  zlozDddGroup(context, h, dddOptions) ??
+  zlozC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -305,6 +334,7 @@ const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozDddNode(context, h, historyDddOptions) ??
   zlozC4Node(context, h, historyC4Options);
 const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozEventStormingGroup(context, h, historyStormOptions) ??
   zlozDddGroup(context, h, historyDddOptions) ??
   zlozC4Group(context, h, historyC4Options) ??
   zlozGroupFrame(
@@ -415,6 +445,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       modelId,
       epoch,
     });
+  const workshopInspector = model.sidebarSection === 'inspect' ? workshopPanel(model, h) : null;
   const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
@@ -540,7 +571,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const placementControls = workbenchPlacement(model);
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
-    !model.minimalMode && selectedNode
+    !model.minimalMode &&
+      selectedNode &&
+      !(
+        selectedNode.architecture?.family === 'event-storming' &&
+        selectedNode.architecture.role === 'hotspot'
+      )
       ? portInspectorContext(model.editor, selectedNode.id, policy, {
           idPrefix: 'workbench-port-inspector',
         })
@@ -1555,6 +1591,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 button(
                   'Open event-storming example',
                   Message.SelectedExample({ example: 'event-storming' }),
+                ),
+                button(
+                  'Open workshop semantics example',
+                  Message.SelectedExample({ example: 'event-storming-workshop' }),
                 ),
                 button('Open release workflow', Message.SelectedExample({ example: 'release' })),
                 button(
@@ -3243,6 +3283,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     ],
     mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
+      ...(workshopInspector ? [workshopInspector] : []),
       ...(hasDddNodes
         ? [
             h.h2([], ['DDD relationship']),
@@ -4034,7 +4075,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             if (model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming')
               return model.retainNodeViews
                 ? retainedDddGroup(context, builder)
-                : (zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
+                : (zlozEventStormingGroup(context, builder, stormOptionsWithoutCache) ??
+                    zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
                     zlozC4Group(context, builder));
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews

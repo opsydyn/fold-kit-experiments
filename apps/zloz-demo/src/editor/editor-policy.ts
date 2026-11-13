@@ -13,6 +13,7 @@ import { workbenchRelationshipOptions } from './event-storming-relationships';
 import type { Model } from './model';
 import { fixtureSocketPolicy } from './socket-policy';
 
+const isWorkshopLocked = Schema.is(Schema.Struct({ workshopStatusLocked: Schema.Literal(true) }));
 const isProtected = Schema.is(Schema.Struct({ deletionProtected: Schema.Literal(true) }));
 
 const requiredItemPolicy = {
@@ -153,13 +154,18 @@ function baseWorkbenchPolicy({
 
 type WorkbenchPolicyModel = Parameters<typeof baseWorkbenchPolicy>[0] &
   Pick<Model, 'semanticRelationships' | 'customStormingRelationships' | 'protectDddRelationships'> &
-  Partial<Pick<Model, 'protectWaypointEdits'>>;
+  Partial<Pick<Model, 'protectWaypointEdits' | 'workshopConventions' | 'protectWorkshopMeaning'>>;
 function editingWorkbenchPolicy(
   model: WorkbenchPolicyModel,
 ): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const base = baseWorkbenchPolicy(model);
   return {
     ...base,
+    canChangeNodeArchitecture: (node, next, graph) =>
+      base.canChangeNodeArchitecture?.(node, next, graph) ??
+      (model.protectWorkshopMeaning && isWorkshopLocked(node.data)
+        ? 'The facilitator has locked this workshop note. Disable workshop protection to edit.'
+        : null),
     canChangeEdgeWaypoints: () =>
       model.protectWaypointEdits
         ? 'Routing is managed by the architecture team. Disable bend protection to edit.'

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add composable native external-system/hotspot/lane renderers, semantic status descriptions, scoped theme accents, live workshop role/status controls and a reusable starter. Guard port additions to portless annotations/frames; demonstrate keyboard, protection, diagnostics and Undo in the workbench.
+
 - Define headless EventStorming external-system participants, portless hotspot annotations with authored status and organizational lane groups; add strict codecs, semantic projection and opt-in workshop conventions while preserving default packet compatibility and explicit renderer/export limits.
 
 - Add read-only DDD current/edition review, deterministic audit comparison, composable FoldKit controls and fresh policy-aware edge/source/target navigation.

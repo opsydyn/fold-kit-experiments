@@ -89,6 +89,10 @@ const paints = [
   'outputPort',
   'portBorder',
   'edge',
+  'eventStormingExternalSystem',
+  'eventStormingHotspotOpen',
+  'eventStormingHotspotResolved',
+  'eventStormingLane',
   'eventStormingCommand',
   'eventStormingEvent',
   'eventStormingPolicy',
@@ -290,6 +294,14 @@ export function planSvgExport(
     outputPort: options.theme.tokens?.outputPort ?? base.tokens.outputPort,
     portBorder: options.theme.tokens?.portBorder ?? base.tokens.portBorder,
     edge: options.theme.tokens?.edge ?? base.tokens.edge,
+    eventStormingExternalSystem:
+      options.theme.tokens?.eventStormingExternalSystem ?? base.tokens.eventStormingExternalSystem,
+    eventStormingHotspotOpen:
+      options.theme.tokens?.eventStormingHotspotOpen ?? base.tokens.eventStormingHotspotOpen,
+    eventStormingHotspotResolved:
+      options.theme.tokens?.eventStormingHotspotResolved ??
+      base.tokens.eventStormingHotspotResolved,
+    eventStormingLane: options.theme.tokens?.eventStormingLane ?? base.tokens.eventStormingLane,
     eventStormingCommand:
       options.theme.tokens?.eventStormingCommand ?? base.tokens.eventStormingCommand,
     eventStormingEvent: options.theme.tokens?.eventStormingEvent ?? base.tokens.eventStormingEvent,

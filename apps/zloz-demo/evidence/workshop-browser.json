@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "public starter and optional node/lane renderers",
+    "external sockets live; hotspots and lanes portless",
+    "custom semantic status and keyboard activation with retained focus",
+    "one Undo preserves original graph",
+    "live facilitator lock and visible port/kind restrictions",
+    "native lane collapse/expand keyboard controls",
+    "status and editing remain independent of numeric diagnostics",
+    "light/dark screenshots",
+    "historical review status is read-only and working graph preserved"
+  ],
+  "pageErrors": []
+}

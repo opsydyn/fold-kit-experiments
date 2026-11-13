@@ -8,6 +8,7 @@ import { Window } from 'happy-dom';
 import {
   zlozView,
   zlozEventStormingNode,
+  zlozEventStormingGroup,
   zlozDarkTheme,
   type ZlozEventStormingNodeOptions,
   type ZlozNodeBodyCache,
@@ -24,6 +25,7 @@ const initial = createEditor(createArchitecturePattern('event-storming'));
 async function render(
   state: EditorState = initial,
   options: ZlozEventStormingNodeOptions<EditorEvent> = {},
+  presentation: Readonly<{ minimalMode?: boolean; diagnostics?: false }> = {},
 ) {
   const result = await Effect.runPromise(
     renderToString(
@@ -33,6 +35,7 @@ async function render(
         view: (model, h: HtmlBuilder<EditorEvent>) => ({
           title: 'Workshop',
           body: zlozView(h, model, {
+            ...presentation,
             id: 'workshop',
             label: 'Workshop',
             onEvent: (event) => event,
@@ -40,6 +43,8 @@ async function render(
               ...zlozDarkTheme,
               tokens: { ...zlozDarkTheme.tokens, eventStormingCommand: 'var(--host-command)' },
             },
+            renderGroupShell: (context, builder) =>
+              zlozEventStormingGroup(context, builder, options),
             renderNodeShell: (context, builder) => zlozEventStormingNode(context, builder, options),
           }),
         }),
@@ -118,9 +123,69 @@ test('artwork cache inputs exclude live read-only and source-port feedback', asy
   expect(port?.getAttribute('aria-pressed')).toBe('true');
 });
 
-test('legacy note artwork declines headless-only workshop participants and annotations', async () => {
-  const document = await render(createEditor(parseGraph(JSON.stringify(workshopWire))));
-  expect(document.querySelectorAll('[data-zloz-event-storming-node]')).toHaveLength(3);
-  for (const role of ['external-system', 'hotspot', 'lane'])
-    expect(document.querySelector(`[data-zloz-event-storming-node="${role}"]`)).toBeNull();
+test('workshop artwork renders external systems, semantic hotspot status and native lane frames without inventing sockets', async () => {
+  const graph = parseGraph(JSON.stringify(workshopWire));
+  const document = await render(createEditor(graph));
+  expect(document.querySelectorAll('[data-zloz-event-storming-node]')).toHaveLength(5);
+  expect(
+    document.querySelector('[data-zloz-event-storming-node="external-system"]'),
+  ).not.toBeNull();
+  expect(document.querySelector('[data-zloz-hotspot-status="open"]')?.textContent).toBe(
+    'Open question',
+  );
+  const handle = document.querySelector('[data-flow-handle="hotspot"]');
+  const meaningId = handle?.getAttribute('aria-describedby')?.split(' ').at(-1);
+  expect(meaningId ? document.getElementById(meaningId)?.textContent : null).toBe(
+    'Hotspot. Open question.',
+  );
+  expect(document.querySelector('[data-zloz-event-storming-group="lane"]')).not.toBeNull();
+  expect(
+    document
+      .querySelector('[data-zloz-event-storming-node="hotspot"]')
+      ?.querySelectorAll('[data-flow-port]'),
+  ).toHaveLength(0);
+  const collapsed = await render({ ...createEditor(graph), collapsedGroups: ['lane'] });
+  expect(collapsed.querySelectorAll('[data-zloz-hotspot-status]')).toHaveLength(0);
+  expect(collapsed.querySelector('[data-zloz-event-storming-group="lane"]')?.textContent).toContain(
+    'Payments workshop',
+  );
+});
+test('custom/omitted status, body and controls compose in native workshop shells and shared headers', async () => {
+  const state = createEditor(parseGraph(JSON.stringify(workshopWire)));
+  const custom = await render(state, {
+    groupHeader: {
+      id: 'lane',
+      sizing: 'intrinsic',
+      padding: { top: 8, left: 12, right: 140, bottom: 8 },
+      gap: 0,
+    },
+    renderStatus: ({ architecture }, h) =>
+      architecture.role === 'hotspot'
+        ? h.span([h.DataAttribute('custom-status', '')], [`Review · ${architecture.status}`])
+        : null,
+  });
+  expect(custom.querySelector('[data-custom-status]')?.textContent).toBe('Review · open');
+  expect(custom.querySelector('[data-zloz-group-header="lane"]')).not.toBeNull();
+  const omitted = await render(state, {
+    renderStatus: () => null,
+    renderDescription: () => null,
+    renderControls: () => [],
+  });
+  expect(omitted.querySelector('[data-zloz-hotspot-status]')).toBeNull();
+  expect(
+    omitted.querySelector('[data-zloz-event-storming-node="external-system"]')?.textContent,
+  ).toContain('Payment provider');
+});
+
+test('semantic hotspot status remains visible in minimal/read-only views without numeric diagnostics', async () => {
+  const state = createEditor(parseGraph(JSON.stringify(workshopWire)));
+  const dom = await render(
+    { ...state, readOnly: true },
+    {},
+    { minimalMode: true, diagnostics: false },
+  );
+  expect(dom.querySelector('[data-zloz-hotspot-status]')?.textContent).toBe('Open question');
+  expect(dom.querySelector('[data-zloz-event-storming-group]')?.textContent).toContain(
+    'Payments workshop',
+  );
 });

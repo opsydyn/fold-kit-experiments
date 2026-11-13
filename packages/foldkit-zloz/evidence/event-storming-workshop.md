@@ -6,6 +6,10 @@
 - remaining uncertainty: new artwork, theme/status controls, workbench acceptance, annotation attachments, lane-specific layout, broader workshop vocabulary, EventStorming-to-C4 conversion, performance budgets, physical-device/manual AT, current CI/hosted/registry qualification and publication are not established here.
 - next: compose external-system/hotspot/lane renderers and workbench controls using these contracts, with light/dark themes, visible status, keyboard/portless behavior, diagnostics preferences and Undo.
 
+Native-presentation follow-up: ADR 0082 and the [workbench receipt](../../../apps/zloz-demo/evidence/workshop.md)
+now qualify optional FoldKit artwork/controls. The native-decline statements below
+retain their original headless-slice baseline; the portable SVG guard remains.
+
 ## Contract and ownership
 
 [ADR 0081](../../../docs/adr/0081-define-eventstorming-workshop-semantics.md)

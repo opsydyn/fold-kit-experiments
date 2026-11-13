@@ -416,6 +416,8 @@ export const Model = Schema.Struct({
   contextMapPresentation: Schema.Boolean,
   semanticRelationships: Schema.Boolean,
   customStormingRelationships: Schema.Boolean,
+  workshopConventions: Schema.Boolean,
+  protectWorkshopMeaning: Schema.Boolean,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   wheelNavigation: WheelNavigation,
@@ -551,6 +553,8 @@ export type Model = Readonly<{
   contextMapPresentation: boolean;
   semanticRelationships: boolean;
   customStormingRelationships: boolean;
+  workshopConventions: boolean;
+  protectWorkshopMeaning: boolean;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   wheelNavigation: WheelNavigation;
@@ -693,6 +697,8 @@ export const init = (namespace = 'test-workbench') => ({
     contextMapPresentation: true,
     semanticRelationships: false,
     customStormingRelationships: false,
+    workshopConventions: false,
+    protectWorkshopMeaning: false,
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     wheelNavigation: 'zoom',

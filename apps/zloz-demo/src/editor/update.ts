@@ -7,6 +7,8 @@ import {
   resolveHistoryComparisonRequest,
   updateEditionPlayback,
   createEventStormingPattern,
+  createEventStormingWorkshopPattern,
+  type ZlozWorkshopRequest,
   createContextMapPattern,
   appendEdition,
   mergeEditions,
@@ -131,6 +133,7 @@ import { editWorkbenchRelationship } from './relationship-controls';
 import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
 import { updateWorkbenchSvgReview } from './svg-review';
+import { editWorkbenchWorkshop } from './workshop';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -892,28 +895,30 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedExample: ({ example }) => {
       const graph =
-        example === 'context-map'
-          ? createContextMapPattern()
-          : example === 'event-storming'
-            ? createEventStormingPattern({ includeAggregate: true })
-            : example === 'large-workflow'
-              ? createLargeWorkflowGraph()
-              : example === 'protected-orbits'
-                ? createProtectedWorkflowGraph()
-                : example === 'ddd-orders'
-                  ? createDddOrderGraph()
-                  : example === 'c4-context'
-                    ? createC4ContextGraph()
-                    : example === 'c4-nested-containers'
-                      ? createC4NestedContainerGraph()
-                      : example === 'c4-containers'
-                        ? createC4ContainerGraph()
-                        : {
-                            release: initialGraph,
-                            onion: onionGraph,
-                            'grouped-onion': groupedOnionGraph,
-                            'port-snapping': portSnappingGraph,
-                          }[example];
+        example === 'event-storming-workshop'
+          ? createEventStormingWorkshopPattern()
+          : example === 'context-map'
+            ? createContextMapPattern()
+            : example === 'event-storming'
+              ? createEventStormingPattern({ includeAggregate: true })
+              : example === 'large-workflow'
+                ? createLargeWorkflowGraph()
+                : example === 'protected-orbits'
+                  ? createProtectedWorkflowGraph()
+                  : example === 'ddd-orders'
+                    ? createDddOrderGraph()
+                    : example === 'c4-context'
+                      ? createC4ContextGraph()
+                      : example === 'c4-nested-containers'
+                        ? createC4NestedContainerGraph()
+                        : example === 'c4-containers'
+                          ? createC4ContainerGraph()
+                          : {
+                              release: initialGraph,
+                              onion: onionGraph,
+                              'grouped-onion': groupedOnionGraph,
+                              'port-snapping': portSnappingGraph,
+                            }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
@@ -922,12 +927,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           mappingReview: null,
           mappingReviewNotice: '',
           modelEpoch: model.modelEpoch + 1,
+          workshopConventions:
+            example === 'event-storming-workshop' ? true : model.workshopConventions,
+          protectWorkshopMeaning:
+            example === 'event-storming-workshop' ? true : model.protectWorkshopMeaning,
           semanticRelationships:
-            example === 'event-storming' || example === 'context-map'
+            example === 'event-storming-workshop' ||
+            example === 'event-storming' ||
+            example === 'context-map'
               ? true
               : model.semanticRelationships,
           nodeDesign:
-            example === 'event-storming'
+            example === 'event-storming' || example === 'event-storming-workshop'
               ? 'event-storming'
               : example === 'protected-orbits'
                 ? 'orbits'
@@ -1283,6 +1294,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedContextMapPresentation: () => ({
       model: { ...model, contextMapPresentation: !model.contextMapPresentation },
+    }),
+    ObservedWorkshopInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: public workshop controls emit typed requests through this internal Schema.Unknown field.
+      const request = raw as ZlozWorkshopRequest;
+      return { model: editWorkbenchWorkshop(model, request, modelId, epoch) };
+    },
+    ClickedWorkshopProtection: () => ({
+      model: { ...model, protectWorkshopMeaning: !model.protectWorkshopMeaning },
+    }),
+    ClickedWorkshopConvention: () => ({
+      model: { ...model, workshopConventions: !model.workshopConventions },
     }),
     ClickedSemanticRelationships: () => ({
       model: { ...model, semanticRelationships: !model.semanticRelationships },

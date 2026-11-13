@@ -5210,9 +5210,8 @@ New vocabulary does not authorize automatic DDD/C4 interpretation or Apply.
 
 `architectureNodePresets` includes headless entries (hotspot status open, lane group
 kind), not qualified artwork. `createArchitectureNode` validates supplied ports and
-kind; it never silently drops ports or changes kind to satisfy a preset. Existing
-`zlozEventStormingNode` artwork declines these new roles so hosts retain their
-fallback/composition path. Built-in SVG planning blocks their unqualified artwork;
+kind; it never silently drops ports or changes kind to satisfy a preset. The optional native node/lane renderers now support these roles, as documented
+below. Their original headless-only artwork guard is superseded for FoldKit views. Built-in SVG planning blocks their unqualified artwork;
 explicit host SVG adapters or loss-declared generic fallback remain available.
 Mermaid projection reports omitted semantics and preserves node/parent identity;
 portable packets retain the complete authored descriptors and chosen catalogue.
@@ -5222,3 +5221,100 @@ inputs and builtin review packets still work; older package versions can reject
 new roles and are not forward-compatible readers. No version bump, publication or
 new renderer is implied. See [ADR 0081](../../docs/adr/0081-define-eventstorming-workshop-semantics.md)
 and [qualification](evidence/event-storming-workshop.md).
+
+### Composable workshop renderers and controls (unreleased)
+
+```typescript
+import {
+  createEventStormingWorkshopPattern,
+  createEditor,
+  resolveEventStormingWorkshopControls,
+  resolveEventStormingWorkshopRequest,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+import {
+  zlozEventStormingNode,
+  zlozEventStormingGroup,
+  zlozEventStormingWorkshopControls,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const editor = createEditor(createEventStormingWorkshopPattern());
+// In your zlozView options:
+const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
+const renderGroupShell = (context, h) => zlozEventStormingGroup(context, h);
+// Resolve against your selected node and current host policy, not a cached permission.
+const context = resolveEventStormingWorkshopControls(selectedEditor, selectedId, { policy });
+const decision = resolveEventStormingWorkshopRequest(selectedEditor, selectedId, request, {
+  policy,
+});
+if (decision.type === 'ready') {
+  const next = updateEditor(selectedEditor, decision.event, policy);
+}
+```
+
+The starter is a pure illustrative graph: one Payment discovery lane, command →
+external provider → domain event, and open/resolved hotspots. It does not enable
+policies itself. Opt into `eventStormingWorkshopRelationshipRules` when using its
+causal edges. Its sample metadata can be used by host protection; core does not
+interpret `workshopStatusLocked` as permission.
+
+`zlozEventStormingNode` renders ordinary notes, external-system dashed outlines,
+and hotspots with text status. `zlozEventStormingGroup` renders portless lanes with
+native selection, drag, collapse, context and resize controls. Both use authored
+core geometry. Hotspots never gain sockets. Existing group membership, world
+positions, clipboard, history and Undo apply unchanged.
+
+`ZlozEventStormingNodeOptions` adds `renderStatus`, `describeMeaning` and
+`groupHeader` to the existing content/body/control/cache composition contract.
+Status and all other content slots return undefined for defaults or null to omit;
+`renderBody` replaces the complete inert content. `renderControls` owns interactive
+content outside the drag handle/cache; an empty array omits chrome. Header geometry
+uses the existing declared/intrinsic contract with matching group ID; collapsed
+lanes use the compact header. Cache only inert artwork; policy-controlled controls
+and sockets remain live. Keep options stable when retaining artwork.
+
+New scoped theme tokens are `eventStormingExternalSystem`,
+`eventStormingHotspotOpen`, `eventStormingHotspotResolved` and `eventStormingLane`.
+Light/dark palettes provide defaults. Their CSS properties use the
+`--zloz-event-storming-` prefix. Existing legacy token names remain compatible.
+Hotspot status is text, not color alone, and is independent of numeric diagnostics.
+Native handles associate their existing help plus a per-node semantic description;
+`describeMeaning` may replace that description or return null to omit it.
+Custom status artwork should communicate the canonical state clearly.
+
+`resolveEventStormingWorkshopControls` returns `ZlozWorkshopControlsContext`:
+compatible role choices, optional hotspot status choices, current meaning, scope
+and visible restrictions. It requires the target to be selected and visible.
+Choices never change node kind or drop ports implicitly. Descriptions survive
+role/status changes. Role changes are explicit authored edits; these controls
+neither infer C4/DDD meaning nor replace conversion consent tools.
+
+Requests carry node ID, source revision and exact descriptor. Recompute and resolve
+with live state/policy before applying a ready `NodeArchitectureChanged` event.
+Stale/unrelated requests ignore; hidden, unselected, read-only, busy, kind/port or
+policy restrictions block with a reason. No-op requests add no Undo. The host owns
+model/session identity and must reject messages from a different session. Request
+scope is freshness data, not an authorization credential. Apply immediately through
+`updateEditor` with the same policy to keep one Undo and current policy enforcement.
+
+The optional entry provides `zlozEventStormingWorkshopControls`,
+`zlozWorkshopSelect`, `zlozWorkshopStatusButton`, `ZlozWorkshopParts` and
+`ZlozWorkshopViewOptions`. Default hotspot status has explicit Open/Resolved native
+pressed buttons for Tab/Enter/Space; the select helper is available for custom
+compositions. Role, status, meaning, reasons and layout each support replacement or
+omission. Selectors retain disabled option reasons and native labels. Reasons and
+semantic status remain independent of diagnostics/Minimal mode. Custom controls
+must resolve the public requests against live policies rather than mutating nodes.
+
+Shared port-add capability checks now give portless annotations/groups a reason
+and leave graph/Undo unchanged instead of constructing an invalid graph. The
+workbench demonstrates custom status badges, editable/protected notes, explicit
+convention/protection toggles, native lane controls, readonly historical review,
+light/dark and diagnostics preferences in the left sidebar. Select **Open workshop
+semantics example**, then **Inspect**.
+
+This qualifies native FoldKit views and controls. Portable built-in SVG/PNG artwork
+remains separately gated; use explicit SVG adapters/fidelity fallback as before.
+Mermaid loss handling, causal default catalogues and wire formats are unchanged.
+No publication or deployment. See [ADR 0082](../../docs/adr/0082-compose-workshop-renderers-and-controls.md)
+and [visual/test qualification](../../apps/zloz-demo/evidence/workshop.md).

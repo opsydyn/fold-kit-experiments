@@ -39,6 +39,12 @@ import type {
   SymbolScale,
 } from './channels.js';
 import {
+  densityGraphics,
+  densityRows,
+  isOneDimensional,
+  validateDensity,
+} from './marks-density.js';
+import {
   parallelGraphics,
   sankeyGraphics,
   sunburstGraphics,
@@ -84,6 +90,7 @@ const MARKS = {
   bar: { required: ['x', 'y'], channels: ['x', 'y', 'x0', 'y0', 'fill', 'stroke', 'title'] },
   box: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   violin: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  density: { required: ['x'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   link: { required: ['x1', 'y1'], channels: ['x1', 'y1', 'x2', 'y2', 'stroke', 'title'] },
   treemap: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sunburst: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
@@ -117,6 +124,7 @@ const OPTIONS = new Set([
   'nodeWidth',
   'nodePadding',
   'dimensions',
+  'thresholds',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -158,6 +166,7 @@ function validateMark(mark: MarkSpec, path: string): void {
     fail(`${path}.symbol`, 'a dense dot mark draws circles only');
   if (mark.mark === 'dot' && isConstant(mark.symbol) && !isSymbol(mark.symbol.value))
     fail(`${path}.symbol`, `unknown symbol "${String(mark.symbol.value)}"`);
+  if (mark.mark === 'density') validateDensity(mark, path);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
   if ('transform' in mark && mark.transform !== undefined) {
@@ -368,6 +377,26 @@ function applyTransform(
     : { rows: out, x: X, y: Y };
 }
 
+/**
+ * Marks whose rows are derived rather than drawn as given: a one-dimensional
+ * density becomes its curve. Runs per facet, before scales are resolved, so
+ * the axes cover what is drawn.
+ */
+function derive(p: Prepared): Prepared {
+  const { mark } = p;
+  if (mark.mark === 'density' && isOneDimensional(mark)) {
+    const curve = densityRows(mark, p.rows, p.path);
+    return {
+      ...p,
+      rows: curve.rows,
+      channels: { ...p.channels, x: curve.x, y: curve.y },
+      replaced: true,
+      labels: { ...p.labels, y: 'density' },
+    };
+  }
+  return p;
+}
+
 // ── Scales ────────────────────────────────────────────────────────────────────
 
 type ScaleType = NonNullable<PositionScaleSpec['type']>;
@@ -430,6 +459,7 @@ function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
       );
     // Areas and bars grow from zero unless they name where they start.
     if (axis === 'y' && p.mark.mark === 'area' && channel(p, 'y0') === undefined) zero = true;
+    if (axis === 'y' && p.mark.mark === 'density' && isOneDimensional(p.mark)) zero = true;
     if (p.mark.mark === 'bar' && channel(p, 'y0') === undefined && channel(p, 'x0') === undefined)
       zero = true;
   }
@@ -1068,6 +1098,8 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       return violinGraphics(mark, rows, path, context);
     case 'link':
       return linkGraphics(mark, rows, path, index, context);
+    case 'density':
+      return densityGraphics(mark, rows, path, context);
     case 'treemap':
       return treemapGraphics(mark, rows, path, context);
     case 'sunburst':
@@ -1209,7 +1241,7 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
       const facetRows = inFacet(inFacet(rows, spec.facet?.x, cell.fx), spec.facet?.y, cell.fy);
       const steps = transformsOf(mark);
       const many = Array.isArray('transform' in mark ? mark.transform : undefined);
-      return steps.reduce<Prepared>(
+      const transformed = steps.reduce<Prepared>(
         (state, step, i) => {
           const result = applyTransform(
             mark,
@@ -1239,6 +1271,7 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
           labels: {},
         },
       );
+      return derive(transformed);
     }),
   );
   const all = perFacet.flat();

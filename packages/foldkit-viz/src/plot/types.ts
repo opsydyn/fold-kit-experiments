@@ -153,6 +153,27 @@ export type ViolinMark = CommonMark &
     /** Kernel bandwidth in value units. Default: Silverman's rule per group. */
     bandwidth?: number;
   }>;
+/**
+ * A kernel density. With `x` alone, a density curve per series on a y axis of
+ * density; with `x` and `y`, contour lines of point density.
+ */
+export type DensityMark = CommonMark &
+  Readonly<{
+    mark: 'density';
+    x: Channel;
+    y?: Channel;
+    /** Field splitting rows into series. Default: the fill or stroke field, if any. */
+    z?: string;
+    fill?: Channel;
+    stroke?: Channel;
+    /**
+     * Kernel bandwidth: in x's data units for a curve (default Silverman's rule
+     * per series), in plot pixels for contours (default 20).
+     */
+    bandwidth?: number;
+    /** Contours only: how many levels to draw. Default 8. */
+    thresholds?: number;
+  }>;
 /** Straight segments from (x1, y1) to (x2, y2); x2 and y2 default to x1 and y1. */
 export type LinkMark = CommonMark &
   Readonly<{
@@ -219,6 +240,7 @@ export type MarkSpec =
   | CellMark
   | BoxMark
   | ViolinMark
+  | DensityMark
   | LinkMark
   | TreemapMark
   | SunburstMark

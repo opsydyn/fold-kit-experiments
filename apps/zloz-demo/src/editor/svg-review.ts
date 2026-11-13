@@ -11,7 +11,11 @@ import { DownloadSvg } from './command';
 import type { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
-function context(model: Model): ZlozSvgReviewContext {
+export function workbenchSvgContext(
+  model: Model,
+  format: 'svg' | 'png' = 'svg',
+): ZlozSvgReviewContext {
+  const label = format.toUpperCase();
   const scheme =
     model.themePreference === 'dark' ||
     (model.themePreference === 'system' && model.systemColorScheme === 'dark')
@@ -57,26 +61,26 @@ function context(model: Model): ZlozSvgReviewContext {
       ],
     },
     canDownload: () =>
-      model.protectSvgDownloads
-        ? 'SVG downloads are protected in this workspace.'
+      (format === 'svg' ? model.protectSvgDownloads : model.protectPngDownloads)
+        ? `${label} downloads are protected in this workspace.`
         : model.receiptReview
           ? 'Close the receipt comparison before exporting the model.'
           : model.historyPlayback?.cursor.status === 'playing'
-            ? 'Pause edition playback before reviewing an SVG.'
+            ? `Pause edition playback before reviewing ${label}.`
             : modelSessionBusy(model)
-              ? 'Finish active edits, imports or layout before downloading SVG.'
+              ? `Finish active edits, imports or layout before downloading ${label}.`
               : null,
   };
 }
 export function workbenchSvgReview(model: Model) {
-  const ctx = context(model);
+  const ctx = workbenchSvgContext(model);
   return resolveSvgReview(svgReviewForScope(model.svgReview, ctx.scope), ctx);
 }
 export function updateWorkbenchSvgReview(
   model: Model,
   request: ZlozSvgReviewRequest,
 ): Return<Model, Message> {
-  const ctx = context(model),
+  const ctx = workbenchSvgContext(model),
     result = updateSvgReview(svgReviewForScope(model.svgReview, ctx.scope), ctx, request);
   const next = { ...model, svgReview: result.state, notice: result.notice || model.notice };
   return result.payload

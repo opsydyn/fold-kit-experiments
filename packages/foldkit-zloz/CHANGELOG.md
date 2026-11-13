@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add bounded package PNG planning, exact-source review controls and optional browser encoding/download with explicit fidelity losses, cancellation and cleanup.
+
 - Add reviewed modelling-patch controls and live policy-aware atomic Apply with retained provenance and one Undo.
 
 - Add strict versioned patch text decoding with duplicate-key, JSON grammar/framing, finite-number and resource-limit checks.

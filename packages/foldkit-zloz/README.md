@@ -457,7 +457,7 @@ Changed bytes participate in the existing exact-artifact review identity, so pri
 loss approval cannot authorize a different embedded font.
 
 See [ADR 0055](../../docs/adr/0055-embed-bounded-truetype-font-resources.md) and
-[font qualification](evidence/svg-font.md). PNG and Alchemy remain deferred.
+[font qualification](evidence/svg-font.md). PNG is implemented in the following section; Alchemy remains separately scoped.
 
 ## Default glyph coverage (unreleased)
 
@@ -504,7 +504,7 @@ variation handling, synthetic variants, wrapping and ink bounds remain unqualifi
 System fonts have no portable bytes to inspect and retain unverified findings.
 See [coverage evidence](evidence/svg-font-coverage.md) and
 [ADR 0056](../../docs/adr/0056-report-default-glyph-coverage-for-emitted-text.md).
-PNG and Alchemy remain deferred.
+PNG is implemented in the following section; Alchemy remains separately scoped.
 
 ## Authored edge waypoints
 
@@ -4388,7 +4388,7 @@ object isolation guarantee.
 See [ADR 0060](../../docs/adr/0060-preview-bounded-modelling-patches-before-apply.md),
 [literal proposal](test/fixtures/modelling-patch-v1.json),
 [actual dry-run results](evidence/modelling-patch-example.json) and
-[qualification](evidence/modelling-patch.md). PNG and Alchemy remain deferred.
+[qualification](evidence/modelling-patch.md). PNG is implemented in the following section; Alchemy remains separately scoped.
 
 ## Strict versioned patch decoding (unreleased)
 
@@ -4514,3 +4514,58 @@ receipt retention/download and one Undo with the original canvas always visible.
 
 See [ADR 0062](../../docs/adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
 and [completion evidence](../../apps/zloz-demo/evidence/p2-completion.md).
+
+## Reviewed PNG export (unreleased)
+
+The root entry exports pure `planPngExport`, `createPngReview`, `pngReviewForScope`,
+`resolvePngReview` and `updatePngReview`. PNG reuses SVG bounds/model/viewport,
+scale, light/dark tokens, backgrounds, typed renderer adapters and validated font
+resources. All SVG findings remain visible; flattening vectors/text/model meaning
+is an additional consent-controlled loss. Custom HTML is reported through SVG
+renderer declarations, never silently captured from the DOM.
+
+```ts
+import { createPngReview, resolvePngReview, updatePngReview } from '@opsydyn/foldkit-zloz';
+import { renderPngExport, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
+
+const review = resolvePngReview(state, context);
+// Handle an explicit acceptance fact first; request the render separately.
+const step = updatePngReview(state, context, {
+  ...review.identity,
+  type: 'PngRenderRequested',
+});
+// In a host Command, when step.payload is present:
+// const result = await renderPngExport(step.payload.input, { signal });
+// Dispatch PngRenderSettled with payload identity, run and result to updatePngReview.
+// A separate PngDownloadRequested returns step.download for a host Command:
+// downloadPngArtifact(step.download.artifact, step.download.fileName);
+```
+
+`state` is created with `createPngReview(context.scope)`; the context supplies the
+live snapshot, revision, scope, title, theme and renderer declarations, plus optional
+choices, font resources, filename, pixel budgets and protection callback. The
+`/foldkit` entry provides `zlozPngReview`, `zlozPngPreview`, `zlozPngAction` and
+nullable settings/preview/findings/acceptance/render/download/status/readout/layout
+slots. Minimal diagnostics hide measurements/instructions without hiding findings
+or protection. Wire the pure lifecycle to your parent Model; browser work belongs
+in Commands. Source/settings/model changes invalidate acceptance and results;
+late/cancelled/previous-generation replies cannot publish. Live protection is
+checked again at completion/download. Export never mutates the graph or Undo.
+
+The optional `/browser` entry is safe to import under Node/SSR and has no required
+Foldkit/Effect dependency; rendering there returns `unsupported`. It accepts only
+canonical snapshots and safe SVG options/adapters, rebuilds the SVG and checks an
+optional `expectedSvg`. Direct rendering requires `writing.allowLosses: true` after
+reviewing findings (the review controller supplies this). It uses browser image,
+canvas and PNG encoding, returns the actual encoded PNG data URL and checks MIME,
+signature, IHDR dimensions and byte budget. Preview/download share identical bytes.
+Native decode/context/encode/output failures, abort and timeout are explicit results.
+
+Default/hard caps: dimension 8192/16384, pixels 8,388,608/16,777,216, PNG bytes
+8,388,608/33,554,432. Dimensions round upward; device pixel ratio is not implicitly
+applied. Default timeout is 10s, maximum 30s. Buffers, SVG URLs and handlers are
+released on every outcome. Cancellation discards pending results; native browser
+work may finish later. These bounds do not guarantee peak memory, exact glyph
+shaping, identical browser pixels or server/CLI PNG rendering. System-font fidelity
+remains reported uncertainty. See [ADR 0063](../../docs/adr/0063-rasterize-reviewed-model-artwork-as-png.md)
+and [browser/download evidence](../../apps/zloz-demo/evidence/png-export.md).

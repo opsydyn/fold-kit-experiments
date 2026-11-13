@@ -1,3 +1,4 @@
+import { createPngReview, type ZlozPngReviewState } from '@opsydyn/foldkit-zloz';
 import {
   createEditor,
   createSvgReview,
@@ -308,12 +309,16 @@ export const WorkbenchSection = Schema.Literals([
   'diagnostics',
   'export',
   'svg',
+  'png',
   'review',
   'patch',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  pngReview: Schema.Unknown,
+  protectPngDownloads: Schema.Boolean,
+  customPngReview: Schema.Boolean,
   svgReview: Schema.Unknown,
   protectSvgDownloads: Schema.Boolean,
   customSvgReview: Schema.Boolean,
@@ -454,6 +459,9 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  pngReview: ZlozPngReviewState;
+  protectPngDownloads: boolean;
+  customPngReview: boolean;
   svgReview: ZlozSvgReviewState;
   protectSvgDownloads: boolean;
   customSvgReview: boolean;
@@ -592,6 +600,9 @@ export const init = (namespace = 'test-workbench') => ({
     packetReader: createReviewReader(`root:${namespace}/0`),
     packetPreview: null,
     protectReviewOpening: false,
+    pngReview: createPngReview(`root:${namespace}/0`),
+    protectPngDownloads: false,
+    customPngReview: false,
     svgReview: createSvgReview(`root:${namespace}/0`),
     protectSvgDownloads: false,
     customSvgReview: false,

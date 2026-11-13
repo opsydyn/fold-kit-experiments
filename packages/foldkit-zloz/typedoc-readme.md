@@ -448,3 +448,9 @@ artwork/labels with explicit immutable arguments. The workbench Orbit example
 keeps drag/resize/collapse controls, frames and native/custom sockets outside the
 slot. Automatic retention still excludes whole custom-shell contexts. Reuse the
 same body constructor across cached/live modes to preserve element identity.
+
+PNG export has a browser-free plan/review lifecycle in core, composable native
+controls under `/foldkit`, and optional real encoding/download IO under `/browser`.
+Review fidelity findings and rasterization loss before rendering. Preview and
+download use identical PNG bytes; stale source/settings and live protection block
+publication. See the package README and ADR 0063 for resource limits and ownership.

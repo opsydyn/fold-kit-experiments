@@ -2994,3 +2994,6 @@ export type {
   ZlozModellingPatchReviewParts,
   ZlozModellingPatchReviewViewOptions,
 } from './modelling-patch-review-view';
+
+export { zlozPngReview, zlozPngAction, zlozPngPreview } from './png-review-view';
+export type { ZlozPngReviewParts, ZlozPngReviewViewOptions } from './png-review-view';

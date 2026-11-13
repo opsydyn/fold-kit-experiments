@@ -183,7 +183,7 @@ are the current checklist; historical receipts qualify only their stated scope.
    placement/interaction are implemented below, with package tests and local
    browser evidence. The E3 SVG planning contract is implemented below; SVG
    writing and representative browser qualification are implemented below;
-   SVG review/download controls are also implemented below; PNG remains deferred. Physical-device/manual AT
+   SVG review/download controls are also implemented below; PNG is now implemented locally (see ADR 0063/evidence below). Physical-device/manual AT
    acceptance remains distinct from synthetic and Chromium qualification; these
    branch additions are unreleased.
 2. **Portable review lifecycle (P1–P2):** strict packet decoding, Effect CLI
@@ -196,7 +196,7 @@ are the current checklist; historical receipts qualify only their stated scope.
    P2's remaining local chain is implemented: Effect CLI dry run, exact-content
    review/acknowledgement, policy-aware atomic Apply, one Undo and retained/downloaded
    provenance. See [completion evidence](../apps/zloz-demo/evidence/p2-completion.md).
-   PNG is the next functional export task; broader D/C/Q audit rows remain tracked.
+   PNG export is implemented locally; the next scoped task is the Alchemy integration review. Broader D/C/Q audit rows remain tracked.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
@@ -369,8 +369,8 @@ See [ADR 0053](adr/0053-write-svg-through-typed-primitives.md) and
 
 **Current continuation:** SVG review/download controls and validated embedded-font
 resources have since been implemented (see the later receipts above). P2's reviewed
-patch lifecycle is locally complete. Next implement package-owned PNG export, then
-revisit the Alchemy integration boundary; broader compatibility/qualification work
+patch lifecycle and package-owned PNG export are locally implemented. Next review
+the Alchemy integration boundary; broader compatibility/qualification work
 remains tracked separately.
 
 ## Release: Keyed Chart Comparison
@@ -576,3 +576,12 @@ FoldKit 0.136.x.
 - [ ] Do not build a second router inside either package.
 - [ ] Do not turn `foldkit-viz` into a DOM/event runtime; keep rendering and browser wiring at the app boundary.
 - [ ] Do not treat broad baseline lint cleanup as a prerequisite for product slices.
+
+**PNG export — implemented on this branch, unreleased (2026-11-13):** bounded pure
+planning/review, opt-in browser encoding with safe SVG/custom adapters, exact PNG
+preview/download bytes, source/settings freshness, protection and explicit loss
+acceptance. Native/custom controls and light/dark/transparent/viewport/scale demos
+live in the workbench sidebar. See [ADR 0063](adr/0063-rasterize-reviewed-model-artwork-as-png.md)
+and [local PNG evidence](../apps/zloz-demo/evidence/png-export.md). This completes
+the functional PNG boundary; broader font/browser/device and D/C/Q qualification
+remain tracked separately. Next is the approved Alchemy integration review.

@@ -61,6 +61,7 @@ export type ZlozSvgReviewControls = Readonly<{
   regions: readonly ZlozSvgReviewChoice<ZlozSvgReviewRegion>[];
   themes: readonly ZlozSvgReviewChoice<ZlozSvgExportOptions['theme']>[];
   backgrounds: readonly ZlozSvgReviewChoice<ZlozSvgExportOptions['background']>[];
+  options: ZlozSvgExportOptions | null;
   result: ZlozSvgWriteResult | null;
   findings: readonly ZlozSvgWriteFinding[];
   reason: string | null;
@@ -246,6 +247,7 @@ export function resolveSvgReview(
     regions,
     themes,
     backgrounds,
+    options,
     result,
     findings,
     reason,

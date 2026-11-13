@@ -23,6 +23,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { zlozPngReview, zlozPngAction } from '@opsydyn/foldkit-zloz/foldkit';
 import { zlozSvgReview, zlozSvgDownloadButton } from '@opsydyn/foldkit-zloz/foldkit';
 import {
   zlozView,
@@ -150,6 +151,7 @@ import { workbenchPlacement } from './palette';
 import { patchWorkbenchPanel } from './patch-review';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
+import { workbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -1293,6 +1295,53 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
+    png:
+      model.sidebarSection === 'png' && !model.sidebarCollapsed
+        ? [
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectPngDownloads),
+                  h.OnClick(Message.ClickedPngProtection()),
+                ]),
+                'Protect PNG exports',
+              ],
+            ),
+            button(
+              model.customPngReview ? 'Use native PNG controls' : 'Use custom PNG controls',
+              Message.ClickedCustomPngReview(),
+            ),
+            zlozPngReview(
+              h,
+              workbenchPngReview(model),
+              (request) => Message.ObservedPngReviewInput({ request }),
+              {
+                diagnostics,
+                renderDownload: model.customPngReview
+                  ? (context, builder, onRequest) =>
+                      zlozPngAction(
+                        builder,
+                        context,
+                        'download',
+                        onRequest,
+                        [
+                          builder.Style({
+                            background: 'var(--blue)',
+                            color: 'var(--paper)',
+                            padding: '12px',
+                            border: '0',
+                            'border-radius': '8px',
+                          }),
+                        ],
+                        ['↓ Save reviewed PNG'],
+                      )
+                  : undefined,
+              },
+            ),
+          ]
+        : [],
     svg:
       model.sidebarSection === 'svg' && !model.sidebarCollapsed
         ? [

@@ -47,7 +47,20 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+    const browserConsumer = `import { renderPngExport } from '@opsydyn/foldkit-zloz/browser';
+const result=await renderPngExport({snapshot:{graph:{nodes:[],edges:[]},viewport:{x:0,y:0,zoom:1}},svg:{title:'SSR',region:{type:'model',padding:0},theme:{colorScheme:'light'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}}});
+if(result.type!=='failed'||result.code!=='unsupported')throw new Error('Browser entry imported unsafely under SSR');
+console.log('browser-import-ok');`;
+    for (const runtime of ['node', 'bun']) {
+      const result = await exec(runtime, ['--input-type=module', '-e', browserConsumer], {
+        ...options,
+        cwd: directory,
+      });
+      expect(result.stdout.trim()).toBe('browser-import-ok');
+    }
+    const architectureSource = `import { renderPngExport, type ZlozPngBrowserOptions } from '@opsydyn/foldkit-zloz/browser';
+const pngOptions:ZlozPngBrowserOptions={timeoutMs:1000};void pngOptions;void renderPngExport;
+import { inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
 import { writeSvgExport, type ZlozSvgPrimitive, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';

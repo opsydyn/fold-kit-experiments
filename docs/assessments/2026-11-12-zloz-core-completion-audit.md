@@ -162,7 +162,7 @@ reports missing mappings as consent-controlled losses, and preserves unknown
 mapping/sequence status. Malformed mappings block. See
 [ADR 0056](../adr/0056-report-default-glyph-coverage-for-emitted-text.md) and
 [coverage evidence](../../packages/foldkit-zloz/evidence/svg-font-coverage.md).
-Broader font formats, other resources, shaping/browser/font qualification and PNG remain open.
+Package-level PNG planning, reviewed browser encoding and workbench controls are now implemented locally; see [ADR 0063](../adr/0063-rasterize-reviewed-model-artwork-as-png.md) and [real PNG evidence](../../apps/zloz-demo/evidence/png-export.md). Broader font formats, other resources and shaping/browser/font qualification remain open.
 Planning output alone remains distinct from emitted-file evidence.
 
 ### P1 — strict portable review packet reopening
@@ -253,7 +253,7 @@ Keep release readiness separate: reviewed commits/PR, green CI, package identity
 artifact/provenance and consumer checks precede any separately authorized publish
 or deployment. Local checks cannot prove hosted acceptance or registry state.
 
-**Next functional priority is PNG, followed by a separately scoped Alchemy review, per the user's consolidated completion request (2026-11-13).** No
+**PNG is locally implemented; next is the separately scoped Alchemy integration review, per the user's updated request (2026-11-13).** No
 adapter, dependency adoption or qualification is scheduled ahead of these gates;
 completion does not itself authorize adopting or deploying an integration.
 

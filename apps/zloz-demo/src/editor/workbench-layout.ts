@@ -23,6 +23,7 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['diagnostics', 'Diagnostics'],
   ['export', 'Mermaid export'],
   ['svg', 'SVG export'],
+  ['png', 'PNG export'],
   ['review', 'Review packets'],
   ['patch', 'Patch review'],
 ];

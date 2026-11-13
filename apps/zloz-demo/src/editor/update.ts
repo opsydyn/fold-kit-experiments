@@ -1,3 +1,4 @@
+import type { ZlozPngReviewRequest } from '@opsydyn/foldkit-zloz';
 import type { ZlozSvgReviewRequest } from '@opsydyn/foldkit-zloz';
 import type { ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
 import type { ZlozDddRelationshipRequest } from '@opsydyn/foldkit-zloz';
@@ -119,6 +120,7 @@ import {
   playbackInterruptedBy,
   reconcileHistoryPlayback,
 } from './playback';
+import { updateWorkbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { updateReceiptReview, receiptAllowsMessage, isReceiptMessage } from './receipt-review';
@@ -273,6 +275,24 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const outcome: Return<Model, Message> = Message.match(message, {
+    ObservedPngReviewInput: ({ request }) =>
+      updateWorkbenchPngReview(
+        model,
+        /* SAFETY: package controls and render Commands emit only typed PNG facts. */ request as ZlozPngReviewRequest,
+      ),
+    ClickedPngProtection: () => ({
+      model: { ...model, protectPngDownloads: !model.protectPngDownloads },
+    }),
+    ClickedCustomPngReview: () => ({
+      model: { ...model, customPngReview: !model.customPngReview },
+    }),
+    CompletedPngDownload: () => ({ model: { ...model, notice: 'Reviewed PNG downloaded.' } }),
+    FailedPngDownload: () => ({
+      model: {
+        ...model,
+        notice: 'PNG download failed. The reviewed image is available for retry.',
+      },
+    }),
     ObservedSvgReviewInput: ({ request }) => {
       // SAFETY: the package SVG review helpers emit only ZlozSvgReviewRequest facts.
       return updateWorkbenchSvgReview(model, request as ZlozSvgReviewRequest);

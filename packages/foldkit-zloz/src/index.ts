@@ -531,3 +531,26 @@ export type {
   ZlozModellingPatchReviewRequest,
   ZlozModellingPatchApplyResult,
 } from './modelling-patch-apply';
+
+export {
+  planPngExport,
+  createPngReview,
+  pngReviewForScope,
+  resolvePngReview,
+  updatePngReview,
+} from './png-export';
+export type {
+  ZlozPngExportOptions,
+  ZlozPngFinding,
+  ZlozPngExportPlan,
+  ZlozPngArtifact,
+  ZlozPngRenderResult,
+  ZlozPngExportInput,
+  ZlozPngReviewContext,
+  ZlozPngReviewState,
+  ZlozPngReviewRequest,
+  ZlozPngReviewControls,
+  ZlozPngRenderPayload,
+  ZlozPngDownload,
+  ZlozPngReviewUpdate,
+} from './png-export';

@@ -1,5 +1,11 @@
+import type {
+  ZlozPngRenderPayload,
+  ZlozPngArtifact,
+  ZlozPngRenderResult,
+} from '@opsydyn/foldkit-zloz';
 import { parseEditions, parseModelDocument } from '@opsydyn/foldkit-zloz';
 import { parseGraph, parseSnapshot } from '@opsydyn/foldkit-zloz';
+import { renderPngExport, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import { Data, Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
@@ -401,6 +407,52 @@ export const DownloadPatchArtifact = Command.define('DownloadPatchArtifact', {
       Effect.match({
         onSuccess: () => Message.CompletedPatchDownload({ scope }),
         onFailure: () => Message.FailedPatchDownload({ scope }),
+      }),
+    ),
+});
+
+export const RenderPng = Command.define('RenderPng', {
+  args: { payload: Schema.Unknown },
+  interrupt: true,
+  messages: [Message.ObservedPngReviewInput],
+  execute: ({ payload: raw }) => {
+    // SAFETY: the pure package review controller creates this detached typed payload.
+    const payload = raw as ZlozPngRenderPayload;
+    return Effect.tryPromise((signal) => renderPngExport(payload.input, { signal })).pipe(
+      Effect.match({
+        onSuccess: (result) =>
+          Message.ObservedPngReviewInput({
+            request: { ...payload, type: 'PngRenderSettled', result },
+          }),
+        onFailure: () =>
+          Message.ObservedPngReviewInput({
+            request: {
+              ...payload,
+              type: 'PngRenderSettled',
+              result: {
+                type: 'failed',
+                code: 'render-failed',
+                reason: 'PNG rendering failed. Review settings and retry.',
+              } satisfies ZlozPngRenderResult,
+            },
+          }),
+      }),
+    );
+  },
+});
+export const DownloadPng = Command.define('DownloadPng', {
+  args: { artifact: Schema.Unknown, fileName: Schema.String },
+  messages: [Message.CompletedPngDownload, Message.FailedPngDownload],
+  execute: ({ artifact, fileName }) =>
+    Effect.try(() =>
+      downloadPngArtifact(
+        /* SAFETY: the package review controller validates the trusted browser artifact. */ artifact as ZlozPngArtifact,
+        fileName,
+      ),
+    ).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedPngDownload(),
+        onFailure: () => Message.FailedPngDownload(),
       }),
     ),
 });

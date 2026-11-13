@@ -41,7 +41,11 @@
       "types": "./dist/foldkit.d.mts",
       "import": "./dist/foldkit.mjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./browser": {
+      "types": "./dist/browser.d.mts",
+      "import": "./dist/browser.mjs"
+    }
   },
   "publishConfig": {
     "access": "public"

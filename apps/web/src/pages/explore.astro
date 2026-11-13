@@ -1,0 +1,10 @@
+---
+import Explore from '../apps/explore/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Explore a Million Points — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Explore a million points</h1>
+  <Explore client:load noMeta />
+</Layout>

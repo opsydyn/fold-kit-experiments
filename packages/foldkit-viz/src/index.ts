@@ -6,6 +6,7 @@ export * from './layout/text';
 // Pure chart geometry; the optional FoldKit adapter is not re-exported.
 export * from './chart/cartesian';
 export * from './chart/bars';
+export * from './chart/cells';
 export * from './chart/theme';
 // interaction/selection
 export type { Selection, SelectionAxis } from './interaction/selection';
@@ -251,3 +252,7 @@ export type {
   OrbitHaloArc,
   OrbitNode,
 } from './chart/orbit.js';
+
+// math/bin2d
+export { hexagonPath, hexbin, rectBins } from './math/bin2d.js';
+export type { Bin2dAccessors, HexBin, RectBin, RectBinsConfig } from './math/bin2d.js';

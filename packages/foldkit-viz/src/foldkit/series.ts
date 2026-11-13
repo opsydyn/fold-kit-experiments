@@ -1,7 +1,10 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { HistogramBin, ProjectedDatum } from '../chart/cartesian.js';
+import type { Cell } from '../chart/cells.js';
 import type { SeriesStyle } from '../chart/theme.js';
+import { hexagonPath } from '../math/bin2d.js';
+import type { HexBin } from '../math/bin2d.js';
 import { symbolPath } from '../shape/symbol.js';
 
 export type LineSeriesOptions = Readonly<{ path: string; style: SeriesStyle }>;
@@ -83,6 +86,64 @@ export function barSeries<T, M>(h: HtmlBuilder<M>, options: BarSeriesOptions<T>)
           h.AriaLabel(options.labelFor(bin)),
         ],
         [],
+      );
+    }),
+  );
+}
+export type CellSeriesOptions<T, M> = Readonly<{
+  cells: ReadonlyArray<Cell<T>>;
+  fillFor: (cell: Cell<T>) => string;
+  labelFor: (datum: T) => string;
+  activeKey?: string | null;
+  onInspect?: (key: string) => M;
+}>;
+/** Heatmap cells from `cellGeometry`, each naming itself in a native tooltip. */
+export function cellSeries<T, M>(h: HtmlBuilder<M>, options: CellSeriesOptions<T, M>): Html {
+  return h.g(
+    [h.Class('chart-cell-series')],
+    options.cells.map((cell) => {
+      const label = options.labelFor(cell.datum);
+      return h.rect(
+        [
+          h.Key(cell.key),
+          h.X(String(cell.x)),
+          h.Y(String(cell.y)),
+          h.Width(String(cell.width)),
+          h.Height(String(cell.height)),
+          h.Fill(options.fillFor(cell)),
+          ...(cell.key === options.activeKey ? [h.Stroke('currentColor'), h.StrokeWidth('2')] : []),
+          h.AriaLabel(label),
+          ...(options.onInspect
+            ? [h.OnMouseEnter(options.onInspect(cell.key)), h.OnClick(options.onInspect(cell.key))]
+            : []),
+        ],
+        [h.title([], [label])],
+      );
+    }),
+  );
+}
+export type HexSeriesOptions<T> = Readonly<{
+  bins: ReadonlyArray<HexBin<T>>;
+  radius: number;
+  fillFor: (bin: HexBin<T>) => string;
+  labelFor: (bin: HexBin<T>) => string;
+}>;
+/** Hexagons from `hexbin`, drawn at each bin's centre in plot coordinates. */
+export function hexSeries<T, M>(h: HtmlBuilder<M>, options: HexSeriesOptions<T>): Html {
+  const d = hexagonPath(options.radius);
+  return h.g(
+    [h.Class('chart-hex-series')],
+    options.bins.map((bin) => {
+      const label = options.labelFor(bin);
+      return h.path(
+        [
+          h.Key(`${bin.x},${bin.y}`),
+          h.Transform(`translate(${bin.x},${bin.y})`),
+          h.D(d),
+          h.Fill(options.fillFor(bin)),
+          h.AriaLabel(label),
+        ],
+        [h.title([], [label])],
       );
     }),
   );

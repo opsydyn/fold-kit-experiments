@@ -14,6 +14,8 @@ export default defineConfig({
     'foldkit/orbit': 'src/foldkit/orbit.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
+    'chart/cells': 'src/chart/cells.ts',
+    'math/bin2d': 'src/math/bin2d.ts',
     'layout/wordcloud': 'src/layout/wordcloud.ts',
     'layout/text': 'src/layout/text.ts',
     'chart/theme': 'src/chart/theme.ts',

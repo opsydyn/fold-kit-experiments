@@ -179,6 +179,12 @@
       ],
       "math/regression": [
         "./dist/math/regression.d.mts"
+      ],
+      "chart/cells": [
+        "./dist/chart/cells.d.mts"
+      ],
+      "math/bin2d": [
+        "./dist/math/bin2d.d.mts"
       ]
     }
   },
@@ -382,6 +388,14 @@
     "./math/regression": {
       "types": "./dist/math/regression.d.mts",
       "import": "./dist/math/regression.mjs"
+    },
+    "./chart/cells": {
+      "types": "./dist/chart/cells.d.mts",
+      "import": "./dist/chart/cells.mjs"
+    },
+    "./math/bin2d": {
+      "types": "./dist/math/bin2d.d.mts",
+      "import": "./dist/math/bin2d.mjs"
     }
   },
   "publishConfig": {

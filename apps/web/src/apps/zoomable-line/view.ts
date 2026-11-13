@@ -1,22 +1,32 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { compilePlot } from '@opsydyn/foldkit-viz/plot';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import * as ZoomableLineChart from '../../ui/zoomable-line-chart';
 import { Message } from './message';
 import type { Model } from './model';
+import { priceSpec } from './spec';
 
-type ZoomableLineMessage = ZoomableLineChart.Message;
+import * as styles from './zoomable-line.css';
 
-const toParentMessage = (msg: ZoomableLineMessage): Message =>
-  Message.ReceivedZoomableLineMessage({ message: msg });
+const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
+  h.button([h.Type('button'), h.Class(styles.button), h.OnClick(message)], [label]);
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Zoomable Line Chart — foldkit-viz',
-  body: ZoomableLineChart.view(
-    {
-      model: model.chart,
-      toParentMessage,
-      ariaLabel: 'Stock price — zoom and pan',
-    },
-    h,
+  title: 'Zoomable line — foldkit-viz',
+  body: h.div(
+    [],
+    [
+      h.div(
+        [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Date range')],
+        [
+          button(h, 'Zoom in', Message.ZoomedIn()),
+          button(h, 'Zoom out', Message.ZoomedOut()),
+          button(h, 'Earlier', Message.PannedEarlier()),
+          button(h, 'Later', Message.PannedLater()),
+          button(h, 'Reset', Message.ResetView()),
+        ],
+      ),
+      plotChart(h, compilePlot(priceSpec(model.domain))),
+    ],
   ),
 });

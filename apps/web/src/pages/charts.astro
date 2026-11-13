@@ -140,23 +140,23 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly figures</p>
-      <BarApp client:load noMeta />
+      <BarApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly trend</p>
-      <LineApp client:load noMeta />
+      <LineApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly revenue</p>
-      <AreaApp client:load noMeta />
+      <AreaApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Experience vs salary</p>
-      <ScatterApp client:load noMeta />
+      <ScatterApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Price vs rating by sales</p>
-      <BubbleApp client:load noMeta />
+      <BubbleApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS ecosystem</p>
@@ -172,7 +172,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS framework downloads</p>
-      <StreamgraphApp client:load noMeta />
+      <StreamgraphApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech market cap by sector</p>
@@ -180,7 +180,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Traffic by hour &amp; day</p>
-      <HeatmapApp client:load noMeta />
+      <HeatmapApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech sector cross-investment</p>
@@ -204,7 +204,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Annual P&amp;L</p>
-      <WaterfallApp client:load noMeta />
+      <WaterfallApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>System metrics</p>
@@ -216,7 +216,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>2025 commit activity</p>
-      <CalendarHeatmapApp client:load noMeta />
+      <CalendarHeatmapApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Stock price — zoom &amp; pan</p>
@@ -228,11 +228,11 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary distribution</p>
-      <HistogramApp client:load noMeta />
+      <HistogramApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>MPG vs horsepower by origin</p>
-      <SymbolScatterApp client:load noMeta />
+      <SymbolScatterApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Frontend tech stack</p>
@@ -240,7 +240,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Product launch timeline</p>
-      <TimelineApp client:load noMeta />
+      <TimelineApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary by level</p>
@@ -252,19 +252,19 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>npm packages — downloads vs stars</p>
-      <LogScatterApp client:load noMeta />
+      <LogScatterApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Curve interpolation types</p>
-      <CurveComparisonApp client:load noMeta />
+      <CurveComparisonApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Monthly revenue growth</p>
-      <DivergingBarApp client:load noMeta />
+      <DivergingBarApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>API response times</p>
-      <ThresholdBarApp client:load noMeta />
+      <ThresholdBarApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Easing functions</p>
@@ -276,7 +276,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Bivariate density contour</p>
-      <DensityContourApp client:load noMeta />
+      <DensityContourApp noMeta />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Voronoi diagram</p>
@@ -288,11 +288,11 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>KPI vs targets</p>
-      <BulletApp client:load />
+      <BulletApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS framework rankings</p>
-      <BumpApp client:load />
+      <BumpApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>JS tooling dependency network</p>
@@ -308,11 +308,11 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Developer survey — Likert responses</p>
-      <DivergingStackedBarApp client:load />
+      <DivergingStackedBarApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Tech stock return correlations</p>
-      <CorrelationMatrixApp client:load />
+      <CorrelationMatrixApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Wind frequency by direction</p>
@@ -324,7 +324,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>US state GDP index tile grid</p>
-      <TileGridMapApp client:load />
+      <TileGridMapApp />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>World internet penetration</p>

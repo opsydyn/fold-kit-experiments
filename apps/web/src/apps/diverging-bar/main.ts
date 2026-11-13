@@ -1,6 +1,4 @@
-import { Message } from './message';
-import { init, Model } from './model';
-import { update } from './update';
-import { view } from './view';
+import { specApp } from '../spec-app';
+import { spec } from './spec';
 
-export { init, Message, Model, update, view };
+export const { Model, Message, init, update, view } = specApp(spec);

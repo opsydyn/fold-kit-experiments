@@ -1,3 +1,4 @@
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import type { Meta, StoryObj } from '@storybook/html';
 import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -5,11 +6,9 @@ import { makeElement } from 'foldkit/runtime';
 import { foldChild } from 'foldkit/update';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
-import * as AreaChart from '../ui/area-chart';
-import * as BarChart from '../ui/bar-chart';
-import * as LineChart from '../ui/line-chart';
+import { specApp } from '../apps/spec-app';
 import * as ScatterChart from '../ui/scatter-chart';
-import { mountFoldkitProgram } from './mount';
+import { mountFoldkit, mountFoldkitProgram } from './mount';
 
 export default {
   title: 'Charts/Primitives',
@@ -25,7 +24,7 @@ export default {
 
 // ── Sample datasets ────────────────────────────────────────────────────────────
 
-const SAMPLE_BARS: ReadonlyArray<BarChart.Bar> = [
+const SAMPLE_BARS = [
   { label: 'Jan', value: 4200 },
   { label: 'Feb', value: 3800 },
   { label: 'Mar', value: 5100 },
@@ -36,7 +35,7 @@ const SAMPLE_BARS: ReadonlyArray<BarChart.Bar> = [
   { label: 'Aug', value: 7200 },
 ];
 
-const SAMPLE_LINE: ReadonlyArray<LineChart.Point> = [
+const SAMPLE_LINE = [
   { label: 'W1', value: 1200 },
   { label: 'W2', value: 1450 },
   { label: 'W3', value: 1380 },
@@ -47,7 +46,7 @@ const SAMPLE_LINE: ReadonlyArray<LineChart.Point> = [
   { label: 'W8', value: 2100 },
 ];
 
-const SAMPLE_AREA: ReadonlyArray<AreaChart.Point> = [
+const SAMPLE_AREA = [
   { label: 'Jan', value: 3200 },
   { label: 'Feb', value: 3800 },
   { label: 'Mar', value: 4500 },
@@ -75,6 +74,47 @@ const SAMPLE_SCATTER: ReadonlyArray<ScatterChart.Point> = [
   { label: 'Nick', x: 14, y: 116 },
   { label: 'Olivia', x: 13, y: 110 },
 ];
+
+// ── Spec builders ──────────────────────────────────────────────────────────────
+
+type SeriesArgs = Readonly<{ color: string; curve: PlotCurve; tickCount: number }>;
+type PlotCurve = 'linear' | 'catmullRom' | 'monotoneX';
+type Sample = ReadonlyArray<Readonly<{ label: string; value: number }>>;
+
+const lineSpec = (data: Sample, label: string, args: SeriesArgs): PlotSpec => ({
+  width: 480,
+  height: 300,
+  title: label,
+  data,
+  x: { label: '' },
+  y: { label, ticks: args.tickCount },
+  marks: [
+    {
+      mark: 'line',
+      x: 'label',
+      y: 'value',
+      stroke: { value: args.color },
+      curve: args.curve,
+      strokeWidth: 2,
+    },
+    { mark: 'dot', x: 'label', y: 'value', fill: { value: args.color }, title: 'value' },
+  ],
+});
+
+const areaSpec = (data: Sample, label: string, args: SeriesArgs): PlotSpec => ({
+  ...lineSpec(data, label, args),
+  marks: [
+    {
+      mark: 'area',
+      x: 'label',
+      y: 'value',
+      fill: { value: args.color },
+      curve: args.curve,
+      opacity: 0.25,
+    },
+    ...lineSpec(data, label, args).marks,
+  ],
+});
 
 // ── Mount helper ───────────────────────────────────────────────────────────────
 
@@ -110,9 +150,7 @@ function mountChart<Mod, Msg extends { _tag: string }>(
 
 type BarArgs = {
   color: string;
-  activeColor: string;
-  paddingInner: number;
-  paddingOuter: number;
+  padding: number;
   tickCount: number;
 };
 
@@ -120,44 +158,34 @@ export const Bar: StoryObj<BarArgs> = {
   name: 'Bar chart',
   args: {
     color: '#6366f1',
-    activeColor: '#4338ca',
-    paddingInner: 0.25,
-    paddingOuter: 0.15,
+    padding: 0.25,
     tickCount: 5,
   },
   argTypes: {
-    color: { control: 'color', description: 'Default bar fill' },
-    activeColor: { control: 'color', description: 'Hovered / active bar fill' },
-    paddingInner: {
+    color: { control: 'color', description: 'Bar fill' },
+    padding: {
       control: { type: 'range', min: 0, max: 0.7, step: 0.05 },
-      description: 'Gap between bars (0 = no gap, 0.7 = mostly gap)',
-    },
-    paddingOuter: {
-      control: { type: 'range', min: 0, max: 0.4, step: 0.05 },
-      description: 'Padding at chart edges',
+      description: 'Share of each band left as a gap (0 = no gap, 0.7 = mostly gap)',
     },
     tickCount: {
       control: { type: 'number', min: 1, max: 10 },
       description: 'Y-axis tick count (approximate)',
     },
   },
-  render: (args) => {
-    const { model: model0 } = BarChart.init({
-      bars: SAMPLE_BARS,
-      config: {
-        color: args.color,
-        activeColor: args.activeColor,
-        paddingInner: args.paddingInner,
-        paddingOuter: args.paddingOuter,
-        tickCount: args.tickCount,
-      },
-    });
-    return mountChart<BarChart.Model, BarChart.Message>(
-      () => ({ model: model0 }),
-      BarChart.update,
-      (model, h) => BarChart.view({ model, toParentMessage: (m) => m }, h),
-    );
-  },
+  render: (args) =>
+    mountFoldkit(
+      specApp({
+        width: 480,
+        height: 300,
+        title: 'Monthly sales',
+        data: SAMPLE_BARS,
+        x: { label: '', padding: args.padding },
+        y: { label: 'Sales', ticks: args.tickCount },
+        marks: [
+          { mark: 'bar', x: 'label', y: 'value', fill: { value: args.color }, title: 'value' },
+        ],
+      }),
+    ),
   parameters: {
     docs: {
       description: { story: 'Vertical bar chart — adjust fill colors and bar spacing.' },
@@ -169,7 +197,6 @@ export const Bar: StoryObj<BarArgs> = {
 
 type LineArgs = {
   color: string;
-  activeColor: string;
   curve: 'linear' | 'catmullRom' | 'monotoneX';
   tickCount: number;
 };
@@ -178,13 +205,11 @@ export const Line: StoryObj<LineArgs> = {
   name: 'Line chart',
   args: {
     color: '#6366f1',
-    activeColor: '#4338ca',
     curve: 'catmullRom',
     tickCount: 5,
   },
   argTypes: {
     color: { control: 'color', description: 'Line and dot color' },
-    activeColor: { control: 'color', description: 'Active dot color' },
     curve: {
       control: 'select',
       options: ['linear', 'catmullRom', 'monotoneX'],
@@ -195,22 +220,7 @@ export const Line: StoryObj<LineArgs> = {
       description: 'Y-axis tick count',
     },
   },
-  render: (args) => {
-    const { model: model0 } = LineChart.init({
-      points: SAMPLE_LINE,
-      config: {
-        color: args.color,
-        activeColor: args.activeColor,
-        curve: args.curve,
-        tickCount: args.tickCount,
-      },
-    });
-    return mountChart<LineChart.Model, LineChart.Message>(
-      () => ({ model: model0 }),
-      LineChart.update,
-      (model, h) => LineChart.view({ model, toParentMessage: (m) => m }, h),
-    );
-  },
+  render: (args) => mountFoldkit(specApp(lineSpec(SAMPLE_LINE, 'Visitors', args))),
   parameters: {
     docs: {
       description: {
@@ -224,7 +234,6 @@ export const Line: StoryObj<LineArgs> = {
 
 type AreaArgs = {
   color: string;
-  activeColor: string;
   curve: 'linear' | 'catmullRom' | 'monotoneX';
   tickCount: number;
 };
@@ -233,13 +242,11 @@ export const Area: StoryObj<AreaArgs> = {
   name: 'Area chart',
   args: {
     color: '#10b981',
-    activeColor: '#059669',
     curve: 'catmullRom',
     tickCount: 5,
   },
   argTypes: {
     color: { control: 'color', description: 'Line and area fill color' },
-    activeColor: { control: 'color', description: 'Active crosshair / dot color' },
     curve: {
       control: 'select',
       options: ['linear', 'catmullRom', 'monotoneX'],
@@ -250,26 +257,11 @@ export const Area: StoryObj<AreaArgs> = {
       description: 'Y-axis tick count',
     },
   },
-  render: (args) => {
-    const { model: model0 } = AreaChart.init({
-      points: SAMPLE_AREA,
-      config: {
-        color: args.color,
-        activeColor: args.activeColor,
-        curve: args.curve,
-        tickCount: args.tickCount,
-      },
-    });
-    return mountChart<AreaChart.Model, AreaChart.Message>(
-      () => ({ model: model0 }),
-      AreaChart.update,
-      (model, h) => AreaChart.view({ model, toParentMessage: (m) => m }, h),
-    );
-  },
+  render: (args) => mountFoldkit(specApp(areaSpec(SAMPLE_AREA, 'Revenue', args))),
   parameters: {
     docs: {
       description: {
-        story: 'Area chart — hover shows crosshair + value; try different curve types.',
+        story: 'Area chart — try different curve types; each point names its value on hover.',
       },
     },
   },

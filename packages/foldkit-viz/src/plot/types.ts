@@ -22,6 +22,8 @@ export type PositionScaleSpec = Readonly<{
   zone?: 'utc' | 'local';
   /** Band scales only: share of each step left empty, in [0, 1). Default 0.1. */
   padding?: number;
+  /** False hides the tick labels and grid, as for tile maps; positions still invert. */
+  axis?: boolean;
 }>;
 
 export type ColorScaleSpec = Readonly<{

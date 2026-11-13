@@ -633,7 +633,8 @@ function buildScale(
   const range: readonly [number, number] =
     axis === 'x' ? [bounds.left, bounds.right] : [bounds.bottom, bounds.top];
   const orientation = axis === 'x' ? 'bottom' : 'left';
-  const grid = info.spec.grid ?? info.type !== 'band';
+  const shown = info.spec.axis ?? true;
+  const grid = shown && (info.spec.grid ?? info.type !== 'band');
   if (info.type === 'band') {
     // SAFETY: resolveScale gives band scales a string domain.
     const domain = info.domain as ReadonlyArray<string>;
@@ -661,7 +662,7 @@ function buildScale(
     const ticks: ReadonlyArray<PlotTick> = domain.map((value, i) => ({
       value,
       position: place(value) ?? 0,
-      label: i % every === 0 ? value : '',
+      label: shown && i % every === 0 ? value : '',
     }));
     return {
       axis: { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
@@ -691,7 +692,7 @@ function buildScale(
   const ticks = axisTicks(domain, project, count, scale).map((t) => ({
     value: t.value,
     position: t.position,
-    label: t.label ?? String(t.value),
+    label: shown ? (t.label ?? String(t.value)) : '',
   }));
   const lo = Math.min(...domain),
     hi = Math.max(...domain);

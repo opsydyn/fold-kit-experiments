@@ -135,6 +135,24 @@ describe('line marks', () => {
   });
 });
 
+describe('hidden axes', () => {
+  it('blank tick labels and grid but keep tick positions for inverting', () => {
+    const plot = compilePlot({
+      ...base,
+      x: { axis: false },
+      data: [
+        { c: 'a', v: 1 },
+        { c: 'b', v: 2 },
+      ],
+      marks: [{ mark: 'cell', x: 'c', y: { value: 'row' } }],
+    });
+    const x = plot.facets[0]?.x;
+    expect(x?.ticks.map((t) => t.label)).toEqual(['', '']);
+    expect(x?.ticks.map((t) => t.value)).toEqual(['a', 'b']);
+    expect(x?.grid).toBe(false);
+  });
+});
+
 describe('errors name the spec path', () => {
   it.each([
     ['an unknown mark', { ...base, marks: [{ mark: 'blob', x: 'a', y: 'b' }] }, 'marks[0].mark'],

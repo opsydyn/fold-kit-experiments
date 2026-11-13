@@ -274,6 +274,33 @@ distinctly inside a non-degenerate domain also throw. Tick positions preserve
 full numeric precision; format their labels separately. See [D3 source provenance](D3-PROVENANCE.md) for the precise
 primitive contracts.
 
+## Axis scales (unreleased)
+
+`scatterGeometry` and `lineGeometry` take `xScale` and `yScale`: linear (the
+default), `log` with an optional `base`, `symlog` with an optional `constant`,
+`pow` with an `exponent`, or `time`. Ticks follow the scale and carry a default
+`label`, which the `axis` helper draws when you pass no `format`.
+
+```ts
+const geometry = lineGeometry(rows, accessors, {
+  frame,
+  xScale: { type: 'time' }, // x values are epoch milliseconds
+  yScale: { type: 'log' },
+});
+// geometry.yTicks: [{ value: 1, position, label: '1' }, { value: 10, ..., label: '10' }, ...]
+```
+
+- Time axes default to UTC, so a server and a browser in another zone render
+  the same ticks and labels. Pass `{ type: 'time', zone: 'local' }` for the
+  viewer's zone. `utcTicks` and `utcTickFormat` join `timeTicks` and
+  `timeTickFormat` in `math/time`.
+- A log axis omits zero and negative values, as every axis omits non-finite
+  ones, and breaks lines there. Explicit log domains must be positive, and
+  `includeZero` is rejected.
+- Linear labels use as many decimals as the tick step needs, grouped the same
+  way on every machine; log labels mark powers of the base in SI notation.
+- Histograms stay linear; categorical axes remain in `chart/bars`.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

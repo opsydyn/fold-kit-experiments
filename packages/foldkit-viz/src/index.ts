@@ -119,7 +119,16 @@ export type { BoxStats } from './math/stats';
 export { boxStats, kde, quantile, silvermanBandwidth } from './math/stats';
 
 // math/time
-export { scaleTime, timeFormat, timeNice, timeParse, timeTickFormat, timeTicks } from './math/time';
+export {
+  scaleTime,
+  timeFormat,
+  timeNice,
+  timeParse,
+  timeTickFormat,
+  timeTicks,
+  utcTickFormat,
+  utcTicks,
+} from './math/time';
 export type { EaseFn, Tween } from './math/tween';
 // math/tween
 export {

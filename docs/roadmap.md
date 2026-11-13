@@ -46,7 +46,7 @@ JSON-serialisable spec that suits generated charts and other languages.
 
 ### 0.18.0 — Foundations (next release)
 
-- [ ] Scale-generic Cartesian layer: x and y take linear, log, symlog, power or time
+- [x] Scale-generic Cartesian layer: x and y take linear, log, symlog, power or time
       scales, and ticks and default labels follow the scale. Time axes default to UTC so
       server and browser agree. Existing configurations are unchanged.
       [Design](superpowers/specs/2026-11-13-scale-generic-cartesian-design.md).

@@ -1,4 +1,5 @@
 export type {
+  AxisScale,
   Domain,
   ChartMargins,
   ChartFrame,

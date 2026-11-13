@@ -1,0 +1,396 @@
+import { createEditor, updateHistoryReview, type EditorEvent } from '@opsydyn/foldkit-zloz';
+import {
+  zlozView,
+  zlozDddNode,
+  zlozDddGroup,
+  zlozEventStormingNode,
+} from '@opsydyn/foldkit-zloz/foldkit';
+import { Match } from 'effect';
+import type { HtmlBuilder } from 'foldkit/html';
+import type { Return } from 'foldkit/update';
+
+import example from './alchemy-example.json';
+import type { AlchemyReviewState } from './alchemy-state';
+import { alchemyTextLimits, decodeAlchemyText } from './alchemy-text';
+import { ReadAlchemyDescriptor } from './command';
+import { Message } from './message';
+import type { Model } from './model';
+import { modelSessionBusy } from './model-sessions';
+import { workbenchThemes } from './theme';
+const own = new Set([
+  'ChangedAlchemyText',
+  'ClickedAlchemyReview',
+  'ClickedAlchemyExample',
+  'ChoseAlchemyFiles',
+  'SucceededAlchemyRead',
+  'FailedAlchemyRead',
+  'ClickedCancelAlchemyRead',
+  'ClickedCloseAlchemyReview',
+  'ObservedAlchemyInput',
+]);
+export const isAlchemyMessage = (message: Message) => own.has(message._tag);
+const common = new Set([
+  'SelectedThemePreference',
+  'ChangedSystemColorScheme',
+  'LoadedThemePreference',
+  'CompletedColorSchemeSave',
+  'FailedColorSchemeSave',
+  'ClickedWorkbenchSidebar',
+  'ClickedMinimalMode',
+  'ClickedDiagnosticsPanel',
+  'ClickedDiagnosticsEnabled',
+  'ClickedDiagnostic',
+  'CompletedSvgDownload',
+  'FailedSvgDownload',
+  'CompletedConversionReceiptDownload',
+  'FailedConversionReceiptDownload',
+]);
+export function alchemyAllowsMessage(message: Message) {
+  return (
+    isAlchemyMessage(message) ||
+    common.has(message._tag) ||
+    (message._tag === 'SelectedWorkbenchSection' &&
+      (message.section === 'alchemy' || message.section === 'diagnostics'))
+  );
+}
+function openReason(model: Model, requirePanel = true): string | null {
+  return requirePanel && (model.sidebarSection !== 'alchemy' || model.sidebarCollapsed)
+    ? 'Show Domain review before reviewing a descriptor.'
+    : modelSessionBusy(model) ||
+        model.placement.type !== 'idle' ||
+        model.receiptRead ||
+        model.packetReader.pending ||
+        model.patchWorkbench.pending ||
+        model.historyReview ||
+        model.historyPlayback?.cursor.status === 'playing' ||
+        model.pngReview.rendering.type === 'pending'
+      ? 'Finish active edits, reads or renders and return to the working model before reviewing a descriptor.'
+      : null;
+}
+function publish(model: Model, text: string): Model {
+  const state = model.alchemyReview,
+    result = decodeAlchemyText(text),
+    run = state.run + 1;
+  return {
+    ...model,
+    alchemyReview:
+      result.type === 'blocked'
+        ? {
+            ...state,
+            text,
+            run,
+            pending: null,
+            notice: `Rejected: ${result.findings.map((f) => f.reason).join(' ')} Previous review and working model preserved.`,
+          }
+        : {
+            ...state,
+            text,
+            run,
+            pending: null,
+            review: {
+              id: run,
+              projection: result,
+              editor: createEditor(result.graph, { readOnly: true }),
+            },
+            notice: 'Read-only descriptor review opened. Working model and Undo preserved.',
+          },
+  };
+}
+function matches(model: Model, run: number) {
+  const pending = model.alchemyReview.pending;
+  return (
+    pending?.run === run &&
+    pending.modelId === model.modelIdentity.id &&
+    pending.epoch === model.modelEpoch
+  );
+}
+export function updateAlchemyReview(model: Model, message: Message): Return<Model, Message> {
+  const state = model.alchemyReview;
+  const write = (next: AlchemyReviewState): Return<Model, Message> => ({
+    model: { ...model, alchemyReview: next },
+  });
+  return Match.value(message).pipe(
+    Match.tag('ChangedAlchemyText', ({ text }) =>
+      text.length > alchemyTextLimits.maxBytes ||
+      new TextEncoder().encode(text).byteLength > alchemyTextLimits.maxBytes
+        ? write({
+            ...state,
+            run: state.run + 1,
+            pending: null,
+            notice:
+              'Rejected: descriptor exceeds 1 MiB of UTF-8 text. Previous draft and review preserved.',
+          })
+        : write({
+            ...state,
+            text,
+            run: state.run + 1,
+            pending: null,
+            notice: 'Draft changed. Choose Review descriptor to replace the preview.',
+          }),
+    ),
+    Match.tag('ClickedAlchemyReview', () => {
+      const reason = openReason(model);
+      return reason ? write({ ...state, notice: reason }) : { model: publish(model, state.text) };
+    }),
+    Match.tag('ClickedAlchemyExample', () => {
+      const reason = openReason(model);
+      return reason
+        ? write({ ...state, notice: reason })
+        : { model: publish(model, JSON.stringify(example, null, 2)) };
+    }),
+    Match.tag('ChoseAlchemyFiles', ({ files }): Return<Model, Message> => {
+      if (!files.length) return { model };
+      const reason = openReason(model);
+      if (reason) return write({ ...state, notice: reason });
+      const file = files[0],
+        run = state.run + 1;
+      if (files.length !== 1 || !file || file.size > alchemyTextLimits.maxBytes)
+        return write({
+          ...state,
+          run,
+          pending: null,
+          notice:
+            'Rejected: choose one UTF-8 JSON descriptor, at most 1 MiB. Previous review preserved.',
+        });
+      return {
+        model: {
+          ...model,
+          alchemyReview: {
+            ...state,
+            run,
+            pending: { run, modelId: model.modelIdentity.id, epoch: model.modelEpoch },
+            notice: 'Reading descriptor for read-only review…',
+          },
+        },
+        commands: [ReadAlchemyDescriptor({ run, file })],
+      };
+    }),
+    Match.tag('SucceededAlchemyRead', ({ run, json }) =>
+      !matches(model, run)
+        ? { model }
+        : openReason(model, false)
+          ? write({
+              ...state,
+              pending: null,
+              notice: 'Rejected: working context is busy. Reopen the descriptor.',
+            })
+          : { model: publish(model, json) },
+    ),
+    Match.tag('FailedAlchemyRead', ({ run }) =>
+      matches(model, run)
+        ? write({
+            ...state,
+            pending: null,
+            notice: 'Rejected: could not read UTF-8 JSON within 1 MiB. Previous review preserved.',
+          })
+        : { model },
+    ),
+    Match.tag('ClickedCancelAlchemyRead', () =>
+      write({
+        ...state,
+        run: state.run + 1,
+        pending: null,
+        notice: 'Read cancelled. Previous review and working model preserved.',
+      }),
+    ),
+    Match.tag('ClickedCloseAlchemyReview', () =>
+      write({
+        ...state,
+        run: state.run + 1,
+        pending: null,
+        review: null,
+        notice: 'Review closed. Working model and Undo history preserved.',
+      }),
+    ),
+    Match.tag('ObservedAlchemyInput', ({ id, message: raw }) => {
+      const review = state.review;
+      if (!review || review.id !== id) return { model };
+      // SAFETY: only the detached typed view emits this message; the core history-review reducer admits navigation only.
+      const event = raw as EditorEvent;
+      let next = updateHistoryReview({ editionId: String(id), editor: review.editor }, event);
+      if (event.type === 'SurfaceMeasured' && review.editor.surface === null)
+        next = updateHistoryReview(next, { type: 'FitViewClicked' });
+      return next.editor === review.editor
+        ? { model }
+        : write({ ...state, review: { ...review, editor: next.editor } });
+    }),
+    Match.orElse(() => ({ model })),
+  );
+}
+export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
+  const state = model.alchemyReview,
+    review = state.review,
+    reason = openReason(model);
+  return h.div(
+    [h.Class('alchemy-review')],
+    [
+      h.p(
+        [],
+        [
+          'Review portable Domain declarations without importing a working model. No SDK, TypeScript, handlers or providers are loaded by this view.',
+        ],
+      ),
+      h.p(
+        [h.Id('alchemy-input-help')],
+        ['UTF-8 JSON · 1 MiB · depth 16 · 16,384 values. Duplicate keys are rejected.'],
+      ),
+      h.label(
+        [],
+        [
+          'Descriptor JSON',
+          h.textarea([
+            h.Value(state.text),
+            h.Rows(7),
+            h.AriaLabel('Descriptor JSON'),
+            h.AriaDescribedBy('alchemy-input-help'),
+            h.OnInput((text) => Message.ChangedAlchemyText({ text })),
+          ]),
+        ],
+      ),
+      h.label(
+        [],
+        [
+          'Open descriptor file',
+          h.input([
+            h.Key(`alchemy-file:${state.run}`),
+            h.Type('file'),
+            h.Accept('.json,application/json'),
+            h.AriaLabel('Open descriptor file'),
+            h.Disabled(reason !== null),
+            h.OnFileChange((files) => Message.ChoseAlchemyFiles({ files })),
+          ]),
+        ],
+      ),
+      h.div(
+        [h.Class('alchemy-actions')],
+        [
+          h.button(
+            [
+              h.Type('button'),
+              h.Disabled(reason !== null || !!state.pending || !state.text.trim()),
+              h.OnClick(Message.ClickedAlchemyReview()),
+            ],
+            ['Review descriptor'],
+          ),
+          h.button(
+            [
+              h.Type('button'),
+              h.Disabled(reason !== null || !!state.pending),
+              h.OnClick(Message.ClickedAlchemyExample()),
+            ],
+            ['Review bank example'],
+          ),
+        ],
+      ),
+      ...(reason ? [h.p([], [reason])] : []),
+      ...(state.pending
+        ? [
+            h.button(
+              [h.Type('button'), h.OnClick(Message.ClickedCancelAlchemyRead())],
+              ['Cancel descriptor read'],
+            ),
+          ]
+        : []),
+      h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
+      ...(review
+        ? [
+            h.h3([], ['Source provenance']),
+            h.dl(
+              [h.Class('alchemy-provenance')],
+              Object.entries({
+                'Domain version': review.projection.source.source.packageVersion,
+                Namespace: review.projection.source.source.namespace,
+                Model: review.projection.source.source.modelName,
+                Revision: review.projection.source.source.revision,
+              }).flatMap(([key, value]) => [h.dt([], [key]), h.dd([], [value])]),
+            ),
+            h.p(
+              [],
+              [
+                'Host-declared provenance and state claims; authorship and runtime behaviour are unverified. This preview grants no editing or execution authority.',
+              ],
+            ),
+            h.p(
+              [],
+              [
+                'Compatibility: exact Domain/Alchemy beta.85; native core from this branch. Published core 0.3.0 is not qualified. Omitted-read and stateless-view strict typing remain upstream gates.',
+              ],
+            ),
+            h.h3([], ['Projection coverage']),
+            h.p(
+              [],
+              [
+                `${review.projection.coverage.length} source facts · ${review.projection.nativeReadModels.length} native read-model · ${review.projection.nativeConsumption.length} declared feed`,
+              ],
+            ),
+            h.h3([], ['Losses and unverified meaning']),
+            h.ul(
+              [h.AriaLabel('Descriptor findings')],
+              review.projection.findings.map((f) =>
+                h.li(
+                  [],
+                  [
+                    h.strong([], [`${f.severity}: ${f.code}`]),
+                    h.p([], [f.reason]),
+                    ...(f.sourceId ? [h.code([], [f.sourceId])] : []),
+                  ],
+                ),
+              ),
+            ),
+            h.button(
+              [h.Type('button'), h.OnClick(Message.ClickedCloseAlchemyReview())],
+              ['Return to working model'],
+            ),
+          ]
+        : []),
+    ],
+  );
+}
+export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+  const review = model.alchemyReview.review;
+  if (!review) return h.div([], []);
+  const scheme =
+    model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
+  return h.div(
+    [h.Key(`alchemy:${review.id}`), h.Class('receipt-canvas alchemy-canvas')],
+    [
+      h.div(
+        [h.Class('receipt-canvas-banner'), h.Role('status')],
+        [
+          `Read-only Domain descriptor · ${review.projection.source.source.modelName} · ${review.projection.source.source.revision} · Working model preserved`,
+          h.button(
+            [
+              h.Type('button'),
+              h.Disabled(review.editor.surface === null),
+              h.OnClick(
+                Message.ObservedAlchemyInput({
+                  id: review.id,
+                  message: { type: 'FitViewClicked' },
+                }),
+              ),
+            ],
+            ['Fit descriptor diagram'],
+          ),
+          h.button(
+            [h.Type('button'), h.OnClick(Message.ClickedCloseAlchemyReview())],
+            ['Return to working model'],
+          ),
+        ],
+      ),
+      zlozView(h, review.editor, {
+        id: `alchemy-${review.id}`,
+        label: 'Read-only Domain descriptor diagram',
+        height: 'fill',
+        theme: workbenchThemes[scheme ?? 'light'],
+        diagnostics: false,
+        background: { type: 'dots' },
+        renderNodeShell: (context, builder) =>
+          zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
+        renderGroupShell: (context, builder) =>
+          zlozDddGroup(context, builder, { renderControls: () => [] }),
+        renderLayout: (parts) => parts.canvas,
+        onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
+      }),
+    ],
+  );
+}

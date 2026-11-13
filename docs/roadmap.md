@@ -651,3 +651,20 @@ This completes the extraction proposed above, not D/C/Q closure or general SDK
 compatibility. Next proposed slice: read-only workbench descriptor review through
 the portable entry, with bounded host text decoding, source provenance and visible
 loss findings before any editing. Recommendation: **needs review**.
+
+**Read-only Domain descriptor workbench — implemented locally (2026-11-13):**
+The left-sidebar Domain review accepts paste or a bounded UTF-8 JSON file through
+the private adapter's portable root. Host preflight checks 1 MiB, depth/value limits,
+decoded duplicate keys and framing before projection. A detached navigation-only
+canvas shows declared provenance, source-fact coverage and every loss/unverified
+finding, including under Minimal mode. Bad input preserves the previous review;
+read identities reject cancellation/supersession/context races. The working model,
+Undo, editions, lineage and consent remain untouched. First-measurement Fit and
+explicit Fit/return controls complete the single-canvas review. Native SDK execution,
+Apply and release remain outside scope; exact beta.85, upstream strict-optional
+failures and unpublished native-core requirements remain gates.
+See [ADR 0068](adr/0068-review-alchemy-descriptors-through-a-bounded-host-boundary.md)
+and [tests/browser/visual evidence](../apps/zloz-demo/evidence/alchemy-review.md).
+This completes the descriptor-review slice proposed above, not broader D/C/Q
+closure. Next proposed slice: package-level source-fact navigation linking each
+finding to its node or relation in the detached canvas. Recommendation: **needs review**.

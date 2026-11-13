@@ -5,6 +5,7 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { alchemyReviewCanvas } from './alchemy-review';
 import { Message } from './message';
 import type { Model, WorkbenchSection } from './model';
 import { packetReviewActive, packetReviewCanvas } from './packet-reader';
@@ -26,6 +27,7 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['png', 'PNG export'],
   ['review', 'Review packets'],
   ['patch', 'Patch review'],
+  ['alchemy', 'Domain review'],
 ];
 
 function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
@@ -108,11 +110,13 @@ export function workbenchLayout(
               h.Href(
                 '#' +
                   encodeURIComponent(
-                    packetReviewActive(model) && model.packetPreview
-                      ? `packet-${model.packetPreview.id}-${model.packetPreview.side}-surface`
-                      : model.receiptReview
-                        ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
-                        : parts.canvasId,
+                    model.alchemyReview.review
+                      ? `alchemy-${model.alchemyReview.review.id}-surface`
+                      : packetReviewActive(model) && model.packetPreview
+                        ? `packet-${model.packetPreview.id}-${model.packetPreview.side}-surface`
+                        : model.receiptReview
+                          ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
+                          : parts.canvasId,
                   ),
               ),
             ],
@@ -150,24 +154,36 @@ export function workbenchLayout(
                 zlozViewportControl(
                   h,
                   viewportControlActions(
-                    packetReviewActive(model) && model.packetPreview
-                      ? model.packetPreview.editor
-                      : model.editor,
+                    model.alchemyReview.review
+                      ? model.alchemyReview.review.editor
+                      : packetReviewActive(model) && model.packetPreview
+                        ? model.packetPreview.editor
+                        : model.editor,
                   ).fitView,
                   (event) =>
-                    packetReviewActive(model) && model.packetPreview
-                      ? Message.ObservedPacketCanvasInput({
-                          scope: model.packetPreview.scope,
-                          id: model.packetPreview.id,
-                          side: model.packetPreview.side,
+                    model.alchemyReview.review
+                      ? Message.ObservedAlchemyInput({
+                          id: model.alchemyReview.review.id,
                           message: event,
                         })
-                      : Message.ObservedModelInput({
-                          modelId: model.modelIdentity.id,
-                          epoch: model.modelEpoch,
-                          message: event,
-                        }),
-                  [h.Class('workbench-rail-fit')],
+                      : packetReviewActive(model) && model.packetPreview
+                        ? Message.ObservedPacketCanvasInput({
+                            scope: model.packetPreview.scope,
+                            id: model.packetPreview.id,
+                            side: model.packetPreview.side,
+                            message: event,
+                          })
+                        : Message.ObservedModelInput({
+                            modelId: model.modelIdentity.id,
+                            epoch: model.modelEpoch,
+                            message: event,
+                          }),
+                  [
+                    h.Class('workbench-rail-fit'),
+                    h.Disabled(
+                      model.alchemyReview.pending !== null && model.alchemyReview.review === null,
+                    ),
+                  ],
                   ['Fit'],
                 ),
               ]
@@ -188,9 +204,13 @@ export function workbenchLayout(
                       h.Key(section),
                       h.Type('button'),
                       h.Disabled(
-                        (model.receiptReview !== null &&
-                          section !== 'mapping' &&
+                        ((model.alchemyReview.review !== null ||
+                          model.alchemyReview.pending !== null) &&
+                          section !== 'alchemy' &&
                           section !== 'diagnostics') ||
+                          (model.receiptReview !== null &&
+                            section !== 'mapping' &&
+                            section !== 'diagnostics') ||
                           (packetReviewActive(model) &&
                             section !== 'review' &&
                             section !== 'diagnostics'),
@@ -234,12 +254,17 @@ export function workbenchLayout(
           h.Style({ position: 'relative' }),
         ],
         [
-          packetReviewActive(model)
-            ? packetReviewCanvas(model, h)
-            : model.receiptReview
-              ? receiptReviewCanvas(model, h)
-              : parts.canvas,
-          ...(model.historyReview && !model.receiptReview && !packetReviewActive(model)
+          model.alchemyReview.review
+            ? alchemyReviewCanvas(model, h)
+            : packetReviewActive(model)
+              ? packetReviewCanvas(model, h)
+              : model.receiptReview
+                ? receiptReviewCanvas(model, h)
+                : parts.canvas,
+          ...(model.historyReview &&
+          !model.receiptReview &&
+          !model.alchemyReview.review &&
+          !packetReviewActive(model)
             ? [
                 h.div(
                   [

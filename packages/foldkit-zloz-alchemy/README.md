@@ -106,3 +106,12 @@ NodeNext/Bundler profiles; the portable consumer installs no SDK/Effect/Foldkit/
 See [qualification evidence](evidence/qualification.md) and
 [ADR 0067](../../docs/adr/0067-split-private-alchemy-inspection-and-portable-projection.md).
 No browser, provider, deployment, publication or user-acceptance claim is made.
+
+## Local workbench review
+
+The Zloz workbench's **Domain review** sidebar demonstrates this portable entry
+with paste/file text decoding, detached read-only preview, declared provenance and
+visible losses. Its host boundary is limited to 1 MiB UTF-8, depth 16 and 16,384
+values, rejecting duplicate keys and bad framing before projection. It does not
+load the SDK or execute uploaded code. This is local demo evidence, not publication
+or broader compatibility. See [workbench qualification](../../apps/zloz-demo/evidence/alchemy-review.md).

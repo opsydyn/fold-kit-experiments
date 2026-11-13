@@ -153,6 +153,19 @@ button, input, select { font: inherit; }
 .mapping-plan li p { margin: 4px 0 0; }
 .mapping-acknowledgement { border-top: 1px solid var(--rule); padding-top: 14px; font-weight: 650; }
 
+.alchemy-review { display: grid; gap: 12px; }
+.alchemy-review p, .alchemy-review h3 { margin: 0; }
+.alchemy-review label { display: grid; gap: 6px; }
+.alchemy-review textarea { box-sizing: border-box; width: 100%; min-height: 120px; resize: vertical; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; font: 11px/1.5 monospace; }
+.alchemy-review button { padding: 8px 12px; }
+.alchemy-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.alchemy-provenance { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 6px 12px; overflow-wrap: anywhere; }
+.alchemy-provenance dd { margin: 0; }
+.alchemy-review ul { padding-inline-start: 18px; margin: 0; }
+.alchemy-review li { margin-block: 10px; }
+.alchemy-review code { font-size: 11px; overflow-wrap: anywhere; }
+.alchemy-canvas .receipt-canvas-banner { flex-wrap: wrap; }
+.alchemy-canvas .receipt-canvas-banner button { color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 12px; }
 .receipt-canvas { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; min-height: 0; }
 #workbench-patch { display: flex; flex-direction: column; gap: 12px; }
 #workbench-patch > button { padding: 8px 12px; text-align: left; width: 100%; }

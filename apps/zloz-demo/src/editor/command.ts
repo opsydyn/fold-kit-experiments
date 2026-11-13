@@ -9,6 +9,7 @@ import { renderPngExport, downloadPngArtifact } from '@opsydyn/foldkit-zloz/brow
 import { Data, Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
+import { alchemyTextLimits } from './alchemy-text';
 import { editionArchiveByteLimit } from './history';
 import { Message } from './message';
 import { ThemePreference } from './model';
@@ -453,6 +454,31 @@ export const DownloadPng = Command.define('DownloadPng', {
       Effect.match({
         onSuccess: () => Message.CompletedPngDownload(),
         onFailure: () => Message.FailedPngDownload(),
+      }),
+    ),
+});
+
+export const ReadAlchemyDescriptor = Command.define('ReadAlchemyDescriptor', {
+  args: { run: Schema.Number, file: Schema.instanceOf(File) },
+  messages: [Message.SucceededAlchemyRead, Message.FailedAlchemyRead],
+  execute: ({ run, file }) =>
+    Effect.gen(function* () {
+      if (file.size > alchemyTextLimits.maxBytes)
+        return yield* Effect.fail(
+          new EditionArchiveTooLarge({ byteLimit: alchemyTextLimits.maxBytes }),
+        );
+      const buffer = yield* Effect.tryPromise(() =>
+        file.slice(0, alchemyTextLimits.maxBytes + 1).arrayBuffer(),
+      );
+      if (buffer.byteLength > alchemyTextLimits.maxBytes)
+        return yield* Effect.fail(
+          new EditionArchiveTooLarge({ byteLimit: alchemyTextLimits.maxBytes }),
+        );
+      return yield* Effect.try(() => new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+    }).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededAlchemyRead({ run, json }),
+        onFailure: () => Message.FailedAlchemyRead({ run }),
       }),
     ),
 });

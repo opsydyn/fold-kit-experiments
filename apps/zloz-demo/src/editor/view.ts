@@ -108,6 +108,7 @@ import {
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
+import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
 import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
@@ -610,6 +611,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
+    alchemy: [alchemyReviewPanel(model, h)],
     review: packetReaderPanel(model, h),
     patch: patchWorkbenchPanel(model, h),
     history: [
@@ -3679,7 +3681,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const notice = h.p(
     [h.Role('status'), h.AriaLive('polite'), ...(diagnostics.status ? [] : [h.Style(hidden)])],
-    [model.notice],
+    [
+      model.alchemyReview.review || model.alchemyReview.pending
+        ? model.alchemyReview.notice
+        : model.notice,
+    ],
   );
   return {
     title,

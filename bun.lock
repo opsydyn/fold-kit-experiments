@@ -161,6 +161,7 @@
         "@fontsource-variable/inter": "catalog:",
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
         "@opsydyn/foldkit-zloz-elk": "workspace:*",
         "@opsydyn/foldkit-zloz-force": "workspace:*",
         "@opsydyn/foldkit-zloz-mermaid": "workspace:*",

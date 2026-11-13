@@ -46,6 +46,7 @@ import {
 import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
+import { alchemyAllowsMessage, isAlchemyMessage, updateAlchemyReview } from './alchemy-review';
 import { loadAuditExample, updateWorkbenchAudit } from './audit-comparison';
 import {
   createC4ContextGraph,
@@ -140,6 +141,8 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if ((model.alchemyReview.review || model.alchemyReview.pending) && !alchemyAllowsMessage(message))
+    return { model };
   if (
     packetReviewActive(model) &&
     !packetAllowsMessage(message) &&
@@ -154,6 +157,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     !receiptAllowsMessage(message)
   )
     return { model };
+  if (isAlchemyMessage(message)) return updateAlchemyReview(model, message);
   if (
     message._tag === 'ObservedModelInput' &&
     (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
@@ -818,6 +822,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedReviewPacketRead: () => updatePacketReader(model, message),
     ObservedPacketCanvasInput: () => updatePacketReader(model, message),
     ClickedPacketOpeningProtection: () => updatePacketReader(model, message),
+    ChangedAlchemyText: () => updateAlchemyReview(model, message),
+    ClickedAlchemyReview: () => updateAlchemyReview(model, message),
+    ClickedAlchemyExample: () => updateAlchemyReview(model, message),
+    ChoseAlchemyFiles: () => updateAlchemyReview(model, message),
+    SucceededAlchemyRead: () => updateAlchemyReview(model, message),
+    FailedAlchemyRead: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyRead: () => updateAlchemyReview(model, message),
+    ClickedCloseAlchemyReview: () => updateAlchemyReview(model, message),
+    ObservedAlchemyInput: () => updateAlchemyReview(model, message),
     ChoseConversionReceiptFiles: () => updateReceiptReview(model, message),
     SucceededConversionReceiptRead: () => updateReceiptReview(model, message),
     FailedConversionReceiptRead: () => updateReceiptReview(model, message),

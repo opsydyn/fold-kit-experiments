@@ -24,6 +24,7 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
 
+import { createAlchemyReview, type AlchemyReviewState } from './alchemy-state';
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
 import type { PacketReviewPreview } from './packet-reader';
 import type { PatchWorkbenchState } from './patch-review';
@@ -299,6 +300,7 @@ export type RetainedMappingReceipt = Readonly<{
 }>;
 
 export const WorkbenchSection = Schema.Literals([
+  'alchemy',
   'diagram',
   'appearance',
   'navigation',
@@ -316,6 +318,7 @@ export const WorkbenchSection = Schema.Literals([
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  alchemyReview: Schema.Unknown,
   pngReview: Schema.Unknown,
   protectPngDownloads: Schema.Boolean,
   customPngReview: Schema.Boolean,
@@ -474,6 +477,7 @@ export type Model = Readonly<{
   packetReader: ZlozReviewReaderState;
   packetPreview: PacketReviewPreview | null;
   protectReviewOpening: boolean;
+  alchemyReview: AlchemyReviewState;
   receiptReview: ReceiptReview | null;
   receiptRead: Readonly<{ id: number; modelId: string; epoch: number }> | null;
   receiptReadRun: number;
@@ -611,6 +615,7 @@ export const init = (namespace = 'test-workbench') => ({
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,
+    alchemyReview: createAlchemyReview(),
     receiptReview: null,
     receiptRead: null,
     receiptReadRun: 0,

@@ -40,9 +40,14 @@ export function copySvgRoutes(
     const { position, size } = route.label;
     if (
       ![size.width, size.height].every((value) => Number.isFinite(value) && value > 0) ||
-      ![position.x, position.y, position.x + size.width, position.y + size.height].every(
-        Number.isFinite,
-      )
+      ![
+        position.x,
+        position.y,
+        position.x - size.width / 2,
+        position.y - size.height / 2,
+        position.x + size.width / 2,
+        position.y + size.height / 2,
+      ].every(Number.isFinite)
     )
       invalid();
     return { id: route.id, points, label: { position: { ...position }, size: { ...size } } };

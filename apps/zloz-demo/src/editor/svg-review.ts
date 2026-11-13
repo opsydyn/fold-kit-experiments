@@ -1,4 +1,5 @@
 import {
+  captureSvgLayout,
   resolveSvgReview,
   updateSvgReview,
   svgReviewForScope,
@@ -21,7 +22,7 @@ export function workbenchSvgContext(
     (model.themePreference === 'system' && model.systemColorScheme === 'dark')
       ? 'dark'
       : 'light';
-  return {
+  const context: ZlozSvgReviewContext = {
     scope: `${model.modelIdentity.id}/${model.modelEpoch}`,
     sourceRevision: model.editor.revision,
     snapshot: model.editor,
@@ -63,14 +64,19 @@ export function workbenchSvgContext(
     canDownload: () =>
       (format === 'svg' ? model.protectSvgDownloads : model.protectPngDownloads)
         ? `${label} downloads are protected in this workspace.`
-        : model.receiptReview
-          ? 'Close the receipt comparison before exporting the model.'
-          : model.historyPlayback?.cursor.status === 'playing'
-            ? `Pause edition playback before reviewing ${label}.`
-            : modelSessionBusy(model)
-              ? `Finish active edits, imports or layout before downloading ${label}.`
-              : null,
+        : format === 'svg' && model.retainedSvgLayout && model.editor.routes.length === 0
+          ? 'Arrange with ELK or another routing engine before exporting retained layout.'
+          : model.receiptReview
+            ? 'Close the receipt comparison before exporting the model.'
+            : model.historyPlayback?.cursor.status === 'playing'
+              ? `Pause edition playback before reviewing ${label}.`
+              : modelSessionBusy(model)
+                ? `Finish active edits, imports or layout before downloading ${label}.`
+                : null,
   };
+  if (format !== 'svg' || !model.retainedSvgLayout || modelSessionBusy(model)) return context;
+  const renderKey = `workbench-svg:${scheme}:${model.nodeDesign}:${model.edgeDesign}`;
+  return { ...context, layout: { snapshot: captureSvgLayout(model.editor, renderKey), renderKey } };
 }
 export function workbenchSvgReview(model: Model) {
   const ctx = workbenchSvgContext(model);

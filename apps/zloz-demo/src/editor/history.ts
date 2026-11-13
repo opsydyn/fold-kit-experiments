@@ -23,6 +23,7 @@ export function historyAllowsMessage(message: Message): boolean {
     'ObservedSvgReviewInput',
     'ClickedSvgDownloadProtection',
     'ClickedCustomSvgReview',
+    'ClickedRetainedSvgLayout',
     'CompletedSvgDownload',
     'FailedSvgDownload',
     'ObservedDddRelationshipInput',

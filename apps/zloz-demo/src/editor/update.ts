@@ -304,6 +304,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedSvgDownloadProtection: () => ({
       model: { ...model, protectSvgDownloads: !model.protectSvgDownloads },
     }),
+    ClickedRetainedSvgLayout: () => ({
+      model: { ...model, retainedSvgLayout: !model.retainedSvgLayout },
+    }),
     ClickedCustomSvgReview: () => ({
       model: { ...model, customSvgReview: !model.customSvgReview },
     }),

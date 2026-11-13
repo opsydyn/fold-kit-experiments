@@ -54,7 +54,7 @@ export type ZlozSvgExportOptions = Readonly<{
     overrides?: readonly ZlozSvgRendererOverride[];
   }>;
   assets?: readonly ZlozSvgAsset[];
-  /** Opt-in retained geometry; the canonical writer blocks until its layout adapter is implemented. */
+  /** Opt-in retained geometry, validated against exact source and the current renderer key. */
   layout?: ZlozSvgLayoutOptions;
 }>;
 export type ZlozSvgFinding = Readonly<{
@@ -217,7 +217,12 @@ function contentBounds(
     for (const point of route.points) include(point.x, point.y);
     if (route.label && edge.label) {
       const b = route.label;
-      include(b.position.x, b.position.y, b.size.width, b.size.height);
+      include(
+        b.position.x - b.size.width / 2,
+        b.position.y - b.size.height / 2,
+        b.size.width,
+        b.size.height,
+      );
     }
   }
   for (const item of items)

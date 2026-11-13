@@ -788,3 +788,19 @@ This closes the preceding contract proposal. D/C/Q and publication gates remain.
 Next proposed slice: consume retained routes and label anchors in the SVG writer
 and vector-adapter context, qualify emitted files, and expose explicit workbench
 review opt-in before extending PNG. Recommendation: **needs review**.
+
+**Retained layout SVG writer — implemented locally (2026-11-13), unreleased:**
+The existing writer now consumes validated retained paths and centre label anchors,
+matching native authored-geometry precedence. Vector adapters receive frozen route,
+box and resolved geometry context; safe text primitives support middle baseline.
+The planner's prior top-left interpretation of label bounds is corrected to the
+native/ELK centre convention. Package review includes layout in exact-artifact
+identity. The workbench offers unchecked SVG opt-in without changing source/Undo
+or PNG. This supersedes the preceding planning-only writer restriction. See
+[ADR 0076](adr/0076-write-retained-layout-svg.md) and
+[verification and captures](../apps/zloz-demo/evidence/svg-retained.md).
+D/C/Q, provider and publication gates remain unchanged.
+
+Next proposed slice: opt-in retained-layout PNG review/encoding using the qualified
+SVG boundary, with stale-result protection and pixel-budget/browser evidence.
+Recommendation: **needs review**. No publication or provider activation is implied.

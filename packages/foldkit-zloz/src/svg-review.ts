@@ -39,6 +39,7 @@ export type ZlozSvgReviewContext = Readonly<{
   font?: ZlozSvgExportOptions['font'];
   renderers: ZlozSvgExportOptions['renderers'];
   assets?: ZlozSvgExportOptions['assets'];
+  layout?: ZlozSvgExportOptions['layout'];
   writing?: Omit<ZlozSvgWriteOptions, 'allowLosses'>;
   regions?: readonly ZlozSvgReviewChoice<ZlozSvgReviewRegion>[];
   themes?: readonly ZlozSvgReviewChoice<ZlozSvgExportOptions['theme']>[];
@@ -203,7 +204,10 @@ export function resolveSvgReview(
       };
       const described =
         context.description === undefined ? base : { ...base, description: context.description };
-      options = context.assets === undefined ? described : { ...described, assets: context.assets };
+      const configured =
+        context.assets === undefined ? described : { ...described, assets: context.assets };
+      options =
+        context.layout === undefined ? configured : { ...configured, layout: context.layout };
     }
   }
   const result = options

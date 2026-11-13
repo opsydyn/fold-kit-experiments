@@ -39,6 +39,7 @@ export const Message = defineMessageUnion({
   ObservedSvgReviewInput: { request: Schema.Unknown },
   ClickedSvgDownloadProtection: {},
   ClickedCustomSvgReview: {},
+  ClickedRetainedSvgLayout: {},
   CompletedSvgDownload: {
     scope: Schema.String,
     generation: Schema.Number,

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Add opt-in detached SVG layout planning with exact-source/renderer freshness, effective route/label bounds and explicit fidelity findings; reject retained geometry in the canonical writer until its adapter is qualified.
+- Render opted-in retained SVG routes and centre-anchored labels; expose frozen geometry to vector adapters and exact-artifact review. Correct retained label bounds to use the native centre-anchor convention.
+
+- Add opt-in detached SVG layout planning with exact-source/renderer freshness, effective route/label bounds and explicit fidelity findings; the initial writer guard is superseded by retained SVG rendering above.
 
 - Add opt-in intrinsic C4/DDD group-heading measurement with size-free spacing specs, complete-batch validation and source/revision/renderer/visibility freshness, sharing scoped resources with edge measurement.
 

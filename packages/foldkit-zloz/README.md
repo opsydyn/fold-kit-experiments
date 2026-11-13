@@ -4945,7 +4945,23 @@ make it current. Include theme/font/label/renderer configuration in the key.
 Font ink, strokes, collapsed presentation and unsupplied overlays remain outside
 this contract. It is a typed in-process snapshot, not a wire decoder or attestation.
 
-This slice adds planning only. `writeSvgExport` blocks non-empty retained layout
-with `layout-writer-unsupported`, even with `allowLosses`; it cannot silently export
-a different layout. Omit `layout` explicitly for existing canonical SVG behavior.
-Review controls and PNG do not adopt retained geometry automatically.
+`writeSvgExport` now consumes opted-in routes and centre-anchored label envelopes,
+using the same authored-geometry precedence as native views. A box positions plain
+SVG text at its centre; multiline blocks use 1.25em spacing and middle baseline.
+This does not reproduce HTML badges, editing controls, wrapping or font ink. Without
+a box, the existing above-path plain-label placement is retained.
+
+Edge `ZlozSvgAdapterContext` includes frozen `layoutRoute`, `labelBox` and resolved
+`geometry` in addition to edge/endpoints/theme/font. The route/box are undefined
+when authored geometry overrides layout. Custom safe vectors can use the retained
+world points and centre box. Their declared bounds and fidelity remain host-owned.
+Text primitives optionally accept `baseline: 'alphabetic' | 'middle'`; unsupported
+values block. No raw markup or path primitive is added.
+
+`ZlozSvgReviewContext.layout` opts the existing review into those exact options.
+Source, renderer key, route data, findings and emitted bytes participate in the
+review identity: old acceptance and download requests cannot authorize changed
+layout. The workbench demonstrates an unchecked **Use retained layout in SVG**
+control, with an Arrange reason when no routes exist. Source and Undo are unchanged.
+Omit `layout` for existing canonical SVG behavior. PNG remains canonical in the
+workbench until its separate adoption slice.

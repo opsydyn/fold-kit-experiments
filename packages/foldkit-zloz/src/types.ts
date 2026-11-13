@@ -169,6 +169,7 @@ export type ZlozGraph = Readonly<{ nodes: readonly ZlozNode[]; edges: readonly Z
 /** Versioned document content. Graph-only documents omit the camera. */
 export type ZlozSnapshot = Readonly<{ graph: ZlozGraph; viewport?: Viewport }>;
 /** Declared label rectangle in world units, centered at position. Transient layout geometry. */
+/** World-space centre anchor and envelope size, shared by native views and image export. */
 export type LayoutLabelBox = Readonly<{ position: Point; size: Size }>;
 export type LayoutEdgeLabel = Readonly<{ id: string; size: Size }>;
 export type LayoutGroupPadding = Readonly<{

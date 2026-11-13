@@ -340,8 +340,8 @@ test('layout export is opt-in, detached and bound to exact source and renderer c
     ...options,
     layout: { snapshot: captured, renderKey: 'labels-v1' },
   });
-  expect(plan.contentBounds).toEqual({ x: -200, y: -200, width: 780, height: 450 });
-  expect(plan.viewBox).toEqual({ x: -210, y: -210, width: 800, height: 470 });
+  expect(plan.contentBounds).toEqual({ x: -200, y: -215, width: 700, height: 465 });
+  expect(plan.viewBox).toEqual({ x: -210, y: -225, width: 720, height: 485 });
   expect(plan.layout?.routes[0]?.label?.position).toEqual({ x: 420, y: -200 });
   expect(plan.findings.find((f) => f.code === 'layout-label-content-unverified')?.target).toEqual({
     kind: 'edge',
@@ -410,14 +410,11 @@ test('invalid routes and label envelopes reject atomically at capture and plan b
   }
   expect(() => captureSvgLayout(editor, ' ')).toThrow();
 });
-test('planned retained geometry cannot silently fall through the canonical writer', () => {
+test('retained geometry writes explicitly without changing canonical defaults', () => {
   const editor = routedEditor();
   const result = writeSvgExport(editor, routedOptions(editor), { allowLosses: true });
-  expect(result.type).toBe('blocked');
-  expect(result.findings.find((f) => f.code === 'layout-writer-unsupported')?.severity).toBe(
-    'unsupported',
-  );
-  expect('svg' in result).toBe(false);
+  expect(result.type).toBe('written');
+  expect(result.findings.some((f) => f.code === 'layout-route-overridden')).toBe(true);
   expect(writeSvgExport(editor, options, { allowLosses: true }).type).toBe('written');
 });
 

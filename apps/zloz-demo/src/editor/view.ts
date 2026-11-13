@@ -1353,6 +1353,27 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               [
                 h.input([
                   h.Type('checkbox'),
+                  h.Checked(model.retainedSvgLayout),
+                  h.OnClick(Message.ClickedRetainedSvgLayout()),
+                ]),
+                'Use retained layout in SVG',
+              ],
+            ),
+            h.p(
+              [],
+              [
+                model.retainedSvgLayout
+                  ? model.editor.routes.length > 0
+                    ? 'Retained routes are included. Label artwork remains subject to fidelity findings.'
+                    : 'Arrange with ELK before reviewing retained routes.'
+                  : 'Canonical geometry is selected. PNG remains canonical.',
+              ],
+            ),
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
                   h.Checked(model.protectSvgDownloads),
                   h.OnClick(Message.ClickedSvgDownloadProtection()),
                 ]),

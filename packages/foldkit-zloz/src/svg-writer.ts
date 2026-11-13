@@ -1,4 +1,4 @@
-import { resolveEdgeGeometry } from './edge-geometry';
+import { resolveEdgeGeometry, type ZlozEdgeGeometry } from './edge-geometry';
 import { edgeEndpoints, portPosition } from './geometry';
 import { ZlozError } from './graph';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Core node shape geometry describes domain outlines.
@@ -17,7 +17,7 @@ import {
   type ZlozSvgFontFailureCode,
 } from './svg-font';
 import { prepareSvgFontCoverage, type PreparedSvgFontCoverage } from './svg-font-coverage';
-import type { Point, ZlozSnapshot, ZlozNode, ZlozEdge } from './types';
+import type { EdgeRoute, LayoutLabelBox, Point, ZlozSnapshot, ZlozNode, ZlozEdge } from './types';
 
 type Paint = Readonly<{ fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }>;
 /** Safe vector vocabulary; no markup, CSS, IDs, URL references, scripts or foreignObject. */
@@ -33,6 +33,7 @@ export type ZlozSvgPrimitive =
         position: Point;
         text: string;
         anchor?: 'start' | 'middle' | 'end';
+        baseline?: 'alphabetic' | 'middle';
         size?: number;
         weight?: number;
       }>)
@@ -43,7 +44,16 @@ export type ZlozSvgAdapterContext = Readonly<{
 }> &
   (
     | Readonly<{ kind: 'node'; node: ZlozNode }>
-    | Readonly<{ kind: 'edge'; edge: ZlozEdge; source: Point; target: Point }>
+    | Readonly<{
+        kind: 'edge';
+        edge: ZlozEdge;
+        source: Point;
+        target: Point;
+        /** Effective retained route; absent when authored geometry takes precedence. */
+        layoutRoute: EdgeRoute | undefined;
+        labelBox: LayoutLabelBox | undefined;
+        geometry: ZlozEdgeGeometry;
+      }>
   );
 export type ZlozSvgAdapter = Readonly<{
   id: string;
@@ -202,13 +212,25 @@ function primitiveWriter(
       case 'text': {
         const text = value.text;
         onText(text);
-        checkedKeys(value, [...drawing, 'position', 'text', 'anchor', 'size', 'weight']);
+        checkedKeys(value, [
+          ...drawing,
+          'position',
+          'text',
+          'anchor',
+          'baseline',
+          'size',
+          'weight',
+        ]);
         const anchor = value.anchor ?? 'start';
         if (!['start', 'middle', 'end'].includes(anchor)) invalid('Invalid SVG text anchor.');
+        if (value.baseline !== undefined && !['alphabetic', 'middle'].includes(value.baseline))
+          invalid('Invalid SVG text baseline.');
+        const baseline =
+          value.baseline === undefined ? '' : ` dominant-baseline="${value.baseline}"`;
         const size = positive(value.size ?? font.size),
           weight = value.weight ?? font.weight;
         if (finite(weight) < 1 || weight > 1000) invalid('Invalid SVG font weight.');
-        return `<text x="${finite(value.position.x)}" y="${finite(value.position.y)}" text-anchor="${anchor}" font-size="${size}" font-weight="${weight}" ${paint({ ...value, fill: value.fill ?? textColor }, true)}>${text
+        return `<text x="${finite(value.position.x)}" y="${finite(value.position.y)}" text-anchor="${anchor}"${baseline} font-size="${size}" font-weight="${weight}" ${paint({ ...value, fill: value.fill ?? textColor }, true)}>${text
           .split(/\r\n|\r|\n/u)
           .map(
             (line, index) =>
@@ -239,6 +261,19 @@ function lines(node: ZlozNode): string[] {
     ...(a.description ? [a.description] : []),
   ];
 }
+/** ADR 0076: keep SVG route/anchor precedence identical to native rendering. */
+function retainedGeometry(plan: ZlozSvgExportPlan, edge: ZlozEdge) {
+  const layoutRoute =
+    !edge.waypoints && edge.pathStyle === undefined
+      ? plan.layout?.routes.find((route) => route.id === edge.id)
+      : undefined;
+  const labelBox = layoutRoute?.label;
+  const geometry = resolveEdgeGeometry(plan.graph, edge, {
+    route: layoutRoute?.points,
+    labelPosition: labelBox?.position,
+  });
+  return { layoutRoute, labelBox, geometry };
+}
 /** Fresh planning and immutable callback context; no DOM or file IO. */
 export function writeSvgExport(
   snapshot: ZlozSnapshot,
@@ -252,12 +287,6 @@ export function writeSvgExport(
     target: ZlozSvgFinding['target'],
     reason: string,
   ) => findings.push({ code, severity: 'unsupported', target, reason });
-  if (plan.layout?.routes.length)
-    add(
-      'layout-writer-unsupported',
-      { kind: 'document' },
-      'Retained layout is currently a planning contract. The canonical writer cannot yet reproduce these routes and label anchors; omit layout explicitly for canonical export.',
-    );
   const prefix = writing.idPrefix ?? 'zloz-export';
   if (!/^[A-Za-z_][\w.-]*$/u.test(prefix)) invalid('SVG idPrefix must be an XML-safe identifier.');
   const maxCharacters = budget(writing.maxCharacters ?? 2000000, 'maxCharacters');
@@ -415,7 +444,13 @@ export function writeSvgExport(
         let context: ZlozSvgAdapterContext;
         if (item.target.kind === 'node' && node) context = { ...common, kind: 'node', node };
         else if (item.target.kind === 'edge' && edge)
-          context = { ...common, kind: 'edge', edge, ...edgeEndpoints(plan.graph, edge) };
+          context = {
+            ...common,
+            kind: 'edge',
+            edge,
+            ...edgeEndpoints(plan.graph, edge),
+            ...retainedGeometry(plan, edge),
+          };
         else invalid('Missing SVG adapter target.');
         const primitives = adapter.render(freeze(context));
         if (!Array.isArray(primitives) || primitives.length === 0)
@@ -449,13 +484,20 @@ export function writeSvgExport(
       } else {
         const edge = plan.graph.edges.find((e) => e.id === item.target.id);
         if (!edge) invalid('Missing edge.');
-        const geometry = resolveEdgeGeometry(plan.graph, edge);
+        const { geometry, labelBox } = retainedGeometry(plan, edge);
         reserve(1);
         artwork = `<path d="${path(geometry.path)}" fill="none" stroke="${xml(t.edge)}" stroke-width="${width}" marker-end="url(#${prefix}-arrow)"/>`;
         if (edge.label && geometry.labelPosition)
           artwork += render({
             type: 'text',
-            position: { x: geometry.labelPosition.x, y: geometry.labelPosition.y - 8 },
+            position: {
+              x: geometry.labelPosition.x,
+              y: labelBox
+                ? geometry.labelPosition.y -
+                  ((edge.label.split(/\r\n|\r|\n/u).length - 1) * plan.font.size * 1.25) / 2
+                : geometry.labelPosition.y - 8,
+            },
+            baseline: labelBox ? 'middle' : undefined,
             text: edge.label,
             anchor: 'middle',
             fill: t.nodeColor,

@@ -325,6 +325,7 @@ export const Model = Schema.Struct({
   svgReview: Schema.Unknown,
   protectSvgDownloads: Schema.Boolean,
   customSvgReview: Schema.Boolean,
+  retainedSvgLayout: Schema.Boolean,
   placement: Schema.Unknown,
   customPalette: Schema.Boolean,
   mappingReview: Schema.NullOr(MappingReview),
@@ -468,6 +469,7 @@ export type Model = Readonly<{
   svgReview: ZlozSvgReviewState;
   protectSvgDownloads: boolean;
   customSvgReview: boolean;
+  retainedSvgLayout: boolean;
   placement: ZlozPlacement;
   customPalette: boolean;
   mappingReview: MappingReviewDraft | null;
@@ -610,6 +612,7 @@ export const init = (namespace = 'test-workbench') => ({
     svgReview: createSvgReview(`root:${namespace}/0`),
     protectSvgDownloads: false,
     customSvgReview: false,
+    retainedSvgLayout: false,
     placement: createPlacement(`root:${namespace}/0`),
     customPalette: false,
     mappingReview: null,

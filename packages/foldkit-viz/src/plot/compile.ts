@@ -26,6 +26,12 @@ import {
   withTitle,
 } from './channels.js';
 import type { AxisName, ChannelName, ColorScale, Context, PositionScale } from './channels.js';
+import {
+  parallelGraphics,
+  sankeyGraphics,
+  sunburstGraphics,
+  treemapGraphics,
+} from './marks-panel.js';
 import { boxGraphics, linkGraphics, violinGraphics } from './marks-statistical.js';
 import type {
   Channel,
@@ -67,6 +73,13 @@ const MARKS = {
   box: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   violin: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   link: { required: ['x1', 'y1'], channels: ['x1', 'y1', 'x2', 'y2', 'stroke', 'title'] },
+  treemap: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
+  sunburst: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
+  sankey: {
+    required: ['source', 'target', 'value'],
+    channels: ['source', 'target', 'value', 'title'],
+  },
+  parallel: { required: [], channels: ['stroke', 'title'] },
   rule: { required: [], channels: ['x', 'y', 'stroke', 'title'] },
   text: { required: ['x', 'y', 'text'], channels: ['x', 'y', 'text', 'fill', 'title'] },
   cell: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
@@ -84,6 +97,12 @@ const OPTIONS = new Set([
   'dx',
   'dy',
   'bandwidth',
+  'separator',
+  'labels',
+  'padding',
+  'nodeWidth',
+  'nodePadding',
+  'dimensions',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -535,13 +554,26 @@ function resolveColor(
 ): ColorScale | null {
   const values: Value[] = [];
   const fields = new Set<string>();
-  for (const p of prepared)
+  for (const p of prepared) {
+    // Sankey nodes take categorical colours by name.
+    if (p.mark.mark === 'sankey') {
+      fields.add('node');
+      values.push(
+        ...read(p.source, p.mark.source, `${p.path}.source`).map((v) =>
+          v === null ? null : String(v),
+        ),
+        ...read(p.source, p.mark.target, `${p.path}.target`).map((v) =>
+          v === null ? null : String(v),
+        ),
+      );
+    }
     for (const name of COLOR_CHANNELS) {
       const field = fieldOf(channelOf(p.mark, name));
       if (field === undefined) continue;
       fields.add(field);
       values.push(...read(p.source, field, `${p.path}.${name}`));
     }
+  }
   if (fields.size === 0) return null;
   const present = values.filter((v) => v !== null);
   const type = spec.type ?? (present.every((v) => isNumber(v)) ? 'sequential' : 'categorical');
@@ -801,6 +833,14 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       return violinGraphics(mark, rows, path, context);
     case 'link':
       return linkGraphics(mark, rows, path, index, context);
+    case 'treemap':
+      return treemapGraphics(mark, rows, path, context);
+    case 'sunburst':
+      return sunburstGraphics(mark, rows, path, context);
+    case 'sankey':
+      return sankeyGraphics(mark, rows, path, context);
+    case 'parallel':
+      return parallelGraphics(mark, rows, path, index, context);
     case 'rule': {
       const vertical = mark.x !== undefined;
       const scale = requireScale(vertical ? context.x : context.y, path, vertical ? 'x' : 'y');
@@ -911,9 +951,9 @@ function markRows(spec: PlotSpec, mark: MarkSpec, path: string): ReadonlyArray<R
     return rows;
   }
   // A mark of constants alone, such as a reference rule, draws once.
-  const usesFields = MARKS[mark.mark].channels.some(
-    (name) => fieldOf(channelOf(mark, name)) !== undefined,
-  );
+  const usesFields =
+    mark.mark === 'parallel' ||
+    MARKS[mark.mark].channels.some((name) => fieldOf(channelOf(mark, name)) !== undefined);
   return usesFields ? fail(`${path}.data`, 'no data: give the mark or the plot rows') : [{}];
 }
 

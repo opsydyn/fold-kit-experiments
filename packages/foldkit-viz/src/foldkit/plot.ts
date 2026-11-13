@@ -54,7 +54,16 @@ function graphic<M>(h: HtmlBuilder<M>, g: Graphic): Html {
       );
     case 'path':
       return h.path(
-        [...common, h.D(g.d), h.Fill(g.fill), h.Stroke(g.stroke), h.StrokeWidth(n(g.strokeWidth))],
+        [
+          ...common,
+          h.D(g.d),
+          h.Fill(g.fill),
+          h.Stroke(g.stroke),
+          h.StrokeWidth(n(g.strokeWidth)),
+          ...(g.translate === undefined
+            ? []
+            : [h.Transform(`translate(${n(g.translate[0])},${n(g.translate[1])})`)]),
+        ],
         tooltip,
       );
     case 'rect':

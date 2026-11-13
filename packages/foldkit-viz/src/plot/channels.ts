@@ -57,7 +57,11 @@ export type ChannelName =
   | 'fill'
   | 'stroke'
   | 'text'
-  | 'title';
+  | 'title'
+  | 'path'
+  | 'value'
+  | 'source'
+  | 'target';
 
 export const channelOf = (mark: MarkSpec, name: ChannelName): Channel | undefined => {
   switch (name) {
@@ -87,6 +91,14 @@ export const channelOf = (mark: MarkSpec, name: ChannelName): Channel | undefine
       return 'text' in mark ? mark.text : undefined;
     case 'title':
       return mark.title;
+    case 'path':
+      return 'path' in mark ? mark.path : undefined;
+    case 'value':
+      return 'value' in mark ? mark.value : undefined;
+    case 'source':
+      return 'source' in mark ? mark.source : undefined;
+    case 'target':
+      return 'target' in mark ? mark.target : undefined;
   }
 };
 

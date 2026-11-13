@@ -142,6 +142,36 @@ export type TextMark = CommonMark &
 export type CellMark = CommonMark &
   Readonly<{ mark: 'cell'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
 
+/** Marks that fill their panel instead of using the x and y axes. */
+type HierarchyOptions = Readonly<{
+  /** Field holding each leaf's path, such as "Cloud/AWS". */
+  path: Channel;
+  value: Channel;
+  fill?: Channel;
+  /** Path separator. Default "/". */
+  separator?: string;
+  /** Label nodes with room for it. Default true. */
+  labels?: boolean;
+}>;
+export type TreemapMark = CommonMark &
+  HierarchyOptions &
+  Readonly<{ mark: 'treemap'; /** Gap between tiles in pixels. Default 2. */ padding?: number }>;
+export type SunburstMark = CommonMark & HierarchyOptions & Readonly<{ mark: 'sunburst' }>;
+/** Flows between named nodes; each row is one flow. Nodes take the categorical colours. */
+export type SankeyMark = CommonMark &
+  Readonly<{
+    mark: 'sankey';
+    source: Channel;
+    target: Channel;
+    value: Channel;
+    nodeWidth?: number;
+    nodePadding?: number;
+    labels?: boolean;
+  }>;
+/** One vertical axis per numeric field and one polyline per row. */
+export type ParallelMark = CommonMark &
+  Readonly<{ mark: 'parallel'; dimensions: ReadonlyArray<string>; stroke?: Channel }>;
+
 export type MarkSpec =
   | DotMark
   | LineMark
@@ -152,7 +182,11 @@ export type MarkSpec =
   | CellMark
   | BoxMark
   | ViolinMark
-  | LinkMark;
+  | LinkMark
+  | TreemapMark
+  | SunburstMark
+  | SankeyMark
+  | ParallelMark;
 export type MarkType = MarkSpec['mark'];
 
 export type PlotSpec = Readonly<{
@@ -192,6 +226,8 @@ export type Graphic =
         kind: 'path';
         key: string;
         d: string;
+        /** Where the path's origin sits, for paths drawn around a centre. */
+        translate?: readonly [number, number];
         fill: string;
         stroke: string;
         strokeWidth: number;

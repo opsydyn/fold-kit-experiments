@@ -169,10 +169,15 @@ Planning output alone remains distinct from emitted-file evidence.
 
 `foldkit-zloz-review` v1 packets contain chosen snapshots, conventions, audit delta
 and Mermaid projections. They are not full model archives and are not
-`foldkit-zloz-ddd-conversion` receipts. Only packet creation is currently public.
-Complete with a strict data-only decoder/validator and explicit format/version
+`foldkit-zloz-ddd-conversion` receipts. Package-level creation and strict v1 decoding are now public. The decoder bounds
+JSON input, validates owned snapshots/identities and recomputes the full audit and
+Mermaid wire content, returning detached frozen data or explicit rejection. See
+[ADR 0057](../adr/0057-decode-portable-review-packets-strictly.md) and
+[qualification](../../packages/foldkit-zloz-mermaid/evidence/review-packet-parse.md).
+CLI validation/inspection and read-only workbench opening remain incomplete.
+The delivered decoder provides strict data-only validation and explicit format/version
 errors, bounded input, structural and cross-field consistency checks, recomputed
-findings/projections and malformed/tampered/literal-fixture tests. Add CLI
+findings/projections and malformed/tampered/literal-fixture tests. Next add CLI
 validation/inspection and a read-only workbench opening flow that preserves the
 last good review on failure. Opening is not consent to edit or import a model.
 

@@ -17,3 +17,9 @@ export type {
   ZlozReviewPacketControlsContext,
   ZlozReviewPacketDecision,
 } from './review-packet-controls';
+
+export { parseReviewPacket } from './parse-review-packet';
+export type {
+  ZlozReviewPacketParseOptions,
+  ZlozReviewPacketParseResult,
+} from './parse-review-packet';

@@ -56,7 +56,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
 
     const source = `import { createEditor } from '@opsydyn/foldkit-zloz';
-import { resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
+import { parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
 const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: {x:0,y:0}, size: {width:200,height:100}, ports: [] }], edges: [] });
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
@@ -70,6 +70,13 @@ if (nested.status !== 'converted' || nested.value.identity.nodes[1]?.kind !== 'g
 const packet: ZlozReviewPacketResult = createReviewPacket({id:'review',name:'Review',origin:null,snapshot:{graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{graph:editor.graph}}]},{baselineId:'base'},{lossPolicy:'report'});
 if(packet.status!=='created'||packet.value.baseline.source.id!=='base'||packet.value.format!=='foldkit-zloz-review'||packet.value.conventions.rules.length!==6||packet.value.projections.selected.direction!=='LR')throw new Error('Review packet contract failed');
 const portable=JSON.parse(JSON.stringify(packet.value)); if(portable.selected.snapshot.graph.nodes[0].id!=='end')throw new Error('Packet portability failed');
+const opened:ZlozReviewPacketParseResult=parseReviewPacket(JSON.stringify(packet.value));
+if(opened.status!=='parsed'||!Object.isFrozen(opened.value)||opened.value.selected.snapshot.graph.nodes[0]?.id!=='end')throw new Error('Packet decoder failed');
+const tooWide=parseReviewPacket('['+Array(150001).fill(0).join(',')+']');
+if(tooWide.status!=='rejected'||tooWide.code!=='limit-exceeded')throw new Error('Packet size guard failed');
+const forged=JSON.parse(JSON.stringify(packet.value));forged.projections.selected.source+=' changed';
+if(parseReviewPacket(JSON.stringify(forged)).status!=='rejected')throw new Error('Packet consistency guard failed');
+
 const doc={id:'preview',name:'Preview',origin:null,snapshot:{graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{graph:editor.graph}}]};
 const selection={baselineId:'base',selectedId:null}, state={consentKey:null};
 const preview=resolveReviewPacketControls(doc,selection,state); if(!preview.key||!preview.requiresConsent)throw new Error('Missing packet preview');

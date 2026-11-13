@@ -1,0 +1,1303 @@
+{
+  "format": "foldkit-zloz-review",
+  "version": 1,
+  "scope": "selected-snapshots",
+  "model": {
+    "id": "orders",
+    "name": "Orders"
+  },
+  "baseline": {
+    "source": {
+      "kind": "edition",
+      "id": "before",
+      "name": "Before"
+    },
+    "snapshot": {
+      "graph": {
+        "nodes": [
+          {
+            "id": "note:0",
+            "label": "Customer",
+            "architecture": {
+              "family": "event-storming",
+              "role": "actor"
+            },
+            "position": {
+              "x": 0,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:1",
+            "label": "Place order",
+            "architecture": {
+              "family": "event-storming",
+              "role": "command"
+            },
+            "position": {
+              "x": 340,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:2",
+            "label": "Order placed",
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "position": {
+              "x": 680,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:3",
+            "label": "When order placed, request payment",
+            "architecture": {
+              "family": "event-storming",
+              "role": "policy"
+            },
+            "position": {
+              "x": 1020,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:4",
+            "label": "Request payment",
+            "architecture": {
+              "family": "event-storming",
+              "role": "command"
+            },
+            "position": {
+              "x": 1360,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "step:0",
+            "label": "Issues",
+            "architecture": {
+              "family": "event-storming",
+              "role": "issues"
+            },
+            "source": {
+              "node": "note:0",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:1",
+              "port": "in"
+            }
+          },
+          {
+            "id": "step:1",
+            "label": "Produces",
+            "architecture": {
+              "family": "event-storming",
+              "role": "produces"
+            },
+            "source": {
+              "node": "note:1",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:2",
+              "port": "in"
+            }
+          },
+          {
+            "id": "step:2",
+            "label": "Whenever",
+            "architecture": {
+              "family": "event-storming",
+              "role": "activates"
+            },
+            "source": {
+              "node": "note:2",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:3",
+              "port": "in"
+            }
+          },
+          {
+            "id": "step:3",
+            "label": "Then",
+            "architecture": {
+              "family": "event-storming",
+              "role": "triggers"
+            },
+            "source": {
+              "node": "note:3",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:4",
+              "port": "in"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "selected": {
+    "source": {
+      "kind": "current"
+    },
+    "snapshot": {
+      "graph": {
+        "nodes": [
+          {
+            "id": "note:0",
+            "label": "Customer",
+            "architecture": {
+              "family": "event-storming",
+              "role": "actor"
+            },
+            "position": {
+              "x": 0,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:1",
+            "label": "Place order",
+            "architecture": {
+              "family": "event-storming",
+              "role": "command"
+            },
+            "position": {
+              "x": 340,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:2",
+            "label": "Order placed",
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "position": {
+              "x": 680,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:3",
+            "label": "When order placed, request payment",
+            "architecture": {
+              "family": "event-storming",
+              "role": "policy"
+            },
+            "position": {
+              "x": 1020,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          },
+          {
+            "id": "note:4",
+            "label": "Request payment",
+            "architecture": {
+              "family": "event-storming",
+              "role": "command"
+            },
+            "position": {
+              "x": 1360,
+              "y": 40
+            },
+            "size": {
+              "width": 220,
+              "height": 160
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "appearance": {
+              "shape": "rectangle"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "支付:edge",
+            "label": "Issues",
+            "architecture": {
+              "family": "event-storming",
+              "role": "custom",
+              "name": "approves"
+            },
+            "source": {
+              "node": "note:0",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:1",
+              "port": "in"
+            }
+          }
+        ]
+      },
+      "viewport": {
+        "x": 4,
+        "y": 8,
+        "zoom": 1
+      }
+    }
+  },
+  "conventions": {
+    "source": "builtin",
+    "roleInterpretation": "zloz-event-storming/v1",
+    "rules": [
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "issues"
+        },
+        "sources": ["actor"],
+        "targets": ["command"],
+        "label": "Issues"
+      },
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "handles"
+        },
+        "sources": ["command"],
+        "targets": ["aggregate"],
+        "label": "Handled by"
+      },
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "emits"
+        },
+        "sources": ["aggregate"],
+        "targets": ["domain-event"],
+        "label": "Emits"
+      },
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "produces"
+        },
+        "sources": ["command"],
+        "targets": ["domain-event"],
+        "label": "Produces"
+      },
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "activates"
+        },
+        "sources": ["domain-event"],
+        "targets": ["policy"],
+        "label": "Activates"
+      },
+      {
+        "architecture": {
+          "family": "event-storming",
+          "role": "triggers"
+        },
+        "sources": ["policy"],
+        "targets": ["command"],
+        "label": "Triggers"
+      }
+    ]
+  },
+  "comparison": {
+    "modelId": "orders",
+    "status": "regressed",
+    "baseline": {
+      "source": {
+        "kind": "edition",
+        "id": "before",
+        "name": "Before"
+      },
+      "audit": {
+        "status": "compatible",
+        "summary": {
+          "edges": 4,
+          "typed": 4,
+          "inferred": 0,
+          "unrelated": 0,
+          "blocked": 0
+        },
+        "entries": [
+          {
+            "edgeId": "step:0",
+            "edgeLabel": "Issues",
+            "source": {
+              "node": "note:0",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:1",
+              "port": "in"
+            },
+            "code": "compatible",
+            "message": "Typed relationship: Issues.",
+            "architecture": {
+              "family": "event-storming",
+              "role": "issues"
+            },
+            "relationshipKey": "issues",
+            "status": "typed"
+          },
+          {
+            "edgeId": "step:1",
+            "edgeLabel": "Produces",
+            "source": {
+              "node": "note:1",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:2",
+              "port": "in"
+            },
+            "code": "compatible",
+            "message": "Typed relationship: Produces.",
+            "architecture": {
+              "family": "event-storming",
+              "role": "produces"
+            },
+            "relationshipKey": "produces",
+            "status": "typed"
+          },
+          {
+            "edgeId": "step:2",
+            "edgeLabel": "Whenever",
+            "source": {
+              "node": "note:2",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:3",
+              "port": "in"
+            },
+            "code": "compatible",
+            "message": "Typed relationship: Activates.",
+            "architecture": {
+              "family": "event-storming",
+              "role": "activates"
+            },
+            "relationshipKey": "activates",
+            "status": "typed"
+          },
+          {
+            "edgeId": "step:3",
+            "edgeLabel": "Then",
+            "source": {
+              "node": "note:3",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:4",
+              "port": "in"
+            },
+            "code": "compatible",
+            "message": "Typed relationship: Triggers.",
+            "architecture": {
+              "family": "event-storming",
+              "role": "triggers"
+            },
+            "relationshipKey": "triggers",
+            "status": "typed"
+          }
+        ]
+      }
+    },
+    "selected": {
+      "source": {
+        "kind": "current"
+      },
+      "audit": {
+        "status": "incompatible",
+        "summary": {
+          "edges": 1,
+          "typed": 0,
+          "inferred": 0,
+          "unrelated": 0,
+          "blocked": 1
+        },
+        "entries": [
+          {
+            "edgeId": "支付:edge",
+            "edgeLabel": "Issues",
+            "source": {
+              "node": "note:0",
+              "port": "out"
+            },
+            "target": {
+              "node": "note:1",
+              "port": "in"
+            },
+            "status": "blocked",
+            "code": "unknown-relationship",
+            "message": "The selected relationship is not available in this convention.",
+            "architecture": {
+              "family": "event-storming",
+              "role": "custom",
+              "name": "approves"
+            },
+            "relationshipKey": "custom:approves"
+          }
+        ]
+      }
+    },
+    "summary": {
+      "introduced": 1,
+      "resolved": 0,
+      "persisting": 0
+    },
+    "introduced": [
+      {
+        "edgeId": "支付:edge",
+        "edgeLabel": "Issues",
+        "source": {
+          "node": "note:0",
+          "port": "out"
+        },
+        "target": {
+          "node": "note:1",
+          "port": "in"
+        },
+        "status": "blocked",
+        "code": "unknown-relationship",
+        "message": "The selected relationship is not available in this convention.",
+        "architecture": {
+          "family": "event-storming",
+          "role": "custom",
+          "name": "approves"
+        },
+        "relationshipKey": "custom:approves"
+      }
+    ],
+    "resolved": [],
+    "persisting": []
+  },
+  "projectionOptions": {
+    "direction": "TB",
+    "lossPolicy": "report"
+  },
+  "projections": {
+    "baseline": {
+      "protocol": "foldkit-flow-mermaid/v1",
+      "source": "flowchart TB\n  n_6e_6f_74_65_3a_30[\"Customer\"]\n  n_6e_6f_74_65_3a_31[\"Place order\"]\n  n_6e_6f_74_65_3a_32[\"Order placed\"]\n  n_6e_6f_74_65_3a_33[\"When order placed, request payment\"]\n  n_6e_6f_74_65_3a_34[\"Request payment\"]\n  n_6e_6f_74_65_3a_30 e_73_74_65_70_3a_30@-->|\"Issues\"| n_6e_6f_74_65_3a_31\n  n_6e_6f_74_65_3a_31 e_73_74_65_70_3a_31@-->|\"Produces\"| n_6e_6f_74_65_3a_32\n  n_6e_6f_74_65_3a_32 e_73_74_65_70_3a_32@-->|\"Whenever\"| n_6e_6f_74_65_3a_33\n  n_6e_6f_74_65_3a_33 e_73_74_65_70_3a_33@-->|\"Then\"| n_6e_6f_74_65_3a_34\n",
+      "direction": "TB",
+      "identity": {
+        "version": 1,
+        "nodes": [
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_30",
+            "flowId": "note:0",
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_31",
+            "flowId": "note:1",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_32",
+            "flowId": "note:2",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_33",
+            "flowId": "note:3",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_34",
+            "flowId": "note:4",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "mermaidId": "e_73_74_65_70_3a_30",
+            "flowId": "step:0",
+            "sourceNode": "n_6e_6f_74_65_3a_30",
+            "sourcePort": "out",
+            "targetNode": "n_6e_6f_74_65_3a_31",
+            "targetPort": "in"
+          },
+          {
+            "mermaidId": "e_73_74_65_70_3a_31",
+            "flowId": "step:1",
+            "sourceNode": "n_6e_6f_74_65_3a_31",
+            "sourcePort": "out",
+            "targetNode": "n_6e_6f_74_65_3a_32",
+            "targetPort": "in"
+          },
+          {
+            "mermaidId": "e_73_74_65_70_3a_32",
+            "flowId": "step:2",
+            "sourceNode": "n_6e_6f_74_65_3a_32",
+            "sourcePort": "out",
+            "targetNode": "n_6e_6f_74_65_3a_33",
+            "targetPort": "in"
+          },
+          {
+            "mermaidId": "e_73_74_65_70_3a_33",
+            "flowId": "step:3",
+            "sourceNode": "n_6e_6f_74_65_3a_33",
+            "sourcePort": "out",
+            "targetNode": "n_6e_6f_74_65_3a_34",
+            "targetPort": "in"
+          }
+        ]
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:0"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:1"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:2"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:3"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null
+        }
+      ]
+    },
+    "selected": {
+      "protocol": "foldkit-flow-mermaid/v1",
+      "source": "flowchart TB\n  n_6e_6f_74_65_3a_30[\"Customer\"]\n  n_6e_6f_74_65_3a_31[\"Place order\"]\n  n_6e_6f_74_65_3a_32[\"Order placed\"]\n  n_6e_6f_74_65_3a_33[\"When order placed, request payment\"]\n  n_6e_6f_74_65_3a_34[\"Request payment\"]\n  n_6e_6f_74_65_3a_30 e_652f_4ed8_3a_65_64_67_65@-->|\"Issues\"| n_6e_6f_74_65_3a_31\n",
+      "direction": "TB",
+      "identity": {
+        "version": 1,
+        "nodes": [
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_30",
+            "flowId": "note:0",
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_31",
+            "flowId": "note:1",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_32",
+            "flowId": "note:2",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_33",
+            "flowId": "note:3",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              },
+              {
+                "id": "out",
+                "kind": "output"
+              }
+            ]
+          },
+          {
+            "mermaidId": "n_6e_6f_74_65_3a_34",
+            "flowId": "note:4",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input"
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "mermaidId": "e_652f_4ed8_3a_65_64_67_65",
+            "flowId": "支付:edge",
+            "sourceNode": "n_6e_6f_74_65_3a_30",
+            "sourcePort": "out",
+            "targetNode": "n_6e_6f_74_65_3a_31",
+            "targetPort": "in"
+          }
+        ]
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "支付:edge"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null
+        }
+      ]
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:0",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:0",
+      "side": "baseline"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:1",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:1",
+      "side": "baseline"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:2",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:2",
+      "side": "baseline"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:3",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:3",
+      "side": "baseline"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:4",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:4",
+      "side": "baseline"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "step:0",
+      "side": "baseline"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "step:1",
+      "side": "baseline"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "step:2",
+      "side": "baseline"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "step:3",
+      "side": "baseline"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null,
+      "side": "baseline"
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null,
+      "side": "baseline"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:0",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:0",
+      "side": "selected"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:1",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:1",
+      "side": "selected"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:2",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:2",
+      "side": "selected"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:3",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:3",
+      "side": "selected"
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "note:4",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "note:4",
+      "side": "selected"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: architecture.",
+      "subject": "支付:edge",
+      "side": "selected"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null,
+      "side": "selected"
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null,
+      "side": "selected"
+    },
+    {
+      "side": "selected",
+      "code": "viewport-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "subject": null,
+      "message": "The snapshot camera is retained in the packet but omitted from its Mermaid projection."
+    }
+  ]
+}

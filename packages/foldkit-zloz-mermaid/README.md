@@ -147,6 +147,50 @@ Packet JSON round-trip tests reproduce its audit using only the chosen snapshots
 and exported rules. The optional adapter still installs no Effect, Foldkit,
 Mermaid parser, browser or layout engine. See [ADR 0035](../../docs/adr/0035-export-portable-review-packets.md).
 
+## Strict review-packet reopening (unreleased)
+
+```ts
+import { parseReviewPacket } from '@opsydyn/foldkit-zloz-mermaid';
+
+const result = parseReviewPacket(fileText);
+if (result.status === 'parsed') {
+  // Owned, deeply frozen read-only data. No editor/model import is performed.
+  console.log(result.value.comparison.summary, result.value.diagnostics);
+} else {
+  console.log(result.code, result.reason, result.path);
+}
+```
+
+`ZlozReviewPacketParseResult` distinguishes `parsed` and `rejected`. Rejection codes
+are `invalid-json`, `limit-exceeded`, `unsupported-format`, `unsupported-version`,
+`invalid-packet` and `inconsistent-packet`; `path` is a JSON Pointer (empty for root).
+Invalid configured limits throw the existing core configuration error.
+
+The decoder accepts exact `foldkit-zloz-review` v1 packets in selected-snapshots
+scope. It validates snapshots/identities and data-only conventions, then recomputes
+all audits, deltas, diagnostics, Mermaid sources and identity/fidelity projections
+through the existing creator. The full wire representation must agree, with object
+key order ignored and array order retained. Unknown fields, duplicate JSON keys
+(including escaped aliases), non-finite numbers, conflicting edition identities,
+invalid rules, stale findings and forged projections reject. Returned data is the
+recomputed packet, never trusted cached projections. Current, distinct-edition and
+same-edition comparisons are supported. Builtin v1 conventions must match the
+builtin catalogue; custom catalogues retain their explicit validated rule data.
+
+Optional limits are `maxCharacters` (default 2,000,000 UTF-16 code units, cap
+16,000,000), `maxDepth` (64, cap 128), and `maxValues` (100,000, cap 1,000,000).
+All must be positive safe integers. Nesting/duplicate keys are scanned before
+JSON.parse; value traversal and freezing avoid spread-based argument limits.
+These are input-shape budgets, not a wall-clock or peak-memory guarantee. Hosts
+own file-byte limits, decoding and worker isolation when needed.
+
+Reopening validates **self-consistency, not authenticity**. A coherently rewritten
+packet can still be valid. Parsing does not execute Mermaid or confer model import,
+editing, graph mutation or trust in an author's identity. This package slice adds
+no CLI command or workbench file-opening UI. See
+[ADR 0057](../../docs/adr/0057-decode-portable-review-packets-strictly.md) and
+[decoder qualification](evidence/review-packet-parse.md). PNG and Alchemy remain deferred.
+
 ## Composable review-packet controls (unreleased)
 
 The root entry exports `resolveReviewPacketControls` and

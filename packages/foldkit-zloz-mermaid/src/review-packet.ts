@@ -90,7 +90,7 @@ function isDataRule(value: unknown): value is ZlozEventStormingRelationshipRule 
     value.targets.every(isString)
   );
 }
-function isReviewPacketOptions(value: unknown): value is ZlozReviewPacketOptions {
+export function isReviewPacketOptions(value: unknown): value is ZlozReviewPacketOptions {
   return (
     isRecord(value) &&
     Object.keys(value).every((key) => ['direction', 'lossPolicy', 'rules'].includes(key)) &&

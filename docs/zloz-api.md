@@ -320,3 +320,14 @@ No editor mutation or Apply authority follows from dry run. See the
 [contract guide](../packages/foldkit-zloz/README.md#headless-modelling-patches-and-dry-runs-unreleased),
 [ADR 0060](adr/0060-preview-bounded-modelling-patches-before-apply.md) and
 [local evidence](../packages/foldkit-zloz/evidence/modelling-patch.md).
+
+### Strict modelling-patch text decoding (unreleased)
+
+Core exports `parseModellingPatch`, `ZlozModellingPatchParseOptions` and
+`ZlozModellingPatchParseResult`. Decode one raw v1 proposal with bounded JSON
+grammar/duplicate-key preflight followed by the existing object validator.
+`parsed` contains owned frozen data; `rejected` contains a code, reason and JSON
+Pointer path. Configuration can tighten the v1 character/depth/value caps.
+Decoding grants no dry-run success or Apply authority. See the
+[decoder guide](../packages/foldkit-zloz/README.md#strict-versioned-patch-decoding-unreleased)
+and [ADR 0061](adr/0061-decode-versioned-modelling-patch-text-strictly.md).

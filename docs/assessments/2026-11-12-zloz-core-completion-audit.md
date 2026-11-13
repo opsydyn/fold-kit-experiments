@@ -195,7 +195,11 @@ operations, source model/session/revision/graph checks, data-only provenance,
 immutable exact prospective graphs, before/after changes and policy/loss findings.
 See [ADR 0060](../adr/0060-preview-bounded-modelling-patches-before-apply.md),
 [literal/dry-run evidence](../../packages/foldkit-zloz/evidence/modelling-patch.md).
-Raw text decoding, Effect CLI dry run and the guarded Apply lifecycle remain open.
+Strict raw v1 text decoding is also implemented on this branch: bounded preflight,
+duplicate decoded-key rejection, exact framing/version and owned frozen capture.
+See [ADR 0061](../adr/0061-decode-versioned-modelling-patch-text-strictly.md) and
+[decoder qualification](../../packages/foldkit-zloz/evidence/modelling-patch-parse.md).
+Effect CLI dry run and the guarded Apply lifecycle remain open.
 Apply must recheck live authority/source, reject stale or partial plans
 atomically, retain provenance and commit as one Undo. Package tests, portable
 fixtures, packed consumer and Effect CLI dry-run evidence must precede a guarded

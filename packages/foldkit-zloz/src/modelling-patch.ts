@@ -76,7 +76,15 @@ export type ZlozModellingPatchOptions = Readonly<{
   canChange?: (change: ZlozModellingPatchChange, source: ZlozModellingPatchSource) => string | null;
   canPatch?: (candidate: ZlozModellingPatchCandidate) => string | null;
 }>;
-class PatchValidationError extends ZlozError {
+/** @internal Shared v1 object/text budgets; text decoders may only tighten them. */
+export const modellingPatchLimits = Object.freeze({
+  maxCharacters: 2000000,
+  maxDepth: 64,
+  maxValues: 100000,
+  maxOperations: 1000,
+});
+/** @internal Carries the existing object-boundary path into text decoder findings. */
+export class PatchValidationError extends ZlozError {
   constructor(
     message: string,
     readonly path: string,
@@ -106,13 +114,13 @@ function ownedData(input: unknown): JsonValue {
     characters = 0;
   const ancestors = new Set<object>();
   const visit = (v: unknown, depth: number, path: string): JsonValue => {
-    if (++count > 100000 || depth > 64)
+    if (++count > modellingPatchLimits.maxValues || depth > modellingPatchLimits.maxDepth)
       invalid(path, 'Patch exceeds 100000 JSON values or depth 64.');
     if (v === null || typeof v === 'boolean') return v;
     if (typeof v === 'number' && Number.isFinite(v)) return v;
     if (typeof v === 'string') {
       characters += v.length;
-      if (characters > 2000000)
+      if (characters > modellingPatchLimits.maxCharacters)
         invalid(path, 'Patch exceeds 2000000 characters of string/key content.');
       return v;
     }
@@ -131,7 +139,8 @@ function ownedData(input: unknown): JsonValue {
     if (Array.isArray(v)) {
       if (Object.getPrototypeOf(v) !== Array.prototype)
         invalid(path, 'Patch requires plain JSON arrays.');
-      if (v.length > 100000) invalid(path, 'Patch arrays exceed 100000 JSON values.');
+      if (v.length > modellingPatchLimits.maxValues)
+        invalid(path, 'Patch arrays exceed 100000 JSON values.');
       if (keys.length !== v.length + 1)
         invalid(path, 'Patch arrays must be dense and contain only indexed values.');
       const result: JsonValue[] = [];
@@ -151,7 +160,7 @@ function ownedData(input: unknown): JsonValue {
       if (!descriptor?.enumerable || !('value' in descriptor))
         invalid(path, 'Patch cannot contain accessors or non-enumerable fields.');
       characters += key.length;
-      if (characters > 2000000)
+      if (characters > modellingPatchLimits.maxCharacters)
         invalid(path, 'Patch exceeds 2000000 characters of string/key content.');
       entries.push([
         key,
@@ -206,7 +215,10 @@ function assertPatch(value: unknown): asserts value is ZlozModellingPatch {
     if (!text(ref.kind) || !text(ref.id))
       invalid('/provenance/references', 'Reference kind and ID must be nonblank.');
   }
-  if (!Array.isArray(value.operations) || value.operations.length > 1000)
+  if (
+    !Array.isArray(value.operations) ||
+    value.operations.length > modellingPatchLimits.maxOperations
+  )
     invalid('/operations', 'Patch requires at most 1000 operations.');
   const ids = new Set<string>();
   for (const [i, op] of value.operations.entries()) {

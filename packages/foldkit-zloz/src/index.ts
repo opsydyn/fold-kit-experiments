@@ -510,3 +510,9 @@ export type {
   ZlozModellingPatchPreview,
   ZlozModellingPatchOptions,
 } from './modelling-patch';
+
+export { parseModellingPatch } from './parse-modelling-patch';
+export type {
+  ZlozModellingPatchParseOptions,
+  ZlozModellingPatchParseResult,
+} from './parse-modelling-patch';

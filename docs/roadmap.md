@@ -191,7 +191,9 @@ are the current checklist; historical receipts qualify only their stated scope.
    on this branch, unreleased. See the [reader receipt](../apps/zloz-demo/evidence/review-reader.md).
    Headless modelling-patch proposals/dry runs are also implemented on this branch;
    see the [patch receipt](../packages/foldkit-zloz/evidence/modelling-patch.md).
-   Strict transport decoding, CLI dry run and guarded atomic Apply remain open.
+   Strict versioned patch text decoding is implemented; see the
+   [decoder receipt](../packages/foldkit-zloz/evidence/modelling-patch-parse.md).
+   Effect CLI dry run with bounded UTF-8 IO and guarded atomic Apply remain open.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition

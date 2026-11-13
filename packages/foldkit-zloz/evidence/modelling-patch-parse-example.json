@@ -1,0 +1,103 @@
+{
+  "parsed": {
+    "status": "parsed",
+    "value": {
+      "format": "foldkit-zloz-patch",
+      "id": "rename-orders-context",
+      "operations": [
+        {
+          "id": "rename-orders",
+          "node": {
+            "architecture": {
+              "family": "ddd",
+              "role": "bounded-context"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "orders",
+            "label": "Order management",
+            "ports": [],
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "height": 160,
+              "width": 240
+            }
+          },
+          "type": "node.replace"
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "id": "reviewer",
+          "kind": "human"
+        },
+        "reason": "Clarify ownership while retaining DDD meaning.",
+        "references": [
+          {
+            "id": "commerce-review-1",
+            "kind": "review-packet"
+          }
+        ]
+      },
+      "source": {
+        "graph": {
+          "edges": [],
+          "nodes": [
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "bounded-context"
+              },
+              "data": {
+                "owner": "commerce"
+              },
+              "id": "orders",
+              "label": "Orders",
+              "ports": [],
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "height": 160,
+                "width": 240
+              }
+            }
+          ]
+        },
+        "modelId": "commerce",
+        "revision": 7,
+        "sessionId": "commerce/session-1"
+      },
+      "version": 1
+    }
+  },
+  "duplicate": {
+    "status": "rejected",
+    "code": "invalid-json",
+    "reason": "Duplicate decoded JSON property names are not allowed.",
+    "path": "/source/graph/nodes/0/data/owner"
+  },
+  "unsupported": {
+    "status": "rejected",
+    "code": "unsupported-version",
+    "reason": "Only modelling-patch version 1 is supported.",
+    "path": "/version"
+  },
+  "bounded": {
+    "status": "rejected",
+    "code": "limit-exceeded",
+    "reason": "Modelling patch exceeds its JSON value budget.",
+    "path": "/source/graph/nodes/0"
+  },
+  "malformed": {
+    "status": "rejected",
+    "code": "invalid-json",
+    "reason": "Expected exactly one JSON document.",
+    "path": ""
+  }
+}

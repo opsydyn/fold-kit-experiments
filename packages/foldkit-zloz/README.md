@@ -4381,11 +4381,68 @@ depth 64, 100,000 JSON values and 2,000,000 total characters in strings/keys. It
 rejects accessors, functions, undefined, non-finite values, cycles, symbols, custom
 prototypes and sparse arrays. Envelope fields are exact; graph payload extensions
 remain data-only under existing graph validation. Invalid current-host source is
-a configuration error and throws. This is not a raw JSON/file parser: transports
-must enforce bytes, duplicate keys and framing before supplying an object. There
-is no wall-clock, authenticity or hostile-JavaScript-object isolation guarantee.
+a configuration error and throws. For raw text, use `parseModellingPatch` below to preserve duplicate-key and
+framing checks before capture. File/stdin transports still own byte limits and
+fatal UTF-8 decoding. There is no wall-clock, authenticity or hostile-JavaScript-
+object isolation guarantee.
 
 See [ADR 0060](../../docs/adr/0060-preview-bounded-modelling-patches-before-apply.md),
 [literal proposal](test/fixtures/modelling-patch-v1.json),
 [actual dry-run results](evidence/modelling-patch-example.json) and
 [qualification](evidence/modelling-patch.md). PNG and Alchemy remain deferred.
+
+## Strict versioned patch decoding (unreleased)
+
+```ts
+import { parseModellingPatch, dryRunModellingPatch } from '@opsydyn/foldkit-zloz';
+
+const decoded = parseModellingPatch(fileText);
+if (decoded.status === 'parsed') {
+  // Detached, deeply frozen proposal data. No source freshness or editing permission implied.
+  const preview = dryRunModellingPatch(currentSource, decoded.value, reviewPolicy);
+  console.log(preview);
+} else {
+  console.log(decoded.code, decoded.reason, decoded.path);
+}
+```
+
+`parseModellingPatch` accepts exactly one raw `foldkit-zloz-patch` v1 document.
+It returns `ZlozModellingPatchParseResult`: `parsed` with `value`, or `rejected`
+with a stable code, readable reason and JSON Pointer path (empty for root).
+Codes are `invalid-json`, `limit-exceeded`, `unsupported-format`,
+`unsupported-version` and `invalid-patch`. Core graph validation errors may point
+to root; envelope/payload and scanner errors retain more specific paths.
+
+A bounded grammar preflight runs before constructing the complete JSON value.
+It rejects duplicate **decoded** property names at every depth, including metadata
+and escaped names such as `version` / `\u0076ersion`. It checks strings/escapes,
+JSON-only whitespace, number syntax, finite numeric values and a single-document
+frame. Comments, BOM, trailing commas/documents and non-JSON whitespace reject.
+Distinct Unicode keys retain their distinct values. No reviver or executable
+content is used. Native JSON.parse constructs the value after preflight, then
+`captureModellingPatch` owns exact schema/source/payload/provenance validation
+and frozen detachment. Existing patch and model wire formats are unchanged.
+
+`ZlozModellingPatchParseOptions` can tighten these limits:
+
+| Option          | Default and maximum | Meaning                                           |
+| --------------- | ------------------- | ------------------------------------------------- |
+| `maxCharacters` | 2,000,000           | UTF-16 code units, including whitespace/escapes   |
+| `maxDepth`      | 64                  | Value depth, root zero; includes primitive leaves |
+| `maxValues`     | 100,000             | Containers and values, excluding property names   |
+
+Configured limits must be positive safe integers within the v1 caps; invalid
+configuration throws `ZlozError`. The fixed 1,000-operation cap also reports
+`limit-exceeded` at `/operations`. Limits cannot relax the object validator's
+budgets. They bound traversal, not input bytes, peak memory or wall-clock time.
+File/stdin hosts must enforce UTF-8 byte limits, fatal decoding and cancellation.
+
+This decoder does not unwrap CLI response envelopes or accept a model archive,
+review packet or conversion receipt. It establishes proposal validity, not a
+valid prospective graph or current source authority. Missing targets, conflicting
+operations, final graph invariants, stale source, review policies and losses are
+checked by the separate dry run. No CLI command or Apply API is added here.
+
+See [ADR 0061](../../docs/adr/0061-decode-versioned-modelling-patch-text-strictly.md),
+[literal fixture](test/fixtures/modelling-patch-v1.json) and
+[decoder qualification](evidence/modelling-patch-parse.md).

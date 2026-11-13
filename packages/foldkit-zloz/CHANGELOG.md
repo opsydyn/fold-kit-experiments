@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add strict versioned patch text decoding with duplicate-key, JSON grammar/framing, finite-number and resource-limit checks.
+
 - Add bounded data-only modelling-patch proposals, source/provenance checks and immutable dry-run previews with policy/loss findings.
 
 - Add atomic EventStorming-to-DDD Apply with live source/consent/lifecycle/policy checks, one graph Undo and portable before/after provenance receipts.

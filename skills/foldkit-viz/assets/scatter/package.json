@@ -8,7 +8,7 @@
     "test": "bun run build && node --test test/geometry.test.mjs"
   },
   "dependencies": {
-    "@opsydyn/foldkit-viz": "0.15.0"
+    "@opsydyn/foldkit-viz": "0.17.0"
   },
   "devDependencies": {
     "typescript": "6.0.3"

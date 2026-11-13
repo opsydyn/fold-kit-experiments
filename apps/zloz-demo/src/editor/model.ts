@@ -25,6 +25,7 @@ import { Schema } from 'effect';
 
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
 import type { PacketReviewPreview } from './packet-reader';
+import type { PatchWorkbenchState } from './patch-review';
 import type { ReceiptReview } from './receipt-review';
 
 export const initialGraph: ZlozGraph = {
@@ -308,6 +309,7 @@ export const WorkbenchSection = Schema.Literals([
   'export',
   'svg',
   'review',
+  'patch',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
@@ -322,6 +324,7 @@ export const Model = Schema.Struct({
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
   ),
   mappingConsentRun: Schema.Number,
+  patchWorkbench: Schema.Unknown,
   packetReader: Schema.Unknown,
   packetPreview: Schema.NullOr(Schema.Unknown),
   protectReviewOpening: Schema.Boolean,
@@ -459,6 +462,7 @@ export type Model = Readonly<{
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
+  patchWorkbench: PatchWorkbenchState;
   packetReader: ZlozReviewReaderState;
   packetPreview: PacketReviewPreview | null;
   protectReviewOpening: boolean;
@@ -574,6 +578,17 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    patchWorkbench: {
+      scope: '',
+      run: 0,
+      pending: null,
+      patch: null,
+      consent: null,
+      receipts: [],
+      notice: '',
+      protected: false,
+      custom: false,
+    },
     packetReader: createReviewReader(`root:${namespace}/0`),
     packetPreview: null,
     protectReviewOpening: false,

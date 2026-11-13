@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add Effect CLI patch dry run with separate current source, strict decoding and explicit exit semantics.
+
 ## 0.1.0 — unpublished candidate
 
 - Add standalone Effect CLI commands for canonical model validation and Mermaid export.

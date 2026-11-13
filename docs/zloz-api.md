@@ -331,3 +331,15 @@ Pointer path. Configuration can tighten the v1 character/depth/value caps.
 Decoding grants no dry-run success or Apply authority. See the
 [decoder guide](../packages/foldkit-zloz/README.md#strict-versioned-patch-decoding-unreleased)
 and [ADR 0061](adr/0061-decode-versioned-modelling-patch-text-strictly.md).
+
+### Reviewed patch Apply and controls (unreleased)
+
+Core exports `resolveModellingPatchReview`, `resolveModellingPatchAcknowledgement`
+and `applyModellingPatch`, plus identity, consent, options, review/request, receipt
+and Apply-result types. The optional `/foldkit` entry exposes the native review,
+acknowledgement and Apply helpers with nullable slots/layout and diagnostic controls.
+Apply reconstructs current source and policy, requires exact-content acknowledgement,
+and returns the editor and provenance receipt together after one Undo commit.
+The Effect CLI adds inspect-only `patch dry-run` against a separate current source.
+See [ADR 0062](adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md) and
+[completion evidence](../apps/zloz-demo/evidence/p2-completion.md).

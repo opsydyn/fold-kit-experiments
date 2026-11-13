@@ -147,6 +147,7 @@ import {
 import { modelSessionBusy } from './model-sessions';
 import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
+import { patchWorkbenchPanel } from './patch-review';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
 import { nextPort } from './port-editing';
@@ -608,6 +609,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
     review: packetReaderPanel(model, h),
+    patch: patchWorkbenchPanel(model, h),
     history: [
       h.div(
         [h.Role('group'), h.AriaLabel('Edition playback')],

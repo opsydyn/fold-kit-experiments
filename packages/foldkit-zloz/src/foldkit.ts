@@ -2984,3 +2984,13 @@ export {
   zlozSvgDownloadButton,
 } from './svg-review-view';
 export type { ZlozSvgReviewParts, ZlozSvgReviewViewOptions } from './svg-review-view';
+
+export {
+  zlozModellingPatchReview,
+  zlozModellingPatchAcknowledgement,
+  zlozModellingPatchApply,
+} from './modelling-patch-review-view';
+export type {
+  ZlozModellingPatchReviewParts,
+  ZlozModellingPatchReviewViewOptions,
+} from './modelling-patch-review-view';

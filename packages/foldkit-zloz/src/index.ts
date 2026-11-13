@@ -516,3 +516,18 @@ export type {
   ZlozModellingPatchParseOptions,
   ZlozModellingPatchParseResult,
 } from './parse-modelling-patch';
+
+export {
+  resolveModellingPatchReview,
+  resolveModellingPatchAcknowledgement,
+  applyModellingPatch,
+} from './modelling-patch-apply';
+export type {
+  ZlozModellingPatchIdentity,
+  ZlozModellingPatchConsent,
+  ZlozModellingPatchApplyOptions,
+  ZlozModellingPatchReceipt,
+  ZlozModellingPatchReview,
+  ZlozModellingPatchReviewRequest,
+  ZlozModellingPatchApplyResult,
+} from './modelling-patch-apply';

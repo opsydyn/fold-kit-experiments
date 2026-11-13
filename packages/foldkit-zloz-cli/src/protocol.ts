@@ -1,6 +1,7 @@
 import type {
   ZlozEventStormingRelationshipAudit,
   ZlozRelationshipAuditComparison,
+  ZlozModellingPatchPreview,
 } from '@opsydyn/foldkit-zloz';
 import type {
   MermaidBundle,
@@ -19,6 +20,7 @@ export type CliOperation =
   | 'review-packet'
   | 'review-validate'
   | 'review-inspect'
+  | 'patch-dry-run'
   | 'invocation';
 export const CliDiagnostic = Schema.Struct({
   code: Schema.String,
@@ -26,7 +28,7 @@ export const CliDiagnostic = Schema.Struct({
   subject: Schema.NullOr(Schema.String),
   severity: Schema.Literals(['error', 'loss']),
   dimension: Schema.Literals(['syntax', 'semantics', 'identity', 'layout', 'io']),
-  /** JSON Pointer from strict review-packet decoding, including empty root. */
+  /** JSON Pointer from strict document decoding, including empty root. */
   path: Schema.optionalKey(Schema.String),
   /** Present for packet conversion diagnostics; other commands retain their existing shape. */
   side: Schema.optionalKey(Schema.Literals(['packet', 'baseline', 'selected'])),
@@ -47,6 +49,13 @@ export type CliReviewPacketSummary = Readonly<{
   audit: Pick<ZlozRelationshipAuditComparison, 'status' | 'summary'>;
 }>;
 export type CliResponse =
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'patch-dry-run';
+      status: 'reviewed';
+      data: ZlozModellingPatchPreview;
+      diagnostics: readonly CliDiagnostic[];
+    }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'review-validate';
@@ -128,6 +137,7 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'invalid-document'
     | 'invalid-rules'
     | 'model-required'
+    | 'invalid-patch'
     | 'unknown-baseline'
     | 'unknown-edition'
     | Extract<ZlozReviewPacketParseResult, { status: 'rejected' }>['code'];
@@ -166,3 +176,8 @@ export class CliInvocationRejected extends Data.TaggedError('CliInvocationReject
 
 /** JSON framing belongs at the output boundary, not in the graph model. */
 export const encodeResponse = Schema.encodeUnknownSync(Schema.fromJsonString(Schema.Json));
+
+export class CliPatchRejected extends Data.TaggedError('CliPatchRejected') {
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}

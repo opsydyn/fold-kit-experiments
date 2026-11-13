@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add reviewed modelling-patch controls and live policy-aware atomic Apply with retained provenance and one Undo.
+
 - Add strict versioned patch text decoding with duplicate-key, JSON grammar/framing, finite-number and resource-limit checks.
 
 - Add bounded data-only modelling-patch proposals, source/provenance checks and immutable dry-run previews with policy/loss findings.

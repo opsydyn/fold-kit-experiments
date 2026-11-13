@@ -179,7 +179,49 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         ],
       }),
     );
+    const patchLiteral = JSON.parse(
+      await readFile(
+        path.join(root, 'packages/foldkit-zloz/test/fixtures/modelling-patch-v1.json'),
+        'utf8',
+      ),
+    );
+    const patchSourceFile = path.join(directory, 'patch-source.model.json');
+    await writeFile(
+      patchSourceFile,
+      serializeModelDocument(
+        captureModelDocument({
+          id: patchLiteral.source.modelId,
+          name: 'Commerce',
+          snapshot: { graph: patchLiteral.source.graph },
+          editions: [],
+          origin: null,
+        }),
+      ),
+    );
     for (const runtime of ['node', 'bun']) {
+      const patchArgs = [
+        runtime,
+        bin,
+        'patch',
+        'dry-run',
+        '--source',
+        patchSourceFile,
+        '--session',
+        patchLiteral.source.sessionId,
+        '--revision',
+        '7',
+      ];
+      const patchDryRun = await run(patchArgs, JSON.stringify(patchLiteral));
+      expect(patchDryRun.code).toBe(0);
+      expect(patchDryRun.stderr).toBe('');
+      expect(JSON.parse(patchDryRun.stdout).data.graph.nodes[0].label).toBe('Order management');
+      const patchStale = await run([...patchArgs.slice(0, -1), '8'], JSON.stringify(patchLiteral));
+      expect(patchStale.code).toBe(1);
+      expect(JSON.parse(patchStale.stdout).data.findings[0].code).toBe('source-changed');
+      const patchInvalid = await run(patchArgs, new Uint8Array([0xc3]));
+      expect(patchInvalid.code).toBe(2);
+      expect(JSON.parse(patchInvalid.stdout).diagnostics[0].code).toBe('invalid-utf8');
+
       const packet = await run([
         runtime,
         bin,

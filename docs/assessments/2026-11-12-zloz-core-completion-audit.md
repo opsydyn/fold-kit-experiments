@@ -199,12 +199,16 @@ Strict raw v1 text decoding is also implemented on this branch: bounded prefligh
 duplicate decoded-key rejection, exact framing/version and owned frozen capture.
 See [ADR 0061](../adr/0061-decode-versioned-modelling-patch-text-strictly.md) and
 [decoder qualification](../../packages/foldkit-zloz/evidence/modelling-patch-parse.md).
-Effect CLI dry run and the guarded Apply lifecycle remain open.
-Apply must recheck live authority/source, reject stale or partial plans
-atomically, retain provenance and commit as one Undo. Package tests, portable
-fixtures, packed consumer and Effect CLI dry-run evidence must precede a guarded
-workbench Apply. Automatic writable agents and external system writes remain
-outside this contract.
+**P2 local functional criteria are now implemented on this branch, unreleased.**
+Effect CLI `patch dry-run` reads a strict proposal and separate current model/source
+identity with bounded fatal UTF-8 IO. Package review/acknowledgement/Apply helpers
+rebuild the live source and granular policies, retain provenance, and commit the
+complete graph in one Undo. Native/composable controls and the workbench show
+explicit changes/loss acceptance, failed-read retention, protection and receipt
+download. See [ADR 0062](../adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
+and [completion evidence](../../apps/zloz-demo/evidence/p2-completion.md).
+No CLI Apply or automatic writable agents are introduced. Broader domain,
+compatibility and qualification gates below remain distinct from P2 completion.
 
 ## Open domain and compatibility decisions
 
@@ -249,7 +253,7 @@ Keep release readiness separate: reviewed commits/PR, green CI, package identity
 artifact/provenance and consumer checks precede any separately authorized publish
 or deployment. Local checks cannot prove hosted acceptance or registry state.
 
-**Alchemy Domain remains deferred by user decision until core completion.** No
+**Next functional priority is PNG, followed by a separately scoped Alchemy review, per the user's consolidated completion request (2026-11-13).** No
 adapter, dependency adoption or qualification is scheduled ahead of these gates;
 completion does not itself authorize adopting or deploying an integration.
 

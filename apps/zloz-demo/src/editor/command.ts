@@ -355,3 +355,52 @@ export const ReadReviewPacket = Command.define('ReadReviewPacket', {
       }),
     ),
 });
+
+export const ReadPatchFile = Command.define('ReadPatchFile', {
+  args: {
+    scope: Schema.String,
+    run: Schema.Number,
+    maxBytes: Schema.Number,
+    file: Schema.instanceOf(File),
+  },
+  messages: [Message.SucceededPatchRead, Message.FailedPatchRead],
+  execute: ({ scope, run, maxBytes, file }) =>
+    Effect.gen(function* () {
+      if (file.size > maxBytes)
+        return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
+      const buffer = yield* Effect.tryPromise(() => file.arrayBuffer());
+      if (buffer.byteLength > maxBytes)
+        return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
+      return yield* Effect.try(() => new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+    }).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededPatchRead({ scope, run, json }),
+        onFailure: () => Message.FailedPatchRead({ scope, run }),
+      }),
+    ),
+});
+
+export const DownloadPatchArtifact = Command.define('DownloadPatchArtifact', {
+  args: {
+    scope: Schema.String,
+    json: Schema.String,
+    kind: Schema.Literals(['proposal', 'receipt']),
+  },
+  messages: [Message.CompletedPatchDownload, Message.FailedPatchDownload],
+  execute: ({ scope, json, kind }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download:
+          kind === 'proposal' ? 'foldkit-zloz.patch.json' : 'foldkit-zloz.patch-receipt.json',
+      });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedPatchDownload({ scope }),
+        onFailure: () => Message.FailedPatchDownload({ scope }),
+      }),
+    ),
+});

@@ -193,7 +193,10 @@ are the current checklist; historical receipts qualify only their stated scope.
    see the [patch receipt](../packages/foldkit-zloz/evidence/modelling-patch.md).
    Strict versioned patch text decoding is implemented; see the
    [decoder receipt](../packages/foldkit-zloz/evidence/modelling-patch-parse.md).
-   Effect CLI dry run with bounded UTF-8 IO and guarded atomic Apply remain open.
+   P2's remaining local chain is implemented: Effect CLI dry run, exact-content
+   review/acknowledgement, policy-aware atomic Apply, one Undo and retained/downloaded
+   provenance. See [completion evidence](../apps/zloz-demo/evidence/p2-completion.md).
+   PNG is the next functional export task; broader D/C/Q audit rows remain tracked.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
@@ -311,9 +314,11 @@ traversal position. Show receipt overview clears selection and fits all nodes on
 the chosen side. Live availability guards preserve the previous view on rejection.
 See [local evidence](../apps/zloz-demo/evidence/receipt-side.md).
 
-**Deferred integration:** Alchemy Domain is deferred by user decision (2026-11-12)
-until the core Zloz roadmap is complete. The assessment remains a proposal; no
-adapter implementation or dependency adoption is scheduled ahead of core work.
+**Updated next-track priority (2026-11-13):** the user's consolidated completion
+request moves PNG next after P2, then a separately scoped Alchemy integration
+review. This supersedes the earlier all-core-first sequencing, without declaring
+D1–D2/C1–C4 or Q1–Q4 complete. Provider activation, dependency adoption and deployment
+remain separate decisions.
 
 **Authored edge waypoints — implemented on this branch, unreleased:** named
 world-space bends, finite/identity validation, public preview/edit contract, live
@@ -362,9 +367,11 @@ transparent files have local Chromium evidence. Resource-byte embedding is unsup
 See [ADR 0053](adr/0053-write-svg-through-typed-primitives.md) and
 [writer evidence](../packages/foldkit-zloz/evidence/svg-writer.md).
 
-**Recommended next:** package-owned SVG review/download controls in the workbench,
-with region/theme/background choices, visible findings and explicit loss acceptance.
-Keep PNG and Alchemy deferred.
+**Current continuation:** SVG review/download controls and validated embedded-font
+resources have since been implemented (see the later receipts above). P2's reviewed
+patch lifecycle is locally complete. Next implement package-owned PNG export, then
+revisit the Alchemy integration boundary; broader compatibility/qualification work
+remains tracked separately.
 
 ## Release: Keyed Chart Comparison
 

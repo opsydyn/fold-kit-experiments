@@ -3,6 +3,8 @@
  * @module CLI
  */
 import {
+  parseModellingPatch,
+  dryRunModellingPatch,
   auditEventStormingRelationships,
   compareModelEventStormingRelationships,
   type ZlozGraph,
@@ -31,6 +33,7 @@ import {
   CliAuditIncompatible,
   CliAuditRegression,
   CliReviewInputRejected,
+  CliPatchRejected,
   CliInvocationRejected,
   encodeResponse,
   type CliOperation,
@@ -48,6 +51,7 @@ export {
   CliAuditIncompatible,
   CliAuditRegression,
   CliReviewInputRejected,
+  CliPatchRejected,
   CliInvocationRejected,
 } from './protocol';
 export type { CliOperation, CliResponse, CliReviewPacketSummary } from './protocol';
@@ -546,11 +550,120 @@ const reviewCommand = Command.make('review').pipe(
   Command.withDescription('Portable architecture review artifacts.'),
   Command.withSubcommands([packetCommand, packetValidateCommand, packetInspectCommand]),
 );
+function decodePatchProposal(input: string, text: string) {
+  return Match.value(parseModellingPatch(text)).pipe(
+    Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
+    Match.when({ status: 'rejected' }, (result) =>
+      Result.fail(
+        new CliInputError({
+          code: result.code,
+          message: result.reason,
+          path: result.path,
+          dimension: 'syntax',
+          subject: input,
+        }),
+      ),
+    ),
+    Match.exhaustive,
+  );
+}
+function readPatchProposal(input: string) {
+  return readTextInput(input).pipe(
+    Effect.flatMap((text) => Effect.fromResult(decodePatchProposal(input, text))),
+    Effect.catchTag('CliInputError', (error) => rejectInput('patch-dry-run', error)),
+  );
+}
+const patchDryRunCommand = Command.make(
+  'dry-run',
+  {
+    input,
+    source: Flag.String('source').pipe(
+      Flag.withDescription('Separate canonical model document, or - for stdin.'),
+    ),
+    session: Flag.String('session').pipe(
+      Flag.withDescription('Current host model/editor incarnation ID.'),
+    ),
+    revision: Flag.Int('revision').pipe(Flag.withDescription('Current monotonic editor revision.')),
+  },
+  (config) =>
+    Effect.gen(function* () {
+      if (
+        (config.input === '-' && config.source === '-') ||
+        !config.session.trim() ||
+        !Number.isSafeInteger(config.revision) ||
+        config.revision < 0
+      )
+        return yield* rejectInput(
+          'patch-dry-run',
+          new CliInputError({
+            code: 'invalid-document',
+            message:
+              'Supply one stdin stream at most, a nonblank session and a nonnegative safe revision.',
+            dimension: 'identity',
+            subject: config.source,
+          }),
+        );
+      const source = yield* readForOperation('patch-dry-run', config.source);
+      if (source.kind !== 'model')
+        return yield* rejectInput(
+          'patch-dry-run',
+          new CliInputError({
+            code: 'model-required',
+            message: 'Patch dry run requires a separately supplied canonical model document.',
+            dimension: 'identity',
+            subject: config.source,
+          }),
+        );
+      const patch = yield* readPatchProposal(config.input);
+      const preview = dryRunModellingPatch(
+        {
+          modelId: source.document.id,
+          sessionId: config.session,
+          revision: config.revision,
+          graph: source.document.snapshot.graph,
+        },
+        patch,
+      );
+      const response: CliResponse = {
+        protocol: cliProtocol,
+        operation: 'patch-dry-run',
+        status: 'reviewed',
+        data: preview,
+        diagnostics: preview.findings.flatMap((f) =>
+          f.severity === 'info'
+            ? []
+            : [
+                {
+                  code: f.code,
+                  message: f.message,
+                  path: f.path,
+                  subject: f.operationId ?? source.document.id,
+                  dimension: 'semantics' as const,
+                  severity: f.severity === 'error' ? ('error' as const) : ('loss' as const),
+                },
+              ],
+        ),
+      };
+      yield* writeResponse(response);
+      if (preview.type !== 'reviewable') return yield* Effect.fail(new CliPatchRejected());
+    }),
+).pipe(
+  Command.withDescription(
+    'Strictly decode a patch and review against separate current source. No mutation or Apply.',
+  ),
+);
+const patchCommand = Command.make('patch').pipe(Command.withSubcommands([patchDryRunCommand]));
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(
     'Compose systems. Connect ideas. Validate and audit Zloz models; export Mermaid as JSON.',
   ),
-  Command.withSubcommands([validate, mermaidCommand, relationshipsCommand, reviewCommand]),
+  Command.withSubcommands([
+    validate,
+    mermaidCommand,
+    relationshipsCommand,
+    reviewCommand,
+    patchCommand,
+  ]),
 );
 
 type InvalidInvocation = Extract<CliOutput.Presenter.Event, { readonly _tag: 'InvalidInvocation' }>;

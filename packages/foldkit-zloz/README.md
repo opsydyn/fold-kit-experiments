@@ -4371,10 +4371,9 @@ are live pure **review** policies with frozen arguments. Any string blocks,
 including an empty string; null/undefined permits. Policy exceptions propagate.
 These do not automatically evaluate `EditorPolicy` or run domain convention audits.
 Architectural correctness remains a separate assessment. A preview never grants Apply
-permission. There is no Apply API, editor event, CLI command or workbench control
-in this slice. A later Apply must rebuild, recheck live source, lifecycle, granular
-editor/host permissions and explicit consent, and commit once with one Undo and
-retained provenance.
+permission. The guarded Apply and composable controls below rebuild and recheck
+live source, lifecycle, granular policies and exact-content acknowledgement before
+one Undo commit with retained provenance. The Effect CLI exposes dry run only.
 
 The object boundary permits only bounded plain JSON data: at most 1,000 operations,
 depth 64, 100,000 JSON values and 2,000,000 total characters in strings/keys. It
@@ -4441,8 +4440,77 @@ This decoder does not unwrap CLI response envelopes or accept a model archive,
 review packet or conversion receipt. It establishes proposal validity, not a
 valid prospective graph or current source authority. Missing targets, conflicting
 operations, final graph invariants, stale source, review policies and losses are
-checked by the separate dry run. No CLI command or Apply API is added here.
+checked by the separate dry run. The guarded Apply API below and Effect CLI dry
+run consume this decoder; decoding itself grants neither mutation nor consent.
 
 See [ADR 0061](../../docs/adr/0061-decode-versioned-modelling-patch-text-strictly.md),
 [literal fixture](test/fixtures/modelling-patch-v1.json) and
 [decoder qualification](evidence/modelling-patch-parse.md).
+
+## Reviewed modelling-patch Apply (unreleased)
+
+`resolveModellingPatchReview` composes the live editor, host identity and proposal.
+It returns the dry-run preview, an exact-content review key, protection reason,
+acknowledgement and Apply availability. `resolveModellingPatchAcknowledgement`
+accepts a matching `AcknowledgementChanged` request from the review controls.
+`applyModellingPatch` rebuilds the current source and checks everything again.
+
+```ts
+import {
+  resolveModellingPatchReview,
+  resolveModellingPatchAcknowledgement,
+  applyModellingPatch,
+} from '@opsydyn/foldkit-zloz';
+
+// Identity belongs to the current host model/session, not the imported proposal.
+const identity = { modelId: model.id, sessionId: editorSessionId };
+const review = resolveModellingPatchReview(editor, identity, proposal, {
+  consent,
+  policy: editingPolicy,
+  blockedReason: busyReason,
+});
+// On the explicit acknowledgement fact emitted by the package controls:
+const nextConsent = resolveModellingPatchAcknowledgement(review, request);
+// On a separate Apply action, synchronously use the live editor/identity/policies:
+const result = applyModellingPatch(editor, identity, proposal, {
+  consent: nextConsent,
+  policy: editingPolicy,
+  blockedReason: busyReason,
+});
+if (result.type === 'applied') {
+  // Publish these together in one parent Model update, without an intervening await.
+  const next = { ...model, editor: result.editor, receipts: [...model.receipts, result.receipt] };
+}
+```
+
+The review key binds the complete canonical patch, source/provenance and target;
+patch ID alone cannot authorize a changed proposal. Acknowledgement explicitly
+covers proposed changes and disclosed losses. Apply rejects stale or protected
+source, read-only/busy editing, disabled Undo, exhausted revision or missing exact
+acknowledgement, returning the original editor by reference. Existing mutation
+policies cover meaning, outlines, waypoints, movement/membership, resize, port
+edits, connection/reconnection and complete deletion. Review `canChange` / `canPatch`
+hooks cover other authored fields. Callbacks receive frozen values; selection and
+snapping preferences remain interaction-only. New connections are checked on the
+validated target graph; target-only reconnections retain unchanged source policy
+semantics. A denied later operation never partially applies earlier ones.
+
+Success commits the whole graph once, adds one Undo and returns a frozen
+`foldkit-zloz-patch-receipt` v1 with the exact proposal/source/provenance, target,
+result revision and explicit review/loss acknowledgement. Undo/Redo restores the
+whole source/target; receipt retention is host-owned and independent. Empty/equal
+patches return `unchanged` without history or receipt. Imported previews, receipts
+and unsigned actor claims are not permission. There is no CLI Apply.
+
+The optional `/foldkit` entry exports `zlozModellingPatchReview`,
+`zlozModellingPatchAcknowledgement`, `zlozModellingPatchApply` and view/parts types.
+Native defaults show provenance, expandable source identity and before/after
+values, findings, explicit acknowledgement, Apply and live reasons. Nullable
+summary/finding/change slots, layout, attributes and action helpers support custom
+controls. `showCounts` / `instructions` support minimal diagnostics independently
+of functional loss/protection disclosure. The workbench demonstrates native and
+custom controls in its left sidebar, bounded file reading, a live-source starter,
+receipt retention/download and one Undo with the original canvas always visible.
+
+See [ADR 0062](../../docs/adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
+and [completion evidence](../../apps/zloz-demo/evidence/p2-completion.md).

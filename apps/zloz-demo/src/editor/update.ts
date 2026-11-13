@@ -108,6 +108,7 @@ import {
   updatePacketReader,
 } from './packet-reader';
 import { updateWorkbenchPlacement } from './palette';
+import { updatePatchWorkbench, isPatchWorkbenchMessage } from './patch-review';
 import { insertWorkbenchPattern } from './pattern-insertion';
 import {
   toggleHistoryPlayback,
@@ -137,10 +138,16 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
-  if (packetReviewActive(model) && !packetAllowsMessage(message)) return { model };
+  if (
+    packetReviewActive(model) &&
+    !packetAllowsMessage(message) &&
+    !isPatchWorkbenchMessage(message)
+  )
+    return { model };
   if (
     model.receiptReview &&
     !isPacketReaderMessage(message) &&
+    !isPatchWorkbenchMessage(message) &&
     !isReceiptMessage(message) &&
     !receiptAllowsMessage(message)
   )
@@ -201,7 +208,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     if (
       !historyAllowsMessage(message) &&
       !isReceiptMessage(message) &&
-      !isPacketReaderMessage(message)
+      !isPacketReaderMessage(message) &&
+      !isPatchWorkbenchMessage(message)
     )
       return { model };
   }
@@ -773,6 +781,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedMappingLossAcknowledgement: (request) => ({
       model: updateMappingLossAcknowledgement(model, request),
     }),
+    ChosePatchFiles: () => updatePatchWorkbench(model, message),
+    SucceededPatchRead: () => updatePatchWorkbench(model, message),
+    FailedPatchRead: () => updatePatchWorkbench(model, message),
+    ClickedPatchReadCancel: () => updatePatchWorkbench(model, message),
+    ClickedPatchExample: () => updatePatchWorkbench(model, message),
+    ClickedPatchProtection: () => updatePatchWorkbench(model, message),
+    ClickedCustomPatchControls: () => updatePatchWorkbench(model, message),
+    ObservedPatchReviewInput: () => updatePatchWorkbench(model, message),
+    ClickedPatchDownload: () => updatePatchWorkbench(model, message),
+    CompletedPatchDownload: () => updatePatchWorkbench(model, message),
+    FailedPatchDownload: () => updatePatchWorkbench(model, message),
     ChoseReviewPacketFiles: () => updatePacketReader(model, message),
     ObservedReviewReaderInput: () => updatePacketReader(model, message),
     SucceededReviewPacketRead: () => updatePacketReader(model, message),

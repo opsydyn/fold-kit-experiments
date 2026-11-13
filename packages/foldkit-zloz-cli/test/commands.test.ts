@@ -630,3 +630,56 @@ test('review commands preserve packet files and report file/byte limits through 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('patch dry-run uses separately supplied source and reports loss, stale and decoder exit semantics', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'zloz-patch-cli-'));
+  // oxlint-disable-next-line linteffect/no-try-catch -- Native temporary-file fixture must be removed after command assertions.
+  try {
+    const literal = JSON.parse(
+      await readFile(
+        new URL('../../foldkit-zloz/test/fixtures/modelling-patch-v1.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    const source = join(dir, 'source.json');
+    const model = captureModelDocument({
+      id: literal.source.modelId,
+      name: 'Commerce',
+      snapshot: { graph: literal.source.graph },
+      editions: [],
+      origin: null,
+    });
+    const original = serializeModelDocument(model);
+    await writeFile(source, original);
+    const args = [
+      'patch',
+      'dry-run',
+      '--source',
+      source,
+      '--session',
+      literal.source.sessionId,
+      '--revision',
+      '7',
+    ];
+    const valid = await invoke(args, JSON.stringify(literal));
+    expect(valid.code).toBe(0);
+    const body = JSON.parse(valid.text);
+    expect(body.operation).toBe('patch-dry-run');
+    expect(body.data.graph.nodes[0].label).toBe('Order management');
+    expect(body.data.losses[0].fields).toEqual(['label']);
+    const stale = await invoke([...args.slice(0, -1), '8'], JSON.stringify(literal));
+    expect(stale.code).toBe(1);
+    expect(JSON.parse(stale.text).data.type).toBe('rejected');
+    const invalid = await invoke(args, '{"version":1,"version":1}');
+    expect(invalid.code).toBe(2);
+    expect(JSON.parse(invalid.text).diagnostics[0].code).toBe('invalid-json');
+    const both = await invoke(
+      ['patch', 'dry-run', '--source', '-', '--session', 's', '--revision', '0'],
+      '{}',
+    );
+    expect(both.code).toBe(2);
+    expect(await readFile(source, 'utf8')).toBe(original);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

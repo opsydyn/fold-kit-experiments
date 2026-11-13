@@ -24,6 +24,7 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['export', 'Mermaid export'],
   ['svg', 'SVG export'],
   ['review', 'Review packets'],
+  ['patch', 'Patch review'],
 ];
 
 function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {

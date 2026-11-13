@@ -340,6 +340,33 @@ limits and duplicate-key checks therefore remain effective. The existing TTY gua
 requires piped stdin or an explicit file.
 
 Validation establishes self-consistency, not author authenticity. Inspection prints
-packet data, which may be large within the input limit. Read-only workbench opening
-is the next integration slice. See [ADR 0058](../../docs/adr/0058-inspect-review-packets-through-effect-cli.md)
+packet data, which may be large within the input limit. Read-only workbench opening is implemented separately. See [ADR 0058](../../docs/adr/0058-inspect-review-packets-through-effect-cli.md)
 and [command qualification](evidence/review-packet-read.md). PNG and Alchemy remain deferred.
+
+## Modelling-patch dry run (unreleased)
+
+```sh
+zloz patch dry-run --input proposal.patch.json --source current.model.json \
+  --session current-editor-session --revision 7
+# Proposal stdin is also supported; only one input may consume stdin.
+cat proposal.patch.json | zloz patch dry-run --source current.model.json \
+  --session current-editor-session --revision 7
+```
+
+`--source` is a separately supplied canonical model document. Its ID/graph and the
+explicit current `--session` / monotonic `--revision` form the source for dry run.
+The CLI never infers the current source from a proposal's unsigned claims. Both
+inputs use the existing 1 MiB byte-bound, fatal UTF-8 IO; proposal text goes directly
+to the strict v1 decoder before generic JSON parsing. No input file is changed.
+
+The additive protocol v1 operation `patch-dry-run` emits `status: reviewed` and the
+complete core preview in `data`, including target graph, source/provenance,
+changes/losses/findings when available. Diagnostics retain exact paths and operation
+IDs. Exit **0** means reviewable, including disclosed losses or no-op; **1** means a
+decoded proposal cannot be reviewed against that source (stale/conflicting/invalid
+target); **2** means decoding, IO, flags or input requirements failed. A response
+is inspection data, not approval, Apply consent or authentication. There is no CLI
+Apply or writable-agent execution. CLI publication remains a separate gate.
+
+See [ADR 0062](../../docs/adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
+and [local qualification](../../apps/zloz-demo/evidence/p2-completion.md).

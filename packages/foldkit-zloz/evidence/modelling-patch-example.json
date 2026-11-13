@@ -1,0 +1,355 @@
+{
+  "reviewable": {
+    "patch": {
+      "format": "foldkit-zloz-patch",
+      "id": "rename-orders-context",
+      "operations": [
+        {
+          "id": "rename-orders",
+          "node": {
+            "architecture": {
+              "family": "ddd",
+              "role": "bounded-context"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "orders",
+            "label": "Order management",
+            "ports": [],
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "height": 160,
+              "width": 240
+            }
+          },
+          "type": "node.replace"
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "id": "reviewer",
+          "kind": "human"
+        },
+        "reason": "Clarify ownership while retaining DDD meaning.",
+        "references": [
+          {
+            "id": "commerce-review-1",
+            "kind": "review-packet"
+          }
+        ]
+      },
+      "source": {
+        "graph": {
+          "edges": [],
+          "nodes": [
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "bounded-context"
+              },
+              "data": {
+                "owner": "commerce"
+              },
+              "id": "orders",
+              "label": "Orders",
+              "ports": [],
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "height": 160,
+                "width": 240
+              }
+            }
+          ]
+        },
+        "modelId": "commerce",
+        "revision": 7,
+        "sessionId": "commerce/session-1"
+      },
+      "version": 1
+    },
+    "graph": {
+      "edges": [],
+      "nodes": [
+        {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Order management",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "operationId": "rename-orders",
+        "entity": "node",
+        "id": "orders",
+        "before": {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Orders",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        },
+        "after": {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Order management",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        }
+      }
+    ],
+    "losses": [
+      {
+        "operationId": "rename-orders",
+        "entity": "node",
+        "id": "orders",
+        "code": "fields-replaced",
+        "fields": ["label"]
+      }
+    ],
+    "type": "reviewable",
+    "findings": [
+      {
+        "code": "authored-data-loss",
+        "message": "Previously authored fields will be replaced or removed: label",
+        "path": "/operations/0",
+        "operationId": "rename-orders",
+        "severity": "warning"
+      }
+    ]
+  },
+  "protected": {
+    "patch": {
+      "format": "foldkit-zloz-patch",
+      "id": "rename-orders-context",
+      "operations": [
+        {
+          "id": "rename-orders",
+          "node": {
+            "architecture": {
+              "family": "ddd",
+              "role": "bounded-context"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "orders",
+            "label": "Order management",
+            "ports": [],
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "height": 160,
+              "width": 240
+            }
+          },
+          "type": "node.replace"
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "id": "reviewer",
+          "kind": "human"
+        },
+        "reason": "Clarify ownership while retaining DDD meaning.",
+        "references": [
+          {
+            "id": "commerce-review-1",
+            "kind": "review-packet"
+          }
+        ]
+      },
+      "source": {
+        "graph": {
+          "edges": [],
+          "nodes": [
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "bounded-context"
+              },
+              "data": {
+                "owner": "commerce"
+              },
+              "id": "orders",
+              "label": "Orders",
+              "ports": [],
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "size": {
+                "height": 160,
+                "width": 240
+              }
+            }
+          ]
+        },
+        "modelId": "commerce",
+        "revision": 7,
+        "sessionId": "commerce/session-1"
+      },
+      "version": 1
+    },
+    "graph": {
+      "edges": [],
+      "nodes": [
+        {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Order management",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "operationId": "rename-orders",
+        "entity": "node",
+        "id": "orders",
+        "before": {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Orders",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        },
+        "after": {
+          "architecture": {
+            "family": "ddd",
+            "role": "bounded-context"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "orders",
+          "label": "Order management",
+          "ports": [],
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "size": {
+            "height": 160,
+            "width": 240
+          }
+        }
+      }
+    ],
+    "losses": [
+      {
+        "operationId": "rename-orders",
+        "entity": "node",
+        "id": "orders",
+        "code": "fields-replaced",
+        "fields": ["label"]
+      }
+    ],
+    "type": "blocked",
+    "findings": [
+      {
+        "code": "authored-data-loss",
+        "message": "Previously authored fields will be replaced or removed: label",
+        "path": "/operations/0",
+        "operationId": "rename-orders",
+        "severity": "warning"
+      },
+      {
+        "code": "policy",
+        "message": "Architecture owner review is required.",
+        "path": "/operations",
+        "operationId": "rename-orders",
+        "severity": "error"
+      }
+    ]
+  },
+  "stale": {
+    "type": "rejected",
+    "findings": [
+      {
+        "code": "source-changed",
+        "message": "Model, session, revision or authored graph differs from the reviewed source.",
+        "path": "/source",
+        "operationId": null,
+        "severity": "error"
+      }
+    ]
+  }
+}

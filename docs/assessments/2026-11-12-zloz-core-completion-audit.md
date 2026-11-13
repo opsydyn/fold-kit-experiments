@@ -189,10 +189,14 @@ qualification remain under Q1–Q4. Opening grants no edit/import permission.
 
 ### P2 — reviewed modelling patches and dry runs
 
-No public patch lifecycle is implemented. Define a bounded operation vocabulary,
-stable IDs, expected source revision/provenance and data-only validation. Dry run
-must report the exact prospective graph, policy blockers and losses without
-mutation. Apply must recheck live authority/source, reject stale or partial plans
+The first headless P2 slice is implemented on this branch, unreleased:
+`captureModellingPatch` and `dryRunModellingPatch` expose six explicit node/edge
+operations, source model/session/revision/graph checks, data-only provenance,
+immutable exact prospective graphs, before/after changes and policy/loss findings.
+See [ADR 0060](../adr/0060-preview-bounded-modelling-patches-before-apply.md),
+[literal/dry-run evidence](../../packages/foldkit-zloz/evidence/modelling-patch.md).
+Raw text decoding, Effect CLI dry run and the guarded Apply lifecycle remain open.
+Apply must recheck live authority/source, reject stale or partial plans
 atomically, retain provenance and commit as one Undo. Package tests, portable
 fixtures, packed consumer and Effect CLI dry-run evidence must precede a guarded
 workbench Apply. Automatic writable agents and external system writes remain

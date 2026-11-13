@@ -4299,3 +4299,93 @@ For a Before/After UI, orient the comparison so the chosen side is its selected
 edition, and retain that orientation when stepping. Hosts should also reject
 stale receipt, side and cursor callbacks. The helper performs no graph edits,
 persistence or DOM focus changes.
+
+## Headless modelling patches and dry runs (unreleased)
+
+A modelling patch is a data-only graph proposal. It carries a patch ID, exact
+expected source graph, model/session identity, monotonic revision, unsigned
+provenance and six explicit operations:
+
+| Operation                   | Payload         | Preconditions       |
+| --------------------------- | --------------- | ------------------- |
+| `node.add` / `node.replace` | complete `node` | ID absent / present |
+| `node.remove`               | `nodeId`        | ID present          |
+| `edge.add` / `edge.replace` | complete `edge` | ID absent / present |
+| `edge.remove`               | `edgeId`        | ID present          |
+
+Each operation also has its own unique `id`. One operation per entity kind/ID is
+allowed; there is no upsert, recursive merge, rename or implicit cascade. Replacing
+an entity keeps its existing index; additions append in operation order. The final
+combined graph is validated, so additions may refer to other additions regardless
+of operation order. Removing a group/node requires explicit child/edge changes to
+leave a valid graph. No geometry, IDs, ports or architecture meaning are repaired.
+
+```ts
+import { captureModellingPatch, dryRunModellingPatch } from '@opsydyn/foldkit-zloz';
+
+const proposal = captureModellingPatch({
+  format: 'foldkit-zloz-patch',
+  version: 1,
+  id: 'clarify-orders',
+  source: { modelId, sessionId, revision: editor.revision, graph: editor.graph },
+  provenance: {
+    actor: { kind: 'human', id: 'reviewer' },
+    reason: 'Clarify the context name.',
+    references: [{ kind: 'review-packet', id: 'review-1' }],
+  },
+  operations: [
+    { id: 'rename', type: 'node.replace', node: { ...orders, label: 'Order management' } },
+  ],
+});
+const preview = dryRunModellingPatch(
+  { modelId, sessionId, revision: editor.revision, graph: editor.graph },
+  proposal,
+  { canChange: (change) => (lockedIds.has(change.id) ? 'Owner review required.' : null) },
+);
+if (preview.type !== 'rejected') {
+  // Exact detached/frozen prospective graph, before/after changes and loss disclosure.
+  console.log(preview.type, preview.graph, preview.changes, preview.losses, preview.findings);
+}
+// The original editor, graph, camera, Undo and editions are untouched.
+```
+
+`captureModellingPatch(input)` validates an object and returns a deeply frozen
+owned proposal. Invalid input throws `ZlozError`. Dry run returns `rejected` with
+structured findings and no candidate for malformed/stale/conflicting/invalid
+proposals. Valid proposals return `reviewable` or `blocked` with the complete
+candidate, provenance, changes, losses and findings. Protection does not hide the
+proposal. Empty/equal proposals report `no-op`; additions-only fields cause no loss.
+Removals disclose the entity; replacements disclose every overwritten/omitted
+prior top-level field, including geometry, ports, metadata and semantics. These
+conservative losses are disclosure, not conversion-loss acceptance.
+
+The current source is supplied separately by the host. Model ID, session ID,
+revision and complete graph must match. Object key order is insignificant; array
+order remains meaningful. Use a unique session ID on editor/model replacement and
+retain the editor's monotonic revision through Undo. Camera/selection/navigation,
+editions and Undo are outside patch data. Provenance (`actor`, `reason`, data-only
+`references`) is unsigned attribution, never permission, authentication or lineage.
+
+Optional `blockedReason`, per-change `canChange` and whole-candidate `canPatch`
+are live pure **review** policies with frozen arguments. Any string blocks,
+including an empty string; null/undefined permits. Policy exceptions propagate.
+These do not automatically evaluate `EditorPolicy` or run domain convention audits.
+Architectural correctness remains a separate assessment. A preview never grants Apply
+permission. There is no Apply API, editor event, CLI command or workbench control
+in this slice. A later Apply must rebuild, recheck live source, lifecycle, granular
+editor/host permissions and explicit consent, and commit once with one Undo and
+retained provenance.
+
+The object boundary permits only bounded plain JSON data: at most 1,000 operations,
+depth 64, 100,000 JSON values and 2,000,000 total characters in strings/keys. It
+rejects accessors, functions, undefined, non-finite values, cycles, symbols, custom
+prototypes and sparse arrays. Envelope fields are exact; graph payload extensions
+remain data-only under existing graph validation. Invalid current-host source is
+a configuration error and throws. This is not a raw JSON/file parser: transports
+must enforce bytes, duplicate keys and framing before supplying an object. There
+is no wall-clock, authenticity or hostile-JavaScript-object isolation guarantee.
+
+See [ADR 0060](../../docs/adr/0060-preview-bounded-modelling-patches-before-apply.md),
+[literal proposal](test/fixtures/modelling-patch-v1.json),
+[actual dry-run results](evidence/modelling-patch-example.json) and
+[qualification](evidence/modelling-patch.md). PNG and Alchemy remain deferred.

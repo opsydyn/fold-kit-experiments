@@ -130,7 +130,8 @@ function isResizeLimits(value: unknown): value is NodeResizeLimits {
       Number(value.minHeight) <= Number(value.maxHeight))
   );
 }
-function isNode(value: unknown): value is ZlozNode {
+/** @internal Structural node validation shared by graph and proposal boundaries. */
+export function isNode(value: unknown): value is ZlozNode {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -157,7 +158,8 @@ function isNode(value: unknown): value is ZlozNode {
     validNodeArchitectureFields(value)
   );
 }
-function isEdge(value: unknown): value is ZlozEdge {
+/** @internal Structural edge validation shared by graph and proposal boundaries. */
+export function isEdge(value: unknown): value is ZlozEdge {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -178,7 +180,8 @@ function isEdge(value: unknown): value is ZlozEdge {
     (!('architecture' in value) || isEdgeArchitecture(value.architecture))
   );
 }
-function isGraph(value: unknown): value is ZlozGraph {
+/** @internal Structural graph guard shared with bounded proposal input validation. */
+export function isGraph(value: unknown): value is ZlozGraph {
   return (
     typeof value === 'object' &&
     value !== null &&

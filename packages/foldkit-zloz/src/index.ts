@@ -496,3 +496,17 @@ export type {
 
 export { inspectSvgFontCoverage } from './svg-font-coverage';
 export type { ZlozSvgFontCoverage } from './svg-font-coverage';
+
+export { captureModellingPatch, dryRunModellingPatch } from './modelling-patch';
+export type {
+  ZlozModellingPatchSource,
+  ZlozModellingPatchProvenance,
+  ZlozModellingPatchOperation,
+  ZlozModellingPatch,
+  ZlozModellingPatchChange,
+  ZlozModellingPatchLoss,
+  ZlozModellingPatchFinding,
+  ZlozModellingPatchCandidate,
+  ZlozModellingPatchPreview,
+  ZlozModellingPatchOptions,
+} from './modelling-patch';

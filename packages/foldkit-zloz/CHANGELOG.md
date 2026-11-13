@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add bounded data-only modelling-patch proposals, source/provenance checks and immutable dry-run previews with policy/loss findings.
+
 - Add atomic EventStorming-to-DDD Apply with live source/consent/lifecycle/policy checks, one graph Undo and portable before/after provenance receipts.
 
 - Add headless EventStorming-to-DDD conversion plans with pinned source provenance, whole-plan blockers and exact-plan affirmative loss consent; no Apply transaction.

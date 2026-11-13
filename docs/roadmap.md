@@ -189,9 +189,11 @@ are the current checklist; historical receipts qualify only their stated scope.
 2. **Portable review lifecycle (P1–P2):** strict packet decoding, Effect CLI
    validation/inspection and guarded read-only workbench reopening are implemented
    on this branch, unreleased. See the [reader receipt](../apps/zloz-demo/evidence/review-reader.md).
-   Next define validated modelling patches and dry runs before guarded atomic
-   Apply. Review packets and conversion receipts remain distinct; reading does
-   not import either into the working model.
+   Headless modelling-patch proposals/dry runs are also implemented on this branch;
+   see the [patch receipt](../packages/foldkit-zloz/evidence/modelling-patch.md).
+   Strict transport decoding, CLI dry run and guarded atomic Apply remain open.
+   Review packets and conversion receipts remain distinct; reading does not import
+   either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
    broader EventStorming vocabulary, C4 mapping, DDD audit coverage, loose
    connections, group contracts, layout envelope and advanced catalogue features.

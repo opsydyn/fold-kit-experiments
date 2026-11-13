@@ -308,3 +308,15 @@ detached read-only canvases. Stale, cancelled, invalid or protected reads retain
 the last accepted packet and side; opening grants no model-edit authority.
 See the [reader guide](../packages/foldkit-zloz-mermaid/README.md#read-only-packet-reader-unreleased)
 and [ADR 0059](adr/0059-open-review-packets-with-detached-reader-controls.md).
+
+### Modelling-patch proposals and dry runs (unreleased)
+
+Core exports `captureModellingPatch` and `dryRunModellingPatch` with public source,
+provenance, operation, proposal, change, loss, finding, candidate, preview and
+options types. Six explicit node/edge add/replace/remove operations produce a
+detached frozen prospective graph after source identity/revision/content and core
+invariant checks. Review policies disclose blockers without hiding valid proposals.
+No editor mutation or Apply authority follows from dry run. See the
+[contract guide](../packages/foldkit-zloz/README.md#headless-modelling-patches-and-dry-runs-unreleased),
+[ADR 0060](adr/0060-preview-bounded-modelling-patches-before-apply.md) and
+[local evidence](../packages/foldkit-zloz/evidence/modelling-patch.md).

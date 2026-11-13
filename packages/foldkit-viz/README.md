@@ -108,6 +108,40 @@ The optional `foldkit/paint` subpath provides `dotPattern`, `hatchPattern`,
 variables, own no state, and are not exported from the framework-free root.
 These additions are available in the workspace pending the next package release.
 
+## Orbit charts (unreleased)
+
+`chart/orbit` exports pure `orbitGeometry`: items on one ring around a core,
+with a halo of category arcs between them. It suits "big ball of mud" views of
+a system, where each module orbits the core, its area shows its risk, and the
+halo shows how the modules integrate. Nodes run clockwise from twelve o'clock in
+data order. Node area grows linearly with value between the radius bounds, and
+neighbours never overlap: on a crowded ring both bounds shrink, and an orbit too
+small to fit its nodes is rejected. `coreScale` lets the caller grow the core
+with a metric of its own. Keys must be unique and values finite and
+non-negative. Halo angles follow `shape/arc`, so each arc passes straight to it.
+
+```ts
+import { orbitGeometry } from '@opsydyn/foldkit-viz/chart/orbit';
+
+const geometry = orbitGeometry(
+  [{ id: 'billing', risk: 7.4, integration: 'intrusive' }],
+  { key: (d) => d.id, value: (d) => d.risk, halo: (d) => d.integration },
+  { size: 300, valueDomain: [1, 10], coreScale: 0.8 },
+);
+// geometry.nodes holds x/y (relative to geometry.centre), radius and the datum;
+// geometry.halo.arcs holds one arc per category with its count.
+```
+
+The optional `foldkit/orbit` subpath renders the geometry with the parent's
+builder through `orbitChart`. Without `onSelect` it is an image whose nodes name
+themselves in native tooltips, so it reads completely as static HTML. With
+`onSelect` each node is a focusable button that selects on click, Enter or
+Space, and `onInspect` reports hover and focus. A `pulse` ring is classed
+`chart-orbit-pulse` for the host's CSS to animate; respect
+`prefers-reduced-motion` when it does. Pair it with `dataTable` from
+`foldkit/cartesian` for a non-visual reading. The web app's `/complexity-field`
+page composes both into a complete card.
+
 ## Composable Cartesian charts
 
 These modules are available from version 0.10.0. Use package imports or the

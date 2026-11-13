@@ -148,3 +148,19 @@ describe('parallel coordinates marks', () => {
     ).toThrow('marks[0].dimensions[0]');
   });
 });
+
+it('keeps four-digit tick values such as years ungrouped', () => {
+  const drawn = graphics({
+    ...base,
+    data: [
+      { year: 2019, mpg: 30 },
+      { year: 2023, mpg: 50 },
+    ],
+    marks: [{ mark: 'parallel', dimensions: ['year', 'mpg'] }],
+  });
+  const ticks = drawn
+    .filter((g) => g.kind === 'text' && g.key.startsWith('axis:year:'))
+    .map((g) => (g.kind === 'text' ? g.text : ''));
+  expect(ticks).toContain('2020');
+  expect(ticks.some((t) => t.includes(','))).toBe(false);
+});

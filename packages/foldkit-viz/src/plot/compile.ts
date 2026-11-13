@@ -491,10 +491,16 @@ function buildScale(
       const s = start(v);
       return s === undefined ? undefined : s + scale.bandwidth / 2;
     };
-    const ticks: ReadonlyArray<PlotTick> = domain.map((value) => ({
+    // Label every k-th band when labels would collide, estimating ~6.5px a character.
+    const widest = Math.max(1, ...domain.map((value) => value.length));
+    const every =
+      axis === 'x'
+        ? Math.max(1, Math.ceil((widest * 6.5 + 8) / scale.step))
+        : Math.max(1, Math.ceil(16 / scale.step));
+    const ticks: ReadonlyArray<PlotTick> = domain.map((value, i) => ({
       value,
       position: place(value) ?? 0,
-      label: value,
+      label: i % every === 0 ? value : '',
     }));
     return {
       axis: { type: 'band', orientation, domain, label: info.label, ticks, grid },

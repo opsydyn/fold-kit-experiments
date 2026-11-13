@@ -253,7 +253,8 @@ export function plotChart<M>(
   const label = [geometry.title, geometry.description].filter((part) => part !== '').join('. ');
   const facets = geometry.facets.map((facet) =>
     h.g(
-      [h.Key(facet.key), h.Class('plot-facet')],
+      // Every label in the facet inherits the palette's size unless it sets its own.
+      [h.Key(facet.key), h.Class('plot-facet'), h.FontSize(String(palette.labelSize))],
       [
         ...(facet.label === ''
           ? []

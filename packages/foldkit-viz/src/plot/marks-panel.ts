@@ -287,8 +287,12 @@ export function sankeyGraphics(
 // ── Parallel coordinates ──────────────────────────────────────────────────────
 
 const HEADER = 18;
+/** Tick text; four-digit values such as years stay ungrouped. */
 const label = (value: number): string =>
-  value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  value.toLocaleString('en-US', {
+    maximumFractionDigits: 2,
+    useGrouping: Math.abs(value) >= 10_000,
+  });
 
 export function parallelGraphics(
   mark: ParallelMark,

@@ -44,6 +44,9 @@ and colour schemes. The chart layer on top is thin:
 interactive; accessibility by default; typed, pure, testable geometry; and a planned
 JSON-serialisable spec that suits generated charts and other languages.
 
+**Release status:** 0.18.0 to 0.20.0 are complete on the `feat/viz-roadmap-scales`
+branch and not yet released.
+
 ### 0.18.0 — Foundations (next release)
 
 - [x] Scale-generic Cartesian layer: x and y take linear, log, symlog, power or time
@@ -54,8 +57,8 @@ JSON-serialisable spec that suits generated charts and other languages.
       confidence bands, LOESS, ECDF, QQ quantiles and moving windows.
 - [x] Two-dimensional binning, rectangular and hexagonal, feeding a cell geometry.
 - [x] Cell geometry (`chart/cells`) for the heatmap, calendar-heatmap and
-      correlation-matrix shapes. Moving those demos onto it belongs with the 0.19.0
-      promotions.
+      correlation-matrix shapes. Moving those demos onto it did not happen in 0.19.0
+      and carries to 0.21.0.
 - [x] Downsampling for long series: LTTB and min-max (M4).
 
 **Exit criteria:** the web app shows a log-scaled time series, a regression with its
@@ -68,7 +71,8 @@ Met by the web app's `/data-science` page, which adds a hexagonal density view.
 - [x] Specification and ADR: marks (dot, line, area, bar, rule, text, cell), channels
       (x, y, fill, stroke, r, title), scales and legends inferred from channels, facets
       for small multiples, and layered marks on shared scales. Box, density and link
-      marks and a symbol channel move to the promotions below.
+      marks and a symbol channel move to the promotions below. Box and link shipped
+      there; the density mark and the symbol channel did not, and carry to 0.21.0.
 - [x] A declarative, JSON-serialisable spec rendered through the same pure geometry,
       server-rendered by default. [ADR 0037](adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md);
       `compilePlot` and `foldkit/plot`, shown on the web app's `/plot-grammar` page.
@@ -105,6 +109,59 @@ server on 2026-11-13: compiling the dense scatter takes 173–200 ms, indexing i
 has a median of 2–4 ms and a 95th percentile of 16 ms, at the edge of one frame;
 a production build should have more headroom. Moving the brush recompiles the
 scatter in about 680 ms, which is the next thing to make incremental.
+
+### 0.21.0 — Cartesian coverage
+
+Seven of the web app's chart demos ship from the library; about 40 chart modules
+still live in `apps/web/src/ui`, built on the library's primitives but not exported.
+This release moves every chart on x and y axes into the grammar.
+
+- [ ] Carried from 0.19.0: a symbol channel on dot marks, drawn with `shape/symbol`
+      and shown in the legend; and a `density` mark, a one-dimensional kernel density
+      drawn as an area or line, with a two-dimensional form drawn as contour bands
+      through `math/contour`.
+- [ ] Stacking and grouping: `stack` on bar and area marks, with zero, normalised,
+      diverging and wiggle offsets (the last for streamgraphs), and `group` on bar
+      marks for side-by-side series, reusing `shape/stack` and the chart layer's
+      grouped bars.
+- [ ] A `bin` transform: bars from raw rows by threshold count or explicit
+      thresholds, and rectangular or hexagonal cells from `math/bin2d`, so a
+      histogram needs no pre-binned data.
+- [ ] Highlight without recompiling: changing a mark's `highlight` restyles the
+      compiled geometry instead of rebuilding it, so the `/explore` brush falls from
+      about 680 ms to within one frame.
+- [ ] Promote the demos the grammar expresses today: area, bar, bubble, bullet,
+      bump, calendar heatmap, correlation matrix, curve comparison, diverging bar,
+      heatmap, line, log scatter, scatter, threshold bar, tile-grid map, timeline,
+      waterfall and zoomable line. The three cell demos close the 0.18.0 cell item.
+- [ ] Promote the demos that need the features above: diverging stacked bar,
+      streamgraph, histogram, histogram brush, symbol scatter and density contour.
+
+**Exit criteria:** those 24 demos are plot specs, rendered on the server, and their
+modules in `apps/web/src/ui` are removed. The interactive ones (histogram brush and
+zoomable line) keep their interaction through overlays and the 0.20.0 helpers, not
+bespoke modules. The `/explore` brush highlights within one frame.
+
+### 0.22.0 — Beyond Cartesian
+
+- [ ] Polar coordinates: a plot-level `coordinates: 'polar'` maps x to angle and y
+      to radius, so bars become radial bars and wind roses and a closed line becomes
+      a radar. An `arc` mark with a `pie` transform gives pie, donut and gauge.
+- [ ] A `geo` mark over GeoJSON features with a projection option, fill from a field
+      for choropleths, and an optional graticule. Zoom uses the 0.20.0 domain helpers.
+- [ ] Network and tree marks: `tree` (tidy and radial), `pack`, `chord`,
+      `arc-diagram` and `force`. The force layout runs to a fixed tick budget at
+      compile time, so the output stays static geometry; animating it stays in the
+      app.
+- [ ] A `voronoi` mark for cells around points, which can also serve as a hover
+      index.
+- [ ] Promote radar, wind rose, donut, gauge, choropleth, zoomable choropleth, map
+      projections, chord, arc diagram, force graph, packed circles, tidy tree, radial
+      tree and Voronoi.
+
+**Exit criteria:** every chart demo is a library spec except the three that
+showcase primitives rather than charts (easing curves, colour spaces and
+phyllotaxis), and `apps/web/src/ui` holds no chart modules.
 
 ### Later — Reach
 

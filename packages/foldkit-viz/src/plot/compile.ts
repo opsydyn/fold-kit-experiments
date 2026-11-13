@@ -105,6 +105,20 @@ const TRANSFORMABLE = {
 const transformsFor = (mark: MarkType): ReadonlyArray<string> =>
   mark === 'line' ? TRANSFORMABLE.line : mark === 'area' ? TRANSFORMABLE.area : [];
 
+/** A mark's transforms as a list, in the order they apply. */
+const isTransformList = (
+  transform: LineTransform | ReadonlyArray<LineTransform>,
+): transform is ReadonlyArray<LineTransform> => Array.isArray(transform);
+
+const transformsOf = (mark: MarkSpec): ReadonlyArray<LineTransform> => {
+  if (!('transform' in mark) || mark.transform === undefined) return [];
+  const transform: LineTransform | ReadonlyArray<LineTransform> = mark.transform;
+  return isTransformList(transform) ? transform : [transform];
+};
+
+/** "a dot mark", "an area mark". */
+const aMark = (mark: MarkType): string => `${/^[aeiou]/.test(mark) ? 'an' : 'a'} ${mark} mark`;
+
 const isMarkType = (value: unknown): value is MarkType =>
   isText(value) && Object.hasOwn(MARKS, value);
 
@@ -117,15 +131,21 @@ function validateMark(mark: MarkSpec, path: string): void {
   const rule: MarkRule = MARKS[mark.mark];
   for (const key of Object.keys(mark))
     if (!OPTIONS.has(key) && !rule.channels.some((channel) => channel === key))
-      fail(`${path}.${key}`, `a ${mark.mark} mark does not take ${key}`);
+      fail(`${path}.${key}`, `${aMark(mark.mark)} does not take ${key}`);
   for (const channel of rule.required)
-    if (!(channel in mark)) fail(`${path}.${channel}`, `a ${mark.mark} mark needs ${channel}`);
+    if (!(channel in mark)) fail(`${path}.${channel}`, `${aMark(mark.mark)} needs ${channel}`);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
   if ('transform' in mark && mark.transform !== undefined) {
-    const type: unknown = mark.transform.type;
-    if (!transformsFor(mark.mark).includes(String(type)))
-      fail(`${path}.transform.type`, `a ${mark.mark} mark cannot take a ${String(type)} transform`);
+    const many = Array.isArray(mark.transform);
+    transformsOf(mark).forEach((step, i) => {
+      const type: unknown = step.type;
+      if (!transformsFor(mark.mark).includes(String(type)))
+        fail(
+          `${path}.transform${many ? `[${i}]` : ''}.type`,
+          `${aMark(mark.mark)} cannot take a ${String(type)} transform`,
+        );
+    });
   }
 }
 
@@ -163,7 +183,7 @@ type FacetCell = Readonly<{
 const DEFAULT_MARGINS = { top: 20, right: 16, bottom: 40, left: 52 };
 const FACET_GAP_X = 24;
 const FACET_GAP_Y = 44;
-const FACET_HEADER = 18;
+const FACET_HEADER = 30;
 
 function uniqueValues(
   rowSets: ReadonlyArray<ReadonlyArray<Row>>,
@@ -267,9 +287,9 @@ function applyTransform(
   rows: ReadonlyArray<Row>,
   path: string,
   plotWidth: number,
+  x: Channel | undefined,
+  y: Channel | undefined,
 ): TransformResult {
-  const x = channelOf(mark, 'x'),
-    y = channelOf(mark, 'y');
   const xs = read(rows, x ?? '', `${path}.x`).map(numeric);
   const ys = read(rows, y ?? '', `${path}.y`).map(numeric);
   const z =
@@ -518,7 +538,10 @@ function buildScale(
     const p = project(n);
     return Number.isFinite(p) ? p : undefined;
   };
-  const ticks = axisTicks(domain, project, info.spec.ticks ?? 5, scale).map((t) => ({
+  // Unless the spec says, aim for a tick every ~90px across and ~50px down.
+  const span = axis === 'x' ? bounds.width / 90 : bounds.height / 50;
+  const count = info.spec.ticks ?? Math.max(2, Math.min(10, Math.round(span)));
+  const ticks = axisTicks(domain, project, count, scale).map((t) => ({
     value: t.value,
     position: t.position,
     label: t.label ?? String(t.value),
@@ -973,16 +996,25 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
   const perFacet = cells.map((cell) =>
     base.map(({ mark, index, path, rows }): Prepared => {
       const facetRows = inFacet(inFacet(rows, spec.facet?.x, cell.fx), spec.facet?.y, cell.fy);
-      const transform = 'transform' in mark ? mark.transform : undefined;
-      return transform === undefined
-        ? { mark, index, path, source: facetRows, rows: facetRows }
-        : {
+      const steps = transformsOf(mark);
+      const many = Array.isArray('transform' in mark ? mark.transform : undefined);
+      return steps.reduce<Prepared>(
+        (state, step, i) => {
+          const result = applyTransform(
             mark,
-            index,
-            path,
-            source: facetRows,
-            ...applyTransform(mark, transform, facetRows, `${path}.transform`, cell.bounds.width),
-          };
+            step,
+            state.rows,
+            `${path}.transform${many ? `[${i}]` : ''}`,
+            cell.bounds.width,
+            state.x ?? channelOf(mark, 'x'),
+            state.y ?? channelOf(mark, 'y'),
+          );
+          const band = result.band ?? state.band;
+          const next = { ...state, rows: result.rows, x: result.x ?? X, y: result.y ?? Y };
+          return band === undefined ? next : { ...next, band };
+        },
+        { mark, index, path, source: facetRows, rows: facetRows },
+      );
     }),
   );
   const all = perFacet.flat();

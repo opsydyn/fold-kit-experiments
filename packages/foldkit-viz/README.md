@@ -338,6 +338,44 @@ const drawn = m4(series, { x: (p) => p.t, y: (p) => p.v }, { width: 800 }); // o
   matches the full one. Both return original rows in order and handle a
   million points in under 50 ms.
 
+## Plot grammar (unreleased)
+
+A chart as plain data: marks whose channels name fields in the rows, with scales,
+axes and legends inferred ([ADR 0037](../../docs/adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md)).
+The spec holds no functions, so a server, a notebook or a language model can write
+it, and it renders the same everywhere.
+
+```ts
+import { compilePlot } from '@opsydyn/foldkit-viz/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 300,
+  data: penguins,
+  facet: { x: 'species' },
+  marks: [
+    { mark: 'dot', x: 'mass', y: 'flipper', fill: 'sex', title: 'id' },
+    { mark: 'line', x: 'mass', y: 'flipper', transform: { type: 'regression' } },
+  ],
+});
+// In a FoldKit view: plotChart(h, geometry)
+```
+
+- Marks: `dot`, `line`, `area`, `bar`, `rule`, `text` and `cell`. A channel is a
+  field name or `{ value }`.
+- Scales are inferred from every mark's values: numbers give linear axes, strings
+  band axes, ISO dates UTC time axes, and colour is categorical or sequential.
+  Override any part, including log, symlog and power axes and any scheme.
+- `facet` splits every mark's rows into panels on shared scales.
+- Line transforms: `regression` (with its confidence band), `loess`, `window` and
+  `downsample`, alone or chained in order; area takes `window`.
+- Errors name the spec path, such as `marks[0].x: field "dosage" is missing from
+the data`.
+- `compilePlot` is pure and framework-free; `foldkit/plot` renders the result as
+  an accessible SVG with a legend. The web app's `/plot-grammar` page shows each
+  chart beside its spec, and ships no JavaScript.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

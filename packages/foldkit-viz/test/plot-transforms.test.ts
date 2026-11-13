@@ -156,3 +156,54 @@ describe('smoothing and downsampling', () => {
     ).toThrow('marks[0].transform.type: a dot mark cannot take a loess transform');
   });
 });
+
+describe('transform chains', () => {
+  it('apply in order: a moving window, then a downsample to the plot width', () => {
+    const long = Array.from({ length: 10_000 }, (_, i) => ({
+      t: i,
+      v: Math.sin(i / 200) + (i % 2),
+    }));
+    const spec: PlotSpec = {
+      ...base,
+      width: 200,
+      data: long,
+      marks: [
+        {
+          mark: 'line',
+          x: 't',
+          y: 'v',
+          transform: [
+            { type: 'window', size: 9, reduce: 'mean', anchor: 'centre' },
+            { type: 'downsample', method: 'm4' },
+          ],
+        },
+      ],
+    };
+    const d = pathOf(graphics(spec)[0]);
+    expect((d.match(/[ML]/g) ?? []).length).toBeLessThanOrEqual(800);
+    // The window evened out the alternating 0 / 1 offset, so the line stays near the wave.
+    const domain = compilePlot(spec).facets[0]?.y?.domain;
+    expect(Number(domain?.[1])).toBeLessThan(1.6);
+  });
+
+  it('name the failing step', () => {
+    expect(() =>
+      compilePlot(
+        JSON.parse(
+          JSON.stringify({
+            ...base,
+            data: points,
+            marks: [
+              {
+                mark: 'area',
+                x: 'x',
+                y: 'y',
+                transform: [{ type: 'window', size: 2, reduce: 'mean' }, { type: 'loess' }],
+              },
+            ],
+          }),
+        ),
+      ),
+    ).toThrow('marks[0].transform[1].type: an area mark cannot take a loess transform');
+  });
+});

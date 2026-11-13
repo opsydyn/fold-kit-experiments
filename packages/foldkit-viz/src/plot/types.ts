@@ -74,7 +74,8 @@ export type LineMark = CommonMark &
     z?: string;
     stroke?: Channel;
     curve?: CurveType;
-    transform?: LineTransform;
+    /** One transform, or several applied in order, such as a window then a downsample. */
+    transform?: LineTransform | ReadonlyArray<LineTransform>;
   }>;
 export type AreaMark = CommonMark &
   Readonly<{
@@ -85,7 +86,7 @@ export type AreaMark = CommonMark &
     z?: string;
     fill?: Channel;
     curve?: CurveType;
-    transform?: WindowTransform;
+    transform?: WindowTransform | ReadonlyArray<WindowTransform>;
   }>;
 export type BarMark = CommonMark &
   Readonly<{ mark: 'bar'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;

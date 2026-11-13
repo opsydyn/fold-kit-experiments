@@ -173,3 +173,13 @@ provider activation, deployment or authority to run external business commands.
   provider, hosted, security-isolation or business event replay claim.
 - **next:** propose the version-pinned declaration-fidelity spike above; adopt or
   expand only after its findings are reviewed. Recommendation **needs review**.
+
+## Approved spike follow-up, 2026-11-13
+
+The user subsequently approved the bounded spike. It is now implemented in an
+[isolated private experiment](../../experiments/alchemy-domain-fidelity/README.md).
+Real beta.85 declarations, golden output, exact identity/loss accounting, Node/Bun
+and a fresh outside-repo consumer qualify the bounded subset. Omitted-read strict
+TypeScript compatibility and semantic role/relationship gaps remain explicit; this
+does not promote the candidate package to a production integration. See the
+[receipt and next recommendation](../../experiments/alchemy-domain-fidelity/evidence/receipt.md).

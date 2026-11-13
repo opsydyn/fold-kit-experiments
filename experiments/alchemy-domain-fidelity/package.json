@@ -1,0 +1,22 @@
+{
+  "name": "@opsydyn/zloz-alchemy-domain-fidelity-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:bun": "bun test test",
+    "qualify": "npm run build && node qualify.mjs",
+    "test:consumer": "npm run build && node consumer-test.mjs"
+  },
+  "dependencies": {
+    "@alchemy.run/domain": "2.0.0-beta.85",
+    "@opsydyn/foldkit-zloz": "file:../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.3.0.tgz",
+    "alchemy": "2.0.0-beta.85",
+    "effect": "4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

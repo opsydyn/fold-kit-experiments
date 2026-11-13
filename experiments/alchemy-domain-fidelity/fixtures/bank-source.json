@@ -1,0 +1,161 @@
+{
+  "format": "zloz-alchemy-declarations",
+  "version": 1,
+  "upstream": {
+    "package": "@alchemy.run/domain",
+    "version": "2.0.0-beta.85"
+  },
+  "namespace": "example/bank",
+  "revision": "fixture-v1",
+  "modelId": "example%2Fbank/Bank/model/Bank",
+  "declarations": [
+    {
+      "id": "example%2Fbank/Bank/aggregate/Account",
+      "locator": "example%2Fbank/Bank/aggregate/Account",
+      "kind": "aggregate",
+      "name": "Account"
+    },
+    {
+      "id": "example%2Fbank/Bank/command/DepositMoney",
+      "locator": "example%2Fbank/Bank/command/DepositMoney",
+      "kind": "command",
+      "name": "DepositMoney"
+    },
+    {
+      "id": "example%2Fbank/Bank/command/GrantBonus",
+      "locator": "example%2Fbank/Bank/command/GrantBonus",
+      "kind": "command",
+      "name": "GrantBonus"
+    },
+    {
+      "id": "example%2Fbank/Bank/event/MoneyDeposited",
+      "locator": "example%2Fbank/Bank/event/MoneyDeposited",
+      "kind": "event",
+      "name": "MoneyDeposited"
+    },
+    {
+      "id": "example%2Fbank/Bank/model/Bank",
+      "locator": "example%2Fbank/Bank/model/Bank",
+      "kind": "model",
+      "name": "Bank"
+    },
+    {
+      "id": "example%2Fbank/Bank/policy/Notify",
+      "locator": "example%2Fbank/Bank/policy/Notify",
+      "kind": "policy",
+      "name": "Notify"
+    },
+    {
+      "id": "example%2Fbank/Bank/stream/Ledger",
+      "locator": "example%2Fbank/Bank/stream/Ledger",
+      "kind": "stream",
+      "name": "Ledger"
+    },
+    {
+      "id": "example%2Fbank/Bank/view/AccountSummary",
+      "locator": "example%2Fbank/Bank/view/AccountSummary",
+      "kind": "view",
+      "name": "AccountSummary"
+    }
+  ],
+  "relations": [
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/aggregate/Account\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/aggregate/Account"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/command/DepositMoney"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/command/GrantBonus"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/event/MoneyDeposited"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/policy/Notify"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/stream/Ledger"
+    },
+    {
+      "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+      "kind": "contains",
+      "source": "example%2Fbank/Bank/model/Bank",
+      "target": "example%2Fbank/Bank/view/AccountSummary"
+    },
+    {
+      "id": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "kind": "entry-type",
+      "source": "example%2Fbank/Bank/event/MoneyDeposited",
+      "target": "example%2Fbank/Bank/stream/Ledger"
+    },
+    {
+      "id": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+      "kind": "feeds",
+      "source": "example%2Fbank/Bank/aggregate/Account",
+      "target": "example%2Fbank/Bank/view/AccountSummary"
+    },
+    {
+      "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "kind": "handles",
+      "source": "example%2Fbank/Bank/aggregate/Account",
+      "target": "example%2Fbank/Bank/command/DepositMoney"
+    },
+    {
+      "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "kind": "handles",
+      "source": "example%2Fbank/Bank/aggregate/Account",
+      "target": "example%2Fbank/Bank/command/GrantBonus"
+    },
+    {
+      "id": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "kind": "may-emit",
+      "source": "example%2Fbank/Bank/command/DepositMoney",
+      "target": "example%2Fbank/Bank/event/MoneyDeposited"
+    },
+    {
+      "id": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "kind": "may-emit",
+      "source": "example%2Fbank/Bank/command/GrantBonus",
+      "target": "example%2Fbank/Bank/event/MoneyDeposited"
+    },
+    {
+      "id": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "kind": "observes-source",
+      "source": "example%2Fbank/Bank/aggregate/Account",
+      "target": "example%2Fbank/Bank/policy/Notify"
+    },
+    {
+      "id": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "kind": "reacts-to",
+      "source": "example%2Fbank/Bank/event/MoneyDeposited",
+      "target": "example%2Fbank/Bank/policy/Notify"
+    }
+  ],
+  "findings": [
+    {
+      "sourceId": "example%2Fbank/Bank/model/Bank",
+      "code": "behaviour-unrepresented",
+      "severity": "unverified",
+      "reason": "Declaration types only: handlers, state schemas, key routing, sagas, external systems, APIs and runtime effects are outside this projection."
+    }
+  ]
+}

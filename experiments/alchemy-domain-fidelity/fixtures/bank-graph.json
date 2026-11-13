@@ -1,0 +1,441 @@
+{
+  "nodes": [
+    {
+      "id": "example%2Fbank/Bank/aggregate/Account",
+      "label": "Account",
+      "position": {
+        "x": 40,
+        "y": 80
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "architecture": {
+        "family": "ddd",
+        "role": "aggregate-root"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/aggregate/Account",
+          "locator": "example%2Fbank/Bank/aggregate/Account",
+          "kind": "aggregate",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/command/DepositMoney",
+      "label": "DepositMoney",
+      "position": {
+        "x": 300,
+        "y": 80
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "architecture": {
+        "family": "event-storming",
+        "role": "command"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/command/DepositMoney",
+          "locator": "example%2Fbank/Bank/command/DepositMoney",
+          "kind": "command",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/command/GrantBonus",
+      "label": "GrantBonus",
+      "position": {
+        "x": 560,
+        "y": 80
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "architecture": {
+        "family": "event-storming",
+        "role": "command"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/command/GrantBonus",
+          "locator": "example%2Fbank/Bank/command/GrantBonus",
+          "kind": "command",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/event/MoneyDeposited",
+      "label": "MoneyDeposited",
+      "position": {
+        "x": 40,
+        "y": 230
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "architecture": {
+        "family": "ddd",
+        "role": "domain-event"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/event/MoneyDeposited",
+          "locator": "example%2Fbank/Bank/event/MoneyDeposited",
+          "kind": "event",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/model/Bank",
+      "label": "Bank",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "width": 820,
+        "height": 580
+      },
+      "ports": [],
+      "kind": "group",
+      "architecture": {
+        "family": "ddd",
+        "role": "bounded-context"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/model/Bank",
+          "locator": "example%2Fbank/Bank/model/Bank",
+          "kind": "model",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/policy/Notify",
+      "label": "Notify",
+      "position": {
+        "x": 300,
+        "y": 230
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "architecture": {
+        "family": "event-storming",
+        "role": "policy"
+      },
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/policy/Notify",
+          "locator": "example%2Fbank/Bank/policy/Notify",
+          "kind": "policy",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/stream/Ledger",
+      "label": "Ledger (stream; untyped)",
+      "position": {
+        "x": 560,
+        "y": 230
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/stream/Ledger",
+          "locator": "example%2Fbank/Bank/stream/Ledger",
+          "kind": "stream",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    },
+    {
+      "id": "example%2Fbank/Bank/view/AccountSummary",
+      "label": "AccountSummary (view; untyped)",
+      "position": {
+        "x": 40,
+        "y": 380
+      },
+      "size": {
+        "width": 220,
+        "height": 100
+      },
+      "ports": [
+        {
+          "id": "in",
+          "kind": "input",
+          "side": "left",
+          "offset": 0.5
+        },
+        {
+          "id": "out",
+          "kind": "output",
+          "side": "right",
+          "offset": 0.5
+        }
+      ],
+      "parentId": "example%2Fbank/Bank/model/Bank",
+      "data": {
+        "alchemy": {
+          "sourceId": "example%2Fbank/Bank/view/AccountSummary",
+          "locator": "example%2Fbank/Bank/view/AccountSummary",
+          "kind": "view",
+          "packageVersion": "2.0.0-beta.85"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/event/MoneyDeposited",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/stream/Ledger",
+        "port": "in"
+      },
+      "label": "entry-type",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+          "kind": "entry-type"
+        }
+      }
+    },
+    {
+      "id": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/aggregate/Account",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/view/AccountSummary",
+        "port": "in"
+      },
+      "label": "feeds",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+          "kind": "feeds"
+        }
+      }
+    },
+    {
+      "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/aggregate/Account",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/command/DepositMoney",
+        "port": "in"
+      },
+      "label": "handles",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+          "kind": "handles"
+        }
+      }
+    },
+    {
+      "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/aggregate/Account",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/command/GrantBonus",
+        "port": "in"
+      },
+      "label": "handles",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+          "kind": "handles"
+        }
+      }
+    },
+    {
+      "id": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/command/DepositMoney",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/event/MoneyDeposited",
+        "port": "in"
+      },
+      "label": "may-emit",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+          "kind": "may-emit"
+        }
+      }
+    },
+    {
+      "id": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/command/GrantBonus",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/event/MoneyDeposited",
+        "port": "in"
+      },
+      "label": "may-emit",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+          "kind": "may-emit"
+        }
+      }
+    },
+    {
+      "id": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/aggregate/Account",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/policy/Notify",
+        "port": "in"
+      },
+      "label": "observes-source",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+          "kind": "observes-source"
+        }
+      }
+    },
+    {
+      "id": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "source": {
+        "node": "example%2Fbank/Bank/event/MoneyDeposited",
+        "port": "out"
+      },
+      "target": {
+        "node": "example%2Fbank/Bank/policy/Notify",
+        "port": "in"
+      },
+      "label": "reacts-to",
+      "data": {
+        "alchemy": {
+          "sourceId": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+          "kind": "reacts-to"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "packageVersion": "2.0.0-beta.85",
+  "node": "v24.15.0",
+  "bun": "1.4.4",
+  "typeScript": "6.0.3",
+  "sourceDeclarations": 8,
+  "sourceRelations": 15,
+  "graphNodes": 8,
+  "graphEdges": 8,
+  "coverageEntries": 23,
+  "roleGaps": ["example%2Fbank/Bank/stream/Ledger", "example%2Fbank/Bank/view/AccountSummary"],
+  "untypedRelationships": 8,
+  "addedDeclarations": [
+    "example%2Fbank/Bank/command/WithdrawMoney",
+    "example%2Fbank/Bank/event/MoneyWithdrawn"
+  ],
+  "changedSemanticNodes": [],
+  "movedExistingNodes": [
+    "example%2Fbank/Bank/event/MoneyDeposited",
+    "example%2Fbank/Bank/policy/Notify",
+    "example%2Fbank/Bank/stream/Ledger",
+    "example%2Fbank/Bank/view/AccountSummary"
+  ],
+  "handlerInvocations": 0,
+  "definitionVerification": [],
+  "strictOptionalProbe": {
+    "exit": 2,
+    "expectedFailure": true,
+    "hasDeclarationReadError": true
+  },
+  "profiles": ["NodeNext", "Bundler"],
+  "optionalFoldkitInstalled": false,
+  "reactInstalled": false,
+  "domainIntegrity": "sha512-nej0ltvPt4j0KsX6wN1WK9oZ9bNsefkPWhQaQPGsEOoz6aRZr4gCEL602HruPbsf/hdwd0SoNBWl2iTpejjrUA==",
+  "coreTarballIntegrity": "sha512-6syZQ9nqVJAWneuM1SRBYob4VM3NLpKLJgp1oi4jHXXovyBZ05xWe/S9xV+kcHySWw8twnpZhjwW6yuFNNNmaA==",
+  "goldenSourceSha256": "a837c7e98b9fdc5f06754b3a23c93a0ba57ca2c34e501a65d2c7089da8c5cc54",
+  "goldenGraphSha256": "d81ecb8a8517532af9f258cd5715615a82aaed6ed6b897c4d0242b219d808589",
+  "canonicalGraph": 1
+}

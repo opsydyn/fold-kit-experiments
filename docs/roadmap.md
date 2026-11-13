@@ -592,3 +592,16 @@ lack equivalent Zloz roles. Recommend an optional adapter boundary, starting wit
 a read-only declaration-fidelity spike; no dependency/provider/runtime adoption
 has occurred. See [the decision and stop conditions](assessments/2026-11-13-zloz-alchemy-domain-integration.md).
 Recommendation: **needs review**. Existing D/C/Q qualification remains open.
+
+**Alchemy declaration-fidelity spike — implemented locally, unreleased (2026-11-13):**
+The private experiment pins beta.85 and maps a real synthetic Domain fixture under
+Node/Bun, with golden manifests/graphs, explicit untyped roles/relationships, strict
+identity/alias checks and core edition comparison. The outside-repo consumer needs
+neither Foldkit nor React. Standard omitted-read declarations expose a retained
+strict-optional TypeScript compatibility failure; the positive fixture has an
+explicit read contract. Production adapter adoption remains on hold.
+See [ADR 0064](adr/0064-qualify-alchemy-declarations-in-an-isolated-spike.md) and
+[spike receipt](../experiments/alchemy-domain-fidelity/evidence/receipt.md).
+Next proposed slice: framework-neutral read-model and declared-consumption contracts
+under D1, then revisit optional adapter extraction and its compatibility gate.
+D/C/Q closure and user-task qualification remain open. Recommendation: **needs review**.

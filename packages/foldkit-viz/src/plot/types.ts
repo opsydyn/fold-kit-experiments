@@ -66,7 +66,20 @@ type CommonMark = Readonly<{
 }>;
 
 export type DotMark = CommonMark &
-  Readonly<{ mark: 'dot'; x: Channel; y: Channel; r?: Channel; fill?: Channel; stroke?: Channel }>;
+  Readonly<{
+    mark: 'dot';
+    x: Channel;
+    y: Channel;
+    r?: Channel;
+    fill?: Channel;
+    stroke?: Channel;
+    /**
+     * Compile to one packed `points` graphic instead of a graphic per row, for
+     * hundreds of thousands of rows drawn on canvas. Per-row keys and titles are
+     * dropped; `indexPlot` names the row under the pointer instead.
+     */
+    dense?: boolean;
+  }>;
 export type LineMark = CommonMark &
   Readonly<{
     mark: 'line';
@@ -253,6 +266,24 @@ export type Graphic =
         y2: number;
         stroke: string;
         strokeWidth: number;
+      }>)
+  | (Paint &
+      Readonly<{
+        /** Many dots packed into typed arrays, from a dense dot mark. */
+        kind: 'points';
+        key: string;
+        count: number;
+        xs: Float64Array;
+        ys: Float64Array;
+        /** One radius for every point, or one per point. */
+        radius: number | Float64Array;
+        /** Distinct fills; `paint` holds each point's index into it. */
+        palette: ReadonlyArray<string>;
+        paint: Uint16Array;
+        /** Each point's row in the mark's data. */
+        rows: Uint32Array;
+        /** 1 where a highlight dims the point. */
+        dimmed?: Uint8Array;
       }>)
   | (Paint &
       Readonly<{

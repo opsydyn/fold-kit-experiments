@@ -12,7 +12,7 @@ import { linearTicks } from '../math/scale.js';
 import { arc, arcCentroid } from '../shape/arc.js';
 import { line } from '../shape/line.js';
 import { sankey } from '../shape/sankey.js';
-import { fail, keysOf, numeric, paintOf, read, titlesOf, withTitle } from './channels.js';
+import { fail, keysOf, numeric, paintOf, read, spanOf, titlesOf, withTitle } from './channels.js';
 import type { Context, Graphics } from './channels.js';
 import type { Graphic, ParallelMark, Row, SankeyMark, SunburstMark, TreemapMark } from './types.js';
 
@@ -312,8 +312,7 @@ export function parallelGraphics(
       fail(`${path}.dimensions[${d}]`, `field "${field}" must hold numbers`);
     const numbers = values.map(numeric);
     const finite = numbers.filter(Number.isFinite);
-    const lo = Math.min(...finite),
-      hi = Math.max(...finite);
+    const [lo, hi] = spanOf(finite) ?? [0, 0];
     const x =
       mark.dimensions.length === 1
         ? bounds.left + bounds.width / 2

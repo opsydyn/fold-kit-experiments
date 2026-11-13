@@ -34,6 +34,41 @@ export type PlotChartOptions = Readonly<{ palette?: PlotPalette; legend?: boolea
 
 const n = (value: number): string => String(Math.round(value * 100) / 100);
 
+/**
+ * Packed points as SVG: one path of circles per colour (and per dimmed state),
+ * so even a large dense mark is a handful of elements. Canvas suits very large
+ * marks better; see canvas/plot.
+ */
+function packedPaths<M>(
+  h: HtmlBuilder<M>,
+  g: Extract<Graphic, { kind: 'points' }>,
+): ReadonlyArray<Html> {
+  const groups = new Map<string, string[]>();
+  for (let i = 0; i < g.count; i += 1) {
+    const r = g.radius instanceof Float64Array ? (g.radius[i] ?? 0) : g.radius;
+    const x = g.xs[i] ?? 0,
+      y = g.ys[i] ?? 0;
+    const group = `${g.paint[i] ?? 0}:${g.dimmed?.[i] ?? 0}`;
+    const parts = groups.get(group) ?? [];
+    parts.push(
+      `M${n(x - r)},${n(y)}a${n(r)},${n(r)} 0 1,0 ${n(2 * r)},0a${n(r)},${n(r)} 0 1,0 ${n(-2 * r)},0`,
+    );
+    groups.set(group, parts);
+  }
+  return [...groups].map(([group, parts]) => {
+    const [colour = '0', dimmed = '0'] = group.split(':');
+    return h.path(
+      [
+        h.Key(group),
+        h.D(parts.join('')),
+        h.Fill(g.palette[Number(colour)] ?? 'currentColor'),
+        ...(dimmed === '1' ? [h.FillOpacity('0.15')] : []),
+      ],
+      [],
+    );
+  });
+}
+
 function graphic<M>(h: HtmlBuilder<M>, g: Graphic): Html {
   const tooltip = g.title === undefined ? [] : [h.title([], [g.title])];
   const common = [h.Key(g.key), h.Opacity(n(g.opacity))];
@@ -93,6 +128,8 @@ function graphic<M>(h: HtmlBuilder<M>, g: Graphic): Html {
         ],
         tooltip,
       );
+    case 'points':
+      return h.g([...common, h.Class('plot-points')], packedPaths(h, g));
     case 'text':
       return h.text(
         [...common, h.X(n(g.x)), h.Y(n(g.y)), h.Fill(g.fill), h.TextAnchor(g.anchor)],

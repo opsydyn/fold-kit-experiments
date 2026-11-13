@@ -164,3 +164,20 @@ export function requireScale(
 
 /** Every graphic a mark draws; used by the mark modules. */
 export type Graphics = ReadonlyArray<Graphic>;
+
+/** [min, max] of the finite values, by loop so data of any size is safe; undefined when none. */
+export function spanOf(values: Iterable<number>): readonly [number, number] | undefined {
+  let lo = Number.POSITIVE_INFINITY;
+  let hi = Number.NEGATIVE_INFINITY;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    if (value < lo) lo = value;
+    if (value > hi) hi = value;
+  }
+  return lo <= hi ? [lo, hi] : undefined;
+}
+
+/** Appends by loop: spreading a data-sized array into push overflows the call stack. */
+export function append<T>(target: T[], source: Iterable<T>): void {
+  for (const item of source) target.push(item);
+}

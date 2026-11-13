@@ -13,6 +13,8 @@ import {
   fail,
   fieldOf,
   isConstant,
+  spanOf,
+  append,
   isFlag,
   isNumber,
   isText,
@@ -96,6 +98,7 @@ const OPTIONS = new Set([
   'anchor',
   'dx',
   'dy',
+  'dense',
   'bandwidth',
   'separator',
   'labels',
@@ -295,8 +298,7 @@ function applyTransform(
       case 'regression': {
         const fit = polynomialRegression(series, xy, { degree: transform.degree ?? 1 });
         const finite = series.map(xy.x).filter(Number.isFinite);
-        const lo = Math.min(...finite),
-          hi = Math.max(...finite);
+        const [lo, hi] = spanOf(finite) ?? [0, 0];
         for (let i = 0; i <= 60; i += 1) {
           const at = lo + ((hi - lo) * i) / 60;
           const interval = fit.interval(at, transform.level ?? 0.95);
@@ -382,13 +384,16 @@ function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
       if (original === undefined) continue;
       const field = fieldOf(original);
       if (field !== undefined && name === axis) fields.add(field);
-      source.push(...read(p.source, original, `${p.path}.${name}`));
+      append(source, read(p.source, original, `${p.path}.${name}`));
       // A transform rewrites the main channel of each axis; the others read the rows as they are.
       const remapped = name === 'x' ? p.x : name === 'y' ? p.y : undefined;
-      values.push(...read(p.rows, remapped ?? original, `${p.path}.${name}`));
+      append(values, read(p.rows, remapped ?? original, `${p.path}.${name}`));
     }
     if (axis === 'y' && p.band !== undefined)
-      values.push(...p.band.flatMap((r) => [r[LO] ?? null, r[HI] ?? null]));
+      append(
+        values,
+        p.band.flatMap((r) => [r[LO] ?? null, r[HI] ?? null]),
+      );
     // Areas and bars grow from zero unless they name where they start.
     if (axis === 'y' && p.mark.mark === 'area' && p.mark.y0 === undefined) zero = true;
     if (p.mark.mark === 'bar' && p.mark.y0 === undefined && p.mark.x0 === undefined) zero = true;
@@ -492,7 +497,7 @@ function buildScale(
       return s === undefined ? undefined : s + scale.bandwidth / 2;
     };
     // Label every k-th band when labels would collide, estimating ~6.5px a character.
-    const widest = Math.max(1, ...domain.map((value) => value.length));
+    const widest = domain.reduce((most, value) => Math.max(most, value.length), 1);
     const every =
       axis === 'x'
         ? Math.max(1, Math.ceil((widest * 6.5 + 8) / scale.step))
@@ -577,7 +582,7 @@ function resolveColor(
       const field = fieldOf(channelOf(p.mark, name));
       if (field === undefined) continue;
       fields.add(field);
-      values.push(...read(p.source, field, `${p.path}.${name}`));
+      append(values, read(p.source, field, `${p.path}.${name}`));
     }
   }
   if (fields.size === 0) return null;
@@ -617,8 +622,9 @@ function resolveColor(
     fail('color.domain', 'a continuous colour domain is [min, max]');
   // SAFETY: checked just above to be two numbers when given.
   const explicit = spec.domain as readonly [number, number] | undefined;
-  const lo = explicit?.[0] ?? (numbers.length === 0 ? 0 : Math.min(...numbers));
-  const hi = explicit?.[1] ?? (numbers.length === 0 ? 1 : Math.max(...numbers));
+  const span = spanOf(numbers);
+  const lo = explicit?.[0] ?? span?.[0] ?? 0;
+  const hi = explicit?.[1] ?? span?.[1] ?? 1;
   const interpolator = interpolateRgbBasis(scheme);
   const toColor =
     type === 'diverging'
@@ -645,7 +651,7 @@ function resolveSize(prepared: ReadonlyArray<Prepared>, spec: PlotSpec): (value:
       ? []
       : read(p.source, field, `${p.path}.r`).map(numeric).filter(Number.isFinite);
   });
-  const max = Math.max(0, ...values);
+  const max = Math.max(0, spanOf(values)?.[1] ?? 0);
   const scale = sqrt({ domain: [0, max || 1], range: [range[0], range[1]] });
   return (v) => {
     const n = numeric(v);
@@ -655,11 +661,66 @@ function resolveSize(prepared: ReadonlyArray<Prepared>, spec: PlotSpec): (value:
 
 // ── Mark geometry ─────────────────────────────────────────────────────────────
 
+/** Many dots as one packed graphic: typed positions, palette indices and row indices. */
+function packPoints(
+  key: string,
+  xs: ReadonlyArray<Value>,
+  ys: ReadonlyArray<Value>,
+  x: PositionScale,
+  y: PositionScale,
+  fills: ReadonlyArray<string>,
+  radii: ReadonlyArray<number>,
+  uniformRadius: boolean,
+  opacity: number,
+): Graphic {
+  const n = xs.length;
+  const px = new Float64Array(n),
+    py = new Float64Array(n),
+    rows = new Uint32Array(n),
+    paint = new Uint16Array(n);
+  const radius = uniformRadius ? (radii[0] ?? 3) : new Float64Array(n);
+  const palette: string[] = [];
+  const paletteIndex = new Map<string, number>();
+  let count = 0;
+  for (let i = 0; i < n; i += 1) {
+    const cx = x.place(xs[i] ?? null),
+      cy = y.place(ys[i] ?? null);
+    if (cx === undefined || cy === undefined) continue;
+    const fill = fills[i] ?? 'currentColor';
+    let colour = paletteIndex.get(fill);
+    if (colour === undefined) {
+      colour = palette.length;
+      palette.push(fill);
+      paletteIndex.set(fill, colour);
+    }
+    px[count] = cx;
+    py[count] = cy;
+    rows[count] = i;
+    paint[count] = colour;
+    if (radius instanceof Float64Array) radius[count] = radii[i] ?? 3;
+    count += 1;
+  }
+  return {
+    kind: 'points',
+    key,
+    count,
+    xs: px.subarray(0, count),
+    ys: py.subarray(0, count),
+    radius: radius instanceof Float64Array ? radius.subarray(0, count) : radius,
+    palette,
+    paint: paint.subarray(0, count),
+    rows: rows.subarray(0, count),
+    opacity,
+  };
+}
+
 function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
   const { mark, rows, path, index } = p;
   const opacity = mark.opacity ?? 1;
-  const keys = keysOf(rows, mark, index);
-  const titles = titlesOf(rows, mark.title, `${path}.title`);
+  // Dense marks carry no per-row keys or titles, so they skip building them.
+  const dense = mark.mark === 'dot' && mark.dense === true;
+  const keys = dense ? [] : keysOf(rows, mark, index);
+  const titles = dense ? [] : titlesOf(rows, mark.title, `${path}.title`);
   switch (mark.mark) {
     case 'dot': {
       const x = requireScale(context.x, path, 'x'),
@@ -680,6 +741,20 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
           : read(rows, mark.r, `${path}.r`).map((v) =>
               isConstant(mark.r) ? numeric(v) : context.size(v),
             );
+      if (mark.dense === true)
+        return [
+          packPoints(
+            `${index}:points`,
+            xs,
+            ys,
+            x,
+            y,
+            fills,
+            radii,
+            mark.r === undefined || isConstant(mark.r),
+            opacity,
+          ),
+        ];
       return rows.flatMap((_, i) => {
         const cx = x.place(xs[i] ?? null),
           cy = y.place(ys[i] ?? null);

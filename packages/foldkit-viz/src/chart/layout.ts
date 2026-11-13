@@ -109,8 +109,12 @@ export function resolveDomain(
   if (scale.type === 'log') {
     const base = logBase(scale);
     if (accepted.length === 0) return [1, base];
-    const lo = Math.min(...accepted),
-      hi = Math.max(...accepted);
+    let lo = Number.POSITIVE_INFINITY,
+      hi = Number.NEGATIVE_INFINITY;
+    for (const value of accepted) {
+      if (value < lo) lo = value;
+      if (value > hi) hi = value;
+    }
     return validateScaleDomain(lo === hi ? [lo / base, lo * base] : [lo, hi], scale);
   }
   if (accepted.length === 0) return [0, 1];

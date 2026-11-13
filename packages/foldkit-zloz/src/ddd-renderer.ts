@@ -6,13 +6,14 @@ import {
   zlozGroupFrame,
   zlozDragHandle,
   type ZlozNodeRenderContext,
+  type ZlozGroupHeaderOptions,
 } from './composition';
-import { resolveLayoutGroupHeader } from './group-header';
+import { resolveLayoutGroupHeader, groupHeaderPosition } from './group-header';
 import type { ZlozNodeBodyCache } from './node-body-cache';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts, not structural placeholders.
 import { nodeShapeGeometry } from './node-shape';
 import { portRenderViews } from './port-render';
-import type { ZlozNode, LayoutGroupHeader } from './types';
+import type { ZlozNode } from './types';
 
 /** Static artwork context. Live controls and policy state are deliberately separate. */
 export type ZlozDddContentContext = Readonly<{
@@ -28,7 +29,7 @@ export type ZlozDddContentRenderer<M> = (
 ) => Html | null | undefined;
 export type ZlozDddNodeOptions<M> = Readonly<{
   /** Optional declared group heading geometry, shared with the layout request. Collapsed groups keep compact headings. */
-  groupHeader?: LayoutGroupHeader | undefined;
+  groupHeader?: ZlozGroupHeaderOptions | undefined;
   attributes?: Parameters<HtmlBuilder<M>['div']>[0];
   /** Create once per canvas; keep this options object stable for artwork reuse. */
   bodyCache?: ZlozNodeBodyCache;
@@ -341,9 +342,12 @@ export function zlozDddGroup<M>(
   if (node.kind !== 'group' || node.architecture?.family !== 'ddd') return undefined;
   const borderWidth = 2;
   const declaredHeader = options.groupHeader
-    ? resolveLayoutGroupHeader(node, options.groupHeader)
+    ? options.groupHeader.sizing === 'intrinsic'
+      ? { position: groupHeaderPosition(node, options.groupHeader), size: undefined }
+      : resolveLayoutGroupHeader(node, options.groupHeader)
     : undefined;
   const header = context.collapsed ? undefined : declaredHeader;
+  const intrinsic = Boolean(header && options.groupHeader?.sizing === 'intrinsic');
   const selected = context.state.selectedNodes.includes(node.id) || context.selectionPreview;
   const border = context.dropTarget
     ? 'var(--flow-valid-target, #0f766e)'
@@ -372,8 +376,14 @@ export function zlozDddGroup<M>(
             position: 'absolute',
             top: `${header ? header.position.y - node.position.y : 8}px`,
             left: `${header ? header.position.x - node.position.x : 16}px`,
-            width: header ? `${header.size.width}px` : 'calc(100% - 144px)',
-            height: `${header ? header.size.height : Math.max(0, Math.min(56, node.size.height - 16))}px`,
+            width: intrinsic
+              ? 'max-content'
+              : header?.size
+                ? `${header.size.width}px`
+                : 'calc(100% - 144px)',
+            height: intrinsic
+              ? 'max-content'
+              : `${header?.size ? header.size.height : Math.max(0, Math.min(56, node.size.height - 16))}px`,
             overflow: 'hidden',
             padding: '0',
             border: '0',

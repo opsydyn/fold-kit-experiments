@@ -178,12 +178,12 @@ export type LayoutGroupPadding = Readonly<{
   left: number;
 }>;
 /** Declared top-left header envelope; padding surrounds header/content and gap separates header from children. */
-export type LayoutGroupHeader = Readonly<{
+export type LayoutGroupHeaderSpec = Readonly<{
   id: string;
-  size: Size;
   padding: LayoutGroupPadding;
   gap: number;
 }>;
+export type LayoutGroupHeader = LayoutGroupHeaderSpec & Readonly<{ size: Size }>;
 export type LayoutGroupHeaderGeometry = Readonly<{
   position: Point;
   size: Size;

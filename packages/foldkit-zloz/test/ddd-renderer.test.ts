@@ -267,6 +267,16 @@ test('declared group header geometry composes custom content and keeps compact c
   expect(header?.getAttribute('style')).toContain('left: 24px');
   expect(header?.getAttribute('style')).toContain('top: 24px');
   expect(header?.textContent).toContain('Custom architecture heading');
+  const intrinsic = await render(state, {
+    ...options,
+    groupHeader: { ...options.groupHeader, sizing: 'intrinsic' },
+  });
+  expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
+    'width: max-content',
+  );
+  expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
+    'height: max-content',
+  );
   const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options);
   expect(collapsed.querySelector('[data-zloz-group-header]')).toBeNull();
   expect(collapsed.querySelector('[data-custom-group-heading]')).not.toBeNull();

@@ -507,3 +507,70 @@ test('expanded group headings share declared layout bounds, preserve source/hist
   expect(restored.alchemyReview.review?.editor.graph).toEqual(previous.graph);
   preserved(source, restored);
 });
+
+test('intrinsic group headings arrange from measured sizes only, reject content/theme changes and preserve working history', async () => {
+  const source = init().model;
+  let model = open(source);
+  const review = model.alchemyReview.review;
+  assert(review);
+  const id = review.id;
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id,
+      message: { type: 'SurfaceMeasured', size: { width: 1100, height: 700 } },
+    }),
+  ).model;
+  model = update(model, Message.SelectedAlchemyGroupHeader({ id, header: 'measured' })).model;
+  expect(update(model, Message.ClickedAlchemyLayout({ id })).commands).toBeUndefined();
+  model = update(model, Message.ClickedMeasureAlchemyHeadings({ id })).model;
+  const pending = model.alchemyReview.review?.layout.heading.measurement;
+  assert(pending?.type === 'pending');
+  const spec = pending.request.headers[0];
+  assert(spec);
+  const result = {
+    type: 'measured' as const,
+    requestId: pending.request.requestId,
+    revision: pending.request.revision,
+    renderKey: pending.request.renderKey,
+    headers: [{ id: spec.id, size: { width: 413.75, height: 94.5 } }],
+  };
+  const previous = model.alchemyReview.review?.editor;
+  assert(previous);
+  const cancelled = update(model, Message.ClickedCancelAlchemyHeadings({ id })).model;
+  expect(update(cancelled, Message.ObservedAlchemyHeadings({ id, result })).model).toBe(cancelled);
+  const changedDetail = update(
+    model,
+    Message.SelectedAlchemyHeadingDetail({ id, detail: 'provenance' }),
+  ).model;
+  expect(update(changedDetail, Message.ObservedAlchemyHeadings({ id, result })).model).toBe(
+    changedDetail,
+  );
+  model = update(model, Message.ObservedAlchemyHeadings({ id, result })).model;
+  expect(model.alchemyReview.review?.editor).toBe(previous);
+  const started = update(model, Message.ClickedAlchemyLayout({ id }));
+  assert(started.commands?.[0]);
+  expect(started.model.alchemyReview.review?.layout.pending?.groupHeaders).toEqual([
+    { ...spec, size: { width: 413.75, height: 94.5 } },
+  ]);
+  const completed = await Effect.runPromise(started.commands[0].effect);
+  expect(completed._tag).toBe('SucceededAlchemyLayout');
+  const changed = update(
+    started.model,
+    Message.SelectedThemePreference({ themePreference: 'dark' }),
+  ).model;
+  const discarded = update(changed, completed).model;
+  expect(discarded.alchemyReview.review?.editor).toBe(previous);
+  expect(discarded.alchemyReview.review?.layout.pending).toBeNull();
+  const applied = update(started.model, completed).model;
+  const parent = applied.alchemyReview.review?.editor.graph.nodes.find(
+    (node) => node.id === spec.id,
+  );
+  assert(parent);
+  for (const child of applied.alchemyReview.review?.editor.graph.nodes.filter(
+    (node) => node.parentId === spec.id,
+  ) ?? [])
+    expect(child.position.y - parent.position.y).toBeGreaterThanOrEqual(142.5);
+  expect(applied.alchemyReview.review?.editor.past).toBe(previous.past);
+  preserved(source, applied);
+});

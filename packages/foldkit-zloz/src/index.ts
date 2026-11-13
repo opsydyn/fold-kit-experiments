@@ -580,3 +580,15 @@ export type {
 } from './label-measurement';
 
 export { resolveLayoutGroupHeader } from './group-header';
+
+export {
+  startGroupHeaderMeasurement,
+  updateGroupHeaderMeasurements,
+  resolveGroupHeaderMeasurements,
+} from './group-header-measurement';
+export type {
+  ZlozGroupHeaderMeasurementRequest,
+  ZlozGroupHeaderMeasurementResult,
+  ZlozGroupHeaderMeasurements,
+  ZlozGroupHeaderMeasurementContext,
+} from './group-header-measurement';

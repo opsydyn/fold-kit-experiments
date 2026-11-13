@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "measurement absent by default; no automatic arrangement",
+    "Cancel and detail change during delayed font readiness reject old work",
+    "keyboard Measure/Arrange retain focus",
+    "summary/provenance headings acquire different intrinsic sizes",
+    "real RIGHT/DOWN layouts preserve measured header insets and child gap",
+    "repeat measurement after fit is zoom independent",
+    "heading and edge measurements compose in one explicit layout",
+    "theme requires fresh measurements; Minimal mode retains controls",
+    "nine findings and exact working model/lineage survive",
+    "no page errors or external requests"
+  ],
+  "pageErrors": []
+}

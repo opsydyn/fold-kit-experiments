@@ -1,5 +1,9 @@
 import {
   applyPreviewLayout,
+  startGroupHeaderMeasurement,
+  updateGroupHeaderMeasurements,
+  resolveGroupHeaderMeasurements,
+  type ZlozGroupHeaderMeasurementResult,
   startLabelMeasurement,
   updateLabelMeasurements,
   resolveLabelMeasurements,
@@ -13,7 +17,7 @@ import { Match, Result } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
-import { alchemyGroupHeader } from './alchemy-group-header';
+import { alchemyGroupHeader, alchemyGroupHeaderSpec } from './alchemy-group-header';
 import { alchemyPreviewLabelSize } from './alchemy-labels';
 import type { AlchemyReviewState } from './alchemy-state';
 import { ArrangeAlchemyPreview } from './command';
@@ -21,12 +25,16 @@ import { Message } from './message';
 import type { Model } from './model';
 type Review = NonNullable<AlchemyReviewState['review']>;
 export function cancelAlchemyLayout(review: Review | null): Review | null {
-  return review && (review.layout.pending || review.layout.labels.measurement.type === 'pending')
+  return review &&
+    (review.layout.pending ||
+      review.layout.labels.measurement.type === 'pending' ||
+      review.layout.heading.measurement.type === 'pending')
     ? {
         ...review,
         layout: {
           ...review.layout,
           pending: null,
+          heading: { ...review.layout.heading, measurement: { type: 'idle' } },
           labels: { ...review.layout.labels, measurement: { type: 'idle' } },
         },
       }
@@ -73,7 +81,38 @@ export function alchemyLabelContext(model: Model) {
       }
     : context;
 }
+export function alchemyHeadingRenderKey(model: Model): string {
+  const review = model.alchemyReview.review;
+  const scheme =
+    model.themePreference === 'system' || model.themePreference === null
+      ? model.systemColorScheme
+      : model.themePreference;
+  return `alchemy-heading:${review?.layout.header}:${review?.layout.heading.detail}:${scheme}`;
+}
+export function alchemyHeadingContext(model: Model) {
+  const review = model.alchemyReview.review;
+  if (!review) return { type: 'unavailable' as const, reason: 'Open a descriptor review first.' };
+  const state = review.layout.heading.measurement,
+    key = alchemyHeadingRenderKey(model);
+  const context = resolveGroupHeaderMeasurements(review.editor, state, key);
+  return context.type === 'unavailable' &&
+    state.type === 'ready' &&
+    state.request.renderKey === key &&
+    review.layout.displayed === 'elk' &&
+    review.editor.revision === state.request.revision + 1 &&
+    state.request.collapsedGroups.length === review.editor.collapsedGroups.length &&
+    state.request.collapsedGroups.every((id) => review.editor.collapsedGroups.includes(id))
+    ? {
+        type: 'unavailable' as const,
+        reason: 'Measured group headings applied. Measure again before arranging.',
+      }
+    : context;
+}
 const tags = new Set([
+  'SelectedAlchemyHeadingDetail',
+  'ClickedMeasureAlchemyHeadings',
+  'ClickedCancelAlchemyHeadings',
+  'ObservedAlchemyHeadings',
   'SelectedAlchemyGroupHeader',
   'SelectedAlchemyLabelMode',
   'SelectedAlchemyLabelDetail',
@@ -122,12 +161,88 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
             ...review.layout,
             header,
             pending: null,
+            heading: { ...review.layout.heading, measurement: { type: 'idle' } },
             labels: { ...review.layout.labels, measurement: { type: 'idle' } },
           },
         },
         'Group heading changed. Arrange explicitly to reserve its space.',
       ),
     ),
+    Match.tag('SelectedAlchemyHeadingDetail', ({ detail }) =>
+      write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            pending: null,
+            heading: { ...review.layout.heading, detail, measurement: { type: 'idle' } },
+          },
+        },
+        'Heading content changed. Measure again before arranging.',
+      ),
+    ),
+    Match.tag('ClickedCancelAlchemyHeadings', () =>
+      write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            heading: { ...review.layout.heading, measurement: { type: 'idle' } },
+          },
+        },
+        'Heading measurement cancelled. Preview preserved.',
+      ),
+    ),
+    Match.tag('ClickedMeasureAlchemyHeadings', () => {
+      const reason = alchemyLayoutReason(model);
+      if (reason || review.layout.pending || review.layout.header !== 'measured')
+        return write(review, reason ?? 'Choose intrinsic headings and finish layout first.');
+      const run = review.layout.heading.run + 1;
+      const headers = review.editor.graph.nodes.flatMap((node) => {
+        const header = alchemyGroupHeaderSpec(node);
+        return header ? [header] : [];
+      });
+      return write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            heading: {
+              ...review.layout.heading,
+              run,
+              measurement: startGroupHeaderMeasurement(
+                review.editor,
+                `alchemy:${review.id}:headings:${run}`,
+                alchemyHeadingRenderKey(model),
+                headers,
+              ),
+            },
+          },
+        },
+        'Measuring rendered group headings…',
+      );
+    }),
+    Match.tag('ObservedAlchemyHeadings', ({ result: raw }) => {
+      // SAFETY: the scoped package Mount emits this typed result; core validates full bounds and current identity.
+      const measurement = updateGroupHeaderMeasurements(
+        review.editor,
+        review.layout.heading.measurement,
+        alchemyHeadingRenderKey(model),
+        raw as ZlozGroupHeaderMeasurementResult,
+      );
+      if (measurement === review.layout.heading.measurement) return { model };
+      return write(
+        {
+          ...review,
+          layout: { ...review.layout, heading: { ...review.layout.heading, measurement } },
+        },
+        measurement.type === 'ready'
+          ? 'Heading bounds ready. Arrange explicitly to apply.'
+          : measurement.type === 'failed'
+            ? measurement.reason
+            : 'Heading measurement pending.',
+      );
+    }),
     Match.tag('SelectedAlchemyLabelMode', ({ mode }) =>
       write({
         ...review,
@@ -215,17 +330,22 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
       if (reason) return write(review, reason);
       if (review.layout.pending) return { model };
       const measured = alchemyLabelContext(model);
+      const heading = alchemyHeadingContext(model);
+      if (review.layout.header === 'measured' && heading.type !== 'ready')
+        return write(review, heading.reason);
       if (review.layout.labels.mode === 'measured' && measured.type !== 'ready')
         return write(review, measured.reason);
       const run = review.layout.run + 1,
         active = layoutRequest(review.editor, `alchemy:${review.id}:layout:${run}`, {
           groupHeaders:
-            review.layout.header === 'expanded'
-              ? review.editor.graph.nodes.flatMap((node) => {
-                  const header = alchemyGroupHeader(node);
-                  return header ? [header] : [];
-                })
-              : [],
+            review.layout.header === 'measured' && heading.type === 'ready'
+              ? heading.groupHeaders
+              : review.layout.header === 'expanded'
+                ? review.editor.graph.nodes.flatMap((node) => {
+                    const header = alchemyGroupHeader(node);
+                    return header ? [header] : [];
+                  })
+                : [],
           edgeLabels:
             review.layout.labels.mode === 'measured' && measured.type === 'ready'
               ? measured.edgeLabels
@@ -293,6 +413,11 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
       const result = raw as LayoutResult,
         active = review.layout.pending;
       if (!active || active.requestId !== result.requestId) return { model };
+      if (review.layout.header === 'measured' && alchemyHeadingContext(model).type !== 'ready')
+        return write(
+          { ...review, layout: { ...review.layout, pending: null } },
+          'Heading renderer changed; layout discarded. Measure headings again.',
+        );
       if (review.layout.labels.mode === 'measured' && alchemyLabelContext(model).type !== 'ready')
         return write(
           { ...review, layout: { ...review.layout, pending: null } },
@@ -334,6 +459,9 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
     reason = alchemyLayoutReason(model),
     measured = alchemyLabelContext(model),
     measuring = measured.type === 'pending',
+    heading = alchemyHeadingContext(model),
+    headingReason =
+      layout.header === 'measured' && heading.type !== 'ready' ? heading.reason : null,
     labelReason =
       layout.labels.mode === 'measured' && measured.type !== 'ready' ? measured.reason : null;
   return h.section(
@@ -351,17 +479,76 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
               h.OnChange((header) =>
                 Message.SelectedAlchemyGroupHeader({
                   id: review.id,
-                  header: header === 'expanded' ? 'expanded' : 'default',
+                  header:
+                    header === 'measured'
+                      ? 'measured'
+                      : header === 'expanded'
+                        ? 'expanded'
+                        : 'default',
                 }),
               ),
             ],
             [
               h.option([h.Value('default')], ['Default heading']),
               h.option([h.Value('expanded')], ['Expanded architecture heading']),
+              h.option([h.Value('measured')], ['Measure intrinsic heading']),
             ],
           ),
         ],
       ),
+      ...(layout.header === 'measured'
+        ? [
+            h.label(
+              [],
+              [
+                'Heading detail',
+                h.select(
+                  [
+                    h.AriaLabel('Heading detail'),
+                    h.Value(layout.heading.detail),
+                    h.OnChange((detail) =>
+                      Message.SelectedAlchemyHeadingDetail({
+                        id: review.id,
+                        detail: detail === 'provenance' ? 'provenance' : 'summary',
+                      }),
+                    ),
+                  ],
+                  [
+                    h.option([h.Value('summary')], ['Summary']),
+                    h.option([h.Value('provenance')], ['Provenance details']),
+                  ],
+                ),
+              ],
+            ),
+            h.button(
+              [
+                h.Key('alchemy-heading-measure'),
+                h.Type('button'),
+                h.Disabled(
+                  heading.type !== 'pending' && (reason !== null || layout.pending !== null),
+                ),
+                h.OnClick(
+                  heading.type === 'pending'
+                    ? Message.ClickedCancelAlchemyHeadings({ id: review.id })
+                    : Message.ClickedMeasureAlchemyHeadings({ id: review.id }),
+                ),
+              ],
+              [
+                heading.type === 'pending'
+                  ? 'Cancel heading measurement'
+                  : 'Measure group headings',
+              ],
+            ),
+            h.p(
+              [h.AriaLabel('Heading measurement status'), h.Role('status')],
+              [
+                heading.type === 'ready'
+                  ? `Measured ${heading.groupHeaders.length} group headings. Arrange to apply.`
+                  : heading.reason,
+              ],
+            ),
+          ]
+        : []),
       h.p(
         [],
         ['ELK is opt-in. Arrange only this preview; source identity and findings stay unchanged.'],
@@ -462,8 +649,12 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
           h.Key('alchemy-layout-action'),
           h.Type('button'),
           h.Disabled(layout.pending === null && reason !== null),
-          h.AriaDisabled(layout.pending === null && labelReason !== null),
-          ...(labelReason ? [h.AriaDescription(labelReason)] : []),
+          h.AriaDisabled(
+            layout.pending === null && (labelReason !== null || headingReason !== null),
+          ),
+          ...((headingReason ?? labelReason)
+            ? [h.AriaDescription(headingReason ?? labelReason ?? '')]
+            : []),
           h.OnClick(
             layout.pending
               ? Message.ClickedCancelAlchemyLayout({ id: review.id })

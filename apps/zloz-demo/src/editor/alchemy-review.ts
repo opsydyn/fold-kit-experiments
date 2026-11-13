@@ -3,6 +3,7 @@ import {
   updateHistoryReview,
   type EditorEvent,
   type ZlozLabelMeasurementResult,
+  type ZlozGroupHeaderMeasurementResult,
 } from '@opsydyn/foldkit-zloz';
 import {
   resolveAlchemyFindingNavigator,
@@ -19,6 +20,7 @@ import { alchemyRelationBadge } from './alchemy-labels';
 import {
   alchemyLayoutControls,
   alchemyLabelContext,
+  alchemyHeadingContext,
   cancelAlchemyLayout,
   isAlchemyLayoutMessage,
   updateAlchemyLayout,
@@ -113,6 +115,7 @@ function publish(model: Model, text: string): Model {
                 direction: 'RIGHT',
                 displayed: 'original',
                 header: 'default',
+                heading: { detail: 'summary', run: 0, measurement: { type: 'idle' } },
                 pending: null,
                 labels: {
                   mode: 'declared',
@@ -504,6 +507,16 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
             builder,
             review.layout.labels.mode === 'measured' ? review.layout.labels.detail : undefined,
           ),
+        groupHeaderMeasurement:
+          review.layout.header === 'measured' &&
+          review.layout.heading.measurement.type === 'pending' &&
+          alchemyHeadingContext(model).type === 'pending'
+            ? {
+                request: review.layout.heading.measurement.request,
+                onMeasured: (result: ZlozGroupHeaderMeasurementResult) =>
+                  Message.ObservedAlchemyHeadings({ id: review.id, result }),
+              }
+            : undefined,
         labelMeasurement:
           review.layout.labels.measurement.type === 'pending' &&
           alchemyLabelContext(model).type === 'pending'
@@ -517,7 +530,7 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         renderNodeShell: (context, builder) =>
           zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
         renderGroupShell: (context, builder) =>
-          alchemyGroupShell(context, builder, review.layout.header === 'expanded'),
+          alchemyGroupShell(context, builder, review.layout.header, review.layout.heading.detail),
         renderLayout: (parts) => parts.canvas,
         onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
       }),

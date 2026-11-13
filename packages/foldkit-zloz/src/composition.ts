@@ -11,7 +11,14 @@ import type {
   Point,
   Port,
   ResizeHandle,
+  LayoutGroupHeader,
+  LayoutGroupHeaderSpec,
 } from './types';
+
+/** Layout-compatible heading configuration; intrinsic sizing must be measured before arranging. */
+export type ZlozGroupHeaderOptions =
+  | (LayoutGroupHeader & Readonly<{ sizing?: 'declared' }>)
+  | (LayoutGroupHeaderSpec & Readonly<{ sizing: 'intrinsic' }>);
 
 /** Model-derived shell context. Optional controls can be placed or omitted by the shell. */
 export type ZlozNodeRenderContext = Readonly<{

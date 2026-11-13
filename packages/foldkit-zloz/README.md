@@ -4831,3 +4831,85 @@ change serialization, or supply custom SVG/PNG artwork. Custom content must fit 
 declared rectangle. The reservation covers child rectangles, not arbitrary route,
 shadow, overflow or separate control collisions. No automatic header measurement
 or continuous layout is installed.
+
+### Opt-in measured group headings (unreleased)
+
+Intrinsic C4/DDD headings can size from their content. A `LayoutGroupHeaderSpec`
+contains identity and spacing, with no manually supplied width or height:
+
+```ts
+import {
+  startGroupHeaderMeasurement,
+  updateGroupHeaderMeasurements,
+  resolveGroupHeaderMeasurements,
+  type LayoutGroupHeaderSpec,
+} from '@opsydyn/foldkit-zloz';
+
+const specs: readonly LayoutGroupHeaderSpec[] = [
+  {
+    id: 'payments',
+    padding: { top: 24, right: 24, bottom: 24, left: 24 },
+    gap: 24,
+  },
+];
+const measurement = startGroupHeaderMeasurement(editor, 'headings:17', rendererKey, specs);
+```
+
+Store the returned `idle | pending | ready | failed` state in your Model. Render
+headings with `groupHeader: { ...spec, sizing: 'intrinsic' }` in `zlozC4Group` or
+`zlozDddGroup`. `ZlozGroupHeaderOptions` discriminates intrinsic specs from declared
+sized envelopes; ordinary `LayoutGroupHeader` options remain compatible. Compose
+content through existing slots, using natural/intrinsic CSS dimensions. Collapsed
+groups keep compact heading geometry; choose compact content in your shell when an
+expanded custom body cannot fit.
+
+While the state and `resolveGroupHeaderMeasurements(editor, state, rendererKey)`
+are both pending, enable the normal view's optional lifecycle hook:
+
+```ts
+groupHeaderMeasurement: {
+  request: measurement.request, // narrowed to pending
+  onMeasured: (result) => Message.ObservedGroupHeadings({ result }),
+  timeoutMs: 3000,              // optional; positive, finite, up to 60000ms
+}
+```
+
+Your update handler calls
+`updateGroupHeaderMeasurements(editor, currentState, currentRendererKey, result)`
+and publishes that state. Cancel by replacing it with `{ type: 'idle' }`; a new run
+requires a fresh ID. Start rejects collapsed groups and groups hidden by collapsed
+ancestors. Current incomplete, duplicate, nonpositive, nonfinite or overflowing
+batches fail atomically. Old request/revision/source/renderer/visibility completions
+are ignored. Specs, dimensions and returned layout declarations are copied.
+
+A ready context supplies complete `groupHeaders`, with measured size and the
+original padding/gap:
+
+```ts
+const context = resolveGroupHeaderMeasurements(editor, measurement, rendererKey);
+if (context.type === 'ready') {
+  const active = layoutRequest(editor, 'arrange:17', {
+    groupHeaders: context.groupHeaders,
+  });
+  // Publish active, then execute ELK in a Command.
+}
+```
+
+Resolve again when the engine completes before applying its result. Include all
+size-affecting content/theme/font/spacing options in the render key and cancel or
+supersede work when they change. Successful layout changes revision; measure again
+before another arrangement. This process does not edit the graph or add Undo;
+normal layout still adds one Undo and read-only preview layout retains history.
+No automatic arrangement, continuous observation or graph serialization is added.
+
+The shared one-shot Mount measures fractional HTML border boxes after used-font
+readiness, independent of camera zoom. It isolates nested canvases and releases its
+observer/timer on completion, failure or unmount. For custom hosts, compose
+`zlozGroupHeaderMeasurement` from `/foldkit` directly inside a host marked
+`data-zloz-group-header-measurement-scope` and tag each target
+`data-zloz-group-header="group-id"`. C4/DDD group views supply targets automatically.
+Every requested target must render; disable culling or request a rendered subset.
+This is a typed lifecycle contract, not a decoder for unknown input. Overflow,
+shadows, local transforms, portals, SVG content and later resources are outside the
+border-box snapshot. Use explicit remeasurement for changes; reserve separate
+controls through padding or custom control slots.

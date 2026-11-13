@@ -1,4 +1,9 @@
-import type { EditorState, LayoutRequest, ZlozLabelMeasurements } from '@opsydyn/foldkit-zloz';
+import type {
+  EditorState,
+  LayoutRequest,
+  ZlozLabelMeasurements,
+  ZlozGroupHeaderMeasurements,
+} from '@opsydyn/foldkit-zloz';
 import type { AlchemyProjection } from '@opsydyn/foldkit-zloz-alchemy';
 export type AlchemyReviewState = Readonly<{
   text: string;
@@ -12,7 +17,12 @@ export type AlchemyReviewState = Readonly<{
       run: number;
       direction: 'RIGHT' | 'DOWN';
       displayed: 'original' | 'elk';
-      header: 'default' | 'expanded';
+      header: 'default' | 'expanded' | 'measured';
+      heading: Readonly<{
+        detail: 'summary' | 'provenance';
+        run: number;
+        measurement: ZlozGroupHeaderMeasurements;
+      }>;
       pending: LayoutRequest | null;
       labels: Readonly<{
         mode: 'declared' | 'measured';

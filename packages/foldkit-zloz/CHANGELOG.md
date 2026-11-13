@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in intrinsic C4/DDD group-heading measurement with size-free spacing specs, complete-batch validation and source/revision/renderer/visibility freshness, sharing scoped resources with edge measurement.
+
 - Add explicit group-header layout envelopes, shared C4/DDD header geometry and atomic child-area validation without changing graph persistence.
 
 - Add opt-in rendered label measurement with scoped Foldkit lifecycle resources, complete-batch validation, source/revision/renderer freshness and explicit re-layout.

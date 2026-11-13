@@ -757,3 +757,20 @@ This closes the prior heading-bounds slice; D/C/Q and publication gates remain.
 Next proposed slice: opt-in measured group-heading bounds using the existing scoped
 measurement/freshness pattern, so custom C4/DDD headings can size intrinsically.
 Recommendation: **needs review**. No automatic layout or publication is implied.
+
+**Opt-in measured group headings — implemented locally (2026-11-13), unreleased:**
+Intrinsic C4/DDD group headings now accept size-free identity/padding/gap specs.
+Core validates complete measured batches, combines sizes into layout declarations
+and rechecks source/revision/renderer/collapsed visibility before reuse. A scoped
+Foldkit Mount shares the existing box observer, deadline, cleanup and isolation
+logic with edge measurement. The workbench demos summary/provenance variants,
+Measure/Cancel, explicit Arrange, theme invalidation and combined edge/heading
+measurement. Source/findings/working Undo remain unchanged. See
+[ADR 0074](adr/0074-measure-intrinsic-group-headings.md) and
+[qualification/captures](../apps/zloz-demo/evidence/measured-group-headers.md).
+This closes the preceding measured-heading slice; D/C/Q and publication gates remain.
+
+Next proposed slice: define opt-in SVG export fidelity for retained layout routes
+and measured label anchors, with explicit custom-renderer findings, before extending
+PNG. Recommendation: **needs review**. No export behavior or publishing is changed
+by this recommendation.

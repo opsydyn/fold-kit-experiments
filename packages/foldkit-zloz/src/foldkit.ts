@@ -2,6 +2,14 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+
+import type {
+  ZlozGroupHeaderMeasurementRequest,
+  ZlozGroupHeaderMeasurementResult,
+} from './group-header-measurement';
+import { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
+export { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
+export type { ZlozGroupHeaderMeasurementOptions } from './group-header-measurement-mount';
 import type { ZlozLabelMeasurementRequest, ZlozLabelMeasurementResult } from './label-measurement';
 import { zlozLabelMeasurement } from './label-measurement-mount';
 export { zlozLabelMeasurement } from './label-measurement-mount';
@@ -219,7 +227,11 @@ export {
   zlozEdgeHitTarget,
   zlozWorldOverlayItem,
 } from './composition';
-export type { ZlozNodeRenderContext, ZlozWorldOverlayItemOptions } from './composition';
+export type {
+  ZlozNodeRenderContext,
+  ZlozWorldOverlayItemOptions,
+  ZlozGroupHeaderOptions,
+} from './composition';
 export { zlozC4Node, zlozC4Group } from './c4-renderer';
 export { zlozDddNode, zlozDddGroup } from './ddd-renderer';
 export type {
@@ -448,6 +460,14 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     renderGroupShell?: (context: ZlozNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Zloz's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: ZlozEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** One-shot group heading measurement; use intrinsic C4/DDD groupHeader sizing or custom scoped targets. */
+    groupHeaderMeasurement?:
+      | Readonly<{
+          request: ZlozGroupHeaderMeasurementRequest;
+          onMeasured: (result: ZlozGroupHeaderMeasurementResult) => M;
+          timeoutMs?: number;
+        }>
+      | undefined;
     /** Opt-in one-shot measurement. Store the pending request in your Model and validate the result in core. */
     labelMeasurement?:
       | Readonly<{
@@ -2425,6 +2445,9 @@ export function zlozView<M>(
       h.AriaDescribedBy(descriptionId),
       h.OnMount(Mount.mapMessage(ZlozInput(), (message) => options.onEvent(message.event))),
       ...(options.labelMeasurement ? [h.DataAttribute('zloz-label-measurement-scope', '')] : []),
+      ...(options.groupHeaderMeasurement
+        ? [h.DataAttribute('zloz-group-header-measurement-scope', '')]
+        : []),
       h.Style({
         position: 'relative',
         overflow: 'hidden',
@@ -2443,6 +2466,16 @@ export function zlozView<M>(
       }),
     ],
     [
+      ...(options.groupHeaderMeasurement
+        ? [
+            zlozGroupHeaderMeasurement(
+              h,
+              options.groupHeaderMeasurement.request,
+              options.groupHeaderMeasurement.onMeasured,
+              options.groupHeaderMeasurement,
+            ),
+          ]
+        : []),
       ...(options.labelMeasurement
         ? [
             zlozLabelMeasurement(

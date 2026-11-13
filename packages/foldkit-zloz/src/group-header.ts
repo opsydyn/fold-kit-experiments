@@ -1,5 +1,38 @@
 import { ZlozError } from './graph';
-import type { LayoutGroupHeader, LayoutGroupHeaderGeometry, ZlozNode } from './types';
+import type {
+  LayoutGroupHeader,
+  LayoutGroupHeaderSpec,
+  LayoutGroupHeaderGeometry,
+  ZlozNode,
+  Point,
+} from './types';
+
+/** Internal shared validation/positioning for both intrinsic specs and declared envelopes. */
+export function groupHeaderPosition(node: ZlozNode, header: LayoutGroupHeaderSpec): Point {
+  const { padding, gap } = header;
+  if (
+    node.kind !== 'group' ||
+    node.id !== header.id ||
+    ![gap, padding.top, padding.right, padding.bottom, padding.left].every(
+      (n) => Number.isFinite(n) && n >= 0,
+    )
+  )
+    throw new ZlozError(
+      'invalid-layout',
+      'Group heading specs require a matching group and nonnegative finite padding/gap',
+    );
+  const position = { x: node.position.x + padding.left, y: node.position.y + padding.top };
+  if (
+    ![
+      position.x,
+      position.y,
+      padding.left + padding.right,
+      padding.top + gap + padding.bottom,
+    ].every(Number.isFinite)
+  )
+    throw new ZlozError('invalid-layout', 'Group heading spacing overflowed finite geometry');
+  return position;
+}
 
 /** Shared declared geometry: world header rectangle, minimum group size and child-area padding. */
 export function resolveLayoutGroupHeader(
@@ -7,6 +40,7 @@ export function resolveLayoutGroupHeader(
   header: LayoutGroupHeader,
 ): LayoutGroupHeaderGeometry {
   const { size, padding, gap } = header;
+  const position = groupHeaderPosition(node, header);
   if (
     node.kind !== 'group' ||
     node.id !== header.id ||
@@ -24,7 +58,7 @@ export function resolveLayoutGroupHeader(
     width: padding.left + size.width + padding.right,
     height: contentPadding.top + padding.bottom,
   };
-  const position = { x: node.position.x + padding.left, y: node.position.y + padding.top };
+
   if (
     ![contentPadding.top, minimumSize.width, minimumSize.height, position.x, position.y].every(
       Number.isFinite,

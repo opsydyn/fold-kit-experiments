@@ -1,4 +1,5 @@
 import { serializeGraph, ZlozError } from './graph';
+import { copyMeasuredBounds, completeMeasuredBounds, measurementIsCurrent } from './measurement';
 import type { EditorState, LayoutEdgeLabel } from './types';
 /** Transient request. Use a fresh ID for every run; renderKey covers host renderer/content/theme changes. */
 export type ZlozLabelMeasurementRequest = Readonly<{
@@ -30,17 +31,6 @@ export type ZlozLabelMeasurementContext =
   | Readonly<{ type: 'ready'; edgeLabels: readonly LayoutEdgeLabel[] }>
   | Readonly<{ type: 'pending'; reason: string }>
   | Readonly<{ type: 'unavailable'; reason: string }>;
-const copyLabels = (labels: readonly LayoutEdgeLabel[]) =>
-  labels.map((l) => ({ id: l.id, size: { ...l.size } }));
-function current(editor: EditorState, request: ZlozLabelMeasurementRequest, renderKey: string) {
-  return (
-    request.revision === editor.revision &&
-    request.renderKey === renderKey &&
-    request.source === serializeGraph(editor.graph) &&
-    editor.gesture.type === 'idle' &&
-    editor.edgeLabelDraft === null
-  );
-}
 /** Does not edit the graph, start browser effects or arrange automatically. Store this state in your Model. */
 export function startLabelMeasurement(
   editor: EditorState,
@@ -78,7 +68,7 @@ export function updateLabelMeasurements(
 ): ZlozLabelMeasurements {
   if (
     state.type !== 'pending' ||
-    !current(editor, state.request, renderKey) ||
+    !measurementIsCurrent(editor, state.request, renderKey) ||
     result.requestId !== state.request.requestId ||
     result.revision !== state.request.revision ||
     result.renderKey !== state.request.renderKey
@@ -86,25 +76,13 @@ export function updateLabelMeasurements(
     return state;
   const request = state.request;
   if (result.type === 'failed') return { type: 'failed', request, reason: result.reason };
-  const ids = new Set(result.labels.map((l) => l.id));
-  if (
-    ids.size !== result.labels.length ||
-    ids.size !== request.edgeIds.length ||
-    request.edgeIds.some((id) => !ids.has(id)) ||
-    result.labels.some(
-      (l) =>
-        !Number.isFinite(l.size.width) ||
-        !Number.isFinite(l.size.height) ||
-        l.size.width <= 0 ||
-        l.size.height <= 0,
-    )
-  )
+  if (!completeMeasuredBounds(request.edgeIds, result.labels))
     return {
       type: 'failed',
       request,
       reason: 'Measurement must contain every requested label once with positive finite bounds.',
     };
-  return { type: 'ready', request, labels: copyLabels(result.labels) };
+  return { type: 'ready', request, labels: copyMeasuredBounds(result.labels) };
 }
 /** Recheck freshness immediately before creating the layout request; no partial or stale bounds escape. */
 export function resolveLabelMeasurements(
@@ -114,7 +92,7 @@ export function resolveLabelMeasurements(
 ): ZlozLabelMeasurementContext {
   if (state.type === 'idle')
     return { type: 'unavailable', reason: 'Measure rendered labels first.' };
-  if (!current(editor, state.request, renderKey))
+  if (!measurementIsCurrent(editor, state.request, renderKey))
     return { type: 'unavailable', reason: 'Preview or renderer changed. Measure labels again.' };
   if (state.type === 'failed') return { type: 'unavailable', reason: state.reason };
   if (state.type === 'pending')
@@ -122,5 +100,5 @@ export function resolveLabelMeasurements(
       type: 'pending',
       reason: 'Measuring rendered labels… Cancel to keep the previous preview.',
     };
-  return { type: 'ready', edgeLabels: copyLabels(state.labels) };
+  return { type: 'ready', edgeLabels: copyMeasuredBounds(state.labels) };
 }

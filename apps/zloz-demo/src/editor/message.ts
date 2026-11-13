@@ -293,8 +293,15 @@ export const Message = defineMessageUnion({
   ClickedAlchemyLayout: { id: Schema.Number },
   SelectedAlchemyGroupHeader: {
     id: Schema.Number,
-    header: Schema.Literals(['default', 'expanded']),
+    header: Schema.Literals(['default', 'expanded', 'measured']),
   },
+  SelectedAlchemyHeadingDetail: {
+    id: Schema.Number,
+    detail: Schema.Literals(['summary', 'provenance']),
+  },
+  ClickedMeasureAlchemyHeadings: { id: Schema.Number },
+  ClickedCancelAlchemyHeadings: { id: Schema.Number },
+  ObservedAlchemyHeadings: { id: Schema.Number, result: Schema.Unknown },
   SelectedAlchemyLabelMode: { id: Schema.Number, mode: Schema.Literals(['declared', 'measured']) },
   SelectedAlchemyLabelDetail: {
     id: Schema.Number,

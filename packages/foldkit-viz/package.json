@@ -194,6 +194,9 @@
       ],
       "foldkit/plot": [
         "./dist/foldkit/plot.d.mts"
+      ],
+      "canvas/plot": [
+        "./dist/canvas/plot.d.mts"
       ]
     }
   },
@@ -417,6 +420,10 @@
     "./foldkit/plot": {
       "types": "./dist/foldkit/plot.d.mts",
       "import": "./dist/foldkit/plot.mjs"
+    },
+    "./canvas/plot": {
+      "types": "./dist/canvas/plot.d.mts",
+      "import": "./dist/canvas/plot.mjs"
     }
   },
   "publishConfig": {

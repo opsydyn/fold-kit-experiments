@@ -28,12 +28,29 @@ export type DddNodeArchitecture = Readonly<
     | { role: 'bounded-context'; subdomain?: 'core' | 'supporting' | 'generic' }
   )
 >;
-/** Workshop process notes; descriptions and relationships are authored, not executable rules. */
-export type EventStormingNodeArchitecture = Readonly<{
+/** Authored workshop participants; external is relative to the workshop's modelled control. */
+export type EventStormingParticipantArchitecture = Readonly<{
   family: 'event-storming';
-  role: 'command' | 'domain-event' | 'policy' | 'actor';
+  role: 'command' | 'domain-event' | 'policy' | 'actor' | 'external-system';
   description?: string;
 }>;
+/** Portless discussion annotation. Resolution is authored workshop status, not a correctness claim. */
+export type EventStormingHotspotArchitecture = Readonly<{
+  family: 'event-storming';
+  role: 'hotspot';
+  status: 'open' | 'resolved';
+  description?: string;
+}>;
+/** Portless group frame. Membership organizes a workshop without inferring ownership or causality. */
+export type EventStormingLaneArchitecture = Readonly<{
+  family: 'event-storming';
+  role: 'lane';
+  description?: string;
+}>;
+export type EventStormingNodeArchitecture =
+  | EventStormingParticipantArchitecture
+  | EventStormingHotspotArchitecture
+  | EventStormingLaneArchitecture;
 export type ZlozNodeArchitecture =
   | C4NodeArchitecture
   | DddNodeArchitecture
@@ -50,13 +67,28 @@ export type ArchitectureNodePreset = Readonly<{
 }>;
 
 const presets: readonly ArchitectureNodePreset[] = [
-  ...(['command', 'domain-event', 'policy', 'actor'] as const).map((role) => ({
+  ...(['command', 'domain-event', 'policy', 'actor', 'external-system'] as const).map((role) => ({
     architecture: { family: 'event-storming' as const, role },
-    label: { command: 'Command', 'domain-event': 'Domain Event', policy: 'Policy', actor: 'Actor' }[
-      role
-    ],
+    label: {
+      command: 'Command',
+      'domain-event': 'Domain Event',
+      policy: 'Policy',
+      actor: 'Actor',
+      'external-system': 'External System',
+    }[role],
     shape: 'rectangle' as const,
   })),
+  {
+    architecture: { family: 'event-storming', role: 'hotspot', status: 'open' },
+    label: 'Hotspot',
+    shape: 'rectangle',
+  },
+  {
+    architecture: { family: 'event-storming', role: 'lane' },
+    label: 'Lane',
+    shape: 'rectangle',
+    kind: 'group',
+  },
   { architecture: { family: 'c4', role: 'person' }, label: 'Person', shape: 'rounded-rectangle' },
   {
     architecture: { family: 'c4', role: 'software-system' },
@@ -124,6 +156,7 @@ type UnknownNodeDescriptor = Readonly<{
   technology?: unknown;
   subdomain?: unknown;
   shape?: unknown;
+  status?: unknown;
 }>;
 function record(value: unknown): value is UnknownNodeDescriptor {
   return (
@@ -158,7 +191,11 @@ export function isNodeArchitecture(value: unknown): value is ZlozNodeArchitectur
       architectureNodePresets.some(
         ({ architecture }) =>
           architecture.family === 'event-storming' && architecture.role === value.role,
-      ) && fields(value, ['family', 'role', 'description'])
+      ) &&
+      (value.role === 'hotspot'
+        ? (value.status === 'open' || value.status === 'resolved') &&
+          fields(value, ['family', 'role', 'description', 'status'])
+        : fields(value, ['family', 'role', 'description']))
     );
   if (value.family !== 'ddd') return false;
   const context = value.role === 'bounded-context';
@@ -190,11 +227,24 @@ export function validNodeArchitectureFields(value: object & { kind?: unknown }):
   if ('architecture' in value) {
     if (!isNodeArchitecture(value.architecture)) return false;
     const { family, role } = value.architecture;
+    if (family === 'event-storming') {
+      if (role === 'lane' && value.kind !== 'group') return false;
+      if (
+        role === 'hotspot' &&
+        (value.kind === 'group' ||
+          !('ports' in value) ||
+          !Array.isArray(value.ports) ||
+          value.ports.length !== 0)
+      )
+        return false;
+    }
     if (value.kind === 'group') {
       if (
         family === 'c4'
           ? role !== 'software-system' && role !== 'container'
-          : role !== 'aggregate' && role !== 'bounded-context'
+          : family === 'event-storming'
+            ? role !== 'lane'
+            : role !== 'aggregate' && role !== 'bounded-context'
       )
         return false;
     } else if (family === 'ddd' && role === 'aggregate') return false;

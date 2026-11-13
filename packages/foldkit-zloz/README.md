@@ -3224,10 +3224,12 @@ the camera, clipboard, model identity and editions. Persistence stays version on
 
 ## Event-storming notes
 
-The `EventStormingNodeArchitecture` family models workshop process notes:
-`{ family: 'event-storming', role: 'command' | 'domain-event' | 'policy' | 'actor', description?: string }`.
-These are ordinary nodes using existing geometry, ports, grouping membership,
-serialization and semantic-edit Undo. They cannot themselves be group boundaries.
+The original EventStorming process-note subset models `command`, `domain-event`,
+`policy` and `actor` roles with optional description. These remain ordinary nodes
+using existing geometry, ports, membership, serialization and semantic-edit Undo.
+They cannot themselves be group boundaries. The wider headless workshop union now
+also includes external systems, hotspot annotations and lane frames, documented
+below; their renderer qualification is separate.
 The separate DDD `domain-event` role keeps its existing structural meaning.
 
 ```ts
@@ -5113,3 +5115,110 @@ baseline comparison and immutable finding navigation in light/dark themes. See
 [local qualification](../../apps/zloz-demo/evidence/ddd-audit.md). DDD review packets,
 new correctness rules, workshop-role expansion and EventStorming-to-C4 conversion
 are outside this workflow. Nothing is published by these APIs.
+
+### External systems, hotspots and lanes (headless, unreleased)
+
+The workshop vocabulary distinguishes causal participants from discussion annotations
+and organizational frames. These are Zloz modelling conventions, not executable
+business rules or a claim of universal EventStorming grammar.
+
+| Descriptor (`family: 'event-storming'`)         | Core meaning                                        | Node contract                                                             |
+| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------- |
+| `role: 'external-system'`                       | Participant outside the workshop's modelled control | Ordinary node; existing strict output-to-input ports                      |
+| `role: 'hotspot', status: 'open' \| 'resolved'` | Authored discussion annotation                      | Ordinary portless node; status is required                                |
+| `role: 'lane'`                                  | Organizational frame                                | `kind: 'group'`, no ports; normal parent membership and world coordinates |
+
+All accept an optional description. Status belongs only to hotspots. Unknown
+fields, missing/unknown hotspot status, causal ports on hotspots and incompatible
+node kinds reject through the existing codecs. External-system is distinct from
+C4's software-system/external scope. Neither external systems nor lanes infer a
+DDD bounded context, aggregate, runtime service or infrastructure resource.
+
+```typescript
+import {
+  createArchitectureNode,
+  resolveEventStormingNodeSemantics,
+  eventStormingWorkshopRelationshipRules,
+  eventStormingRelationshipPolicy,
+  auditEventStormingRelationships,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+
+const hotspot = createArchitectureNode({
+  id: 'retry-question',
+  label: 'Who owns retries after a timeout?',
+  position: { x: 300, y: 280 },
+  size: { width: 240, height: 140 },
+  ports: [],
+  architecture: { family: 'event-storming', role: 'hotspot', status: 'open' },
+});
+const meaning = resolveEventStormingNodeSemantics(hotspot);
+// { kind: 'annotation', role: 'hotspot', status: 'open' }
+
+const convention = { rules: eventStormingWorkshopRelationshipRules };
+const report = auditEventStormingRelationships(graph, convention);
+const policy = eventStormingRelationshipPolicy(convention, hostPolicy);
+const next = updateEditor(
+  editor,
+  {
+    type: 'NodeArchitectureChanged',
+    id: hotspot.id,
+    architecture: { family: 'event-storming', role: 'hotspot', status: 'resolved' },
+  },
+  policy,
+);
+```
+
+`EventStormingNodeArchitecture` is a discriminated union of
+`EventStormingParticipantArchitecture`, `EventStormingHotspotArchitecture` and
+`EventStormingLaneArchitecture`. `resolveEventStormingNodeSemantics` returns a
+`ZlozEventStormingNodeSemantics` projection with kind participant/annotation/frame,
+role, and hotspot status. Other architecture families return null. It validates
+reserved descriptor/kind/port constraints; it does not validate the enclosing graph,
+look up membership or infer context. Decode untrusted text with normal codecs first.
+
+The original `eventStormingRelationshipRules` catalogue stays unchanged so existing
+builtin review packets remain reproducible. Opt into
+`eventStormingWorkshopRelationshipRules` for external systems issuing commands,
+handling commands and emitting events. Existing rule keys and every previous
+participant pairing are preserved. Other relationships require a custom catalogue;
+`rules` replaces defaults. CLI version-one causal rule files now accept
+`external-system` participant roles. Hotspots/lanes are excluded from causal role
+catalogues and cannot become causal participants through `roleOf` delegation.
+Port direction, permissions and editing lifecycle remain independently enforced.
+
+A lane uses existing `parentId`, optional parent extents, nesting, group movement,
+resize, duplication, clipboard, collapse and deletion behavior. Children retain
+world coordinates. Deleting a lane follows normal group cascade deletion; ungrouping
+removes only the frame and preserves children/edges at their authored positions.
+Membership does not establish aggregate ownership, causality, sequence or a runtime
+boundary. No lane-specific layout engine or parallel membership store is introduced.
+
+Hotspot status changes use `NodeArchitectureChanged`, existing live policy hooks and
+one Undo. Editions classify the change as semantic, not layout. Resolution records
+an authored workshop state; it establishes neither correctness nor who resolved it.
+No implicit status default, arbitrary causal edges or new annotation attachment
+references are introduced. Label/description describe the concern; host data remains
+available for host metadata. Node IDs and descriptor fields survive graph, snapshot,
+model, edition, clipboard and portable conversion provenance workflows.
+
+DDD mapping previews leave all three roles **unmapped** by default with specific
+reasons. Hosts can explicitly retain them or choose a kind-compatible DDD mapping.
+Replacing a hotspot discloses loss of its authored status and requires exact-plan
+loss acceptance; the existing receipt retains original meaning and one Undo.
+New vocabulary does not authorize automatic DDD/C4 interpretation or Apply.
+
+`architectureNodePresets` includes headless entries (hotspot status open, lane group
+kind), not qualified artwork. `createArchitectureNode` validates supplied ports and
+kind; it never silently drops ports or changes kind to satisfy a preset. Existing
+`zlozEventStormingNode` artwork declines these new roles so hosts retain their
+fallback/composition path. Built-in SVG planning blocks their unqualified artwork;
+explicit host SVG adapters or loss-declared generic fallback remain available.
+Mermaid projection reports omitted semantics and preserves node/parent identity;
+portable packets retain the complete authored descriptors and chosen catalogue.
+
+The graph/snapshot wire version remains one with additive descriptors. Legacy
+inputs and builtin review packets still work; older package versions can reject
+new roles and are not forward-compatible readers. No version bump, publication or
+new renderer is implied. See [ADR 0081](../../docs/adr/0081-define-eventstorming-workshop-semantics.md)
+and [qualification](evidence/event-storming-workshop.md).

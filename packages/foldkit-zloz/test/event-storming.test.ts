@@ -23,7 +23,7 @@ test('event-storming roles are explicit, strict and independent of C4/DDD struct
     architectureNodePresets
       .filter((preset) => preset.architecture.family === 'event-storming')
       .map((preset) => preset.architecture.role),
-  ).toEqual([...roles]);
+  ).toEqual([...roles, 'external-system', 'hotspot', 'lane']);
   for (const role of roles) {
     const architecture: EventStormingNodeArchitecture = {
       family: 'event-storming',

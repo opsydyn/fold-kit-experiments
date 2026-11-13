@@ -39,6 +39,9 @@ const accents = {
   policy: 'var(--flow-event-storming-policy, #7e22ce)',
   actor: 'var(--flow-event-storming-actor, #a16207)',
 };
+// ADR 0081: new workshop roles have headless meaning; existing artwork must decline them.
+const legacyAccent = (role: EventStormingNodeArchitecture['role']) =>
+  Object.entries(accents).find(([key]) => key === role)?.[1];
 function part<M>(
   renderer: ZlozEventStormingContentRenderer<M> | undefined,
   context: ZlozEventStormingContentContext,
@@ -96,7 +99,9 @@ function artwork<M>(
   const geometry = nodeShapeGeometry(node);
   const bounds = geometry.contentBounds;
   const stroke =
-    selected || selectionPreview ? 'var(--flow-selection, #2563eb)' : accents[architecture.role];
+    selected || selectionPreview
+      ? 'var(--flow-selection, #2563eb)'
+      : (legacyAccent(architecture.role) ?? 'var(--flow-node-border, #64748b)');
   return h.span(
     [h.DataAttribute('zloz-event-storming-body', node.id), h.Style({ display: 'contents' })],
     [
@@ -171,7 +176,12 @@ export function zlozEventStormingNode<M>(
   options: ZlozEventStormingNodeOptions<M> = defaults,
 ): Html | undefined {
   const { node, state } = context;
-  if (node.kind === 'group' || node.architecture?.family !== 'event-storming') return undefined;
+  if (
+    node.kind === 'group' ||
+    node.architecture?.family !== 'event-storming' ||
+    !legacyAccent(node.architecture.role)
+  )
+    return undefined;
   const selected = state.selectedNodes.includes(node.id);
   const body = options.bodyCache
     ? options.bodyCache(node, artwork<M>, [h, node, selected, context.selectionPreview, options])

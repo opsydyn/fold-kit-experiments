@@ -478,3 +478,17 @@ inspect `data.selected.audit.status`; exit 0 here is not the `ddd audit` compati
 guarantee. No documents or Undo are changed, no report import/Apply or DDD packet
 format is added, and no npm publication is performed. See
 [workflow qualification](../../apps/zloz-demo/evidence/ddd-audit.md).
+
+## Workshop participant rules (unreleased)
+
+The core's additive workshop descriptors are accepted by normal document validation:
+external-system participants, portless hotspots with required open/resolved status,
+and portless lane groups. The original causal audit convention is unchanged.
+Provide an explicit version-one `--rules` file to allow `external-system` in source
+or target participant arrays (for example issues external-system → command).
+`hotspot` and `lane` reject as causal catalogue roles. This preserves the meaning
+of old builtin review packets; recognizing a descriptor does not automatically
+expand the selected convention. Core exposes the data-only
+`eventStormingWorkshopRelationshipRules` catalogue for consumers to serialize when
+wanted. Existing UTF-8/JSON limits, input exits, DDD family separation and read-only
+behavior are unchanged. Renderers and npm publication are separate gates.

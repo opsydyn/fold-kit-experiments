@@ -6,7 +6,14 @@ import { Effect, Schema } from 'effect';
 
 import { readJsonInput } from './io';
 import { CliInputError } from './protocol';
-const Role = Schema.Literals(['actor', 'command', 'aggregate', 'domain-event', 'policy']);
+const Role = Schema.Literals([
+  'actor',
+  'command',
+  'aggregate',
+  'domain-event',
+  'policy',
+  'external-system',
+]);
 const Rule = Schema.Struct({
   architecture: Schema.declare(isEventStormingEdgeArchitecture),
   sources: Schema.Array(Role),

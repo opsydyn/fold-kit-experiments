@@ -14,10 +14,12 @@ import {
 } from '../src/foldkit';
 import {
   createArchitecturePattern,
+  parseGraph,
   createEditor,
   type EditorEvent,
   type EditorState,
 } from '../src/index';
+import workshopWire from './fixtures/workshop-v1.json';
 const initial = createEditor(createArchitecturePattern('event-storming'));
 async function render(
   state: EditorState = initial,
@@ -114,4 +116,11 @@ test('artwork cache inputs exclude live read-only and source-port feedback', asy
   const port = document.querySelector('[data-flow-owner="note:0"][data-flow-port="out"]');
   expect(port?.hasAttribute('disabled')).toBe(true);
   expect(port?.getAttribute('aria-pressed')).toBe('true');
+});
+
+test('legacy note artwork declines headless-only workshop participants and annotations', async () => {
+  const document = await render(createEditor(parseGraph(JSON.stringify(workshopWire))));
+  expect(document.querySelectorAll('[data-zloz-event-storming-node]')).toHaveLength(3);
+  for (const role of ['external-system', 'hotspot', 'lane'])
+    expect(document.querySelector(`[data-zloz-event-storming-node="${role}"]`)).toBeNull();
 });

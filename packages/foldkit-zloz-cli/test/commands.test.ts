@@ -19,6 +19,7 @@ import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effec
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
+import workshopWire from '../../foldkit-zloz/test/fixtures/workshop-v1.json';
 import { run, CliDiagnostic, inputByteLimit } from '../src/index';
 
 const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
@@ -939,5 +940,76 @@ test('DDD comparison reports exact deltas with regression exits, explicit target
       diagnostics: [{ code }],
     });
     expect(JSON.parse(rejected.text).data).toBeUndefined();
+  }
+});
+
+test('workshop codecs and external-system rule files have explicit opt-in while annotation and frame roles reject as causal participants', async () => {
+  const input = JSON.stringify(workshopWire);
+  expect((await invoke(['validate'], input)).code).toBe(0);
+  const legacy = await invoke(['relationships', 'audit'], input);
+  expect(legacy.code).toBe(1);
+  expect(JSON.parse(legacy.text).data.summary.blocked).toBe(3);
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-workshop-rules-'));
+  // oxlint-disable-next-line linteffect/no-try-catch -- Local fixture must remove only its owned temporary rule file.
+  try {
+    const file = join(directory, 'rules.json');
+    const value = {
+      version: 1,
+      rules: [
+        {
+          architecture: { family: 'event-storming', role: 'issues' },
+          sources: ['external-system'],
+          targets: ['command'],
+          label: 'Issues',
+        },
+      ],
+    };
+    const text = JSON.stringify(value);
+    await writeFile(file, text);
+    const one = JSON.stringify({
+      ...workshopWire,
+      graph: {
+        ...workshopWire.graph,
+        edges: workshopWire.graph.edges.filter((e) => e.id === 'system-issues'),
+      },
+    });
+    const allowed = await invoke(['relationships', 'audit', '--rules', file], one);
+    expect(allowed.code).toBe(0);
+    expect(JSON.parse(allowed.text).data.summary).toEqual({
+      edges: 1,
+      typed: 1,
+      inferred: 0,
+      unrelated: 0,
+      blocked: 0,
+    });
+    expect(await readFile(file, 'utf8')).toBe(text);
+    for (const role of ['hotspot', 'lane']) {
+      await writeFile(
+        file,
+        JSON.stringify({ ...value, rules: [{ ...value.rules[0], sources: [role] }] }),
+      );
+      const rejected = await invoke(['relationships', 'audit', '--rules', file], one);
+      expect(rejected.code).toBe(2);
+      expect(JSON.parse(rejected.text)).toMatchObject({
+        status: 'rejected',
+        diagnostics: [{ code: 'invalid-rules' }],
+      });
+    }
+    const invalid = JSON.stringify({
+      ...workshopWire,
+      graph: {
+        ...workshopWire.graph,
+        nodes: workshopWire.graph.nodes.map((n) =>
+          n.id === 'hotspot'
+            ? { ...n, architecture: { family: 'event-storming', role: 'hotspot' } }
+            : n,
+        ),
+      },
+    });
+    const rejected = await invoke(['validate'], invalid);
+    expect(rejected.code).toBe(2);
+    expect(JSON.parse(rejected.text).status).toBe('rejected');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

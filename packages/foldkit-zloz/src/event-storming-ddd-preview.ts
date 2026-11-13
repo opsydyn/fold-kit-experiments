@@ -169,6 +169,27 @@ export function previewEventStormingDddMapping(
           reason:
             'A workshop policy does not establish a domain service. Even this single candidate requires an explicit choice or retention.',
         };
+      case 'external-system':
+        return {
+          ...base,
+          type: 'unmapped',
+          reason:
+            'An external system is a workshop participant, not an inferred DDD entity, service or bounded context. Retain it or choose an interpretation explicitly.',
+        };
+      case 'hotspot':
+        return {
+          ...base,
+          type: 'unmapped',
+          reason:
+            'A hotspot is a discussion annotation with authored resolution status, not a DDD element. Retain it or choose an interpretation explicitly with loss consent.',
+        };
+      case 'lane':
+        return {
+          ...base,
+          type: 'unmapped',
+          reason:
+            'A lane is an organizational frame, not an inferred DDD aggregate or bounded context. Retain it or choose a kind-compatible interpretation explicitly.',
+        };
       case 'actor':
         return {
           ...base,
@@ -258,7 +279,9 @@ export function previewEventStormingDddMapping(
         id: n.nodeId,
         code: 'workshop-meaning-replaced' as const,
         reason:
-          'Conversion would replace the reserved EventStorming node descriptor. Source meaning is recorded in the preview; preserve provenance separately.',
+          n.sourceArchitecture.role === 'hotspot'
+            ? `Conversion would replace the hotspot annotation and its ${n.sourceArchitecture.status} status. Source meaning is retained in provenance; this is not semantic equivalence.`
+            : 'Conversion would replace the reserved EventStorming node descriptor. Source meaning is recorded in the preview; preserve provenance separately.',
       })),
     ...edges
       .filter((e) => e.type === 'proposed' && e.sourceArchitecture?.family === 'event-storming')

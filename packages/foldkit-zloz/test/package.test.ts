@@ -11,6 +11,7 @@ import elkManifest from '../../foldkit-zloz-elk/package.json';
 import coreManifest from '../package.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
+import workshopWire from './fixtures/workshop-v1.json';
 
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -62,7 +63,7 @@ console.log('browser-import-ok');`;
     }
     const architectureSource = `import { renderPngExport, type ZlozPngBrowserOptions } from '@opsydyn/foldkit-zloz/browser';
 const pngOptions:ZlozPngBrowserOptions={timeoutMs:1000};void pngOptions;void renderPngExport;
-import { compareModelDddRelationships, parseModelDocument as parseDddModel, resolveDddAuditControls, resolveDddAuditRequest, type ZlozDddAuditState, auditDddRelationships, type ZlozDddRelationshipAudit, type ZlozDddRelationshipAuditEntry, type ZlozDddRelationshipAuditCode, inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+import { resolveEventStormingNodeSemantics, eventStormingWorkshopRelationshipRules, auditEventStormingRelationships as auditWorkshop, type EventStormingParticipantArchitecture, type EventStormingHotspotArchitecture, type EventStormingLaneArchitecture, compareModelDddRelationships, parseModelDocument as parseDddModel, resolveDddAuditControls, resolveDddAuditRequest, type ZlozDddAuditState, auditDddRelationships, type ZlozDddRelationshipAudit, type ZlozDddRelationshipAuditEntry, type ZlozDddRelationshipAuditCode, inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
 import { writeSvgExport, type ZlozSvgPrimitive, type ZlozSvgAdapter, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
@@ -77,6 +78,16 @@ const declaredDecision=resolveDeclaredConsumption({nodes:[declaredSource,declare
 if(!isDeclaredConsumption(declaredConsumption)||declaredDecision.type!=='allowed'||declaredDecision.sourceRole!=='aggregate-root'||declaredDecision.relationship.architecture.role!=='feeds'||declaredConsumptionArchitecture.scope!=='tactical')throw new Error('Missing framework-neutral consumption contract');
 // @ts-expect-error A logical declaration never implies a runtime event filter
 const executableConsumption:ZlozDeclaredConsumption={sourceNodeId:'a',consumerNodeId:'b',events:['Deposited']};void executableConsumption;
+const packedWorkshop=parseWaypointGraph(${JSON.stringify(JSON.stringify(workshopWire))});
+if(JSON.stringify(packedWorkshop.nodes.map(n=>resolveEventStormingNodeSemantics(n)?.kind))!==JSON.stringify(['frame','participant','participant','participant','annotation','participant']))throw new Error('Packed workshop classification failed');
+if(auditWorkshop(packedWorkshop,{rules:eventStormingWorkshopRelationshipRules}).summary.blocked!==0||auditWorkshop(packedWorkshop).summary.blocked!==3)throw new Error('Packed workshop opt-in convention failed');
+const packedExternal:EventStormingParticipantArchitecture={family:'event-storming',role:'external-system'};void packedExternal;
+const packedHotspot:EventStormingHotspotArchitecture={family:'event-storming',role:'hotspot',status:'open'};void packedHotspot;
+const packedLane:EventStormingLaneArchitecture={family:'event-storming',role:'lane'};void packedLane;
+// @ts-expect-error Hotspot status must be an authored fact.
+const implicitHotspot:EventStormingHotspotArchitecture={family:'event-storming',role:'hotspot'};void implicitHotspot;
+// @ts-expect-error Organizational lanes do not have annotation status.
+const laneStatus:EventStormingLaneArchitecture={family:'event-storming',role:'lane',status:'resolved'};void laneStatus;
 const packedDddModel=parseDddModel(${JSON.stringify(JSON.stringify(dddReviewWire))});
 const packedDddState:ZlozDddAuditState={baselineId:'ddd-before',selectedId:'ddd-after',filters:{introduced:true,resolved:true,persisting:true}};
 const packedDddComparison=compareModelDddRelationships(packedDddModel,{baselineId:'ddd-before'});

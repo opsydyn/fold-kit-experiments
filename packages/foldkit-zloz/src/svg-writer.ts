@@ -467,12 +467,12 @@ export function writeSvgExport(
           node.kind === 'group'
             ? t.groupBackground
             : node.architecture?.family === 'event-storming'
-              ? {
+              ? (Object.entries({
                   command: t.eventStormingCommand,
                   'domain-event': t.eventStormingEvent,
                   policy: t.eventStormingPolicy,
                   actor: t.eventStormingActor,
-                }[node.architecture.role]
+                }).find(([role]) => role === node.architecture?.role)?.[1] ?? t.nodeBackground)
               : t.nodeBackground;
         const labels = lines(node);
         const content = outline.contentBounds;

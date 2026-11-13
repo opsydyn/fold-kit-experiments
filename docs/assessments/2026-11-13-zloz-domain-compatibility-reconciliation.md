@@ -13,6 +13,12 @@ locally, including Effect CLI and public composable controls; see
 authored relationship conventions and review/deltas; the table below retains its
 historical source baseline. D1/C/Q/R and new rule/packet expansion remain separate.
 
+Delivery follow-up: D1a's headless external-system/hotspot/lane semantics are now
+implemented locally; see [ADR 0081](../adr/0081-define-eventstorming-workshop-semantics.md)
+and [qualification](../../packages/foldkit-zloz/evidence/event-storming-workshop.md).
+Rendering remains separate; the historical D1a row below is not the current
+implementation inventory. D1b/C/Q/R gates are unchanged.
+
 Date: 2026-11-13. Inspected package source: `e9ab5880`, isolated branch
 `codex/zloz-context-map`. This updates the D/C/Q inventory and recommendation in
 [the November 12 audit](2026-11-12-zloz-core-completion-audit.md); its dated evidence

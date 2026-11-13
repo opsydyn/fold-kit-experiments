@@ -486,3 +486,20 @@ comparison review, live protection and fresh node/edge navigation. The optional
 views with omit/replace hooks and count visibility. Workbench and Effect CLI
 `ddd compare` demonstrate the same package contracts. Source/Undo are preserved;
 causal commands and packets keep their EventStorming scope.
+
+## EventStorming workshop semantics
+
+{@link Core.EventStormingNodeArchitecture | EventStormingNodeArchitecture} now
+separates causal external-system participants, portless hotspots with required
+authored open/resolved status, and portless organizational lane groups.
+{@link Core.resolveEventStormingNodeSemantics | resolveEventStormingNodeSemantics}
+returns participant/annotation/frame meaning without inferring DDD/C4 ownership.
+Existing membership, world geometry, strict codecs, history and Undo apply.
+
+{@link Core.eventStormingWorkshopRelationshipRules | eventStormingWorkshopRelationshipRules}
+is the opt-in causal catalogue for external systems. The original catalogue remains
+unchanged for portable builtin-packet compatibility; hotspots/lanes are not causal
+roles. DDD preview leaves these roles unmapped until explicit retention/mapping and
+loss acceptance. Artwork is deferred: existing note views decline new roles, and
+SVG requires a host adapter or explicit fidelity fallback. See the README and
+ADR 0081 for exact role/kind/port, status, conversion and compatibility boundaries.

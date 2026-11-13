@@ -216,8 +216,8 @@ are not approved exclusions. Historical receipts qualify only their stated scope
    the explicit resolver/catalogue, public review/navigation APIs and Effect CLI.
    See [workflow qualification](../apps/zloz-demo/evidence/ddd-audit.md).
    Additional correctness rules and DDD packet formats are separately scoped.
-   D1 workshop vocabulary and EventStorming-to-C4 conversion
-   remain separate gaps. Strict output→input, world-coordinate/portless groups,
+   D1a workshop semantics are now defined locally below; their renderer qualification
+   and D1b EventStorming-to-C4 conversion remain separate gaps. Strict output→input, world-coordinate/portless groups,
    the documented ELK/flat-force envelope and advanced catalogue deferrals need
    explicit scope approval or further implementation. They are not closed by
    custom renderers or this recommendation. DDD conversion is already delivered.
@@ -879,7 +879,25 @@ workflow**. This does not establish universal DDD correctness, new topology rule
 DDD review packets or closure of D1/C/Q/R. Those are not silently counted as done.
 No npm publishing, version bumps, deployment or provider activation.
 
-**Recommended next:** define the D1a EventStorming workshop vocabulary contract:
-external-system participants, hotspot annotations and lane/frame semantics, with
-explicit relationship/serialization/history rules before renderer work. Keep
-EventStorming-to-C4 conversion and compatibility/release decisions separately scoped.
+**D1a workshop semantics — implemented locally (2026-11-13), unreleased:**
+The package distinguishes external-system causal participants, portless hotspot
+annotations with required authored open/resolved status, and portless lane groups.
+Strict role/kind/port validation and public semantic projection preserve existing
+world-coordinate membership, codecs, semantic history, live policies and Undo.
+An explicit opt-in workshop relationship catalogue supports systems issuing and
+handling commands/emitting events; the original default remains unchanged so old
+builtin review packets remain reproducible. CLI data-only role decoding supports
+external-system but rejects annotation/frame roles. DDD preview leaves new roles
+unmapped; explicit replacement retains provenance and requires loss consent,
+including hotspot status. Existing note artwork declines the roles; SVG reports
+unqualified built-in artwork with explicit adapter/fallback escape paths. No new
+renderer, theme, layout engine, annotation attachments or C4 conversion is claimed.
+See [ADR 0081](adr/0081-define-eventstorming-workshop-semantics.md) and
+[qualification](../packages/foldkit-zloz/evidence/event-storming-workshop.md).
+This closes the approved headless vocabulary contract, not renderer, D1b/C/Q/R
+qualification. No npm publishing or deployment.
+
+**Recommended next:** composable external-system, hotspot and lane renderers and
+workbench controls, using these contracts with light/dark themes, visible hotspot
+status, native keyboard/portless behavior, diagnostics preferences and existing Undo.
+Keep EventStorming-to-C4 conversion and compatibility/release decisions separate.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Define headless EventStorming external-system participants, portless hotspot annotations with authored status and organizational lane groups; add strict codecs, semantic projection and opt-in workshop conventions while preserving default packet compatibility and explicit renderer/export limits.
+
 - Add read-only DDD current/edition review, deterministic audit comparison, composable FoldKit controls and fresh policy-aware edge/source/target navigation.
 
 - Add headless DDD relationship audit with deterministic detached reports, current convention resolution, explicit unrelated edges and separate graph/catalogue validation; no inferred meaning or graph mutations.

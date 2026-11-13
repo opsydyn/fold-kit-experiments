@@ -625,3 +625,13 @@ export type {
   ZlozDddAuditControlsContext,
   ZlozDddAuditDecision,
 } from './ddd-audit-controls';
+
+export { resolveEventStormingNodeSemantics } from './event-storming-workshop';
+export type { ZlozEventStormingNodeSemantics } from './event-storming-workshop';
+export type {
+  EventStormingParticipantArchitecture,
+  EventStormingHotspotArchitecture,
+  EventStormingLaneArchitecture,
+} from './architecture';
+
+export { eventStormingWorkshopRelationshipRules } from './event-storming-relationships';

@@ -51,7 +51,15 @@ test('catalogue covers C4 and DDD roles and the standalone factory validates and
   for (const preset of architectureNodePresets) {
     const input = preset.kind
       ? { ...base(), kind: preset.kind, ports: [], architecture: preset.architecture }
-      : { ...base(), architecture: preset.architecture };
+      : {
+          ...base(),
+          ports:
+            preset.architecture.family === 'event-storming' &&
+            preset.architecture.role === 'hotspot'
+              ? []
+              : base().ports,
+          architecture: preset.architecture,
+        };
     const node = createArchitectureNode(input);
     expect(node.architecture).toEqual(preset.architecture);
     expect(node.appearance?.shape).toBe(preset.shape);

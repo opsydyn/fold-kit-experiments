@@ -13,11 +13,89 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.167.x` to `0.169.x`, stable Effect
-`4.0.0`, and the `@foldkit/vite-plugin` `0.28.x` line. See the
-[migration guide](migrations/foldkit-0.167.md) and the [0.169 notes](releases/foldkit-0.169.md). Astro integration `0.8.0` and
-Viz `0.11.0` are published; registry and hosted deployment verification is
-recorded in the [release notes](releases/foldkit-0.167.md).
+Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
+`@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
+`0.17.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
+notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
+[0.169 notes](releases/foldkit-0.169.md).
+
+## Viz: data-science release track — 2026-11-13
+
+**Goal:** make foldkit-viz the first choice for data-science and engineering charts on
+the web, with a clear reason to pick it over Plotly, Vega-Lite and Observable Plot.
+
+**Where it stands.** The primitives are close to D3: scales, curves, shapes, map
+projections, hierarchy layouts, force simulation, Voronoi, contours, KDE, binning
+and colour schemes. The chart layer on top is thin:
+
+- The Cartesian layer draws linear axes only; log, symlog and time axes are not
+  possible, and time ticks and labels use local time only.
+- About eight chart geometries ship: line, scatter, histogram, bars, error bars,
+  interval band, segments and orbit. Around 45 full charts exist only as `apps/web`
+  demos.
+- There is no grammar of marks, channels and facets, which is what makes Plotly
+  Express, Vega-Lite and Observable Plot fast to use.
+- Regression, ECDF, QQ and hexbin are missing, and nothing renders beyond SVG,
+  which struggles past about 10,000 marks.
+- Interaction primitives (brush, zoom, selection, nearest-by-x) exist but are not
+  composed into linked views.
+
+**Where we can win:** server-rendered charts that ship no JavaScript until they are
+interactive; accessibility by default; typed, pure, testable geometry; and a planned
+JSON-serialisable spec that suits generated charts and other languages.
+
+### 0.18.0 — Foundations (next release)
+
+- [ ] Scale-generic Cartesian layer: x and y take linear, log, symlog, power or time
+      scales, and ticks and default labels follow the scale. Time axes default to UTC so
+      server and browser agree. Existing configurations are unchanged.
+      [Design](superpowers/specs/2026-11-13-scale-generic-cartesian-design.md).
+- [ ] Statistical transforms: least-squares linear and polynomial fits with
+      confidence bands, LOESS, ECDF, QQ quantiles and moving windows.
+- [ ] Two-dimensional binning, rectangular and hexagonal, feeding a cell geometry.
+- [ ] Cell geometry (`chart/cells`) promoted from the heatmap, calendar-heatmap and
+      correlation-matrix demos.
+- [ ] Downsampling for long series: LTTB and min-max (M4).
+
+**Exit criteria:** the web app shows a log-scaled time series, a regression with its
+confidence band and a 100,000-point series downsampled to the plot width, each
+server-rendered with axes from the chart layer.
+
+### 0.19.0 — Grammar of marks (design first)
+
+- [ ] Specification and ADR: marks (dot, line, area, bar, rule, text, cell, box,
+      density, link), channels (x, y, fill, stroke, r, opacity, symbol), scales and
+      legends inferred from channels, facets for small multiples, and layered marks on
+      shared scales.
+- [ ] A declarative, JSON-serialisable spec rendered through the same pure geometry,
+      server-rendered by default.
+- [ ] Promote box and violin, candlestick, parallel coordinates, treemap and
+      sunburst, and sankey from the demos as marks or presets.
+
+**Exit criteria:** each promoted demo is re-expressed as a spec, and its web-app page
+is rebuilt from the library.
+
+### 0.20.0 — Scale and interaction
+
+- [ ] Optional canvas painting for dot, line and cell marks from the same geometry,
+      as an adapter beside the FoldKit one; the geometry stays renderer-agnostic.
+- [ ] Quadtree hit-testing, two-dimensional nearest hover and a crosshair.
+- [ ] Linked brushing across views, closing the open items of the Viz interaction
+      layer below.
+- [ ] Zoom and pan bound to the chart scales.
+
+**Exit criteria:** a one-million-point scatter linked to a histogram, hovering within
+one frame.
+
+### Later — Reach
+
+- Arrow and DuckDB column input, and streaming appends.
+- SVG and PNG export, and themes beyond light and dark.
+- A Jupyter widget that renders the JSON spec.
+- Three-dimensional surfaces and scatter through effect-three.
+
+The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
+and no dependency on `foldkit/http`.
 
 ## Zloz: brand and product direction — 2026-11-08
 

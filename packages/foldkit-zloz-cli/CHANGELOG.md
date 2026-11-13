@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add Effect CLI DDD audit with deterministic JSON reports, data-only custom conventions and explicit compatible/incompatible/input exit semantics.
+
 - Add Effect CLI patch dry run with separate current source, strict decoding and explicit exit semantics.
 
 ## 0.1.0 — unpublished candidate

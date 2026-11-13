@@ -5,8 +5,10 @@
 import {
   parseModellingPatch,
   dryRunModellingPatch,
+  auditDddRelationships,
   auditEventStormingRelationships,
   compareModelEventStormingRelationships,
+  type ZlozDddRelationshipOptions,
   type ZlozGraph,
   type ZlozSnapshot,
   type ZlozEventStormingRelationshipOptions,
@@ -24,6 +26,7 @@ import { Console, Effect, Match, Option, Result, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
+import { readDddRelationshipRules } from './ddd-relationship-rules';
 import { readDocument, readTextInput, writeResponse, type CliDocument } from './io';
 import {
   cliProtocol,
@@ -250,6 +253,56 @@ function executeAudit(input: string, rules: Option.Option<string>) {
   });
   return auditing.pipe(Effect.withSpan('zloz.cli.auditRelationships'));
 }
+const readDddAuditRules = (input: string) =>
+  readDddRelationshipRules(input).pipe(
+    Effect.catchTag('CliInputError', (error) => rejectInput('ddd-audit', error)),
+  );
+/** ADR 0079: a distinct operation preserves causal command and convention-file compatibility. */
+function executeDddAudit(input: string, rules: Option.Option<string>) {
+  const auditing = Effect.gen(function* () {
+    const readingRules = Option.match(rules, {
+      onNone: () => Effect.succeed<ZlozDddRelationshipOptions>({}),
+      onSome: readDddAuditRules,
+    });
+    const options = yield* readingRules;
+    const document = yield* readForOperation('ddd-audit', input);
+    const data = auditDddRelationships(graphOf(document), options);
+    const modelId = Match.value(document).pipe(
+      Match.when({ kind: 'model' }, ({ document }) => document.id),
+      Match.orElse(() => null),
+    );
+    const conventions = Option.match(rules, {
+      onNone: () => ({ source: 'builtin' as const, input: null }),
+      onSome: (input) => ({ source: 'file' as const, input }),
+    });
+    const response: Extract<CliResponse, { operation: 'ddd-audit'; status: 'audited' }> = {
+      protocol: cliProtocol,
+      operation: 'ddd-audit',
+      status: 'audited',
+      scope: 'current-graph',
+      modelId,
+      conventions,
+      data,
+      diagnostics: data.entries
+        .filter((entry) => entry.status === 'blocked')
+        .map((entry) => ({
+          code: `ddd-relationship-${entry.code}`,
+          message: entry.message,
+          subject: entry.edgeId,
+          severity: 'error',
+          dimension: 'semantics',
+        })),
+    };
+    const reporting = writeResponse(response).pipe(
+      Effect.filterOrFail(
+        () => data.status === 'compatible',
+        () => new CliAuditIncompatible(),
+      ),
+    );
+    yield* reporting;
+  });
+  return auditing.pipe(Effect.withSpan('zloz.cli.auditDddRelationships'));
+}
 function executeComparison(
   input: string,
   baselineId: string,
@@ -415,6 +468,17 @@ const auditCommand = Command.make('audit', { input, rules }, (config) =>
   Command.withDescription(
     'Read-only causal relationship audit with per-edge JSON results and semantic diagnostics.',
   ),
+);
+const dddAuditCommand = Command.make('audit', { input, rules }, (config) =>
+  executeDddAudit(config.input, config.rules),
+).pipe(
+  Command.withDescription(
+    'Audit declared DDD relationships under an explicit convention; exit 1 for incompatibility, 2 for invalid input.',
+  ),
+);
+const dddCommand = Command.make('ddd').pipe(
+  Command.withDescription('Read-only DDD convention tools; no inferred meaning or graph changes.'),
+  Command.withSubcommands([dddAuditCommand]),
 );
 const baseline = Flag.String('baseline').pipe(
   Flag.withDescription('Required baseline edition ID owned by the input model.'),
@@ -661,6 +725,7 @@ export const zlozCommand = Command.make('zloz').pipe(
     validate,
     mermaidCommand,
     relationshipsCommand,
+    dddCommand,
     reviewCommand,
     patchCommand,
   ]),

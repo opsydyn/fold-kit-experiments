@@ -18,6 +18,8 @@ import {
 
 import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
+import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
+import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import manifest from '../package.json';
 
 const exec = promisify(execFile);
@@ -198,7 +200,81 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         }),
       ),
     );
+    const dddFile = path.join(directory, 'ddd.json'),
+      dddRulesFile = path.join(directory, 'ddd-rules.json');
+    const dddText = JSON.stringify(dddWire);
+    const dddCustom = JSON.stringify({
+      ...dddWire,
+      graph: {
+        ...dddWire.graph,
+        edges: dddWire.graph.edges.filter((edge) => edge.id === 'e-custom'),
+      },
+    });
+    const dddRulesText = JSON.stringify({
+      version: 1,
+      rules: [
+        {
+          architecture: { family: 'ddd', scope: 'tactical', role: 'custom', name: 'enriches' },
+          sources: ['aggregate-root'],
+          targets: ['domain-event'],
+          label: 'Enriches',
+          direction: 'directed',
+        },
+      ],
+    });
+    await writeFile(dddFile, dddText);
+    await writeFile(dddRulesFile, dddRulesText);
     for (const runtime of ['node', 'bun']) {
+      const dddHelp = await run([runtime, bin, 'ddd', 'audit', '--help']);
+      expect(dddHelp.code).toBe(0);
+      expect(dddHelp.stderr).toBe('');
+      expect(dddHelp.stdout).toContain('--rules');
+      const dddIncompatible = await run([runtime, bin, 'ddd', 'audit', '-i', dddFile]);
+      expect(dddIncompatible.code).toBe(1);
+      expect(dddIncompatible.stderr).toBe('');
+      expect(dddIncompatible.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(dddIncompatible.stdout)).toMatchObject({
+        operation: 'ddd-audit',
+        status: 'audited',
+      });
+      expect(JSON.parse(dddIncompatible.stdout).data).toEqual(dddExpected);
+      const dddCompatible = await run(
+        [runtime, bin, 'ddd', 'audit', '--rules', dddRulesFile],
+        dddCustom,
+      );
+      expect(dddCompatible.code).toBe(0);
+      expect(dddCompatible.stderr).toBe('');
+      expect(JSON.parse(dddCompatible.stdout).data.summary).toEqual({
+        edges: 1,
+        typed: 1,
+        unrelated: 0,
+        blocked: 0,
+      });
+      const dddEmpty = await run([runtime, bin, 'ddd', 'audit'], empty);
+      expect(dddEmpty.code).toBe(0);
+      expect(dddEmpty.stderr).toBe('');
+      for (const value of ['{bad', new Uint8Array([0xc3]), ' '.repeat(1048577)]) {
+        const rejected = await run([runtime, bin, 'ddd', 'audit'], value);
+        expect(rejected.code).toBe(2);
+        expect(rejected.stderr).toBe('');
+        expect(JSON.parse(rejected.stdout)).toMatchObject({
+          operation: 'ddd-audit',
+          status: 'rejected',
+        });
+      }
+      const wrongFamily = await run([runtime, bin, 'ddd', 'audit', '--rules', customRules], empty);
+      expect(wrongFamily.code).toBe(2);
+      expect(wrongFamily.stderr).toBe('');
+      expect(JSON.parse(wrongFamily.stdout).diagnostics[0].code).toBe('invalid-rules');
+      const invalidDddFlag = await run([runtime, bin, 'ddd', 'audit', '--family', 'causal']);
+      expect(invalidDddFlag.code).toBe(2);
+      expect(invalidDddFlag.stdout).toBe('');
+      expect(JSON.parse(invalidDddFlag.stderr)).toMatchObject({
+        operation: 'invocation',
+        status: 'rejected',
+      });
+      expect(await readFile(dddFile, 'utf8')).toBe(dddText);
+      expect(await readFile(dddRulesFile, 'utf8')).toBe(dddRulesText);
       const patchArgs = [
         runtime,
         bin,
@@ -472,6 +548,9 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await writeFile(
       path.join(directory, 'consumer.ts'),
       `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const dddReport:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0}; void dddReport;
+// @ts-expect-error DDD response data never has an inference count.
+const dddInference:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0,inferred:1}; void dddInference;
 const packet:Extract<CliResponse,{status:'created'}>['data']['format']='foldkit-zloz-review'; void packet; void CliReviewInputRejected;
 const comparison:Extract<CliResponse,{status:'compared'}>['data']['summary']={introduced:0,resolved:1,persisting:2}; void comparison; void CliAuditRegression;
 const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,

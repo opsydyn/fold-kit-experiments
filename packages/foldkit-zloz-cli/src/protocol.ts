@@ -1,4 +1,5 @@
 import type {
+  ZlozDddRelationshipAudit,
   ZlozEventStormingRelationshipAudit,
   ZlozRelationshipAuditComparison,
   ZlozModellingPatchPreview,
@@ -15,6 +16,7 @@ export const cliProtocol = 'foldkit-zloz-cli/v1';
 export type CliOperation =
   | 'validate'
   | 'mermaid-export'
+  | 'ddd-audit'
   | 'relationships-audit'
   | 'relationships-compare'
   | 'review-packet'
@@ -49,6 +51,16 @@ export type CliReviewPacketSummary = Readonly<{
   audit: Pick<ZlozRelationshipAuditComparison, 'status' | 'summary'>;
 }>;
 export type CliResponse =
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'ddd-audit';
+      status: 'audited';
+      scope: 'current-graph';
+      modelId: string | null;
+      conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
+      data: ZlozDddRelationshipAudit;
+      diagnostics: readonly CliDiagnostic[];
+    }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'patch-dry-run';

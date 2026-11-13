@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { NodeServices } from '@effect/platform-node';
 import {
+  parseGraph,
   captureModelDocument,
   captureEdition,
   serializeModelDocument,
@@ -15,6 +16,8 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effect';
 
+import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
+import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import { run, CliDiagnostic, inputByteLimit } from '../src/index';
 
 const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
@@ -681,5 +684,209 @@ test('patch dry-run uses separately supplied source and reports loss, stale and 
     expect(await readFile(source, 'utf8')).toBe(original);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('DDD audit emits the exact core report and semantic diagnostics with exit 1', async () => {
+  const input = JSON.stringify(dddWire),
+    result = await invoke(['ddd', 'audit'], input);
+  expect(result.code).toBe(1);
+  expect(result.text.trim().split('\n')).toHaveLength(1);
+  assert.deepStrictEqual(JSON.parse(result.text), {
+    protocol: 'foldkit-zloz-cli/v1',
+    operation: 'ddd-audit',
+    status: 'audited',
+    scope: 'current-graph',
+    modelId: null,
+    conventions: { source: 'builtin', input: null },
+    data: dddExpected,
+    diagnostics: dddExpected.entries
+      .filter((entry) => entry.status === 'blocked')
+      .map((entry) => ({
+        code: `ddd-relationship-${entry.code}`,
+        message: entry.message,
+        subject: entry.edgeId,
+        severity: 'error',
+        dimension: 'semantics',
+      })),
+  });
+  expect(input).toBe(JSON.stringify(dddWire));
+});
+test('DDD audit has compatible/no-coverage exits and graph/snapshot/model current-graph scope', async () => {
+  const compatible = {
+    ...dddWire,
+    graph: {
+      ...dddWire.graph,
+      edges: dddWire.graph.edges.filter((edge) =>
+        ['A-emits', 'b-strategic', 'c-side-absent', 'z-feeds'].includes(edge.id),
+      ),
+    },
+  };
+  const snapshot = { ...compatible, viewport: { x: 12, y: -20, zoom: 2 } };
+  const model = serializeModelDocument(
+    captureModelDocument({
+      id: 'ddd-model',
+      name: 'DDD',
+      snapshot: { graph: parseGraph(JSON.stringify(compatible)) },
+      editions: [
+        {
+          id: 'old',
+          name: 'Incompatible baseline',
+          snapshot: { graph: parseGraph(JSON.stringify(dddWire)) },
+        },
+      ],
+      origin: null,
+    }),
+  );
+  for (const text of [JSON.stringify(compatible), JSON.stringify(snapshot), model]) {
+    const result = await invoke(['ddd', 'audit'], text),
+      response = JSON.parse(result.text);
+    expect(result.code).toBe(0);
+    expect(response.data.summary).toEqual({ edges: 4, typed: 4, unrelated: 0, blocked: 0 });
+    expect(response.scope).toBe('current-graph');
+    expect(response.modelId).toBe(text === model ? 'ddd-model' : null);
+    expect(response.diagnostics).toEqual([]);
+  }
+  const causal = await invoke(['relationships', 'audit'], JSON.stringify(compatible));
+  expect(JSON.parse(causal.text).data.summary.unrelated).toBe(4);
+  const unrelated = {
+    ...dddWire,
+    graph: {
+      ...dddWire.graph,
+      edges: dddWire.graph.edges.filter(
+        (edge) => edge.id === 'á-untyped' || edge.id === 'i-causal',
+      ),
+    },
+  };
+  for (const text of [empty, JSON.stringify(unrelated)]) {
+    const result = await invoke(['ddd', 'audit'], text);
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.text).data.summary.typed).toBe(0);
+  }
+});
+test('DDD rule files replace conventions, preserve files and reject invalid catalogues before model reading', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-ddd-rules-'));
+  // oxlint-disable-next-line linteffect/no-try-catch -- Native temporary fixtures must be reclaimed after all assertions.
+  try {
+    const file = join(directory, 'rules.json'),
+      modelFile = join(directory, 'diagram.json');
+    const source = {
+      ...dddWire,
+      graph: {
+        ...dddWire.graph,
+        edges: dddWire.graph.edges.filter((edge) => edge.id === 'e-custom'),
+      },
+    };
+    const text = JSON.stringify(source);
+    await writeFile(modelFile, text);
+    const rule = {
+      architecture: { family: 'ddd', scope: 'tactical', role: 'custom', name: 'enriches' },
+      sources: ['aggregate-root'],
+      targets: ['domain-event'],
+      label: 'Enriches',
+      direction: 'directed',
+    };
+    const rules = JSON.stringify({ version: 1, rules: [rule] });
+    await writeFile(file, rules);
+    const result = await invoke(['ddd', 'audit', '--input', modelFile, '--rules', file], '');
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.text)).toMatchObject({
+      operation: 'ddd-audit',
+      conventions: { source: 'file', input: file },
+      data: { summary: { edges: 1, typed: 1, unrelated: 0, blocked: 0 } },
+    });
+    expect(await readFile(file, 'utf8')).toBe(rules);
+    expect(await readFile(modelFile, 'utf8')).toBe(text);
+    const bad = [
+      { version: 2, rules: [rule] },
+      { version: 1, rules: [rule], extra: true },
+      { version: 1, rules: [{ ...rule, extra: true }] },
+      {
+        version: 1,
+        rules: [{ ...rule, architecture: { family: 'event-storming', role: 'issues' } }],
+      },
+      { version: 1, rules: [{ ...rule, sources: ['actor'] }] },
+      { version: 1, rules: [{ ...rule, sources: [] }] },
+      { version: 1, rules: [{ ...rule, targets: ['bounded-context'] }] },
+      { version: 1, rules: [rule, rule] },
+      { version: 1, rules: [{ ...rule, direction: 'bidirectional' }] },
+      {
+        version: 1,
+        rules: [
+          { ...rule, architecture: { ...rule.architecture, upstream: ['open-host-service'] } },
+        ],
+      },
+    ];
+    for (const value of bad) {
+      await writeFile(file, JSON.stringify(value));
+      const rejected = await invoke(['ddd', 'audit', '--rules', file], '{not even a model');
+      expect(rejected.code).toBe(2);
+      expect(JSON.parse(rejected.text)).toMatchObject({
+        operation: 'ddd-audit',
+        status: 'rejected',
+        diagnostics: [{ code: 'invalid-rules', subject: file }],
+      });
+      expect(JSON.parse(rejected.text).data).toBeUndefined();
+    }
+    await writeFile(file, '{invalid');
+    expect(
+      JSON.parse((await invoke(['ddd', 'audit', '--rules', file], empty)).text).diagnostics[0].code,
+    ).toBe('invalid-json');
+    await writeFile(file, ' '.repeat(inputByteLimit + 1));
+    expect(
+      JSON.parse((await invoke(['ddd', 'audit', '--rules', file], empty)).text).diagnostics[0].code,
+    ).toBe('input-limit');
+    expect(
+      JSON.parse((await invoke(['ddd', 'audit', '--rules', '-'], empty)).text).diagnostics[0].code,
+    ).toBe('invalid-rules');
+    expect(await readFile(modelFile, 'utf8')).toBe(text);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test('DDD invalid documents, unavailable files and input limits exit 2 without an audit', async () => {
+  for (const [args, text, code] of [
+    [['ddd', 'audit'], '{bad', 'invalid-json'],
+    [['ddd', 'audit'], '{"version":2,"graph":{"nodes":[],"edges":[]}}', 'invalid-document'],
+    [
+      ['ddd', 'audit'],
+      JSON.stringify({
+        ...dddWire,
+        graph: {
+          ...dddWire.graph,
+          edges: [
+            {
+              ...dddWire.graph.edges[0],
+              architecture: { family: 'ddd', scope: 'strategic', role: 'feeds' },
+            },
+          ],
+        },
+      }),
+      'invalid-document',
+    ],
+    [
+      ['ddd', 'audit'],
+      JSON.stringify({
+        ...dddWire,
+        graph: {
+          ...dddWire.graph,
+          edges: [{ ...dddWire.graph.edges[0], source: { node: 'read', port: 'in' } }],
+        },
+      }),
+      'invalid-document',
+    ],
+    [['ddd', 'audit'], ' '.repeat(inputByteLimit + 1), 'input-limit'],
+    [['ddd', 'audit', '--input', '/no-such-zloz-ddd-document'], '', 'input-unavailable'],
+    [['ddd', 'audit', '--rules', '/no-such-zloz-ddd-rules'], empty, 'input-unavailable'],
+  ] as const) {
+    const result = await invoke(args, text),
+      response = JSON.parse(result.text);
+    expect(result.code).toBe(2);
+    expect(response).toMatchObject({
+      operation: 'ddd-audit',
+      status: 'rejected',
+      diagnostics: [{ code }],
+    });
+    expect(response.data).toBeUndefined();
   }
 });

@@ -5029,8 +5029,9 @@ even when there are no DDD edges. Invalid graph/descriptor/endpoint structure th
 with the existing codecs first; this is a typed in-process audit, not a decoder or
 a report wire-format version. Reports use existing resolver codes and messages.
 
-Core import remains safe in Node/Bun without UI peers. The causal audit, current
-CLI audit/compare commands and review packets remain EventStorming-scoped; this
-slice does not add DDD CLI/UI, edition comparison, permission to Apply or a new
-serialization format. See [ADR 0078](../../docs/adr/0078-audit-declared-ddd-relationships.md)
+Core import remains safe in Node/Bun without UI peers. The causal audit,
+`relationships audit/compare` CLI commands and review packets remain EventStorming-scoped. The optional Effect CLI now exposes `ddd audit` with
+its own DDD convention-file schema and explicit exits. Workbench UI, edition
+comparison, permission to Apply and new serialization formats remain separate.
+See [ADR 0078](../../docs/adr/0078-audit-declared-ddd-relationships.md)
 and [qualification](evidence/ddd-relationship-audit.md).

@@ -370,3 +370,75 @@ Apply or writable-agent execution. CLI publication remains a separate gate.
 
 See [ADR 0062](../../docs/adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
 and [local qualification](../../apps/zloz-demo/evidence/p2-completion.md).
+
+## DDD relationship audit (unreleased)
+
+```sh
+zloz ddd audit --input architecture.json
+cat architecture.model.json | zloz ddd audit
+zloz ddd audit -i architecture.json --rules ddd-rules.json
+```
+
+This command calls core `auditDddRelationships`. It audits the current graph of a
+canonical graph/snapshot/model document; model responses include `modelId`, but
+editions are not selected or compared. Typed DDD relationships are compatible or
+blocked under the convention. Untyped and other-family edges are unrelated, never
+inferred. No graph, source file, model history or Undo is modified.
+
+Results use `protocol: "foldkit-zloz-cli/v1"`, `operation: "ddd-audit"`,
+`status: "audited"`, `scope: "current-graph"`, `modelId`, `conventions`, `data` and
+`diagnostics`. Data is the exact deterministic core report, including its summary
+and every authored edge. Blocked entries add `ddd-relationship-<code>` diagnostics
+with the edge ID as subject. Compatible means zero blocked DDD edges, not universal
+DDD correctness or full typing; inspect `data.summary.typed/unrelated` for coverage.
+Consumers should discriminate the response by operation as well as status.
+
+| Exit | DDD audit meaning                                                           | Framing                                                     |
+| ---- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 0    | Compatible convention audit, including empty/unrelated graphs               | One JSON value plus newline on stdout                       |
+| 1    | DDD incompatibility                                                         | Completed audited report and semantic diagnostics on stdout |
+| 2    | Invalid document/rules, unavailable input, UTF-8/JSON or byte-limit failure | Rejected JSON on stdout, no audit data                      |
+| 2    | Invalid flags/subcommands                                                   | Invocation JSON on stderr; stdout empty                     |
+
+Output failures, explicit help/version and SIGINT retain the existing CLI behavior.
+A DDD-incompatible model is not malformed input. An invalid rule file never becomes
+an incompatible model report.
+
+Optional DDD rules use a separate version-one data-only format:
+
+```json
+{
+  "version": 1,
+  "rules": [
+    {
+      "architecture": {
+        "family": "ddd",
+        "scope": "tactical",
+        "role": "custom",
+        "name": "enriches"
+      },
+      "sources": ["aggregate-root"],
+      "targets": ["domain-event"],
+      "label": "Enriches",
+      "direction": "directed"
+    }
+  ]
+}
+```
+
+The catalogue **replaces** defaults. Direction is required (`directed` or
+`symmetric`); current core rules enforce built-in direction and tactical/strategic
+participant scope. Source/target roles are the nine supported DDD node roles,
+including `read-model` and `bounded-context`. Unknown fields, invalid descriptors,
+causal catalogues, duplicate rules and invalid role/scope combinations reject with
+exit 2, even before an empty/unrelated model is read. No functions are accepted.
+
+Both model and rules files use the existing independent 1 MiB UTF-8 input limit.
+`--rules -` is rejected because stdin belongs to the model. Convention provenance
+reports builtin or the supplied filename; it does not embed or hash the catalogue.
+Keep the rule file to reproduce its convention. No report archive/decoder or
+publication guarantee is added.
+
+`zloz relationships audit` and `relationships compare` remain EventStorming-scoped,
+with their existing rule format, output and exits. DDD comparison, packets and UI
+are separate follow-ups. [Qualification](evidence/ddd-audit.md).

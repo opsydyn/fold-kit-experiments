@@ -849,7 +849,17 @@ See [ADR 0078](adr/0078-audit-declared-ddd-relationships.md) and
 This closes the prior headless-report recommendation, not D2's wider catalogue,
 UI/CLI/delta integration or the remaining D/C/Q/release gates.
 
-**Recommended next:** expose the DDD report through the Effect CLI with structured
-JSON and explicit validation/incompatibility exit behavior, keeping causal commands
-family-scoped. Workbench finding navigation and edition comparison follow as
-separately bounded slices. No npm publishing or provider activation is implied.
+**DDD Effect CLI audit — implemented locally (2026-11-13), unreleased:**
+`zloz ddd audit` exposes the exact core report and per-edge diagnostics through an
+additive `ddd-audit` JSON operation. Exits are 0 compatible, 1 incompatible, and 2
+invalid input/rules/invocation. Version-one DDD catalogue files use bounded Effect
+Schema decoding and core validation. Existing causal commands and convention
+files remain separate. Node/Bun binary and installed-consumer evidence is linked
+in [qualification](../packages/foldkit-zloz-cli/evidence/ddd-audit.md) and
+[ADR 0079](adr/0079-expose-ddd-audit-through-effect-cli.md).
+This closes the prior CLI recommendation; no publishing or manifest change.
+
+**Recommended next:** package-owned read-only DDD audit review and finding
+navigation, demonstrated in the workbench with visible convention reasons and
+unchanged graph/Undo. Edition-aware DDD comparison remains a separate follow-up.
+The wider D/C/Q and release decisions remain open.

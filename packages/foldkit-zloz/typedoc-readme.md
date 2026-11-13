@@ -474,5 +474,7 @@ edge is represented in UTF-16 ID order as typed-compatible, blocked or unrelated
 No DDD meaning is inferred from untyped or other-family edges. Compatible means
 zero blocked DDD edges under the catalogue, not full typing or universal correctness.
 Graph structure and convention errors reject separately from semantic findings.
-Source/Undo and wire formats are unchanged. CLI, comparison and workbench integration
-remain separate follow-ups; causal reports keep their EventStorming scope.
+Source/Undo and wire formats are unchanged. The optional Effect CLI now exposes
+`zloz ddd audit` with structured reports, DDD rule files and explicit 0/1/2 exits.
+Comparison and workbench integration remain separate follow-ups; causal commands
+and reports keep their EventStorming scope.

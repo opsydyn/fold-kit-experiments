@@ -1,0 +1,773 @@
+{
+  "type": "reviewable",
+  "source": {
+    "format": "zloz-alchemy-declarations",
+    "version": 1,
+    "upstream": {
+      "package": "@alchemy.run/domain",
+      "version": "2.0.0-beta.85"
+    },
+    "namespace": "example/bank",
+    "revision": "fixture-v1",
+    "modelId": "example%2Fbank/Bank/model/Bank",
+    "declarations": [
+      {
+        "id": "example%2Fbank/Bank/aggregate/Account",
+        "locator": "example%2Fbank/Bank/aggregate/Account",
+        "kind": "aggregate",
+        "name": "Account"
+      },
+      {
+        "id": "example%2Fbank/Bank/command/DepositMoney",
+        "locator": "example%2Fbank/Bank/command/DepositMoney",
+        "kind": "command",
+        "name": "DepositMoney"
+      },
+      {
+        "id": "example%2Fbank/Bank/command/GrantBonus",
+        "locator": "example%2Fbank/Bank/command/GrantBonus",
+        "kind": "command",
+        "name": "GrantBonus"
+      },
+      {
+        "id": "example%2Fbank/Bank/event/MoneyDeposited",
+        "locator": "example%2Fbank/Bank/event/MoneyDeposited",
+        "kind": "event",
+        "name": "MoneyDeposited"
+      },
+      {
+        "id": "example%2Fbank/Bank/model/Bank",
+        "locator": "example%2Fbank/Bank/model/Bank",
+        "kind": "model",
+        "name": "Bank"
+      },
+      {
+        "id": "example%2Fbank/Bank/policy/Notify",
+        "locator": "example%2Fbank/Bank/policy/Notify",
+        "kind": "policy",
+        "name": "Notify"
+      },
+      {
+        "id": "example%2Fbank/Bank/stream/Ledger",
+        "locator": "example%2Fbank/Bank/stream/Ledger",
+        "kind": "stream",
+        "name": "Ledger"
+      },
+      {
+        "id": "example%2Fbank/Bank/view/AccountSummary",
+        "locator": "example%2Fbank/Bank/view/AccountSummary",
+        "kind": "view",
+        "name": "AccountSummary"
+      }
+    ],
+    "relations": [
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/aggregate/Account\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/aggregate/Account"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/command/DepositMoney"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/command/GrantBonus"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/event/MoneyDeposited"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/policy/Notify\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/policy/Notify"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/stream/Ledger\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/stream/Ledger"
+      },
+      {
+        "id": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+        "kind": "contains",
+        "source": "example%2Fbank/Bank/model/Bank",
+        "target": "example%2Fbank/Bank/view/AccountSummary"
+      },
+      {
+        "id": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+        "kind": "entry-type",
+        "source": "example%2Fbank/Bank/event/MoneyDeposited",
+        "target": "example%2Fbank/Bank/stream/Ledger"
+      },
+      {
+        "id": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+        "kind": "feeds",
+        "source": "example%2Fbank/Bank/aggregate/Account",
+        "target": "example%2Fbank/Bank/view/AccountSummary"
+      },
+      {
+        "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+        "kind": "handles",
+        "source": "example%2Fbank/Bank/aggregate/Account",
+        "target": "example%2Fbank/Bank/command/DepositMoney"
+      },
+      {
+        "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+        "kind": "handles",
+        "source": "example%2Fbank/Bank/aggregate/Account",
+        "target": "example%2Fbank/Bank/command/GrantBonus"
+      },
+      {
+        "id": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+        "kind": "may-emit",
+        "source": "example%2Fbank/Bank/command/DepositMoney",
+        "target": "example%2Fbank/Bank/event/MoneyDeposited"
+      },
+      {
+        "id": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+        "kind": "may-emit",
+        "source": "example%2Fbank/Bank/command/GrantBonus",
+        "target": "example%2Fbank/Bank/event/MoneyDeposited"
+      },
+      {
+        "id": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+        "kind": "observes-source",
+        "source": "example%2Fbank/Bank/aggregate/Account",
+        "target": "example%2Fbank/Bank/policy/Notify"
+      },
+      {
+        "id": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+        "kind": "reacts-to",
+        "source": "example%2Fbank/Bank/event/MoneyDeposited",
+        "target": "example%2Fbank/Bank/policy/Notify"
+      }
+    ],
+    "findings": [
+      {
+        "sourceId": "example%2Fbank/Bank/model/Bank",
+        "code": "behaviour-unrepresented",
+        "severity": "unverified",
+        "reason": "Declaration types only: handlers, state schemas, key routing, sagas, external systems, APIs and runtime effects are outside this projection."
+      }
+    ]
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "example%2Fbank/Bank/aggregate/Account",
+        "label": "Account",
+        "position": {
+          "x": 40,
+          "y": 80
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/aggregate/Account",
+            "locator": "example%2Fbank/Bank/aggregate/Account",
+            "kind": "aggregate",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "ddd",
+          "role": "aggregate-root"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/command/DepositMoney",
+        "label": "DepositMoney",
+        "position": {
+          "x": 300,
+          "y": 80
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/command/DepositMoney",
+            "locator": "example%2Fbank/Bank/command/DepositMoney",
+            "kind": "command",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "command"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/command/GrantBonus",
+        "label": "GrantBonus",
+        "position": {
+          "x": 560,
+          "y": 80
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/command/GrantBonus",
+            "locator": "example%2Fbank/Bank/command/GrantBonus",
+            "kind": "command",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "command"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/event/MoneyDeposited",
+        "label": "MoneyDeposited",
+        "position": {
+          "x": 40,
+          "y": 230
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/event/MoneyDeposited",
+            "locator": "example%2Fbank/Bank/event/MoneyDeposited",
+            "kind": "event",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "ddd",
+          "role": "domain-event"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/model/Bank",
+        "label": "Bank",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 820,
+          "height": 580
+        },
+        "ports": [],
+        "kind": "group",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/model/Bank",
+            "locator": "example%2Fbank/Bank/model/Bank",
+            "kind": "model",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "ddd",
+          "role": "bounded-context"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/policy/Notify",
+        "label": "Notify",
+        "position": {
+          "x": 300,
+          "y": 230
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/policy/Notify",
+            "locator": "example%2Fbank/Bank/policy/Notify",
+            "kind": "policy",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "policy"
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/stream/Ledger",
+        "label": "Ledger (stream; untyped)",
+        "position": {
+          "x": 560,
+          "y": 230
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/stream/Ledger",
+            "locator": "example%2Fbank/Bank/stream/Ledger",
+            "kind": "stream",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        }
+      },
+      {
+        "id": "example%2Fbank/Bank/view/AccountSummary",
+        "label": "AccountSummary",
+        "position": {
+          "x": 40,
+          "y": 380
+        },
+        "size": {
+          "width": 220,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "parentId": "example%2Fbank/Bank/model/Bank",
+        "data": {
+          "alchemy": {
+            "sourceId": "example%2Fbank/Bank/view/AccountSummary",
+            "locator": "example%2Fbank/Bank/view/AccountSummary",
+            "kind": "view",
+            "packageVersion": "2.0.0-beta.85"
+          }
+        },
+        "architecture": {
+          "family": "ddd",
+          "role": "read-model"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/event/MoneyDeposited",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/stream/Ledger",
+          "port": "in"
+        },
+        "label": "entry-type",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+            "kind": "entry-type"
+          }
+        }
+      },
+      {
+        "id": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/aggregate/Account",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/view/AccountSummary",
+          "port": "in"
+        },
+        "label": "feeds",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+            "kind": "feeds"
+          }
+        },
+        "architecture": {
+          "family": "ddd",
+          "scope": "tactical",
+          "role": "feeds"
+        }
+      },
+      {
+        "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/aggregate/Account",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/command/DepositMoney",
+          "port": "in"
+        },
+        "label": "handles",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+            "kind": "handles"
+          }
+        }
+      },
+      {
+        "id": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/aggregate/Account",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/command/GrantBonus",
+          "port": "in"
+        },
+        "label": "handles",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+            "kind": "handles"
+          }
+        }
+      },
+      {
+        "id": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/command/DepositMoney",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/event/MoneyDeposited",
+          "port": "in"
+        },
+        "label": "may-emit",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+            "kind": "may-emit"
+          }
+        }
+      },
+      {
+        "id": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/command/GrantBonus",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/event/MoneyDeposited",
+          "port": "in"
+        },
+        "label": "may-emit",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+            "kind": "may-emit"
+          }
+        }
+      },
+      {
+        "id": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/aggregate/Account",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/policy/Notify",
+          "port": "in"
+        },
+        "label": "observes-source",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+            "kind": "observes-source"
+          }
+        }
+      },
+      {
+        "id": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+        "source": {
+          "node": "example%2Fbank/Bank/event/MoneyDeposited",
+          "port": "out"
+        },
+        "target": {
+          "node": "example%2Fbank/Bank/policy/Notify",
+          "port": "in"
+        },
+        "label": "reacts-to",
+        "data": {
+          "alchemy": {
+            "sourceId": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+            "kind": "reacts-to"
+          }
+        }
+      }
+    ]
+  },
+  "findings": [
+    {
+      "sourceId": "example%2Fbank/Bank/model/Bank",
+      "code": "behaviour-unrepresented",
+      "severity": "unverified",
+      "reason": "Declaration topology only: command inputs/replies/rejections, event/state schemas, routing, handlers, sagas, external systems, APIs and runtime effects are outside this projection."
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/stream/Ledger",
+      "code": "role-unrepresented",
+      "severity": "loss",
+      "reason": "stream has no equivalent native Zloz role; retained as an explicitly untyped declaration node."
+    },
+    {
+      "sourceId": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    },
+    {
+      "sourceId": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "code": "relationship-untyped",
+      "severity": "loss",
+      "reason": "The declared relation is retained as a labelled, source-linked edge without claiming a native semantic edge role or handler behaviour."
+    }
+  ],
+  "coverage": [
+    {
+      "sourceId": "example%2Fbank/Bank/aggregate/Account",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/command/DepositMoney",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/command/GrantBonus",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/event/MoneyDeposited",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/model/Bank",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/policy/Notify",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/stream/Ledger",
+      "representation": "node"
+    },
+    {
+      "sourceId": "example%2Fbank/Bank/view/AccountSummary",
+      "representation": "node"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/aggregate/Account\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"contains\",\"example%2Fbank/Bank/model/Bank\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+      "representation": "parent"
+    },
+    {
+      "sourceId": "[\"entry-type\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/stream/Ledger\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/DepositMoney\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"handles\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/command/GrantBonus\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/DepositMoney\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"may-emit\",\"example%2Fbank/Bank/command/GrantBonus\",\"example%2Fbank/Bank/event/MoneyDeposited\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"observes-source\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "representation": "edge"
+    },
+    {
+      "sourceId": "[\"reacts-to\",\"example%2Fbank/Bank/event/MoneyDeposited\",\"example%2Fbank/Bank/policy/Notify\"]",
+      "representation": "edge"
+    }
+  ],
+  "nativeReadModels": [
+    {
+      "sourceId": "example%2Fbank/Bank/view/AccountSummary",
+      "basis": "declared-state-schema"
+    }
+  ],
+  "nativeConsumption": [
+    "[\"feeds\",\"example%2Fbank/Bank/aggregate/Account\",\"example%2Fbank/Bank/view/AccountSummary\"]"
+  ]
+}

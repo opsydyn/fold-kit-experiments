@@ -5,20 +5,37 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 const dir = mkdtempSync(join(tmpdir(), 'zloz-domain-consumer-'));
 const manifest = JSON.parse(readFileSync(new URL('package.json', import.meta.url), 'utf8'));
-const dependencies = {
-  ...manifest.dependencies,
-  '@opsydyn/foldkit-zloz':
-    'file:' + resolve('../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.3.0.tgz'),
-};
 // oxlint-disable-next-line linteffect/no-try-catch -- Isolated test owns the temporary consumer and removes only that newly created directory on every outcome.
 try {
+  const coreArchive = resolve(
+    '../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.3.0.tgz',
+  );
+  assert.equal(
+    existsSync(coreArchive),
+    true,
+    'Repack the local core with pack:check immediately before this consumer qualification.',
+  );
+  const [packed] = JSON.parse(
+    execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', dir], {
+      encoding: 'utf8',
+    }),
+  );
+  assert.equal(
+    packed.files.some((file) => /fixture|test\//u.test(file.path)),
+    false,
+  );
+  const dependencies = {
+    ...manifest.dependencies,
+    '@opsydyn/foldkit-zloz': 'file:' + coreArchive,
+    [manifest.name]: 'file:' + join(dir, packed.filename),
+  };
   writeFileSync(
     join(dir, 'package.json'),
     JSON.stringify({
       private: true,
       type: 'module',
       dependencies,
-      devDependencies: manifest.devDependencies,
+      devDependencies: { typescript: manifest.devDependencies.typescript },
     }),
   );
   execFileSync('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], {
@@ -27,14 +44,25 @@ try {
   });
   assert.equal(existsSync(join(dir, 'node_modules/foldkit')), false);
   assert.equal(existsSync(join(dir, 'node_modules/react')), false);
+  const consumerLock = JSON.parse(readFileSync(join(dir, 'package-lock.json'), 'utf8'));
+  const expectedLock = JSON.parse(
+    readFileSync(new URL('package-lock.json', import.meta.url), 'utf8'),
+  );
+  const coreIntegrity = consumerLock.packages['node_modules/@opsydyn/foldkit-zloz'].integrity;
+  assert.equal(
+    coreIntegrity,
+    expectedLock.packages['node_modules/@opsydyn/foldkit-zloz'].integrity,
+  );
+
   cpSync(new URL('dist/', import.meta.url), join(dir, 'dist'), { recursive: true });
   writeFileSync(
     join(dir, 'consumer.ts'),
-    `import {extractDeclarations,mapDeclarations} from './dist/index.js';
+    `import {projectAlchemyModel, type AlchemyProjectionOptions} from '@opsydyn/zloz-alchemy-domain-fidelity-spike';
 import {Bank,calls} from './dist/fixture.js';
-const result=mapDeclarations(extractDeclarations(Bank,{namespace:'consumer',revision:'v1'}));
-if(result.type!=='mapped'||result.graph.nodes.length!==8||result.graph.edges.length!==8||calls()!==0)throw new Error('Isolated consumer failed');
-console.log(JSON.stringify({nodes:result.graph.nodes.length,edges:result.graph.edges.length,handlers:calls()}));`,
+const options:AlchemyProjectionOptions={namespace:'consumer',revision:'v1',declaredPackageVersion:'2.0.0-beta.85'};
+const result=projectAlchemyModel(Bank,options);
+if(result.type!=='reviewable'||result.graph.nodes.length!==8||result.graph.edges.length!==8||calls()!==0)throw new Error('Installed adapter consumer failed');
+console.log(JSON.stringify({nodes:result.graph.nodes.length,edges:result.graph.edges.length,handlers:calls(),readModels:result.nativeReadModels.length,feeds:result.nativeConsumption.length,losses:result.findings.filter(f=>f.severity==='loss').length}));`,
   );
   const common = [
     'node_modules/typescript/bin/tsc',
@@ -57,13 +85,24 @@ console.log(JSON.stringify({nodes:result.graph.nodes.length,edges:result.graph.e
     const actual = JSON.parse(
       execFileSync(runtime, ['consumer.js'], { cwd: dir, encoding: 'utf8' }),
     );
-    assert.deepEqual(actual, { nodes: 8, edges: 8, handlers: 0 });
+    assert.deepEqual(actual, {
+      nodes: 8,
+      edges: 8,
+      handlers: 0,
+      readModels: 1,
+      feeds: 1,
+      losses: 8,
+    });
     outcomes.push({ runtime, ...actual });
   }
   writeFileSync(
-    new URL('evidence/isolated-consumer.json', import.meta.url),
+    new URL('evidence/adapter-consumer.json', import.meta.url),
     JSON.stringify(
       {
+        candidateIntegrity: packed.integrity,
+        coreIntegrity,
+        packageEntry: manifest.name,
+        packedFixtureHandlers: false,
         profiles: ['NodeNext', 'Bundler'],
         outcomes,
         foldkitInstalled: false,

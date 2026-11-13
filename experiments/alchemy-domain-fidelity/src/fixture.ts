@@ -85,7 +85,12 @@ function members(
   }) {}
   class Notify extends Domain.Policy('Notify', { from: account, on: [MoneyDeposited] }) {}
   class Ledger extends Domain.Stream('Ledger', { key: account, entries: [MoneyDeposited] }) {}
-  return { aggregates: [account], views: [AccountSummary], policies: [Notify], streams: [Ledger] };
+  return {
+    aggregates: [account],
+    views: [AccountSummary] as const,
+    policies: [Notify],
+    streams: [Ledger],
+  };
 }
 export const Bank: Domain.Model.Any = Domain.Model('Bank', members(Account));
 export const BankNext: Domain.Model.Any = Domain.Model('Bank', members(AccountNext));
@@ -98,4 +103,22 @@ const missingMembers = members(Account);
 export const MissingSourceBank: Domain.Model.Any = Domain.Model('Bank', {
   ...missingMembers,
   aggregates: [],
+});
+
+const chainMembers = members(Account);
+const summary = chainMembers.views[0];
+if (!summary) throw new SpikeError({ code: 'invalid-fixture', reason: 'Missing summary fixture.' });
+class Totals extends Domain.View('Totals', {
+  from: [summary],
+  key: Account,
+  state: Schema.Number,
+  initial: 0,
+}) {}
+export const ChainedBank: Domain.Model.Any = Domain.Model('Bank', {
+  aggregates: [Account],
+  views: [summary, Totals],
+});
+export const ChainedBankReordered: Domain.Model.Any = Domain.Model('Bank', {
+  aggregates: [Account],
+  views: [Totals, summary],
 });

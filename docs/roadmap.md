@@ -619,3 +619,18 @@ EventStorming-to-C4 mapping or complete D/C/Q closure. Next proposed slice: qual
 an optional read-only Alchemy adapter against this native subset, retaining exact
 version/identity/loss reporting and the upstream strict-optional compatibility gate.
 Recommendation: **needs review**. No adapter adoption or release is implied.
+
+**Optional read-only Alchemy candidate — qualified privately (2026-11-13):**
+The isolated candidate now has a packed adapter entry, exact caller-declared
+beta.85 gate, native stateful-view/read-model and core-resolved consumption mapping,
+immutable source/projection/findings and complete fixture topology coverage.
+Stateless/mixed-source rejection and chained view identity are tested. Installed
+Node/Bun and strict NodeNext/Bundler consumers pass without Foldkit/React.
+Omitted-read and stateless-view strict-optional compiler failures remain explicit;
+only the local unreleased core source/artifact is qualified, not published 0.3.0.
+See [ADR 0066](adr/0066-qualify-a-private-read-only-alchemy-adapter.md) and
+[candidate evidence](../experiments/alchemy-domain-fidelity/evidence/adapter-receipt.md).
+Next proposed slice: extract a private workspace adapter with separate Domain
+inspection and portable validated projection entries. Keep SDK/runtime imports out
+of the portable boundary; full compatibility and release remain separate gates.
+Recommendation: **needs review**. No production dependency/provider adoption occurred.

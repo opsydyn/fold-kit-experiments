@@ -32,7 +32,7 @@
   "optionalFoldkitInstalled": false,
   "reactInstalled": false,
   "domainIntegrity": "sha512-nej0ltvPt4j0KsX6wN1WK9oZ9bNsefkPWhQaQPGsEOoz6aRZr4gCEL602HruPbsf/hdwd0SoNBWl2iTpejjrUA==",
-  "coreTarballIntegrity": "sha512-6syZQ9nqVJAWneuM1SRBYob4VM3NLpKLJgp1oi4jHXXovyBZ05xWe/S9xV+kcHySWw8twnpZhjwW6yuFNNNmaA==",
+  "coreTarballIntegrity": "sha512-EcExDRv35oBzEzhT9Pw3v5qomyiGktgEk8A+ekbO/keqwRP5VjTUO+2t9xvFpZ2O+TORYKGeREHYwoveoSwXPQ==",
   "goldenSourceSha256": "a837c7e98b9fdc5f06754b3a23c93a0ba57ca2c34e501a65d2c7089da8c5cc54",
   "goldenGraphSha256": "d81ecb8a8517532af9f258cd5715615a82aaed6ed6b897c4d0242b219d808589",
   "canonicalGraph": 1

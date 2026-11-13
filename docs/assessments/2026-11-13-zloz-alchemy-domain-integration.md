@@ -183,3 +183,15 @@ and a fresh outside-repo consumer qualify the bounded subset. Omitted-read stric
 TypeScript compatibility and semantic role/relationship gaps remain explicit; this
 does not promote the candidate package to a production integration. See the
 [receipt and next recommendation](../../experiments/alchemy-domain-fidelity/evidence/receipt.md).
+
+## Native contract qualification follow-up, 2026-11-13
+
+After core added read-model and declared-consumption contracts (`aaa1186`), the
+approved optional-adapter qualification produced a privately packed root entry.
+Stateful views and accepted native consumption now map without host-only metadata;
+other gaps remain explicit. A real stateless declaration revealed a second strict-
+optional upstream compiler gate, retained separately from its runtime non-coercion
+check. [Candidate evidence](../../experiments/alchemy-domain-fidelity/evidence/adapter-receipt.md)
+records exact source/artifacts, identity coverage, negative probes and installed
+exports. This is qualification of a bounded private candidate, not general beta.85
+support, published core 0.3.0 support, production adoption or runtime execution.

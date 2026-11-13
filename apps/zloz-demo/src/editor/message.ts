@@ -34,6 +34,7 @@ export const Message = defineMessageUnion({
   ObservedPngReviewInput: { request: Schema.Unknown },
   ClickedPngProtection: {},
   ClickedCustomPngReview: {},
+  ClickedRetainedPngLayout: {},
   CompletedPngDownload: {},
   FailedPngDownload: {},
   ObservedSvgReviewInput: { request: Schema.Unknown },

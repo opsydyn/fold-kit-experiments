@@ -804,3 +804,19 @@ D/C/Q, provider and publication gates remain unchanged.
 Next proposed slice: opt-in retained-layout PNG review/encoding using the qualified
 SVG boundary, with stale-result protection and pixel-budget/browser evidence.
 Recommendation: **needs review**. No publication or provider activation is implied.
+
+**Retained layout PNG — implemented locally (2026-11-13), unreleased:**
+PNG review/encoding now qualifies the existing SVG layout context end-to-end.
+Queued render payloads bind to validated, frozen routes/label boxes and copied
+limits. Stale/changed/cancelled reviews cannot publish old pixels. The workbench
+has an independent unchecked PNG setting with missing-route protection, preserving
+source/Undo and the SVG choice. Existing dimension/pixel/byte limits apply before
+allocation; custom badge pixels, light/dark output, transparency and 2x dimensions
+have browser evidence. See [ADR 0077](adr/0077-adopt-retained-layout-png.md) and
+[verification/captures](../apps/zloz-demo/evidence/png-retained.md).
+This closes the preceding PNG proposal. D/C/Q and publication gates remain.
+
+Next proposed slice: reconcile remaining D/C/Q domain, compatibility and
+qualification gaps against current package APIs and evidence, explicitly deciding
+scope and selecting the next core feature. Recommendation: **needs review**.
+No full-parity or performance-superiority claim is implied by export completion.

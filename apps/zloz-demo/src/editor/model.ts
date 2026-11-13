@@ -322,6 +322,7 @@ export const Model = Schema.Struct({
   pngReview: Schema.Unknown,
   protectPngDownloads: Schema.Boolean,
   customPngReview: Schema.Boolean,
+  retainedPngLayout: Schema.Boolean,
   svgReview: Schema.Unknown,
   protectSvgDownloads: Schema.Boolean,
   customSvgReview: Schema.Boolean,
@@ -466,6 +467,7 @@ export type Model = Readonly<{
   pngReview: ZlozPngReviewState;
   protectPngDownloads: boolean;
   customPngReview: boolean;
+  retainedPngLayout: boolean;
   svgReview: ZlozSvgReviewState;
   protectSvgDownloads: boolean;
   customSvgReview: boolean;
@@ -609,6 +611,7 @@ export const init = (namespace = 'test-workbench') => ({
     pngReview: createPngReview(`root:${namespace}/0`),
     protectPngDownloads: false,
     customPngReview: false,
+    retainedPngLayout: false,
     svgReview: createSvgReview(`root:${namespace}/0`),
     protectSvgDownloads: false,
     customSvgReview: false,

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Adopt retained-layout PNG review/encoding with immutable queued route/label snapshots, independent workbench opt-in, stale-result suppression and existing pixel/byte budgets.
+
 - Render opted-in retained SVG routes and centre-anchored labels; expose frozen geometry to vector adapters and exact-artifact review. Correct retained label bounds to use the native centre-anchor convention.
 
 - Add opt-in detached SVG layout planning with exact-source/renderer freshness, effective route/label bounds and explicit fidelity findings; the initial writer guard is superseded by retained SVG rendering above.

@@ -287,6 +287,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedPngProtection: () => ({
       model: { ...model, protectPngDownloads: !model.protectPngDownloads },
     }),
+    ClickedRetainedPngLayout: () => ({
+      model: { ...model, retainedPngLayout: !model.retainedPngLayout },
+    }),
     ClickedCustomPngReview: () => ({
       model: { ...model, customPngReview: !model.customPngReview },
     }),

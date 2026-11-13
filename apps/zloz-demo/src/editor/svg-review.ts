@@ -17,6 +17,7 @@ export function workbenchSvgContext(
   format: 'svg' | 'png' = 'svg',
 ): ZlozSvgReviewContext {
   const label = format.toUpperCase();
+  const retained = format === 'svg' ? model.retainedSvgLayout : model.retainedPngLayout;
   const scheme =
     model.themePreference === 'dark' ||
     (model.themePreference === 'system' && model.systemColorScheme === 'dark')
@@ -64,7 +65,7 @@ export function workbenchSvgContext(
     canDownload: () =>
       (format === 'svg' ? model.protectSvgDownloads : model.protectPngDownloads)
         ? `${label} downloads are protected in this workspace.`
-        : format === 'svg' && model.retainedSvgLayout && model.editor.routes.length === 0
+        : retained && model.editor.routes.length === 0
           ? 'Arrange with ELK or another routing engine before exporting retained layout.'
           : model.receiptReview
             ? 'Close the receipt comparison before exporting the model.'
@@ -74,8 +75,8 @@ export function workbenchSvgContext(
                 ? `Finish active edits, imports or layout before downloading ${label}.`
                 : null,
   };
-  if (format !== 'svg' || !model.retainedSvgLayout || modelSessionBusy(model)) return context;
-  const renderKey = `workbench-svg:${scheme}:${model.nodeDesign}:${model.edgeDesign}`;
+  if (!retained || modelSessionBusy(model)) return context;
+  const renderKey = `workbench-${format}:${scheme}:${model.nodeDesign}:${model.edgeDesign}`;
   return { ...context, layout: { snapshot: captureSvgLayout(model.editor, renderKey), renderKey } };
 }
 export function workbenchSvgReview(model: Model) {

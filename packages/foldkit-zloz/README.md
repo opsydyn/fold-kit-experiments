@@ -4963,5 +4963,37 @@ Source, renderer key, route data, findings and emitted bytes participate in the
 review identity: old acceptance and download requests cannot authorize changed
 layout. The workbench demonstrates an unchecked **Use retained layout in SVG**
 control, with an Arrange reason when no routes exist. Source and Undo are unchanged.
-Omit `layout` for existing canonical SVG behavior. PNG remains canonical in the
-workbench until its separate adoption slice.
+Omit `layout` for existing canonical SVG behavior. The workbench now has a separate
+unchecked retained-layout option for PNG, described below.
+
+### Retained layout PNG (unreleased)
+
+The existing `ZlozPngReviewContext.layout` accepts the same validated capture:
+
+```typescript
+const context = {
+  ...pngContext,
+  layout: { snapshot: captureSvgLayout(editor, rendererKey), renderKey: rendererKey },
+};
+const review = resolvePngReview(state, context);
+```
+
+Review, acknowledge losses, request a render and execute its payload through the
+optional `/browser` entry. The render payload uses the writer's detached, frozen
+layout snapshot, so later caller mutation of route points or label boxes cannot
+rewrite the queued job. Its PNG limits are copied too. The browser still rebuilds
+the safe SVG and checks `expectedSvg` before allocating image/canvas resources.
+Stale source/render keys block; changed route/box data, settings, source revision
+or budgets invalidate consent and old artifacts. Cancellation and current download
+policies suppress late results. Download uses the actual reviewed PNG bytes.
+
+Whole-model retained routes and centre label envelopes may enlarge the output.
+The same dimension/pixel/byte limits apply before allocation; explicit crop bounds
+remain fixed. Font/custom-renderer findings and PNG flattening loss remain visible
+and require acceptance. These checks do not promise arbitrary HTML equivalence.
+
+The workbench demonstrates independent unchecked **Use retained layout in PNG**
+and **Use retained layout in SVG** controls. Missing PNG routes show an Arrange
+reason. Changing either setting preserves source/Undo; the other format keeps its
+choice. Renderer keys and invalidation remain host-owned. No source wire format,
+provider activation or publishing is implied.

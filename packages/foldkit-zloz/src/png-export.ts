@@ -311,11 +311,20 @@ export function updatePngReview(
   if (!Number.isSafeInteger(state.run) || state.run >= Number.MAX_SAFE_INTEGER)
     throw new ZlozError('invalid-edit', 'PNG render counter exhausted.');
   const run = state.run + 1;
+  // ADR 0077: bind deferred encoding to the validated immutable layout, not caller-owned routes.
+  const layout = view.svg.result?.plan.layout;
+  const svg =
+    layout === undefined
+      ? view.svg.options
+      : {
+          ...view.svg.options,
+          layout: Object.freeze({ snapshot: layout, renderKey: layout.renderKey }),
+        };
   const input: ZlozPngExportInput = {
     snapshot: parseSnapshot(serializeSnapshot(context.snapshot)),
-    svg: view.svg.options,
+    svg,
     writing: { ...context.writing, allowLosses: true },
-    png: context.png ?? {},
+    png: Object.freeze({ ...context.png }),
     expectedSvg: view.plan.svg,
   };
   return {

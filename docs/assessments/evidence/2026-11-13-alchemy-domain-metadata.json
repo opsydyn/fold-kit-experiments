@@ -1,0 +1,40 @@
+{
+  "observedAt": "2026-11-13",
+  "package": "@alchemy.run/domain",
+  "version": "2.0.0-beta.85",
+  "source": "https://registry.npmjs.org/@alchemy.run/domain/2.0.0-beta.85",
+  "peerDependencies": {
+    "effect": "^4.1.0",
+    "alchemy": "2.0.0-beta.85",
+    "foldkit": "^0.170.0"
+  },
+  "peerDependenciesMeta": {
+    "foldkit": {
+      "optional": true
+    }
+  },
+  "integrity": "sha512-nej0ltvPt4j0KsX6wN1WK9oZ9bNsefkPWhQaQPGsEOoz6aRZr4gCEL602HruPbsf/hdwd0SoNBWl2iTpejjrUA==",
+  "tarballIntegrityVerified": true,
+  "method": "npm view plus npm pack --ignore-scripts; tar member reads only; no install, imports, package execution or provider calls",
+  "declarationChecks": {
+    "modelFields": ["modelName", "aggregates", "commands", "views", "streams", "definitions"],
+    "aggregateDefinition": true,
+    "commandEvents": true,
+    "viewSources": true,
+    "policySources": true,
+    "verifyExport": true,
+    "foldkitAdapterMemberExists": true,
+    "modelAnnotationsMemberPresent": false,
+    "queryNamedExportPresent": false
+  },
+  "notQualified": [
+    "runtime compatibility",
+    "extraction completeness",
+    "mapping fidelity",
+    "stable identity through rename",
+    "installed adapter consumer",
+    "business-user task success",
+    "live transport",
+    "deployment"
+  ]
+}

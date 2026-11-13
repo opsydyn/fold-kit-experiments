@@ -196,7 +196,7 @@ are the current checklist; historical receipts qualify only their stated scope.
    P2's remaining local chain is implemented: Effect CLI dry run, exact-content
    review/acknowledgement, policy-aware atomic Apply, one Undo and retained/downloaded
    provenance. See [completion evidence](../apps/zloz-demo/evidence/p2-completion.md).
-   PNG export is implemented locally; the next scoped task is the Alchemy integration review. Broader D/C/Q audit rows remain tracked.
+   PNG export is implemented locally; the Alchemy integration review is complete, with a bounded declaration-fidelity spike proposed. Broader D/C/Q audit rows remain tracked.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
@@ -369,8 +369,7 @@ See [ADR 0053](adr/0053-write-svg-through-typed-primitives.md) and
 
 **Current continuation:** SVG review/download controls and validated embedded-font
 resources have since been implemented (see the later receipts above). P2's reviewed
-patch lifecycle and package-owned PNG export are locally implemented. Next review
-the Alchemy integration boundary; broader compatibility/qualification work
+patch lifecycle and package-owned PNG export are locally implemented. The Alchemy integration review now proposes a bounded declaration-fidelity spike; broader compatibility/qualification work
 remains tracked separately.
 
 ## Release: Keyed Chart Comparison
@@ -584,4 +583,12 @@ acceptance. Native/custom controls and light/dark/transparent/viewport/scale dem
 live in the workbench sidebar. See [ADR 0063](adr/0063-rasterize-reviewed-model-artwork-as-png.md)
 and [local PNG evidence](../apps/zloz-demo/evidence/png-export.md). This completes
 the functional PNG boundary; broader font/browser/device and D/C/Q qualification
-remain tracked separately. Next is the approved Alchemy integration review.
+remain tracked separately. The approved Alchemy review is recorded below.
+
+**Alchemy Domain review — complete, self-review (2026-11-13):** exact published
+beta.85 peers align with this checkout, and public declaration metadata is present.
+Current docs drift from parts of the pinned API, and several Domain constructs
+lack equivalent Zloz roles. Recommend an optional adapter boundary, starting with
+a read-only declaration-fidelity spike; no dependency/provider/runtime adoption
+has occurred. See [the decision and stop conditions](assessments/2026-11-13-zloz-alchemy-domain-integration.md).
+Recommendation: **needs review**. Existing D/C/Q qualification remains open.

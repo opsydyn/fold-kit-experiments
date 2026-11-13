@@ -397,8 +397,8 @@ settings hide optional prose/readouts, retaining findings and functional control
 
 See [workbench evidence](../../apps/zloz-demo/evidence/svg-review.md) and
 [ADR 0054](../../docs/adr/0054-review-svg-before-host-download.md). Browser completion
-means handoff, not confirmed OS saving. Broader font formats/resources, PNG and Alchemy
-remain deferred.
+means handoff, not confirmed OS saving. Broader font formats/resources remain open. PNG is implemented below; Alchemy
+Domain has a separate [integration review](../../docs/assessments/2026-11-13-zloz-alchemy-domain-integration.md).
 
 ## Embedded TrueType fonts (unreleased)
 
@@ -457,7 +457,7 @@ Changed bytes participate in the existing exact-artifact review identity, so pri
 loss approval cannot authorize a different embedded font.
 
 See [ADR 0055](../../docs/adr/0055-embed-bounded-truetype-font-resources.md) and
-[font qualification](evidence/svg-font.md). PNG is implemented in the following section; Alchemy remains separately scoped.
+[font qualification](evidence/svg-font.md). PNG is implemented below; Alchemy remains separately scoped.
 
 ## Default glyph coverage (unreleased)
 
@@ -504,7 +504,7 @@ variation handling, synthetic variants, wrapping and ink bounds remain unqualifi
 System fonts have no portable bytes to inspect and retain unverified findings.
 See [coverage evidence](evidence/svg-font-coverage.md) and
 [ADR 0056](../../docs/adr/0056-report-default-glyph-coverage-for-emitted-text.md).
-PNG is implemented in the following section; Alchemy remains separately scoped.
+PNG is implemented below; Alchemy remains separately scoped.
 
 ## Authored edge waypoints
 
@@ -4388,7 +4388,7 @@ object isolation guarantee.
 See [ADR 0060](../../docs/adr/0060-preview-bounded-modelling-patches-before-apply.md),
 [literal proposal](test/fixtures/modelling-patch-v1.json),
 [actual dry-run results](evidence/modelling-patch-example.json) and
-[qualification](evidence/modelling-patch.md). PNG is implemented in the following section; Alchemy remains separately scoped.
+[qualification](evidence/modelling-patch.md). PNG is implemented below; Alchemy remains separately scoped.
 
 ## Strict versioned patch decoding (unreleased)
 

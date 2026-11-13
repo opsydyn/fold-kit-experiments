@@ -253,7 +253,7 @@ Keep release readiness separate: reviewed commits/PR, green CI, package identity
 artifact/provenance and consumer checks precede any separately authorized publish
 or deployment. Local checks cannot prove hosted acceptance or registry state.
 
-**PNG is locally implemented; next is the separately scoped Alchemy integration review, per the user's updated request (2026-11-13).** No
+**PNG is locally implemented, and the separately scoped [Alchemy integration review](2026-11-13-zloz-alchemy-domain-integration.md) is complete (self-review, 2026-11-13).** A bounded declaration-fidelity spike is proposed next. No
 adapter, dependency adoption or qualification is scheduled ahead of these gates;
 completion does not itself authorize adopting or deploying an integration.
 

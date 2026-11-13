@@ -1,0 +1,232 @@
+import type { ChartMargins, PlotBounds } from '../chart/layout.js';
+import type { CurveType } from '../shape/line.js';
+
+// ── Spec: plain JSON, no functions (ADR 0037) ─────────────────────────────────
+
+export type Value = number | string | boolean | null;
+export type Row = Readonly<Record<string, Value>>;
+/** A field name, or a constant. */
+export type Channel = string | Readonly<{ value: Value }>;
+
+export type PositionScaleSpec = Readonly<{
+  type?: 'linear' | 'log' | 'symlog' | 'pow' | 'time' | 'band';
+  domain?: readonly [number, number] | ReadonlyArray<string>;
+  label?: string;
+  zero?: boolean;
+  ticks?: number;
+  grid?: boolean;
+  base?: number;
+  constant?: number;
+  exponent?: number;
+  zone?: 'utc' | 'local';
+  /** Band scales only: share of each step left empty, in [0, 1). Default 0.1. */
+  padding?: number;
+}>;
+
+export type ColorScaleSpec = Readonly<{
+  type?: 'categorical' | 'sequential' | 'diverging';
+  /** Any scheme in math/schemes. Defaults: tableau10, viridis, rdBu. */
+  scheme?: string;
+  domain?: readonly [number, number] | ReadonlyArray<string>;
+  legend?: boolean;
+  label?: string;
+}>;
+
+export type SizeScaleSpec = Readonly<{ range?: readonly [number, number] }>;
+
+export type RegressionTransform = Readonly<{
+  type: 'regression';
+  degree?: number;
+  band?: boolean;
+  level?: number;
+}>;
+export type LoessTransform = Readonly<{ type: 'loess'; bandwidth?: number }>;
+export type WindowTransform = Readonly<{
+  type: 'window';
+  size: number;
+  reduce: 'mean' | 'median' | 'sum' | 'min' | 'max';
+  anchor?: 'trailing' | 'centre';
+}>;
+export type DownsampleTransform = Readonly<{ type: 'downsample'; method: 'm4' | 'lttb' }>;
+export type LineTransform =
+  | RegressionTransform
+  | LoessTransform
+  | WindowTransform
+  | DownsampleTransform;
+
+type CommonMark = Readonly<{
+  data?: ReadonlyArray<Row>;
+  /** Field giving each row a stable identity. Default: the row's position. */
+  key?: string;
+  title?: Channel;
+  opacity?: number;
+  strokeWidth?: number;
+}>;
+
+export type DotMark = CommonMark &
+  Readonly<{ mark: 'dot'; x: Channel; y: Channel; r?: Channel; fill?: Channel; stroke?: Channel }>;
+export type LineMark = CommonMark &
+  Readonly<{
+    mark: 'line';
+    x: Channel;
+    y: Channel;
+    /** Field splitting rows into series. Default: the stroke field, if any. */
+    z?: string;
+    stroke?: Channel;
+    curve?: CurveType;
+    transform?: LineTransform;
+  }>;
+export type AreaMark = CommonMark &
+  Readonly<{
+    mark: 'area';
+    x: Channel;
+    y: Channel;
+    y0?: Channel;
+    z?: string;
+    fill?: Channel;
+    curve?: CurveType;
+    transform?: WindowTransform;
+  }>;
+export type BarMark = CommonMark &
+  Readonly<{ mark: 'bar'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
+export type RuleMark = CommonMark &
+  Readonly<{ mark: 'rule'; x?: Channel; y?: Channel; stroke?: Channel }>;
+export type TextMark = CommonMark &
+  Readonly<{
+    mark: 'text';
+    x: Channel;
+    y: Channel;
+    text: Channel;
+    fill?: Channel;
+    anchor?: 'start' | 'middle' | 'end';
+    dx?: number;
+    dy?: number;
+  }>;
+export type CellMark = CommonMark &
+  Readonly<{ mark: 'cell'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
+
+export type MarkSpec = DotMark | LineMark | AreaMark | BarMark | RuleMark | TextMark | CellMark;
+export type MarkType = MarkSpec['mark'];
+
+export type PlotSpec = Readonly<{
+  width: number;
+  height: number;
+  margins?: Partial<ChartMargins>;
+  title?: string;
+  description?: string;
+  /** Rows for every mark without its own `data`. */
+  data?: ReadonlyArray<Row>;
+  x?: PositionScaleSpec;
+  y?: PositionScaleSpec;
+  color?: ColorScaleSpec;
+  r?: SizeScaleSpec;
+  /** Split every mark's rows into small multiples by these fields, on shared scales. */
+  facet?: Readonly<{ x?: string; y?: string }>;
+  marks: ReadonlyArray<MarkSpec>;
+}>;
+
+// ── Output: positioned geometry, no rendering ─────────────────────────────────
+
+type Paint = Readonly<{ opacity: number; title?: string }>;
+export type Graphic =
+  | (Paint &
+      Readonly<{
+        kind: 'circle';
+        key: string;
+        cx: number;
+        cy: number;
+        r: number;
+        fill: string;
+        stroke: string;
+        strokeWidth: number;
+      }>)
+  | (Paint &
+      Readonly<{
+        kind: 'path';
+        key: string;
+        d: string;
+        fill: string;
+        stroke: string;
+        strokeWidth: number;
+      }>)
+  | (Paint &
+      Readonly<{
+        kind: 'rect';
+        key: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        fill: string;
+        stroke: string;
+      }>)
+  | (Paint &
+      Readonly<{
+        kind: 'line';
+        key: string;
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+        stroke: string;
+        strokeWidth: number;
+      }>)
+  | (Paint &
+      Readonly<{
+        kind: 'text';
+        key: string;
+        x: number;
+        y: number;
+        text: string;
+        fill: string;
+        anchor: 'start' | 'middle' | 'end';
+      }>);
+
+export type MarkGeometry = Readonly<{
+  mark: MarkType;
+  index: number;
+  graphics: ReadonlyArray<Graphic>;
+}>;
+
+export type PlotTick = Readonly<{ value: number | string; position: number; label: string }>;
+export type PlotAxis = Readonly<{
+  type: NonNullable<PositionScaleSpec['type']>;
+  orientation: 'bottom' | 'left';
+  domain: readonly [number, number] | ReadonlyArray<string>;
+  label: string;
+  ticks: ReadonlyArray<PlotTick>;
+  grid: boolean;
+}>;
+
+export type FacetGeometry = Readonly<{
+  key: string;
+  /** The facet's field values, for its heading; empty when there are no facets. */
+  label: string;
+  plot: PlotBounds;
+  x: PlotAxis | null;
+  y: PlotAxis | null;
+  marks: ReadonlyArray<MarkGeometry>;
+}>;
+
+export type Legend =
+  | Readonly<{
+      kind: 'categorical';
+      label: string;
+      entries: ReadonlyArray<Readonly<{ key: string; label: string; color: string }>>;
+    }>
+  | Readonly<{
+      kind: 'continuous';
+      label: string;
+      domain: readonly [number, number];
+      /** Evenly spaced colours from the low to the high end, for a gradient. */
+      stops: ReadonlyArray<string>;
+    }>;
+
+export type PlotGeometry = Readonly<{
+  width: number;
+  height: number;
+  title: string;
+  description: string;
+  facets: ReadonlyArray<FacetGeometry>;
+  legends: ReadonlyArray<Legend>;
+}>;

@@ -29,6 +29,7 @@ export default defineConfig({
     'math/regression': 'src/math/regression.ts',
     simulation: 'src/simulation/index.ts',
     stateflow: 'src/stateflow/index.ts',
+    plot: 'src/plot/index.ts',
     'shape/path': 'src/shape/path.ts',
     'shape/arc': 'src/shape/arc.ts',
     'shape/area': 'src/shape/area.ts',

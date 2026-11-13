@@ -188,6 +188,9 @@
       ],
       "math/downsample": [
         "./dist/math/downsample.d.mts"
+      ],
+      "plot": [
+        "./dist/plot.d.mts"
       ]
     }
   },
@@ -403,6 +406,10 @@
     "./math/downsample": {
       "types": "./dist/math/downsample.d.mts",
       "import": "./dist/math/downsample.mjs"
+    },
+    "./plot": {
+      "types": "./dist/plot.d.mts",
+      "import": "./dist/plot.mjs"
     }
   },
   "publishConfig": {

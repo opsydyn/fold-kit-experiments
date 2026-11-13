@@ -55,6 +55,22 @@ it('draws symbols at their points and a symbol legend in their colours', async (
   expect(html).toContain('>treated</li>');
 });
 
+it('clips marks in a nested viewport over the plot area only when the spec asks', async () => {
+  const spec = {
+    width: 400,
+    height: 260,
+    data: rows,
+    marks: [{ mark: 'dot' as const, x: 'dose', y: 'response' }],
+  };
+  const open = await renderChart<never>((h) => plotChart(h, compilePlot(spec)));
+  expect(open).not.toContain('plot-clip');
+  const clipped = await renderChart<never>((h) =>
+    plotChart(h, compilePlot({ ...spec, clip: true })),
+  );
+  expect(count(clipped, 'class="plot-clip"')).toBe(1);
+  expect(clipped).toContain('overflow="hidden"');
+});
+
 it('heads each facet with its label and can leave the legend out', async () => {
   const geometry = compilePlot({
     width: 500,

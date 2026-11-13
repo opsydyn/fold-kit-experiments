@@ -1309,16 +1309,21 @@ function validateSpec(spec: PlotSpec): void {
 }
 
 function markRows(spec: PlotSpec, mark: MarkSpec, path: string): ReadonlyArray<Row> {
-  const rows = mark.data ?? spec.data;
-  if (rows !== undefined) {
-    if (!Array.isArray(rows)) fail(`${path}.data`, 'must be an array of rows');
-    return rows;
+  if (mark.data !== undefined) {
+    if (!Array.isArray(mark.data)) fail(`${path}.data`, 'must be an array of rows');
+    return mark.data;
   }
-  // A mark of constants alone, such as a reference rule, draws once.
+  // A mark of constants alone, such as a reference rule, draws once even when
+  // the plot has data for its other marks.
   const usesFields =
     mark.mark === 'parallel' ||
-    MARKS[mark.mark].channels.some((name) => fieldOf(channelOf(mark, name)) !== undefined);
-  return usesFields ? fail(`${path}.data`, 'no data: give the mark or the plot rows') : [{}];
+    MARKS[mark.mark].channels.some((name) => fieldOf(channelOf(mark, name)) !== undefined) ||
+    mark.highlight !== undefined;
+  if (!usesFields) return [{}];
+  const rows = spec.data;
+  if (rows === undefined) return fail(`${path}.data`, 'no data: give the mark or the plot rows');
+  if (!Array.isArray(rows)) fail('data', 'must be an array of rows');
+  return rows;
 }
 
 export function compilePlot(spec: PlotSpec): PlotGeometry {
@@ -1408,5 +1413,6 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
     description: spec.description ?? '',
     facets,
     legends: legendsOf(color, symbol),
+    clip: spec.clip ?? false,
   };
 }

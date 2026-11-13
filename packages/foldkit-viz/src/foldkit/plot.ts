@@ -400,6 +400,34 @@ function overlayMarks<M>(
   return parts.length === 0 ? [] : [h.g([h.Class('plot-overlay'), h.AriaHidden(true)], parts)];
 }
 
+/**
+ * Marks inside a nested SVG viewport over the plot area when the plot clips:
+ * the viewport clips without a clipPath id, so many charts share a page safely.
+ */
+function clipped<M>(
+  h: HtmlBuilder<M>,
+  clip: boolean,
+  facet: FacetGeometry,
+  marks: ReadonlyArray<Html>,
+): ReadonlyArray<Html> {
+  if (!clip) return marks;
+  const { left, top, width, height } = facet.plot;
+  return [
+    h.svg(
+      [
+        h.Class('plot-clip'),
+        h.X(n(left)),
+        h.Y(n(top)),
+        h.Width(n(width)),
+        h.Height(n(height)),
+        h.ViewBox(`${n(left)} ${n(top)} ${n(width)} ${n(height)}`),
+        h.Overflow('hidden'),
+      ],
+      marks,
+    ),
+  ];
+}
+
 export function plotChart<M>(
   h: HtmlBuilder<M>,
   geometry: PlotGeometry,
@@ -431,14 +459,19 @@ export function plotChart<M>(
         ...gridLines(h, facet, palette),
         ...(facet.x === null ? [] : [axis(h, facet, facet.x, palette)]),
         ...(facet.y === null ? [] : [axis(h, facet, facet.y, palette)]),
-        ...facet.marks.map((mark) =>
-          h.g(
-            [
-              h.Key(`mark-${mark.index}`),
-              h.Class(`plot-mark plot-${mark.mark}`),
-              ...(mark.mark === 'text' ? [h.FontSize(String(palette.labelSize + 1))] : []),
-            ],
-            mark.graphics.map((g) => graphic(h, g)),
+        ...clipped(
+          h,
+          geometry.clip,
+          facet,
+          facet.marks.map((mark) =>
+            h.g(
+              [
+                h.Key(`mark-${mark.index}`),
+                h.Class(`plot-mark plot-${mark.mark}`),
+                ...(mark.mark === 'text' ? [h.FontSize(String(palette.labelSize + 1))] : []),
+              ],
+              mark.graphics.map((g) => graphic(h, g)),
+            ),
           ),
         ),
       ],

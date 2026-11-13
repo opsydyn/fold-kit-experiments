@@ -20,6 +20,8 @@ const scatterSpec = (domain: Range | null): PlotSpec => {
   };
   return {
     ...SCATTER,
+    // Zooming narrows the domain, so marks are clipped to the plot area.
+    clip: true,
     title: 'One million requests',
     description: 'Latency against payload for one million requests, on a log latency axis.',
     data: rows,

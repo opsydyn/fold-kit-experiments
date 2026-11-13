@@ -322,6 +322,11 @@ export type PlotSpec = Readonly<{
   symbol?: SymbolScaleSpec;
   /** Split every mark's rows into small multiples by these fields, on shared scales. */
   facet?: Readonly<{ x?: string; y?: string }>;
+  /**
+   * Clip marks to each facet's plot area, as a zoomed domain needs. Default
+   * false, so dots on the edge of the domain are drawn whole.
+   */
+  clip?: boolean;
   marks: ReadonlyArray<MarkSpec>;
 }>;
 
@@ -462,4 +467,6 @@ export type PlotGeometry = Readonly<{
   description: string;
   facets: ReadonlyArray<FacetGeometry>;
   legends: ReadonlyArray<Legend>;
+  /** Whether renderers clip marks to each facet's plot area. */
+  clip: boolean;
 }>;

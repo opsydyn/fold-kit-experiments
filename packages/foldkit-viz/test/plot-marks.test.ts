@@ -160,3 +160,19 @@ describe('rule, text and cell marks', () => {
     ).toThrow('marks[0].r: a line mark does not take r');
   });
 });
+
+it('draws a mark of constants once, even when the plot has data', () => {
+  const plot = compilePlot({
+    width: 200,
+    height: 100,
+    data: [
+      { a: 'x', v: 1 },
+      { a: 'y', v: 2 },
+    ],
+    marks: [
+      { mark: 'bar', x: 'a', y: 'v' },
+      { mark: 'rule', y: { value: 1 } },
+    ],
+  });
+  expect(plot.facets[0]?.marks[1]?.graphics).toHaveLength(1);
+});

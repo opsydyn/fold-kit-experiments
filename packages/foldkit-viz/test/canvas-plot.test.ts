@@ -105,6 +105,19 @@ describe('canvas painter', () => {
     expect(squares.map(([, x]) => x)).toEqual([-1, 199]);
   });
 
+  it('clips marks to the plot area when the spec asks', () => {
+    const geometry = compilePlot({
+      width: 400,
+      height: 300,
+      clip: true,
+      data: rows,
+      marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
+    });
+    const { ctx, count } = recorder();
+    paintPlot(ctx, geometry);
+    expect(count('clip')).toBe(1);
+  });
+
   it('draws path marks through Path2D, honouring their translate', () => {
     const geometry = compilePlot({
       width: 300,
@@ -118,7 +131,8 @@ describe('canvas painter', () => {
     const { ctx, calls, count } = recorder();
     paintPlot(ctx, geometry, { makePath: fakePath });
     expect(count('translate')).toBe(4);
-    expect(count('clip')).toBe(1);
+    // Unclipped by default, so marks on the edge of the domain are drawn whole.
+    expect(count('clip')).toBe(0);
     expect(calls.filter(([n]) => n === 'fill').every((call) => call.length === 3)).toBe(true);
   });
 

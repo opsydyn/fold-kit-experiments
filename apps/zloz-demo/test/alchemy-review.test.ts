@@ -362,3 +362,92 @@ test('cancel, replacement, navigation and malformed layout results retain the la
   const blocked = update(open(), Message.ClickedAlchemyLayout({ id: review.id }));
   expect(blocked.commands).toBeUndefined();
 });
+
+test('measured badge bounds stay opt-in, arrange only after a full current batch, and reject renderer changes during layout', async () => {
+  const source = init().model;
+  let model = open(source);
+  const review = model.alchemyReview.review;
+  assert(review);
+  const id = review.id;
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id,
+      message: { type: 'SurfaceMeasured', size: { width: 1100, height: 700 } },
+    }),
+  ).model;
+  model = update(model, Message.SelectedAlchemyLabelMode({ id, mode: 'measured' })).model;
+  expect(update(model, Message.ClickedAlchemyLayout({ id })).commands).toBeUndefined();
+  model = update(model, Message.ClickedMeasureAlchemyLabels({ id })).model;
+  const pending = model.alchemyReview.review?.layout.labels.measurement;
+  assert(pending?.type === 'pending');
+  const result = {
+    type: 'measured' as const,
+    requestId: pending.request.requestId,
+    revision: pending.request.revision,
+    renderKey: pending.request.renderKey,
+    labels: review.editor.graph.edges.map((edge, index) => ({
+      id: edge.id,
+      size: { width: 110 + index * 15.25, height: 37.5 },
+    })),
+  };
+  const before = model.alchemyReview.review?.editor;
+  model = update(model, Message.ObservedAlchemyLabels({ id, result })).model;
+  expect(model.alchemyReview.review?.layout.labels.measurement.type).toBe('ready');
+  expect(model.alchemyReview.review?.editor).toBe(before);
+  const started = update(model, Message.ClickedAlchemyLayout({ id }));
+  assert(started.commands?.[0]);
+  expect(started.model.alchemyReview.review?.layout.pending?.edgeLabels).toEqual(result.labels);
+  const completed = await Effect.runPromise(started.commands[0].effect);
+  expect(completed._tag).toBe('SucceededAlchemyLayout');
+  const changed = update(
+    started.model,
+    Message.SelectedThemePreference({ themePreference: 'dark' }),
+  ).model;
+  const discarded = update(changed, completed).model;
+  expect(discarded.alchemyReview.review?.editor).toBe(before);
+  expect(discarded.alchemyReview.review?.layout.pending).toBeNull();
+  expect(discarded.alchemyReview.notice).toContain('Renderer changed');
+  const applied = update(started.model, completed).model;
+  expect(applied.alchemyReview.review?.layout.displayed).toBe('elk');
+  expect(
+    applied.alchemyReview.review?.editor.routes.map((r) => ({ id: r.id, size: r.label?.size })),
+  ).toEqual(result.labels);
+  preserved(source, applied);
+});
+test('cancel, new badge content, replacement and repeated measurement runs reject late observations', () => {
+  let model = open();
+  const review = model.alchemyReview.review;
+  assert(review);
+  const id = review.id;
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id,
+      message: { type: 'SurfaceMeasured', size: { width: 900, height: 600 } },
+    }),
+  ).model;
+  model = update(model, Message.SelectedAlchemyLabelMode({ id, mode: 'measured' })).model;
+  model = update(model, Message.ClickedMeasureAlchemyLabels({ id })).model;
+  const pending = model.alchemyReview.review?.layout.labels.measurement;
+  assert(pending?.type === 'pending');
+  const result = {
+    type: 'failed' as const,
+    requestId: pending.request.requestId,
+    revision: pending.request.revision,
+    renderKey: pending.request.renderKey,
+    reason: 'Old failure',
+  };
+  const cancelled = update(model, Message.ClickedCancelAlchemyLabels({ id })).model;
+  expect(update(cancelled, Message.ObservedAlchemyLabels({ id, result })).model).toBe(cancelled);
+  const detail = update(
+    model,
+    Message.SelectedAlchemyLabelDetail({ id, detail: 'expanded' }),
+  ).model;
+  expect(update(detail, Message.ObservedAlchemyLabels({ id, result })).model).toBe(detail);
+  const replaced = update(model, Message.ClickedAlchemyExample()).model;
+  expect(update(replaced, Message.ObservedAlchemyLabels({ id, result })).model).toBe(replaced);
+  const restarted = update(model, Message.ClickedMeasureAlchemyLabels({ id })).model;
+  expect(update(restarted, Message.ObservedAlchemyLabels({ id, result })).model).toBe(restarted);
+  expect(restarted.alchemyReview.review?.layout.labels.run).toBe(2);
+});

@@ -1,4 +1,9 @@
-import { createEditor, updateHistoryReview, type EditorEvent } from '@opsydyn/foldkit-zloz';
+import {
+  createEditor,
+  updateHistoryReview,
+  type EditorEvent,
+  type ZlozLabelMeasurementResult,
+} from '@opsydyn/foldkit-zloz';
 import {
   resolveAlchemyFindingNavigator,
   resolveAlchemyFindingReveal,
@@ -17,6 +22,7 @@ import example from './alchemy-example.json';
 import { alchemyRelationBadge } from './alchemy-labels';
 import {
   alchemyLayoutControls,
+  alchemyLabelContext,
   cancelAlchemyLayout,
   isAlchemyLayoutMessage,
   updateAlchemyLayout,
@@ -106,7 +112,18 @@ function publish(model: Model, text: string): Model {
               id: run,
               projection: result,
               editor: createEditor(result.graph, { readOnly: true }),
-              layout: { run: 0, direction: 'RIGHT', displayed: 'original', pending: null },
+              layout: {
+                run: 0,
+                direction: 'RIGHT',
+                displayed: 'original',
+                pending: null,
+                labels: {
+                  mode: 'declared',
+                  detail: 'compact',
+                  run: 0,
+                  measurement: { type: 'idle' },
+                },
+              },
             },
             notice: 'Read-only descriptor review opened. Working model and Undo preserved.',
           },
@@ -484,7 +501,21 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         height: 'fill',
         theme: workbenchThemes[scheme ?? 'light'],
         diagnostics: false,
-        renderEdgeLabel: alchemyRelationBadge,
+        renderEdgeLabel: (context, builder) =>
+          alchemyRelationBadge(
+            context,
+            builder,
+            review.layout.labels.mode === 'measured' ? review.layout.labels.detail : undefined,
+          ),
+        labelMeasurement:
+          review.layout.labels.measurement.type === 'pending' &&
+          alchemyLabelContext(model).type === 'pending'
+            ? {
+                request: review.layout.labels.measurement.request,
+                onMeasured: (result: ZlozLabelMeasurementResult) =>
+                  Message.ObservedAlchemyLabels({ id: review.id, result }),
+              }
+            : undefined,
         background: { type: 'dots' },
         renderNodeShell: (context, builder) =>
           zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),

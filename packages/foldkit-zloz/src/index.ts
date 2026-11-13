@@ -566,3 +566,15 @@ export type {
   ZlozDeclaredConsumptionSourceRole,
   ZlozDeclaredConsumptionDecision,
 } from './declared-consumption';
+
+export {
+  startLabelMeasurement,
+  updateLabelMeasurements,
+  resolveLabelMeasurements,
+} from './label-measurement';
+export type {
+  ZlozLabelMeasurementRequest,
+  ZlozLabelMeasurementResult,
+  ZlozLabelMeasurements,
+  ZlozLabelMeasurementContext,
+} from './label-measurement';

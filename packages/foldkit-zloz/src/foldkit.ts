@@ -2,6 +2,10 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+import type { ZlozLabelMeasurementRequest, ZlozLabelMeasurementResult } from './label-measurement';
+import { zlozLabelMeasurement } from './label-measurement-mount';
+export { zlozLabelMeasurement } from './label-measurement-mount';
+export type { ZlozLabelMeasurementOptions } from './label-measurement-mount';
 import {
   resolveEdgeWaypointControls,
   type ZlozEdgeWaypointControlsContext,
@@ -444,6 +448,14 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     renderGroupShell?: (context: ZlozNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Zloz's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: ZlozEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Opt-in one-shot measurement. Store the pending request in your Model and validate the result in core. */
+    labelMeasurement?:
+      | Readonly<{
+          timeoutMs?: number;
+          request: ZlozLabelMeasurementRequest;
+          onMeasured: (result: ZlozLabelMeasurementResult) => M;
+        }>
+      | undefined;
     /** Replaces the badge at the resolved anchor. Undefined uses the default; null hides the badge. */
     renderEdgeLabel?: (context: ZlozEdgeLabelContext, h: HtmlBuilder<M>) => Html | null | undefined;
     /** Replaces the active inline editor. Undefined uses the default form. */
@@ -2067,6 +2079,7 @@ export function zlozView<M>(
       h.div(
         [
           h.Key(`edge-label:${edge.id}`),
+          ...(options.labelMeasurement ? [h.DataAttribute('zloz-measured-label', edge.id)] : []),
           h.DataAttribute('flow-no-drag', ''),
           h.Style({
             position: 'absolute',
@@ -2411,6 +2424,7 @@ export function zlozView<M>(
       h.AriaLabel(options.label),
       h.AriaDescribedBy(descriptionId),
       h.OnMount(Mount.mapMessage(ZlozInput(), (message) => options.onEvent(message.event))),
+      ...(options.labelMeasurement ? [h.DataAttribute('zloz-label-measurement-scope', '')] : []),
       h.Style({
         position: 'relative',
         overflow: 'hidden',
@@ -2429,6 +2443,16 @@ export function zlozView<M>(
       }),
     ],
     [
+      ...(options.labelMeasurement
+        ? [
+            zlozLabelMeasurement(
+              h,
+              options.labelMeasurement.request,
+              options.labelMeasurement.onMeasured,
+              options.labelMeasurement,
+            ),
+          ]
+        : []),
       ...backgroundView(h, state, options.id, options.background),
       h.div(
         [

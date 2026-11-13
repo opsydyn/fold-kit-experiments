@@ -4696,3 +4696,76 @@ includes the retained envelope. Routes and label boxes are transient, absent fro
 serialized graphs and authored SVG/PNG projections. Export fidelity findings still
 apply to engine routes. Label measurement and universal collision avoidance are
 not implied.
+
+### Opt-in measured label bounds (unreleased)
+
+Core owns the request and validation; the optional Foldkit adapter measures rendered
+HTML labels. Start a fresh run and store its state in your Model:
+
+```ts
+import {
+  startLabelMeasurement,
+  updateLabelMeasurements,
+  resolveLabelMeasurements,
+} from '@opsydyn/foldkit-zloz';
+
+const measurements = startLabelMeasurement(editor, 'labels:17', rendererKey);
+// Optional fourth argument: the IDs of the rendered edges to measure.
+```
+
+Use `zlozView`'s `labelMeasurement` option only while the request is pending and
+`resolveLabelMeasurements(editor, measurements, rendererKey).type === 'pending'`:
+
+```ts
+labelMeasurement: {
+  request: measurements.request, // narrowed to pending
+  timeoutMs: 3000,              // optional; positive, finite, at most 60000ms
+  onMeasured: (result) => Message.ObservedLabels({ result }),
+}
+```
+
+Handle the fact in your update function with
+`updateLabelMeasurements(editor, currentMeasurements, currentRendererKey, result)`.
+Publish the returned state with the rest of your Model. The union is `idle |
+pending | ready | failed`. Cancel by replacing it with `{ type: 'idle' }`; always
+use a new request ID for a new run. Invalid/current incomplete batches fail as a
+whole; old completions are ignored before validation. Results and usable bounds
+are detached copies. Measurement never edits the graph or adds Undo.
+
+Before starting layout, resolve again and supply only a ready context's bounds:
+
+```ts
+const context = resolveLabelMeasurements(editor, measurements, rendererKey);
+if (context.type === 'ready') {
+  const active = layoutRequest(editor, 'arrange:17', {
+    edgeLabels: context.edgeLabels,
+  });
+  // Publish active in your Model, then run ELK in a Command.
+}
+```
+
+**Recheck the measurement context when the engine completes**, before applying its
+result. Editor revision, exact graph content and the current renderer key must
+still match. Successful layout changes revision; measure again for another run.
+Include every size-affecting renderer/content/theme/font option in `rendererKey`.
+Core cannot discover arbitrary CSS or renderer state. Same-revision source
+replacement, cancellation, superseded requests and stale renderer results cannot
+publish or supply usable bounds through the resolver.
+
+The one-shot scoped Mount waits for `document.fonts.ready`, then reads fractional
+HTML border boxes through ResizeObserver. Width/height are world/CSS units,
+independent of camera zoom; vertical writing modes map to physical dimensions.
+The deadline covers font readiness and observation. Missing, duplicated, zero-sized,
+fragmented or unsupported targets fail visibly; cleanup releases the observer and
+timer and ignores late callbacks. SSR adds inert hooks without measuring anything.
+No automatic arrangement or continuous resize observation is installed.
+
+For custom hosts, import `zlozLabelMeasurement` and its optional
+`ZlozLabelMeasurementOptions` from `@opsydyn/foldkit-zloz/foldkit`. Put the keyed probe
+directly inside an element marked `data-zloz-label-measurement-scope`; mark each
+rendered HTML border-box target `data-zloz-measured-label="edge-id"`. Nested scopes
+are isolated. The ordinary view handles these hooks for you. Render every requested
+target; when using culling, request a rendered subset or disable culling for the
+measurement. Content margins, shadows, overflow, local transforms, portals, SVG
+labels and later image/font changes are outside this border-box contract. Ensure
+other resources have settled and explicitly remeasure when they change.

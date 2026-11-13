@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in rendered label measurement with scoped Foldkit lifecycle resources, complete-batch validation, source/revision/renderer freshness and explicit re-layout.
+
 - Add explicit composite edge-label layout envelopes, validated transient result boxes and shared view, controls, fit/reveal and culling support, preserving geometry policy and Undo semantics.
 
 - Add native DDD read-model nodes, explicit tactical feeds relationships and framework-neutral declared-consumption resolution, reusing existing policy/editing/Undo and v1 persistence.

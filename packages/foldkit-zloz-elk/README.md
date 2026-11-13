@@ -94,3 +94,10 @@ Omitting hints preserves the previous geometry-only behavior. Caller-supplied
 engines must return the requested label IDs, dimensions and finite positions.
 Supply sizes matching the actual renderer; arbitrary custom geometry, inaccurate
 bounds and group headers are outside this space-reservation guarantee.
+
+For intrinsic custom badges, core's `startLabelMeasurement`,
+`updateLabelMeasurements` and `resolveLabelMeasurements` can supply the explicit
+`edgeLabels` hints. The optional Foldkit view measures HTML border boxes only on
+request. Recheck freshness before both starting ELK and applying its result; ELK
+does not load fonts, inspect DOM or start measurement itself. See the
+[core measured-label guide](../foldkit-zloz/README.md#opt-in-measured-label-bounds-unreleased).

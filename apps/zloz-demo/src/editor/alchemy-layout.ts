@@ -1,5 +1,9 @@
 import {
   applyPreviewLayout,
+  startLabelMeasurement,
+  updateLabelMeasurements,
+  resolveLabelMeasurements,
+  type ZlozLabelMeasurementResult,
   layoutRequest,
   serializeGraph,
   updateHistoryReview,
@@ -16,8 +20,15 @@ import { Message } from './message';
 import type { Model } from './model';
 type Review = NonNullable<AlchemyReviewState['review']>;
 export function cancelAlchemyLayout(review: Review | null): Review | null {
-  return review?.layout.pending
-    ? { ...review, layout: { ...review.layout, pending: null } }
+  return review && (review.layout.pending || review.layout.labels.measurement.type === 'pending')
+    ? {
+        ...review,
+        layout: {
+          ...review.layout,
+          pending: null,
+          labels: { ...review.layout.labels, measurement: { type: 'idle' } },
+        },
+      }
     : review;
 }
 export function alchemyLayoutReason(model: Model): string | null {
@@ -36,7 +47,37 @@ export function alchemyLayoutReason(model: Model): string | null {
               ? 'Finish the preview gesture first.'
               : null;
 }
+export function alchemyLabelRenderKey(model: Model): string {
+  const labels = model.alchemyReview.review?.layout.labels;
+  const scheme =
+    model.themePreference === 'system' || model.themePreference === null
+      ? model.systemColorScheme
+      : model.themePreference;
+  return `alchemy-badge:${labels?.mode}:${labels?.detail}:${scheme}`;
+}
+export function alchemyLabelContext(model: Model) {
+  const review = model.alchemyReview.review;
+  if (!review) return { type: 'unavailable' as const, reason: 'Open a descriptor review first.' };
+  const key = alchemyLabelRenderKey(model),
+    measurement = review.layout.labels.measurement;
+  const context = resolveLabelMeasurements(review.editor, measurement, key);
+  return context.type === 'unavailable' &&
+    measurement.type === 'ready' &&
+    measurement.request.renderKey === key &&
+    review.layout.displayed === 'elk' &&
+    review.editor.revision === measurement.request.revision + 1
+    ? {
+        type: 'unavailable' as const,
+        reason: 'Measured label bounds applied. Measure again before arranging.',
+      }
+    : context;
+}
 const tags = new Set([
+  'SelectedAlchemyLabelMode',
+  'SelectedAlchemyLabelDetail',
+  'ClickedMeasureAlchemyLabels',
+  'ClickedCancelAlchemyLabels',
+  'ObservedAlchemyLabels',
   'SelectedAlchemyLayoutDirection',
   'ClickedAlchemyLayout',
   'ClickedCancelAlchemyLayout',
@@ -71,6 +112,83 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
         : 'Original preview geometry restored. Source identity and working model preserved.',
     );
   return Match.value(message).pipe(
+    Match.tag('SelectedAlchemyLabelMode', ({ mode }) =>
+      write({
+        ...review,
+        layout: {
+          ...review.layout,
+          pending: null,
+          labels: { ...review.layout.labels, mode, measurement: { type: 'idle' } },
+        },
+      }),
+    ),
+    Match.tag('SelectedAlchemyLabelDetail', ({ detail }) =>
+      write({
+        ...review,
+        layout: {
+          ...review.layout,
+          pending: null,
+          labels: { ...review.layout.labels, detail, measurement: { type: 'idle' } },
+        },
+      }),
+    ),
+    Match.tag('ClickedCancelAlchemyLabels', () =>
+      write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            labels: { ...review.layout.labels, measurement: { type: 'idle' } },
+          },
+        },
+        'Label measurement cancelled. Previous preview preserved.',
+      ),
+    ),
+    Match.tag('ClickedMeasureAlchemyLabels', () => {
+      const reason = alchemyLayoutReason(model);
+      if (reason || review.layout.pending || review.layout.labels.mode !== 'measured')
+        return write(review, reason ?? 'Choose measured labels and finish layout first.');
+      const run = review.layout.labels.run + 1;
+      return write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            labels: {
+              ...review.layout.labels,
+              run,
+              measurement: startLabelMeasurement(
+                review.editor,
+                `alchemy:${review.id}:labels:${run}`,
+                alchemyLabelRenderKey(model),
+              ),
+            },
+          },
+        },
+        'Measuring rendered labels…',
+      );
+    }),
+    Match.tag('ObservedAlchemyLabels', ({ result: raw }) => {
+      // SAFETY: the package Mount emits the typed measurement result; core validates the full batch and freshness.
+      const measurement = updateLabelMeasurements(
+        review.editor,
+        review.layout.labels.measurement,
+        alchemyLabelRenderKey(model),
+        raw as ZlozLabelMeasurementResult,
+      );
+      if (measurement === review.layout.labels.measurement) return { model };
+      return write(
+        {
+          ...review,
+          layout: { ...review.layout, labels: { ...review.layout.labels, measurement } },
+        },
+        measurement.type === 'ready'
+          ? 'Rendered label bounds ready. Arrange explicitly to apply.'
+          : measurement.type === 'failed'
+            ? measurement.reason
+            : 'Measurement pending.',
+      );
+    }),
     Match.tag('SelectedAlchemyLayoutDirection', ({ direction }) =>
       review.layout.pending
         ? { model }
@@ -80,12 +198,18 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
       const reason = alchemyLayoutReason(model);
       if (reason) return write(review, reason);
       if (review.layout.pending) return { model };
+      const measured = alchemyLabelContext(model);
+      if (review.layout.labels.mode === 'measured' && measured.type !== 'ready')
+        return write(review, measured.reason);
       const run = review.layout.run + 1,
         active = layoutRequest(review.editor, `alchemy:${review.id}:layout:${run}`, {
-          edgeLabels: review.editor.graph.edges.map((edge) => ({
-            id: edge.id,
-            size: alchemyPreviewLabelSize,
-          })),
+          edgeLabels:
+            review.layout.labels.mode === 'measured' && measured.type === 'ready'
+              ? measured.edgeLabels
+              : review.editor.graph.edges.map((edge) => ({
+                  id: edge.id,
+                  size: alchemyPreviewLabelSize,
+                })),
         });
       return {
         model: {
@@ -145,6 +269,11 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
       const result = raw as LayoutResult,
         active = review.layout.pending;
       if (!active || active.requestId !== result.requestId) return { model };
+      if (review.layout.labels.mode === 'measured' && alchemyLabelContext(model).type !== 'ready')
+        return write(
+          { ...review, layout: { ...review.layout, pending: null } },
+          'Renderer changed; layout result discarded. Measure labels again.',
+        );
       return Result.match(
         Result.try(() => applyPreviewLayout(review.editor, active, result)),
         {
@@ -178,7 +307,11 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
   const review = model.alchemyReview.review;
   if (!review) return h.div([], []);
   const { layout } = review,
-    reason = alchemyLayoutReason(model);
+    reason = alchemyLayoutReason(model),
+    measured = alchemyLabelContext(model),
+    measuring = measured.type === 'pending',
+    labelReason =
+      layout.labels.mode === 'measured' && measured.type !== 'ready' ? measured.reason : null;
   return h.section(
     [h.AriaLabel('Descriptor preview layout'), h.Class('alchemy-layout-controls')],
     [
@@ -187,6 +320,75 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
         [],
         ['ELK is opt-in. Arrange only this preview; source identity and findings stay unchanged.'],
       ),
+      h.label(
+        [],
+        [
+          'Label sizing',
+          h.select(
+            [
+              h.AriaLabel('Label sizing'),
+              h.Value(layout.labels.mode),
+              h.OnChange((mode) =>
+                Message.SelectedAlchemyLabelMode({
+                  id: review.id,
+                  mode: mode === 'measured' ? 'measured' : 'declared',
+                }),
+              ),
+            ],
+            [
+              h.option([h.Value('declared')], ['Declared bounds']),
+              h.option([h.Value('measured')], ['Measure rendered badges']),
+            ],
+          ),
+        ],
+      ),
+      ...(layout.labels.mode === 'measured'
+        ? [
+            h.label(
+              [],
+              [
+                'Badge detail',
+                h.select(
+                  [
+                    h.AriaLabel('Badge detail'),
+                    h.Value(layout.labels.detail),
+                    h.OnChange((detail) =>
+                      Message.SelectedAlchemyLabelDetail({
+                        id: review.id,
+                        detail: detail === 'expanded' ? 'expanded' : 'compact',
+                      }),
+                    ),
+                  ],
+                  [
+                    h.option([h.Value('compact')], ['Compact']),
+                    h.option([h.Value('expanded')], ['Expanded source badges']),
+                  ],
+                ),
+              ],
+            ),
+            h.button(
+              [
+                h.Key('alchemy-measure-action'),
+                h.Type('button'),
+                h.Disabled(!measuring && (reason !== null || layout.pending !== null)),
+                h.OnClick(
+                  measuring
+                    ? Message.ClickedCancelAlchemyLabels({ id: review.id })
+                    : Message.ClickedMeasureAlchemyLabels({ id: review.id }),
+                ),
+              ],
+              [measuring ? 'Cancel label measurement' : 'Measure label bounds'],
+            ),
+            h.p(
+              [h.AriaLabel('Label measurement status'), h.Role('status')],
+              [
+                measured.type === 'ready'
+                  ? `Measured ${measured.edgeLabels.length} rendered labels. Arrange to apply.`
+                  : measured.reason,
+              ],
+            ),
+          ]
+        : []),
       h.label(
         [],
         [
@@ -214,6 +416,8 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
           h.Key('alchemy-layout-action'),
           h.Type('button'),
           h.Disabled(layout.pending === null && reason !== null),
+          h.AriaDisabled(layout.pending === null && labelReason !== null),
+          ...(labelReason ? [h.AriaDescription(labelReason)] : []),
           h.OnClick(
             layout.pending
               ? Message.ClickedCancelAlchemyLayout({ id: review.id })

@@ -720,3 +720,22 @@ Next proposed slice: opt-in measured label envelopes through the Foldkit lifecyc
 with stale-result protection before re-layout, so custom renderers need not keep
 manual size constants in sync. Recommendation: **needs review**. No automatic
 measurement, engine adoption or publication is implied.
+
+**Opt-in measured label envelopes — implemented locally (2026-11-13), unreleased:**
+Core provides transient measurement state, complete-batch validation and repeated
+request/revision/exact-source/render-key checks. A scoped Foldkit Mount waits for
+font readiness, measures fractional HTML border boxes once in world units and
+releases observers/timers on completion, failure or cancellation. Missing labels
+and bounded deadlines produce visible failures. The view is unchanged by default;
+custom hosts can compose the same probe. Domain review demonstrates intrinsic
+compact/expanded badges, Measure/Cancel, explicit Arrange, theme invalidation and
+focus-preserving protection reasons. Measurement and layout preserve source,
+findings, working graph and Undo; installed consumer, native-boundary, SSR and
+browser evidence accompany [ADR 0072](adr/0072-measure-rendered-labels-with-scoped-freshness.md)
+and [qualification/captures](../apps/zloz-demo/evidence/measured-labels.md).
+This closes the preceding measurement slice; D/C/Q and publication gates remain.
+
+Next proposed slice: explicit group-header envelopes in layout requests, allowing
+custom C4/DDD container headings to reserve space instead of relying on ELK's
+fixed header padding. Recommendation: **needs review**. No implementation of that
+follow-up, automatic layout, provider activation or publication is implied.

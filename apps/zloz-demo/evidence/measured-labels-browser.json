@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "opt-in only; no automatic layout",
+    "Cancel and content change during delayed font readiness discard old work",
+    "keyboard Measure/Arrange retain focus",
+    "eight intrinsic badges have varied widths and avoid leaf-node overlap",
+    "measurement after camera fit is zoom independent",
+    "dark mode requires fresh measurement; Minimal mode retains controls",
+    "source findings and working model/lineage preserved",
+    "no page errors or external requests"
+  ],
+  "pageErrors": []
+}

@@ -7,6 +7,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
 import type { Model, WorkbenchSection } from './model';
+import { packetReviewActive, packetReviewCanvas } from './packet-reader';
 import { receiptReviewCanvas } from './receipt-review';
 
 export type WorkbenchControls = Readonly<Record<WorkbenchSection, readonly Html[]>>;
@@ -22,6 +23,7 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['diagnostics', 'Diagnostics'],
   ['export', 'Mermaid export'],
   ['svg', 'SVG export'],
+  ['review', 'Review packets'],
 ];
 
 function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
@@ -104,9 +106,11 @@ export function workbenchLayout(
               h.Href(
                 '#' +
                   encodeURIComponent(
-                    model.receiptReview
-                      ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
-                      : parts.canvasId,
+                    packetReviewActive(model) && model.packetPreview
+                      ? `packet-${model.packetPreview.id}-${model.packetPreview.side}-surface`
+                      : model.receiptReview
+                        ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
+                        : parts.canvasId,
                   ),
               ),
             ],
@@ -143,13 +147,24 @@ export function workbenchLayout(
             ? [
                 zlozViewportControl(
                   h,
-                  viewportControlActions(model.editor).fitView,
+                  viewportControlActions(
+                    packetReviewActive(model) && model.packetPreview
+                      ? model.packetPreview.editor
+                      : model.editor,
+                  ).fitView,
                   (event) =>
-                    Message.ObservedModelInput({
-                      modelId: model.modelIdentity.id,
-                      epoch: model.modelEpoch,
-                      message: event,
-                    }),
+                    packetReviewActive(model) && model.packetPreview
+                      ? Message.ObservedPacketCanvasInput({
+                          scope: model.packetPreview.scope,
+                          id: model.packetPreview.id,
+                          side: model.packetPreview.side,
+                          message: event,
+                        })
+                      : Message.ObservedModelInput({
+                          modelId: model.modelIdentity.id,
+                          epoch: model.modelEpoch,
+                          message: event,
+                        }),
                   [h.Class('workbench-rail-fit')],
                   ['Fit'],
                 ),
@@ -171,9 +186,12 @@ export function workbenchLayout(
                       h.Key(section),
                       h.Type('button'),
                       h.Disabled(
-                        model.receiptReview !== null &&
+                        (model.receiptReview !== null &&
                           section !== 'mapping' &&
-                          section !== 'diagnostics',
+                          section !== 'diagnostics') ||
+                          (packetReviewActive(model) &&
+                            section !== 'review' &&
+                            section !== 'diagnostics'),
                       ),
                       h.AriaPressed(String(model.sidebarSection === section)),
                       h.AriaControls(`workbench-${section}`),
@@ -214,8 +232,12 @@ export function workbenchLayout(
           h.Style({ position: 'relative' }),
         ],
         [
-          model.receiptReview ? receiptReviewCanvas(model, h) : parts.canvas,
-          ...(model.historyReview && !model.receiptReview
+          packetReviewActive(model)
+            ? packetReviewCanvas(model, h)
+            : model.receiptReview
+              ? receiptReviewCanvas(model, h)
+              : parts.canvas,
+          ...(model.historyReview && !model.receiptReview && !packetReviewActive(model)
             ? [
                 h.div(
                   [

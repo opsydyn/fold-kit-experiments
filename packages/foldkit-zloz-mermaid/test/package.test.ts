@@ -56,7 +56,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
 
     const source = `import { createEditor } from '@opsydyn/foldkit-zloz';
-import { parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
+import { createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
 const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: {x:0,y:0}, size: {width:200,height:100}, ports: [] }], edges: [] });
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
@@ -72,6 +72,10 @@ if(packet.status!=='created'||packet.value.baseline.source.id!=='base'||packet.v
 const portable=JSON.parse(JSON.stringify(packet.value)); if(portable.selected.snapshot.graph.nodes[0].id!=='end')throw new Error('Packet portability failed');
 const opened:ZlozReviewPacketParseResult=parseReviewPacket(JSON.stringify(packet.value));
 if(opened.status!=='parsed'||!Object.isFrozen(opened.value)||opened.value.selected.snapshot.graph.nodes[0]?.id!=='end')throw new Error('Packet decoder failed');
+const reader=createReviewReader('consumer/1');
+const pending=updateReviewReader(reader,{scope:reader.scope,type:'ReadRequested',file:{name:'packet.json',byteLength:JSON.stringify(packet.value).length}});
+const read=updateReviewReader(pending.state,{scope:reader.scope,type:'ReadSucceeded',run:1,text:JSON.stringify(packet.value)});
+if(!pending.read||resolveReviewReader(read.state).snapshot?.graph.nodes[0]?.id!=='end')throw new Error('Packed reader failed');
 const tooWide=parseReviewPacket('['+Array(150001).fill(0).join(',')+']');
 if(tooWide.status!=='rejected'||tooWide.code!=='limit-exceeded')throw new Error('Packet size guard failed');
 const forged=JSON.parse(JSON.stringify(packet.value));forged.projections.selected.source+=' changed';
@@ -139,9 +143,9 @@ console.log('mermaid-consumer-ok');
       ],
       { ...options, cwd: directory },
     );
-    const viewSource = `import { zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+    const viewSource = `import { zlozReviewReader, zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 const options:ZlozReviewPacketViewOptions<unknown>={showCounts:false,renderStatus:()=>null};
-if([zlozReviewPacketControls,zlozReviewPacketConsent,zlozReviewPacketDownload].some(value=>typeof value!=='function')||options.showCounts!==false)throw new Error('Missing packed view contract');
+if([zlozReviewReader,zlozReviewPacketControls,zlozReviewPacketConsent,zlozReviewPacketDownload].some(value=>typeof value!=='function')||options.showCounts!==false)throw new Error('Missing packed view contract');
 console.log('mermaid-view-consumer-ok');`;
     const viewFile = path.join(directory, 'view.mts');
     await writeFile(viewFile, viewSource);

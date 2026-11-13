@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a pure guarded review-packet reader and composable Foldkit opening/comparison controls.
+
 - Add pure, content-bound review-packet export controls and optional composable Foldkit views.
 
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.2.0...foldkit-zloz-mermaid-v0.3.0) (2026-11-10)

@@ -186,8 +186,8 @@ own file-byte limits, decoding and worker isolation when needed.
 
 Reopening validates **self-consistency, not authenticity**. A coherently rewritten
 packet can still be valid. Parsing does not execute Mermaid or confer model import,
-editing, graph mutation or trust in an author's identity. This package slice adds
-no CLI command or workbench file-opening UI. See
+editing, graph mutation or trust in an author's identity. The decoder performs
+no IO; the reader below and Effect CLI compose it at their host boundaries. See
 [ADR 0057](../../docs/adr/0057-decode-portable-review-packets-strictly.md) and
 [decoder qualification](evidence/review-packet-parse.md). PNG and Alchemy remain deferred.
 
@@ -244,3 +244,57 @@ minimal mode while functional scope, losses and reasons remain available. No
 packet import, graph mutation or new Undo entry is implied. Exact serialization
 costs packet-sized memory and projection work while previewing; no performance
 claim is made. See [ADR 0037](../../docs/adr/0037-compose-review-packet-export-controls.md).
+
+## Read-only packet reader (unreleased)
+
+```ts
+import {
+  createReviewReader,
+  resolveReviewReader,
+  updateReviewReader,
+} from '@opsydyn/foldkit-zloz-mermaid';
+
+let reader = createReviewReader('model-id/incarnation-1');
+const started = updateReviewReader(reader, {
+  scope: reader.scope,
+  type: 'ReadRequested',
+  file: { name: file.name, byteLength: file.size },
+});
+reader = started.state;
+const readDescriptor = started.read;
+// Continue only when readDescriptor exists.
+// A host Command reads the File within maxBytes,
+// checking actual bytes and decoding fatal UTF-8. Return its correlated fact:
+if (readDescriptor) {
+  reader = updateReviewReader(reader, {
+    scope: readDescriptor.scope,
+    type: 'ReadSucceeded',
+    run: readDescriptor.run,
+    text: fileText,
+  }).state;
+}
+const snapshot = resolveReviewReader(reader).snapshot;
+// Render snapshot in a detached read-only editor. Do not replace the working model.
+```
+
+`updateReviewReader` returns `{ state, read }`. Its requests include correlated
+read success/failure/cancel, `SideSelected` and `ReviewClosed`. `blockedReason` and
+`selectionReason` are live policies; opening is checked again at completion.
+`reviewReaderForScope` resets the reader when the host model incarnation changes.
+Use unique scopes: stale callbacks must never collide with a new model session.
+Default `maxBytes` is 1 MiB (configurable integer 1–16,000,000); the host must enforce
+actual bytes before and after IO. `parseOptions` independently bounds decoding.
+No file IO occurs in the package. Cancellation prevents publication; it need not
+abort underlying IO. Invalid/stale/protected/cancelled reads preserve the last
+good review and chosen side. Closing invalidates pending reads.
+
+The optional `@opsydyn/foldkit-zloz-mermaid/foldkit` export `zlozReviewReader`
+accepts the HtmlBuilder, state, request callback, file callback, live policy and
+view options. It renders native opening/cancel/close and baseline/selected controls,
+audit findings and projection losses. `renderSummary`, `renderFinding` and
+`renderLayout` compose custom presentations; undefined falls back, null omits.
+`showCounts: false` and `instructions: false` provide a clean UI while findings
+and actions remain available. Hosts own detached canvas rendering and interaction
+protection. Reading grants no editing/import permission, authenticity guarantee or
+new loss consent. See [ADR 0059](../../docs/adr/0059-open-review-packets-with-detached-reader-controls.md)
+and [local qualification](../../apps/zloz-demo/evidence/review-reader.md).

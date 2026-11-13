@@ -183,13 +183,15 @@ are the current checklist; historical receipts qualify only their stated scope.
    placement/interaction are implemented below, with package tests and local
    browser evidence. The E3 SVG planning contract is implemented below; SVG
    writing and representative browser qualification are implemented below;
-   SVG review/download controls remain next, before PNG. Physical-device/manual AT
+   SVG review/download controls are also implemented below; PNG remains deferred. Physical-device/manual AT
    acceptance remains distinct from synthetic and Chromium qualification; these
    branch additions are unreleased.
-2. **Portable review lifecycle (P1–P2):** strict review-packet validation/read-only
-   reopening, then validated modelling patches and dry runs with guarded atomic
-   Apply. Conversion receipt reopening already exists; it is a different format
-   from review packets and does not close packet import.
+2. **Portable review lifecycle (P1–P2):** strict packet decoding, Effect CLI
+   validation/inspection and guarded read-only workbench reopening are implemented
+   on this branch, unreleased. See the [reader receipt](../apps/zloz-demo/evidence/review-reader.md).
+   Next define validated modelling patches and dry runs before guarded atomic
+   Apply. Review packets and conversion receipts remain distinct; reading does
+   not import either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
    broader EventStorming vocabulary, C4 mapping, DDD audit coverage, loose
    connections, group contracts, layout envelope and advanced catalogue features.

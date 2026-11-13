@@ -196,3 +196,6 @@ export function zlozReviewPacketControls<M>(
     content,
   );
 }
+
+export { zlozReviewReader } from './review-reader-view';
+export type { ZlozReviewReaderParts, ZlozReviewReaderViewOptions } from './review-reader-view';

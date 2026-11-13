@@ -331,3 +331,27 @@ export const DownloadSvg = Command.define('DownloadSvg', {
       }),
     ),
 });
+
+export const ReadReviewPacket = Command.define('ReadReviewPacket', {
+  args: {
+    scope: Schema.String,
+    run: Schema.Number,
+    maxBytes: Schema.Number,
+    file: Schema.instanceOf(File),
+  },
+  messages: [Message.SucceededReviewPacketRead, Message.FailedReviewPacketRead],
+  execute: ({ scope, run, maxBytes, file }) =>
+    Effect.gen(function* () {
+      if (file.size > maxBytes)
+        return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
+      const buffer = yield* Effect.tryPromise(() => file.arrayBuffer());
+      if (buffer.byteLength > maxBytes)
+        return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
+      return yield* Effect.try(() => new TextDecoder('utf-8', { fatal: true }).decode(buffer));
+    }).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededReviewPacketRead({ scope, run, json }),
+        onFailure: () => Message.FailedReviewPacketRead({ scope, run }),
+      }),
+    ),
+});

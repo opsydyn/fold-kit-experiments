@@ -145,6 +145,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
@@ -606,6 +607,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
+    review: packetReaderPanel(model, h),
     history: [
       h.div(
         [h.Role('group'), h.AriaLabel('Edition playback')],

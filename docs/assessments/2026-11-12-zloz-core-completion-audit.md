@@ -178,12 +178,14 @@ Effect CLI `review validate` and `review inspect` now reuse the strict decoder w
 bounded UTF-8 file/stdin IO, retained findings and explicit validity/error exit codes.
 See [ADR 0058](../adr/0058-inspect-review-packets-through-effect-cli.md) and
 [command qualification](../../packages/foldkit-zloz-cli/evidence/review-packet-read.md).
-Read-only workbench opening remains incomplete.
-The delivered decoder provides strict data-only validation and explicit format/version
-errors, bounded input, structural and cross-field consistency checks, recomputed
-findings/projections and malformed/tampered/literal-fixture tests. Next add a
-read-only workbench opening flow that preserves the
-last good review on failure. Opening is not consent to edit or import a model.
+Read-only reopening is now implemented on this branch, unreleased: package-owned
+reader state/control APIs retain the last good packet/side, while the workbench
+performs bounded fatal UTF-8 reads and renders a detached read-only canvas without
+changing the working editor, camera, Undo or conversion consent. See
+[ADR 0059](../adr/0059-open-review-packets-with-detached-reader-controls.md) and
+[local qualification](../../apps/zloz-demo/evidence/review-reader.md).
+P1's local functional criteria are implemented; hosted/device/manual AT and wider
+qualification remain under Q1–Q4. Opening grants no edit/import permission.
 
 ### P2 — reviewed modelling patches and dry runs
 

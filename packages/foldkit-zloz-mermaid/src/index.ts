@@ -23,3 +23,17 @@ export type {
   ZlozReviewPacketParseOptions,
   ZlozReviewPacketParseResult,
 } from './parse-review-packet';
+
+export {
+  createReviewReader,
+  reviewReaderForScope,
+  resolveReviewReader,
+  updateReviewReader,
+} from './review-reader';
+export type {
+  ZlozReviewReaderSide,
+  ZlozReviewReaderState,
+  ZlozReviewReaderOptions,
+  ZlozReviewReaderRequest,
+  ZlozReviewReaderUpdate,
+} from './review-reader';

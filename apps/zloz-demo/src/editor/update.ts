@@ -101,6 +101,12 @@ import {
   openModelDocument,
   modelSessionBusy,
 } from './model-sessions';
+import {
+  isPacketReaderMessage,
+  packetAllowsMessage,
+  packetReviewActive,
+  updatePacketReader,
+} from './packet-reader';
 import { updateWorkbenchPlacement } from './palette';
 import { insertWorkbenchPattern } from './pattern-insertion';
 import {
@@ -131,7 +137,13 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
-  if (model.receiptReview && !isReceiptMessage(message) && !receiptAllowsMessage(message))
+  if (packetReviewActive(model) && !packetAllowsMessage(message)) return { model };
+  if (
+    model.receiptReview &&
+    !isPacketReaderMessage(message) &&
+    !isReceiptMessage(message) &&
+    !receiptAllowsMessage(message)
+  )
     return { model };
   if (
     message._tag === 'ObservedModelInput' &&
@@ -186,7 +198,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? { model }
         : { model: { ...model, historyReview } };
     }
-    if (!historyAllowsMessage(message) && !isReceiptMessage(message)) return { model };
+    if (
+      !historyAllowsMessage(message) &&
+      !isReceiptMessage(message) &&
+      !isPacketReaderMessage(message)
+    )
+      return { model };
   }
   const changedPosition = (change: ZlozPortPositionDraftChange): Return<Model, Message> => ({
     model: model.portPositionDraft
@@ -756,6 +773,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedMappingLossAcknowledgement: (request) => ({
       model: updateMappingLossAcknowledgement(model, request),
     }),
+    ChoseReviewPacketFiles: () => updatePacketReader(model, message),
+    ObservedReviewReaderInput: () => updatePacketReader(model, message),
+    SucceededReviewPacketRead: () => updatePacketReader(model, message),
+    FailedReviewPacketRead: () => updatePacketReader(model, message),
+    ObservedPacketCanvasInput: () => updatePacketReader(model, message),
+    ClickedPacketOpeningProtection: () => updatePacketReader(model, message),
     ChoseConversionReceiptFiles: () => updateReceiptReview(model, message),
     SucceededConversionReceiptRead: () => updateReceiptReview(model, message),
     FailedConversionReceiptRead: () => updateReceiptReview(model, message),

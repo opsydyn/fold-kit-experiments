@@ -14,6 +14,7 @@ import {
   type ZlozEventStormingDddLossConsent,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
+import { createReviewReader, type ZlozReviewReaderState } from '@opsydyn/foldkit-zloz-mermaid';
 import {
   resolveZlozDiagnostics,
   type ZlozColorScheme,
@@ -23,6 +24,7 @@ import {
 import { Schema } from 'effect';
 
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
+import type { PacketReviewPreview } from './packet-reader';
 import type { ReceiptReview } from './receipt-review';
 
 export const initialGraph: ZlozGraph = {
@@ -305,6 +307,7 @@ export const WorkbenchSection = Schema.Literals([
   'diagnostics',
   'export',
   'svg',
+  'review',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
@@ -319,6 +322,9 @@ export const Model = Schema.Struct({
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
   ),
   mappingConsentRun: Schema.Number,
+  packetReader: Schema.Unknown,
+  packetPreview: Schema.NullOr(Schema.Unknown),
+  protectReviewOpening: Schema.Boolean,
   receiptReview: Schema.NullOr(Schema.Unknown),
   receiptRead: Schema.NullOr(
     Schema.Struct({ id: Schema.Number, modelId: Schema.String, epoch: Schema.Number }),
@@ -453,6 +459,9 @@ export type Model = Readonly<{
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
+  packetReader: ZlozReviewReaderState;
+  packetPreview: PacketReviewPreview | null;
+  protectReviewOpening: boolean;
   receiptReview: ReceiptReview | null;
   receiptRead: Readonly<{ id: number; modelId: string; epoch: number }> | null;
   receiptReadRun: number;
@@ -565,6 +574,9 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    packetReader: createReviewReader(`root:${namespace}/0`),
+    packetPreview: null,
+    protectReviewOpening: false,
     svgReview: createSvgReview(`root:${namespace}/0`),
     protectSvgDownloads: false,
     customSvgReview: false,

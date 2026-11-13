@@ -297,3 +297,14 @@ and [ADR 0035](adr/0035-export-portable-review-packets.md).
 `CliDiagnostic` also exposes an exact optional `side` field for packet diagnostics,
 including projection rejection. Its schema retains that field when decoding;
 existing command diagnostics omit it and retain their original JSON shape.
+
+### Read-only review-packet readers (unreleased)
+
+The optional Mermaid package exports `createReviewReader`, `reviewReaderForScope`,
+`resolveReviewReader` and `updateReviewReader` with typed state, request, side,
+options and update contracts. Its `/foldkit` entry exports `zlozReviewReader` and
+view options/parts. Hosts own bounded IO, unique model-incarnation scopes and
+detached read-only canvases. Stale, cancelled, invalid or protected reads retain
+the last accepted packet and side; opening grants no model-edit authority.
+See the [reader guide](../packages/foldkit-zloz-mermaid/README.md#read-only-packet-reader-unreleased)
+and [ADR 0059](adr/0059-open-review-packets-with-detached-reader-controls.md).

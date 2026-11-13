@@ -4,7 +4,7 @@
 
 `assets/scatter/` contains a complete TypeScript consumer with package imports,
 build/typecheck scripts and Node tests. No monorepo path or other skill is needed.
-It pins Viz 0.11.0 and TypeScript 6.0.3; copy it into an independent project and
+It pins Viz 0.17.0 and TypeScript 6.0.3; copy it into an independent project and
 run the commands in the skill entrypoint. The package's pure root does not
 require FoldKit or Effect; don't install them just to compute points or paths.
 
@@ -29,8 +29,8 @@ For Cartesian geometry in this baseline:
 ## Optional FoldKit rendering
 
 `assets/foldkit-view.ts` is an optional view-function example, not part of the
-pure starter. Copy it into an existing FoldKit application with Viz 0.11.0,
-FoldKit 0.167.x and Effect 4.0.0 installed. Call `chartView(h)` inside the parent's
+pure starter. Copy it into an existing FoldKit application with Viz 0.17.0,
+FoldKit 0.170.x and Effect 4.1.x installed. Call `chartView(h)` inside the parent's
 `view(model, h)` and include the returned `Html` in its `Document.body`.
 
 The adapter receives `HtmlBuilder<Message>` from that render. Do not cache it,
@@ -70,9 +70,9 @@ insufficient. Test mobile overflow and reduced motion for animated charts.
 
 ## Grouped bars and paint availability
 
-The reviewed workspace adds `chart/bars` and `foldkit/paint` ahead of publication.
-They are intentionally absent from this skill's 0.11.0 runnable examples. After
-confirming a consumer version exports them:
+`chart/bars` and `foldkit/paint` are published, but this skill's runnable
+examples do not use them. After confirming the consumer's installed version
+exports them:
 
 - `barGeometry` uses `key`, `category`, `series`, `value` accessors (not the
   Cartesian names), plus grouped/stacked mode and vertical/horizontal orientation.

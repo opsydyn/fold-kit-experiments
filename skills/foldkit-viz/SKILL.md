@@ -13,7 +13,7 @@ interaction policy. This skill works without Astro or its integration skill.
 
 Read the installed version, export map and declarations before selecting APIs. The [pure
 scatter example](assets/scatter/package.json) targets the published
-`@opsydyn/foldkit-viz@0.15.0` contract and installs neither FoldKit, Effect nor Astro.
+`@opsydyn/foldkit-viz@0.17.0` contract and installs neither FoldKit, Effect nor Astro.
 Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.171.0` and Effect 4, and are
 qualified on FoldKit `0.170.0` with Effect `4.1.0`. These are qualified baselines, not
 instructions to downgrade another project. When using the adapters, pin
@@ -21,10 +21,11 @@ instructions to downgrade another project. When using the adapters, pin
 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which requires an equal or
 newer `effect` and fails to resolve against an exact `4.1.0`.
 
-Every subpath in the repository's export map is published in `0.15.0`, including
+Every subpath in the repository's export map is published in `0.17.0`, including
 `chart/bars`, `foldkit/paint`, `layout/wordcloud`, `layout/text`,
 `interaction/coordinates`, `interaction/viewport`, `interaction/inspection`,
-`chart/segments`, `chart/intervalBand`, `chart/errorBars` and `stateflow`. Repository
+`chart/segments`, `chart/intervalBand`, `chart/errorBars`, `shape/globe`, `stateflow`,
+and `chart/orbit` with `foldkit/orbit`, which are new in `0.17.0`. Repository
 main can still move ahead of the published version: check an older installed tarball's
 export map before importing a newer subpath. Word-cloud collision bounds are
 conservative measured rectangles, not pixel-mask D3 parity. Supplied interval geometry
@@ -40,7 +41,7 @@ does not infer confidence or statistical significance.
 | Themes and series styles                      | `/chart/theme`                                                      |
 | FoldKit SVG frame, axes, marks, legend, table | `/foldkit/cartesian` with the parent's `HtmlBuilder`                |
 | State-machine graph layout                    | `/stateflow` (`layoutStateFlow`)                                    |
-| Modules orbiting a core (ball of mud)         | `/chart/orbit`, rendered by `/foldkit/orbit` (after `0.16.0`)       |
+| Modules orbiting a core (ball of mud)         | `/chart/orbit`, rendered by `/foldkit/orbit` (`0.17.0`+)       |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

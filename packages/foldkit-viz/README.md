@@ -79,7 +79,7 @@ path. Application Commands, request flags and data loading remain app-owned.
 
 ---
 
-## Grouped and stacked bars (unreleased)
+## Grouped and stacked bars
 
 `chart/bars` exports pure `barGeometry` and its accessor/configuration types.
 It supports grouped or stacked series in either orientation, preserves each
@@ -106,9 +106,9 @@ The optional `foldkit/paint` subpath provides `dotPattern`, `hatchPattern`,
 `linearGradient` and `radialGradient`. Compose them inside your builder's SVG
 `defs`; supply IDs unique across the whole document. They accept CSS colours and
 variables, own no state, and are not exported from the framework-free root.
-These additions are available in the workspace pending the next package release.
+Both ship in the published package.
 
-## Orbit charts (unreleased)
+## Orbit charts (0.17.0+)
 
 `chart/orbit` exports pure `orbitGeometry`: items on one ring around a core,
 with a halo of category arcs between them. It suits "big ball of mud" views of
@@ -485,9 +485,9 @@ bun test       # run this package's tests from packages/foldkit-viz
 
 MIT — Alan P Currie
 
-## Bars, word cloud, text and paint (unreleased workspace API)
+## Bars, word cloud, text and paint
 
-These additions are available in the workspace and have not been published to npm.
+These subpaths ship in the published package.
 
 ```ts
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
@@ -604,12 +604,12 @@ adapter owns no input state. Existing frames without this option render unchange
 
 `intervalBandGeometry` (`chart/intervalBand`) projects one ordered run of finite lower/upper bounds through a shared Cartesian layout. Bounds must be ordered and keys unique/non-empty. Signed/equal bounds are valid; empty/singleton runs return no area path, retaining singleton endpoints. Compose each disconnected run separately and clip to the plot. These pure root/subpath exports do not infer confidence, quality or statistics, and require no Foldkit/Effect peers.
 
-## Orthographic sphere (workspace-only)
+## Orthographic sphere
 
 The additive `@opsydyn/foldkit-viz/shape/globe` entry exports `GlobeView`,
 `GlobePoint`, `projectGlobePoint`, `clipGlobeLine` and `GLOBE_EPSILON`.
 These functions are pure and require neither FoldKit, Effect nor D3 at runtime.
-This workspace addition is not established as available in the published 0.11.0.
+Published from 0.13.0.
 
 Supply longitude/latitude in degrees, a view centre, positive radius and screen
 translation. East is screen-right, north screen-up; `facing` is independent of

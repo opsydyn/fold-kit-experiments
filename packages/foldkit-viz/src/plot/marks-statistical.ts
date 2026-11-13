@@ -1,6 +1,7 @@
 import { boxStats, kde, silvermanBandwidth } from '../math/stats.js';
 import {
   fail,
+  highlightFactors,
   keysOf,
   numeric,
   paintOf,
@@ -236,6 +237,7 @@ export function linkGraphics(
   const strokes = paintOf(rows, mark.stroke, `${path}.stroke`, context, 'currentColor');
   const titles = titlesOf(rows, mark.title, `${path}.title`);
   const keys = keysOf(rows, mark, index);
+  const dims = highlightFactors(rows, mark.highlight, path);
   return rows.flatMap((_, i) => {
     const ends = [
       x.place(x1[i] ?? null),
@@ -255,7 +257,7 @@ export function linkGraphics(
         y2: by,
         stroke: strokes[i] ?? 'currentColor',
         strokeWidth: mark.strokeWidth ?? 1,
-        opacity: mark.opacity ?? 1,
+        opacity: (mark.opacity ?? 1) * (dims[i] ?? 1),
         ...withTitle(titles[i]),
       },
     ];

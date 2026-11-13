@@ -262,5 +262,5 @@ export { lttb, m4 } from './math/downsample.js';
 export type { DownsampleAccessors } from './math/downsample.js';
 
 // plot: the declarative grammar of marks (ADR 0037)
-export { compilePlot } from './plot/index.js';
+export { compilePlot, indexPlot, invertAxis, invertPlot, pointerToPlot } from './plot/index.js';
 export type * from './plot/types.js';

@@ -1,5 +1,14 @@
 import type { PlotBounds } from '../chart/layout.js';
-import type { Channel, Graphic, Legend, MarkSpec, PlotAxis, Row, Value } from './types.js';
+import type {
+  Channel,
+  Graphic,
+  Highlight,
+  Legend,
+  MarkSpec,
+  PlotAxis,
+  Row,
+  Value,
+} from './types.js';
 
 /**
  * Shared channel reading and painting for every plot mark. The spec is the
@@ -180,4 +189,29 @@ export function spanOf(values: Iterable<number>): readonly [number, number] | un
 /** Appends by loop: spreading a data-sized array into push overflows the call stack. */
 export function append<T>(target: T[], source: Iterable<T>): void {
   for (const item of source) target.push(item);
+}
+
+/** Opacity factor for rows a highlight leaves out. */
+export const DIMMED = 0.15;
+
+/**
+ * Each row's opacity factor under a highlight: 1 when it matches, DIMMED when
+ * not. Ranges compare numbers, or ISO dates as instants, inclusively.
+ */
+export function highlightFactors(
+  rows: ReadonlyArray<Row>,
+  highlight: Highlight | undefined,
+  path: string,
+): ReadonlyArray<number> {
+  if (highlight === undefined) return rows.map(() => 1);
+  const values = read(rows, highlight.field, `${path}.highlight.field`);
+  const { range } = highlight;
+  const lo = range === undefined ? Number.NaN : Math.min(numeric(range[0]), numeric(range[1]));
+  const hi = range === undefined ? Number.NaN : Math.max(numeric(range[0]), numeric(range[1]));
+  const allowed = highlight.values === undefined ? undefined : new Set(highlight.values);
+  return values.map((value) => {
+    const inRange = range === undefined || (numeric(value) >= lo && numeric(value) <= hi);
+    const listed = allowed === undefined || allowed.has(value);
+    return inRange && listed ? 1 : DIMMED;
+  });
 }

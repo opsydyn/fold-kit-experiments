@@ -56,8 +56,20 @@ export type LineTransform =
   | WindowTransform
   | DownsampleTransform;
 
+/**
+ * Rows to keep at full opacity; the rest are dimmed. Matching is by a field
+ * falling in a range (numbers, or ISO dates as instants) or among values.
+ */
+export type Highlight = Readonly<{
+  field: string;
+  range?: readonly [number, number] | readonly [string, string];
+  values?: ReadonlyArray<Value>;
+}>;
+
 type CommonMark = Readonly<{
   data?: ReadonlyArray<Row>;
+  /** Dims rows that do not match. Applies to dot, bar, cell, link and text marks. */
+  highlight?: Highlight;
   /** Field giving each row a stable identity. Default: the row's position. */
   key?: string;
   title?: Channel;
@@ -310,6 +322,11 @@ export type PlotAxis = Readonly<{
   label: string;
   ticks: ReadonlyArray<PlotTick>;
   grid: boolean;
+  /** Pixel range the domain maps onto: [left, right] across, [bottom, top] down. */
+  range: readonly [number, number];
+  /** Power axes: the exponent. Symlog axes: the constant. */
+  exponent?: number;
+  constant?: number;
 }>;
 
 export type FacetGeometry = Readonly<{

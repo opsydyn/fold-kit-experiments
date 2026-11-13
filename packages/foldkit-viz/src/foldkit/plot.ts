@@ -1,4 +1,5 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
+import type { MountAction } from 'foldkit/mount';
 
 import type { FacetGeometry, Graphic, Legend, PlotAxis, PlotGeometry } from '../plot/types.js';
 
@@ -30,7 +31,25 @@ export const currentColorPalette: PlotPalette = {
   labelSize: 11,
 };
 
-export type PlotChartOptions = Readonly<{ palette?: PlotPalette; legend?: boolean }>;
+/**
+ * Interaction drawn over a plot without recompiling it, in plot pixels: the
+ * parent computes positions from the pointer and passes them in.
+ */
+export type PlotOverlay = Readonly<{
+  /** Lines through a point, across the facet that holds it. */
+  crosshair?: Readonly<{ x: number; y: number }>;
+  /** A ring around a point, such as the nearest mark under the pointer. */
+  ring?: Readonly<{ x: number; y: number; r: number }>;
+  /** A band across a facet's full height, such as a brushed range. */
+  brush?: Readonly<{ x0: number; x1: number; facet?: string }>;
+  color?: string;
+}>;
+
+export type PlotChartOptions = Readonly<{
+  palette?: PlotPalette;
+  legend?: boolean;
+  overlay?: PlotOverlay;
+}>;
 
 const n = (value: number): string => String(Math.round(value * 100) / 100);
 
@@ -281,6 +300,87 @@ function legend<M>(h: HtmlBuilder<M>, l: Legend, palette: PlotPalette): Html {
   );
 }
 
+const facetAt = (geometry: PlotGeometry, x: number, y: number): FacetGeometry | undefined =>
+  geometry.facets.find(
+    (f) => x >= f.plot.left && x <= f.plot.right && y >= f.plot.top && y <= f.plot.bottom,
+  );
+
+function overlayMarks<M>(
+  h: HtmlBuilder<M>,
+  geometry: PlotGeometry,
+  overlay: PlotOverlay,
+): ReadonlyArray<Html> {
+  const colour = overlay.color ?? 'currentColor';
+  const parts: Html[] = [];
+  if (overlay.brush !== undefined) {
+    const { x0, x1 } = overlay.brush;
+    const facet = geometry.facets.find((f) => f.key === overlay.brush?.facet) ?? geometry.facets[0];
+    if (facet !== undefined)
+      parts.push(
+        h.rect(
+          [
+            h.Class('plot-brush'),
+            h.X(n(Math.max(facet.plot.left, Math.min(x0, x1)))),
+            h.Y(n(facet.plot.top)),
+            h.Width(
+              n(
+                Math.min(facet.plot.right, Math.max(x0, x1)) -
+                  Math.max(facet.plot.left, Math.min(x0, x1)),
+              ),
+            ),
+            h.Height(n(facet.plot.height)),
+            h.Fill(colour),
+            h.FillOpacity('0.12'),
+            h.Stroke(colour),
+            h.StrokeOpacity('0.5'),
+          ],
+          [],
+        ),
+      );
+  }
+  if (overlay.crosshair !== undefined) {
+    const { x, y } = overlay.crosshair;
+    const facet = facetAt(geometry, x, y);
+    if (facet !== undefined)
+      parts.push(
+        h.g(
+          [
+            h.Class('plot-crosshair'),
+            h.Stroke(colour),
+            h.StrokeOpacity('0.6'),
+            h.StrokeDasharray('3 3'),
+          ],
+          [
+            h.line(
+              [h.X1(n(x)), h.X2(n(x)), h.Y1(n(facet.plot.top)), h.Y2(n(facet.plot.bottom))],
+              [],
+            ),
+            h.line(
+              [h.X1(n(facet.plot.left)), h.X2(n(facet.plot.right)), h.Y1(n(y)), h.Y2(n(y))],
+              [],
+            ),
+          ],
+        ),
+      );
+  }
+  if (overlay.ring !== undefined)
+    parts.push(
+      h.circle(
+        [
+          h.Class('plot-ring'),
+          h.Cx(n(overlay.ring.x)),
+          h.Cy(n(overlay.ring.y)),
+          h.R(n(overlay.ring.r)),
+          h.Fill('none'),
+          h.Stroke(colour),
+          h.StrokeWidth('2'),
+        ],
+        [],
+      ),
+    );
+  return parts.length === 0 ? [] : [h.g([h.Class('plot-overlay'), h.AriaHidden(true)], parts)];
+}
+
 export function plotChart<M>(
   h: HtmlBuilder<M>,
   geometry: PlotGeometry,
@@ -345,6 +445,79 @@ export function plotChart<M>(
           ...(geometry.title === '' ? [] : [h.title([], [geometry.title])]),
           ...(geometry.description === '' ? [] : [h.desc([], [geometry.description])]),
           ...facets,
+          ...(options.overlay === undefined ? [] : overlayMarks(h, geometry, options.overlay)),
+        ],
+      ),
+      ...(options.legend === false ? [] : geometry.legends.map((l) => legend(h, l, palette))),
+    ],
+  );
+}
+
+export type PlotCanvasOptions<M> = Readonly<{
+  /**
+   * Paints the canvas when it enters the DOM: the parent's Mount, which calls
+   * `paintCanvas` from canvas/plot with the same geometry. foldkit-viz installs
+   * nothing itself.
+   */
+  onMount: MountAction<M>;
+  /** Changes whenever the geometry does, so a new canvas mounts and repaints. */
+  key: string;
+  palette?: PlotPalette;
+  legend?: boolean;
+  overlay?: PlotOverlay;
+}>;
+
+/**
+ * A canvas-painted plot for marks too large for SVG, such as dense dot marks,
+ * with interaction drawn in an SVG overlay above it. The overlay re-renders on
+ * every hover while the canvas, keyed by its geometry, is left alone. The
+ * canvas sizes by CSS aspect ratio, not width and height attributes, so a
+ * re-render never resets (and so clears) its pixels.
+ */
+export function plotCanvas<M>(
+  h: HtmlBuilder<M>,
+  geometry: PlotGeometry,
+  options: PlotCanvasOptions<M>,
+): Html {
+  const palette = options.palette ?? currentColorPalette;
+  const label = [geometry.title, geometry.description].filter((part) => part !== '').join('. ');
+  return h.figure(
+    [h.Class('plot plot-canvas'), h.Style({ margin: '0', 'font-family': palette.fontFamily })],
+    [
+      h.div(
+        [h.Style({ position: 'relative', width: '100%', 'max-width': `${geometry.width}px` })],
+        [
+          h.canvas(
+            [
+              h.Key(options.key),
+              h.Role('img'),
+              ...(label === '' ? [] : [h.AriaLabel(label)]),
+              h.Style({
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                'aspect-ratio': `${geometry.width} / ${geometry.height}`,
+              }),
+              h.OnMount(options.onMount),
+            ],
+            [],
+          ),
+          h.svg(
+            [
+              h.Class('plot-canvas-overlay'),
+              h.ViewBox(`0 0 ${geometry.width} ${geometry.height}`),
+              h.AriaHidden(true),
+              h.Style({
+                position: 'absolute',
+                inset: '0',
+                width: '100%',
+                height: '100%',
+                'pointer-events': 'none',
+                overflow: 'visible',
+              }),
+            ],
+            options.overlay === undefined ? [] : overlayMarks(h, geometry, options.overlay),
+          ),
         ],
       ),
       ...(options.legend === false ? [] : geometry.legends.map((l) => legend(h, l, palette))),

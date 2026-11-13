@@ -15,6 +15,7 @@ import {
   isConstant,
   spanOf,
   append,
+  highlightFactors,
   isFlag,
   isNumber,
   isText,
@@ -99,6 +100,7 @@ const OPTIONS = new Set([
   'dx',
   'dy',
   'dense',
+  'highlight',
   'bandwidth',
   'separator',
   'labels',
@@ -455,6 +457,14 @@ function resolveScale(
   return { type, domain, label, spec };
 }
 
+/** The parameters an inverse needs beyond the domain and range. */
+const scaleParameters = (scale: AxisScale) =>
+  scale.type === 'pow'
+    ? { exponent: scale.exponent }
+    : scale.type === 'symlog'
+      ? { constant: scale.constant ?? 1 }
+      : {};
+
 function frameFor(width: number, height: number, bounds: PlotBounds): ChartFrame {
   return {
     width,
@@ -508,7 +518,7 @@ function buildScale(
       label: i % every === 0 ? value : '',
     }));
     return {
-      axis: { type: 'band', orientation, domain, label: info.label, ticks, grid },
+      axis: { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
       place,
       start,
       bandwidth: scale.bandwidth,
@@ -541,7 +551,16 @@ function buildScale(
     hi = Math.max(...domain);
   const baseline = lo <= 0 && hi >= 0 && info.type !== 'log' ? project(0) : project(lo);
   return {
-    axis: { type: info.type, orientation, domain, label: info.label, ticks, grid },
+    axis: {
+      type: info.type,
+      orientation,
+      domain,
+      label: info.label,
+      ticks,
+      grid,
+      range,
+      ...scaleParameters(scale),
+    },
     place,
     start: place,
     bandwidth: 0,
@@ -672,12 +691,14 @@ function packPoints(
   radii: ReadonlyArray<number>,
   uniformRadius: boolean,
   opacity: number,
+  dims: ReadonlyArray<number> | undefined,
 ): Graphic {
   const n = xs.length;
   const px = new Float64Array(n),
     py = new Float64Array(n),
     rows = new Uint32Array(n),
-    paint = new Uint16Array(n);
+    paint = new Uint16Array(n),
+    dimmed = dims === undefined ? undefined : new Uint8Array(n);
   const radius = uniformRadius ? (radii[0] ?? 3) : new Float64Array(n);
   const palette: string[] = [];
   const paletteIndex = new Map<string, number>();
@@ -697,10 +718,11 @@ function packPoints(
     py[count] = cy;
     rows[count] = i;
     paint[count] = colour;
+    if (dimmed !== undefined) dimmed[count] = (dims?.[i] ?? 1) < 1 ? 1 : 0;
     if (radius instanceof Float64Array) radius[count] = radii[i] ?? 3;
     count += 1;
   }
-  return {
+  const packed: Graphic = {
     kind: 'points',
     key,
     count,
@@ -712,6 +734,7 @@ function packPoints(
     rows: rows.subarray(0, count),
     opacity,
   };
+  return dimmed === undefined ? packed : { ...packed, dimmed: dimmed.subarray(0, count) };
 }
 
 function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
@@ -721,6 +744,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
   const dense = mark.mark === 'dot' && mark.dense === true;
   const keys = dense ? [] : keysOf(rows, mark, index);
   const titles = dense ? [] : titlesOf(rows, mark.title, `${path}.title`);
+  const dims = highlightFactors(rows, mark.highlight, path);
   switch (mark.mark) {
     case 'dot': {
       const x = requireScale(context.x, path, 'x'),
@@ -753,6 +777,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             radii,
             mark.r === undefined || isConstant(mark.r),
             opacity,
+            mark.highlight === undefined ? undefined : dims,
           ),
         ];
       return rows.flatMap((_, i) => {
@@ -769,7 +794,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             fill: fills[i] ?? 'currentColor',
             stroke: strokes[i] ?? 'none',
             strokeWidth: mark.strokeWidth ?? 1,
-            opacity,
+            opacity: opacity * (dims[i] ?? 1),
             ...withTitle(titles[i]),
           },
         ];
@@ -902,7 +927,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             ...rect,
             fill: fills[i] ?? 'currentColor',
             stroke: strokes[i] ?? 'none',
-            opacity,
+            opacity: opacity * (dims[i] ?? 1),
             ...withTitle(titles[i]),
           },
         ];
@@ -972,7 +997,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             text: String(text),
             fill: fills[i] ?? 'currentColor',
             anchor: mark.anchor ?? 'middle',
-            opacity,
+            opacity: opacity * (dims[i] ?? 1),
           },
         ];
       });
@@ -1004,7 +1029,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             height: y.bandwidth,
             fill: fills[i] ?? 'currentColor',
             stroke: strokes[i] ?? 'none',
-            opacity,
+            opacity: opacity * (dims[i] ?? 1),
             ...withTitle(titles[i]),
           },
         ];

@@ -578,3 +578,5 @@ export type {
   ZlozLabelMeasurements,
   ZlozLabelMeasurementContext,
 } from './label-measurement';
+
+export { resolveLayoutGroupHeader } from './group-header';

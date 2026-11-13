@@ -451,3 +451,59 @@ test('cancel, new badge content, replacement and repeated measurement runs rejec
   expect(update(restarted, Message.ObservedAlchemyLabels({ id, result })).model).toBe(restarted);
   expect(restarted.alchemyReview.review?.layout.labels.run).toBe(2);
 });
+
+test('expanded group headings share declared layout bounds, preserve source/history and cancel old layout when changed', async () => {
+  const source = init().model;
+  let model = open(source);
+  const review = model.alchemyReview.review;
+  assert(review);
+  const id = review.id;
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id,
+      message: { type: 'SurfaceMeasured', size: { width: 1100, height: 700 } },
+    }),
+  ).model;
+  const previous = model.alchemyReview.review?.editor;
+  assert(previous);
+  model = update(model, Message.SelectedAlchemyGroupHeader({ id, header: 'expanded' })).model;
+  expect(model.alchemyReview.review?.editor).toBe(previous);
+  const started = update(model, Message.ClickedAlchemyLayout({ id }));
+  assert(started.commands?.[0]);
+  const pending = started.model.alchemyReview.review?.layout.pending;
+  assert(pending);
+  expect(pending.groupHeaders).toHaveLength(1);
+  const header = pending.groupHeaders?.[0];
+  assert(header);
+  const sourceGroup = review.projection.graph.nodes.find((n) => n.kind === 'group');
+  assert(sourceGroup);
+  expect(header).toEqual({
+    id: sourceGroup.id,
+    size: { width: 640, height: 112 },
+    padding: { top: 24, right: 24, bottom: 24, left: 24 },
+    gap: 24,
+  });
+  const completed = await Effect.runPromise(started.commands[0].effect);
+  expect(completed._tag).toBe('SucceededAlchemyLayout');
+  const applied = update(started.model, completed).model;
+  const editor = applied.alchemyReview.review?.editor;
+  assert(editor);
+  const parent = editor.graph.nodes.find((n) => n.id === header.id);
+  assert(parent);
+  for (const child of editor.graph.nodes.filter((n) => n.parentId === parent.id))
+    expect(child.position.y - parent.position.y).toBeGreaterThanOrEqual(160);
+  expect(editor.past).toBe(previous.past);
+  expect(editor.future).toBe(previous.future);
+  expect(applied.alchemyReview.review?.projection).toBe(review.projection);
+  preserved(source, applied);
+  const changed = update(
+    started.model,
+    Message.SelectedAlchemyGroupHeader({ id, header: 'default' }),
+  ).model;
+  expect(changed.alchemyReview.review?.layout.pending).toBeNull();
+  expect(update(changed, completed).model).toBe(changed);
+  const restored = update(applied, Message.ClickedRestoreAlchemyLayout({ id })).model;
+  expect(restored.alchemyReview.review?.editor.graph).toEqual(previous.graph);
+  preserved(source, restored);
+});

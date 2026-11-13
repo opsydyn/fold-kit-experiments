@@ -1,5 +1,6 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Node outline geometry is a domain contract. */
 import { expect, test } from 'bun:test';
+import assert from 'node:assert/strict';
 
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -23,6 +24,7 @@ import {
   type EditorEvent,
   type EditorState,
   type ZlozGraph,
+  type ZlozNode,
 } from '../src/index';
 
 const graph: ZlozGraph = {
@@ -242,4 +244,30 @@ test('custom body and controls can be omitted without losing ports, dimensions o
       '[data-flow-ddd-node] [data-flow-resize], [data-flow-ddd-group] [data-flow-resize]',
     ),
   ).toHaveLength(0);
+});
+
+test('declared group header geometry composes custom content and keeps compact collapsed headings', async () => {
+  const node = graph.nodes.find((n) => n.id === 'bounded-context-boundary');
+  assert(node);
+  const state = createEditor({ nodes: [node], edges: [] });
+  const options = {
+    groupHeader: {
+      id: node.id,
+      size: { width: 600, height: 112 },
+      padding: { top: 24, right: 24, bottom: 24, left: 24 },
+      gap: 24,
+    },
+    renderBody: (_context: { node: ZlozNode }, h: HtmlBuilder<EditorEvent>) =>
+      h.div([h.DataAttribute('custom-group-heading', '')], ['Custom architecture heading']),
+  };
+  const document = await render(state, options, { minimalMode: true });
+  const header = document.querySelector('[data-zloz-group-header]');
+  expect(header?.getAttribute('style')).toContain('width: 600px');
+  expect(header?.getAttribute('style')).toContain('height: 112px');
+  expect(header?.getAttribute('style')).toContain('left: 24px');
+  expect(header?.getAttribute('style')).toContain('top: 24px');
+  expect(header?.textContent).toContain('Custom architecture heading');
+  const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options);
+  expect(collapsed.querySelector('[data-zloz-group-header]')).toBeNull();
+  expect(collapsed.querySelector('[data-custom-group-heading]')).not.toBeNull();
 });

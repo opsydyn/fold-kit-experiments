@@ -12,6 +12,7 @@ export type AlchemyReviewState = Readonly<{
       run: number;
       direction: 'RIGHT' | 'DOWN';
       displayed: 'original' | 'elk';
+      header: 'default' | 'expanded';
       pending: LayoutRequest | null;
       labels: Readonly<{
         mode: 'declared' | 'measured';

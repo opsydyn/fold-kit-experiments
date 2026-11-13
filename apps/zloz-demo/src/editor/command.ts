@@ -490,10 +490,11 @@ export const ArrangeAlchemyPreview = Command.define('ArrangeAlchemyPreview', {
     revision: Schema.Number,
     json: Schema.String,
     labels: Schema.String,
+    headers: Schema.String,
     direction: Schema.Literals(['RIGHT', 'DOWN']),
   },
   messages: [Message.SucceededAlchemyLayout, Message.FailedAlchemyLayout],
-  execute: ({ id, requestId, revision, json, labels, direction }) =>
+  execute: ({ id, requestId, revision, json, labels, headers, direction }) =>
     Effect.tryPromise(async () => {
       // oxlint-disable-next-line linteffect/prevent-dynamic-imports -- ELK is loaded only after an explicit preview layout request; no SDK or providers are loaded.
       const { createElkLayout } = await import('@opsydyn/foldkit-zloz-elk');
@@ -501,6 +502,21 @@ export const ArrangeAlchemyPreview = Command.define('ArrangeAlchemyPreview', {
         requestId,
         revision,
         graph: parseGraph(json),
+        groupHeaders: Schema.decodeUnknownSync(
+          Schema.Array(
+            Schema.Struct({
+              id: Schema.String,
+              size: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+              padding: Schema.Struct({
+                top: Schema.Number,
+                right: Schema.Number,
+                bottom: Schema.Number,
+                left: Schema.Number,
+              }),
+              gap: Schema.Number,
+            }),
+          ),
+        )(JSON.parse(headers)),
         edgeLabels: Schema.decodeUnknownSync(
           Schema.Array(
             Schema.Struct({

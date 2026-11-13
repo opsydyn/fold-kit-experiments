@@ -1,5 +1,6 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholders. */
 import { expect, test } from 'bun:test';
+import assert from 'node:assert/strict';
 
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -21,6 +22,7 @@ import {
   createArchitectureNode,
   nodeShapeGeometry,
   type ZlozGraph,
+  type ZlozNode,
   type EditorState,
   type EditorEvent,
 } from '../src/index';
@@ -214,4 +216,30 @@ test('preset chrome and content can be omitted while authored dimensions and nat
   expect(document.querySelector('[data-flow-c4-group]')?.getAttribute('style')).toContain(
     '2px solid var(--flow-valid-target, #0f766e)',
   );
+});
+
+test('declared group header geometry composes custom content and keeps compact collapsed headings', async () => {
+  const node = graph.nodes.find((n) => n.id === 'boundary');
+  assert(node);
+  const state = createEditor({ nodes: [node], edges: [] });
+  const options = {
+    groupHeader: {
+      id: node.id,
+      size: { width: 600, height: 112 },
+      padding: { top: 24, right: 24, bottom: 24, left: 24 },
+      gap: 24,
+    },
+    renderBody: (_context: { node: ZlozNode }, h: HtmlBuilder<EditorEvent>) =>
+      h.div([h.DataAttribute('custom-group-heading', '')], ['Custom architecture heading']),
+  };
+  const document = await render(state, options, { minimalMode: true });
+  const header = document.querySelector('[data-zloz-group-header]');
+  expect(header?.getAttribute('style')).toContain('width: 600px');
+  expect(header?.getAttribute('style')).toContain('height: 112px');
+  expect(header?.getAttribute('style')).toContain('left: 24px');
+  expect(header?.getAttribute('style')).toContain('top: 24px');
+  expect(header?.textContent).toContain('Custom architecture heading');
+  const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options);
+  expect(collapsed.querySelector('[data-zloz-group-header]')).toBeNull();
+  expect(collapsed.querySelector('[data-custom-group-heading]')).not.toBeNull();
 });

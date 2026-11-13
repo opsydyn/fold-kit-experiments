@@ -7,11 +7,12 @@ import {
   zlozDragHandle,
   type ZlozNodeRenderContext,
 } from './composition';
+import { resolveLayoutGroupHeader } from './group-header';
 import type { ZlozNodeBodyCache } from './node-body-cache';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts, not structural placeholders.
 import { nodeShapeGeometry } from './node-shape';
 import { portRenderViews } from './port-render';
-import type { ZlozNode } from './types';
+import type { ZlozNode, LayoutGroupHeader } from './types';
 
 /** Static artwork context. Live controls and policy state are deliberately separate. */
 export type ZlozDddContentContext = Readonly<{
@@ -26,6 +27,8 @@ export type ZlozDddContentRenderer<M> = (
   h: HtmlBuilder<M>,
 ) => Html | null | undefined;
 export type ZlozDddNodeOptions<M> = Readonly<{
+  /** Optional declared group heading geometry, shared with the layout request. Collapsed groups keep compact headings. */
+  groupHeader?: LayoutGroupHeader | undefined;
   attributes?: Parameters<HtmlBuilder<M>['div']>[0];
   /** Create once per canvas; keep this options object stable for artwork reuse. */
   bodyCache?: ZlozNodeBodyCache;
@@ -336,6 +339,11 @@ export function zlozDddGroup<M>(
 ): Html | undefined {
   const { node } = context;
   if (node.kind !== 'group' || node.architecture?.family !== 'ddd') return undefined;
+  const borderWidth = 2;
+  const declaredHeader = options.groupHeader
+    ? resolveLayoutGroupHeader(node, options.groupHeader)
+    : undefined;
+  const header = context.collapsed ? undefined : declaredHeader;
   const selected = context.state.selectedNodes.includes(node.id) || context.selectionPreview;
   const border = context.dropTarget
     ? 'var(--flow-valid-target, #0f766e)'
@@ -349,7 +357,7 @@ export function zlozDddGroup<M>(
       h.DataAttribute('flow-ddd-group', node.architecture.role),
       h.Style({
         background: 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
-        border: `2px ${context.dropTarget ? 'solid' : 'dashed'} ${border}`,
+        border: `${borderWidth}px ${context.dropTarget ? 'solid' : 'dashed'} ${border}`,
         color: 'var(--flow-node-color, #172033)',
       }),
       ...(options.attributes ?? []),
@@ -359,12 +367,13 @@ export function zlozDddGroup<M>(
         h,
         context,
         [
+          ...(header ? [h.DataAttribute('zloz-group-header', node.id)] : []),
           h.Style({
             position: 'absolute',
-            top: '8px',
-            left: '16px',
-            width: 'calc(100% - 144px)',
-            height: `${Math.max(0, Math.min(56, node.size.height - 16))}px`,
+            top: `${header ? header.position.y - node.position.y : 8}px`,
+            left: `${header ? header.position.x - node.position.x : 16}px`,
+            width: header ? `${header.size.width}px` : 'calc(100% - 144px)',
+            height: `${header ? header.size.height : Math.max(0, Math.min(56, node.size.height - 16))}px`,
             overflow: 'hidden',
             padding: '0',
             border: '0',

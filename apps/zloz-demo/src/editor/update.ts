@@ -828,6 +828,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedAlchemyExample: () => updateAlchemyReview(model, message),
     SelectedAlchemyLayoutDirection: () => updateAlchemyReview(model, message),
     ClickedAlchemyLayout: () => updateAlchemyReview(model, message),
+    SelectedAlchemyGroupHeader: () => updateAlchemyReview(model, message),
     SelectedAlchemyLabelMode: () => updateAlchemyReview(model, message),
     SelectedAlchemyLabelDetail: () => updateAlchemyReview(model, message),
     ClickedMeasureAlchemyLabels: () => updateAlchemyReview(model, message),

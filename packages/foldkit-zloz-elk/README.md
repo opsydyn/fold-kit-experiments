@@ -101,3 +101,19 @@ For intrinsic custom badges, core's `startLabelMeasurement`,
 request. Recheck freshness before both starting ELK and applying its result; ELK
 does not load fonts, inspect DOM or start measurement itself. See the
 [core measured-label guide](../foldkit-zloz/README.md#opt-in-measured-label-bounds-unreleased).
+
+### Group heading envelopes (unreleased)
+
+Core requests may declare `groupHeaders` with an existing group ID, header `size`,
+`padding: { top, right, bottom, left }` and a `gap` before children. ELK maps these
+to parent padding and a minimum group size, including empty groups and headings
+wider than their content. Core rejects results that violate the reserved area.
+Share the same declaration with C4/DDD `groupHeader` renderer options. Omitted
+hints keep the existing 52/24/24/24 parent padding.
+
+The pinned elkjs 0.12.1 adapter corrects transposed minima for nonempty DOWN groups;
+empty groups use physical axes. Wide/tall nested/empty and cross-boundary-edge
+regressions qualify both directions. Requalify the correction when upgrading ELK
+or supplying a worker from another version. No post-layout stretching is used.
+These hints reserve child-node space; they do not guarantee arbitrary route or
+custom-artwork collision avoidance.

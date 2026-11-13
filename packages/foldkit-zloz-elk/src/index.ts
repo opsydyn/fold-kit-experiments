@@ -7,10 +7,17 @@ import {
   portPosition,
   portBoundaryPosition,
   validateLayoutRequest,
+  resolveLayoutGroupHeader,
   type EdgeRoute,
   type LayoutEngine,
 } from '@opsydyn/foldkit-zloz';
-import type { ELK as ElkInstance, ElkNode, ElkEdgeSection, ElkLabel } from 'elkjs/lib/elk-api';
+import type {
+  ELK as ElkInstance,
+  ElkNode,
+  ElkEdgeSection,
+  ElkLabel,
+  LayoutOptions as ElkLayoutProperties,
+} from 'elkjs/lib/elk-api';
 import ELK from 'elkjs/lib/elk.bundled.js';
 
 export type ElkLayoutOptions = Readonly<{
@@ -55,6 +62,7 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
   return async (request) => {
     validateLayoutRequest(request);
     const labelHints = new Map((request.edgeLabels ?? []).map((label) => [label.id, label]));
+    const groupHeaders = new Map((request.groupHeaders ?? []).map((header) => [header.id, header]));
     const nodeIds = new Map(request.graph.nodes.map((node, index) => [node.id, `n:${index}`]));
     const portIds = new Map<string, Map<string, string>>();
     const hasGroups = request.graph.nodes.some((node) => node.kind === 'group');
@@ -68,7 +76,28 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
     const children: ElkNode[] = [];
     const elkNodes = new Map(
       request.graph.nodes.map((node, index): [string, ElkNode] => {
-        if (node.kind === 'group')
+        if (node.kind === 'group') {
+          const hint = groupHeaders.get(node.id);
+          const header = hint ? resolveLayoutGroupHeader(node, hint) : undefined;
+          const groupOptions: ElkLayoutProperties = {
+            ...layoutOptions,
+            'elk.padding': '[top=52,left=24,bottom=24,right=24]',
+          };
+          if (header) {
+            const p = header.contentPadding;
+            groupOptions['elk.padding'] =
+              `[top=${p.top},left=${p.left},bottom=${p.bottom},right=${p.right}]`;
+            groupOptions['elk.nodeSize.constraints'] = 'MINIMUM_SIZE';
+            // ELK 0.12.1 transposes compound graph minima in DOWN, but leaf/empty group minima remain physical.
+            // Keep this correction behind the adapter; nested/empty, wide/tall real-engine regressions qualify upgrades.
+            const transposed =
+              options.direction === 'DOWN' &&
+              request.graph.nodes.some((child) => child.parentId === node.id);
+            const minimum = header.minimumSize;
+            groupOptions['elk.nodeSize.minimum'] = transposed
+              ? `(${minimum.height},${minimum.width})`
+              : `(${minimum.width},${minimum.height})`;
+          }
           return [
             node.id,
             {
@@ -76,12 +105,10 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
               width: node.size.width,
               height: node.size.height,
               children: [],
-              layoutOptions: {
-                ...layoutOptions,
-                'elk.padding': '[top=52,left=24,bottom=24,right=24]',
-              },
+              layoutOptions: groupOptions,
             },
           ];
+        }
         const ports = new Map(node.ports.map((port, at) => [port.id, `p:${index}:${at}`]));
         portIds.set(node.id, ports);
         return [

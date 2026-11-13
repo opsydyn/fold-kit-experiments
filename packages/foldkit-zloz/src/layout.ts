@@ -1,6 +1,7 @@
 import { commitGraph } from './editor';
 import { finitePoint } from './geometry';
 import { copyGraph, validateGraph, ZlozError } from './graph';
+import { resolveLayoutGroupHeader } from './group-header';
 import type { EditorState, LayoutRequest, LayoutResult, LayoutRequestOptions } from './types';
 
 /** Validate a typed engine request, including explicit label envelopes. Not a raw-data decoder. */
@@ -24,6 +25,14 @@ export function validateLayoutRequest(request: LayoutRequest): void {
       );
     seen.add(label.id);
   }
+  const groups = new Set<string>();
+  for (const header of request.groupHeaders ?? []) {
+    const node = request.graph.nodes.find((n) => n.id === header.id);
+    if (!node || groups.has(header.id))
+      throw new ZlozError('invalid-layout', 'Group header IDs must name unique existing groups');
+    resolveLayoutGroupHeader(node, header);
+    groups.add(header.id);
+  }
 }
 /** Store this request as active in the host Model before starting the engine. */
 export function layoutRequest(
@@ -32,7 +41,7 @@ export function layoutRequest(
   options: LayoutRequestOptions = {},
 ): LayoutRequest {
   const base = { requestId, revision: state.revision, graph: copyGraph(state.graph) };
-  const request =
+  const withLabels =
     options.edgeLabels === undefined
       ? base
       : {
@@ -40,6 +49,17 @@ export function layoutRequest(
           edgeLabels: options.edgeLabels.map((label) => ({
             id: label.id,
             size: { ...label.size },
+          })),
+        };
+  const request =
+    options.groupHeaders === undefined
+      ? withLabels
+      : {
+          ...withLabels,
+          groupHeaders: options.groupHeaders.map((header) => ({
+            ...header,
+            size: { ...header.size },
+            padding: { ...header.padding },
           })),
         };
   validateLayoutRequest(request);
@@ -108,6 +128,30 @@ function geometry(state: EditorState, active: LayoutRequest, result: LayoutResul
       return { ...node, size: { ...size }, position: { x: position.x, y: position.y } };
     }),
   };
+  for (const header of active.groupHeaders ?? []) {
+    const node = graph.nodes.find((n) => n.id === header.id);
+    if (!node) throw new ZlozError('invalid-layout', 'Missing laid-out group');
+    const { minimumSize, contentPadding } = resolveLayoutGroupHeader(node, header);
+    if (
+      node.size.width < minimumSize.width ||
+      node.size.height < minimumSize.height ||
+      graph.nodes.some(
+        (child) =>
+          child.parentId === node.id &&
+          (child.position.x < node.position.x + contentPadding.left - 1e-6 ||
+            child.position.y < node.position.y + contentPadding.top - 1e-6 ||
+            child.position.x + child.size.width >
+              node.position.x + node.size.width - contentPadding.right + 1e-6 ||
+            child.position.y + child.size.height >
+              node.position.y + node.size.height - contentPadding.bottom + 1e-6),
+      )
+    )
+      throw new ZlozError(
+        'invalid-layout',
+        'Layout did not reserve the declared group header and child padding',
+      );
+  }
+
   return {
     graph,
     routes: result.routes.map((route) => {

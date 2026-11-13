@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add explicit group-header layout envelopes, shared C4/DDD header geometry and atomic child-area validation without changing graph persistence.
+
 - Add opt-in rendered label measurement with scoped Foldkit lifecycle resources, complete-batch validation, source/revision/renderer freshness and explicit re-layout.
 
 - Add explicit composite edge-label layout envelopes, validated transient result boxes and shared view, controls, fit/reveal and culling support, preserving geometry policy and Undo semantics.

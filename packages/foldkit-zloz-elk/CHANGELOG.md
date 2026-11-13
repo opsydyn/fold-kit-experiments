@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Reserve declared group headings through padding/minimum size, with qualified DOWN compound-minimum normalization and nested/empty group coverage.
+
 - Reserve caller-declared composite edge-label bounds in compound layouts and return validated world-coordinate boxes, including custom badges on unlabeled edges.
 
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-elk-v0.2.0...foldkit-zloz-elk-v0.3.0) (2026-11-10)

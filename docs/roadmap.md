@@ -739,3 +739,21 @@ Next proposed slice: explicit group-header envelopes in layout requests, allowin
 custom C4/DDD container headings to reserve space instead of relying on ELK's
 fixed header padding. Recommendation: **needs review**. No implementation of that
 follow-up, automatic layout, provider activation or publication is implied.
+
+**Explicit group-header envelopes — implemented locally (2026-11-13), unreleased:**
+Layout requests accept detached header sizes, padding and gap for unique groups.
+A pure resolver supplies world header rectangles, minimum bounds and child padding;
+core rejects incomplete space reservations atomically while preserving stale/Undo
+and read-only semantics. C4/DDD renderer options share this geometry and keep
+compact collapsed headings. ELK reserves nested/empty groups in RIGHT/DOWN, with
+real-engine wide/tall and cross-boundary-edge qualification of its pinned compound
+minimum-vector correction. The workbench demonstrates opt-in expanded headings,
+explicit Arrange, cancellation, original geometry, themes/Minimal mode and measured
+edge-label composition. Source/findings/working history remain unchanged. See
+[ADR 0073](adr/0073-declare-group-header-layout-envelopes.md) and
+[qualification/captures](../apps/zloz-demo/evidence/group-headers.md).
+This closes the prior heading-bounds slice; D/C/Q and publication gates remain.
+
+Next proposed slice: opt-in measured group-heading bounds using the existing scoped
+measurement/freshness pattern, so custom C4/DDD headings can size intrinsically.
+Recommendation: **needs review**. No automatic layout or publication is implied.

@@ -320,3 +320,84 @@ test('caller engines cannot omit or falsify requested label boxes', async () => 
     await expect(layout(request)).rejects.toThrow('label box');
   }
 });
+
+test('real ELK reserves nested and empty group headings, including widths larger than child content, in both directions', async () => {
+  const group = {
+    kind: 'group' as const,
+    label: 'Boundary',
+    position: { x: 0, y: 0 },
+    size: { width: 300, height: 300 },
+    ports: [],
+  };
+  const state = createEditor({
+    nodes: [
+      { ...group, id: 'outer' },
+      { ...group, id: 'inner', parentId: 'outer' },
+      { ...group, id: 'empty', parentId: 'outer' },
+      ...graph.nodes.map((n) => ({ ...n, parentId: 'inner' })),
+      { ...nodeB, id: 'outside' },
+    ],
+    edges: [
+      ...graph.edges,
+      {
+        id: 'cross-boundary',
+        source: { node: nodeA.id, port: 'p:0:0' },
+        target: { node: 'outside', port: 'in' },
+      },
+    ],
+  });
+  const headers = [
+    {
+      id: 'outer',
+      size: { width: 1200, height: 140 },
+      padding: { top: 20, right: 40, bottom: 24, left: 32 },
+      gap: 28,
+    },
+    {
+      id: 'inner',
+      size: { width: 800, height: 96 },
+      padding: { top: 8, right: 20, bottom: 24, left: 16 },
+      gap: 12,
+    },
+    {
+      id: 'empty',
+      size: { width: 600, height: 80 },
+      padding: { top: 12, right: 12, bottom: 12, left: 12 },
+      gap: 10,
+    },
+  ];
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    for (const profile of ['wide', 'tall'] as const) {
+      const requestedHeaders =
+        profile === 'wide'
+          ? headers
+          : headers.map((header) => ({
+              ...header,
+              size: { width: header.size.height, height: header.size.width },
+            }));
+      const request = layoutRequest(state, `headers:${direction}:${profile}`, {
+        groupHeaders: requestedHeaders,
+      });
+      const result = await createElkLayout({ direction, spacing: 64 })(request);
+      const applied = applyLayout(state, request, result);
+      for (const hint of requestedHeaders) {
+        const parent = applied.graph.nodes.find((n) => n.id === hint.id);
+        if (!parent) throw new Error('Missing group');
+        expect(parent.size.width).toBeGreaterThanOrEqual(
+          hint.padding.left + hint.size.width + hint.padding.right,
+        );
+        expect(parent.size.height).toBeGreaterThanOrEqual(
+          hint.padding.top + hint.size.height + hint.gap + hint.padding.bottom,
+        );
+        for (const child of applied.graph.nodes.filter((n) => n.parentId === hint.id)) {
+          expect(child.position.y - parent.position.y).toBeGreaterThanOrEqual(
+            hint.padding.top + hint.size.height + hint.gap,
+          );
+          expect(child.position.x - parent.position.x).toBeGreaterThanOrEqual(hint.padding.left);
+        }
+      }
+      expect(applied.graph.edges).toBe(state.graph.edges);
+      expect(applied.past).toHaveLength(1);
+    }
+  }
+});

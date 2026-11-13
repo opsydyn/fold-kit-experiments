@@ -291,6 +291,10 @@ export const Message = defineMessageUnion({
     direction: Schema.Literals(['RIGHT', 'DOWN']),
   },
   ClickedAlchemyLayout: { id: Schema.Number },
+  SelectedAlchemyGroupHeader: {
+    id: Schema.Number,
+    header: Schema.Literals(['default', 'expanded']),
+  },
   SelectedAlchemyLabelMode: { id: Schema.Number, mode: Schema.Literals(['declared', 'measured']) },
   SelectedAlchemyLabelDetail: {
     id: Schema.Number,

@@ -8,17 +8,13 @@ import {
   resolveAlchemyFindingNavigator,
   resolveAlchemyFindingReveal,
 } from '@opsydyn/foldkit-zloz-alchemy';
-import {
-  zlozView,
-  zlozDddNode,
-  zlozDddGroup,
-  zlozEventStormingNode,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozView, zlozDddNode, zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
 import example from './alchemy-example.json';
+import { alchemyGroupShell } from './alchemy-group-header';
 import { alchemyRelationBadge } from './alchemy-labels';
 import {
   alchemyLayoutControls,
@@ -116,6 +112,7 @@ function publish(model: Model, text: string): Model {
                 run: 0,
                 direction: 'RIGHT',
                 displayed: 'original',
+                header: 'default',
                 pending: null,
                 labels: {
                   mode: 'declared',
@@ -520,7 +517,7 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         renderNodeShell: (context, builder) =>
           zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
         renderGroupShell: (context, builder) =>
-          zlozDddGroup(context, builder, { renderControls: () => [] }),
+          alchemyGroupShell(context, builder, review.layout.header === 'expanded'),
         renderLayout: (parts) => parts.canvas,
         onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
       }),

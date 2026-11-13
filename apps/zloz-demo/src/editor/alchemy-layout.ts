@@ -13,6 +13,7 @@ import { Match, Result } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
+import { alchemyGroupHeader } from './alchemy-group-header';
 import { alchemyPreviewLabelSize } from './alchemy-labels';
 import type { AlchemyReviewState } from './alchemy-state';
 import { ArrangeAlchemyPreview } from './command';
@@ -53,7 +54,7 @@ export function alchemyLabelRenderKey(model: Model): string {
     model.themePreference === 'system' || model.themePreference === null
       ? model.systemColorScheme
       : model.themePreference;
-  return `alchemy-badge:${labels?.mode}:${labels?.detail}:${scheme}`;
+  return `alchemy-badge:${labels?.mode}:${labels?.detail}:${scheme}:${model.alchemyReview.review?.layout.header}`;
 }
 export function alchemyLabelContext(model: Model) {
   const review = model.alchemyReview.review;
@@ -73,6 +74,7 @@ export function alchemyLabelContext(model: Model) {
     : context;
 }
 const tags = new Set([
+  'SelectedAlchemyGroupHeader',
   'SelectedAlchemyLabelMode',
   'SelectedAlchemyLabelDetail',
   'ClickedMeasureAlchemyLabels',
@@ -112,6 +114,20 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
         : 'Original preview geometry restored. Source identity and working model preserved.',
     );
   return Match.value(message).pipe(
+    Match.tag('SelectedAlchemyGroupHeader', ({ header }) =>
+      write(
+        {
+          ...review,
+          layout: {
+            ...review.layout,
+            header,
+            pending: null,
+            labels: { ...review.layout.labels, measurement: { type: 'idle' } },
+          },
+        },
+        'Group heading changed. Arrange explicitly to reserve its space.',
+      ),
+    ),
     Match.tag('SelectedAlchemyLabelMode', ({ mode }) =>
       write({
         ...review,
@@ -203,6 +219,13 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
         return write(review, measured.reason);
       const run = review.layout.run + 1,
         active = layoutRequest(review.editor, `alchemy:${review.id}:layout:${run}`, {
+          groupHeaders:
+            review.layout.header === 'expanded'
+              ? review.editor.graph.nodes.flatMap((node) => {
+                  const header = alchemyGroupHeader(node);
+                  return header ? [header] : [];
+                })
+              : [],
           edgeLabels:
             review.layout.labels.mode === 'measured' && measured.type === 'ready'
               ? measured.edgeLabels
@@ -227,6 +250,7 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
             revision: active.revision,
             json: serializeGraph(active.graph),
             labels: JSON.stringify(active.edgeLabels ?? []),
+            headers: JSON.stringify(active.groupHeaders ?? []),
             direction: review.layout.direction,
           }),
         ],
@@ -316,6 +340,28 @@ export function alchemyLayoutControls(model: Model, h: HtmlBuilder<Message>) {
     [h.AriaLabel('Descriptor preview layout'), h.Class('alchemy-layout-controls')],
     [
       h.h3([], ['Preview layout']),
+      h.label(
+        [],
+        [
+          'Group heading',
+          h.select(
+            [
+              h.AriaLabel('Group heading'),
+              h.Value(layout.header),
+              h.OnChange((header) =>
+                Message.SelectedAlchemyGroupHeader({
+                  id: review.id,
+                  header: header === 'expanded' ? 'expanded' : 'default',
+                }),
+              ),
+            ],
+            [
+              h.option([h.Value('default')], ['Default heading']),
+              h.option([h.Value('expanded')], ['Expanded architecture heading']),
+            ],
+          ),
+        ],
+      ),
       h.p(
         [],
         ['ELK is opt-in. Arrange only this preview; source identity and findings stay unchanged.'],

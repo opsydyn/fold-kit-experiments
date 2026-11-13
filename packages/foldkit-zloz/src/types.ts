@@ -171,7 +171,29 @@ export type ZlozSnapshot = Readonly<{ graph: ZlozGraph; viewport?: Viewport }>;
 /** Declared label rectangle in world units, centered at position. Transient layout geometry. */
 export type LayoutLabelBox = Readonly<{ position: Point; size: Size }>;
 export type LayoutEdgeLabel = Readonly<{ id: string; size: Size }>;
-export type LayoutRequestOptions = Readonly<{ edgeLabels?: readonly LayoutEdgeLabel[] }>;
+export type LayoutGroupPadding = Readonly<{
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}>;
+/** Declared top-left header envelope; padding surrounds header/content and gap separates header from children. */
+export type LayoutGroupHeader = Readonly<{
+  id: string;
+  size: Size;
+  padding: LayoutGroupPadding;
+  gap: number;
+}>;
+export type LayoutGroupHeaderGeometry = Readonly<{
+  position: Point;
+  size: Size;
+  minimumSize: Size;
+  contentPadding: LayoutGroupPadding;
+}>;
+export type LayoutRequestOptions = Readonly<{
+  edgeLabels?: readonly LayoutEdgeLabel[];
+  groupHeaders?: readonly LayoutGroupHeader[];
+}>;
 /** Transient engine output; label boxes and routes do not alter authored edges. */
 export type EdgeRoute = Readonly<{ id: string; points: readonly Point[]; label?: LayoutLabelBox }>;
 export type AlignmentGuide = Readonly<{
@@ -588,6 +610,7 @@ export type LayoutRequest = Readonly<{
   revision: number;
   graph: ZlozGraph;
   edgeLabels?: readonly LayoutEdgeLabel[];
+  groupHeaders?: readonly LayoutGroupHeader[];
 }>;
 /** Every node exactly once in world coordinates; optional sizes apply only to groups. Routes identify existing edges. */
 export type LayoutResult = Readonly<{

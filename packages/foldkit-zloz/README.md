@@ -4769,3 +4769,65 @@ target; when using culling, request a rendered subset or disable culling for the
 measurement. Content margins, shadows, overflow, local transforms, portals, SVG
 labels and later image/font changes are outside this border-box contract. Ensure
 other resources have settled and explicitly remeasure when they change.
+
+### Explicit group-header bounds (unreleased)
+
+Use `groupHeaders` to reserve space for custom container or context headings:
+
+```ts
+import type { LayoutGroupHeader } from '@opsydyn/foldkit-zloz';
+
+const headers: readonly LayoutGroupHeader[] = [
+  {
+    id: 'payments',
+    size: { width: 640, height: 112 },
+    padding: { top: 24, right: 24, bottom: 24, left: 24 },
+    gap: 24,
+  },
+];
+const active = layoutRequest(editor, 'arrange-groups:1', {
+  groupHeaders: headers,
+});
+```
+
+The header starts at the group's world position plus left/top padding. Children
+start below `padding.top + size.height + gap`; left/right/bottom padding bounds the
+rest of their area. Group minimum width includes the header plus horizontal
+padding. Minimum height includes the header, gap and vertical padding, including
+for empty groups. Each ID must name a unique existing group; header dimensions must
+be positive and finite, while padding/gap may be zero but must be finite and
+nonnegative. Nested records are copied; overflowing geometry is rejected.
+
+`resolveLayoutGroupHeader(groupNode, header)` returns the world `position`, copied
+`size`, `minimumSize` and child-area `contentPadding`. It is shared by core layout
+validation and native renderers. Before applying a current result, core validates
+requested minima and containment of all direct children (including nested groups)
+below the header and inside the padding. A violation rejects the entire result.
+Writable layout remains one Undo; detached read-only layout retains Undo history.
+Requests without hints keep their previous shape. Other engines must satisfy these
+bounds too; ELK is the qualified optional adapter.
+
+Pass the same configuration to C4 or DDD group views:
+
+```ts
+zlozDddGroup(context, h, {
+  groupHeader: headers.find((header) => header.id === context.node.id),
+  renderBody: ({ node }, builder) => builder.div([], [node.label, ' · Architecture review']),
+  renderControls: () => [],
+});
+```
+
+`zlozC4Group` supports the same option. Existing content slots compose inside the
+header area, with the declared width/height and clipping; collapsed groups keep
+compact headings. If retaining separately positioned controls, reserve room with
+padding or use `renderControls`. Custom shells can use the pure geometry helper.
+Keep the configuration in your immutable Model and cancel/supersede in-flight
+layout when it changes. A heading preference alone does not change editor revision.
+Space is guaranteed after accepting layout against those hints; applying a larger
+heading to old/original geometry does not rearrange children automatically.
+
+Hints are transient layout/view configuration. They do not become graph fields,
+change serialization, or supply custom SVG/PNG artwork. Custom content must fit its
+declared rectangle. The reservation covers child rectangles, not arbitrary route,
+shadow, overflow or separate control collisions. No automatic header measurement
+or continuous layout is installed.

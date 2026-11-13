@@ -23,6 +23,7 @@ export default defineConfig({
     'math/scale': 'src/math/scale.ts',
     'math/color': 'src/math/color.ts',
     'math/stats': 'src/math/stats.ts',
+    'math/regression': 'src/math/regression.ts',
     simulation: 'src/simulation/index.ts',
     stateflow: 'src/stateflow/index.ts',
     'shape/path': 'src/shape/path.ts',

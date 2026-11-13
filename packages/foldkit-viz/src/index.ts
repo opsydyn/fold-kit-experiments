@@ -114,9 +114,35 @@ export {
   viridis,
   wong,
 } from './math/schemes';
-export type { BoxStats } from './math/stats';
+export type {
+  BoxStats,
+  EcdfStep,
+  MovingWindowOptions,
+  QuantilePair,
+  WindowReducer,
+} from './math/stats';
 // math/stats
-export { boxStats, kde, quantile, silvermanBandwidth } from './math/stats';
+export {
+  boxStats,
+  ecdf,
+  kde,
+  movingWindow,
+  normalQuantile,
+  qqNormal,
+  quantile,
+  silvermanBandwidth,
+  studentTQuantile,
+} from './math/stats';
+
+// math/regression
+export { linearRegression, loess, polynomialRegression } from './math/regression';
+export type {
+  ConfidenceInterval,
+  LoessOptions,
+  RegressionAccessors,
+  RegressionFit,
+  SmoothedPoint,
+} from './math/regression';
 
 // math/time
 export {

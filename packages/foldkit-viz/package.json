@@ -176,6 +176,9 @@
       ],
       "foldkit/orbit": [
         "./dist/foldkit/orbit.d.mts"
+      ],
+      "math/regression": [
+        "./dist/math/regression.d.mts"
       ]
     }
   },
@@ -375,6 +378,10 @@
     "./foldkit/orbit": {
       "types": "./dist/foldkit/orbit.d.mts",
       "import": "./dist/foldkit/orbit.mjs"
+    },
+    "./math/regression": {
+      "types": "./dist/math/regression.d.mts",
+      "import": "./dist/math/regression.mjs"
     }
   },
   "publishConfig": {

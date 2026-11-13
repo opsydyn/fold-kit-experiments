@@ -51,6 +51,7 @@ import {
   treemapGraphics,
 } from './marks-panel.js';
 import { boxGraphics, linkGraphics, violinGraphics } from './marks-statistical.js';
+import { seriesFieldOf, stackRows, validateStacking } from './stack.js';
 import type {
   Channel,
   ColorScaleSpec,
@@ -125,6 +126,8 @@ const OPTIONS = new Set([
   'nodePadding',
   'dimensions',
   'thresholds',
+  'stack',
+  'group',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -167,6 +170,7 @@ function validateMark(mark: MarkSpec, path: string): void {
   if (mark.mark === 'dot' && isConstant(mark.symbol) && !isSymbol(mark.symbol.value))
     fail(`${path}.symbol`, `unknown symbol "${String(mark.symbol.value)}"`);
   if (mark.mark === 'density') validateDensity(mark, path);
+  if (mark.mark === 'bar' || mark.mark === 'area') validateStacking(mark, path);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
   if ('transform' in mark && mark.transform !== undefined) {
@@ -382,8 +386,31 @@ function applyTransform(
  * density becomes its curve. Runs per facet, before scales are resolved, so
  * the axes cover what is drawn.
  */
-function derive(p: Prepared): Prepared {
+function derive(p: Prepared, spec: PlotSpec): Prepared {
   const { mark } = p;
+  if ((mark.mark === 'bar' || mark.mark === 'area') && mark.stack !== undefined) {
+    const vertical = mark.mark === 'area' || barIsVertical(p, spec);
+    const category = channel(p, vertical ? 'x' : 'y'),
+      value = channel(p, vertical ? 'y' : 'x');
+    if (category === undefined || value === undefined) return p;
+    const stacked = stackRows(
+      mark,
+      p.rows,
+      p.path,
+      category,
+      value,
+      vertical ? 'x' : 'y',
+      vertical ? 'y' : 'x',
+    );
+    return {
+      ...p,
+      rows: stacked.rows,
+      channels: vertical
+        ? { ...p.channels, y: stacked.end, y0: stacked.start }
+        : { ...p.channels, x: stacked.end, x0: stacked.start },
+      replaced: true,
+    };
+  }
   if (mark.mark === 'density' && isOneDimensional(mark)) {
     const curve = densityRows(mark, p.rows, p.path);
     return {
@@ -395,6 +422,23 @@ function derive(p: Prepared): Prepared {
     };
   }
   return p;
+}
+
+/**
+ * Whether a bar stands on the x axis, before scales are resolved: the band axis
+ * is the one the spec says, or else the one whose channel holds strings.
+ */
+function barIsVertical(p: Prepared, spec: PlotSpec): boolean {
+  if (spec.x?.type === 'band') return true;
+  if (spec.y?.type === 'band') return false;
+  const textual = (name: AxisName) => {
+    const own = channel(p, name);
+    const values = own === undefined ? [] : read(p.rows, own, `${p.path}.${name}`);
+    return values.length > 0 && values.every((v) => v === null || isText(v) || isFlag(v));
+  };
+  if (textual('x')) return true;
+  if (textual('y')) return false;
+  return fail(p.path, 'a stacked bar needs one band axis; give x or y the type band');
 }
 
 // ── Scales ────────────────────────────────────────────────────────────────────
@@ -1031,10 +1075,11 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             });
         } else {
           const finite = points.filter((pt) => pt.every(Number.isFinite));
+          const start = channel(p, 'y0');
           const baseline =
-            mark.y0 === undefined
+            start === undefined
               ? y.baseline
-              : read(series, mark.y0, `${path}.y0`)
+              : read(series, start, `${path}.y0`)
                   .map((v, i) => [points[i]?.[0] ?? Number.NaN, y.place(v) ?? Number.NaN] as const)
                   .filter((pt) => pt.every(Number.isFinite));
           const d = area(finite, baseline, curve);
@@ -1059,26 +1104,34 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       const vertical = x.axis.type === 'band';
       if (vertical === (y.axis.type === 'band'))
         fail(path, 'a bar mark needs exactly one band axis');
-      const xs = read(rows, mark.x, `${path}.x`),
-        ys = read(rows, mark.y, `${path}.y`);
-      // Interval bars start where y0 (or x0) says; others start at zero.
-      const from = vertical ? mark.y0 : mark.x0;
+      const xs = read(rows, channel(p, 'x') ?? mark.x, `${path}.x`),
+        ys = read(rows, channel(p, 'y') ?? mark.y, `${path}.y`);
+      // Interval and stacked bars start where y0 (or x0) says; others start at zero.
+      const from = channel(p, vertical ? 'y0' : 'x0');
       const starts =
         from === undefined ? undefined : read(rows, from, `${path}.${vertical ? 'y0' : 'x0'}`);
       const fills = paintOf(rows, mark.fill, `${path}.fill`, context, 'currentColor');
       const strokes = paintOf(rows, mark.stroke, `${path}.stroke`, context, 'none');
+      const category = vertical ? x : y,
+        value = vertical ? y : x;
+      // Grouped bars split each band between the series, in the order they first appear.
+      const groupField = mark.group === true ? seriesFieldOf(mark) : undefined;
+      const groups =
+        groupField === undefined ? [] : read(rows, groupField, `${path}.z`).map(String);
+      const series = [...new Set(groups)];
+      const thickness = category.bandwidth / Math.max(1, series.length);
       return rows.flatMap((_, i) => {
-        const category = vertical ? x : y,
-          value = vertical ? y : x;
-        const start = category.start(vertical ? (xs[i] ?? null) : (ys[i] ?? null));
+        const offset = groupField === undefined ? 0 : series.indexOf(groups[i] ?? '') * thickness;
+        const band = category.start(vertical ? (xs[i] ?? null) : (ys[i] ?? null));
+        const start = band === undefined ? undefined : band + offset;
         const end = value.place(vertical ? (ys[i] ?? null) : (xs[i] ?? null));
         const base = starts === undefined ? value.baseline : value.place(starts[i] ?? null);
         if (start === undefined || end === undefined || base === undefined) return [];
         const lo = Math.min(end, base),
           extent = Math.abs(end - base);
         const rect = vertical
-          ? { x: start, y: lo, width: category.bandwidth, height: extent }
-          : { x: lo, y: start, width: extent, height: category.bandwidth };
+          ? { x: start, y: lo, width: thickness, height: extent }
+          : { x: lo, y: start, width: extent, height: thickness };
         return [
           {
             kind: 'rect' as const,
@@ -1271,7 +1324,7 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
           labels: {},
         },
       );
-      return derive(transformed);
+      return derive(transformed, spec);
     }),
   );
   const all = perFacet.flat();

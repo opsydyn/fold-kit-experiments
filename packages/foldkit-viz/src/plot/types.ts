@@ -67,6 +67,16 @@ export type LineTransform =
   | DownsampleTransform;
 
 /**
+ * How stacked pieces sit: `zero` stacks positive values up and negative values
+ * down from zero; `normalize` scales each stack to one; `center` and `wiggle`
+ * give streamgraph baselines (areas only).
+ */
+export type StackOffset = 'zero' | 'normalize' | 'center' | 'wiggle';
+/** Which series sits nearest the baseline. `input` keeps the order series first appear. */
+export type StackOrder = 'input' | 'ascending' | 'descending' | 'insideOut';
+export type Stack = StackOffset | Readonly<{ offset?: StackOffset; order?: StackOrder }>;
+
+/**
  * Rows to keep at full opacity; the rest are dimmed. Matching is by a field
  * falling in a range (numbers, or ISO dates as instants) or among values.
  */
@@ -126,6 +136,8 @@ export type AreaMark = CommonMark &
     fill?: Channel;
     curve?: CurveType;
     transform?: WindowTransform | ReadonlyArray<WindowTransform>;
+    /** Stack the series (z, or the fill field) at each x. */
+    stack?: Stack;
   }>;
 export type BarMark = CommonMark &
   Readonly<{
@@ -138,6 +150,12 @@ export type BarMark = CommonMark &
     x0?: Channel;
     fill?: Channel;
     stroke?: Channel;
+    /** Field splitting rows into series for stacking or grouping. Default: the fill field. */
+    z?: string;
+    /** Stack the series within each band. */
+    stack?: Stack;
+    /** Place the series side by side within each band. */
+    group?: boolean;
   }>;
 /** A box plot per category: one axis a band of categories, the other the values. */
 export type BoxMark = CommonMark &

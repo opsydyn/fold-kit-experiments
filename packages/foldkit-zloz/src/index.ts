@@ -315,6 +315,13 @@ export type {
   ZlozEventStormingRelationshipEditDecision,
 } from './relationship-controls';
 
+export { auditDddRelationships } from './ddd-relationship-audit';
+export type {
+  ZlozDddRelationshipAuditCode,
+  ZlozDddRelationshipAuditEntry,
+  ZlozDddRelationshipAudit,
+} from './ddd-relationship-audit';
+
 export { auditEventStormingRelationships } from './relationship-audit';
 export type {
   ZlozRelationshipAuditCode,

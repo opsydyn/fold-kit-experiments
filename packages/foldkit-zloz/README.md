@@ -4997,3 +4997,40 @@ and **Use retained layout in SVG** controls. Missing PNG routes show an Arrange
 reason. Changing either setting preserves source/Undo; the other format keeps its
 choice. Renderer keys and invalidation remain host-owned. No source wire format,
 provider activation or publishing is implied.
+
+### Read-only DDD relationship audit (unreleased)
+
+```typescript
+import { auditDddRelationships, parseGraph } from '@opsydyn/foldkit-zloz';
+
+const graph = parseGraph(documentJson);
+const report = auditDddRelationships(graph);
+// Or pass { rules: yourDddCatalogue } to replace the default convention.
+```
+
+`auditDddRelationships` validates the typed graph, then uses the existing
+`resolveDddRelationship` conventions for every authored DDD edge. It returns
+`ZlozDddRelationshipAudit` with deterministic UTF-16 edge-ID order and an
+`edges / typed / unrelated / blocked` summary. Entries include detached endpoint
+IDs, label (null when absent), authored descriptor/convention key, code and message.
+Nested upstream role lists are copied. Graph, editor state, Undo and policies are
+unchanged; host data, endpoint extras and rule objects are not included.
+
+A DDD edge is `typed`/`compatible` or `blocked` by the selected convention. Untyped
+and other-family edges are `unrelated`; node roles and labels do not infer meaning.
+A compatible report means zero blocked DDD edges, including on empty/unrelated
+models. It does not mean all edges are typed or the architecture is universally
+correct. Optional side roles stay optional; no aggregate ownership, topology,
+cycles, mandatory annotations or executable consumption rules are invented.
+
+Custom rules **replace** the default catalogue. Invalid rules throw `invalid-edit`
+even when there are no DDD edges. Invalid graph/descriptor/endpoint structure throws
+`invalid-graph`, rather than becoming a semantic finding. Decode untrusted text
+with the existing codecs first; this is a typed in-process audit, not a decoder or
+a report wire-format version. Reports use existing resolver codes and messages.
+
+Core import remains safe in Node/Bun without UI peers. The causal audit, current
+CLI audit/compare commands and review packets remain EventStorming-scoped; this
+slice does not add DDD CLI/UI, edition comparison, permission to Apply or a new
+serialization format. See [ADR 0078](../../docs/adr/0078-audit-declared-ddd-relationships.md)
+and [qualification](evidence/ddd-relationship-audit.md).

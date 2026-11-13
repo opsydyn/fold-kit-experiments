@@ -308,6 +308,8 @@ export function isEdgeArchitecture(value: unknown): value is ZlozEdgeArchitectur
   return isEventStormingEdgeArchitecture(value) || isDddEdgeArchitecture(value);
 }
 /** Detached at the edit boundary; descriptors cannot alias a caller's mutable role list. @internal */
+export function copyEdgeArchitecture(value: DddEdgeArchitecture): DddEdgeArchitecture;
+export function copyEdgeArchitecture(value: ZlozEdgeArchitecture): ZlozEdgeArchitecture;
 export function copyEdgeArchitecture(value: ZlozEdgeArchitecture): ZlozEdgeArchitecture {
   return value.family === 'ddd' &&
     value.scope === 'strategic' &&

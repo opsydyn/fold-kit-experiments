@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add headless DDD relationship audit with deterministic detached reports, current convention resolution, explicit unrelated edges and separate graph/catalogue validation; no inferred meaning or graph mutations.
+
 - Adopt retained-layout PNG review/encoding with immutable queued route/label snapshots, independent workbench opt-in, stale-result suppression and existing pixel/byte budgets.
 
 - Render opted-in retained SVG routes and centre-anchored labels; expose frozen geometry to vector adapters and exact-artifact review. Correct retained label bounds to use the native centre-anchor convention.

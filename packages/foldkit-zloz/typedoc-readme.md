@@ -464,3 +464,15 @@ controls under `/foldkit`, and optional real encoding/download IO under `/browse
 Review fidelity findings and rasterization loss before rendering. Preview and
 download use identical PNG bytes; stale source/settings and live protection block
 publication. See the package README and ADR 0063 for resource limits and ownership.
+
+## Read-only DDD relationship audit
+
+{@link Core.auditDddRelationships | auditDddRelationships} produces a detached
+{@link Core.ZlozDddRelationshipAudit | ZlozDddRelationshipAudit} using the existing
+{@link Core.ZlozDddRelationshipOptions | DDD convention options}. Every authored
+edge is represented in UTF-16 ID order as typed-compatible, blocked or unrelated.
+No DDD meaning is inferred from untyped or other-family edges. Compatible means
+zero blocked DDD edges under the catalogue, not full typing or universal correctness.
+Graph structure and convention errors reject separately from semantic findings.
+Source/Undo and wire formats are unchanged. CLI, comparison and workbench integration
+remain separate follow-ups; causal reports keep their EventStorming scope.

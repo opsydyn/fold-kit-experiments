@@ -1,5 +1,11 @@
 # Zloz domain and compatibility reconciliation
 
+Delivery follow-up: the approved headless DDD audit is now implemented locally;
+see [ADR 0078](../adr/0078-audit-declared-ddd-relationships.md) and
+[package qualification](../../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
+The recommendation and inventory below retain their `e9ab5880` baseline. Broader
+DDD catalogue decisions and optional CLI/review/comparison work remain open.
+
 Date: 2026-11-13. Inspected package source: `e9ab5880`, isolated branch
 `codex/zloz-context-map`. This updates the D/C/Q inventory and recommendation in
 [the November 12 audit](2026-11-12-zloz-core-completion-audit.md); its dated evidence

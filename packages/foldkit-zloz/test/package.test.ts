@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 import elkManifest from '../../foldkit-zloz-elk/package.json';
 import coreManifest from '../package.json';
+import dddAuditWire from './fixtures/ddd-audit-v1.json';
 
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -60,7 +61,7 @@ console.log('browser-import-ok');`;
     }
     const architectureSource = `import { renderPngExport, type ZlozPngBrowserOptions } from '@opsydyn/foldkit-zloz/browser';
 const pngOptions:ZlozPngBrowserOptions={timeoutMs:1000};void pngOptions;void renderPngExport;
-import { inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
+import { auditDddRelationships, type ZlozDddRelationshipAudit, type ZlozDddRelationshipAuditEntry, type ZlozDddRelationshipAuditCode, inspectSvgFontCoverage, validateSvgFontResource, type ZlozSvgFontResource, createSvgReview, resolveSvgReview, updateSvgReview, type ZlozSvgReviewContext } from '@opsydyn/foldkit-zloz';
 import { writeSvgExport, type ZlozSvgPrimitive, type ZlozSvgAdapter, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
@@ -75,6 +76,13 @@ const declaredDecision=resolveDeclaredConsumption({nodes:[declaredSource,declare
 if(!isDeclaredConsumption(declaredConsumption)||declaredDecision.type!=='allowed'||declaredDecision.sourceRole!=='aggregate-root'||declaredDecision.relationship.architecture.role!=='feeds'||declaredConsumptionArchitecture.scope!=='tactical')throw new Error('Missing framework-neutral consumption contract');
 // @ts-expect-error A logical declaration never implies a runtime event filter
 const executableConsumption:ZlozDeclaredConsumption={sourceNodeId:'a',consumerNodeId:'b',events:['Deposited']};void executableConsumption;
+const packedDddGraph=parseWaypointGraph(${JSON.stringify(JSON.stringify(dddAuditWire))});
+const packedDddAudit:ZlozDddRelationshipAudit=auditDddRelationships(packedDddGraph);
+const packedDddEntry:ZlozDddRelationshipAuditEntry=packedDddAudit.entries[0]!;
+const packedDddCode:ZlozDddRelationshipAuditCode=packedDddEntry.code;void packedDddCode;
+if(packedDddAudit.status!=='incompatible'||packedDddAudit.summary.typed!==4||packedDddAudit.summary.blocked!==5||packedDddAudit.summary.unrelated!==2||packedDddAudit.entries.map(entry=>entry.edgeId).join('|')!=='A-emits|b-strategic|c-side-absent|d-role|e-custom|f-self|g-foreign-participant|i-causal|j-bad-feed|z-feeds|á-untyped')throw new Error('Packed DDD audit contract failed');
+// @ts-expect-error Authored DDD audits have no inference status.
+const inferredDdd:ZlozDddRelationshipAuditEntry['status']='inferred';void inferredDdd;
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
 const invalidFont:ZlozSvgFontResource={assetId:'font',format:'truetype',bytes:new Uint8Array([0,1,2])};
 if(validateSvgFontResource(invalidFont).type!=='invalid')throw new Error('Missing font validation contract');

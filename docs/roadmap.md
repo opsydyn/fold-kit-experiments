@@ -211,9 +211,11 @@ are not approved exclusions. Historical receipts qualify only their stated scope
    rows remain open.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
-3. **Domain and compatibility decisions (D1–D2, C1–C4):** the current reconciliation
-   recommends a headless DDD relationship audit next (D2), reusing the existing
-   resolver/catalogue. D1 workshop vocabulary and EventStorming-to-C4 conversion
+3. **Domain and compatibility decisions (D1–D2, C1–C4):** the current branch
+   now has a locally implemented headless DDD audit (D2), reusing the existing
+   resolver/catalogue; see [qualification](../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
+   Broader DDD findings and CLI/review/comparison integration remain separate.
+   D1 workshop vocabulary and EventStorming-to-C4 conversion
    remain separate gaps. Strict output→input, world-coordinate/portless groups,
    the documented ELK/flat-force envelope and advanced catalogue deferrals need
    explicit scope approval or further implementation. They are not closed by
@@ -836,10 +838,18 @@ items, proposed item-specific deferrals and Q/R evidence gaps. No scope deferral
 is silently approved; full parity, core completion and a validated USP remain
 unestablished. This closes the preceding documentation proposal.
 
-**Recommended next core feature: headless DDD relationship audit (D2).** Reuse
-`resolveDddRelationship` and configurable conventions to report typed, unrelated
-and blocked authored edges deterministically, without graph edits, inference or
-new wire formats. The assessment defines literal expected reports, custom-rule,
-immutability and packed-consumer acceptance criteria. CLI, workbench and edition
-comparison follow after the package report. Recommendation: **pursue on approval**;
-this roadmap commit implements no audit API or release change.
+**Headless DDD audit — implemented locally (2026-11-13), unreleased:**
+`auditDddRelationships` uses the current resolver/catalogue and returns deterministic
+entries for every authored edge: typed-compatible, blocked or unrelated. Structural
+graph errors and invalid conventions reject separately; nested descriptors and
+endpoints are detached. No meaning is inferred or graph/Undo/wire formats changed.
+Literal expected reports and installed consumers qualify the headless contract.
+See [ADR 0078](adr/0078-audit-declared-ddd-relationships.md) and
+[package evidence](../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
+This closes the prior headless-report recommendation, not D2's wider catalogue,
+UI/CLI/delta integration or the remaining D/C/Q/release gates.
+
+**Recommended next:** expose the DDD report through the Effect CLI with structured
+JSON and explicit validation/incompatibility exit behavior, keeping causal commands
+family-scoped. Workbench finding navigation and edition comparison follow as
+separately bounded slices. No npm publishing or provider activation is implied.

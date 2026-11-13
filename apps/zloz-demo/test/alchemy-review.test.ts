@@ -252,3 +252,106 @@ test('finding navigation selects/reveals only the detached target, rejects stale
   expect(blocked.alchemyReview.notice).toContain('read');
   expect(workbenchAlchemyFindings(pending)?.entries.every((e) => e.reason !== null)).toBe(true);
 });
+
+test('opt-in ELK preview layout preserves source/findings and working history; original geometry is reversible and finding requests remain valid', async () => {
+  const source = init().model;
+  let model = open(source);
+  const review = model.alchemyReview.review;
+  assert(review);
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id: review.id,
+      message: { type: 'SurfaceMeasured', size: { width: 1100, height: 700 } },
+    }),
+  ).model;
+  const row = workbenchAlchemyFindings(model)?.entries.find((e) => e.label === 'Ledger (stream)');
+  assert(row?.request);
+  const started = update(model, Message.ClickedAlchemyLayout({ id: review.id }));
+  assert(started.commands?.[0]);
+  const message = await Effect.runPromise(started.commands[0].effect);
+  expect(message._tag).toBe('SucceededAlchemyLayout');
+  const arranged = update(started.model, message).model,
+    next = arranged.alchemyReview.review;
+  assert(next);
+  expect(next.layout.displayed).toBe('elk');
+  expect(next.layout.pending).toBeNull();
+  expect(next.projection).toBe(review.projection);
+  expect(next.editor.readOnly).toBe(true);
+  expect(next.editor.past).toBe(review.editor.past);
+  expect(next.editor.future).toBe(review.editor.future);
+  expect(next.editor.routes).toHaveLength(8);
+  expect(next.editor.graph.nodes.map((n) => n.position)).not.toEqual(
+    review.editor.graph.nodes.map((n) => n.position),
+  );
+  expect(next.editor.graph.nodes.map(({ position, size, ...n }) => n)).toEqual(
+    review.editor.graph.nodes.map(({ position, size, ...n }) => n),
+  );
+  preserved(source, arranged);
+  const focused = update(
+    arranged,
+    Message.ClickedAlchemyFinding({ id: review.id, request: row.request }),
+  ).model;
+  expect(focused.alchemyReview.review?.editor.selectedNodes).toEqual([
+    'example%2Fbank/Bank/stream/Ledger',
+  ]);
+  const restored = update(focused, Message.ClickedRestoreAlchemyLayout({ id: review.id })).model;
+  expect(restored.alchemyReview.review?.layout.displayed).toBe('original');
+  expect(restored.alchemyReview.review?.editor.graph).toEqual(review.editor.graph);
+  expect(restored.alchemyReview.review?.editor.routes).toEqual([]);
+  expect(restored.alchemyReview.review?.editor.selectedNodes).toEqual([
+    'example%2Fbank/Bank/stream/Ledger',
+  ]);
+  preserved(source, restored);
+});
+test('cancel, replacement, navigation and malformed layout results retain the last valid preview and discard late results', async () => {
+  let model = open();
+  const review = model.alchemyReview.review;
+  assert(review);
+  model = update(
+    model,
+    Message.ObservedAlchemyInput({
+      id: review.id,
+      message: { type: 'SurfaceMeasured', size: { width: 900, height: 600 } },
+    }),
+  ).model;
+  const started = update(model, Message.ClickedAlchemyLayout({ id: review.id }));
+  assert(started.commands?.[0]);
+  const completed = await Effect.runPromise(started.commands[0].effect);
+  const cancelled = update(
+    started.model,
+    Message.ClickedCancelAlchemyLayout({ id: review.id }),
+  ).model;
+  expect(update(cancelled, completed).model).toBe(cancelled);
+  const replaced = open(started.model, sample.replace('fixture-v1', 'fixture-v2'));
+  expect(update(replaced, completed).model).toBe(replaced);
+  const navigated = update(
+    started.model,
+    Message.ObservedAlchemyInput({
+      id: review.id,
+      message: { type: 'NodeSelected', id: 'example%2Fbank/Bank/stream/Ledger', additive: false },
+    }),
+  ).model;
+  expect(navigated.alchemyReview.review?.layout.pending).toBeNull();
+  expect(update(navigated, completed).model).toBe(navigated);
+  const active = started.model.alchemyReview.review?.layout.pending;
+  assert(active);
+  const malformed = update(
+    started.model,
+    Message.SucceededAlchemyLayout({
+      id: review.id,
+      result: { requestId: active.requestId, revision: active.revision, positions: [], routes: [] },
+    }),
+  ).model;
+  expect(malformed.alchemyReview.review?.editor).toBe(started.model.alchemyReview.review?.editor);
+  expect(malformed.alchemyReview.notice).toContain('preserved');
+  expect(malformed.alchemyReview.review?.layout.pending).toBeNull();
+  const failed = update(
+    started.model,
+    Message.FailedAlchemyLayout({ id: review.id, requestId: active.requestId }),
+  ).model;
+  expect(failed.alchemyReview.review?.editor).toBe(started.model.alchemyReview.review?.editor);
+  expect(failed.alchemyReview.review?.layout.pending).toBeNull();
+  const blocked = update(open(), Message.ClickedAlchemyLayout({ id: review.id }));
+  expect(blocked.commands).toBeUndefined();
+});

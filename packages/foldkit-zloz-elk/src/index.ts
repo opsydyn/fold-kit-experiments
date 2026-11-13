@@ -57,6 +57,13 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
     const nodeIds = new Map(request.graph.nodes.map((node, index) => [node.id, `n:${index}`]));
     const portIds = new Map<string, Map<string, string>>();
     const hasGroups = request.graph.nodes.some((node) => node.kind === 'group');
+    const layoutOptions = {
+      'elk.algorithm': 'layered',
+      'elk.direction': options.direction ?? 'RIGHT',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.spacing.nodeNode': String(spacing),
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(spacing),
+    } as const;
     const children: ElkNode[] = [];
     const elkNodes = new Map(
       request.graph.nodes.map((node, index): [string, ElkNode] => {
@@ -68,7 +75,10 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
               width: node.size.width,
               height: node.size.height,
               children: [],
-              layoutOptions: { 'elk.padding': '[top=52,left=24,bottom=24,right=24]' },
+              layoutOptions: {
+                ...layoutOptions,
+                'elk.padding': '[top=52,left=24,bottom=24,right=24]',
+              },
             },
           ];
         const ports = new Map(node.ports.map((port, at) => [port.id, `p:${index}:${at}`]));
@@ -109,14 +119,10 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
     const graph: ElkNode = {
       id: 'graph',
       layoutOptions: {
-        'elk.algorithm': 'layered',
+        ...layoutOptions,
         'elk.hierarchyHandling': hasGroups ? 'INCLUDE_CHILDREN' : 'SEPARATE_CHILDREN',
         'elk.json.shapeCoords': 'ROOT',
         'elk.json.edgeCoords': 'ROOT',
-        'elk.direction': options.direction ?? 'RIGHT',
-        'elk.edgeRouting': 'ORTHOGONAL',
-        'elk.spacing.nodeNode': String(spacing),
-        'elk.layered.spacing.nodeNodeBetweenLayers': String(spacing),
       },
       children,
       edges: request.graph.edges.map((edge, index) => ({

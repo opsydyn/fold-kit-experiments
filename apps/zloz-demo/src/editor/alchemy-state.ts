@@ -1,4 +1,4 @@
-import type { EditorState } from '@opsydyn/foldkit-zloz';
+import type { EditorState, LayoutRequest } from '@opsydyn/foldkit-zloz';
 import type { AlchemyProjection } from '@opsydyn/foldkit-zloz-alchemy';
 export type AlchemyReviewState = Readonly<{
   text: string;
@@ -8,6 +8,12 @@ export type AlchemyReviewState = Readonly<{
     id: number;
     projection: Extract<AlchemyProjection, { type: 'reviewable' }>;
     editor: EditorState;
+    layout: Readonly<{
+      run: number;
+      direction: 'RIGHT' | 'DOWN';
+      displayed: 'original' | 'elk';
+      pending: LayoutRequest | null;
+    }>;
   }> | null;
   notice: string;
 }>;

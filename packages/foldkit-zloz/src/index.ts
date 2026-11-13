@@ -66,7 +66,7 @@ export {
   zoomAt,
   edgePath,
 } from './geometry';
-export { layoutRequest, applyLayout } from './layout';
+export { layoutRequest, applyLayout, applyPreviewLayout } from './layout';
 export { resolveEdgeGeometry } from './edge-geometry';
 export type {
   ZlozEdgeGeometry,

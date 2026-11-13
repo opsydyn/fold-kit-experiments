@@ -224,3 +224,36 @@ test('custom anchors retain their boundary hints for every side under real ELK',
     expect(route.points.at(-2)?.y).toBeCloseTo(portBoundaryPosition(target, 'in').y, 8);
   }
 });
+
+test('configured spacing and direction apply inside a compound boundary', async () => {
+  const spacing = 160;
+  const before = createEditor({
+    nodes: [
+      {
+        id: 'boundary',
+        kind: 'group',
+        label: 'Boundary',
+        position: { x: 0, y: 0 },
+        size: { width: 600, height: 400 },
+        ports: [],
+      },
+      ...graph.nodes.map((n) => ({ ...n, parentId: 'boundary' })),
+    ],
+    edges: graph.edges,
+  });
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const request = layoutRequest(before, `nested-${direction}`);
+    const result = await createElkLayout({ direction, spacing })(request);
+    const a = result.positions.find((p) => p.id === 'root'),
+      b = result.positions.find((p) => p.id === 'n:0');
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    if (!a || !b) return;
+    const source = before.graph.nodes.find((n) => n.id === 'root');
+    expect(source).toBeDefined();
+    if (!source) return;
+    const gap =
+      direction === 'RIGHT' ? b.x - a.x - source.size.width : b.y - a.y - source.size.height;
+    expect(gap).toBeGreaterThanOrEqual(spacing);
+  }
+});

@@ -4630,3 +4630,36 @@ artwork and reports semantic-edge fallback through its existing findings.
 
 [ADR 0065](../../docs/adr/0065-declare-read-model-consumption-without-runtime-semantics.md) ·
 [Contract qualification](evidence/declared-consumption.md).
+
+## Read-only preview layout (unreleased)
+
+`applyPreviewLayout(preview, currentActiveRequest, result)` applies layout geometry
+only to a detached **read-only** editor. It reuses the same complete-node, finite
+geometry, group-size and route validation as `applyLayout`, with the same request,
+revision and idle-gesture guards. Writable editors are ignored by this preview API.
+`applyLayout` retains its normal editable/Undo contract.
+
+```typescript
+import { layoutRequest, applyPreviewLayout } from '@opsydyn/foldkit-zloz';
+
+const request = layoutRequest(preview, 'descriptor:17:layout:1');
+// Store request in the host Model, then run the chosen LayoutEngine in a Command.
+// On completion, pass the CURRENT active request, not a captured old request:
+const nextPreview = applyPreviewLayout(currentPreview, currentActiveRequest, result);
+```
+
+A valid application changes node positions, group bounds and routes; IDs, labels,
+ports, parentage, architecture and data remain current-editor owned. Selection,
+readOnly and past/future references are preserved. The preview revision advances
+once so the same result cannot apply twice. Invalid current geometry throws before
+publication; stale/busy results return the same editor. Route arrays/points and
+positions are detached. Core does not import an engine, run effects, fit the camera,
+check source authorship or manage cancellation. Hosts own the matching detached
+editor, active request and source/review identity, and can compose a FitViewClicked
+navigation event after publication.
+
+The Zloz workbench's Domain review demonstrates explicit ELK Arrange/Cancel,
+RIGHT/DOWN, Restore original, finding navigation and unchanged working history.
+See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).
+This API is qualified against this branch's source/artifact; published 0.3.0 does
+not contain it. No npm publication is implied.

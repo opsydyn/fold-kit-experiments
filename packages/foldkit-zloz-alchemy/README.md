@@ -169,3 +169,13 @@ and collapsed-view state; graph/Undo remain unchanged. The helper itself execute
 nothing. The workbench's Domain review demonstrates native keyboard buttons,
 selection feedback and reasons even in Minimal mode. See
 [finding navigation evidence](../../apps/zloz-demo/evidence/alchemy-finding.md).
+
+### Opt-in preview layout
+
+Domain review now offers explicit ELK Arrange/Cancel, RIGHT/DOWN and Restore original
+controls. Core's `applyPreviewLayout` validates and publishes geometry only into the
+detached editor. The descriptor/projection, source IDs, coverage and findings remain
+unchanged; existing finding requests resolve current geometry after layout/restore.
+The portable adapter still imports neither ELK nor the Domain SDK. The workbench
+loads ELK through a Command only after opt-in, and discards stale or cancelled work.
+See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).

@@ -826,6 +826,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedAlchemyReview: () => updateAlchemyReview(model, message),
     ClickedAlchemyFinding: () => updateAlchemyReview(model, message),
     ClickedAlchemyExample: () => updateAlchemyReview(model, message),
+    SelectedAlchemyLayoutDirection: () => updateAlchemyReview(model, message),
+    ClickedAlchemyLayout: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyLayout: () => updateAlchemyReview(model, message),
+    ClickedRestoreAlchemyLayout: () => updateAlchemyReview(model, message),
+    SucceededAlchemyLayout: () => updateAlchemyReview(model, message),
+    FailedAlchemyLayout: () => updateAlchemyReview(model, message),
+
     ChoseAlchemyFiles: () => updateAlchemyReview(model, message),
     SucceededAlchemyRead: () => updateAlchemyReview(model, message),
     FailedAlchemyRead: () => updateAlchemyReview(model, message),

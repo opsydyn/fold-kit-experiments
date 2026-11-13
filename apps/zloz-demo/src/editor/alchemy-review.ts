@@ -14,6 +14,12 @@ import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
 import example from './alchemy-example.json';
+import {
+  alchemyLayoutControls,
+  cancelAlchemyLayout,
+  isAlchemyLayoutMessage,
+  updateAlchemyLayout,
+} from './alchemy-layout';
 import type { AlchemyReviewState } from './alchemy-state';
 import { alchemyTextLimits, decodeAlchemyText } from './alchemy-text';
 import { ReadAlchemyDescriptor } from './command';
@@ -33,7 +39,8 @@ const own = new Set([
   'ClickedCloseAlchemyReview',
   'ObservedAlchemyInput',
 ]);
-export const isAlchemyMessage = (message: Message) => own.has(message._tag);
+export const isAlchemyMessage = (message: Message) =>
+  own.has(message._tag) || isAlchemyLayoutMessage(message);
 const common = new Set([
   'SelectedThemePreference',
   'ChangedSystemColorScheme',
@@ -53,6 +60,7 @@ const common = new Set([
 export function alchemyAllowsMessage(message: Message) {
   return (
     isAlchemyMessage(message) ||
+    isAlchemyLayoutMessage(message) ||
     common.has(message._tag) ||
     (message._tag === 'SelectedWorkbenchSection' &&
       (message.section === 'alchemy' || message.section === 'diagnostics'))
@@ -85,6 +93,7 @@ function publish(model: Model, text: string): Model {
             text,
             run,
             pending: null,
+            review: cancelAlchemyLayout(state.review),
             notice: `Rejected: ${result.findings.map((f) => f.reason).join(' ')} Previous review and working model preserved.`,
           }
         : {
@@ -96,6 +105,7 @@ function publish(model: Model, text: string): Model {
               id: run,
               projection: result,
               editor: createEditor(result.graph, { readOnly: true }),
+              layout: { run: 0, direction: 'RIGHT', displayed: 'original', pending: null },
             },
             notice: 'Read-only descriptor review opened. Working model and Undo preserved.',
           },
@@ -112,11 +122,13 @@ function matches(model: Model, run: number) {
 function findingOptions(model: Model) {
   return {
     scope: `alchemy:${model.alchemyReview.review?.id ?? 'none'}`,
-    blockedReason: model.alchemyReview.pending
-      ? 'Finish or cancel the descriptor read before revealing findings.'
-      : model.sidebarCollapsed || model.sidebarSection !== 'alchemy'
-        ? 'Show Domain review before revealing a finding.'
-        : null,
+    blockedReason: model.alchemyReview.review?.layout.pending
+      ? 'Finish or cancel the preview layout before revealing findings.'
+      : model.alchemyReview.pending
+        ? 'Finish or cancel the descriptor read before revealing findings.'
+        : model.sidebarCollapsed || model.sidebarSection !== 'alchemy'
+          ? 'Show Domain review before revealing a finding.'
+          : null,
   };
 }
 export function workbenchAlchemyFindings(model: Model) {
@@ -126,6 +138,7 @@ export function workbenchAlchemyFindings(model: Model) {
     : null;
 }
 export function updateAlchemyReview(model: Model, message: Message): Return<Model, Message> {
+  if (isAlchemyLayoutMessage(message)) return updateAlchemyLayout(model, message);
   const state = model.alchemyReview;
   const write = (next: AlchemyReviewState): Return<Model, Message> => ({
     model: { ...model, alchemyReview: next },
@@ -138,6 +151,7 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
             ...state,
             run: state.run + 1,
             pending: null,
+            review: cancelAlchemyLayout(state.review),
             notice:
               'Rejected: descriptor exceeds 1 MiB of UTF-8 text. Previous draft and review preserved.',
           })
@@ -146,6 +160,7 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
             text,
             run: state.run + 1,
             pending: null,
+            review: cancelAlchemyLayout(state.review),
             notice: 'Draft changed. Choose Review descriptor to replace the preview.',
           }),
     ),
@@ -188,6 +203,7 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
           ...state,
           run,
           pending: null,
+          review: cancelAlchemyLayout(state.review),
           notice:
             'Rejected: choose one UTF-8 JSON descriptor, at most 1 MiB. Previous review preserved.',
         });
@@ -198,6 +214,7 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
             ...state,
             run,
             pending: { run, modelId: model.modelIdentity.id, epoch: model.modelEpoch },
+            review: cancelAlchemyLayout(state.review),
             notice: 'Reading descriptor for read-only review…',
           },
         },
@@ -251,7 +268,21 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
         next = updateHistoryReview(next, { type: 'FitViewClicked' });
       return next.editor === review.editor
         ? { model }
-        : write({ ...state, review: { ...review, editor: next.editor } });
+        : write({
+            ...state,
+            review: {
+              ...review,
+              editor: next.editor,
+              layout:
+                review.layout.pending && event.type !== 'SurfaceMeasured'
+                  ? { ...review.layout, pending: null }
+                  : review.layout,
+            },
+            notice:
+              review.layout.pending && event.type !== 'SurfaceMeasured'
+                ? 'Preview navigation cancelled the pending layout. Previous geometry preserved.'
+                : state.notice,
+          });
     }),
     Match.orElse(() => ({ model })),
   );
@@ -334,6 +365,7 @@ export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
       h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
       ...(review
         ? [
+            alchemyLayoutControls(model, h),
             h.h3([], ['Source provenance']),
             h.dl(
               [h.Class('alchemy-provenance')],

@@ -686,3 +686,20 @@ This completes the finding-navigation slice above, not general Domain fidelity o
 broader D/C/Q closure. Next proposed slice: opt-in descriptor-preview layout using
 the existing ELK adapter, preserving source identity/findings while improving dense
 relation-label readability. Recommendation: **needs review**.
+
+**Opt-in descriptor preview layout — implemented locally (2026-11-13):**
+Core now exposes `applyPreviewLayout`, sharing geometry validation with normal
+layout while preserving read-only state and Undo. Domain review lazily invokes the
+existing ELK adapter on explicit Arrange, with RIGHT/DOWN, Cancel and Restore
+original controls. Source projection/IDs/coverage/findings and working model/history
+remain unchanged. Scoped active requests reject stale, failed or cancelled results;
+preview navigation invalidates pending work. Finding requests survive layout and
+restore. A reproduced grouped ELK option bug is fixed: direction/spacing now reach
+group parents as well as root. Real engine, installed-consumer, workbench and browser
+checks retain inspected light/dark evidence. SDK/runtime/publication gates remain.
+See [ADR 0070](adr/0070-layout-detached-descriptor-previews-with-elk.md),
+[core API](../packages/foldkit-zloz/README.md#read-only-preview-layout-unreleased)
+and [qualification/captures](../apps/zloz-demo/evidence/alchemy-layout.md).
+This completes the preview-layout slice above, not D/C/Q or full label fidelity.
+Next proposed slice: package-level edge-label bounds in layout requests, allowing
+ELK to reserve space for labels and custom badges. Recommendation: **needs review**.

@@ -67,3 +67,17 @@ real layout plus the optional FoldKit renderer.
 
 See [publication standards](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md) and
 [dependency notices](THIRD-PARTY-NOTICES.md).
+
+### Compound preview layouts (unreleased)
+
+Configured `direction` and `spacing` now apply to root **and group parent**
+containers. A real-engine regression retains at least the requested inter-layer
+gap for RIGHT and DOWN inside a boundary; nested-boundary routes and custom anchors
+remain tested. This corrects grouped children silently using ELK defaults.
+
+For a detached read-only editor, compose `layoutRequest`, `createElkLayout` and
+core's `applyPreviewLayout`; use `applyLayout` for normal undoable editing. The
+workbench opts into ELK on explicit request, with direction controls, logical
+cancellation, geometry-only restoration and preserved source/findings. See
+[qualification](../../apps/zloz-demo/evidence/alchemy-layout.md). Label dimensions
+are not yet supplied to ELK, so this is not a universal label-collision guarantee.

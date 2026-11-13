@@ -134,18 +134,24 @@ track.
 **Mini map discoverability — delivered:** Navigation exposes a **Mini map** toggle
 using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
-## Zloz core: parity and domain modelling — reconciled 2026-11-12
+## Zloz core: parity and domain modelling — reconciled 2026-11-13
 
-**Source baseline:** `03e972b` on the isolated `codex/zloz-context-map` branch.
+**Current source baseline:** `e9ab5880` on the isolated `codex/zloz-context-map` branch.
+The November 12 audit retains its original `03e972b` baseline as historical evidence.
 Package manifests identify 0.3.0; branch implementation, registry publication and
 hosted deployment are separate states. This reconciliation does not verify current
 PR/CI/registry status and authorizes no npm publication or deployment. The Effect
-CLI publication remains deferred; this branch lacks the ADR-required
-`private: true` manifest guard, tracked in the audit as R1.
+CLI publication remains deferred; this branch lacks the requested
+`private: true` manifest guard, tracked as R1. The inspected publication ADR is
+still marked Proposed and does not itself specify that field; the current
+reconciliation corrects the older audit's attribution.
 
-The [core completion audit](assessments/2026-11-12-zloz-core-completion-audit.md)
-maps public APIs to source, tests and recorded evidence, separates completed DDD
-conversion from remaining portability work, and defines the closure criteria below.
+The [November 13 domain/compatibility reconciliation](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+is the current D/C/Q inventory and next-feature recommendation at `e9ab5880`.
+It supersedes the priorities in the [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-audit.md),
+which remains a dated source/evidence baseline. Authored edges, palette placement,
+portable review/Apply and retained SVG/PNG implementation chains are delivered
+locally within their documented limits; qualification and scope decisions remain.
 
 The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
 is a historical gap analysis, not a current inventory. Full React Flow parity,
@@ -175,15 +181,19 @@ preserves identity, editions and origin that diagram-only imports omit.
 
 ### Remaining work and completion criteria
 
-Core is **not complete**. The detailed
-[audit contracts and gates](assessments/2026-11-12-zloz-core-completion-audit.md)
-are the current checklist; historical receipts qualify only their stated scope.
+Core is **not complete**. The current
+[domain/compatibility decisions and qualification gates](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+identify implemented work, unresolved gaps and proposed dispositions. Recommendations
+are not approved exclusions. Historical receipts qualify only their stated scope.
 
 1. **Editor floor (E1–E3):** E1 waypoint data/controls and E2 normalized palette
    placement/interaction are implemented below, with package tests and local
    browser evidence. The E3 SVG planning contract is implemented below; SVG
    writing and representative browser qualification are implemented below;
-   SVG review/download controls are also implemented below; PNG is now implemented locally (see ADR 0063/evidence below). Physical-device/manual AT
+   SVG/PNG review/download and opt-in retained routes/centre label envelopes are
+   implemented locally; see [SVG evidence](../apps/zloz-demo/evidence/svg-retained.md)
+   and [PNG evidence](../apps/zloz-demo/evidence/png-retained.md). These chains no
+   longer need new implementations. Physical-device/manual AT
    acceptance remains distinct from synthetic and Chromium qualification; these
    branch additions are unreleased.
 2. **Portable review lifecycle (P1–P2):** strict packet decoding, Effect CLI
@@ -196,15 +206,18 @@ are the current checklist; historical receipts qualify only their stated scope.
    P2's remaining local chain is implemented: Effect CLI dry run, exact-content
    review/acknowledgement, policy-aware atomic Apply, one Undo and retained/downloaded
    provenance. See [completion evidence](../apps/zloz-demo/evidence/p2-completion.md).
-   PNG export is implemented locally; the Alchemy integration review is complete, with a bounded declaration-fidelity spike proposed. Broader D/C/Q audit rows remain tracked.
+   The separately scoped Alchemy review/private descriptor adapter has local
+   progress; SDK/provider/publication gates remain separate. Broader D/C/Q audit
+   rows remain open.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
-3. **Domain and compatibility decisions (D1–D2, C1–C4):** explicitly disposition
-   broader EventStorming vocabulary, C4 mapping, DDD audit coverage, loose
-   connections, group contracts, layout envelope and advanced catalogue features.
-   EventStorming-to-DDD preview, consent, Apply and portable provenance are already
-   implemented below. Unresolved scope is not parity and requires an explicit
-   decision rather than an implied exclusion.
+3. **Domain and compatibility decisions (D1–D2, C1–C4):** the current reconciliation
+   recommends a headless DDD relationship audit next (D2), reusing the existing
+   resolver/catalogue. D1 workshop vocabulary and EventStorming-to-C4 conversion
+   remain separate gaps. Strict output→input, world-coordinate/portless groups,
+   the documented ELK/flat-force envelope and advanced catalogue deferrals need
+   explicit scope approval or further implementation. They are not closed by
+   custom renderers or this recommendation. DDD conversion is already delivered.
 4. **Qualification (Q1–Q4):** refresh packed consumer/SSR-hydration evidence and
    representative benchmarks with agreed budgets. Run comprehensive accessibility
    and device acceptance after functional work; accessible interaction remains a
@@ -816,7 +829,17 @@ have browser evidence. See [ADR 0077](adr/0077-adopt-retained-layout-png.md) and
 [verification/captures](../apps/zloz-demo/evidence/png-retained.md).
 This closes the preceding PNG proposal. D/C/Q and publication gates remain.
 
-Next proposed slice: reconcile remaining D/C/Q domain, compatibility and
-qualification gaps against current package APIs and evidence, explicitly deciding
-scope and selecting the next core feature. Recommendation: **needs review**.
-No full-parity or performance-superiority claim is implied by export completion.
+**Domain/compatibility reconciliation — completed locally (2026-11-13):**
+[Current assessment](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+records exact package boundaries, delivered export/layout work, open D1–D2/C1–C4
+items, proposed item-specific deferrals and Q/R evidence gaps. No scope deferral
+is silently approved; full parity, core completion and a validated USP remain
+unestablished. This closes the preceding documentation proposal.
+
+**Recommended next core feature: headless DDD relationship audit (D2).** Reuse
+`resolveDddRelationship` and configurable conventions to report typed, unrelated
+and blocked authored edges deterministically, without graph edits, inference or
+new wire formats. The assessment defines literal expected reports, custom-rule,
+immutability and packed-consumer acceptance criteria. CLI, workbench and edition
+comparison follow after the package report. Recommendation: **pursue on approval**;
+this roadmap commit implements no audit API or release change.

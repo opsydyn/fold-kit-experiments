@@ -1,5 +1,10 @@
 # Zloz core completion audit
 
+Current continuation: the [November 13 domain/compatibility reconciliation](2026-11-13-zloz-domain-compatibility-reconciliation.md)
+supersedes this audit's current D/C/Q inventory and next-feature priorities at
+`e9ab5880`. The original baseline and subsequent dated delivery notes below are
+retained as historical evidence, not a second current checklist.
+
 Audit date: 2026-11-12. Inspected source: `03e972b`, isolated branch
 `codex/zloz-context-map`. This is a source and evidence reconciliation, not a
 feature implementation or release qualification. It supersedes the priorities in
@@ -268,6 +273,13 @@ adapter, dependency adoption or qualification is scheduled ahead of these gates;
 completion does not itself authorize adopting or deploying an integration.
 
 ### R1 — release guard discrepancy
+
+**Attribution correction, 2026-11-13:** the original claim below incorrectly says
+ADR 0036 explicitly requires `private: true`. The inspected ADR is marked Proposed
+and specifies unpublished CLI intent, not that field. The user-requested guard
+remains absent at `e9ab5880`; see the current reconciliation for the corrected
+branch-specific release gate. The original audit wording is retained below as
+historical, superseded analysis rather than a new publication requirement.
 
 [ADR 0036](../adr/0036-publish-the-zloz-package-family-to-npm.md) requires the CLI
 to remain unpublished with `private: true`. The inspected

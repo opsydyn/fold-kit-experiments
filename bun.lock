@@ -390,7 +390,7 @@
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.15.0",
+      "version": "0.16.0",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
@@ -412,7 +412,7 @@
     },
     "packages/foldkit-zloz": {
       "name": "@opsydyn/foldkit-zloz",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@types/node": "^22.0.0",
@@ -433,6 +433,32 @@
       "optionalPeers": [
         "effect",
         "foldkit",
+      ],
+    },
+    "packages/foldkit-zloz-alchemy": {
+      "name": "@opsydyn/foldkit-zloz-alchemy",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@alchemy.run/domain": "catalog:infra",
+        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@types/node": "catalog:",
+        "alchemy": "catalog:infra",
+        "bun-types": "catalog:",
+        "effect": "catalog:",
+        "publint": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+      },
+      "peerDependencies": {
+        "@alchemy.run/domain": "2.0.0-beta.85",
+        "@opsydyn/foldkit-zloz": "0.3.0",
+        "alchemy": "2.0.0-beta.85",
+        "effect": "^4.1.0",
+      },
+      "optionalPeers": [
+        "@alchemy.run/domain",
+        "alchemy",
+        "effect",
       ],
     },
     "packages/foldkit-zloz-cli": {
@@ -458,7 +484,7 @@
     },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "dependencies": {
         "elkjs": "0.12.1",
       },
@@ -472,12 +498,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.3.0",
       },
     },
     "packages/foldkit-zloz-force": {
       "name": "@opsydyn/foldkit-zloz-force",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
@@ -491,12 +517,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.3.0",
       },
     },
     "packages/foldkit-zloz-mermaid": {
       "name": "@opsydyn/foldkit-zloz-mermaid",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -510,7 +536,7 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.3.0",
         "foldkit": "0.170.0",
       },
       "optionalPeers": [
@@ -577,6 +603,7 @@
   "catalogs": {
     "infra": {
       "@alchemy.run/cloudflare": "2.0.0-beta.85",
+      "@alchemy.run/domain": "2.0.0-beta.85",
       "@alchemy.run/frontend-frameworks": "2.0.0-beta.85",
       "alchemy": "2.0.0-beta.85",
     },
@@ -603,6 +630,8 @@
     "@alchemy.run/cloudflare-runtime": ["@alchemy.run/cloudflare-runtime@2.0.0-beta.85", "", { "dependencies": { "@alchemy.run/node-utils": "2.0.0-beta.85", "@cloudflare/unenv-preset": "^2.16.2", "@puppeteer/browsers": "^3.2.4", "capnp-es": "^0.0.16", "magic-string": "^0.30.21", "mime": "^4.1.1", "sharp": "^0.35.5", "unenv": "^2.0.0-rc.24", "workerd": "1.20261026.1", "yauzl": "^3.4.0" }, "peerDependencies": { "@distilled.cloud/cloudflare": "1.0.0-rc.18", "@effect/platform-bun": "^4.1.0", "@effect/platform-node": "^4.1.0", "effect": "^4.1.0", "rolldown": "1.2.13", "vite": "^7.0.0 || ^8.0.0" }, "optionalPeers": ["@effect/platform-bun", "@effect/platform-node", "rolldown", "vite"] }, "sha512-OyGH/j5R9QaUdMjvm3y6pIUpMa7T9SvVYvlVd+fWo/eltOf+k/KQxC12QHC2fe22GVs3apL28l9f4VUH8N9aEA=="],
 
     "@alchemy.run/docker": ["@alchemy.run/docker@2.0.0-beta.85", "", { "dependencies": { "rolldown": "1.2.13" }, "peerDependencies": { "@effect/platform-bun": "^4.1.0", "alchemy": "2.0.0-beta.85", "effect": "^4.1.0" }, "optionalPeers": ["@effect/platform-bun"] }, "sha512-AhVdcCTu/paBdDUtGc2U4WEa8+gczkkf7oH7XEeIVjlQ+xX3hmYWlspdfejoJ9pb2JT4myfvp5EeXi/Jcp+W2g=="],
+
+    "@alchemy.run/domain": ["@alchemy.run/domain@2.0.0-beta.85", "", { "peerDependencies": { "alchemy": "2.0.0-beta.85", "effect": "^4.1.0", "foldkit": "^0.170.0" }, "optionalPeers": ["foldkit"] }, "sha512-nej0ltvPt4j0KsX6wN1WK9oZ9bNsefkPWhQaQPGsEOoz6aRZr4gCEL602HruPbsf/hdwd0SoNBWl2iTpejjrUA=="],
 
     "@alchemy.run/frontend-frameworks": ["@alchemy.run/frontend-frameworks@2.0.0-beta.85", "", { "dependencies": { "@alchemy.run/cloudflare-runtime": "2.0.0-beta.85", "@alchemy.run/redis": "2.0.0-beta.85", "@distilled.cloud/aws": "1.0.0-rc.18", "@distilled.cloud/cloudflare": "1.0.0-rc.18", "@effect/platform-node": "^4.1.0", "esbuild": "^0.28.1", "rolldown": "1.2.13", "srvx": "1.0.7", "tinyglobby": "^0.2.17" }, "peerDependencies": { "@effect/platform-bun": "^4.1.0", "@octanejs/vite-plugin": ">=0.5.0", "@opennextjs/cloudflare": "1.20.13", "@sveltejs/kit": ">=3.0.0", "@vitejs/plugin-react": "^6.1.2", "astro": "^7.4.0", "effect": "^4.1.0", "hono": "^4.12.14", "nuxt": ">=4.5.0", "vinext": "^1.3.1", "vite": "^7.0.0 || ^8.0.0", "vocs": "2.11.1", "waku": "1.0.0-rc.4" }, "optionalPeers": ["@effect/platform-bun", "@octanejs/vite-plugin", "@opennextjs/cloudflare", "@sveltejs/kit", "@vitejs/plugin-react", "astro", "hono", "nuxt", "vinext", "vite", "vocs", "waku"] }, "sha512-AQ50ZQXxAd04dqhZTd1vkP/JLCDRHZAO/LeorPjWs1UAh/FnFTKeVQyNdw2Z4Tl8zYpoa28k0T3oVei9ZLBayA=="],
 
@@ -1029,6 +1058,8 @@
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 
     "@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@workspace:packages/foldkit-zloz"],
+
+    "@opsydyn/foldkit-zloz-alchemy": ["@opsydyn/foldkit-zloz-alchemy@workspace:packages/foldkit-zloz-alchemy"],
 
     "@opsydyn/foldkit-zloz-cli": ["@opsydyn/foldkit-zloz-cli@workspace:packages/foldkit-zloz-cli"],
 

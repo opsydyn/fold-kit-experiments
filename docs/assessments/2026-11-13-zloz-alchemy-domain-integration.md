@@ -195,3 +195,15 @@ check. [Candidate evidence](../../experiments/alchemy-domain-fidelity/evidence/a
 records exact source/artifacts, identity coverage, negative probes and installed
 exports. This is qualification of a bounded private candidate, not general beta.85
 support, published core 0.3.0 support, production adoption or runtime execution.
+
+## Private workspace extraction follow-up (2026-11-13)
+
+The approved extraction now lives in private workspace
+[`@opsydyn/foldkit-zloz-alchemy`](../../packages/foldkit-zloz-alchemy/README.md).
+The portable root owns validated v1 descriptors and recomputed projections;
+`/domain` owns optional trusted SDK inspection. This supersedes the proposed
+extraction step, while keeping historical experiment receipts intact. Exact SDK
+claims, both strict-optional failures, actual unreleased core artifact requirements
+and incomplete topology semantics remain compatibility gates. No runtime/provider
+adoption or npm publication is implied. See
+[ADR 0067](../adr/0067-split-private-alchemy-inspection-and-portable-projection.md).

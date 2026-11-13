@@ -634,3 +634,20 @@ Next proposed slice: extract a private workspace adapter with separate Domain
 inspection and portable validated projection entries. Keep SDK/runtime imports out
 of the portable boundary; full compatibility and release remain separate gates.
 Recommendation: **needs review**. No production dependency/provider adoption occurred.
+
+**Private Alchemy workspace adapter — extracted locally (2026-11-13):**
+`@opsydyn/foldkit-zloz-alchemy` is private. Its portable root decodes a strict,
+versioned data descriptor and recomputes graph/findings using core only; `/domain`
+separately inspects trusted already-loaded declarations with exact caller-declared
+beta.85 gating. Packed runtime/type consumers verify the split without SDK/Effect
+on the portable path. Identity aliases, complete source-fact coverage, native
+read-model/consumption mapping and edition continuity remain tested. The two
+upstream strict-optional compiler failures and unpublished native-core requirement
+remain explicit gates. No Apply, provider or release integration was added.
+See [ADR 0067](adr/0067-split-private-alchemy-inspection-and-portable-projection.md),
+[package contract](../packages/foldkit-zloz-alchemy/README.md) and
+[qualification](../packages/foldkit-zloz-alchemy/evidence/qualification.md).
+This completes the extraction proposed above, not D/C/Q closure or general SDK
+compatibility. Next proposed slice: read-only workbench descriptor review through
+the portable entry, with bounded host text decoding, source provenance and visible
+loss findings before any editing. Recommendation: **needs review**.

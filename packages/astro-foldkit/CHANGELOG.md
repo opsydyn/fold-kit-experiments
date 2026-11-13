@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.12.0...astro-foldkit-v0.13.0) (2026-11-13)
+
+### Features
+
+- **astro-foldkit:** preload the chunk chain of islands that boot at load ([6d7eaef](https://github.com/opsydyn/fold-kit-experiments/commit/6d7eaefadfac9c05347184ee954d4cacdb3ea04c))
+
 ## [0.12.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.11.0...astro-foldkit-v0.12.0) (2026-11-12)
 
 ### Features

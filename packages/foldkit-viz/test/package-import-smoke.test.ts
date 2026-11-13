@@ -317,13 +317,19 @@ import { chartFrame, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian'
 import { dotPattern } from '@opsydyn/foldkit-viz/foldkit/paint';
 const geometry = scatterGeometry([5], { x: d => d, y: d => d, datumKey: () => 'only', seriesKey: () => 'all' }, { frame: { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } } });
 const result = await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'External host', body: chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [h.defs([], [dotPattern(h, { id: 'consumer-dots', colour: 'currentColor', spacing: 8 })]), pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null })]) }) }, { flags: { test: true }, isHydratable: false }));
-console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>') && result.html.includes('id="consumer-dots"'));`;
+console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>') && result.html.includes('id="consumer-dots"'));
+const { orbitGeometry } = await import('@opsydyn/foldkit-viz/chart/orbit');
+const { orbitGeometry: rootOrbit } = await import('@opsydyn/foldkit-viz');
+const { orbitChart } = await import('@opsydyn/foldkit-viz/foldkit/orbit');
+const orbit = orbitGeometry([{ id: 'a', risk: 2, kind: 'core' }, { id: 'b', risk: 8, kind: 'edge' }], { key: d => d.id, value: d => d.risk, halo: d => d.kind }, { size: 120 });
+const orbitHtml = (await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'Orbit host', body: orbitChart(h, { geometry: orbit, title: 'Orbit', description: 'Two modules', coreFill: 'currentColor', haloColour: () => 'gray', nodeStyle: () => ({ fill: 'red', stroke: 'red' }), labelFor: d => d.id }) }) }, { flags: { test: true }, isHydratable: false }))).html;
+console.log(rootOrbit === orbitGeometry && orbitHtml.split('class="chart-orbit-node"').length === 3);`;
     for (const runtime of ['bun', 'node']) {
       const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
         cwd: consumerDir,
         maxBuffer,
       });
-      expect(stdout.trim()).toBe('true');
+      expect(stdout.trim()).toBe('true\ntrue');
     }
   } finally {
     await fixture.cleanup();

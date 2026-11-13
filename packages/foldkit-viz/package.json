@@ -170,6 +170,12 @@
       ],
       "chart/errorBars": [
         "./dist/chart/errorBars.d.mts"
+      ],
+      "chart/orbit": [
+        "./dist/chart/orbit.d.mts"
+      ],
+      "foldkit/orbit": [
+        "./dist/foldkit/orbit.d.mts"
       ]
     }
   },
@@ -361,6 +367,14 @@
     "./chart/errorBars": {
       "types": "./dist/chart/errorBars.d.mts",
       "import": "./dist/chart/errorBars.mjs"
+    },
+    "./chart/orbit": {
+      "types": "./dist/chart/orbit.d.mts",
+      "import": "./dist/chart/orbit.mjs"
+    },
+    "./foldkit/orbit": {
+      "types": "./dist/foldkit/orbit.d.mts",
+      "import": "./dist/foldkit/orbit.mjs"
     }
   },
   "publishConfig": {

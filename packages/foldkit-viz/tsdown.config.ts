@@ -10,6 +10,8 @@ export default defineConfig({
     'chart/segments': 'src/chart/segments.ts',
     'chart/intervalBand': 'src/chart/intervalBand.ts',
     'chart/errorBars': 'src/chart/errorBars.ts',
+    'chart/orbit': 'src/chart/orbit.ts',
+    'foldkit/orbit': 'src/foldkit/orbit.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
     'layout/wordcloud': 'src/layout/wordcloud.ts',

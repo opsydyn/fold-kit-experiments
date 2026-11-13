@@ -40,6 +40,7 @@ does not infer confidence or statistical significance.
 | Themes and series styles                      | `/chart/theme`                                                      |
 | FoldKit SVG frame, axes, marks, legend, table | `/foldkit/cartesian` with the parent's `HtmlBuilder`                |
 | State-machine graph layout                    | `/stateflow` (`layoutStateFlow`)                                    |
+| Modules orbiting a core (ball of mud)         | `/chart/orbit`, rendered by `/foldkit/orbit` (after `0.16.0`)       |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

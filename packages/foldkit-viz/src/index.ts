@@ -207,3 +207,12 @@ export type {
 
 export { errorBarGeometry } from './chart/errorBars.js';
 export type { ErrorBarAccessors, ErrorBarSegment, ErrorBarMark } from './chart/errorBars.js';
+
+export { orbitGeometry } from './chart/orbit.js';
+export type {
+  OrbitAccessors,
+  OrbitConfig,
+  OrbitGeometry,
+  OrbitHaloArc,
+  OrbitNode,
+} from './chart/orbit.js';

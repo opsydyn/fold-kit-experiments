@@ -185,6 +185,9 @@
       ],
       "math/bin2d": [
         "./dist/math/bin2d.d.mts"
+      ],
+      "math/downsample": [
+        "./dist/math/downsample.d.mts"
       ]
     }
   },
@@ -396,6 +399,10 @@
     "./math/bin2d": {
       "types": "./dist/math/bin2d.d.mts",
       "import": "./dist/math/bin2d.mjs"
+    },
+    "./math/downsample": {
+      "types": "./dist/math/downsample.d.mts",
+      "import": "./dist/math/downsample.mjs"
     }
   },
   "publishConfig": {

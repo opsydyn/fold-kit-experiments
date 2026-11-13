@@ -256,3 +256,7 @@ export type {
 // math/bin2d
 export { hexagonPath, hexbin, rectBins } from './math/bin2d.js';
 export type { Bin2dAccessors, HexBin, RectBin, RectBinsConfig } from './math/bin2d.js';
+
+// math/downsample
+export { lttb, m4 } from './math/downsample.js';
+export type { DownsampleAccessors } from './math/downsample.js';

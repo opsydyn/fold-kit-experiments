@@ -65,12 +65,13 @@ Met by the web app's `/data-science` page, which adds a hexagonal density view.
 
 ### 0.19.0 — Grammar of marks (design first)
 
-- [ ] Specification and ADR: marks (dot, line, area, bar, rule, text, cell, box,
-      density, link), channels (x, y, fill, stroke, r, opacity, symbol), scales and
-      legends inferred from channels, facets for small multiples, and layered marks on
-      shared scales.
-- [ ] A declarative, JSON-serialisable spec rendered through the same pure geometry,
-      server-rendered by default.
+- [x] Specification and ADR: marks (dot, line, area, bar, rule, text, cell), channels
+      (x, y, fill, stroke, r, title), scales and legends inferred from channels, facets
+      for small multiples, and layered marks on shared scales. Box, density and link
+      marks and a symbol channel move to the promotions below.
+- [x] A declarative, JSON-serialisable spec rendered through the same pure geometry,
+      server-rendered by default. [ADR 0037](adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md);
+      `compilePlot` and `foldkit/plot`, shown on the web app's `/plot-grammar` page.
 - [ ] Promote box and violin, candlestick, parallel coordinates, treemap and
       sunburst, and sankey from the demos as marks or presets.
 

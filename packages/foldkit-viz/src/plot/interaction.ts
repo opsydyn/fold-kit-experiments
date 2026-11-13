@@ -1,4 +1,4 @@
-import type { FacetGeometry, PlotAxis, PlotGeometry } from './types.js';
+import type { FacetGeometry, Graphic, PlotAxis, PlotGeometry } from './types.js';
 
 /**
  * Pure helpers for interaction with compiled plots. They install no listeners
@@ -119,6 +119,22 @@ const CELL = 16;
  * 16-pixel cells, in linear time and typed arrays, so a million points index
  * in a fraction of a second and a query reads only nearby cells.
  */
+/** A dot drawn as a symbol: a path translated to its point. */
+const isSymbolPath = (g: Graphic): boolean => g.kind === 'path' && g.translate !== undefined;
+
+const centreOf = (g: Graphic): readonly [number, number] => {
+  switch (g.kind) {
+    case 'circle':
+      return [g.cx, g.cy];
+    case 'rect':
+      return [g.x + g.width / 2, g.y + g.height / 2];
+    case 'path':
+      return g.translate ?? [0, 0];
+    default:
+      return [0, 0];
+  }
+};
+
 export function indexPlot(geometry: PlotGeometry): PlotIndex {
   const owners: Owner[] = [];
   let total = 0;
@@ -126,7 +142,7 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
     for (const mark of facet.marks)
       for (const g of mark.graphics)
         if (g.kind === 'points') total += g.count;
-        else if (g.kind === 'circle' || g.kind === 'rect') total += 1;
+        else if (g.kind === 'circle' || g.kind === 'rect' || isSymbolPath(g)) total += 1;
   const xs = new Float64Array(total),
     ys = new Float64Array(total),
     owner = new Uint32Array(total),
@@ -150,11 +166,12 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
             row[n] = g.rows[i] ?? -1;
             n += 1;
           }
-        } else if (g.kind === 'circle' || g.kind === 'rect') {
+        } else if (g.kind === 'circle' || g.kind === 'rect' || isSymbolPath(g)) {
           const id =
             owners.push({ facet: facet.key, mark: mark.index, key: g.key, dense: false }) - 1;
-          xs[n] = g.kind === 'circle' ? g.cx : g.x + g.width / 2;
-          ys[n] = g.kind === 'circle' ? g.cy : g.y + g.height / 2;
+          const [cx, cy] = centreOf(g);
+          xs[n] = cx;
+          ys[n] = cy;
           owner[n] = id;
           row[n] = -1;
           n += 1;

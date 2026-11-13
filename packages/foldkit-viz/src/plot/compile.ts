@@ -8,6 +8,8 @@ import * as schemes from '../math/schemes.js';
 import { movingWindow } from '../math/stats.js';
 import { area } from '../shape/area.js';
 import { line } from '../shape/line.js';
+import { SYMBOLS_FILL, symbolPath } from '../shape/symbol.js';
+import type { SymbolType } from '../shape/symbol.js';
 import {
   channelOf,
   fail,
@@ -28,7 +30,14 @@ import {
   titlesOf,
   withTitle,
 } from './channels.js';
-import type { AxisName, ChannelName, ColorScale, Context, PositionScale } from './channels.js';
+import type {
+  AxisName,
+  ChannelName,
+  ColorScale,
+  Context,
+  PositionScale,
+  SymbolScale,
+} from './channels.js';
 import {
   parallelGraphics,
   sankeyGraphics,
@@ -69,7 +78,7 @@ type MarkRule = Readonly<{
   channels: ReadonlyArray<ChannelName>;
 }>;
 const MARKS = {
-  dot: { required: ['x', 'y'], channels: ['x', 'y', 'r', 'fill', 'stroke', 'title'] },
+  dot: { required: ['x', 'y'], channels: ['x', 'y', 'r', 'fill', 'stroke', 'symbol', 'title'] },
   line: { required: ['x', 'y'], channels: ['x', 'y', 'stroke', 'title'] },
   area: { required: ['x', 'y'], channels: ['x', 'y', 'y0', 'fill', 'title'] },
   bar: { required: ['x', 'y'], channels: ['x', 'y', 'x0', 'y0', 'fill', 'stroke', 'title'] },
@@ -145,6 +154,10 @@ function validateMark(mark: MarkSpec, path: string): void {
       fail(`${path}.${key}`, `${aMark(mark.mark)} does not take ${key}`);
   for (const channel of rule.required)
     if (!(channel in mark)) fail(`${path}.${channel}`, `${aMark(mark.mark)} needs ${channel}`);
+  if (mark.mark === 'dot' && mark.dense === true && mark.symbol !== undefined)
+    fail(`${path}.symbol`, 'a dense dot mark draws circles only');
+  if (mark.mark === 'dot' && isConstant(mark.symbol) && !isSymbol(mark.symbol.value))
+    fail(`${path}.symbol`, `unknown symbol "${String(mark.symbol.value)}"`);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
   if ('transform' in mark && mark.transform !== undefined) {
@@ -248,15 +261,30 @@ type Prepared = Readonly<{
   path: string;
   /** Rows as given, for type inference. */
   source: ReadonlyArray<Row>;
-  /** Rows after the transform; channels below name their fields. */
+  /** Rows after any transform; `channels` name the fields a transform wrote. */
   rows: ReadonlyArray<Row>;
-  x?: Channel;
-  y?: Channel;
+  /** Channels a transform rewrote, read in place of the mark's own. */
+  channels: Overrides;
+  /** True when a transform replaced the rows, so colour reads them, not the source. */
+  replaced: boolean;
+  /** Axis titles a transform implies, such as "count" for a histogram. */
+  labels: Readonly<Partial<Record<AxisName, string>>>;
   /** A regression's confidence band: rows with X, LO and HI. */
   band?: ReadonlyArray<Row>;
 }>;
 
-type TransformResult = Pick<Prepared, 'rows' | 'x' | 'y' | 'band'>;
+type Overrides = Readonly<Partial<Record<ChannelName, Channel>>>;
+
+/** A channel as the mark draws it: a transform's override, or the mark's own. */
+const channel = (p: Prepared, name: ChannelName): Channel | undefined =>
+  p.channels[name] ?? channelOf(p.mark, name);
+
+type TransformResult = Readonly<{
+  rows: ReadonlyArray<Row>;
+  x: Channel;
+  y: Channel;
+  band?: ReadonlyArray<Row>;
+}>;
 
 function seriesOf(
   rows: ReadonlyArray<Row>,
@@ -381,15 +409,19 @@ function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
   const fields = new Set<string>();
   let zero = false;
   for (const p of prepared) {
+    const label = p.labels[axis];
+    if (label !== undefined) fields.add(label);
     for (const name of AXIS_CHANNELS[axis]) {
-      const original = channelOf(p.mark, name);
-      if (original === undefined) continue;
-      const field = fieldOf(original);
-      if (field !== undefined && name === axis) fields.add(field);
-      append(source, read(p.source, original, `${p.path}.${name}`));
-      // A transform rewrites the main channel of each axis; the others read the rows as they are.
-      const remapped = name === 'x' ? p.x : name === 'y' ? p.y : undefined;
-      append(values, read(p.rows, remapped ?? original, `${p.path}.${name}`));
+      const own = channelOf(p.mark, name);
+      const drawn = channel(p, name);
+      if (drawn === undefined) continue;
+      const field = fieldOf(own);
+      if (field !== undefined && name === axis && label === undefined) fields.add(field);
+      // The mark's own channel reads the source rows for type inference; a transform's
+      // output reads the rows it wrote.
+      if (own !== undefined && !p.replaced)
+        append(source, read(p.source, own, `${p.path}.${name}`));
+      append(values, read(p.rows, drawn, `${p.path}.${name}`));
     }
     if (axis === 'y' && p.band !== undefined)
       append(
@@ -397,8 +429,9 @@ function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
         p.band.flatMap((r) => [r[LO] ?? null, r[HI] ?? null]),
       );
     // Areas and bars grow from zero unless they name where they start.
-    if (axis === 'y' && p.mark.mark === 'area' && p.mark.y0 === undefined) zero = true;
-    if (p.mark.mark === 'bar' && p.mark.y0 === undefined && p.mark.x0 === undefined) zero = true;
+    if (axis === 'y' && p.mark.mark === 'area' && channel(p, 'y0') === undefined) zero = true;
+    if (p.mark.mark === 'bar' && channel(p, 'y0') === undefined && channel(p, 'x0') === undefined)
+      zero = true;
   }
   return { source, values, fields: [...fields], zero };
 }
@@ -419,8 +452,8 @@ function resolveScale(
 ): ScaleInfo | null {
   const { source, values, fields, zero } = axisValues(prepared, axis);
   const usedByBar = prepared.some((p) => ['bar', 'cell', 'box', 'violin'].includes(p.mark.mark));
-  if (source.length === 0 && spec.domain === undefined && !usedByBar) return null;
-  const type = spec.type ?? inferType(source, axis);
+  if (values.length === 0 && spec.domain === undefined && !usedByBar) return null;
+  const type = spec.type ?? inferType(source.length > 0 ? source : values, axis);
   const label = spec.label ?? (fields.length === 1 ? (fields[0] ?? '') : '');
   if (type === 'band') {
     if (source.some((v) => isNumber(v)))
@@ -601,7 +634,7 @@ function resolveColor(
       const field = fieldOf(channelOf(p.mark, name));
       if (field === undefined) continue;
       fields.add(field);
-      append(values, read(p.source, field, `${p.path}.${name}`));
+      append(values, read(p.replaced ? p.rows : p.source, field, `${p.path}.${name}`));
     }
   }
   if (fields.size === 0) return null;
@@ -624,6 +657,7 @@ function resolveColor(
       palette[Math.max(0, domain.indexOf(String(v))) % palette.length] ?? 'currentColor';
     return {
       paint,
+      fields: [...fields],
       legend: showLegend
         ? {
             kind: 'categorical',
@@ -656,8 +690,75 @@ function resolveColor(
   const stops = Array.from({ length: 9 }, (_, i) => toColor(lo + ((hi - lo) * i) / 8));
   return {
     paint,
+    fields: [...fields],
     legend: showLegend ? { kind: 'continuous', label, domain: [lo, hi], stops } : null,
   };
+}
+
+const isSymbol = (value: unknown): value is SymbolType =>
+  SYMBOLS_FILL.some((symbol) => symbol === value);
+
+/** Symbols for dot marks' symbol fields, in order of appearance unless the spec says. */
+function resolveSymbol(prepared: ReadonlyArray<Prepared>, spec: PlotSpec): SymbolScale | null {
+  const values: Value[] = [];
+  const fields = new Set<string>();
+  for (const p of prepared) {
+    const field = p.mark.mark === 'dot' ? fieldOf(p.mark.symbol) : undefined;
+    if (field === undefined) continue;
+    fields.add(field);
+    append(values, read(p.source, field, `${p.path}.symbol`));
+  }
+  if (fields.size === 0) return null;
+  const options = spec.symbol ?? {};
+  const range = options.range ?? SYMBOLS_FILL;
+  if (range.length === 0) fail('symbol.range', 'needs at least one symbol');
+  range.forEach((symbol, i) => {
+    if (!isSymbol(symbol)) fail(`symbol.range[${i}]`, `unknown symbol "${String(symbol)}"`);
+  });
+  const domain = options.domain ?? [...new Set(values.filter((v) => v !== null).map(String))];
+  const symbolOf = (v: Value): SymbolType =>
+    range[Math.max(0, domain.indexOf(String(v))) % range.length] ?? 'circle';
+  const label = options.label ?? (fields.size === 1 ? ([...fields][0] ?? '') : '');
+  return {
+    symbolOf,
+    fields: [...fields],
+    legend:
+      (options.legend ?? true)
+        ? {
+            kind: 'symbol',
+            label,
+            entries: domain.map((key) => ({
+              key,
+              label: key,
+              symbol: symbolOf(key),
+              path: symbolPath(symbolOf(key), 64),
+            })),
+          }
+        : null,
+  };
+}
+
+/**
+ * The plot's legends. A categorical colour and a symbol that encode the same
+ * single field share one legend: each symbol entry carries its colour.
+ */
+function legendsOf(color: ColorScale | null, symbol: SymbolScale | null): ReadonlyArray<Legend> {
+  const colour = color?.legend ?? null;
+  const glyphs = symbol?.legend ?? null;
+  const sameField =
+    color !== null &&
+    symbol !== null &&
+    color.fields.length === 1 &&
+    symbol.fields.length === 1 &&
+    color.fields[0] === symbol.fields[0];
+  if (sameField && colour?.kind === 'categorical' && glyphs?.kind === 'symbol')
+    return [
+      {
+        ...glyphs,
+        entries: glyphs.entries.map((entry) => ({ ...entry, color: color.paint(entry.key) })),
+      },
+    ];
+  return [colour, glyphs].filter((legend): legend is Legend => legend !== null);
 }
 
 function resolveSize(prepared: ReadonlyArray<Prepared>, spec: PlotSpec): (value: Value) => number {
@@ -749,8 +850,8 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
     case 'dot': {
       const x = requireScale(context.x, path, 'x'),
         y = requireScale(context.y, path, 'y');
-      const xs = read(rows, p.x ?? mark.x, `${path}.x`),
-        ys = read(rows, p.y ?? mark.y, `${path}.y`);
+      const xs = read(rows, channel(p, 'x') ?? mark.x, `${path}.x`),
+        ys = read(rows, channel(p, 'y') ?? mark.y, `${path}.y`);
       const fills = paintOf(
         rows,
         mark.fill,
@@ -780,10 +881,38 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             mark.highlight === undefined ? undefined : dims,
           ),
         ];
-      return rows.flatMap((_, i) => {
+      // validateMark has checked that a constant symbol names a known symbol.
+      const glyphs =
+        mark.symbol === undefined
+          ? undefined
+          : read(rows, mark.symbol, `${path}.symbol`).map(
+              (v): SymbolType =>
+                isConstant(mark.symbol)
+                  ? isSymbol(v)
+                    ? v
+                    : 'circle'
+                  : (context.symbol?.symbolOf(v) ?? 'circle'),
+            );
+      return rows.flatMap((_, i): ReadonlyArray<Graphic> => {
         const cx = x.place(xs[i] ?? null),
           cy = y.place(ys[i] ?? null);
         if (cx === undefined || cy === undefined) return [];
+        const glyph = glyphs?.[i] ?? 'circle';
+        const r = radii[i] ?? 3;
+        if (glyph !== 'circle')
+          return [
+            {
+              kind: 'path',
+              key: keys[i] ?? `${index}:${i}`,
+              d: symbolPath(glyph, Math.PI * r * r),
+              translate: [cx, cy],
+              fill: fills[i] ?? 'currentColor',
+              stroke: strokes[i] ?? 'none',
+              strokeWidth: mark.strokeWidth ?? 1,
+              opacity: opacity * (dims[i] ?? 1),
+              ...withTitle(titles[i]),
+            },
+          ];
         return [
           {
             kind: 'circle' as const,
@@ -841,8 +970,8 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             });
         }
       for (const [key, series] of seriesOf(rows, z)) {
-        const xs = read(series, p.x ?? mark.x, `${path}.x`),
-          ys = read(series, p.y ?? mark.y, `${path}.y`);
+        const xs = read(series, channel(p, 'x') ?? mark.x, `${path}.x`),
+          ys = read(series, channel(p, 'y') ?? mark.y, `${path}.y`);
         const points = series.map(
           (_, i) =>
             [x.place(xs[i] ?? null) ?? Number.NaN, y.place(ys[i] ?? null) ?? Number.NaN] as const,
@@ -1088,14 +1217,27 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
             state.rows,
             `${path}.transform${many ? `[${i}]` : ''}`,
             cell.bounds.width,
-            state.x ?? channelOf(mark, 'x'),
-            state.y ?? channelOf(mark, 'y'),
+            channel(state, 'x'),
+            channel(state, 'y'),
           );
           const band = result.band ?? state.band;
-          const next = { ...state, rows: result.rows, x: result.x ?? X, y: result.y ?? Y };
+          const next: Prepared = {
+            ...state,
+            rows: result.rows,
+            channels: { ...state.channels, x: result.x, y: result.y },
+          };
           return band === undefined ? next : { ...next, band };
         },
-        { mark, index, path, source: facetRows, rows: facetRows },
+        {
+          mark,
+          index,
+          path,
+          source: facetRows,
+          rows: facetRows,
+          channels: {},
+          replaced: false,
+          labels: {},
+        },
       );
     }),
   );
@@ -1103,12 +1245,13 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
   const xInfo = resolveScale(all, 'x', spec.x);
   const yInfo = resolveScale(all, 'y', spec.y);
   const color = resolveColor(all, spec.color);
+  const symbol = resolveSymbol(all, spec);
   const size = resolveSize(all, spec);
 
   const facets: ReadonlyArray<FacetGeometry> = cells.map((cell, f) => {
     const x = xInfo === null ? null : buildScale(xInfo, 'x', cell.bounds, spec);
     const y = yInfo === null ? null : buildScale(yInfo, 'y', cell.bounds, spec);
-    const context: Context = { x, y, color, size, bounds: cell.bounds };
+    const context: Context = { x, y, color, symbol, size, bounds: cell.bounds };
     const marks: ReadonlyArray<MarkGeometry> = (perFacet[f] ?? []).map((p) => ({
       mark: p.mark.mark,
       index: p.index,
@@ -1130,6 +1273,6 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
     title: spec.title ?? '',
     description: spec.description ?? '',
     facets,
-    legends: color?.legend === null || color === null ? [] : [color.legend],
+    legends: legendsOf(color, symbol),
   };
 }

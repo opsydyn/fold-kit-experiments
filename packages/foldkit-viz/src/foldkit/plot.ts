@@ -268,6 +268,25 @@ function legend<M>(h: HtmlBuilder<M>, l: Legend, palette: PlotPalette): Html {
         ),
       ],
     );
+  if (l.kind === 'symbol')
+    return h.ul(
+      [h.Class('plot-legend'), style, h.AriaLabel(l.label === '' ? 'Legend' : l.label)],
+      [
+        ...title,
+        ...l.entries.map((entry) =>
+          h.li(
+            [h.Key(entry.key), h.Style({ display: 'flex', 'align-items': 'center', gap: '6px' })],
+            [
+              h.svg(
+                [h.AriaHidden(true), h.ViewBox('-6 -6 12 12'), h.Width('12'), h.Height('12')],
+                [h.path([h.D(entry.path), h.Fill(entry.color ?? 'currentColor')], [])],
+              ),
+              entry.label,
+            ],
+          ),
+        ),
+      ],
+    );
   const [lo, hi] = l.domain;
   return h.ul(
     [

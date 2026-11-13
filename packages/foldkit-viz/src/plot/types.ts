@@ -1,5 +1,6 @@
 import type { ChartMargins, PlotBounds } from '../chart/layout.js';
 import type { CurveType } from '../shape/line.js';
+import type { SymbolType } from '../shape/symbol.js';
 
 // ── Spec: plain JSON, no functions (ADR 0037) ─────────────────────────────────
 
@@ -35,6 +36,15 @@ export type ColorScaleSpec = Readonly<{
 }>;
 
 export type SizeScaleSpec = Readonly<{ range?: readonly [number, number] }>;
+
+/** Maps a dot mark's symbol field onto symbols. */
+export type SymbolScaleSpec = Readonly<{
+  domain?: ReadonlyArray<string>;
+  /** Symbols in domain order. Default: circle, cross, diamond, square, star, triangle, wye. */
+  range?: ReadonlyArray<SymbolType>;
+  legend?: boolean;
+  label?: string;
+}>;
 
 export type RegressionTransform = Readonly<{
   type: 'regression';
@@ -85,6 +95,8 @@ export type DotMark = CommonMark &
     r?: Channel;
     fill?: Channel;
     stroke?: Channel;
+    /** A field mapped onto symbols, or a constant such as `{ value: 'square' }`. */
+    symbol?: Channel;
     /**
      * Compile to one packed `points` graphic instead of a graphic per row, for
      * hundreds of thousands of rows drawn on canvas. Per-row keys and titles are
@@ -226,6 +238,7 @@ export type PlotSpec = Readonly<{
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;
   r?: SizeScaleSpec;
+  symbol?: SymbolScaleSpec;
   /** Split every mark's rows into small multiples by these fields, on shared scales. */
   facet?: Readonly<{ x?: string; y?: string }>;
   marks: ReadonlyArray<MarkSpec>;
@@ -344,6 +357,14 @@ export type Legend =
       kind: 'categorical';
       label: string;
       entries: ReadonlyArray<Readonly<{ key: string; label: string; color: string }>>;
+    }>
+  | Readonly<{
+      kind: 'symbol';
+      label: string;
+      /** Each symbol's path at 64 square pixels, centred on the origin; a colour when one field drives both. */
+      entries: ReadonlyArray<
+        Readonly<{ key: string; label: string; symbol: SymbolType; path: string; color?: string }>
+      >;
     }>
   | Readonly<{
       kind: 'continuous';

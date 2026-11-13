@@ -40,6 +40,21 @@ it('renders an accessible SVG with axes, marks, tooltips and a legend', async ()
   expect(html).toContain('>control</li>');
 });
 
+it('draws symbols at their points and a symbol legend in their colours', async () => {
+  const geometry = compilePlot({
+    width: 400,
+    height: 260,
+    data: rows,
+    marks: [{ mark: 'dot', x: 'dose', y: 'response', fill: 'group', symbol: 'group' }],
+  });
+  const html = await renderChart<never>((h) => plotChart(h, geometry));
+  expect(count(html, '<circle')).toBe(2);
+  expect(count(html, 'transform="translate(')).toBe(1);
+  expect(count(html, 'class="plot-legend"')).toBe(1);
+  expect(count(html, 'viewBox="-6 -6 12 12"')).toBe(2);
+  expect(html).toContain('>treated</li>');
+});
+
 it('heads each facet with its label and can leave the legend out', async () => {
   const geometry = compilePlot({
     width: 500,

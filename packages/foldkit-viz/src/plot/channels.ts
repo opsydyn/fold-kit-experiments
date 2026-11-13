@@ -1,4 +1,5 @@
 import type { PlotBounds } from '../chart/layout.js';
+import type { SymbolType } from '../shape/symbol.js';
 import type {
   Channel,
   Graphic,
@@ -70,7 +71,8 @@ export type ChannelName =
   | 'path'
   | 'value'
   | 'source'
-  | 'target';
+  | 'target'
+  | 'symbol';
 
 export const channelOf = (mark: MarkSpec, name: ChannelName): Channel | undefined => {
   switch (name) {
@@ -108,6 +110,8 @@ export const channelOf = (mark: MarkSpec, name: ChannelName): Channel | undefine
       return 'source' in mark ? mark.source : undefined;
     case 'target':
       return 'target' in mark ? mark.target : undefined;
+    case 'symbol':
+      return 'symbol' in mark ? mark.symbol : undefined;
   }
 };
 
@@ -124,12 +128,24 @@ export type PositionScale = Readonly<{
   baseline: number;
 }>;
 
-export type ColorScale = Readonly<{ paint: (value: Value) => string; legend: Legend | null }>;
+export type ColorScale = Readonly<{
+  paint: (value: Value) => string;
+  legend: Legend | null;
+  /** The fields the colour encodes. */
+  fields: ReadonlyArray<string>;
+}>;
+
+export type SymbolScale = Readonly<{
+  symbolOf: (value: Value) => SymbolType;
+  legend: Legend | null;
+  fields: ReadonlyArray<string>;
+}>;
 
 export type Context = Readonly<{
   x: PositionScale | null;
   y: PositionScale | null;
   color: ColorScale | null;
+  symbol: SymbolScale | null;
   size: (value: Value) => number;
   bounds: PlotBounds;
 }>;

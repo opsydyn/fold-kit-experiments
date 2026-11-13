@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add explicit composite edge-label layout envelopes, validated transient result boxes and shared view, controls, fit/reveal and culling support, preserving geometry policy and Undo semantics.
+
 - Add native DDD read-model nodes, explicit tactical feeds relationships and framework-neutral declared-consumption resolution, reusing existing policy/editing/Undo and v1 persistence.
 
 - Add bounded package PNG planning, exact-source review controls and optional browser encoding/download with explicit fidelity losses, cancellation and cleanup.

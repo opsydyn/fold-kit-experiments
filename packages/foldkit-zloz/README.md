@@ -4663,3 +4663,36 @@ RIGHT/DOWN, Restore original, finding navigation and unchanged working history.
 See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).
 This API is qualified against this branch's source/artifact; published 0.3.0 does
 not contain it. No npm publication is implied.
+
+### Explicit layout label bounds (unreleased)
+
+Declare one world-unit envelope per composite edge label when the engine supports
+it. Include the text, badges and editor chrome in that size:
+
+```ts
+const active = layoutRequest(editor, 'arrange-labels-1', {
+  edgeLabels: editor.graph.edges.map((edge) => ({
+    id: edge.id,
+    size: { width: 176, height: 36 },
+  })),
+});
+```
+
+Store the request in your Model before running ELK in a Command. Its routes return
+`label: { position, size }`, where `position` is the **world-coordinate center**.
+`applyLayout` and `applyPreviewLayout` validate and retain these boxes atomically.
+Missing requested boxes, unexpected boxes, duplicate IDs, nonpositive/nonfinite
+sizes or mismatched result dimensions are errors. `validateLayoutRequest` validates
+typed requests; it is not a decoder for unknown input. Existing requests without
+`edgeLabels` retain their shape and behavior. Engines without label support cannot
+satisfy a request that declares bounds.
+
+The Foldkit view places `renderEdgeLabel` at the retained center while using the
+engine route. Make its complete rendered envelope match the declared dimensions.
+Authored waypoints/path style and collapsed group endpoints take precedence; your
+`edgeGeometry` policy can override label placement. Headless consumers can forward
+`route.label.position` as `resolveEdgeGeometry`'s `labelPosition` option. Fit/reveal
+includes the retained envelope. Routes and label boxes are transient, absent from
+serialized graphs and authored SVG/PNG projections. Export fidelity findings still
+apply to engine routes. Label measurement and universal collision avoidance are
+not implied.

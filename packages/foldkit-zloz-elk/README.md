@@ -81,3 +81,16 @@ workbench opts into ELK on explicit request, with direction controls, logical
 cancellation, geometry-only restoration and preserved source/findings. See
 [qualification](../../apps/zloz-demo/evidence/alchemy-layout.md). Label dimensions
 are not yet supplied to ELK, so this is not a universal label-collision guarantee.
+
+### Custom label envelopes (unreleased)
+
+Pass `layoutRequest(editor, id, { edgeLabels: [{ id: edgeId, size: { width: 176,
+height: 36 } }] })` to reserve space for a composite label, including badges.
+One envelope per existing edge is supported. ELK returns centered world-coordinate
+boxes in `result.routes[*].label`; core validates and retains them on application.
+Nested layouts use ROOT coordinates for both route points and labels. Unlabeled
+custom content uses a private sizing token inside ELK, without changing graph text.
+Omitting hints preserves the previous geometry-only behavior. Caller-supplied
+engines must return the requested label IDs, dimensions and finite positions.
+Supply sizes matching the actual renderer; arbitrary custom geometry, inaccurate
+bounds and group headers are outside this space-reservation guarantee.

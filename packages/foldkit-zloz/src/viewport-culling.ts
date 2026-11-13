@@ -1,5 +1,5 @@
 import { screenToWorld } from './geometry';
-import type { EditorState, ZlozEdge, ZlozNode, Point } from './types';
+import type { EditorState, ZlozEdge, ZlozNode, EdgeRoute } from './types';
 
 export type ZlozViewportCulling = boolean | Readonly<{ overscan?: number }>;
 
@@ -25,7 +25,7 @@ export function viewportItems(
     edges: readonly ZlozEdge[];
     hiddenBy: ReadonlyMap<string, ZlozNode>;
   }>,
-  routes: ReadonlyMap<string, readonly Point[]>,
+  routes: ReadonlyMap<string, EdgeRoute>,
   keepCustomEdges: boolean,
   culling?: ZlozViewportCulling,
 ) {
@@ -89,12 +89,22 @@ export function viewportItems(
       presentation.hiddenBy.has(edge.source.node) || presentation.hiddenBy.has(edge.target.node);
     const points = projected
       ? []
-      : (edge.waypoints?.map(({ position }) => position) ?? routes.get(edge.id) ?? []);
+      : (edge.waypoints?.map(({ position }) => position) ?? routes.get(edge.id)?.points ?? []);
     for (const point of points) {
       edgeBounds.left = Math.min(edgeBounds.left, point.x);
       edgeBounds.top = Math.min(edgeBounds.top, point.y);
       edgeBounds.right = Math.max(edgeBounds.right, point.x);
       edgeBounds.bottom = Math.max(edgeBounds.bottom, point.y);
+    }
+    const box =
+      !projected && !edge.waypoints && edge.pathStyle === undefined
+        ? routes.get(edge.id)?.label
+        : undefined;
+    if (box) {
+      edgeBounds.left = Math.min(edgeBounds.left, box.position.x - box.size.width / 2);
+      edgeBounds.top = Math.min(edgeBounds.top, box.position.y - box.size.height / 2);
+      edgeBounds.right = Math.max(edgeBounds.right, box.position.x + box.size.width / 2);
+      edgeBounds.bottom = Math.max(edgeBounds.bottom, box.position.y + box.size.height / 2);
     }
     return intersects(edgeBounds, viewport);
   });

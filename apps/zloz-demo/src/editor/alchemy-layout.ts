@@ -9,6 +9,7 @@ import { Match, Result } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
+import { alchemyPreviewLabelSize } from './alchemy-labels';
 import type { AlchemyReviewState } from './alchemy-state';
 import { ArrangeAlchemyPreview } from './command';
 import { Message } from './message';
@@ -80,7 +81,12 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
       if (reason) return write(review, reason);
       if (review.layout.pending) return { model };
       const run = review.layout.run + 1,
-        active = layoutRequest(review.editor, `alchemy:${review.id}:layout:${run}`);
+        active = layoutRequest(review.editor, `alchemy:${review.id}:layout:${run}`, {
+          edgeLabels: review.editor.graph.edges.map((edge) => ({
+            id: edge.id,
+            size: alchemyPreviewLabelSize,
+          })),
+        });
       return {
         model: {
           ...model,
@@ -96,6 +102,7 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
             requestId: active.requestId,
             revision: active.revision,
             json: serializeGraph(active.graph),
+            labels: JSON.stringify(active.edgeLabels ?? []),
             direction: review.layout.direction,
           }),
         ],

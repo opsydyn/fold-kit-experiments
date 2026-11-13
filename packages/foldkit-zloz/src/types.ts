@@ -168,8 +168,12 @@ export type ZlozEdge = Readonly<{
 export type ZlozGraph = Readonly<{ nodes: readonly ZlozNode[]; edges: readonly ZlozEdge[] }>;
 /** Versioned document content. Graph-only documents omit the camera. */
 export type ZlozSnapshot = Readonly<{ graph: ZlozGraph; viewport?: Viewport }>;
-/** Transient engine output, including endpoints. Authored bends live on ZlozEdge.waypoints. */
-export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
+/** Declared label rectangle in world units, centered at position. Transient layout geometry. */
+export type LayoutLabelBox = Readonly<{ position: Point; size: Size }>;
+export type LayoutEdgeLabel = Readonly<{ id: string; size: Size }>;
+export type LayoutRequestOptions = Readonly<{ edgeLabels?: readonly LayoutEdgeLabel[] }>;
+/** Transient engine output; label boxes and routes do not alter authored edges. */
+export type EdgeRoute = Readonly<{ id: string; points: readonly Point[]; label?: LayoutLabelBox }>;
 export type AlignmentGuide = Readonly<{
   /** A fixed x draws a vertical guide; a fixed y draws a horizontal guide. */
   axis: 'x' | 'y';
@@ -579,7 +583,12 @@ export type EditorEvent =
   | Readonly<{ type: 'UndoPressed' }>
   | Readonly<{ type: 'RedoPressed' }>;
 /** Detached graph snapshot with request identity and document revision for stale-result protection. */
-export type LayoutRequest = Readonly<{ requestId: string; revision: number; graph: ZlozGraph }>;
+export type LayoutRequest = Readonly<{
+  requestId: string;
+  revision: number;
+  graph: ZlozGraph;
+  edgeLabels?: readonly LayoutEdgeLabel[];
+}>;
 /** Every node exactly once in world coordinates; optional sizes apply only to groups. Routes identify existing edges. */
 export type LayoutResult = Readonly<{
   requestId: string;

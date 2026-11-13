@@ -62,6 +62,7 @@ export function resolveEdgeWaypointControls(
   const visible = presentVisibleGraph(state);
   const geometry = resolveEdgeGeometry(state.graph, effective, {
     route: state.routes.find((route) => route.id === id)?.points,
+    labelPosition: state.routes.find((route) => route.id === id)?.label?.position,
     sourceGroup: visible.hiddenBy.get(edge.source.node),
     targetGroup: visible.hiddenBy.get(edge.target.node),
   });

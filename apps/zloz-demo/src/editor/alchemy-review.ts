@@ -14,6 +14,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
 import example from './alchemy-example.json';
+import { alchemyRelationBadge } from './alchemy-labels';
 import {
   alchemyLayoutControls,
   cancelAlchemyLayout,
@@ -483,6 +484,7 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         height: 'fill',
         theme: workbenchThemes[scheme ?? 'light'],
         diagnostics: false,
+        renderEdgeLabel: alchemyRelationBadge,
         background: { type: 'dots' },
         renderNodeShell: (context, builder) =>
           zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),

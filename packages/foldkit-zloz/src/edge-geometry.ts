@@ -23,6 +23,7 @@ export type ZlozEdgeGeometryPolicy = (
 ) => ZlozEdgeGeometry | undefined;
 export type ZlozEdgeGeometryOptions = Readonly<{
   route?: readonly Point[] | undefined;
+  labelPosition?: Point | undefined;
   sourceGroup?: ZlozNode | undefined;
   targetGroup?: ZlozNode | undefined;
   policy?: ZlozEdgeGeometryPolicy | undefined;
@@ -36,7 +37,18 @@ export function resolveEdgeGeometry(
 ): ZlozEdgeGeometry {
   const groups = { source: options.sourceGroup, target: options.targetGroup };
   const builtIn = edgeGeometry(graph, edge, options.route, groups);
-  const defaultGeometry = { path: builtIn.path, labelPosition: builtIn.center };
+  const routedLabel =
+    options.route &&
+    !edge.waypoints &&
+    edge.pathStyle === undefined &&
+    !options.sourceGroup &&
+    !options.targetGroup
+      ? options.labelPosition
+      : undefined;
+  const defaultGeometry = checkedGeometry(
+    { path: builtIn.path, labelPosition: routedLabel ?? builtIn.center },
+    `edge ${edge.id}`,
+  );
   if (!options.policy) return defaultGeometry;
   const anchors = edgeEndpoints(graph, edge, groups);
   const geometry =

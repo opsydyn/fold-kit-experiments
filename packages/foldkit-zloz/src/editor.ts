@@ -714,14 +714,18 @@ function storedRouteBounds(state: EditorState, edge: ZlozEdge) {
   if (edge.waypoints)
     return edge.waypoints.map(({ position }) => ({ position, size: { width: 0, height: 0 } }));
   if (edge.pathStyle !== undefined) return [];
-  return (
-    state.routes
-      .find(({ id }) => id === edge.id)
-      ?.points.map((position) => ({
-        position,
-        size: { width: 0, height: 0 },
-      })) ?? []
-  );
+  const route = state.routes.find(({ id }) => id === edge.id);
+  const points =
+    route?.points.map((position) => ({ position, size: { width: 0, height: 0 } })) ?? [];
+  if (route?.label)
+    points.push({
+      position: {
+        x: route.label.position.x - route.label.size.width / 2,
+        y: route.label.position.y - route.label.size.height / 2,
+      },
+      size: route.label.size,
+    });
+  return points;
 }
 
 function selectionBounds(state: EditorState): readonly Pick<ZlozNode, 'position' | 'size'>[] {
@@ -1103,6 +1107,13 @@ export function updateEditor(
               return [
                 ...presentation.nodes,
                 ...edgeWaypointBounds(presentation.edges, presentation.hiddenBy),
+                ...presentation.edges.flatMap((edge) =>
+                  presentation.hiddenBy.has(edge.source.node) ||
+                  presentation.hiddenBy.has(edge.target.node) ||
+                  !state.routes.find((route) => route.id === edge.id)?.label
+                    ? []
+                    : storedRouteBounds(state, edge),
+                ),
               ];
             })();
       if (nodes.length === 0) return state;

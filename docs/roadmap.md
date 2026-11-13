@@ -703,3 +703,20 @@ and [qualification/captures](../apps/zloz-demo/evidence/alchemy-layout.md).
 This completes the preview-layout slice above, not D/C/Q or full label fidelity.
 Next proposed slice: package-level edge-label bounds in layout requests, allowing
 ELK to reserve space for labels and custom badges. Recommendation: **needs review**.
+
+**Explicit layout label envelopes — implemented locally (2026-11-13), unreleased:**
+Core accepts validated, detached per-edge composite label sizes in layout requests
+and retains centered world-coordinate result boxes. Missing/unexpected boxes fail
+atomically. Shared view geometry, controls, fit/reveal and culling consume the boxes
+while preserving authored/custom geometry precedence. ELK reserves CENTER labels
+in compound RIGHT/DOWN layouts, including custom badges with no graph text. The
+workbench demonstrates a fixed text-plus-tag renderer sharing its declared 176 by
+36 envelope. Source/projection/findings and working Undo remain unchanged.
+See [ADR 0071](adr/0071-reserve-explicit-layout-label-envelopes.md) and
+[qualification/captures](../apps/zloz-demo/evidence/alchemy-label-bounds.md).
+This closes the preceding label-bounds slice; D/C/Q gates remain open.
+
+Next proposed slice: opt-in measured label envelopes through the Foldkit lifecycle,
+with stale-result protection before re-layout, so custom renderers need not keep
+manual size constants in sync. Recommendation: **needs review**. No automatic
+measurement, engine adoption or publication is implied.

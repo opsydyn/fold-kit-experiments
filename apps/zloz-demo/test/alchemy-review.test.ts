@@ -281,6 +281,13 @@ test('opt-in ELK preview layout preserves source/findings and working history; o
   expect(next.editor.past).toBe(review.editor.past);
   expect(next.editor.future).toBe(review.editor.future);
   expect(next.editor.routes).toHaveLength(8);
+  expect(started.model.alchemyReview.review?.layout.pending?.edgeLabels).toHaveLength(8);
+  for (const route of next.editor.routes) {
+    expect(route.label?.size).toEqual({ width: 176, height: 36 });
+    expect(Number.isFinite(route.label?.position.x)).toBe(true);
+    expect(Number.isFinite(route.label?.position.y)).toBe(true);
+  }
+  expect(next.editor.graph.edges).toEqual(review.editor.graph.edges);
   expect(next.editor.graph.nodes.map((n) => n.position)).not.toEqual(
     review.editor.graph.nodes.map((n) => n.position),
   );

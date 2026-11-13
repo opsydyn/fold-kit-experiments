@@ -9,6 +9,7 @@ import {
   portBoundaryPosition,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
+import ELK from 'elkjs/lib/elk.bundled.js';
 
 import { createElkLayout } from '../src/index';
 
@@ -255,5 +256,67 @@ test('configured spacing and direction apply inside a compound boundary', async 
     const gap =
       direction === 'RIGHT' ? b.x - a.x - source.size.width : b.y - a.y - source.size.height;
     expect(gap).toBeGreaterThanOrEqual(spacing);
+  }
+});
+
+test('real ELK reserves explicit label envelopes in compound layouts and returns world-centered boxes', async () => {
+  const before = createEditor(
+    {
+      nodes: [
+        {
+          id: 'boundary',
+          kind: 'group',
+          label: 'Boundary',
+          position: { x: 75, y: 100 },
+          size: { width: 600, height: 400 },
+          ports: [],
+        },
+        ...graph.nodes.map((n) => ({ ...n, parentId: 'boundary' })),
+      ],
+      edges: graph.edges,
+    },
+    { readOnly: true },
+  );
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const request = layoutRequest(before, `labels-${direction}`, {
+      edgeLabels: graph.edges.map((e) => ({ id: e.id, size: { width: 280, height: 60 } })),
+    });
+    const result = await createElkLayout({ direction, spacing: 96 })(request);
+    const route = result.routes[0];
+    expect(route?.label?.size).toEqual({ width: 280, height: 60 });
+    if (!route?.label) throw new Error('Missing requested label');
+    const box = route.label;
+    for (const node of graph.nodes) {
+      const pos = result.positions.find((p) => p.id === node.id);
+      if (!pos) throw new Error('Missing positioned node');
+      const overlaps =
+        box.position.x + box.size.width / 2 > pos.x &&
+        box.position.x - box.size.width / 2 < pos.x + node.size.width &&
+        box.position.y + box.size.height / 2 > pos.y &&
+        box.position.y - box.size.height / 2 < pos.y + node.size.height;
+      expect(overlaps).toBe(false);
+    }
+  }
+});
+
+test('caller engines cannot omit or falsify requested label boxes', async () => {
+  const request = layoutRequest(createEditor(graph), 'label-failure', {
+    edgeLabels: [{ id: 'e:0', size: { width: 176, height: 36 } }],
+  });
+  for (const labels of [
+    [],
+    [{ id: 'l:0', x: NaN, y: 0, width: 176, height: 36 }],
+    [{ id: 'l:0', x: 0, y: 0, width: 175, height: 36 }],
+  ]) {
+    const layout = createElkLayout({
+      elk: {
+        layout: async (input) => {
+          const result = await new ELK().layout(input);
+          for (const edge of result.edges ?? []) edge.labels = labels;
+          return result;
+        },
+      },
+    });
+    await expect(layout(request)).rejects.toThrow('label box');
   }
 });

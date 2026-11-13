@@ -1666,7 +1666,7 @@ export function zlozView<M>(
   );
   const collapsedGroups = new Set(state.collapsedGroups);
   const visibleEdges = presentation.edges;
-  const routes = new Map(state.routes.map((route) => [route.id, route.points]));
+  const routes = new Map(state.routes.map((route) => [route.id, route]));
   const canvas = viewportItems(
     state,
     presentation,
@@ -1951,7 +1951,8 @@ export function zlozView<M>(
       selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
       ...resolveEdgeGeometry(state.graph, edge, {
         policy: options.edgeGeometry,
-        route: routes.get(edge.id),
+        route: routes.get(edge.id)?.points,
+        labelPosition: routes.get(edge.id)?.label?.position,
         sourceGroup: presentation.hiddenBy.get(edge.source.node),
         targetGroup: presentation.hiddenBy.get(edge.target.node),
       }),

@@ -303,9 +303,10 @@ const state=createEditor(graph,{gridSpacing:32});
 const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
-const readonlyPreview=createEditor(graph,{readOnly:true}),previewRequest=layoutRequest(readonlyPreview,'preview-consumer');
+const readonlyPreview=createEditor(graph,{readOnly:true}),previewRequest=layoutRequest(readonlyPreview,'preview-consumer',{edgeLabels:graph.edges.map(e=>({id:e.id,size:{width:176,height:36}}))});
 const previewResult=await createElkLayout()(previewRequest);
 const previewLayout=applyPreviewLayout(readonlyPreview,previewRequest,previewResult);
+if(previewLayout.routes.some(r=>r.label?.size.width!==176||!Number.isFinite(r.label.position.x)))throw new Error('Missing packed label envelope');
 if(!previewLayout.readOnly||previewLayout.revision!==1||previewLayout.past!==readonlyPreview.past||previewLayout.future!==readonlyPreview.future||previewLayout.graph.edges!==readonlyPreview.graph.edges||previewLayout.routes.length!==graph.edges.length)throw new Error('Missing geometry-only preview layout');
 
 const policy:ZlozEdgeGeometryPolicy=({source,target})=>({path:'M'+source.x+','+source.y+' L'+target.x+','+target.y,labelPosition:{x:(source.x+target.x)/2,y:(source.y+target.y)/2}});

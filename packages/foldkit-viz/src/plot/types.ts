@@ -60,6 +60,21 @@ export type WindowTransform = Readonly<{
   anchor?: 'trailing' | 'centre';
 }>;
 export type DownsampleTransform = Readonly<{ type: 'downsample'; method: 'm4' | 'lttb' }>;
+/**
+ * Bins a rect mark's rows: `x` alone gives a histogram, `x` and `y` a
+ * two-dimensional one. Thresholds are a count or, for `x` alone, explicit
+ * breaks. Binned rows carry `x1`, `x2` (and `y1`, `y2`), `count` and, for a
+ * histogram, `proportion`.
+ */
+export type BinTransform = Readonly<{
+  type: 'bin';
+  thresholds?: number | ReadonlyArray<number>;
+  /** The x range to bin over. Default: the data's extent. */
+  domain?: readonly [number, number];
+  /** What a histogram's bar height shows. Default count. */
+  reduce?: 'count' | 'proportion';
+}>;
+
 export type LineTransform =
   | RegressionTransform
   | LoessTransform
@@ -218,6 +233,29 @@ export type TextMark = CommonMark &
 export type CellMark = CommonMark &
   Readonly<{ mark: 'cell'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
 
+/**
+ * A rectangle from x1 to x2 and y1 to y2 on continuous axes; a missing x1 or
+ * y1 starts at the axis baseline. With a bin transform, `x` (and `y`) are the
+ * values to bin and the edges are computed.
+ */
+export type RectMark = CommonMark &
+  Readonly<{
+    mark: 'rect';
+    x?: Channel;
+    y?: Channel;
+    x1?: Channel;
+    x2?: Channel;
+    y1?: Channel;
+    y2?: Channel;
+    /** Field splitting rows into series to bin separately. Default: the fill or stroke field. */
+    z?: string;
+    fill?: Channel;
+    stroke?: Channel;
+    /** Pixels left empty on each side across x, such as between histogram bars. Default 0. */
+    inset?: number;
+    transform?: BinTransform;
+  }>;
+
 /** Marks that fill their panel instead of using the x and y axes. */
 type HierarchyOptions = Readonly<{
   /** Field holding each leaf's path, such as "Cloud/AWS". */
@@ -256,6 +294,7 @@ export type MarkSpec =
   | RuleMark
   | TextMark
   | CellMark
+  | RectMark
   | BoxMark
   | ViolinMark
   | DensityMark

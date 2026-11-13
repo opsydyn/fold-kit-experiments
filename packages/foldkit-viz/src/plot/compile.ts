@@ -50,6 +50,7 @@ import {
   sunburstGraphics,
   treemapGraphics,
 } from './marks-panel.js';
+import { binRows, rectGraphics, validateRect } from './marks-rect.js';
 import { boxGraphics, linkGraphics, violinGraphics } from './marks-statistical.js';
 import { seriesFieldOf, stackRows, validateStacking } from './stack.js';
 import type {
@@ -103,6 +104,10 @@ const MARKS = {
   rule: { required: [], channels: ['x', 'y', 'stroke', 'title'] },
   text: { required: ['x', 'y', 'text'], channels: ['x', 'y', 'text', 'fill', 'title'] },
   cell: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  rect: {
+    required: [],
+    channels: ['x', 'y', 'x1', 'x2', 'y1', 'y2', 'fill', 'stroke', 'title'],
+  },
 } satisfies Readonly<Record<MarkType, MarkRule>>;
 const OPTIONS = new Set([
   'mark',
@@ -128,6 +133,7 @@ const OPTIONS = new Set([
   'thresholds',
   'stack',
   'group',
+  'inset',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -142,7 +148,8 @@ const isTransformList = (
 ): transform is ReadonlyArray<LineTransform> => Array.isArray(transform);
 
 const transformsOf = (mark: MarkSpec): ReadonlyArray<LineTransform> => {
-  if (!('transform' in mark) || mark.transform === undefined) return [];
+  // A rect's bin transform derives its rows separately; see derive.
+  if (mark.mark === 'rect' || !('transform' in mark) || mark.transform === undefined) return [];
   const transform: LineTransform | ReadonlyArray<LineTransform> = mark.transform;
   return isTransformList(transform) ? transform : [transform];
 };
@@ -170,6 +177,7 @@ function validateMark(mark: MarkSpec, path: string): void {
   if (mark.mark === 'dot' && isConstant(mark.symbol) && !isSymbol(mark.symbol.value))
     fail(`${path}.symbol`, `unknown symbol "${String(mark.symbol.value)}"`);
   if (mark.mark === 'density') validateDensity(mark, path);
+  if (mark.mark === 'rect') validateRect(mark, path);
   if (mark.mark === 'bar' || mark.mark === 'area') validateStacking(mark, path);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
@@ -388,6 +396,16 @@ function applyTransform(
  */
 function derive(p: Prepared, spec: PlotSpec): Prepared {
   const { mark } = p;
+  if (mark.mark === 'rect' && mark.transform !== undefined) {
+    const binned = binRows(mark, p.rows, p.path);
+    return {
+      ...p,
+      rows: binned.rows,
+      channels: { ...p.channels, ...binned.channels },
+      replaced: true,
+      labels: binned.label === undefined ? p.labels : { ...p.labels, y: binned.label },
+    };
+  }
   if ((mark.mark === 'bar' || mark.mark === 'area') && mark.stack !== undefined) {
     const vertical = mark.mark === 'area' || barIsVertical(p, spec);
     const category = channel(p, vertical ? 'x' : 'y'),
@@ -504,6 +522,13 @@ function axisValues(prepared: ReadonlyArray<Prepared>, axis: AxisName) {
     // Areas and bars grow from zero unless they name where they start.
     if (axis === 'y' && p.mark.mark === 'area' && channel(p, 'y0') === undefined) zero = true;
     if (axis === 'y' && p.mark.mark === 'density' && isOneDimensional(p.mark)) zero = true;
+    // A rect without a start edge grows from the baseline, as bars do.
+    if (
+      p.mark.mark === 'rect' &&
+      channel(p, axis === 'x' ? 'x1' : 'y1') === undefined &&
+      channel(p, axis === 'x' ? 'x2' : 'y2') !== undefined
+    )
+      zero = true;
     if (p.mark.mark === 'bar' && channel(p, 'y0') === undefined && channel(p, 'x0') === undefined)
       zero = true;
   }
@@ -1153,6 +1178,8 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       return linkGraphics(mark, rows, path, index, context);
     case 'density':
       return densityGraphics(mark, rows, path, context);
+    case 'rect':
+      return rectGraphics(mark, rows, path, index, context, (name) => channel(p, name));
     case 'treemap':
       return treemapGraphics(mark, rows, path, context);
     case 'sunburst':

@@ -476,5 +476,13 @@ zero blocked DDD edges under the catalogue, not full typing or universal correct
 Graph structure and convention errors reject separately from semantic findings.
 Source/Undo and wire formats are unchanged. The optional Effect CLI now exposes
 `zloz ddd audit` with structured reports, DDD rule files and explicit 0/1/2 exits.
-Comparison and workbench integration remain separate follow-ups; causal commands
-and reports keep their EventStorming scope.
+{@link Core.compareModelDddRelationships | compareModelDddRelationships} compares
+owned baseline/target editions or the current graph under one catalogue. Findings
+match edge ID and code; no-new-findings does not imply compatibility.
+{@link Core.resolveDddAuditControls | resolveDddAuditControls} and
+{@link Core.resolveDddAuditRequest | resolveDddAuditRequest} expose standalone and
+comparison review, live protection and fresh node/edge navigation. The optional
+{@link FoldKit.zlozDddAuditControls | zlozDddAuditControls} composes native or custom
+views with omit/replace hooks and count visibility. Workbench and Effect CLI
+`ddd compare` demonstrate the same package contracts. Source/Undo are preserved;
+causal commands and packets keep their EventStorming scope.

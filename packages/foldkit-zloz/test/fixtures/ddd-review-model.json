@@ -1,0 +1,809 @@
+{
+  "format": "foldkit-zloz-model",
+  "version": 1,
+  "document": {
+    "id": "ddd-orders",
+    "name": "DDD review",
+    "snapshot": {
+      "graph": {
+        "nodes": [
+          {
+            "id": "root",
+            "label": "Order",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              },
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "aggregate-root"
+            }
+          },
+          {
+            "id": "event",
+            "label": "Placed",
+            "position": {
+              "x": 200,
+              "y": 0
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "domain-event"
+            }
+          },
+          {
+            "id": "repo",
+            "label": "Orders",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "repository"
+            }
+          },
+          {
+            "id": "read",
+            "label": "Summary",
+            "position": {
+              "x": 200,
+              "y": 100
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "read-model"
+            }
+          },
+          {
+            "id": "left",
+            "label": "Ordering",
+            "position": {
+              "x": 0,
+              "y": 200
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              },
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "bounded-context"
+            }
+          },
+          {
+            "id": "right",
+            "label": "Payments",
+            "position": {
+              "x": 200,
+              "y": 200
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              },
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "bounded-context"
+            }
+          },
+          {
+            "id": "workshop",
+            "label": "Customer",
+            "position": {
+              "x": 0,
+              "y": 300
+            },
+            "size": {
+              "width": 100,
+              "height": 60
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "event-storming",
+              "role": "actor"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "keep",
+            "source": {
+              "node": "repo",
+              "port": "out"
+            },
+            "target": {
+              "node": "event",
+              "port": "in"
+            },
+            "architecture": {
+              "family": "ddd",
+              "scope": "tactical",
+              "role": "emits"
+            },
+            "label": "Still outstanding"
+          },
+          {
+            "id": "fixed",
+            "source": {
+              "node": "root",
+              "port": "out"
+            },
+            "target": {
+              "node": "read",
+              "port": "in"
+            },
+            "architecture": {
+              "family": "ddd",
+              "scope": "tactical",
+              "role": "feeds"
+            },
+            "label": "Projection"
+          },
+          {
+            "id": "new",
+            "source": {
+              "node": "root",
+              "port": "out"
+            },
+            "target": {
+              "node": "event",
+              "port": "in"
+            },
+            "architecture": {
+              "family": "ddd",
+              "scope": "tactical",
+              "role": "custom",
+              "name": "enriches"
+            },
+            "label": "Enrichment"
+          },
+          {
+            "id": "recoded",
+            "source": {
+              "node": "root",
+              "port": "out"
+            },
+            "target": {
+              "node": "event",
+              "port": "in"
+            },
+            "architecture": {
+              "family": "ddd",
+              "scope": "tactical",
+              "role": "custom",
+              "name": "enriches"
+            },
+            "label": "Changed convention"
+          }
+        ]
+      }
+    },
+    "origin": null,
+    "editions": [
+      {
+        "id": "ddd-before",
+        "name": "DDD review · before",
+        "snapshot": {
+          "graph": {
+            "nodes": [
+              {
+                "id": "root",
+                "label": "Order",
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "aggregate-root"
+                }
+              },
+              {
+                "id": "event",
+                "label": "Placed",
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "domain-event"
+                }
+              },
+              {
+                "id": "repo",
+                "label": "Orders",
+                "position": {
+                  "x": 0,
+                  "y": 100
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "repository"
+                }
+              },
+              {
+                "id": "read",
+                "label": "Summary",
+                "position": {
+                  "x": 200,
+                  "y": 100
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "read-model"
+                }
+              },
+              {
+                "id": "left",
+                "label": "Ordering",
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "bounded-context"
+                }
+              },
+              {
+                "id": "right",
+                "label": "Payments",
+                "position": {
+                  "x": 200,
+                  "y": 200
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "bounded-context"
+                }
+              },
+              {
+                "id": "workshop",
+                "label": "Customer",
+                "position": {
+                  "x": 0,
+                  "y": 300
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "actor"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "keep",
+                "source": {
+                  "node": "repo",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "event",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "emits"
+                },
+                "label": "Outstanding emission"
+              },
+              {
+                "id": "fixed",
+                "source": {
+                  "node": "repo",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "read",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "feeds"
+                },
+                "label": "Projection"
+              },
+              {
+                "id": "removed",
+                "source": {
+                  "node": "left",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "left",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "strategic",
+                  "role": "partnership"
+                },
+                "label": "Legacy partnership"
+              },
+              {
+                "id": "recoded",
+                "source": {
+                  "node": "repo",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "event",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "emits"
+                },
+                "label": "Changed convention"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "ddd-after",
+        "name": "DDD review · after",
+        "snapshot": {
+          "graph": {
+            "nodes": [
+              {
+                "id": "root",
+                "label": "Order",
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "aggregate-root"
+                }
+              },
+              {
+                "id": "event",
+                "label": "Placed",
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "domain-event"
+                }
+              },
+              {
+                "id": "repo",
+                "label": "Orders",
+                "position": {
+                  "x": 0,
+                  "y": 100
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "repository"
+                }
+              },
+              {
+                "id": "read",
+                "label": "Summary",
+                "position": {
+                  "x": 200,
+                  "y": 100
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "read-model"
+                }
+              },
+              {
+                "id": "left",
+                "label": "Ordering",
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "bounded-context"
+                }
+              },
+              {
+                "id": "right",
+                "label": "Payments",
+                "position": {
+                  "x": 200,
+                  "y": 200
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  },
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "ddd",
+                  "role": "bounded-context"
+                }
+              },
+              {
+                "id": "workshop",
+                "label": "Customer",
+                "position": {
+                  "x": 0,
+                  "y": 300
+                },
+                "size": {
+                  "width": 100,
+                  "height": 60
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "actor"
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "keep",
+                "source": {
+                  "node": "repo",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "event",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "emits"
+                },
+                "label": "Still outstanding"
+              },
+              {
+                "id": "fixed",
+                "source": {
+                  "node": "root",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "read",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "feeds"
+                },
+                "label": "Projection"
+              },
+              {
+                "id": "new",
+                "source": {
+                  "node": "root",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "event",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "custom",
+                  "name": "enriches"
+                },
+                "label": "Enrichment"
+              },
+              {
+                "id": "recoded",
+                "source": {
+                  "node": "root",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "event",
+                  "port": "in"
+                },
+                "architecture": {
+                  "family": "ddd",
+                  "scope": "tactical",
+                  "role": "custom",
+                  "name": "enriches"
+                },
+                "label": "Changed convention"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

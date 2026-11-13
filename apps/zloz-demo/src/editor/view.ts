@@ -110,6 +110,7 @@ import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
+import { dddAuditPanel } from './ddd-audit-view';
 import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import {
@@ -406,6 +407,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const comparison = workbenchHistoryComparison(model);
   const changeNavigator = historyChangeNavigatorContext(model, comparison);
   const packetControls = model.sidebarSection === 'history' ? workbenchPacketContext(model) : null;
+  const dddPanel = model.sidebarSection === 'history' ? dddAuditPanel(model, h) : null;
   const auditControls = model.sidebarSection === 'history' ? workbenchAuditContext(model) : null;
   const auditRequest = (request: ZlozAuditComparisonRequest) =>
     Message.ObservedAuditComparisonInput({
@@ -993,6 +995,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ]
         : []),
+      ...(dddPanel ? [dddPanel] : []),
       h.h3([], ['Causal findings']),
       h.p(
         [],

@@ -136,7 +136,7 @@ using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
 ## Zloz core: parity and domain modelling — reconciled 2026-11-13
 
-**Current source baseline:** `e9ab5880` on the isolated `codex/zloz-context-map` branch.
+**Current source baseline:** `1cff6114` plus the local DDD completion slice on the isolated `codex/zloz-context-map` branch.
 The November 12 audit retains its original `03e972b` baseline as historical evidence.
 Package manifests identify 0.3.0; branch implementation, registry publication and
 hosted deployment are separate states. This reconciliation does not verify current
@@ -212,9 +212,10 @@ are not approved exclusions. Historical receipts qualify only their stated scope
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
 3. **Domain and compatibility decisions (D1–D2, C1–C4):** the current branch
-   now has a locally implemented headless DDD audit (D2), reusing the existing
-   resolver/catalogue; see [qualification](../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
-   Broader DDD findings and CLI/review/comparison integration remain separate.
+   now has the locally implemented DDD audit/review/comparison chain (D2) using
+   the explicit resolver/catalogue, public review/navigation APIs and Effect CLI.
+   See [workflow qualification](../apps/zloz-demo/evidence/ddd-audit.md).
+   Additional correctness rules and DDD packet formats are separately scoped.
    D1 workshop vocabulary and EventStorming-to-C4 conversion
    remain separate gaps. Strict output→input, world-coordinate/portless groups,
    the documented ELK/flat-force envelope and advanced catalogue deferrals need
@@ -846,8 +847,8 @@ endpoints are detached. No meaning is inferred or graph/Undo/wire formats change
 Literal expected reports and installed consumers qualify the headless contract.
 See [ADR 0078](adr/0078-audit-declared-ddd-relationships.md) and
 [package evidence](../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
-This closes the prior headless-report recommendation, not D2's wider catalogue,
-UI/CLI/delta integration or the remaining D/C/Q/release gates.
+This closes the prior headless-report recommendation. The local DDD completion
+entry below now covers UI/CLI/delta integration; other D/C/Q/release gates remain.
 
 **DDD Effect CLI audit — implemented locally (2026-11-13), unreleased:**
 `zloz ddd audit` exposes the exact core report and per-edge diagnostics through an
@@ -859,7 +860,26 @@ in [qualification](../packages/foldkit-zloz-cli/evidence/ddd-audit.md) and
 [ADR 0079](adr/0079-expose-ddd-audit-through-effect-cli.md).
 This closes the prior CLI recommendation; no publishing or manifest change.
 
-**Recommended next:** package-owned read-only DDD audit review and finding
-navigation, demonstrated in the workbench with visible convention reasons and
-unchanged graph/Undo. Edition-aware DDD comparison remains a separate follow-up.
-The wider D/C/Q and release decisions remain open.
+**DDD review and comparison — implemented locally (2026-11-13), unreleased:**
+The approved combined slice completes the D2 convention audit workflow: public
+`compareModelDddRelationships`, standalone/current/edition review controls,
+composable FoldKit views, live guarded edge/source/target navigation and Effect CLI
+`ddd compare` with structured JSON. Findings use edge ID/code identity; one catalogue
+applies to both sides. Exit 0 for comparison means no introduced findings, not a
+compatible target. Invalid input/catalogues/edition selectors reject separately.
+The workbench composes custom finding cards in History with independent baseline
+and target selections, read-only edition navigation, paused playback, diagnostics
+preferences and unchanged working graph/Undo. Tests, installed Node/Bun consumers,
+light/dark browser evidence and API documentation are recorded in
+[qualification](../apps/zloz-demo/evidence/ddd-audit.md) and
+[ADR 0080](adr/0080-complete-ddd-audit-review-and-comparison.md).
+
+D2 is complete for **authored relationship conventions and their audit/review/delta
+workflow**. This does not establish universal DDD correctness, new topology rules,
+DDD review packets or closure of D1/C/Q/R. Those are not silently counted as done.
+No npm publishing, version bumps, deployment or provider activation.
+
+**Recommended next:** define the D1a EventStorming workshop vocabulary contract:
+external-system participants, hotspot annotations and lane/frame semantics, with
+explicit relationship/serialization/history rules before renderer work. Keep
+EventStorming-to-C4 conversion and compatibility/release decisions separately scoped.

@@ -6,6 +6,7 @@ import {
   parseModellingPatch,
   dryRunModellingPatch,
   auditDddRelationships,
+  compareModelDddRelationships,
   auditEventStormingRelationships,
   compareModelEventStormingRelationships,
   type ZlozDddRelationshipOptions,
@@ -253,16 +254,16 @@ function executeAudit(input: string, rules: Option.Option<string>) {
   });
   return auditing.pipe(Effect.withSpan('zloz.cli.auditRelationships'));
 }
-const readDddAuditRules = (input: string) =>
+const readDddRules = (operation: 'ddd-audit' | 'ddd-compare') => (input: string) =>
   readDddRelationshipRules(input).pipe(
-    Effect.catchTag('CliInputError', (error) => rejectInput('ddd-audit', error)),
+    Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
   );
 /** ADR 0079: a distinct operation preserves causal command and convention-file compatibility. */
 function executeDddAudit(input: string, rules: Option.Option<string>) {
   const auditing = Effect.gen(function* () {
     const readingRules = Option.match(rules, {
       onNone: () => Effect.succeed<ZlozDddRelationshipOptions>({}),
-      onSome: readDddAuditRules,
+      onSome: readDddRules('ddd-audit'),
     });
     const options = yield* readingRules;
     const document = yield* readForOperation('ddd-audit', input);
@@ -343,7 +344,10 @@ function executeComparison(
       onNone: () => ({ source: 'builtin' as const, input: null }),
       onSome: (input) => ({ source: 'file' as const, input }),
     });
-    const response: Extract<CliResponse, { status: 'compared' }> = {
+    const response: Extract<
+      CliResponse,
+      { operation: 'relationships-compare'; status: 'compared' }
+    > = {
       protocol: cliProtocol,
       operation: 'relationships-compare',
       status: 'compared',
@@ -367,6 +371,71 @@ function executeComparison(
     yield* reporting;
   });
   return comparing.pipe(Effect.withSpan('zloz.cli.compareRelationships'));
+}
+function executeDddComparison(
+  input: string,
+  baselineId: string,
+  edition: Option.Option<string>,
+  rules: Option.Option<string>,
+) {
+  const comparing = Effect.gen(function* () {
+    const readingRules = Option.match(rules, {
+      onNone: () => Effect.succeed<ZlozDddRelationshipOptions>({}),
+      onSome: readDddRules('ddd-compare'),
+    });
+    const options = yield* readingRules;
+    const document = yield* readForOperation('ddd-compare', input);
+    const model = yield* requireModel(document, input, 'ddd-compare');
+    const selection = Option.match(edition, {
+      onNone: () => ({ baselineId }),
+      onSome: (selectedId) => ({ baselineId, selectedId }),
+    });
+    const result = compareModelDddRelationships(model, selection, options);
+    const comparisonResult = Match.value(result).pipe(
+      Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
+      Match.orElse((result) =>
+        Result.fail(
+          new CliInputError({
+            code: result.code,
+            message: result.reason,
+            dimension: 'identity',
+            subject: result.editionId,
+          }),
+        ),
+      ),
+    );
+    const selectingComparison = Effect.fromResult(comparisonResult).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('ddd-compare', error)),
+    );
+    const data = yield* selectingComparison;
+    const conventions = Option.match(rules, {
+      onNone: () => ({ source: 'builtin' as const, input: null }),
+      onSome: (input) => ({ source: 'file' as const, input }),
+    });
+    const response: Extract<CliResponse, { operation: 'ddd-compare'; status: 'compared' }> = {
+      protocol: cliProtocol,
+      operation: 'ddd-compare',
+      status: 'compared',
+      scope: 'model-editions',
+      conventions,
+      data,
+      diagnostics: data.introduced.map((entry) => ({
+        code: `ddd-relationship-${entry.code}`,
+        message: entry.message,
+        subject: entry.edgeId,
+        severity: 'error',
+        dimension: 'semantics',
+      })),
+    };
+    const reporting = writeResponse(response).pipe(
+      Effect.filterOrFail(
+        () => data.summary.introduced === 0,
+        () => new CliAuditRegression(),
+      ),
+    );
+    yield* reporting;
+  });
+  return comparing.pipe(Effect.withSpan('zloz.cli.compareDddRelationships'));
 }
 function executeReviewPacket(
   input: string,
@@ -476,10 +545,6 @@ const dddAuditCommand = Command.make('audit', { input, rules }, (config) =>
     'Audit declared DDD relationships under an explicit convention; exit 1 for incompatibility, 2 for invalid input.',
   ),
 );
-const dddCommand = Command.make('ddd').pipe(
-  Command.withDescription('Read-only DDD convention tools; no inferred meaning or graph changes.'),
-  Command.withSubcommands([dddAuditCommand]),
-);
 const baseline = Flag.String('baseline').pipe(
   Flag.withDescription('Required baseline edition ID owned by the input model.'),
 );
@@ -497,6 +562,17 @@ const compareCommand = Command.make('compare', { input, rules, baseline, edition
 const relationshipsCommand = Command.make('relationships').pipe(
   Command.withDescription('Event-storming causal relationship tools.'),
   Command.withSubcommands([auditCommand, compareCommand]),
+);
+const dddCompareCommand = Command.make('compare', { input, rules, baseline, edition }, (config) =>
+  executeDddComparison(config.input, config.baseline, config.edition, config.rules),
+).pipe(
+  Command.withDescription(
+    'Compare DDD findings against an explicit baseline; exit 1 only for newly introduced findings.',
+  ),
+);
+const dddCommand = Command.make('ddd').pipe(
+  Command.withDescription('Read-only DDD convention tools; no inferred meaning or graph changes.'),
+  Command.withSubcommands([dddAuditCommand, dddCompareCommand]),
 );
 const packetCommand = Command.make(
   'packet',

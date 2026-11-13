@@ -18,6 +18,7 @@ import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effec
 
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
+import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
 import { run, CliDiagnostic, inputByteLimit } from '../src/index';
 
 const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
@@ -888,5 +889,55 @@ test('DDD invalid documents, unavailable files and input limits exit 2 without a
       diagnostics: [{ code }],
     });
     expect(response.data).toBeUndefined();
+  }
+});
+
+test('DDD comparison reports exact deltas with regression exits, explicit target and separate malformed/selector rejection', async () => {
+  const input = JSON.stringify(dddReview);
+  const result = await invoke(['ddd', 'compare', '--baseline', 'ddd-before'], input);
+  expect(result.code).toBe(1);
+  const output = JSON.parse(result.text);
+  expect(output).toMatchObject({
+    operation: 'ddd-compare',
+    status: 'compared',
+    scope: 'model-editions',
+    conventions: { source: 'builtin', input: null },
+  });
+  expect(output.data.summary).toEqual({ introduced: 2, resolved: 3, persisting: 1 });
+  expect(
+    output.diagnostics.map((d: { subject: string; code: string }) => [d.subject, d.code]),
+  ).toEqual([
+    ['new', 'ddd-relationship-unknown-relationship'],
+    ['recoded', 'ddd-relationship-unknown-relationship'],
+  ]);
+  expect(output.data.selected.source).toEqual({ kind: 'current' });
+  const same = await invoke(
+    ['ddd', 'compare', '--baseline', 'ddd-before', '--edition', 'ddd-before'],
+    input,
+  );
+  expect(same.code).toBe(0);
+  expect(JSON.parse(same.text).data.selected.audit.status).toBe('incompatible');
+  expect(JSON.parse(same.text).data.summary).toEqual({ introduced: 0, resolved: 0, persisting: 4 });
+  const archive = await invoke(
+    ['ddd', 'compare', '--baseline', 'ddd-before', '--edition', 'ddd-after'],
+    input,
+  );
+  expect(archive.code).toBe(1);
+  expect(JSON.parse(archive.text).data.selected.source.id).toBe('ddd-after');
+  for (const [args, document, code] of [
+    [['--baseline', 'missing'], input, 'unknown-baseline'],
+    [['--baseline', 'ddd-before', '--edition', 'missing'], input, 'unknown-edition'],
+    [['--baseline', 'ddd-before'], empty, 'model-required'],
+    [['--baseline', 'ddd-before'], '{bad', 'invalid-json'],
+    [['--baseline', 'ddd-before', '--rules', '-'], input, 'invalid-rules'],
+  ] as const) {
+    const rejected = await invoke(['ddd', 'compare', ...args], document);
+    expect(rejected.code).toBe(2);
+    expect(JSON.parse(rejected.text)).toMatchObject({
+      operation: 'ddd-compare',
+      status: 'rejected',
+      diagnostics: [{ code }],
+    });
+    expect(JSON.parse(rejected.text).data).toBeUndefined();
   }
 });

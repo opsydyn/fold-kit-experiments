@@ -5031,7 +5031,85 @@ a report wire-format version. Reports use existing resolver codes and messages.
 
 Core import remains safe in Node/Bun without UI peers. The causal audit,
 `relationships audit/compare` CLI commands and review packets remain EventStorming-scoped. The optional Effect CLI now exposes `ddd audit` with
-its own DDD convention-file schema and explicit exits. Workbench UI, edition
-comparison, permission to Apply and new serialization formats remain separate.
+its own DDD convention-file schema and explicit exits. DDD review/comparison
+now have public APIs below. Permission to Apply and new serialization formats
+remain separate.
 See [ADR 0078](../../docs/adr/0078-audit-declared-ddd-relationships.md)
 and [qualification](evidence/ddd-relationship-audit.md).
+
+### DDD review and edition comparison (unreleased)
+
+```typescript
+import {
+  compareModelDddRelationships,
+  resolveDddAuditControls,
+  resolveDddAuditRequest,
+  type ZlozDddAuditState,
+} from '@opsydyn/foldkit-zloz';
+
+const state: ZlozDddAuditState = {
+  baselineId: 'before', // null selects standalone target review
+  selectedId: null, // current graph; an ID selects an owned edition
+  filters: { introduced: true, resolved: true, persisting: true },
+};
+const decision = compareModelDddRelationships(document, { baselineId: 'before' });
+const context = resolveDddAuditControls(document, state, {
+  // rules: yourCatalogue, // the same convention applies to both sides
+  focusReason: (item) => null, // return a visible reason to protect navigation
+});
+// Compose controls, then recheck emitted requests against live document/state/options.
+const entry = context.entries[0];
+if (entry) {
+  const navigation = resolveDddAuditRequest(document, state, entry.request);
+  // Route focus decisions to navigation.source; keep authored data unchanged.
+}
+```
+
+`compareModelDddRelationships` validates and detaches the model. A baseline is
+required; omitted `selectedId` means current graph, never the visible history
+camera. Unknown baseline/target IDs return blocked decisions and never fall back.
+Only owned editions are selectable; an origin edition is provenance, not ownership.
+One catalogue applies to both snapshots. Every audit retains typed/unrelated
+coverage; no DDD meaning is inferred. Findings match by authored **edge ID and
+code**. Changed codes resolve the old finding and introduce the new one; unchanged
+codes persist, retaining detached before/after projections even when labels,
+participants or presentation differ. Each category uses deterministic edge-ID
+order. `no-new-findings` is absence of regression, not compatibility.
+
+`resolveDddAuditControls` returns target audit, optional comparison, edition
+selectors, filters, reasons and navigation entries. A null baseline means standalone
+current/edition review with entries of kind `current`; that kind means single-target
+review, and `source` still identifies the actual current graph or owned edition.
+Comparison kinds are `introduced`, `resolved` and `persisting`. Resolved entries
+reveal the baseline; others reveal the target. Changing the camera never changes
+these selections. Optional labels, edition names, filter labels, host protection
+and per-finding navigation reasons are configurable.
+
+`resolveDddAuditRequest` returns state changes, ignored/blocked decisions, or a
+navigation-only source and `EdgeRevealRequested`/`NodeRevealRequested` event.
+Set a focus request's `subject` to `edge`, `source` or `target`. The exact finding
+projection token, model ID, selectors, category, filters and live policies are
+rechecked; stale controls cannot navigate changed findings. A token is freshness
+data, not an authorization credential. The host owns state and routes reveal events
+to the indicated current editor or immutable history review. These APIs never
+restore snapshots, mutate graphs, select edit targets or add Undo entries.
+
+The optional `@opsydyn/foldkit-zloz/foldkit` entry exports:
+
+- `zlozDddAuditControls` and `ZlozDddAuditViewOptions` / `ZlozDddAuditParts`.
+- `zlozDddAuditEditionSelect`, `zlozDddAuditFindingFilter`,
+  `zlozDddAuditFindingButton`, `zlozDddAuditStatus`, `zlozDddAuditReason`.
+
+Native selectors, checkboxes and edge/source/target buttons have accessible labels
+and visible convention/protection reasons. All selectors, filters, entries, status,
+reason and layout have replace/omit composition hooks (undefined keeps default;
+null omits a part). `showCounts: false` hides numeric diagnostics without hiding
+findings, reasons or navigation; a host can omit status entirely. Custom entry
+renderers own list-item semantics and can reuse guarded button primitives.
+
+The workbench History sidebar demonstrates custom cards, single-target review,
+baseline comparison and immutable finding navigation in light/dark themes. See
+[ADR 0080](../../docs/adr/0080-complete-ddd-audit-review-and-comparison.md) and
+[local qualification](../../apps/zloz-demo/evidence/ddd-audit.md). DDD review packets,
+new correctness rules, workshop-role expansion and EventStorming-to-C4 conversion
+are outside this workflow. Nothing is published by these APIs.

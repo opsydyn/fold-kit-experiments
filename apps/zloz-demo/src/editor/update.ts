@@ -32,6 +32,7 @@ import {
   type ZlozGraph,
   type ZlozSnapshot,
   type ZlozAuditComparisonRequest,
+  type ZlozDddAuditRequest,
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
@@ -66,6 +67,7 @@ import {
   SaveThemePreference,
   SaveZloz,
 } from './command';
+import { loadDddAuditExample, updateWorkbenchDddAudit } from './ddd-audit';
 import { createDddOrderGraph } from './ddd-examples';
 import { editWorkbenchDddRelationship } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
@@ -664,6 +666,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model: { ...model, notice: 'Could not download the review packet. Try again.' },
     }),
     ClickedAuditExample: () => ({ model: loadAuditExample(model) }),
+    ClickedDddAuditExample: () => ({ model: loadDddAuditExample(model) }),
+    ObservedDddAuditInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: package DDD controls emit typed requests through this internal Schema.Unknown message field.
+      const request = raw as ZlozDddAuditRequest;
+      return { model: updateWorkbenchDddAudit(model, request, modelId, epoch) };
+    },
     ObservedAuditComparisonInput: ({ modelId, epoch, request: raw }) => {
       // SAFETY: the public comparison view emits typed requests through this Schema.Unknown field; the resolver rechecks current identity and policy.
       const request = raw as ZlozAuditComparisonRequest;

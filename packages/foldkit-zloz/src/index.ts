@@ -602,3 +602,26 @@ export type {
   ZlozGroupHeaderMeasurements,
   ZlozGroupHeaderMeasurementContext,
 } from './group-header-measurement';
+
+export { compareModelDddRelationships } from './ddd-audit-comparison';
+export type {
+  ZlozDddRelationshipAuditFinding,
+  ZlozDddRelationshipAuditSource,
+  ZlozDddRelationshipAuditSelection,
+  ZlozDddRelationshipAuditComparison,
+  ZlozDddRelationshipAuditComparisonDecision,
+} from './ddd-audit-comparison';
+export { resolveDddAuditControls, resolveDddAuditRequest } from './ddd-audit-controls';
+export type {
+  ZlozDddAuditFindingKind,
+  ZlozDddAuditState,
+  ZlozDddAuditFindingFocusRequest,
+  ZlozDddAuditRequest,
+  ZlozDddAuditFindingItem,
+  ZlozDddAuditFindingEntry,
+  ZlozDddAuditEditionControl,
+  ZlozDddAuditFindingFilter,
+  ZlozDddAuditControlsOptions,
+  ZlozDddAuditControlsContext,
+  ZlozDddAuditDecision,
+} from './ddd-audit-controls';

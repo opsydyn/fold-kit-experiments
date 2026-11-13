@@ -440,5 +440,41 @@ Keep the rule file to reproduce its convention. No report archive/decoder or
 publication guarantee is added.
 
 `zloz relationships audit` and `relationships compare` remain EventStorming-scoped,
-with their existing rule format, output and exits. DDD comparison, packets and UI
-are separate follow-ups. [Qualification](evidence/ddd-audit.md).
+with their existing rule format, output and exits. DDD comparison is available
+below; DDD packets remain separately scoped. [Qualification](evidence/ddd-audit.md).
+
+## DDD edition comparison (unreleased)
+
+```sh
+zloz ddd compare --input architecture.model.json --baseline before
+zloz ddd compare -i architecture.model.json --baseline before --edition after
+zloz ddd compare --baseline before --rules ddd-rules.json < architecture.model.json
+```
+
+Model documents are required. The baseline must be an owned edition; the target
+is the current graph unless `--edition` explicitly selects another owned edition.
+Unknown selectors reject; origin provenance does not make an edition selectable.
+The existing version-one DDD rules schema and independent 1 MiB input limits apply.
+Rules replace defaults and are validated before model reading, under one catalogue
+for both sides. Existing causal commands and rule formats are unchanged.
+
+The additive protocol-v1 `ddd-compare` operation has `status: "compared"`,
+`scope: "model-editions"`, `conventions`, exact core comparison `data`, and
+introduced-only `ddd-relationship-<code>` diagnostics. Findings match by edge ID and
+code; changed codes resolve and introduce, while persisting findings retain both
+projections. Reports are deterministic, detached and read-only. Convention provenance
+records the rule filename; retain that file for reproduction.
+
+| Exit | Meaning                                                                          | Output                                             |
+| ---- | -------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 0    | No introduced findings, even if existing incompatibilities persist               | Compared JSON on stdout                            |
+| 1    | Newly introduced findings (regression)                                           | Compared JSON and introduced diagnostics on stdout |
+| 2    | Invalid input/rules, non-model input, unavailable/unknown edition or I/O failure | Rejected JSON on stdout; no comparison data        |
+| 2    | Invalid invocation, including missing `--baseline`                               | Invocation JSON on stderr; stdout empty            |
+
+Each expected response is one JSON value plus newline. Help/version, output failure
+and SIGINT retain the existing CLI behavior. For complete target compatibility,
+inspect `data.selected.audit.status`; exit 0 here is not the `ddd audit` compatibility
+guarantee. No documents or Undo are changed, no report import/Apply or DDD packet
+format is added, and no npm publication is performed. See
+[workflow qualification](../../apps/zloz-demo/evidence/ddd-audit.md).

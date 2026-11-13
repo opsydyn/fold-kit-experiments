@@ -3055,3 +3055,13 @@ export type {
 
 export { zlozPngReview, zlozPngAction, zlozPngPreview } from './png-review-view';
 export type { ZlozPngReviewParts, ZlozPngReviewViewOptions } from './png-review-view';
+
+export {
+  zlozDddAuditControls,
+  zlozDddAuditEditionSelect,
+  zlozDddAuditFindingFilter,
+  zlozDddAuditFindingButton,
+  zlozDddAuditStatus,
+  zlozDddAuditReason,
+} from './ddd-audit-controls-view';
+export type { ZlozDddAuditParts, ZlozDddAuditViewOptions } from './ddd-audit-controls-view';

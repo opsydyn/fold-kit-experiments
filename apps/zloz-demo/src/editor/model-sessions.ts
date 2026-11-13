@@ -67,6 +67,7 @@ function activate(
     historyBaselineId: null,
     reviewPacketConsentKey: null,
     auditComparison: { ...model.auditComparison, baselineId: null, selectedId: null },
+    dddAudit: { ...model.dddAudit, baselineId: null, selectedId: null },
     editionRestore: null,
     editionName: '',
     forkName: '',

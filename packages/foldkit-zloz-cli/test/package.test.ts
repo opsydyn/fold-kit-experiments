@@ -20,6 +20,7 @@ import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
+import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
 import manifest from '../package.json';
 
 const exec = promisify(execFile);
@@ -225,6 +226,56 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await writeFile(dddFile, dddText);
     await writeFile(dddRulesFile, dddRulesText);
     for (const runtime of ['node', 'bun']) {
+      const compareInput = JSON.stringify(dddReview);
+      const dddComparison = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before'],
+        compareInput,
+      );
+      expect(dddComparison.code).toBe(1);
+      expect(dddComparison.stderr).toBe('');
+      expect(dddComparison.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(dddComparison.stdout)).toMatchObject({
+        operation: 'ddd-compare',
+        status: 'compared',
+        data: { summary: { introduced: 2, resolved: 3, persisting: 1 } },
+      });
+      const stable = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before', '--edition', 'ddd-before'],
+        compareInput,
+      );
+      expect(stable.code).toBe(0);
+      expect(stable.stderr).toBe('');
+      expect(JSON.parse(stable.stdout).data.selected.audit.status).toBe('incompatible');
+      const customComparison = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before', '--rules', dddRulesFile],
+        compareInput,
+      );
+      expect(customComparison.code).toBe(0);
+      expect(JSON.parse(customComparison.stdout).data.summary).toEqual({
+        introduced: 0,
+        resolved: 2,
+        persisting: 2,
+      });
+      for (const [args, value, code] of [
+        [['--baseline', 'missing'], compareInput, 'unknown-baseline'],
+        [['--baseline', 'ddd-before', '--edition', 'missing'], compareInput, 'unknown-edition'],
+        [['--baseline', 'ddd-before'], empty, 'model-required'],
+        [['--baseline', 'ddd-before'], '{bad', 'invalid-json'],
+        [['--baseline', 'ddd-before', '--rules', '-'], compareInput, 'invalid-rules'],
+      ] as const) {
+        const invalid = await run([runtime, bin, 'ddd', 'compare', ...args], value);
+        expect(invalid.code).toBe(2);
+        expect(invalid.stderr).toBe('');
+        expect(JSON.parse(invalid.stdout)).toMatchObject({
+          operation: 'ddd-compare',
+          status: 'rejected',
+          diagnostics: [{ code }],
+        });
+      }
+      const missingBaseline = await run([runtime, bin, 'ddd', 'compare'], compareInput);
+      expect(missingBaseline.code).toBe(2);
+      expect(missingBaseline.stdout).toBe('');
+      expect(JSON.parse(missingBaseline.stderr).operation).toBe('invocation');
       const dddHelp = await run([runtime, bin, 'ddd', 'audit', '--help']);
       expect(dddHelp.code).toBe(0);
       expect(dddHelp.stderr).toBe('');
@@ -548,6 +599,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await writeFile(
       path.join(directory, 'consumer.ts'),
       `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+const dddDelta:Extract<CliResponse,{operation:'ddd-compare',status:'compared'}>['data']['summary']={introduced:0,resolved:0,persisting:0}; void dddDelta;
 const dddReport:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0}; void dddReport;
 // @ts-expect-error DDD response data never has an inference count.
 const dddInference:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0,inferred:1}; void dddInference;

@@ -6,6 +6,13 @@ see [ADR 0078](../adr/0078-audit-declared-ddd-relationships.md) and
 The recommendation and inventory below retain their `e9ab5880` baseline. Broader
 DDD catalogue decisions and optional CLI/review/comparison work remain open.
 
+Delivery follow-up: the DDD audit/review/comparison workflow is now implemented
+locally, including Effect CLI and public composable controls; see
+[ADR 0080](../adr/0080-complete-ddd-audit-review-and-comparison.md) and
+[workflow evidence](../../apps/zloz-demo/evidence/ddd-audit.md). This closes D2 for
+authored relationship conventions and review/deltas; the table below retains its
+historical source baseline. D1/C/Q/R and new rule/packet expansion remain separate.
+
 Date: 2026-11-13. Inspected package source: `e9ab5880`, isolated branch
 `codex/zloz-context-map`. This updates the D/C/Q inventory and recommendation in
 [the November 12 audit](2026-11-12-zloz-core-completion-audit.md); its dated evidence

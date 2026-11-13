@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add read-only DDD current/edition review, deterministic audit comparison, composable FoldKit controls and fresh policy-aware edge/source/target navigation.
+
 - Add headless DDD relationship audit with deterministic detached reports, current convention resolution, explicit unrelated edges and separate graph/catalogue validation; no inferred meaning or graph mutations.
 
 - Adopt retained-layout PNG review/encoding with immutable queued route/label snapshots, independent workbench opt-in, stale-result suppression and existing pixel/byte budgets.

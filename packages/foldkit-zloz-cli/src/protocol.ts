@@ -1,5 +1,6 @@
 import type {
   ZlozDddRelationshipAudit,
+  ZlozDddRelationshipAuditComparison,
   ZlozEventStormingRelationshipAudit,
   ZlozRelationshipAuditComparison,
   ZlozModellingPatchPreview,
@@ -17,6 +18,7 @@ export type CliOperation =
   | 'validate'
   | 'mermaid-export'
   | 'ddd-audit'
+  | 'ddd-compare'
   | 'relationships-audit'
   | 'relationships-compare'
   | 'review-packet'
@@ -59,6 +61,16 @@ export type CliResponse =
       modelId: string | null;
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
       data: ZlozDddRelationshipAudit;
+      diagnostics: readonly CliDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'ddd-compare';
+      status: 'compared';
+      scope: 'model-editions';
+      conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
+      data: ZlozDddRelationshipAuditComparison;
+      /** Introduced findings only; persisting incompatibility remains in data. */
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{

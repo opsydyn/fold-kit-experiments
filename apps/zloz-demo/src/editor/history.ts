@@ -37,6 +37,8 @@ export function historyAllowsMessage(message: Message): boolean {
     'FailedConversionReceiptDownload',
     'ClickedContextMapPresentation',
     'ClickedAuditExample',
+    'ClickedDddAuditExample',
+    'ObservedDddAuditInput',
     'ObservedReviewPacketInput',
     'CompletedReviewPacketDownload',
     'FailedReviewPacketDownload',

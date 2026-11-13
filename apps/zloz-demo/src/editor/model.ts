@@ -12,6 +12,7 @@ import {
   type ZlozGraph,
   type LayoutRequest,
   type ZlozAuditComparisonState,
+  type ZlozDddAuditState,
   type ZlozEventStormingDddLossConsent,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
@@ -445,6 +446,7 @@ export const Model = Schema.Struct({
   historyBaselineId: Schema.NullOr(Schema.String),
   reviewPacketConsentKey: Schema.NullOr(Schema.String),
   auditComparison: Schema.Unknown,
+  dddAudit: Schema.Unknown,
   historyChangeFilters: Schema.Struct({
     added: Schema.Boolean,
     removed: Schema.Boolean,
@@ -583,6 +585,7 @@ export type Model = Readonly<{
   historyBaselineId: string | null;
   reviewPacketConsentKey: string | null;
   auditComparison: ZlozAuditComparisonState;
+  dddAudit: ZlozDddAuditState;
   historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
@@ -719,6 +722,11 @@ export const init = (namespace = 'test-workbench') => ({
     playbackVisible: false,
     historyBaselineId: null,
     reviewPacketConsentKey: null,
+    dddAudit: {
+      baselineId: null,
+      selectedId: null,
+      filters: { introduced: true, resolved: true, persisting: true },
+    },
     auditComparison: {
       baselineId: null,
       selectedId: null,

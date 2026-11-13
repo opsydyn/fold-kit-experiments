@@ -12,6 +12,9 @@ import {
 import {
   exportMermaid,
   createReviewPacket,
+  parseReviewPacket,
+  type ZlozReviewPacket,
+  type ZlozReviewPacketParseResult,
   type MermaidDirection,
   type MermaidLossPolicy,
 } from '@opsydyn/foldkit-zloz-mermaid';
@@ -19,7 +22,7 @@ import { Console, Effect, Match, Option, Result, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
-import { readDocument, writeResponse, type CliDocument } from './io';
+import { readDocument, readTextInput, writeResponse, type CliDocument } from './io';
 import {
   cliProtocol,
   CliInputError,
@@ -47,24 +50,23 @@ export {
   CliReviewInputRejected,
   CliInvocationRejected,
 } from './protocol';
-export type { CliOperation, CliResponse } from './protocol';
+export type { CliOperation, CliResponse, CliReviewPacketSummary } from './protocol';
 
 type Operation = Exclude<CliOperation, 'invocation'>;
 function rejectInput(operation: Operation, error: CliInputError) {
   return Effect.gen(function* () {
+    const diagnostic: CliDiagnostic = {
+      code: error.code,
+      message: error.message,
+      dimension: error.dimension,
+      subject: error.subject,
+      severity: 'error',
+    };
     const response: CliResponse = {
       protocol: cliProtocol,
       operation,
       status: 'rejected',
-      diagnostics: [
-        {
-          code: error.code,
-          message: error.message,
-          dimension: error.dimension,
-          subject: error.subject,
-          severity: 'error',
-        },
-      ],
+      diagnostics: [error.path === undefined ? diagnostic : { ...diagnostic, path: error.path }],
     };
     yield* writeResponse(response);
     return yield* Effect.fail(error);
@@ -445,9 +447,104 @@ const packetCommand = Command.make(
     'Create a portable selected-snapshot review packet with audit findings and loss-aware Mermaid projections.',
   ),
 );
+
+type ReviewReadOperation = Extract<CliOperation, 'review-validate' | 'review-inspect'>;
+function reviewInputError(
+  input: string,
+  result: Extract<ZlozReviewPacketParseResult, { status: 'rejected' }>,
+) {
+  const dimension = Match.value(result.code).pipe(
+    Match.when('invalid-json', () => 'syntax' as const),
+    Match.when('limit-exceeded', () => 'syntax' as const),
+    Match.when('unsupported-format', () => 'identity' as const),
+    Match.when('unsupported-version', () => 'identity' as const),
+    Match.orElse(() => 'semantics' as const),
+  );
+  return new CliInputError({
+    code: result.code,
+    message: result.reason,
+    path: result.path,
+    subject: input,
+    dimension,
+  });
+}
+function decodeReviewText(input: string, text: string) {
+  return Match.value(parseReviewPacket(text)).pipe(
+    Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
+    Match.when({ status: 'rejected' }, (result) => Result.fail(reviewInputError(input, result))),
+    Match.exhaustive,
+  );
+}
+function readReviewPacket(operation: ReviewReadOperation, input: string) {
+  return readTextInput(input).pipe(
+    Effect.flatMap((text) => Effect.fromResult(decodeReviewText(input, text))),
+    Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
+  );
+}
+function reviewReadResponse(operation: ReviewReadOperation, packet: ZlozReviewPacket): CliResponse {
+  return Match.value(operation).pipe(
+    Match.when(
+      'review-inspect',
+      (): CliResponse => ({
+        protocol: cliProtocol,
+        operation: 'review-inspect',
+        status: 'inspected',
+        scope: packet.scope,
+        data: packet,
+        diagnostics: packet.diagnostics,
+      }),
+    ),
+    Match.when(
+      'review-validate',
+      (): CliResponse => ({
+        protocol: cliProtocol,
+        operation: 'review-validate',
+        status: 'valid',
+        summary: {
+          model: packet.model,
+          baseline: {
+            source: packet.baseline.source,
+            nodes: packet.baseline.snapshot.graph.nodes.length,
+            edges: packet.baseline.snapshot.graph.edges.length,
+          },
+          selected: {
+            source: packet.selected.source,
+            nodes: packet.selected.snapshot.graph.nodes.length,
+            edges: packet.selected.snapshot.graph.edges.length,
+          },
+          audit: { status: packet.comparison.status, summary: packet.comparison.summary },
+        },
+        diagnostics: packet.diagnostics,
+      }),
+    ),
+    Match.exhaustive,
+  );
+}
+function executeReviewRead(operation: ReviewReadOperation, input: string) {
+  return readReviewPacket(operation, input).pipe(
+    Effect.map((packet) => reviewReadResponse(operation, packet)),
+    Effect.flatMap(writeResponse),
+    Effect.asVoid,
+    Effect.withSpan('zloz.cli.reviewRead'),
+  );
+}
+const packetValidateCommand = Command.make('validate', { input }, (config) =>
+  executeReviewRead('review-validate', config.input),
+).pipe(
+  Command.withDescription(
+    'Validate a portable review packet; findings remain data and do not change validity exit status.',
+  ),
+);
+const packetInspectCommand = Command.make('inspect', { input }, (config) =>
+  executeReviewRead('review-inspect', config.input),
+).pipe(
+  Command.withDescription(
+    'Inspect a strictly validated review packet as read-only JSON; never imports or executes its contents.',
+  ),
+);
 const reviewCommand = Command.make('review').pipe(
   Command.withDescription('Portable architecture review artifacts.'),
-  Command.withSubcommands([packetCommand]),
+  Command.withSubcommands([packetCommand, packetValidateCommand, packetInspectCommand]),
 );
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(

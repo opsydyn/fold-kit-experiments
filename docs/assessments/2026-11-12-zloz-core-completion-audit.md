@@ -174,11 +174,15 @@ JSON input, validates owned snapshots/identities and recomputes the full audit a
 Mermaid wire content, returning detached frozen data or explicit rejection. See
 [ADR 0057](../adr/0057-decode-portable-review-packets-strictly.md) and
 [qualification](../../packages/foldkit-zloz-mermaid/evidence/review-packet-parse.md).
-CLI validation/inspection and read-only workbench opening remain incomplete.
+Effect CLI `review validate` and `review inspect` now reuse the strict decoder with
+bounded UTF-8 file/stdin IO, retained findings and explicit validity/error exit codes.
+See [ADR 0058](../adr/0058-inspect-review-packets-through-effect-cli.md) and
+[command qualification](../../packages/foldkit-zloz-cli/evidence/review-packet-read.md).
+Read-only workbench opening remains incomplete.
 The delivered decoder provides strict data-only validation and explicit format/version
 errors, bounded input, structural and cross-field consistency checks, recomputed
-findings/projections and malformed/tampered/literal-fixture tests. Next add CLI
-validation/inspection and a read-only workbench opening flow that preserves the
+findings/projections and malformed/tampered/literal-fixture tests. Next add a
+read-only workbench opening flow that preserves the
 last good review on failure. Opening is not consent to edit or import a model.
 
 ### P2 — reviewed modelling patches and dry runs

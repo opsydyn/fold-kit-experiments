@@ -66,7 +66,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ])
       expect(existsSync(path.join(directory, 'node_modules', dependency))).toBe(false);
     const bin = path.join(directory, 'node_modules/.bin/zloz');
-    const run = async (command: readonly string[], input = '') => {
+    const run = async (command: readonly string[], input: string | Uint8Array = '') => {
       const child = Bun.spawn([...command], {
         cwd: directory,
         stdin: 'pipe',
@@ -90,6 +90,10 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(help.stdout).toContain('relationships');
     expect(help.stdout).toContain('review');
     expect(help.stderr).toBe('');
+    const reviewHelp = await run([bin, 'review', '--help']);
+    expect(reviewHelp.code).toBe(0);
+    expect(reviewHelp.stdout).toContain('inspect');
+    expect(reviewHelp.stdout).toContain('validate');
     const version = await run([bin, '--version']);
     expect(version.code).toBe(0);
     expect(version.stdout).toContain(manifest.version);
@@ -195,6 +199,35 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         status: 'created',
         data: { format: 'foldkit-zloz-review', comparison: { summary: { introduced: 1 } } },
       });
+      const rawPacket = JSON.stringify(JSON.parse(packet.stdout).data);
+      const reviewPacketFile = path.join(directory, 'portable-review.json');
+      await writeFile(reviewPacketFile, rawPacket);
+      const validated = await run([runtime, bin, 'review', 'validate', '-i', reviewPacketFile]);
+      expect(validated.code).toBe(0);
+      expect(validated.stderr).toBe('');
+      expect(JSON.parse(validated.stdout)).toMatchObject({
+        operation: 'review-validate',
+        status: 'valid',
+        summary: { audit: { status: 'regressed', summary: { introduced: 1 } } },
+      });
+      const inspected = await run([runtime, bin, 'review', 'inspect'], rawPacket);
+      expect(inspected.code).toBe(0);
+      expect(inspected.stderr).toBe('');
+      expect(JSON.parse(inspected.stdout).data).toEqual(JSON.parse(rawPacket));
+      expect(await readFile(reviewPacketFile, 'utf8')).toBe(rawPacket);
+      const badPacket = JSON.parse(rawPacket);
+      badPacket.projections.selected.source += ' forged';
+      const refused = await run([runtime, bin, 'review', 'inspect'], JSON.stringify(badPacket));
+      expect(refused.code).toBe(2);
+      expect(refused.stderr).toBe('');
+      expect(JSON.parse(refused.stdout)).toMatchObject({
+        operation: 'review-inspect',
+        status: 'rejected',
+        diagnostics: [{ code: 'inconsistent-packet', path: '/projections/selected/source' }],
+      });
+      const badUtf8 = await run([runtime, bin, 'review', 'validate'], Uint8Array.of(0xc3));
+      expect(badUtf8.code).toBe(2);
+      expect(JSON.parse(badUtf8.stdout).diagnostics[0].code).toBe('invalid-utf8');
       const strictPacket = await run(
         [runtime, bin, 'review', 'packet', '--baseline', 'baseline'],
         comparisonText,

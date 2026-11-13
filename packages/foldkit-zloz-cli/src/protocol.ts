@@ -6,6 +6,7 @@ import type {
   MermaidBundle,
   ZlozReviewPacket,
   ZlozReviewPacketDiagnostic,
+  ZlozReviewPacketParseResult,
 } from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
@@ -16,6 +17,8 @@ export type CliOperation =
   | 'relationships-audit'
   | 'relationships-compare'
   | 'review-packet'
+  | 'review-validate'
+  | 'review-inspect'
   | 'invocation';
 export const CliDiagnostic = Schema.Struct({
   code: Schema.String,
@@ -23,11 +26,42 @@ export const CliDiagnostic = Schema.Struct({
   subject: Schema.NullOr(Schema.String),
   severity: Schema.Literals(['error', 'loss']),
   dimension: Schema.Literals(['syntax', 'semantics', 'identity', 'layout', 'io']),
+  /** JSON Pointer from strict review-packet decoding, including empty root. */
+  path: Schema.optionalKey(Schema.String),
   /** Present for packet conversion diagnostics; other commands retain their existing shape. */
   side: Schema.optionalKey(Schema.Literals(['packet', 'baseline', 'selected'])),
 });
 export type CliDiagnostic = typeof CliDiagnostic.Type;
+export type CliReviewPacketSummary = Readonly<{
+  model: ZlozReviewPacket['model'];
+  baseline: Readonly<{
+    source: ZlozReviewPacket['baseline']['source'];
+    nodes: number;
+    edges: number;
+  }>;
+  selected: Readonly<{
+    source: ZlozReviewPacket['selected']['source'];
+    nodes: number;
+    edges: number;
+  }>;
+  audit: Pick<ZlozRelationshipAuditComparison, 'status' | 'summary'>;
+}>;
 export type CliResponse =
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'review-validate';
+      status: 'valid';
+      summary: CliReviewPacketSummary;
+      diagnostics: readonly ZlozReviewPacketDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'review-inspect';
+      status: 'inspected';
+      scope: 'selected-snapshots';
+      data: ZlozReviewPacket;
+      diagnostics: readonly ZlozReviewPacketDiagnostic[];
+    }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'validate';
@@ -95,10 +129,12 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'invalid-rules'
     | 'model-required'
     | 'unknown-baseline'
-    | 'unknown-edition';
+    | 'unknown-edition'
+    | Extract<ZlozReviewPacketParseResult, { status: 'rejected' }>['code'];
   readonly message: string;
   readonly dimension: CliDiagnostic['dimension'];
   readonly subject: string;
+  readonly path?: string;
 }> {
   readonly [Runtime.errorExitCode] = 2;
   readonly [Runtime.errorReported] = false;

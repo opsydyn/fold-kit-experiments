@@ -300,3 +300,46 @@ for embedders. Existing command output and exit meanings remain unchanged.
 
 See the [packet type contract](../foldkit-zloz-mermaid/README.md#portable-review-packets)
 and [executable evidence](evidence/review-packet.md).
+
+## Validate and inspect review packets (unreleased)
+
+```sh
+zloz review validate --input review.packet.json
+zloz review inspect --input review.packet.json
+cat review.packet.json | zloz review validate
+```
+
+`review validate` emits `operation: "review-validate"`, `status: "valid"` with model,
+baseline/selected identities, graph counts, audit status/counts and packet diagnostics.
+`review inspect` emits `operation: "review-inspect"`, `status: "inspected"` with the
+complete recomputed packet in `data`, including chosen snapshots, findings and Mermaid
+projections as read-only data. No Mermaid execution, input-file write or model import
+occurs. The existing strict package decoder checks the whole packet.
+
+Both exit **0** for a valid packet, even when its audit is regressed or its projection
+reports losses. This is validity checking, not a compatibility gate or new consent to
+loss. Rejected/unsupported/inconsistent packets, IO and UTF-8 failures exit **2**.
+These commands introduce no exit-1 case. Rejections retain decoder `code`, `message`
+and JSON Pointer `path`; diagnostic `subject` is the file path or `-` for stdin.
+
+Inputs must be raw `foldkit-zloz-review` v1 packets, as downloaded by the workbench.
+CLI JSON responses wrap that document in `.data`; extract it explicitly:
+
+```sh
+zloz review packet -i model.json --baseline before --loss-policy report \
+  | jq '.data' | zloz review validate
+zloz review inspect -i review.packet.json | jq '.data.comparison.summary'
+```
+
+`jq` above is an optional host JSON tool, not a CLI runtime dependency. A creation or
+inspection response envelope passed directly to validation rejects with
+`unsupported-format`; it is not silently unwrapped. The shared scoped reader caps
+both file and stdin input at **1,048,576 UTF-8 bytes**, decodes UTF-8 fatally and passes
+raw text to the strict decoder before generic schema parsing. Packet depth/value
+limits and duplicate-key checks therefore remain effective. The existing TTY guard
+requires piped stdin or an explicit file.
+
+Validation establishes self-consistency, not author authenticity. Inspection prints
+packet data, which may be large within the input limit. Read-only workbench opening
+is the next integration slice. See [ADR 0058](../../docs/adr/0058-inspect-review-packets-through-effect-cli.md)
+and [command qualification](evidence/review-packet-read.md). PNG and Alchemy remain deferred.

@@ -92,8 +92,8 @@ const decodeDocument = (text: string, value: JsonValue, input: string) =>
         subject: input,
       }),
   });
-/** Scoped UTF-8 JSON input shared by document and data-only configuration readers. */
-export function readJsonInput(input: string) {
+/** Scoped bounded UTF-8 text; packet decoding must inspect raw JSON before any schema parse. */
+export function readTextInput(input: string) {
   const reading = Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const stdio = yield* Stdio.Stdio;
@@ -112,6 +112,14 @@ export function readJsonInput(input: string) {
     );
     const chunks = yield* collectInput(source, input);
     const text = yield* decodeUtf8(chunks, input);
+    return text;
+  });
+  return reading.pipe(Effect.withSpan('zloz.cli.readTextInput'));
+}
+/** JSON interpretation remains separate from the shared bounded UTF-8 reader. */
+export function readJsonInput(input: string) {
+  const reading = Effect.gen(function* () {
+    const text = yield* readTextInput(input);
     const value = yield* decodeJson(text, input);
     return { text, value };
   });

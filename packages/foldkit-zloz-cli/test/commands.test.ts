@@ -15,7 +15,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effect';
 
-import { run, CliDiagnostic } from '../src/index';
+import { run, CliDiagnostic, inputByteLimit } from '../src/index';
 
 const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
 const graph =
@@ -533,4 +533,100 @@ test('CLI validation accepts DDD wire meaning while its causal audit reports it 
     unrelated: 1,
     blocked: 0,
   });
+});
+
+test('review validate and inspect reopen portable data without treating findings as invalid input', async () => {
+  const text = await readFile(
+    new URL('../../foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json', import.meta.url),
+    'utf8',
+  );
+  const checked = await invoke(['review', 'validate'], text);
+  expect(checked.code).toBe(0);
+  expect(JSON.parse(checked.text)).toMatchObject({
+    operation: 'review-validate',
+    status: 'valid',
+    summary: {
+      model: { id: 'orders' },
+      audit: { status: 'regressed', summary: { introduced: 1 } },
+    },
+  });
+  const opened = await invoke(['review', 'inspect'], text);
+  expect(opened.code).toBe(0);
+  expect(JSON.parse(opened.text)).toMatchObject({
+    operation: 'review-inspect',
+    status: 'inspected',
+    data: { format: 'foldkit-zloz-review', scope: 'selected-snapshots' },
+  });
+  expect(JSON.parse(opened.text).data).toEqual(JSON.parse(text));
+});
+test('review input rejection reports decoder codes and JSON paths with exit 2', async () => {
+  const text = await readFile(
+    new URL('../../foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json', import.meta.url),
+    'utf8',
+  );
+  const forged = JSON.parse(text);
+  forged.projections.selected.source += ' changed';
+  const changed = await invoke(['review', 'inspect'], JSON.stringify(forged));
+  expect(changed.code).toBe(2);
+  expect(
+    Schema.decodeUnknownSync(CliDiagnostic)(JSON.parse(changed.text).diagnostics[0]).path,
+  ).toBe('/projections/selected/source');
+  expect(JSON.parse(changed.text)).toMatchObject({
+    operation: 'review-inspect',
+    status: 'rejected',
+    diagnostics: [
+      { code: 'inconsistent-packet', path: '/projections/selected/source', subject: '-' },
+    ],
+  });
+  for (const [input, code] of [
+    ['{', 'invalid-json'],
+    ['{"version":1,"version":1}', 'invalid-json'],
+    ['['.repeat(65) + '0' + ']'.repeat(65), 'limit-exceeded'],
+  ] as const) {
+    const result = await invoke(['review', 'validate'], input);
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text).diagnostics[0].code).toBe(code);
+  }
+  const wrapper = await invoke(
+    ['review', 'validate'],
+    JSON.stringify({ protocol: 'foldkit-zloz-cli/v1', data: JSON.parse(text) }),
+  );
+  expect(wrapper.code).toBe(2);
+  expect(JSON.parse(wrapper.text).diagnostics[0].code).toBe('unsupported-format');
+});
+
+test('review commands preserve packet files and report file/byte limits through the same JSON protocol', async () => {
+  const packet = await readFile(
+    new URL('../../foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json', import.meta.url),
+    'utf8',
+  );
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-review-read-'));
+  // Native file fixture cleanup must run even when an assertion fails.
+  // oxlint-disable-next-line linteffect/no-try-catch
+  try {
+    const file = join(directory, 'review.json');
+    await writeFile(file, packet);
+    for (const command of ['validate', 'inspect']) {
+      const result = await invoke(['review', command, '--input', file], '');
+      expect(result.code).toBe(0);
+      expect(result.text.endsWith('\n')).toBe(true);
+      expect(await readFile(file, 'utf8')).toBe(packet);
+    }
+    const missing = await invoke(['review', 'inspect', '-i', join(directory, 'missing.json')], '');
+    expect(missing.code).toBe(2);
+    expect(JSON.parse(missing.text)).toMatchObject({
+      operation: 'review-inspect',
+      status: 'rejected',
+      diagnostics: [{ code: 'input-unavailable' }],
+    });
+    const padding = inputByteLimit - new TextEncoder().encode(packet).byteLength;
+    const boundary = packet + ' '.repeat(padding);
+    const exact = await invoke(['review', 'validate'], boundary);
+    expect(exact.code).toBe(0);
+    const overflow = await invoke(['review', 'validate'], boundary + ' ');
+    expect(overflow.code).toBe(2);
+    expect(JSON.parse(overflow.text).diagnostics[0].code).toBe('input-limit');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

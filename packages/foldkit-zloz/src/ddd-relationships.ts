@@ -3,6 +3,10 @@ import {
   type DddEdgeArchitecture,
   type DddNodeArchitecture,
 } from './architecture';
+import {
+  declaredConsumptionArchitecture,
+  declaredConsumptionSourceRoles,
+} from './declared-consumption';
 import { ZlozError } from './graph';
 import type { ZlozGraph, ZlozEdge, ZlozNode, EditorPolicy } from './types';
 /** Logical identity only. This value does not invent ports or create a drawable edge. */
@@ -45,6 +49,7 @@ const tacticalRoles: readonly DddNodeArchitecture['role'][] = [
   'domain-event',
   'domain-service',
   'repository',
+  'read-model',
 ];
 const roles: readonly DddNodeArchitecture['role'][] = [...tacticalRoles, 'bounded-context'];
 function rule(
@@ -119,6 +124,12 @@ export const dddRelationshipRules: readonly ZlozDddRelationshipRule[] = Object.f
     ['bounded-context'],
     ['bounded-context'],
     'Supplier → customer',
+  ),
+  rule(
+    declaredConsumptionArchitecture,
+    declaredConsumptionSourceRoles,
+    ['read-model'],
+    'Declared consumption',
   ),
 ]);
 /** Scope prevents tactical and strategic named custom roles from colliding. Side roles/description decorate the same relationship key. */

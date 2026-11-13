@@ -36,6 +36,7 @@ const graph: ZlozGraph = {
         'domain-service',
         'repository',
         'bounded-context',
+        'read-model',
       ] as const
     ).map((role, index) =>
       createArchitectureNode({
@@ -115,9 +116,9 @@ async function render(
   return window.document;
 }
 
-test('all eight DDD roles retain native semantics, canonical geometry and family fallback', async () => {
+test('all nine DDD roles retain native semantics, canonical geometry and family fallback', async () => {
   const document = await render();
-  expect(document.querySelectorAll('[data-flow-ddd-node]')).toHaveLength(7);
+  expect(document.querySelectorAll('[data-flow-ddd-node]')).toHaveLength(8);
   expect(document.querySelectorAll('[data-flow-ddd-group]')).toHaveLength(2);
   for (const label of [
     'Entity',
@@ -138,6 +139,9 @@ test('all eight DDD roles retain native semantics, canonical geometry and family
   expect(document.querySelector('[data-flow-ddd-group="bounded-context"]')?.textContent).toContain(
     'Supporting subdomain',
   );
+  expect(
+    document.querySelector('[data-flow-node="read-model"] [data-flow-ddd-type]')?.textContent,
+  ).toBe('Read Model');
   const repository = document.querySelector('[data-flow-node="repository"]');
   expect(repository?.querySelector('[data-flow-ddd-outline]')?.getAttribute('d')).toBe(
     nodeShapeGeometry(graph.nodes[5]!).outlinePath,

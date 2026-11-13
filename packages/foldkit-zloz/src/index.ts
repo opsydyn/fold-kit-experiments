@@ -554,3 +554,15 @@ export type {
   ZlozPngDownload,
   ZlozPngReviewUpdate,
 } from './png-export';
+
+export {
+  declaredConsumptionArchitecture,
+  declaredConsumptionSourceRoles,
+  isDeclaredConsumption,
+  resolveDeclaredConsumption,
+} from './declared-consumption';
+export type {
+  ZlozDeclaredConsumption,
+  ZlozDeclaredConsumptionSourceRole,
+  ZlozDeclaredConsumptionDecision,
+} from './declared-consumption';

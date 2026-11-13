@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add native DDD read-model nodes, explicit tactical feeds relationships and framework-neutral declared-consumption resolution, reusing existing policy/editing/Undo and v1 persistence.
+
 - Add bounded package PNG planning, exact-source review controls and optional browser encoding/download with explicit fidelity losses, cancellation and cleanup.
 
 - Add reviewed modelling-patch controls and live policy-aware atomic Apply with retained provenance and one Undo.

@@ -32,6 +32,16 @@ bounds; minimal mode retains semantic meaning. DDD artwork, semantic edge
 descriptors and atomic pattern builders remain follow-ups. See ADR 0006 and the
 package README for the renderer contract.
 
+## Read models and declared consumption
+
+DDD `read-model` nodes and tactical `feeds` edges model an explicit source-to-read-model
+dependency. {@link Core.resolveDeclaredConsumption | resolveDeclaredConsumption} accepts the strict two-ID
+{@link Core.ZlozDeclaredConsumption | ZlozDeclaredConsumption}, with syntax guarded by {@link Core.isDeclaredConsumption | isDeclaredConsumption}.
+It returns a frozen logical relationship/source role or rejection; it never invents
+ports, event filters, runtime delivery or permission to edit. Existing DDD controls,
+policies, renderer and v1 snapshots compose the same descriptors.
+See ADR 0065 and the package README for compatibility and authoring boundaries.
+
 ## Port anchor contracts
 
 Keyboard point selection uses `PortAnchorTargetStepped` and the pure

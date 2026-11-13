@@ -4569,3 +4569,64 @@ work may finish later. These bounds do not guarantee peak memory, exact glyph
 shaping, identical browser pixels or server/CLI PNG rendering. System-font fidelity
 remains reported uncertainty. See [ADR 0063](../../docs/adr/0063-rasterize-reviewed-model-artwork-as-png.md)
 and [browser/download evidence](../../apps/zloz-demo/evidence/png-export.md).
+
+## Read models and declared consumption (unreleased)
+
+`{ family: 'ddd', role: 'read-model' }` is a native ordinary-node descriptor for an
+explicitly authored query-oriented representation. `architectureNodePresets`,
+`createArchitectureNode`, the optional `zlozDddNode` renderer and its existing
+content/appearance slots support it. It is not a group or a prescribed database
+shape. The role does not make the diagram node read-only; normal editor permissions
+and host policies still govern authoring.
+
+```ts
+import {
+  resolveDeclaredConsumption,
+  dddRelationshipPolicy,
+  type ZlozDeclaredConsumption,
+} from '@opsydyn/foldkit-zloz';
+
+// graph has explicit DDD aggregate/root, domain-event or read-model source
+// and a DDD read-model consumer, with these authored IDs.
+const declaration: ZlozDeclaredConsumption = {
+  sourceNodeId: 'account',
+  consumerNodeId: 'account-balance',
+};
+const decision = resolveDeclaredConsumption(graph, declaration);
+if (decision.type === 'allowed') {
+  // A detached frozen logical source → target relationship, with no ports.
+  // decision.relationship.architecture is {family:'ddd',scope:'tactical',role:'feeds'}.
+  // decision.sourceRole distinguishes aggregate, aggregate-root,
+  // domain-event and read-model declarations. No event set is inferred.
+}
+const policy = dddRelationshipPolicy();
+// Use policy with existing editor events and relationship controls to check the
+// actual edge, live source and host protections. Resolution is not permission.
+```
+
+`isDeclaredConsumption` checks the strict two-ID logical descriptor. Missing nodes,
+unsupported families or incompatible roles return explicit rejection codes.
+`declaredConsumptionSourceRoles` and `declaredConsumptionArchitecture` expose the
+frozen default contract. The `feeds` tactical role is directed **from declared
+source to read model**. `resolveDddRelationship`, DDD pattern controls and the
+optional DDD policy reuse this convention, including incident-node/reconnection
+checks. Generic custom DDD conventions remain independently extensible.
+
+These are modelling declarations, not executable subscriptions or evidence of a
+live event. An aggregate/read-model source does not imply all events, a filter,
+key routing, delivery order, replay, consistency or handler behaviour. Explicit
+edges from domain-event nodes may identify particular event types without claiming
+that such an event occurred. Self-consumption is a permitted authored dependency,
+not inferred executable feedback. Streams, policies and sagas are not silently
+coerced into read models. Non-DDD roles require an explicitly reviewed mapping.
+
+The logical resolver can describe a portless aggregate boundary; it never creates
+ports or a drawable edge. The editor separately checks actual ports, duplicates,
+policy, revision and lifecycle, and preserves its existing one-Undo architecture
+edits. Use snapshot/edition serialization for retained graph meaning: v1 accepts
+`read-model` nodes and `feeds` edges in this reader, with no new framework-specific
+wire format. Older readers may reject the new role strings. SVG retains canonical
+artwork and reports semantic-edge fallback through its existing findings.
+
+[ADR 0065](../../docs/adr/0065-declare-read-model-consumption-without-runtime-semantics.md) ·
+[Contract qualification](evidence/declared-consumption.md).

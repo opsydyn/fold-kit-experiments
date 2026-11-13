@@ -87,6 +87,7 @@ test('literal v1 DDD descriptors retain directional and symmetric meaning withou
     'shared-kernel',
     'upstream-downstream',
     'customer-supplier',
+    'feeds',
   ]);
 });
 test('reserved syntax rejects mixed scopes, unknown fields and wrong side roles', () => {

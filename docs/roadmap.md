@@ -159,7 +159,7 @@ and demonstrates it.
 
 | Capability                                 | Current scope and evidence                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Architecture presentation                  | C4 presets and eight DDD roles, composable node/group renderers, light/dark demos. [DDD receipt](../apps/zloz-demo/evidence/ddd-renderers.md).                                                                                                                                                                                                                                                                      |
+| Architecture presentation                  | C4 presets and nine DDD roles including read-model, composable node/group renderers, light/dark demos. [DDD receipt](../apps/zloz-demo/evidence/ddd-renderers.md).                                                                                                                                                                                                                                                  |
 | Atomic patterns                            | Validated fragments, deterministic ID remapping, live policies, rollback, C4/DDD starters and one Undo. [Pattern receipt](../apps/zloz-demo/evidence/pattern-insertion.md).                                                                                                                                                                                                                                         |
 | EventStorming discovery                    | Semantic cards, process starter, typed causal links, custom data-only conventions, undoable meaning and composable editing controls. [Discovery](../apps/zloz-demo/evidence/event-storming.md), [relationships](../apps/zloz-demo/evidence/relationships.md), [controls](../apps/zloz-demo/evidence/relationship-controls.md).                                                                                      |
 | History and comparison                     | Immutable named editions, read-only rewind, ghost geometry, semantic/layout comparison, comparison controls and change navigation. [History](../apps/zloz-demo/evidence/history.md), [comparison](../apps/zloz-demo/evidence/comparison-controls.md), [navigation](../apps/zloz-demo/evidence/change-navigator.md).                                                                                                 |
@@ -605,3 +605,17 @@ See [ADR 0064](adr/0064-qualify-alchemy-declarations-in-an-isolated-spike.md) an
 Next proposed slice: framework-neutral read-model and declared-consumption contracts
 under D1, then revisit optional adapter extraction and its compatibility gate.
 D/C/Q closure and user-task qualification remain open. Recommendation: **needs review**.
+
+**Read models and declared consumption — implemented locally, unreleased (2026-11-13):**
+Core now recognises native DDD read-model nodes and directed tactical `feeds`
+relationships, with a framework-neutral two-ID declaration guard/resolver. The
+explicit source may be an aggregate/root, event type or read model; target is a
+read model. Existing DDD rendering, policy/controls, serialization, editions and
+Undo compose the descriptors without runtime assumptions or new dependencies.
+See [ADR 0065](adr/0065-declare-read-model-consumption-without-runtime-semantics.md)
+and [contract evidence](../packages/foldkit-zloz/evidence/declared-consumption.md).
+This addresses the read-model/dependency subset of D1, not streams/sagas/policies,
+EventStorming-to-C4 mapping or complete D/C/Q closure. Next proposed slice: qualify
+an optional read-only Alchemy adapter against this native subset, retaining exact
+version/identity/loss reporting and the upstream strict-optional compatibility gate.
+Recommendation: **needs review**. No adapter adoption or release is implied.

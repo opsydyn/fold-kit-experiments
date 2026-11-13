@@ -66,6 +66,15 @@ import { resolvePlacementControls, updatePlacementControls, createPlacement, upd
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, resolveEditionPlaybackControls, type ZlozPlaybackControlsContext, resolveEditionScrubber, editionScrubberRequest, type ZlozEditionSeekRequest, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
+
+import { resolveDeclaredConsumption, isDeclaredConsumption, declaredConsumptionArchitecture, type ZlozDeclaredConsumption } from '@opsydyn/foldkit-zloz';
+const declaredSource=createArchitectureNode({id:'declared-source',label:'Account',position:{x:0,y:0},size:{width:200,height:100},ports:[],architecture:{family:'ddd',role:'aggregate-root'}});
+const declaredReader=createArchitectureNode({id:'declared-reader',label:'Balance',position:{x:240,y:0},size:{width:200,height:100},ports:[],architecture:{family:'ddd',role:'read-model'}});
+const declaredConsumption:ZlozDeclaredConsumption={sourceNodeId:declaredSource.id,consumerNodeId:declaredReader.id};
+const declaredDecision=resolveDeclaredConsumption({nodes:[declaredSource,declaredReader],edges:[]},declaredConsumption);
+if(!isDeclaredConsumption(declaredConsumption)||declaredDecision.type!=='allowed'||declaredDecision.sourceRole!=='aggregate-root'||declaredDecision.relationship.architecture.role!=='feeds'||declaredConsumptionArchitecture.scope!=='tactical')throw new Error('Missing framework-neutral consumption contract');
+// @ts-expect-error A logical declaration never implies a runtime event filter
+const executableConsumption:ZlozDeclaredConsumption={sourceNodeId:'a',consumerNodeId:'b',events:['Deposited']};void executableConsumption;
 const waypointEditor=createEditor(createArchitecturePattern('ddd-aggregate'));
 const invalidFont:ZlozSvgFontResource={assetId:'font',format:'truetype',bytes:new Uint8Array([0,1,2])};
 if(validateSvgFontResource(invalidFont).type!=='invalid')throw new Error('Missing font validation contract');

@@ -22,7 +22,8 @@ export type DddNodeArchitecture = Readonly<
           | 'aggregate'
           | 'domain-event'
           | 'domain-service'
-          | 'repository';
+          | 'repository'
+          | 'read-model';
       }
     | { role: 'bounded-context'; subdomain?: 'core' | 'supporting' | 'generic' }
   )
@@ -99,6 +100,11 @@ const presets: readonly ArchitectureNodePreset[] = [
   {
     architecture: { family: 'ddd', role: 'bounded-context' },
     label: 'Bounded Context',
+    shape: 'rounded-rectangle',
+  },
+  {
+    architecture: { family: 'ddd', role: 'read-model' },
+    label: 'Read Model',
     shape: 'rounded-rectangle',
   },
 ];
@@ -211,6 +217,7 @@ export type EventStormingEdgeArchitecture = Readonly<
 export type DddEdgeArchitecture = Readonly<
   { family: 'ddd'; description?: string } & (
     | { scope: 'tactical'; role: 'references' | 'contains' | 'emits' | 'persists' | 'uses' }
+    | { scope: 'tactical'; role: 'feeds' }
     | { scope: 'strategic'; role: 'partnership' | 'shared-kernel' }
     | {
         scope: 'strategic';
@@ -280,7 +287,7 @@ export function isDddEdgeArchitecture(value: unknown): value is DddEdgeArchitect
   if (value.scope === 'tactical')
     return (
       typeof value.role === 'string' &&
-      ['references', 'contains', 'emits', 'persists', 'uses'].includes(value.role)
+      ['references', 'contains', 'emits', 'persists', 'uses', 'feeds'].includes(value.role)
     );
   if (!directional) return value.role === 'partnership' || value.role === 'shared-kernel';
   return (

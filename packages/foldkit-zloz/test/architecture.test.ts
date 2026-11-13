@@ -46,6 +46,7 @@ test('catalogue covers C4 and DDD roles and the standalone factory validates and
     'domain-service',
     'repository',
     'bounded-context',
+    'read-model',
   ]);
   for (const preset of architectureNodePresets) {
     const input = preset.kind

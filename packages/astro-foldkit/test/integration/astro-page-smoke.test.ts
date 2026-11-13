@@ -110,6 +110,22 @@ const expectHydratablePage = (html: string, flags: string, expectedBuildId?: str
   return buildId;
 };
 
+// A page owner booted with client:load is the case module preloads exist for:
+// its renderer, component and the application its load imports, each a file the
+// build wrote, listed after the stylesheets.
+const expectIslandPreloads = async (html: string, clientDir: string): Promise<void> => {
+  const hrefs = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map(
+    (match) => match[1] ?? '',
+  );
+  expect(hrefs.length).toBeGreaterThan(2);
+  const islandUrls = [...html.matchAll(/(?:renderer|component)-url="([^"]+)"/g)].map(
+    (match) => match[1] ?? '',
+  );
+  for (const url of islandUrls) expect(hrefs).toContain(url);
+  for (const href of hrefs) expect(await fileExists(path.join(clientDir, href))).toBe(true);
+  expect(html.lastIndexOf('rel="stylesheet"')).toBeLessThan(html.indexOf('rel="modulepreload"'));
+};
+
 const expectCompiledBuildId = async (directory: string, buildId: string): Promise<void> => {
   const entries = await readdir(directory, { recursive: true });
   const scripts = await Promise.all(
@@ -147,6 +163,7 @@ describe('Astro page rendering smoke', () => {
         buildId,
       );
       expect(staticBuildId).not.toBe('development');
+      await expectIslandPreloads(staticHtml, path.join(webDir, 'dist', 'client'));
       await expectCompiledBuildId(path.join(webDir, 'dist', 'client'), staticBuildId);
       await expectCompiledBuildId(path.join(webDir, 'dist', 'server'), staticBuildId);
       expect(staticHtml).toContain('<html lang="en" dir="ltr">');

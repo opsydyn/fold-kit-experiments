@@ -75,7 +75,10 @@ Then pick the directive per island:
   unless most readers never touch the island, and never for an island whose
   controls stay disabled until data arrives: there the first tap only starts
   the download.
-- **Interactive at once**: `client:load` or `client:idle`.
+- **Interactive at once**: `client:load` or `client:idle`. On pre-rendered
+  pages the build adds `modulepreload` links for each `client:load` island's
+  whole chunk chain (0.13.0+), so prefer `client:load` over `client:idle` when
+  the island is the page's purpose.
 
 The FoldKit runtime is shared, so a single island hydrating at load pays for all
 of it, and making the other islands static then saves only their own chunks.

@@ -379,6 +379,65 @@ the data`.
   an accessible SVG with a legend. The web app's `/plot-grammar` page shows each
   chart beside its spec, and ships no JavaScript.
 
+## Scale and interaction for plots (unreleased)
+
+A million points stay interactive. Mark a dot layer `dense` and it compiles to
+one packed graphic of typed arrays instead of a circle per row; paint it on a
+canvas and draw hover feedback in an SVG overlay above it.
+
+```ts
+import { compilePlot, indexPlot, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { paintCanvas } from '@opsydyn/foldkit-viz/canvas/plot';
+import { plotCanvas } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 420,
+  data: requests,
+  x: { type: 'log' },
+  marks: [
+    {
+      mark: 'dot',
+      x: 'latency',
+      y: 'payload',
+      dense: true,
+      highlight: { field: 'latency', range: brushed },
+    },
+  ],
+});
+const index = indexPlot(geometry);
+
+// On pointer move, in update: the nearest row within 12 plot pixels.
+const hit = index.nearest(x, y, 12);
+
+// In the view: a canvas the parent's Mount paints with paintCanvas,
+// under an overlay that moves without recompiling.
+plotCanvas(h, geometry, {
+  key,
+  onMount: PaintScatter({ key }),
+  overlay: { crosshair: { x, y }, ring: { x, y, r: 5 } },
+});
+```
+
+- `canvas/plot`: `paintPlot(ctx, geometry, options)` paints any compiled
+  geometry, axes and text included, clipped to each facet's plot area;
+  `paintCanvas(canvas, geometry, options)` sizes the canvas for the device pixel
+  ratio first. It needs no DOM types and has no FoldKit dependency.
+- `indexPlot(geometry)` builds a 16-pixel grid over dots, packed points and bar
+  centres; `nearest(x, y, radius)` returns the facet, mark, row and position.
+- `pointerToPlot(client, rect, geometry)` turns a pointer's client position into
+  plot pixels; `invertPlot` and `invertAxis` turn plot pixels into data values.
+- `highlight: { field, range }` or `{ field, values }` dims non-matching rows. A
+  linked brush is one chart's selection written into another chart's spec.
+- `plotChart` and `plotCanvas` take an `overlay` of crosshair, hover ring and
+  brush, drawn without recompiling.
+- Zoom by writing a narrower domain into the spec, for example with `zoomDomain`
+  from `interaction/viewport` anchored at `invertAxis` of the pointer.
+
+The library still installs no listeners: the parent streams pointer events and
+keeps hover, brush and domain in its Model. The web app's `/explore` page links a
+million-point scatter to a latency histogram this way.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

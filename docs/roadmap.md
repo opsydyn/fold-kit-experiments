@@ -84,15 +84,27 @@ highlights became native tooltips; interaction in the spec is 0.20.0 work.
 
 ### 0.20.0 — Scale and interaction
 
-- [ ] Optional canvas painting for dot, line and cell marks from the same geometry,
+- [x] Optional canvas painting for dot, line and cell marks from the same geometry,
       as an adapter beside the FoldKit one; the geometry stays renderer-agnostic.
-- [ ] Quadtree hit-testing, two-dimensional nearest hover and a crosshair.
-- [ ] Linked brushing across views, closing the open items of the Viz interaction
-      layer below.
-- [ ] Zoom and pan bound to the chart scales.
+      `dense` dot marks compile to packed typed arrays; `canvas/plot` paints any
+      geometry, and `plotCanvas` puts the canvas under an SVG overlay.
+- [x] Hit-testing, two-dimensional nearest hover and a crosshair. `indexPlot` uses
+      a uniform 16-pixel grid built by counting sort rather than a quadtree: it
+      builds in linear time over typed arrays and answers a query from nearby cells.
+- [x] Linked brushing across views through a mark's `highlight`, which dims rows
+      outside a range or set of values. This closes the linked-view item of the
+      Viz interaction layer below.
+- [x] Zoom and pan bound to the chart scales: `invertPlot` and `invertAxis` map
+      pixels back to data, and a zoomed domain is written back into the spec.
 
 **Exit criteria:** a one-million-point scatter linked to a histogram, hovering within
 one frame.
+Met by the web app's `/explore` page. Measured in headless Chromium against the dev
+server on 2026-11-13: compiling the dense scatter takes 173–200 ms, indexing it about
+40 ms, and a nearest query about 0.008 ms. Hover from pointer move to painted overlay
+has a median of 2–4 ms and a 95th percentile of 16 ms, at the edge of one frame;
+a production build should have more headroom. Moving the brush recompiles the
+scatter in about 680 ms, which is the next thing to make incremental.
 
 ### Later — Reach
 
@@ -510,7 +522,7 @@ FoldKit 0.136.x.
 **Outcome:** chart consumers can compose selection and navigation interactions without rewriting event plumbing for every chart.
 
 - [x] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
-- [ ] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows.
+- [x] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows. Plot specs link through `highlight` (foldkit-viz 0.20.0, `/explore`).
 - [ ] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency.
 - [ ] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`.
 - [ ] Add accessible data summaries or table projections for chart views.

@@ -29,10 +29,15 @@ extending [ADR 0037](../../adr/0037-a-declarative-grammar-of-marks-for-foldkit-v
 
 ## Interaction
 
-- **Hit-testing.** `indexPlot(geometry)` builds a quadtree over circles, packed
-  points and rectangle centres. `nearest(x, y, radius)` returns the closest mark
-  element in plot pixels: its facet, mark, key or row index, and position.
-  Building is linear in points; a query is logarithmic.
+- **Hit-testing.** `indexPlot(geometry)` indexes circles, packed points and
+  rectangle centres on a uniform grid of 16-pixel cells, built by counting sort
+  into typed arrays. Points outside their facet's plot area, as after a zoom, are
+  left out. `nearest(x, y, radius)` returns the closest mark element in plot
+  pixels: its facet, mark, key or row index, and position. Building is linear in
+  points; a query reads only the cells within the radius.
+  _Changed during implementation:_ the design named a quadtree. A grid suits plot
+  pixels, which are bounded, and builds a million points in about 40 ms without
+  allocating a node per point.
 - **Pixel to data.** `invertPlot(geometry, x, y)` returns the facet under a point
   and its data coordinates on continuous axes, or the band under it on band axes.
   `pointerToPlot(client, rect, geometry)` converts a pointer's client position

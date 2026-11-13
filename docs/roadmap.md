@@ -72,11 +72,15 @@ Met by the web app's `/data-science` page, which adds a hexagonal density view.
 - [x] A declarative, JSON-serialisable spec rendered through the same pure geometry,
       server-rendered by default. [ADR 0037](adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md);
       `compilePlot` and `foldkit/plot`, shown on the web app's `/plot-grammar` page.
-- [ ] Promote box and violin, candlestick, parallel coordinates, treemap and
-      sunburst, and sankey from the demos as marks or presets.
+- [x] Promote box and violin, candlestick, parallel coordinates, treemap and
+      sunburst, and sankey from the demos as marks: `box`, `violin`, `link` with
+      interval bars, `parallel`, `treemap`, `sunburst` and `sankey`.
 
 **Exit criteria:** each promoted demo is re-expressed as a spec, and its web-app page
 is rebuilt from the library.
+Met: the seven demos on the web app's `/charts` page are now plot specs, pre-rendered
+with no JavaScript, and their bespoke chart modules are removed. Their hover
+highlights became native tooltips; interaction in the spec is 0.20.0 work.
 
 ### 0.20.0 — Scale and interaction
 

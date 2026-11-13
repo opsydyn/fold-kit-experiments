@@ -362,11 +362,14 @@ const geometry = compilePlot({
 // In a FoldKit view: plotChart(h, geometry)
 ```
 
-- Marks: `dot`, `line`, `area`, `bar`, `rule`, `text` and `cell`. A channel is a
-  field name or `{ value }`.
+- Marks: `dot`, `line`, `area`, `bar` (with `y0` or `x0` for interval bars),
+  `rule`, `text`, `cell`, `link`, `box` and `violin` on the x and y axes, and
+  `treemap`, `sunburst`, `sankey` and `parallel`, which fill their panel. A
+  channel is a field name or `{ value }`.
 - Scales are inferred from every mark's values: numbers give linear axes, strings
   band axes, ISO dates UTC time axes, and colour is categorical or sequential.
-  Override any part, including log, symlog and power axes and any scheme.
+  Override any part, including log, symlog and power axes, any scheme, or
+  explicit categorical colours with `color.range`. Crowded band labels thin out.
 - `facet` splits every mark's rows into panels on shared scales.
 - Line transforms: `regression` (with its confidence band), `loess`, `window` and
   `downsample`, alone or chained in order; area takes `window`.

@@ -51,15 +51,26 @@ type ColorScaleSpec = Readonly<{
 
 ### Marks
 
-| Mark   | Channels                     | Draws                                                                             |
-| ------ | ---------------------------- | --------------------------------------------------------------------------------- |
-| `dot`  | x, y, r, fill, stroke, title | a circle per row                                                                  |
-| `line` | x, y, z, stroke, title       | one path per series (z, else stroke field)                                        |
-| `area` | x, y, y0, z, fill            | one filled band per series; y0 defaults to 0                                      |
-| `bar`  | x, y, fill, title            | bars from a band axis to the value; vertical when x is band, horizontal when y is |
-| `rule` | x or y, stroke               | full-height vertical or full-width horizontal lines                               |
-| `text` | x, y, text, fill             | labels                                                                            |
-| `cell` | x, y, fill, title            | band-by-band rectangles (heatmaps)                                                |
+| Mark       | Channels                                 | Draws                                                                             |
+| ---------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
+| `dot`      | x, y, r, fill, stroke, title             | a circle per row                                                                  |
+| `line`     | x, y, z, stroke, title                   | one path per series (z, else stroke field)                                        |
+| `area`     | x, y, y0, z, fill                        | one filled band per series; y0 defaults to 0                                      |
+| `bar`      | x, y, fill, title                        | bars from a band axis to the value; vertical when x is band, horizontal when y is |
+| `rule`     | x or y, stroke                           | full-height vertical or full-width horizontal lines                               |
+| `text`     | x, y, text, fill                         | labels                                                                            |
+| `cell`     | x, y, fill, title                        | band-by-band rectangles (heatmaps)                                                |
+| `link`     | x1, y1, x2, y2, stroke                   | segments; x2 and y2 default to the start (candle wicks)                           |
+| `box`      | x, y, fill, stroke                       | quartile box, whisker, median and outliers per category                           |
+| `violin`   | x, y, fill, stroke                       | mirrored kernel density and median per category                                   |
+| `treemap`  | path, value, fill                        | tiles from a path field such as `Cloud/AWS`; fills the panel                      |
+| `sunburst` | path, value, fill                        | rings from a path field; fills the panel                                          |
+| `sankey`   | source, target, value                    | flows between named nodes; fills the panel                                        |
+| `parallel` | stroke, title; `dimensions` lists fields | one axis per numeric field, one line per row                                      |
+
+`bar` also takes `y0` (or `x0`) to start somewhere other than zero, and
+`color.range` lists categorical colours explicitly; both were added for the
+0.19.0 demo promotions.
 
 Common options: `data`, `key` (field giving stable identity), `opacity`, `curve`
 (`line`, `area`), `strokeWidth`, `transform`.

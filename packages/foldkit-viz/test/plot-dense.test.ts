@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { resolveDomain } from '../src/chart/layout';
-import { compilePlot } from '../src/plot';
+import { compilePlot, highlightPoints, indexPlot } from '../src/plot';
 import type { Graphic, PlotSpec } from '../src/plot';
 
 const base = {
@@ -57,6 +57,79 @@ describe('dense dot marks', () => {
     const elapsed = performance.now() - started;
     expect(packed?.count).toBe(n);
     expect(elapsed).toBeLessThan(5_000);
+  });
+});
+
+describe('packed rows under facets', () => {
+  it("index the mark's full data, not the facet's share of it", () => {
+    const plot = compilePlot({
+      ...base,
+      data: [
+        { x: 0, y: 0, side: 'left' },
+        { x: 1, y: 1, side: 'right' },
+        { x: 2, y: 2, side: 'left' },
+        { x: 3, y: 3, side: 'right' },
+      ],
+      facet: { x: 'side' },
+      marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
+    });
+    const rowsOf = (facet: number) => {
+      const [g] = plot.facets[facet]?.marks[0]?.graphics ?? [];
+      return g?.kind === 'points' ? [...g.rows] : [];
+    };
+    expect(rowsOf(0)).toEqual([0, 2]);
+    expect(rowsOf(1)).toEqual([1, 3]);
+  });
+});
+
+describe('highlightPoints', () => {
+  const data = Array.from({ length: 6 }, (_, i) => ({ x: i, y: i, kind: i < 3 ? 'low' : 'high' }));
+  const spec: PlotSpec = {
+    ...base,
+    data,
+    marks: [
+      { mark: 'rule', y: { value: 2 } },
+      { mark: 'dot', x: 'x', y: 'y', dense: true },
+    ],
+  };
+
+  it('restyles a dense mark as compiling with the highlight would', () => {
+    const plain = compilePlot(spec);
+    const highlight = { field: 'x', range: [1, 3] } as const;
+    const restyled = highlightPoints(plain, 1, data, highlight);
+    const compiled = compilePlot({
+      ...spec,
+      marks: [
+        { mark: 'rule', y: { value: 2 } },
+        { mark: 'dot', x: 'x', y: 'y', dense: true, highlight },
+      ],
+    });
+    expect(restyled).toEqual(compiled);
+  });
+
+  it('shares positions with the plain geometry, so its hover index stays valid', () => {
+    const plain = compilePlot(spec);
+    const index = indexPlot(plain);
+    const restyled = highlightPoints(plain, 1, data, { field: 'kind', values: ['high'] });
+    const [before] = plain.facets[0]?.marks[1]?.graphics ?? [];
+    const [after] = restyled.facets[0]?.marks[1]?.graphics ?? [];
+    expect(after?.kind === 'points' ? after.xs : undefined).toBe(
+      before?.kind === 'points' ? before.xs : undefined,
+    );
+    expect(index.nearest(400, 0)?.row).toBe(5);
+    expect(restyled.facets[0]?.marks[0]).toBe(plain.facets[0]?.marks[0]);
+  });
+
+  it('clears the highlight when given none', () => {
+    const plain = compilePlot(spec);
+    const restyled = highlightPoints(plain, 1, data, { field: 'kind', values: ['high'] });
+    expect(highlightPoints(restyled, 1, data, undefined)).toEqual(plain);
+  });
+
+  it('names the mark when it has no packed points to restyle', () => {
+    expect(() => highlightPoints(compilePlot(spec), 0, data, undefined)).toThrow(
+      'marks[0]: highlightPoints restyles dense dot marks only',
+    );
   });
 });
 

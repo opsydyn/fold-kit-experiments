@@ -221,13 +221,21 @@ export function highlightFactors(
 ): ReadonlyArray<number> {
   if (highlight === undefined) return rows.map(() => 1);
   const values = read(rows, highlight.field, `${path}.highlight.field`);
+  const matches = highlightMatcher(highlight);
+  return values.map((value) => (matches(value) ? 1 : DIMMED));
+}
+
+/**
+ * Whether a value is kept by a highlight: within its range (numbers, or ISO
+ * dates as instants, inclusively) and among its values, when it gives them.
+ */
+export function highlightMatcher(highlight: Highlight): (value: Value) => boolean {
   const { range } = highlight;
   const lo = range === undefined ? Number.NaN : Math.min(numeric(range[0]), numeric(range[1]));
   const hi = range === undefined ? Number.NaN : Math.max(numeric(range[0]), numeric(range[1]));
   const allowed = highlight.values === undefined ? undefined : new Set(highlight.values);
-  return values.map((value) => {
+  return (value) => {
     const inRange = range === undefined || (numeric(value) >= lo && numeric(value) <= hi);
-    const listed = allowed === undefined || allowed.has(value);
-    return inRange && listed ? 1 : DIMMED;
-  });
+    return inRange && (allowed === undefined || allowed.has(value));
+  };
 }

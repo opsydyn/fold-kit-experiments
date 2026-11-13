@@ -1,4 +1,5 @@
-import type { FacetGeometry, Graphic, PlotAxis, PlotGeometry } from './types.js';
+import { fail, highlightMatcher } from './channels.js';
+import type { FacetGeometry, Graphic, Highlight, PlotAxis, PlotGeometry, Row } from './types.js';
 
 /**
  * Pure helpers for interaction with compiled plots. They install no listeners
@@ -235,4 +236,52 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
     };
   };
   return { size: n, nearest };
+}
+
+// ── Restyling without recompiling ─────────────────────────────────────────────
+
+/**
+ * Restyles a dense dot mark for a new highlight without recompiling: the
+ * geometry comes back with that mark's dimmed flags recomputed from `data`,
+ * the rows it was compiled from. Positions, palette and row indices are
+ * shared with the input, so a PlotIndex built from it stays valid, and every
+ * other mark is returned as it was. Recompile to restyle any other mark.
+ */
+export function highlightPoints(
+  geometry: PlotGeometry,
+  markIndex: number,
+  data: ReadonlyArray<Row>,
+  highlight: Highlight | undefined,
+): PlotGeometry {
+  const path = `marks[${markIndex}]`;
+  if (
+    highlight !== undefined &&
+    data.length > 0 &&
+    !data.some((row) => Object.hasOwn(row, highlight.field))
+  )
+    fail(`${path}.highlight.field`, `field "${highlight.field}" is missing from the data`);
+  // Match only the packed points' own rows: no data-sized arrays are built.
+  const matches = highlight === undefined ? undefined : highlightMatcher(highlight);
+  const field = highlight?.field ?? '';
+  let restyled = 0;
+  const restyle = (g: Graphic): Graphic => {
+    if (g.kind !== 'points') return g;
+    restyled += 1;
+    if (matches === undefined) {
+      const { dimmed, ...plain } = g;
+      return dimmed === undefined ? g : plain;
+    }
+    const dimmed = new Uint8Array(g.count);
+    for (let i = 0; i < g.count; i += 1)
+      dimmed[i] = matches(data[g.rows[i] ?? 0]?.[field] ?? null) ? 0 : 1;
+    return { ...g, dimmed };
+  };
+  const facets = geometry.facets.map((facet) => ({
+    ...facet,
+    marks: facet.marks.map((mark) =>
+      mark.index === markIndex ? { ...mark, graphics: mark.graphics.map(restyle) } : mark,
+    ),
+  }));
+  if (restyled === 0) fail(path, 'highlightPoints restyles dense dot marks only');
+  return { ...geometry, facets };
 }

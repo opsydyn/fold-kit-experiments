@@ -264,6 +264,18 @@ function facetCells(
   );
 }
 
+/** Each facet row's index in the full rows; facet rows keep their order. */
+function originOf(rows: ReadonlyArray<Row>, facetRows: ReadonlyArray<Row>): ReadonlyArray<number> {
+  const origin: number[] = [];
+  let next = 0;
+  for (let i = 0; i < rows.length && next < facetRows.length; i += 1)
+    if (rows[i] === facetRows[next]) {
+      origin.push(i);
+      next += 1;
+    }
+  return origin;
+}
+
 const inFacet = (rows: ReadonlyArray<Row>, field: string | undefined, value: string | undefined) =>
   field === undefined || value === undefined || !rows.some((row) => Object.hasOwn(row, field))
     ? rows
@@ -292,6 +304,8 @@ type Prepared = Readonly<{
   labels: Readonly<Partial<Record<AxisName, string>>>;
   /** A regression's confidence band: rows with X, LO and HI. */
   band?: ReadonlyArray<Row>;
+  /** Faceted dense marks: each row's index in the mark's full data. */
+  origin?: ReadonlyArray<number>;
 }>;
 
 type Overrides = Readonly<Partial<Record<ChannelName, Channel>>>;
@@ -892,6 +906,7 @@ function packPoints(
   uniformRadius: boolean,
   opacity: number,
   dims: ReadonlyArray<number> | undefined,
+  origin: ReadonlyArray<number> | undefined,
 ): Graphic {
   const n = xs.length;
   const px = new Float64Array(n),
@@ -916,7 +931,7 @@ function packPoints(
     }
     px[count] = cx;
     py[count] = cy;
-    rows[count] = i;
+    rows[count] = origin?.[i] ?? i;
     paint[count] = colour;
     if (dimmed !== undefined) dimmed[count] = (dims?.[i] ?? 1) < 1 ? 1 : 0;
     if (radius instanceof Float64Array) radius[count] = radii[i] ?? 3;
@@ -978,6 +993,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             mark.r === undefined || isConstant(mark.r),
             opacity,
             mark.highlight === undefined ? undefined : dims,
+            p.origin,
           ),
         ];
       // validateMark has checked that a constant symbol names a known symbol.
@@ -1319,38 +1335,42 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
   const perFacet = cells.map((cell) =>
     base.map(({ mark, index, path, rows }): Prepared => {
       const facetRows = inFacet(inFacet(rows, spec.facet?.x, cell.fx), spec.facet?.y, cell.fy);
+      // A dense mark's packed points name rows in the mark's full data, so
+      // highlightPoints can restyle them from that data alone.
+      const initial: Prepared = {
+        mark,
+        index,
+        path,
+        source: facetRows,
+        rows: facetRows,
+        channels: {},
+        replaced: false,
+        labels: {},
+      };
+      const start =
+        mark.mark === 'dot' && mark.dense === true && facetRows !== rows
+          ? { ...initial, origin: originOf(rows, facetRows) }
+          : initial;
       const steps = transformsOf(mark);
       const many = Array.isArray('transform' in mark ? mark.transform : undefined);
-      const transformed = steps.reduce<Prepared>(
-        (state, step, i) => {
-          const result = applyTransform(
-            mark,
-            step,
-            state.rows,
-            `${path}.transform${many ? `[${i}]` : ''}`,
-            cell.bounds.width,
-            channel(state, 'x'),
-            channel(state, 'y'),
-          );
-          const band = result.band ?? state.band;
-          const next: Prepared = {
-            ...state,
-            rows: result.rows,
-            channels: { ...state.channels, x: result.x, y: result.y },
-          };
-          return band === undefined ? next : { ...next, band };
-        },
-        {
+      const transformed = steps.reduce<Prepared>((state, step, i) => {
+        const result = applyTransform(
           mark,
-          index,
-          path,
-          source: facetRows,
-          rows: facetRows,
-          channels: {},
-          replaced: false,
-          labels: {},
-        },
-      );
+          step,
+          state.rows,
+          `${path}.transform${many ? `[${i}]` : ''}`,
+          cell.bounds.width,
+          channel(state, 'x'),
+          channel(state, 'y'),
+        );
+        const band = result.band ?? state.band;
+        const next: Prepared = {
+          ...state,
+          rows: result.rows,
+          channels: { ...state.channels, x: result.x, y: result.y },
+        };
+        return band === undefined ? next : { ...next, band };
+      }, start);
       return derive(transformed, spec);
     }),
   );

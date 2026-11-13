@@ -135,23 +135,42 @@ function paintPoints(
   settings: Settings,
 ): void {
   // One path per colour and dimmed state, so a million points are a few fills.
-  const buckets = new Map<number, number[]>();
+  // Points are grouped by counting sort into typed arrays, dimmed buckets first
+  // so highlighted points paint on top.
+  const buckets = g.palette.length * 2;
+  const bucketOf = (i: number) => (g.dimmed?.[i] === 1 ? 0 : g.palette.length) + (g.paint[i] ?? 0);
+  const starts = new Uint32Array(buckets + 1);
   for (let i = 0; i < g.count; i += 1) {
-    const bucket = (g.paint[i] ?? 0) * 2 + (g.dimmed?.[i] ?? 0);
-    const list = buckets.get(bucket);
-    if (list === undefined) buckets.set(bucket, [i]);
-    else list.push(i);
+    const b = bucketOf(i) + 1;
+    starts[b] = (starts[b] ?? 0) + 1;
   }
-  for (const [bucket, indices] of buckets) {
-    ctx.fillStyle = paintOf(g.palette[Math.floor(bucket / 2)] ?? 'currentColor', settings);
-    ctx.globalAlpha = g.opacity * (bucket % 2 === 1 ? 0.15 : 1);
+  for (let b = 0; b < buckets; b += 1) starts[b + 1] = (starts[b + 1] ?? 0) + (starts[b] ?? 0);
+  const order = new Uint32Array(g.count);
+  const cursor = starts.slice(0, buckets);
+  for (let i = 0; i < g.count; i += 1) {
+    const b = bucketOf(i);
+    order[cursor[b] ?? 0] = i;
+    cursor[b] = (cursor[b] ?? 0) + 1;
+  }
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
+    const from = starts[bucket] ?? 0,
+      to = starts[bucket + 1] ?? 0;
+    if (from === to) continue;
+    const dimmed = bucket < g.palette.length;
+    ctx.fillStyle = paintOf(g.palette[bucket % g.palette.length] ?? 'currentColor', settings);
+    ctx.globalAlpha = g.opacity * (dimmed ? 0.15 : 1);
     ctx.beginPath();
-    for (const i of indices) {
+    for (let k = from; k < to; k += 1) {
+      const i = order[k] ?? 0;
       const r = g.radius instanceof Float64Array ? (g.radius[i] ?? 0) : g.radius;
       const x = g.xs[i] ?? 0,
         y = g.ys[i] ?? 0;
-      ctx.moveTo(x + r, y);
-      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      // At this size a square looks the same as a circle and fills far faster.
+      if (r <= 1.5) ctx.rect(x - r, y - r, 2 * r, 2 * r);
+      else {
+        ctx.moveTo(x + r, y);
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+      }
     }
     ctx.fill();
   }

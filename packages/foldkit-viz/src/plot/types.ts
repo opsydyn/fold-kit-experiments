@@ -1,4 +1,5 @@
 import type { ChartMargins, PlotBounds } from '../chart/layout.js';
+import type { GeoObject } from '../shape/geo.js';
 import type { CurveType } from '../shape/line.js';
 import type { SymbolType } from '../shape/symbol.js';
 
@@ -281,6 +282,26 @@ export type ArcMark = CommonMark &
     labels?: boolean;
   }>;
 
+/**
+ * GeoJSON drawn through the plot's projection. Its rows are the features'
+ * properties, with each feature's id as `id`, so `fill: 'gdp'` reads a property.
+ */
+export type GeoMark = CommonMark &
+  Readonly<{ mark: 'geo'; features: GeoObject; fill?: Channel; stroke?: Channel }>;
+/** Lines of latitude and longitude every `step` degrees (default 30). */
+export type GraticuleMark = CommonMark &
+  Readonly<{ mark: 'graticule'; step?: number; stroke?: Channel }>;
+
+/**
+ * A map projection, fitted to the geo marks in each facet (or the whole sphere).
+ * `zoom` scales about `center`, given as longitude and latitude.
+ */
+export type ProjectionSpec = Readonly<{
+  type: 'equirectangular' | 'mercator' | 'naturalEarth1' | 'orthographic' | 'albers';
+  zoom?: number;
+  center?: readonly [number, number];
+}>;
+
 /** Marks that fill their panel instead of using the x and y axes. */
 type HierarchyOptions = Readonly<{
   /** Field holding each leaf's path, such as "Cloud/AWS". */
@@ -325,6 +346,8 @@ export type MarkSpec =
   | DensityMark
   | LinkMark
   | ArcMark
+  | GeoMark
+  | GraticuleMark
   | TreemapMark
   | SunburstMark
   | SankeyMark
@@ -351,6 +374,8 @@ export type PlotSpec = Readonly<{
    * false, so dots on the edge of the domain are drawn whole.
    */
   clip?: boolean;
+  /** Draws geo marks, and places dots and text by longitude and latitude, on a map. */
+  projection?: ProjectionSpec;
   /** Polar maps x to angle and y to radius, in the largest circle each facet fits. */
   coordinates?: 'cartesian' | 'polar';
   /**

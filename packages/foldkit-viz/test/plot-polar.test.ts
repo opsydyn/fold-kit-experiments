@@ -72,9 +72,9 @@ describe('polar coordinates', () => {
   });
 
   it('names the mark that polar coordinates cannot draw', () => {
-    expect(() => compilePlot({ ...rose, marks: [{ mark: 'link', x1: 'dir', y1: 'speed' }] })).toThrow(
-      'marks[0]: the link mark cannot be drawn in polar coordinates',
-    );
+    expect(() =>
+      compilePlot({ ...rose, marks: [{ mark: 'link', x1: 'dir', y1: 'speed' }] }),
+    ).toThrow('marks[0]: the link mark cannot be drawn in polar coordinates');
     const unknown: PlotSpec = JSON.parse(JSON.stringify({ ...rose, coordinates: 'spherical' }));
     expect(() => compilePlot(unknown)).toThrow('coordinates: unknown coordinates "spherical"');
   });

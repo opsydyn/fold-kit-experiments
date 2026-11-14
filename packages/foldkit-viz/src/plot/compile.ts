@@ -38,6 +38,14 @@ import type {
   PositionScale,
   SymbolScale,
 } from './channels.js';
+import {
+  fitProjection,
+  geoGraphics,
+  geoRows,
+  graticuleGraphics,
+  projectedGraphics,
+  validateProjection,
+} from './geo.js';
 import { arcGraphics, validateArc } from './marks-arc.js';
 import {
   densityGraphics,
@@ -97,6 +105,8 @@ const MARKS = {
   density: { required: ['x'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   link: { required: ['x1', 'y1'], channels: ['x1', 'y1', 'x2', 'y2', 'stroke', 'title'] },
   arc: { required: ['value'], channels: ['value', 'fill', 'stroke', 'text', 'title'] },
+  geo: { required: [], channels: ['fill', 'stroke', 'title'] },
+  graticule: { required: [], channels: ['stroke'] },
   treemap: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sunburst: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sankey: {
@@ -141,6 +151,8 @@ const OPTIONS = new Set([
   'start',
   'end',
   'padAngle',
+  'features',
+  'step',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -1207,6 +1219,9 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       return rectGraphics(mark, rows, path, index, context, (name) => channel(p, name));
     case 'arc':
       return arcGraphics(mark, rows, path, index, context);
+    case 'geo':
+    case 'graticule':
+      return fail(path, `a ${mark.mark} mark needs the plot to have a projection`);
     case 'treemap':
       return treemapGraphics(mark, rows, path, context);
     case 'sunburst':
@@ -1324,6 +1339,11 @@ function validateSpec(spec: PlotSpec): void {
       'coordinates',
       `unknown coordinates "${String(coordinates)}"; expected cartesian or polar`,
     );
+  validateProjection(spec);
+  spec.marks.forEach((mark, i) => {
+    if ((mark.mark === 'geo' || mark.mark === 'graticule') && spec.projection === undefined)
+      fail(`marks[${i}]`, `a ${mark.mark} mark needs the plot to have a projection`);
+  });
   if (!(Number.isFinite(spec.width) && spec.width > 0))
     fail('width', 'must be finite and positive');
   if (!(Number.isFinite(spec.height) && spec.height > 0))
@@ -1334,6 +1354,7 @@ function validateSpec(spec: PlotSpec): void {
 }
 
 function markRows(spec: PlotSpec, mark: MarkSpec, path: string): ReadonlyArray<Row> {
+  if (mark.mark === 'geo') return geoRows(mark);
   if (mark.data !== undefined) {
     if (!Array.isArray(mark.data)) fail(`${path}.data`, 'must be an array of rows');
     return mark.data;
@@ -1406,8 +1427,10 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
     }),
   );
   const all = perFacet.flat();
-  const xInfo = resolveScale(all, 'x', spec.x);
-  const yInfo = resolveScale(all, 'y', spec.y);
+  // A projected plot places marks by longitude and latitude, without x and y scales.
+  const projected = spec.projection !== undefined;
+  const xInfo = projected ? null : resolveScale(all, 'x', spec.x);
+  const yInfo = projected ? null : resolveScale(all, 'y', spec.y);
   const color = resolveColor(all, spec.color);
   const symbol = resolveSymbol(all, spec);
   const size = resolveSize(all, spec);
@@ -1420,15 +1443,26 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
     const y =
       polar !== null ? polar.y : yInfo === null ? null : buildScale(yInfo, 'y', cell.bounds, spec);
     const context: Context = { x, y, color, symbol, size, bounds: cell.bounds };
+    const project = fitProjection(spec, cell.bounds);
+    const drawn = (p: Prepared): ReadonlyArray<Graphic> => {
+      const { mark } = p;
+      const reader = (name: ChannelName) => channel(p, name);
+      if (PANEL_MARKS.has(mark.mark)) return markGraphics(p, context);
+      if (project !== null) {
+        if (mark.mark === 'geo')
+          return geoGraphics(mark, p.rows, p.path, p.index, context, project);
+        if (mark.mark === 'graticule')
+          return graticuleGraphics(mark, p.path, p.index, context, project);
+        return projectedGraphics(mark, p.rows, p.path, p.index, context, project, reader);
+      }
+      if (frame !== null)
+        return polarGraphics(mark, p.rows, p.path, p.index, context, frame, reader);
+      return markGraphics(p, context);
+    };
     const marks: ReadonlyArray<MarkGeometry> = (perFacet[f] ?? []).map((p) => ({
       mark: p.mark.mark,
       index: p.index,
-      graphics:
-        frame !== null && !PANEL_MARKS.has(p.mark.mark)
-          ? polarGraphics(p.mark, p.rows, p.path, p.index, context, frame, (name) =>
-              channel(p, name),
-            )
-          : markGraphics(p, context),
+      graphics: drawn(p),
     }));
     return {
       key: cell.key,

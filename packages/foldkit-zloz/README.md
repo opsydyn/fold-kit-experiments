@@ -5611,12 +5611,76 @@ prospective strict v1 snapshot plus loss findings. Loose mode always discloses
 would change. Review that loss before explicitly using `serializeSnapshot` on the
 prospective snapshot. No ports are fabricated or retyped.
 
-This first slice does **not** enable loose editing in `createEditor`, native views,
-model/edition archives, patches, receipts, layout, Mermaid or the CLI. Existing
+The standalone codec does **not** enable loose editing through legacy `createEditor`.
+Use the explicit headless initializer below. Native views, model/edition archives,
+patches, receipts, layout, Mermaid and CLI adoption remain separate. Existing
 `parseGraph`/`parseSnapshot` readers remain v1-only and reject v2. Other existing
 APIs retain strict semantics: do not unwrap v2 data into them expecting mode
-preservation. New editor/portable integration needs the explicit mode, live checks,
-source/history handling and one Undo before interaction controls can follow.
+preservation. The headless editor adoption below adds explicit mode, live checks,
+source/history handling and one Undo; native controls and portable adoption follow.
 See [ADR 0092](../../docs/adr/0092-stage-explicit-v2-connection-documents.md) and
 [headless compatibility evidence](evidence/connection-v2.md). C1 remains partial;
 no npm publishing or deployment is part of this contract slice.
+
+### Headless editor adoption of v2 mode
+
+Initialize an editor from the document when preserving its connection mode matters:
+
+```ts
+import {
+  createEditorFromConnectionDocument,
+  captureConnectionDocument,
+  parseConnectionDocument,
+  serializeConnectionDocument,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+
+const editor = createEditorFromConnectionDocument(parseConnectionDocument(savedText));
+const edited = updateEditor(
+  editor,
+  {
+    type: 'ConnectionCreated',
+    edge: {
+      id: 'uses',
+      source: { node: 'orders', port: 'api' },
+      target: { node: 'billing', port: 'api' },
+    },
+  },
+  currentPolicy,
+);
+const undone = updateEditor(edited, { type: 'UndoPressed' });
+const saved = serializeConnectionDocument(captureConnectionDocument(undone));
+```
+
+The document mode is fixed for this session. Input→input, input→output and
+output→output are accepted only in loose mode; both endpoints must still exist.
+Loose mode preserves ordered endpoint identity and authored kinds, and grants no
+policy permission or semantic symmetry. The document camera initializes the editor
+unless `options.viewport` overrides it. `createEditor(graph)` remains strict, as do
+older host-constructed states without `connectionMode`.
+
+Creation and reconnection recheck current ports, duplicate links and live policies
+at commit, including after a chooser or pointer preview. Reconnection checks the
+changed port plus the existing end lock; whole-edge policy receives the graph
+without the replaced edge. Accepted edits retain metadata and add one Undo entry;
+rejections and same-endpoint reconnections add none. Undo/Redo keep session mode
+and advance revision. Fresh initialization starts fresh history; no mode-changing
+event is provided. Retain complete reducer state rather than mixing session modes
+and history arrays. `historyLimit: 0` keeps its existing no-Undo behavior.
+
+Headless `resolveConnectionCreation` and `resolveEdgeReconnection` include both
+port kinds in loose sessions and retain protection reasons and visible/all scope.
+Creation choices carry explicit `PortActivated.end` intent in loose mode: source
+choices restage and target choices connect. Direct activation without `end` stages
+the first port and connects the next; strict mode keeps output/input behavior.
+Reducer pointer intents also use this mode. Native/custom input adapters and the
+workbench still need their own interaction and accessibility qualification.
+
+Save with `captureConnectionDocument(editor)` to retain mode and camera. Public
+v1 graph/snapshot codecs, model/edition archives, patches/receipts, layout and
+Mermaid/CLI contracts have not adopted v2. Extracting a raw graph or passing an
+editor to a legacy serializer can lose mode when its edges fit strict rules;
+explicit downgrade review remains required. C1 remains partial.
+
+See [ADR 0093](../../docs/adr/0093-adopt-connection-mode-in-headless-editor.md) and
+[qualification](evidence/connection-editor.md).

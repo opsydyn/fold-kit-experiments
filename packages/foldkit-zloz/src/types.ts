@@ -3,6 +3,7 @@ import type {
   ZlozNodeAppearance,
   ZlozEdgeArchitecture,
 } from './architecture';
+import type { ZlozConnectionMode } from './connection-mode';
 
 /** JSON payloads survive save/reload; views and runtime resources stay in the host. */
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
@@ -283,11 +284,13 @@ export type ZlozVisibility = Readonly<{
   hiddenEdgeIds?: readonly string[];
 }>;
 
-/** Host-owned editor Model. Retain the complete state returned by updateEditor; serialize graph data separately. */
+/** Host-owned editor Model. Retain the complete state returned by updateEditor; save v2 mode with captureConnectionDocument(state). */
 export type EditorState = Readonly<{
   context: EditorContext | null;
   connectionsExpanded: boolean;
   graph: ZlozGraph;
+  /** Fixed for this editor session. Omission in older host-constructed states means strict. */
+  connectionMode?: ZlozConnectionMode;
   clipboard: ZlozGraph | null;
   collapsedGroups: readonly string[];
   visibility?: ZlozVisibility | undefined;
@@ -595,7 +598,12 @@ export type EditorEvent =
       type: 'PortPositionsChanged';
       positions: readonly Readonly<{ endpoint: Endpoint; position: PortPosition }>[];
     }>
-  | Readonly<{ type: 'PortActivated'; endpoint: Endpoint }>
+  | Readonly<{
+      type: 'PortActivated';
+      endpoint: Endpoint;
+      /** Explicit chooser intent; omission retains direct activation semantics. */
+      end?: EdgeEnd;
+    }>
   | Readonly<{ type: 'CopyPressed' }>
   | Readonly<{ type: 'PastePressed' }>
   | Readonly<{ type: 'DuplicatePressed' }>

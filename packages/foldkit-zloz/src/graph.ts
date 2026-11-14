@@ -202,7 +202,7 @@ function unique(ids: readonly string[], kind: string): void {
 export function validateGraph(graph: ZlozGraph): void {
   validateGraphForConnectionMode(graph, 'strict');
 }
-/** @internal Shared structural validation. Only the v2 document boundary may select another mode. */
+/** @internal Shared structural validation. The v2 document boundary and its editor session own nonlegacy modes. */
 export function validateGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): void {
   if (mode !== 'strict' && mode !== 'loose')
     throw new ZlozError('invalid-graph', 'Unsupported connection mode');
@@ -320,4 +320,12 @@ export function parseSnapshot(text: string): ZlozSnapshot {
 
 export function copyGraph(graph: ZlozGraph): ZlozGraph {
   return parseGraph(serializeGraph(graph));
+}
+
+/** @internal Editor-owned detachment without changing a legacy v1 codec boundary. */
+export function copyGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): ZlozGraph {
+  validateGraphForConnectionMode(graph, mode);
+  const detached: ZlozGraph = JSON.parse(JSON.stringify(graph));
+  validateGraphForConnectionMode(detached, mode);
+  return detached;
 }

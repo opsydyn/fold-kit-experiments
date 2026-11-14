@@ -19,7 +19,7 @@ export {
   parseSnapshot,
   serializeSnapshot,
 } from './graph';
-export { createEditor, updateEditor } from './editor';
+export { createEditor, createEditorFromConnectionDocument, updateEditor } from './editor';
 export { resolveEdgeWaypointEdit } from './edge-waypoint-edit';
 export { resolveEndpointChoices } from './endpoint-search';
 export type {

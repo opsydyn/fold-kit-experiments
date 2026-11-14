@@ -1,6 +1,6 @@
 import type { Port } from './types';
 
-/** Persisted only by the v2 connection document; legacy graph/editor APIs remain strict. */
+/** Persisted by v2 documents and retained by their editor sessions; legacy initialization stays strict. */
 export type ZlozConnectionMode = 'strict' | 'loose';
 /** Port-kind compatibility only. This does not check IDs, duplicates, lifecycle or grant edit permission. */
 export type ZlozConnectionPortPair = Readonly<{

@@ -1074,7 +1074,21 @@ See [ADR 0092](adr/0092-stage-explicit-v2-connection-documents.md) and
 editor, model/archive, patch/receipt, layout, Mermaid/CLI or UI adoption; C1 remains
 partial and C2–C4/Q/R are unchanged. No publication or deployment.
 
-**Recommended next:** package-owned headless editor adoption of the explicit mode,
-starting with initialization and creation/reconnection proposals/commits, current
-source/lifecycle/per-port/edge checks and one Undo. Define source/history and
-portable-boundary behavior explicitly before native/custom interaction controls.
+**C1 headless editor adoption — implemented locally (2026-11-14), unreleased:**
+`createEditorFromConnectionDocument` revalidates/detaches explicit v2 source,
+retains its mode and initializes its camera; legacy initialization stays strict.
+The fixed session mode reaches editor-owned copying/validation, creation and
+reconnection commits/contexts, ordinary edits and history. Current kind checks,
+per-port/end/global policies, ordered duplicates and read-only/gesture guards
+remain live. Creation source restaging carries explicit chooser intent in loose
+mode; pointer reducer previews/releases share current validation. Successful edits
+commit once and Undo/Redo retain mode; blocked/no-op edits add no history. Save
+with `captureConnectionDocument(editor)`; no mode-changing event or portable
+adapter support is implied. See [ADR 0093](adr/0093-adopt-connection-mode-in-headless-editor.md)
+and [qualification](../packages/foldkit-zloz/evidence/connection-editor.md).
+This advances C1's package editor contract; native/custom interactions, workbench,
+portable adoption and broader C/Q/R gates remain open. No npm publication.
+
+**Recommended next:** qualify native/custom strict/loose port interactions and
+workbench UX with accessible source/target intent, composable protection feedback
+and visible session mode. Then adopt mode at explicit portable adapter boundaries.

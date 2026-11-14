@@ -1,4 +1,4 @@
-import { resolveConnectionPortPair } from './connection-mode';
+import { resolveConnectionPortPair, type ZlozConnectionMode } from './connection-mode';
 import type { EdgeEnd, EditorPolicy, Endpoint, ZlozEdge, ZlozGraph, Port } from './types';
 
 type Replacement = Readonly<{ id: string; end: EdgeEnd }>;
@@ -19,10 +19,14 @@ function resolveReason(
   kind: PortLookup,
   remainingGraph: () => ZlozGraph,
   duplicate: (edge: ZlozEdge, remaining: ZlozGraph) => boolean,
+  mode: ZlozConnectionMode,
 ) {
   if (
-    resolveConnectionPortPair({ sourceKind: kind(edge.source), targetKind: kind(edge.target) })
-      .type === 'incompatible'
+    resolveConnectionPortPair({
+      mode,
+      sourceKind: kind(edge.source),
+      targetKind: kind(edge.target),
+    }).type === 'incompatible'
   )
     return 'Choose a compatible port.';
   const sourceReason =
@@ -42,6 +46,7 @@ export function connectionReason(
   edge: ZlozEdge,
   policy: EditorPolicy,
   replaced?: Replacement,
+  mode: ZlozConnectionMode = 'strict',
 ) {
   return resolveReason(
     graph,
@@ -58,6 +63,7 @@ export function connectionReason(
           item.target.node === candidate.target.node &&
           item.target.port === candidate.target.port,
       ),
+    mode,
   );
 }
 
@@ -69,6 +75,7 @@ export function connectionValidation(
   graph: ZlozGraph,
   policy: EditorPolicy,
   replaced?: Replacement,
+  mode: ZlozConnectionMode = 'strict',
 ) {
   const nodes = new Map<string, Map<string, Port['kind']>>();
   for (const node of graph.nodes) {
@@ -96,6 +103,7 @@ export function connectionValidation(
         kind,
         () => remaining,
         (candidate) => connections.has(connectionKey(candidate)),
+        mode,
       ),
   };
 }

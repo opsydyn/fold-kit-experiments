@@ -49,7 +49,7 @@ export function resolveEdgeReconnection(
 ): ZlozEdgeReconnectionContext | null {
   const edge = state.graph.edges.find((edge) => edge.id === id);
   if (!edge) return null;
-  const validation = connectionValidation(state.graph, policy, { id, end });
+  const validation = connectionValidation(state.graph, policy, { id, end }, state.connectionMode);
   const value = endpointValue(edge[end]);
   const visible = new Set(presentEditorGroups(state).nodes.map(({ id }) => id));
   const guard = state.readOnly
@@ -66,7 +66,8 @@ export function resolveEdgeReconnection(
       const hidden = !visible.has(node.id);
       if (
         !current &&
-        (port.kind !== (end === 'source' ? 'output' : 'input') ||
+        ((state.connectionMode !== 'loose' &&
+          port.kind !== (end === 'source' ? 'output' : 'input')) ||
           (hidden && options.scope !== 'all'))
       )
         continue;

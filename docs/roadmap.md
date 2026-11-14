@@ -44,7 +44,7 @@ and colour schemes. The chart layer on top is thin:
 interactive; accessibility by default; typed, pure, testable geometry; and a planned
 JSON-serialisable spec that suits generated charts and other languages.
 
-**Release status:** 0.18.0 to 0.21.0 are complete on the `feat/viz-roadmap-scales`
+**Release status:** 0.18.0 to 0.22.0 are complete on the `feat/viz-roadmap-scales`
 branch and not yet released. 0.21.0 meets two of its three exit criteria; see below.
 
 ### 0.18.0 — Foundations (next release)
@@ -158,24 +158,36 @@ highlight layer, which moves to Later.
 
 ### 0.22.0 — Beyond Cartesian
 
-- [ ] Polar coordinates: a plot-level `coordinates: 'polar'` maps x to angle and y
-      to radius, so bars become radial bars and wind roses and a closed line becomes
-      a radar. An `arc` mark with a `pie` transform gives pie, donut and gauge.
-- [ ] A `geo` mark over GeoJSON features with a projection option, fill from a field
-      for choropleths, and an optional graticule. Zoom uses the 0.20.0 domain helpers.
-- [ ] Network and tree marks: `tree` (tidy and radial), `pack`, `chord`,
-      `arc-diagram` and `force`. The force layout runs to a fixed tick budget at
-      compile time, so the output stays static geometry; animating it stays in the
-      app.
-- [ ] A `voronoi` mark for cells around points, which can also serve as a hover
-      index.
-- [ ] Promote radar, wind rose, donut, gauge, choropleth, zoomable choropleth, map
+[Design](superpowers/specs/2026-11-14-plot-beyond-cartesian-design.md).
+
+- [x] Polar coordinates: a plot-level `coordinates: 'polar'` maps x to angle and y
+      to radius, so bars become radial bars and wind roses, and a line or area over
+      categories closes into a radar. Sectors centre on their category. An `arc`
+      mark gives pie, donut and gauge: slices in row order over a sweep from `start`
+      to `end`, rather than a separate pie transform.
+- [x] A `geo` mark over GeoJSON features through a plot-level projection, fill from
+      a feature property for choropleths, and a `graticule` mark. Dots and text
+      place longitude and latitude through the projection. Zoom is the projection's
+      `zoom` and `center`, not the 0.20.0 domain helpers, which suit axes.
+- [x] Network and tree marks: `tree` (tidy or cluster, left to right or radial),
+      `pack`, `chord`, `arc-diagram` and `force`. The force layout runs a seeded
+      simulation to a fixed count at compile time, so the output stays static
+      geometry.
+- [x] A `voronoi` mark for cells around points. Building it found that the
+      Delaunay port's orientation test had the wrong sign, so triangulations were
+      not Delaunay and Voronoi cells missed their sites; that is fixed, with a
+      regression test.
+- [x] Promote radar, wind rose, donut, gauge, choropleth, zoomable choropleth, map
       projections, chord, arc diagram, force graph, packed circles, tidy tree, radial
       tree and Voronoi.
 
 **Exit criteria:** every chart demo is a library spec except the three that
 showcase primitives rather than charts (easing curves, colour spaces and
 phyllotaxis), and `apps/web/src/ui` holds no chart modules.
+Met, with the exception 0.21.0 recorded: `histogram-chart` and `scatter-chart`
+remain for the linked-charts, request-diagnostics and comparison reference apps.
+Also fixed along the way: world maps no longer draw a stripe where a country
+crosses the antimeridian.
 
 ### Later — Reach
 

@@ -97,6 +97,23 @@ Every chart demo is a library spec except the three that show primitives
 chart modules beyond `histogram-chart` and `scatter-chart`, which the reference
 apps use.
 
+## Outcome, 2026-11-14
+
+- Implemented as designed, with these differences:
+  - Polar sectors are centred on their category, so the first points straight
+    up, as compass and radar charts expect.
+  - A radial tree labels only its leaves.
+  - Radial tick labels sit midway between the first two spokes.
+- Two existing primitives had bugs, now fixed:
+  - `math/delaunay`'s orientation test had the opposite sign to the
+    robust-predicates convention Delaunator assumes, so triangulations were not
+    Delaunay and Voronoi cells missed their sites. There is now a regression test.
+  - `shape/geo` drew rings that cross the antimeridian straight across the map.
+    It now unwraps their longitudes so they carry on past the edge.
+- Choropleths with missing data layer one geo mark of every country under a
+  second filled from the data, because a continuous colour scale has no "no
+  data" colour.
+
 ## Out of scope
 
 Projected lines and areas, orthographic clipping at the horizon beyond what

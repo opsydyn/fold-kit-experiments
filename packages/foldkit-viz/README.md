@@ -491,6 +491,49 @@ demo in the web app's gallery that sits on axes is now a spec.
 - **`highlightPoints(geometry, markIndex, data, highlight)`** restyles a dense
   mark for a new highlight without recompiling, keeping its hover index valid.
 
+## Polar charts, maps, networks and trees (unreleased)
+
+```ts
+// A radar: polar coordinates close a line over categories into a ring.
+{ coordinates: 'polar', marks: [{ mark: 'line', x: 'quality', y: 'score', stroke: 'language' }] }
+
+// A wind rose: bars become wedges; stacked bars stack outwards.
+{ coordinates: 'polar', polar: { inner: 0.1 }, marks: [{ mark: 'bar', x: 'direction', y: 'frequency' }] }
+
+// Pie, donut and gauge.
+{ mark: 'arc', value: 'share', fill: 'team', inner: 0.6, labels: true, text: { value: '100%' } }
+{ mark: 'arc', value: 'amount', fill: 'part', inner: 0.7, start: -120, end: 120 }
+
+// A choropleth: rows are the features' properties.
+{ projection: { type: 'naturalEarth1' }, marks: [{ mark: 'geo', features: countries, fill: 'internet' }] }
+
+// Trees, packing, chords, arc diagrams, force layouts and Voronoi cells.
+{ mark: 'tree', path: 'path', layout: 'cluster', radial: true }
+{ mark: 'pack', path: 'path', value: 'usage', fill: 'family' }
+{ mark: 'chord', source: 'from', target: 'to', value: 'billions' }
+{ mark: 'arc-diagram', source: 'from', target: 'to', value: 'weight' }
+{ mark: 'force', source: 'from', target: 'to' }
+{ mark: 'voronoi', x: 'x', y: 'y', fill: 'y' }
+```
+
+- **Polar coordinates:**
+  - `coordinates: 'polar'` maps x to angle and y to radius.
+  - Bars, lines, areas, dots, text and rules can be drawn in polar coordinates.
+  - Facets carry a `polar` frame of rings and spokes, which both renderers draw.
+- **`arc`** fills its panel: one slice per row over a sweep from `start` to
+  `end` degrees, with an optional centre `text` and share `labels`.
+- **Maps:**
+  - A plot-level `projection` (equirectangular, mercator, naturalEarth1,
+    orthographic or albers) is fitted to the geo marks.
+  - `zoom` and `center` zoom the map.
+  - The `geo` mark draws GeoJSON, and `graticule` draws lines of latitude and
+    longitude.
+  - Dots and text are placed by longitude and latitude.
+- **Networks and trees:** `tree`, `pack`, `chord`, `arc-diagram` and `force`
+  fill their panel and run their layouts at compile time. The force layout is
+  seeded, so it is the same every time.
+- **`voronoi`** draws each point's cell, clipped to the plot area.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

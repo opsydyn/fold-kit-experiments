@@ -268,7 +268,7 @@ export function movingWindow(
     const start = index - before,
       end = index + after;
     if (!options.partial && (start < 0 || end >= values.length)) return Number.NaN;
-    const window = values.slice(Math.max(0, start), Math.min(values.length, end + 1));
-    return window.every(Number.isFinite) ? reduce(window) : Number.NaN;
+    const span = values.slice(Math.max(0, start), Math.min(values.length, end + 1));
+    return span.every(Number.isFinite) ? reduce(span) : Number.NaN;
   });
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { compilePlot } from '../src/plot';
 import type { Graphic, PlotSpec } from '../src/plot';
-import type { GeoFeatureCollection } from '../src/ring/geo';
+import type { GeoFeatureCollection } from '../src/shape/geo';
 
 const base = {
   width: 400,

@@ -5673,8 +5673,8 @@ port kinds in loose sessions and retain protection reasons and visible/all scope
 Creation choices carry explicit `PortActivated.end` intent in loose mode: source
 choices restage and target choices connect. Direct activation without `end` stages
 the first port and connects the next; strict mode keeps output/input behavior.
-Reducer pointer intents also use this mode. Native/custom input adapters and the
-workbench still need their own interaction and accessibility qualification.
+Reducer pointer intents also use this mode. The native/custom interaction follow-up below records bounded local browser
+qualification; broader accessibility and device acceptance remain open.
 
 Save with `captureConnectionDocument(editor)` to retain mode and camera. Public
 v1 graph/snapshot codecs, model/edition archives, patches/receipts, layout and
@@ -5684,3 +5684,43 @@ explicit downgrade review remains required. C1 remains partial.
 
 See [ADR 0093](../../docs/adr/0093-adopt-connection-mode-in-headless-editor.md) and
 [qualification](evidence/connection-editor.md).
+
+### Native and custom port interactions
+
+`zlozView` follows `editor.connectionMode`. In loose sessions mouse/touch drags can
+start at either kind, and exact/nearby targets include both kinds. Native port
+activation offers a source before staging and a target afterward, including Enter,
+Space and touch taps. Authored `kind` stays unchanged. Current policy, read-only,
+duplicate and history checks still run in the reducer.
+
+Custom port renderers receive `context.connectionEnd` (`source | target`) for
+activation feedback, alongside `active`, accepted `target` and `disabledReason`.
+Compose `zlozPort` to retain its native button semantics, anchoring, labels and
+input data attributes:
+
+```ts
+renderPort: (context, h) =>
+  zlozPort(
+    h,
+    context,
+    context.port,
+    [h.Class('my-port')],
+    [context.disabledReason ?? `${context.port.kind} · ${context.connectionEnd}`],
+  );
+```
+
+Use distinct `zlozView` IDs for independent sessions. The ID scopes native Mount
+lifetime and message mapping, while each complete editor retains its own history.
+View retention includes mode in its dependency tuple. Pointer release publishes a
+wire intent once; the subsequent pointer click is consumed while keyboard
+activation remains available. `connectionEnd` describes activation; the connection
+preview's moving end describes reconnection. Existing straight/path-style geometry
+is unchanged and does not imply obstacle routing.
+
+The local workbench's `/connections/` route demonstrates both sessions with a
+shared sidebar, native/custom controls, live protection and light/dark themes.
+Local keyboard/mouse/Chromium touch-emulation checks and screenshots are in
+[interaction evidence](evidence/connection-interactions.md). Native/custom browser
+interaction is now locally qualified within those bounds; real-device, AT and
+cross-browser acceptance remain open. Model/edition, patch/receipt, layout and
+Mermaid/CLI v2 adoption are still separate. C1 remains partial.

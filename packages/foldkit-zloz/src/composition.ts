@@ -46,7 +46,7 @@ export type ZlozNodeRenderContext = Readonly<{
 }>;
 export type NodeControlState = Pick<
   EditorState,
-  'graph' | 'readOnly' | 'selectedNodes' | 'connection'
+  'graph' | 'readOnly' | 'selectedNodes' | 'connection' | 'connectionMode'
 >;
 type Context = Omit<ZlozNodeRenderContext, 'resizeHandles' | 'state'> & { state: NodeControlState };
 type BodyContext = Omit<Context, 'state'> & {
@@ -214,6 +214,20 @@ export function zlozDragHandle<M>(
   );
 }
 
+/** @internal Shared native/custom activation semantics; authored kind stays unchanged. */
+export function portConnectionEnd(
+  state: Pick<NodeControlState, 'connection' | 'connectionMode'>,
+  port: Port,
+): 'source' | 'target' {
+  return state.connectionMode === 'loose'
+    ? state.connection
+      ? 'target'
+      : 'source'
+    : port.kind === 'output'
+      ? 'source'
+      : 'target';
+}
+
 /** Centers the target on its authored normalized anchor. Style size and contents freely; keep it a direct frame child. */
 export function zlozPort<M>(
   h: HtmlBuilder<M>,
@@ -240,11 +254,12 @@ export function zlozPort<M>(
       h.Type('button'),
       h.DataAttribute('flow-port', port.id),
       h.DataAttribute('flow-port-kind', port.kind),
+      h.DataAttribute('flow-connection-end', portConnectionEnd(state, port)),
       h.DataAttribute('flow-owner', node.id),
       h.Disabled(state.readOnly || reason !== null),
       ...(reason === null ? [] : [h.DataAttribute('flow-port-locked', ''), h.Title(reason)]),
       h.AriaLabel(
-        `${port.kind === 'output' ? 'Connect from' : 'Connect to'} ${node.label}: ${port.label ?? port.id}`,
+        `${portConnectionEnd(state, port) === 'source' ? 'Connect from' : 'Connect to'} ${node.label}: ${port.label ?? port.id}`,
       ),
       h.AriaPressed(
         String(state.connection?.node === node.id && state.connection.port === port.id),

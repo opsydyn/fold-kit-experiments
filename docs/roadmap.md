@@ -1086,9 +1086,23 @@ commit once and Undo/Redo retain mode; blocked/no-op edits add no history. Save
 with `captureConnectionDocument(editor)`; no mode-changing event or portable
 adapter support is implied. See [ADR 0093](adr/0093-adopt-connection-mode-in-headless-editor.md)
 and [qualification](../packages/foldkit-zloz/evidence/connection-editor.md).
-This advances C1's package editor contract; native/custom interactions, workbench,
-portable adoption and broader C/Q/R gates remain open. No npm publication.
+This advances C1's package editor contract; native/custom interactions and the
+workbench are recorded in the follow-up below. Portable adoption and broader
+C/Q/R gates remain open. No npm publication.
 
-**Recommended next:** qualify native/custom strict/loose port interactions and
-workbench UX with accessible source/target intent, composable protection feedback
-and visible session mode. Then adopt mode at explicit portable adapter boundaries.
+**C1 native/custom interactions — implemented locally (2026-11-14), unreleased:**
+Native mouse/touch starts, nearby candidates and tap release follow the fixed editor
+mode. Native labels and custom `connectionEnd` feedback distinguish source/target
+activation while retaining authored kinds. Retained-node dependencies include mode;
+view IDs scope input binding lifetimes. Wire release consumes the ensuing pointer
+click once without swallowing keyboard activation. `/connections/` demonstrates
+independent strict/loose histories, native/custom ports, protection, read-only and
+light/dark themes in the shared left-sidebar shell. Package tests and local Chromium
+keyboard/mouse/emulated-touch evidence are linked in [ADR 0094](adr/0094-adopt-loose-mode-in-native-port-interactions.md)
+and [qualification](../packages/foldkit-zloz/evidence/connection-interactions.md).
+This advances C1 interactions; real-device/AT/cross-browser, portable adoption and
+broader C/Q/R gates remain open. No npm publication or deployment.
+
+**Recommended next:** define canonical model/edition mode preservation and literal
+old-reader compatibility fixtures before adopting loose sessions in those workflows.
+Keep explicit loss-aware downgrade separate from supported v2 loading/saving.

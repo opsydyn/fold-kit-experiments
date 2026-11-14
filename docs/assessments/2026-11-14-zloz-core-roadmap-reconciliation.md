@@ -10,9 +10,15 @@ and native/custom controls remain open. C2–C4/Q/R decisions are unchanged.
 Editor follow-up: [ADR 0093](../adr/0093-adopt-connection-mode-in-headless-editor.md)
 and [qualification](../../packages/foldkit-zloz/evidence/connection-editor.md)
 record fixed-mode headless initialization, live creation/reconnection validation,
-contexts and atomic history. C1 remains partial: native/custom input, workbench and
-portable adapters still require adoption/qualification. The original inventory
+contexts and atomic history. Native/custom input and workbench follow below;
+portable adapters and broader qualification remain open. The original inventory
 below remains its dated baseline; C2–C4 and Q/R gates are unchanged.
+
+Interaction follow-up: [ADR 0094](../adr/0094-adopt-loose-mode-in-native-port-interactions.md)
+and [qualification](../../packages/foldkit-zloz/evidence/connection-interactions.md)
+record package-owned native/custom behavior and the independent connection
+workbench. C1 remains partial at portable and broader qualification boundaries;
+canonical model/edition mode contracts are recommended next.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

@@ -48,6 +48,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
   >;
   let wire: { start: WireStart; dragging: boolean } | null = null;
+  let consumedWireClick = false;
   const endpointAt = (target: Element | null, kind?: 'input' | 'output'): Endpoint | undefined => {
     const selector = kind ? `[data-flow-port-kind="${kind}"]` : '[data-flow-port]';
     const port = target?.closest(selector);
@@ -154,7 +155,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         ? 'output'
         : 'input';
     const nearby = [];
-    for (const port of element.querySelectorAll(`[data-flow-port-kind="${kind}"]`)) {
+    const selector =
+      element.dataset.flowConnectionMode === 'loose'
+        ? '[data-flow-port]'
+        : `[data-flow-port-kind="${kind}"]`;
+    for (const port of element.querySelectorAll(selector)) {
       const rect = port.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) continue;
       const x = rect.left + rect.width / 2;
@@ -165,7 +170,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         ownerDocument.elementFromPoint(x, y)?.closest('[data-flow-port]') !== port
       )
         continue;
-      const endpoint = endpointAt(port, kind);
+      const endpoint = endpointAt(
+        port,
+        element.dataset.flowConnectionMode === 'loose' ? undefined : kind,
+      );
       if (endpoint) nearby.push({ endpoint, distance });
     }
     if (nearby.length === 0) return {};
@@ -293,6 +301,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   });
   listen('pointerdown', (event) => {
     if (!(event instanceof window.PointerEvent)) return;
+    consumedWireClick = false;
     if (event.button === 1) {
       if (captured !== null || pinching || !middlePanBackground(event)) return;
       backgroundPressed = false;
@@ -386,7 +395,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       );
       return;
     }
-    const output = endpointAt(target, 'output');
+    const source = endpointAt(
+      target,
+      element.dataset.flowConnectionMode === 'loose' ? undefined : 'output',
+    );
     const handleEdge = target.closest('[data-flow-reconnect]');
     const edgeId = handleEdge?.getAttribute('data-flow-reconnect');
     const end = handleEdge?.getAttribute('data-flow-edge-end');
@@ -400,10 +412,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
             pointer: event.pointerId,
             point: origin,
           }
-        : output
+        : source
           ? {
               type: 'ConnectionDragStarted',
-              endpoint: output,
+              endpoint: source,
               pointer: event.pointerId,
               point: origin,
             }
@@ -468,7 +480,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       type: 'PointerMoved',
       pointer: event.pointerId,
       point: location,
-      ...wireTargets(event),
+      ...wireTargets(clientPoint(event)),
     };
     emit(
       waypointDragging
@@ -508,12 +520,13 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     if (event.pointerId !== captured) return;
     movePointer(event);
+    consumedWireClick = wire !== null;
     if (wire && !wire.dragging && wire.start.type === 'ConnectionDragStarted') {
-      const output = endpointAt(
+      const source = endpointAt(
         element.ownerDocument.elementFromPoint(event.clientX, event.clientY),
-        'output',
+        element.dataset.flowConnectionMode === 'loose' ? undefined : 'output',
       );
-      if (output?.node === wire.start.endpoint.node && output.port === wire.start.endpoint.port)
+      if (source?.node === wire.start.endpoint.node && source.port === wire.start.endpoint.port)
         emit({ type: 'PortActivated', endpoint: wire.start.endpoint });
     } else {
       emit({ type: 'PointerReleased', pointer: event.pointerId });
@@ -540,6 +553,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       event.preventDefault();
   });
   listen('click', (event) => {
+    // Pointer release already published the wire intent. Preserve keyboard clicks (detail 0).
+    if (event instanceof window.MouseEvent && event.detail > 0 && consumedWireClick) {
+      consumedWireClick = false;
+      return;
+    }
     const target = targetOf(event);
     // Capture can retarget the click to the surface. Use the original press to
     // distinguish a pane click from a control or a consumed marquee gesture.

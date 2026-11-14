@@ -1293,7 +1293,9 @@ function canvasHelpView<M>(
       : []),
     ...(spaceToPan ? ['Focus the canvas, then hold Space and drag the background to pan. '] : []),
     ...(middleButtonPan ? ['Middle-drag the background to pan. '] : []),
-    'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
+    state.connectionMode === 'loose'
+      ? 'Tab to a title, then use arrow keys to move it. Drag from any port to any port, or activate the source then target with Enter or Space. Port kinds stay unchanged. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.'
+      : 'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
       : []),
@@ -1635,6 +1637,7 @@ function retainedNodeLayer<M>(
   selectedNodes: readonly string[],
   readOnly: boolean,
   connection: EditorState['connection'],
+  connectionMode: EditorState['connectionMode'],
   descriptionId: string,
   resizeHandles: boolean,
   contextEnabled: boolean,
@@ -1652,7 +1655,7 @@ function retainedNodeLayer<M>(
       mountedMask === undefined
         ? graph.nodes
         : graph.nodes.filter((_, index) => mountedMask[index] === '1'),
-      { graph, selectedNodes, readOnly, connection },
+      { graph, selectedNodes, readOnly, connection, connectionMode },
       options,
       resolveZlozDiagnostics({}),
       descriptionId,
@@ -1947,6 +1950,7 @@ export function zlozView<M>(
           state.selectedNodes,
           state.readOnly,
           state.connection,
+          state.connectionMode,
           descriptionId,
           Boolean(options.resizeHandles),
           Boolean(contextEnabled),
@@ -2413,10 +2417,12 @@ export function zlozView<M>(
     : [];
   const canvasPart = h.div(
     [
-      h.Key('surface'),
+      // A distinct view ID owns a distinct scoped input binding and message mapping.
+      h.Key(`${options.id}-surface`),
       h.Id(`${options.id}-surface`),
       h.DataAttribute('flow-surface', options.id),
       h.DataAttribute('flow-readonly', String(state.readOnly)),
+      h.DataAttribute('flow-connection-mode', state.connectionMode ?? 'strict'),
       h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
       h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
       h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),

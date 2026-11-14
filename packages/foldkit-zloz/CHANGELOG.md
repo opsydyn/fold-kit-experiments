@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Adopt fixed editor mode in native mouse/touch wiring, snapping and activation; expose composable source/target port feedback and scope input bindings by view ID. Preserve single activation across pointer release and synthesized click.
+
 - Adopt explicit v2 connection documents in the headless editor with fixed session mode, policy-aware creation/reconnection contexts and atomic Undo; legacy initialization remains strict.
 
 - Add standalone v2 strict/loose connection documents, a shared port-kind matrix and explicit downgrade review. Legacy v1 codecs/initialization remain strict; explicit editor adoption is listed above.

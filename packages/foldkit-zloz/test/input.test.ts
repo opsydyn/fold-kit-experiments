@@ -716,3 +716,118 @@ test('waypoint handles delegate keyboard editing, preserve modifiers and never d
   key('ArrowRight');
   expect(events).toEqual([]);
 });
+
+for (const mode of ['strict', 'loose'] as const)
+  for (const pointerType of ['mouse', 'touch'])
+    for (const movingEnd of ['creation', 'source', 'target'] as const) {
+      test(`${mode} ${pointerType} ${movingEnd} wire adapter scopes nearby ports to its mode and surface`, () => {
+        const window = new Window();
+        Object.defineProperty(globalThis, 'MouseEvent', {
+          value: window.MouseEvent,
+          configurable: true,
+        });
+        Object.defineProperty(globalThis, 'PointerEvent', {
+          value: window.PointerEvent,
+          configurable: true,
+        });
+        Object.defineProperty(globalThis, 'document', {
+          value: window.document,
+          configurable: true,
+        });
+        const surface = document.createElement('div');
+        surface.dataset.flowSurface = 'wire';
+        surface.dataset.flowConnectionMode = mode;
+        surface.dataset.flowConnectionDropRadius = '30';
+        surface.dataset.flowReconnectionDropRadius = '30';
+        surface.innerHTML = `<button data-flow-owner="a" data-flow-port="p" data-flow-port-kind="${mode === 'loose' ? 'input' : 'output'}">Start</button><button data-flow-owner="b" data-flow-port="p" data-flow-port-kind="${movingEnd === 'source' ? 'input' : 'output'}">Target</button><div data-flow-surface="nested"><button data-flow-owner="foreign" data-flow-port="p" data-flow-port-kind="input">Foreign</button></div>`;
+        document.body.append(surface);
+        const buttons = surface.querySelectorAll('button');
+        const source = buttons[0]!;
+        const target = buttons[1]!;
+        if (movingEnd !== 'creation') {
+          source.setAttribute('data-flow-reconnect', 'existing');
+          source.setAttribute('data-flow-edge-end', movingEnd);
+        }
+        const rect = (x: number) => new window.DOMRect(x - 12, 0, 24, 24);
+        source.getBoundingClientRect = () => rect(20);
+        target.getBoundingClientRect = () => rect(100);
+        buttons[2]!.getBoundingClientRect = () => rect(90);
+        surface.getBoundingClientRect = () => new window.DOMRect(0, 0, 400, 200);
+        Object.defineProperty(document, 'elementFromPoint', {
+          value: (x: number) =>
+            x === 100 ? target : x === 90 ? buttons[2] : x === 20 ? source : null,
+          configurable: true,
+        });
+        surface.setPointerCapture = () => {};
+        surface.releasePointerCapture = () => {};
+        const events: EditorEvent[] = [];
+        const release = bindInput(surface, (event) => events.push(event));
+        events.length = 0;
+        source.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            button: 0,
+            pointerId: 9,
+            pointerType,
+            clientX: 20,
+            clientY: 12,
+          }),
+        );
+        surface.dispatchEvent(
+          new PointerEvent('pointermove', {
+            bubbles: true,
+            pointerId: 9,
+            pointerType,
+            clientX: 80,
+            clientY: 12,
+          }),
+        );
+        expect(
+          events.find(
+            ({ type }) =>
+              type ===
+              (movingEnd === 'creation' ? 'ConnectionDragStarted' : 'ReconnectionDragStarted'),
+          ),
+        ).toMatchObject(
+          movingEnd === 'creation'
+            ? { endpoint: { node: 'a', port: 'p' } }
+            : { id: 'existing', end: movingEnd },
+        );
+        const moved = events.filter((event) => event.type === 'PointerMoved').at(-1);
+        expect(moved).toMatchObject(
+          mode === 'loose'
+            ? { nearbyTargets: [{ node: 'b', port: 'p', distance: 20 }] }
+            : { type: 'PointerMoved' },
+        );
+        if (mode === 'strict') expect(moved).not.toHaveProperty('nearbyTargets');
+        surface.dispatchEvent(
+          new PointerEvent('pointerup', { bubbles: true, pointerId: 9, pointerType }),
+        );
+        expect(events.at(-1)).toEqual({ type: 'PointerReleased', pointer: 9 });
+        if (movingEnd !== 'creation') {
+          release();
+          return;
+        }
+        events.length = 0;
+        for (const type of ['pointerdown', 'pointerup'])
+          source.dispatchEvent(
+            new PointerEvent(type, {
+              bubbles: true,
+              button: 0,
+              pointerId: 10,
+              pointerType,
+              clientX: 20,
+              clientY: 12,
+            }),
+          );
+        expect(events.at(-1)).toEqual({
+          type: 'PortActivated',
+          endpoint: { node: 'a', port: 'p' },
+        });
+        source.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+        expect(events.filter((event) => event.type === 'PortActivated')).toHaveLength(1);
+        source.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+        expect(events.filter((event) => event.type === 'PortActivated')).toHaveLength(2);
+        release();
+      });
+    }

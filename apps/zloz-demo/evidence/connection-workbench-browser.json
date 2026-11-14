@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "checks": [
+    "native strict keyboard creation and one Undo/Redo",
+    "native loose keyboard input-to-output creation, authored kinds, visible protection",
+    "native loose pointer drag starts at input and snaps near output",
+    "native pointer reconnection of both ends and one Undo each",
+    "loose source chooser reconnection and one Undo",
+    "custom loose keyboard creation, live source/target badges, read-only and independent session history",
+    "Chromium touch tap source/target activation",
+    "shared shell preserves the architecture workbench and provides connection navigation"
+  ],
+  "screenshots": ["connection-workbench-light.png", "connection-workbench-dark.png"],
+  "browserErrors": []
+}

@@ -182,6 +182,7 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({
     type: Schema.Literal('PortActivated'),
     endpoint: Endpoint,
+    end: Schema.optionalKey(Schema.Literals(['source', 'target'])),
   }),
   Schema.Struct({
     type: Schema.Literals([

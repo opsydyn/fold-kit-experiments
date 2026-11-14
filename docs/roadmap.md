@@ -671,12 +671,13 @@ FoldKit 0.136.x.
 
 - [x] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
 - [x] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows. Plot specs link through `highlight` (foldkit-viz 0.20.0, `/explore`).
-- [ ] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency.
-- [ ] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`.
-- [ ] Add accessible data summaries or table projections for chart views.
-- [ ] Add property and interaction tests for domain conversion, clearing, clamping, and linked updates.
+- [x] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency. Enforced by `test/framework-boundary.test.ts`: only `src/foldkit` may import FoldKit or Effect, and no module touches the DOM.
+- [x] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`. `interaction/keyboard` maps keys to chart commands (arrows, Page Up and Down, Home, End, Escape, Enter and Space, with modified keys left to the browser); `foldkit/keyboard` gives handlers for `OnKeyDownPreventDefault` and `OnKeyDownFocus`, the latter with roving focus. The plot panel uses them.
+- [x] Add accessible data summaries or table projections for chart views. `describePlot` summarises compiled geometry and `plotTable` projects a spec's data; `plotChart` and `plotCanvas` take both as options, and every gallery chart and plot panel uses them.
+- [x] Add property and interaction tests for domain conversion, clearing, clamping, and linked updates. fast-check properties cover every axis type's round trip, pointer conversion, zoom and pan bounds, selection clamping and clearing, and `highlightPoints`; a seeded sequence test covers linked charts.
 
 **Exit criteria:** two charts can share a typed selection model while each remains independently reusable and testable.
+Met, 2026-11-14: linked charts, request diagnostics and comparison compose independent plot panels through typed out-messages and a parent-owned inspection or selection, and each panel is tested alone.
 
 ## Next: Reference Data Explorer
 

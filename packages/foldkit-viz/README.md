@@ -534,6 +534,39 @@ demo in the web app's gallery that sits on axes is now a spec.
   seeded, so it is the same every time.
 - **`voronoi`** draws each point's cell, clipped to the plot area.
 
+## Keyboard and accessibility (unreleased)
+
+```ts
+import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
+import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/foldkit/keyboard';
+import { compilePlot, describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+// A chart's targets step with the keys a listbox uses.
+h.OnKeyDownPreventDefault(chartKeyDown((command) => PressedChartKey({ command })));
+// In update: const next = targetAfter(count, current, command);
+
+// Every chart can describe itself and carry its data as a hidden table.
+plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
+```
+
+- **`chartCommandOf(key, modifiers)`** maps keys to commands:
+  - arrows step by one, and Page Up and Page Down by a page;
+  - Home and End jump to the ends;
+  - Escape clears, and Enter and Space select;
+  - keys held with Ctrl, Alt or Meta are left to the browser.
+- **`targetAfter(count, current, command)`** applies a command to a target
+  index.
+- **`chartKeyDown` and `chartKeyDownFocus`** wrap the two for FoldKit's
+  `OnKeyDownPreventDefault` and `OnKeyDownFocus`. The latter moves roving focus
+  to the target's element.
+- **`describePlot(geometry)`** summarises a plot in plain language: what it
+  draws and how many, what the axes cover, and what colour shows.
+- **`plotTable(spec)`** lists the data a spec plots, field by field, capped at
+  200 rows with the total noted.
+- **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
+  and a test enforces it.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

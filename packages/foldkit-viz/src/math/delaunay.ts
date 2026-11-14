@@ -15,8 +15,11 @@
 const EPSILON = 2 ** -52;
 const EDGE_STACK = new Uint32Array(512);
 
+// Same sign convention as robust-predicates' orient2d, which Delaunator's call
+// sites assume: (ay - cy)(bx - cx) - (ax - cx)(by - cy). The opposite sign
+// inverts every orientation test and the triangulation stops being Delaunay.
 function orient2d(ax: number, ay: number, bx: number, by: number, cx: number, cy: number): number {
-  return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  return (ay - cy) * (bx - cx) - (ax - cx) * (by - cy);
 }
 
 function pseudoAngle(dx: number, dy: number): number {

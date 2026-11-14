@@ -245,6 +245,18 @@ export function c4PlanReviewPanel(
               ]
             : [h.p([], ['No semantic replacements are proposed.'])]),
           h.label(
+            [h.Class('workbench-field')],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.AriaLabel('Protect C4 conversion Apply'),
+                h.Checked(model.protectC4Apply),
+                h.OnClick(Message.ClickedC4ApplyProtection()),
+              ]),
+              'Protect C4 conversion Apply',
+            ],
+          ),
+          h.label(
             [h.Key('c4-plan-acknowledgement'), h.Class('workbench-field mapping-acknowledgement')],
             [
               h.input([
@@ -265,6 +277,27 @@ export function c4PlanReviewPanel(
               'I acknowledge every listed loss for this exact C4 plan',
             ],
           ),
+          h.button(
+            [
+              h.Type('button'),
+              h.AriaLabel('Apply C4 conversion'),
+              h.Disabled(context.applyReason !== null),
+              h.AriaDescribedBy('c4-apply-reason'),
+              h.OnClick(
+                Message.ClickedC4ConversionApply({
+                  ...context.scope,
+                  planKey: plan.key,
+                  generation: model.c4PlanRun,
+                }),
+              ),
+            ],
+            ['Apply C4 conversion'],
+          ),
+          h.p(
+            [h.Id('c4-apply-reason'), h.Role('status'), h.AriaLabel('C4 Apply availability')],
+            [context.applyReason ?? 'Ready to apply this exact plan as one Undo step.'],
+          ),
+          h.p([h.Role('status'), h.AriaLabel('C4 Apply result')], [model.c4ApplyNotice]),
           h.p(
             [h.Id('c4-plan-acknowledgement-reason'), h.Role('status')],
             [

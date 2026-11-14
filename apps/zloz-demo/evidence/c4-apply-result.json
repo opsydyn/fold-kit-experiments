@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "evidence": [
+    "explicit mapping/placement/loss review",
+    "live protection disables Apply and withdraws consent",
+    "protection round trip requires fresh acknowledgement",
+    "Space acknowledges; Enter applies",
+    "one Undo/Redo restores full source/target graphs",
+    "record survives Undo",
+    "retained source/target meaning visible in Minimal mode",
+    "light/dark sidebar preserves canvas",
+    "model identity, editions, ancestry, ports and geometry preserved"
+  ],
+  "pageErrors": []
+}

@@ -61,6 +61,7 @@ import {
   reconcileC4MappingReview,
   updateC4Placement,
   updateC4PlanAcknowledgement,
+  applyWorkbenchC4Conversion,
 } from './c4-mapping-review';
 import {
   ArrangeFlow,
@@ -830,6 +831,13 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedC4PlacementClear: (request) => ({
       model: updateC4Placement(model, { ...request, type: 'Cleared' }),
+    }),
+    ClickedC4ConversionApply: (request) => ({ model: applyWorkbenchC4Conversion(model, request) }),
+    ClickedC4ApplyProtection: () => ({
+      model:
+        model.sidebarCollapsed || model.sidebarSection !== 'c4mapping'
+          ? model
+          : { ...model, protectC4Apply: !model.protectC4Apply },
     }),
     ClickedC4PlanAcknowledgement: (request) => ({
       model: updateC4PlanAcknowledgement(model, request),

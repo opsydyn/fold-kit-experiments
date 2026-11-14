@@ -699,3 +699,24 @@ reads, gestures or missing canvas measurement. No focused change means side
 switching uses the recorded snapshot camera.
 
 See [side continuity and overview evidence](evidence/receipt-side.md).
+
+### Apply a reviewed C4 conversion
+
+Open **C4 mapping review** for a workshop model. Explicitly map or retain every
+node and relationship, then review each required placement under **C4 conversion
+plan review**. Inspect the source provenance and exact losses, acknowledge them,
+and choose **Apply C4 conversion**. The canvas changes in one Undo step.
+
+The action shows current protection reasons. **Protect C4 conversion Apply** lets
+you demonstrate a host veto; unlocking requires a fresh loss acknowledgement.
+Enabled semantic relationship rules also check the final affected connections.
+Retaining a workshop link may therefore block conversion if its reinterpreted
+endpoints no longer satisfy the rule. Review explicit communication mappings or
+change the policy before acknowledging again.
+
+**Retained C4 conversions** shows original and target meaning plus reviewed
+placement. Records survive Undo/Redo and model/example changes within this tab.
+They remain separate from DDD's downloadable receipts: C4 records currently have
+no download/reopening support, and reloading loses them. Model JSON exports the
+current document, without the record collection. See
+[production browser evidence and light/dark captures](evidence/c4-apply.md).

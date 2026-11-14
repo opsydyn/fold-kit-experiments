@@ -4,6 +4,7 @@ import {
   resolveDddRelationship,
   resolveEventStormingRelationship,
   type ZlozEventStormingDddApplyPolicy,
+  type ZlozEventStormingC4ApplyPolicy,
   type EditorPolicy,
   type ZlozNode,
 } from '@opsydyn/foldkit-zloz';
@@ -237,5 +238,45 @@ export function workbenchConversionPolicy(
     ...editingWorkbenchPolicy(model),
     // The public editor policy uses null for an allowed decision.
     canApplyEventStormingDddConversion: (plan, target) => Option.getOrNull(resolve(plan, target)),
+  };
+}
+
+/** C4 keeps final-graph relationship checks distinct from individual workshop edits. */
+export function workbenchC4ConversionPolicy(
+  model: WorkbenchPolicyModel & Pick<Model, 'protectC4Apply'>,
+): ZlozEventStormingC4ApplyPolicy {
+  type Guard = NonNullable<ZlozEventStormingC4ApplyPolicy['canApplyEventStormingC4Conversion']>;
+  function resolve(
+    plan: Parameters<Guard>[0],
+    target: Parameters<Guard>[1],
+  ): Option.Option<string> {
+    if (model.protectC4Apply)
+      return Option.some('C4 conversion Apply is protected in this workbench.');
+    if (!model.semanticRelationships) return Option.none();
+    const nodes = new Set(plan.changes.nodes.map((change) => change.nodeId));
+    const edges = new Set(plan.changes.edges.map((change) => change.edgeId));
+    for (const edge of target.snapshot.graph.edges) {
+      if (!edges.has(edge.id) && !nodes.has(edge.source.node) && !nodes.has(edge.target.node))
+        continue;
+      const decision =
+        edge.architecture?.family === 'ddd'
+          ? resolveDddRelationship(target.snapshot.graph, {
+              sourceNodeId: edge.source.node,
+              targetNodeId: edge.target.node,
+              architecture: edge.architecture,
+            })
+          : resolveEventStormingRelationship(
+              target.snapshot.graph,
+              edge,
+              workbenchRelationshipOptions(model),
+            );
+      if (decision.type === 'blocked')
+        return Option.some(`${edge.label || edge.id}: ${decision.reason}`);
+    }
+    return Option.none();
+  }
+  return {
+    ...editingWorkbenchPolicy(model),
+    canApplyEventStormingC4Conversion: (plan, target) => Option.getOrNull(resolve(plan, target)),
   };
 }

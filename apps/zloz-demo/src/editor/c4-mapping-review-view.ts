@@ -2,6 +2,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 
 import { workbenchC4MappingReview, type C4MappingReviewForm } from './c4-mapping-review';
 import { c4PlanReviewPanel } from './c4-plan-review-view';
+import { c4RetainedConversions } from './c4-retained-conversions-view';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -64,7 +65,7 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
       h.p(
         [],
         [
-          'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Review placements and exact plan losses below; no conversion or Apply is performed.',
+          'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Review placements and exact losses below, acknowledge them, then explicitly Apply as one Undo step.',
         ],
       ),
       h.details(
@@ -265,6 +266,7 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
           ]
         : [h.p([], ['Open a workshop example from Diagram to review its C4 interpretations.'])]),
       c4PlanReviewPanel(model, h, context),
+      c4RetainedConversions(model, h),
       h.h3([], ['Unresolved C4 mappings']),
       h.ul(
         [h.AriaLabel('Unresolved C4 mappings')],

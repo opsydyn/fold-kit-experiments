@@ -1,5 +1,6 @@
 import {
   architectureNodePresets,
+  applyEventStormingC4Conversion,
   createEventStormingC4ConversionPlan,
   resolveEventStormingC4ConversionConsent,
   type ZlozEventStormingC4MembershipChoice,
@@ -10,6 +11,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { reviewReaderForScope } from '@opsydyn/foldkit-zloz-mermaid';
 
+import { workbenchC4ConversionPolicy } from './editor-policy';
 import type { Model } from './model';
 import { modelSessionBusy, workbenchDocument } from './model-sessions';
 
@@ -233,8 +235,25 @@ export function workbenchC4MappingReview(model: Model) {
       : conversion.type === 'unchanged'
         ? 'This plan has no conversion changes to acknowledge.'
         : null);
+  const application = applyEventStormingC4Conversion(model.editor, reviewSource(model), {
+    conversion: { mappings: stored.choices, memberships: stored.memberships },
+    consent: model.c4PlanConsent,
+    blockedReason: reason,
+    policy: workbenchC4ConversionPolicy(model),
+  });
+  const applyReason =
+    reason ??
+    (model.protectC4Apply
+      ? 'C4 conversion Apply is protected in this workbench.'
+      : application.type === 'blocked'
+        ? application.reason
+        : application.type === 'unchanged'
+          ? 'No conversion changes are available.'
+          : null);
   return {
     scope: current,
+    application,
+    applyReason,
     conversion,
     plan,
     member,
@@ -511,7 +530,18 @@ export function reconcileC4MappingReview(previous: Model, model: Model): Model {
   const choicesChanged =
     previous.c4MappingReview?.choices !== next.c4MappingReview?.choices ||
     previous.c4MappingReview?.memberships !== next.c4MappingReview?.memberships;
-  const protectionChanged = c4ReviewProtectionReason(previous) !== c4ReviewProtectionReason(next);
+  const protectionChanged =
+    c4ReviewProtectionReason(previous) !== c4ReviewProtectionReason(next) ||
+    previous.protectC4Apply !== next.protectC4Apply ||
+    previous.protectWorkshopMeaning !== next.protectWorkshopMeaning ||
+    previous.protectDddRelationships !== next.protectDddRelationships ||
+    previous.semanticRelationships !== next.semanticRelationships ||
+    previous.customStormingRelationships !== next.customStormingRelationships ||
+    previous.workshopConventions !== next.workshopConventions ||
+    previous.editor.readOnly !== next.editor.readOnly ||
+    previous.editor.historyLimit !== next.editor.historyLimit ||
+    previous.editor.connection !== next.editor.connection ||
+    previous.editor.fitViewTransition !== next.editor.fitViewTransition;
   const visibilityChanged =
     (previous.sidebarSection === 'c4mapping' && !previous.sidebarCollapsed) !==
     (next.sidebarSection === 'c4mapping' && !next.sidebarCollapsed);
@@ -533,5 +563,38 @@ export function reconcileC4MappingReview(previous: Model, model: Model): Model {
         ? null
         : next.c4PlanConsent,
     c4PlanRun: previous.c4PlanRun === next.c4PlanRun ? next.c4PlanRun + 1 : next.c4PlanRun,
+  };
+}
+
+/** The package result and record are published in the same synchronous host update. */
+export function applyWorkbenchC4Conversion(
+  model: Model,
+  request: C4MappingReviewScope & Readonly<{ planKey: string; generation: number }>,
+): Model {
+  if (
+    model.sidebarCollapsed ||
+    model.sidebarSection !== 'c4mapping' ||
+    !matches(scope(model), request) ||
+    request.generation !== model.c4PlanRun
+  )
+    return model;
+  const context = workbenchC4MappingReview(model);
+  if (context.plan.key !== request.planKey) return model;
+  const result = context.application;
+  if (context.applyReason !== null || result.type !== 'applied')
+    return {
+      ...model,
+      c4ApplyNotice: context.applyReason ?? 'No conversion changes are available.',
+    };
+  return {
+    ...model,
+    editor: result.editor,
+    c4Conversions: [...model.c4Conversions, result.conversion],
+    c4MappingReview: null,
+    c4PlanConsent: null,
+    c4PlanRun: model.c4PlanRun + 1,
+    c4ApplyNotice:
+      'C4 conversion applied. One Undo restores the source; provenance retained in this tab.',
+    notice: 'C4 conversion applied. One Undo restores the source; provenance retained.',
   };
 }

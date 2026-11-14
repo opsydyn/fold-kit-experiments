@@ -65,6 +65,16 @@ export const Message = defineMessageUnion({
     editionId: Schema.String,
     nodeId: Schema.String,
   },
+  ClickedC4ConversionApply: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    planKey: Schema.String,
+    generation: Schema.Number,
+  },
+  ClickedC4ApplyProtection: {},
   ClickedC4PlanAcknowledgement: {
     modelId: Schema.String,
     epoch: Schema.Number,

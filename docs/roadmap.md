@@ -1007,7 +1007,22 @@ See [ADR 0088](adr/0088-apply-c4-conversion-atomically.md) and
 No workbench Apply, portable receipt codec, npm publishing or deployment in this
 slice. D1b host integration and broader C/Q/R completion gates remain open.
 
-**Recommended next:** wire guarded C4 Apply into the workbench, publishing the
-returned editor and retained conversion record in one update, with visible current
-protection reasons and Undo. Qualify portable receipt decoding before enabling
-receipt download/reopening.
+**D1b workbench atomic C4 Apply — implemented locally (2026-11-14), unreleased:**
+The left sidebar now exposes guarded Apply after mapping/placement review and exact
+loss acknowledgement. It rechecks core validation and live host semantic policies,
+shows protection reasons, rejects stale/replayed callbacks and publishes editor plus
+frozen conversion record in one synchronous update. Relevant policy round trips
+withdraw consent and invalidate old callbacks. Retained source/target meaning remains
+inspectable through Undo/Redo, example changes and Minimal mode. Records are tab-local
+and separate from portable DDD receipts; reload loses them. Production light/dark
+keyboard evidence checks protection, publication, retained provenance and exported
+source/target graphs with one Undo/Redo. See
+[ADR 0089](adr/0089-publish-c4-apply-and-provenance-in-workbench.md) and
+[visual/test qualification](../apps/zloz-demo/evidence/c4-apply.md).
+No C4 receipt download/import, new wire format, npm publishing or deployment.
+D1b portable review and broader C/Q/R gates remain open.
+
+**Recommended next:** define strict versioned portable C4 conversion receipts,
+validating source provenance, explicit choices, loss acceptance and exact target
+projection before workbench download/reopening. Imported records must remain
+read-only evidence and never become Apply authority.

@@ -111,7 +111,9 @@ async function run() {
   await openPlan();
   await expect(status).toHaveText('Resolve plan blockers');
   await expect(ack).toBeDisabled();
-  await expect(plan.getByRole('button', { name: /Apply/u })).toHaveCount(0);
+  await expect(
+    plan.getByRole('button', { name: 'Apply C4 conversion', exact: true }),
+  ).toBeDisabled();
   await selectMember('request');
   await placement.selectOption('contained');
   const parent = page.getByRole('combobox', { name: 'Placement parent', exact: true });
@@ -196,7 +198,7 @@ async function run() {
       'source/lineage unchanged before explicit edition capture',
       'history protects and withdraws acknowledgement',
       'Minimal mode preserves plan provenance/acknowledgement',
-      'no Apply action',
+      'Apply remains guarded before placement and acknowledgement',
     ],
     pageErrors: errors,
   };

@@ -682,3 +682,11 @@ export type {
   ZlozEventStormingC4LossConsent,
   ZlozEventStormingC4ConversionConsentDecision,
 } from './event-storming-c4-conversion-plan';
+
+export { applyEventStormingC4Conversion } from './event-storming-c4-apply';
+export type {
+  ZlozEventStormingC4Conversion,
+  ZlozEventStormingC4ApplyOptions,
+  ZlozEventStormingC4ApplyPolicy,
+  ZlozEventStormingC4ApplyResult,
+} from './event-storming-c4-apply';

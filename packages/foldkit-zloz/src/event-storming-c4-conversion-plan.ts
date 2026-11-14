@@ -8,6 +8,7 @@ import {
   type ZlozEventStormingC4EdgePreview,
   type ZlozEventStormingC4Disclosure,
 } from './event-storming-c4-preview';
+import { projectEventStormingC4Graph } from './event-storming-c4-projection';
 import { validateGraph, ZlozError } from './graph';
 import type { ZlozNode } from './types';
 
@@ -158,14 +159,6 @@ function different(
   b: ZlozEventStormingC4MembershipState,
 ): boolean {
   return a.parentId !== b.parentId || a.extent !== b.extent || a.expandParent !== b.expandParent;
-}
-function place(node: ZlozNode, after: ZlozEventStormingC4MembershipState): ZlozNode {
-  const { parentId: _parentId, extent: _extent, expandParent: _expandParent, ...unparented } = node;
-  let next: ZlozNode =
-    after.parentId === null ? unparented : { ...unparented, parentId: after.parentId };
-  if (after.extent !== null) next = { ...next, extent: after.extent };
-  if (after.expandParent !== null) next = { ...next, expandParent: after.expandParent };
-  return next;
 }
 /**
  * Session-only review planning. No target graph, Apply event or edit authority is returned. A mapped
@@ -407,27 +400,6 @@ export function createEventStormingC4ConversionPlan(
   ];
   if (blockers.length) return freeze({ ...base, type: 'blocked', blockers });
   const resolved = memberships.filter((decision) => decision.type === 'resolved');
-  const proposals = new Map(
-    preview.edges.filter((edge) => edge.type === 'proposed').map((edge) => [edge.edgeId, edge]),
-  );
-  const placements = new Map(resolved.map((decision) => [decision.nodeId, decision.after]));
-  // Private whole-graph check only. No target projection is exposed or published.
-  validateGraph({
-    nodes: graph.nodes.map((node) => {
-      const proposal = proposed.get(node.id),
-        after = placements.get(node.id);
-      const next = proposal
-        ? { ...node, architecture: proposal.architecture, label: proposal.label }
-        : node;
-      return after ? place(next, after) : next;
-    }),
-    edges: graph.edges.map((edge) => {
-      const proposal = proposals.get(edge.id);
-      if (!proposal) return edge;
-      const { architecture: _architecture, ...plain } = edge;
-      return { ...plain, label: proposal.relationship.label };
-    }),
-  });
   const changes = {
     nodes: preview.nodes.filter((node) => node.type === 'proposed'),
     edges: preview.edges.filter((edge) => edge.type === 'proposed'),
@@ -436,6 +408,7 @@ export function createEventStormingC4ConversionPlan(
         different(decision.before, decision.after) || decision.placement.type === 'contained',
     ),
   };
+  validateGraph(projectEventStormingC4Graph(graph, changes));
   return freeze(
     changes.nodes.length || changes.edges.length || changes.memberships.length
       ? { ...base, type: 'reviewable', changes }

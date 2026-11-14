@@ -5514,3 +5514,44 @@ the host owns ephemeral forms and callback generations. Apply remains unavailabl
 See [ADR 0086](../../docs/adr/0086-plan-explicit-c4-conversion-and-containment.md),
 [package qualification](evidence/event-storming-c4-conversion-plan.md) and
 [workbench visual evidence](../../apps/zloz-demo/evidence/c4-plan.md).
+
+### Atomic EventStorming-to-C4 Apply
+
+`applyEventStormingC4Conversion(editor, liveSource, { conversion, consent, policy,
+blockedReason })` rebuilds the plan from current choices and checks the live graph,
+camera and revision before applying. It also checks read-only/busy state, enabled
+Undo, containment, exact loss consent and current policies. Missing or changed
+consent returns `consent-required`; unresolved intent returns `unresolved-mapping`.
+The remaining blocked codes are `source-changed`, `read-only`, `busy`,
+`undo-disabled` and `policy`. Malformed source/options throw the existing core error.
+
+```ts
+const result = applyEventStormingC4Conversion(model.editor, liveSource, {
+  conversion: reviewedChoices,
+  consent: model.c4Consent,
+  policy: currentPolicy,
+});
+if (result.type === 'applied') {
+  // Publish both in the same synchronous model update.
+  return {
+    ...model,
+    editor: result.editor,
+    c4Conversions: [...model.c4Conversions, result.conversion],
+  };
+}
+```
+
+`applied` returns one graph Undo transaction and a detached frozen conversion record
+with source provenance, exact reviewed choices, loss acceptance and target document.
+`blocked` and `unchanged` return the original editor without a record. Graph Undo
+leaves the host's retained record available for review. The host supplies the current
+document/session, external busy conditions and durable storage; core does not prove
+host identity or human review.
+
+`ZlozEventStormingC4ApplyPolicy` reuses node/edge architecture vetoes and offers
+`canChangeC4NodeLabel`, `canChangeC4EdgeLabel`, `canChangeC4Membership` and
+`canApplyEventStormingC4Conversion`. Granular hooks receive current and full proposed
+values plus the current graph. Membership policy also checks explicit containment
+when the parent ID stays unchanged. All policy inputs are detached and frozen.
+The conversion record currently has no portable decoder or workbench download API.
+See [ADR 0088](../../docs/adr/0088-apply-c4-conversion-atomically.md).

@@ -993,7 +993,21 @@ See [ADR 0087](adr/0087-review-c4-placement-and-exact-losses.md) and
 No Apply, receipt, new package API/wire version, npm publishing or deployment.
 D1b atomic conversion and broader C/Q/R gates remain open.
 
-**Recommended next:** implement package-level guarded atomic C4 Apply with current
-source/session/revision, lifecycle, live policies, containment and exact consent
-checks, one Undo and retained provenance. Keep workbench publication and receipt
-review/download as the following integration slice.
+**D1b package-level atomic C4 Apply — implemented locally (2026-11-14), unreleased:**
+The public Apply API rebuilds current plans/containment and exact consent, compares
+live graph/camera/revision, and checks lifecycle, read-only, external busy, enabled
+Undo and live whole-transaction/architecture/label/membership policies. One shared
+internal projection prevents review/publication drift. Every rejection leaves the
+original editor intact; successful publication returns one graph Undo transaction
+and a frozen source/choice/target provenance record together. Explicit containment
+is policy-controlled even when its parent ID stays unchanged. Host identity,
+synchronous editor/record publication and storage remain host responsibilities.
+See [ADR 0088](adr/0088-apply-c4-conversion-atomically.md) and
+[qualification](../packages/foldkit-zloz/evidence/event-storming-c4-apply.md).
+No workbench Apply, portable receipt codec, npm publishing or deployment in this
+slice. D1b host integration and broader C/Q/R completion gates remain open.
+
+**Recommended next:** wire guarded C4 Apply into the workbench, publishing the
+returned editor and retained conversion record in one update, with visible current
+protection reasons and Undo. Qualify portable receipt decoding before enabling
+receipt download/reopening.

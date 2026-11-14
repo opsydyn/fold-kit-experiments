@@ -20,7 +20,7 @@ export type ZlozModelOriginV2 = Readonly<{
   modelName: string;
   edition: ZlozEditionV2;
 }>;
-/** Canonical v2 data only. Editors, forks, comparisons and restore are separate adoption boundaries. */
+/** Canonical v2 data only; runtime editor and review state is separate. */
 export type ZlozModelDocumentV2 = Readonly<{
   id: string;
   name: string;

@@ -1118,6 +1118,20 @@ readers reject v2 envelopes and retain v1 model/edit/Undo behavior. See
 Canonical editor/history workflows, other portable adapters and broader C/Q/R
 qualification remain open; C1 is partial. No npm publication or deployment.
 
-**Recommended next:** adopt v2 in package-owned model initialization and read-only
-edition review, retaining each checkpoint mode and independent session/history.
-Fork/restore/playback and workbench adoption follow those boundaries.
+**C1 v2 model initialization/read-only review — implemented locally (2026-11-14), unreleased:**
+`createModelEditorV2` validates the whole canonical model and opens a detached current
+snapshot session with its own mode and fresh Undo/Redo. `createHistoryReviewV2` pins
+a detached edition and initializes a separate literal read-only editor in checkpoint
+mode; authored camera wins, otherwise working camera is copied. Only zoom limits,
+fit padding and copied surface size are inherited; review Undo capacity is zero.
+`updateHistoryReviewV2` composes the fail-closed navigation whitelist and live
+selection policies, rejecting authored edits, node measurement and Undo/Redo.
+Strict/loose working/checkpoint combinations and installed Node/Bun/TypeScript
+consumers qualify the boundary. See [ADR 0096](adr/0096-initialize-v2-models-and-review-editions.md)
+and [qualification](../packages/foldkit-zloz/evidence/model-workflow-v2.md).
+Fork, append, comparison/ghosts, restore/playback, CLI/workbench and broader C/Q/R
+gates remain open. C1 is partial. No npm publication or deployment.
+
+**Recommended next:** add v2 edition forking with immutable source provenance and
+a fresh target session retaining the chosen checkpoint mode. Keep cross-mode
+restore/playback adoption separate until their history semantics are explicit.

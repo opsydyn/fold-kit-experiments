@@ -24,8 +24,14 @@ Canonical follow-up: [ADR 0095](../adr/0095-stage-canonical-v2-model-and-edition
 and [qualification](../../packages/foldkit-zloz/evidence/model-v2.md) record explicit
 v2 models/editions, per-checkpoint modes, compatibility fixtures and whole-document
 downgrade review. The canonical contract recommendation is delivered locally;
-package-owned v2 initialization/read-only edition review is next. C1 and wider
+package-owned v2 initialization/read-only review is recorded below. C1 and wider
 C/Q/R gates remain partial.
+
+Workflow follow-up: [ADR 0096](../adr/0096-initialize-v2-models-and-review-editions.md)
+and [qualification](../../packages/foldkit-zloz/evidence/model-workflow-v2.md)
+record whole-model initialization and independent read-only edition review across
+checkpoint modes. The initialization/review recommendation is delivered locally;
+v2 forking is next. Remaining workflow/adapter and broader C/Q/R gates stay open.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

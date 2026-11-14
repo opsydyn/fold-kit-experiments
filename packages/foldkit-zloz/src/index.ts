@@ -734,3 +734,10 @@ export type {
   ZlozModelV2DowngradePlan,
   ZlozEditionsV2DowngradePlan,
 } from './model-document-v2';
+
+export {
+  createModelEditorV2,
+  createHistoryReviewV2,
+  updateHistoryReviewV2,
+} from './model-workflow-v2';
+export type { ZlozHistoryReviewV2 } from './model-workflow-v2';

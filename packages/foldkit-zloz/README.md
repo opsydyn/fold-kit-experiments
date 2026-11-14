@@ -5788,10 +5788,62 @@ records as a substitute for explicit downgrade review. Historical implementation
 may not enforce this raw-record guard; old-reader evidence covers versioned wire
 rejection, not universal raw-object safety.
 
-This is a canonical data/compatibility contract. V2 canonical initialization,
-fork, append/review/compare/restore/playback, workbench imports, patches/receipts,
+This is a canonical data/compatibility contract. V2 canonical initialization and read-only review are delivered below. Fork,
+append/compare/restore/playback, workbench imports, patches/receipts,
 layouts and Mermaid/CLI are separate adoption boundaries. The standalone v2
 initializer can consume an explicitly chosen v2 snapshot; do not pass canonical
 v2 records into v1 workflow APIs. C1 and broader qualification remain partial.
 See [ADR 0095](../../docs/adr/0095-stage-canonical-v2-model-and-edition-documents.md)
 and [qualification](evidence/model-v2.md). No npm publication or deployment.
+
+### V2 model initialization and read-only edition review
+
+```ts
+import {
+  createModelEditorV2,
+  createHistoryReviewV2,
+  updateHistoryReviewV2,
+  parseModelDocumentV2,
+} from '@opsydyn/foldkit-zloz';
+
+const document = parseModelDocumentV2(savedText);
+const working = createModelEditorV2(document);
+const review = createHistoryReviewV2(document.editions[0]!, working);
+const navigated = updateHistoryReviewV2(review, {
+  type: 'ViewportNudged',
+  delta: { x: 40, y: 0 },
+});
+```
+
+`createModelEditorV2` validates the complete v2 model, including archived editions
+and pinned origin, before opening its current snapshot. Mode comes from that
+snapshot. Each call detaches the graph and starts fresh Undo/Redo, revision and
+transient state. `EditorOptions` can override camera, read-only and history
+preferences; an undefined camera inherits the snapshot camera. Passing preferences
+from another editor cannot override the source mode or inherit its history.
+
+`createHistoryReviewV2` accepts an explicitly chosen v2 edition, including a pinned
+origin edition. The returned `ZlozHistoryReviewV2` retains a deeply frozen detached
+`edition` pin and a separate editor whose `readOnly` type is literal `true`.
+Checkpoint mode wins even when the working editor uses the opposite mode. Authored
+camera wins; a camera-less checkpoint uses a detached working-camera fallback
+without adding a camera to its pin. Working zoom limits, fit padding and copied
+surface size are the only inherited navigation context. Invalid camera/range
+combinations reject rather than rewriting stored camera data. Undo capacity is
+zero; selection, clipboard, gestures, routes and history are not inherited.
+
+Route review events through `updateHistoryReviewV2`. It reuses the existing
+fail-closed history-navigation whitelist and current selection policies. Focus,
+selection, surface measurement and camera/fit navigation stay independent from the
+working editor. Authored edits, node measurement, connections and Undo/Redo return
+the unchanged review. Navigation retains the original pin and read-only state.
+Use the complete returned review; do not decode/mutate EditorState or route
+unfiltered input directly to its nested editor. Independent native views require
+distinct IDs to scope their bindings.
+
+V1 initializers/reviews and all wire formats retain their existing boundaries.
+V2 fork, append, comparison/ghosts, restore/playback, CLI and workbench adoption
+remain separate; a read-only review does not Apply a checkpoint or change the
+working mode. C1 and broader qualification remain partial. See
+[ADR 0096](../../docs/adr/0096-initialize-v2-models-and-review-editions.md) and
+[qualification](evidence/model-workflow-v2.md).

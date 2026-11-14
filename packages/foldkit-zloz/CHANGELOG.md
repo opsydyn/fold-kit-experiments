@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add v2 canonical model initialization and independent read-only edition review, retaining checkpoint modes and immutable pins with fail-closed navigation and fresh history.
+
 - Define explicit canonical v2 model/edition codecs with per-checkpoint connection mode, explicit legacy upgrade and whole-document downgrade findings; prevent current v1 writers from silently dropping explicit v2/loose snapshot intent.
 
 - Adopt fixed editor mode in native mouse/touch wiring, snapping and activation; expose composable source/target port feedback and scope input bindings by view ID. Preserve single activation across pointer release and synthesized click.

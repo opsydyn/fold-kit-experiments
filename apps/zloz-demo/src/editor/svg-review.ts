@@ -47,7 +47,11 @@ export function workbenchSvgContext(
               target: { kind: 'node' as const, id: node.id },
               renderer: {
                 type: 'fallback' as const,
-                reason: `The ${model.nodeDesign} UI shell becomes canonical static model artwork.`,
+                reason:
+                  node.architecture?.family === 'event-storming' &&
+                  node.architecture.role === 'hotspot'
+                    ? 'Custom badges become canonical hotspot artwork with authored Open question/Resolved status.'
+                    : `The ${model.nodeDesign} UI shell becomes canonical static model artwork.`,
               },
             }))
           : []),

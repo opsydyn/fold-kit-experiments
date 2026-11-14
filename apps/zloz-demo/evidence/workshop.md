@@ -124,3 +124,8 @@ and performance remain unqualified. No independent/delegated agent was used.
 
 Recommendation: **needs review** for the combined implementation. Nothing pushed,
 deployed or published.
+
+Portable-artwork follow-up (2026-11-14): [ADR 0083](../../../docs/adr/0083-qualify-workshop-portable-artwork.md)
+and [SVG/PNG qualification](workshop-export.md) supersede the built-in portable
+artwork gate above. Custom native badges and semantic edge notation still have
+explicit fidelity findings; this historical native-interaction receipt is unchanged.

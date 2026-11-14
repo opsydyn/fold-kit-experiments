@@ -85,6 +85,8 @@ const packedWorkshopRequest:ZlozWorkshopRequest={...packedWorkshopContext.scope!
 const packedWorkshopDecision=resolveEventStormingWorkshopRequest(packedWorkshopEditor,'retry-question',packedWorkshopRequest);
 if(packedWorkshopDecision.type!=='ready'||updateEditor(packedWorkshopEditor,packedWorkshopDecision.event).past.length!==1)throw new Error('Packed workshop controls lost Undo');
 const packedWorkshop=parseWaypointGraph(${JSON.stringify(JSON.stringify(workshopWire))});
+const packedWorkshopSvg=writeSvgExport({graph:packedWorkshop},{title:'Workshop',region:{type:'model',padding:40},theme:{colorScheme:'light'},background:{type:'theme'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}},{allowLosses:true});
+if(packedWorkshopSvg.type!=='written'||!packedWorkshopSvg.svg.includes('Open question')||!packedWorkshopSvg.svg.includes('External system')||!packedWorkshopSvg.svg.includes('Workshop lane'))throw new Error('Packed workshop export lost meaning');
 if(JSON.stringify(packedWorkshop.nodes.map(n=>resolveEventStormingNodeSemantics(n)?.kind))!==JSON.stringify(['frame','participant','participant','participant','annotation','participant']))throw new Error('Packed workshop classification failed');
 if(auditWorkshop(packedWorkshop,{rules:eventStormingWorkshopRelationshipRules}).summary.blocked!==0||auditWorkshop(packedWorkshop).summary.blocked!==3)throw new Error('Packed workshop opt-in convention failed');
 const packedExternal:EventStormingParticipantArchitecture={family:'event-storming',role:'external-system'};void packedExternal;

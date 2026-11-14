@@ -113,3 +113,9 @@ research, manual AT/device qualification or performance superiority claim.
 
 Recommendation: **needs review**; renderer work is the next bounded slice. Nothing
 was pushed, deployed or published.
+
+Portable-artwork follow-up (2026-11-14): [ADR 0083](../../../docs/adr/0083-qualify-workshop-portable-artwork.md)
+and [SVG/PNG qualification](../../../apps/zloz-demo/evidence/workshop-export.md)
+now qualify canonical workshop artwork and authored status. The original
+unsupported-role expectation was replaced by reviewable built-in artwork tests;
+custom shell/semantic edge loss and font/bounds findings remain explicit.

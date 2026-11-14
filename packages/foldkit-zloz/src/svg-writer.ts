@@ -252,6 +252,23 @@ function path(value: string): string {
 function lines(node: ZlozNode): string[] {
   const a = node.architecture;
   if (!a) return [node.label];
+  if (a.family === 'event-storming') {
+    const workshopType =
+      a.role === 'external-system'
+        ? 'External system'
+        : a.role === 'lane'
+          ? 'Workshop lane'
+          : a.role === 'hotspot'
+            ? 'Hotspot'
+            : undefined;
+    if (workshopType)
+      return [
+        node.label,
+        workshopType,
+        ...(a.role === 'hotspot' ? [a.status === 'open' ? 'Open question' : 'Resolved'] : []),
+        ...(a.description ? [a.description] : []),
+      ];
+  }
   return [
     node.label,
     `[${a.family}: ${a.role}]`,
@@ -474,9 +491,23 @@ export function writeSvgExport(
                   actor: t.eventStormingActor,
                 }).find(([role]) => role === node.architecture?.role)?.[1] ?? t.nodeBackground)
               : t.nodeBackground;
+        const meaning =
+          node.architecture?.family === 'event-storming' ? node.architecture : undefined;
+        const workshopAccent =
+          meaning?.role === 'external-system'
+            ? t.eventStormingExternalSystem
+            : meaning?.role === 'lane'
+              ? t.eventStormingLane
+              : meaning?.role === 'hotspot'
+                ? meaning.status === 'open'
+                  ? t.eventStormingHotspotOpen
+                  : t.eventStormingHotspotResolved
+                : undefined;
+        const border = workshopAccent ?? t.nodeBorder;
+        const dashed = meaning?.role === 'external-system' || meaning?.role === 'lane';
         const labels = lines(node);
         const content = outline.contentBounds;
-        artwork = `<g transform="translate(${point(node.position)})"><path d="${path(outline.outlinePath)}" fill="${xml(fill)}" stroke="${xml(t.nodeBorder)}" stroke-width="1.5"/>${outline.decorationPaths.map((d) => `<path d="${path(d)}" fill="none" stroke="${xml(t.nodeBorder)}"/>`).join('')}${labels.map((label, index) => render({ type: 'text', position: { x: content.x + 12, y: content.y + plan.font.size + 10 + index * plan.font.size * 1.25 }, text: label, fill: t.nodeColor, size: plan.font.size, weight: index === 0 ? Math.max(600, plan.font.weight) : plan.font.weight })).join('')}</g>`;
+        artwork = `<g transform="translate(${point(node.position)})"><path d="${path(outline.outlinePath)}" fill="${xml(fill)}" stroke="${xml(border)}" stroke-width="${workshopAccent ? 2 : 1.5}"${dashed ? ' stroke-dasharray="6 4"' : ''}/>${outline.decorationPaths.map((d) => `<path d="${path(d)}" fill="none" stroke="${xml(t.nodeBorder)}"/>`).join('')}${labels.map((label, index) => render({ type: 'text', position: { x: content.x + 12, y: content.y + plan.font.size + 10 + index * plan.font.size * 1.25 }, text: label, fill: meaning?.role === 'hotspot' && index === 2 ? border : t.nodeColor, size: plan.font.size, weight: index === 0 ? Math.max(600, plan.font.weight) : plan.font.weight })).join('')}</g>`;
         for (const port of node.ports) {
           const at = portPosition(node, port.id);
           artwork += `<g data-zloz-export-port="${xml(port.id)}">${render({ type: 'circle', center: at, radius: 4, fill: port.kind === 'input' ? t.inputPort : t.outputPort, stroke: t.portBorder, strokeWidth: 1 })}${render({ type: 'text', position: { x: at.x + (port.kind === 'input' ? -9 : 9), y: at.y - 7 }, anchor: port.kind === 'input' ? 'end' : 'start', text: port.label ?? port.id, fill: t.nodeColor, size: plan.font.size, weight: plan.font.weight })}</g>`;

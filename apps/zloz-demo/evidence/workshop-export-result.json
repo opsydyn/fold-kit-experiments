@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "workbench": "loss consent, exact downloads, themes, status freshness and Undo",
+  "publicBrowser": [
+    {
+      "scheme": "light",
+      "width": 1120,
+      "height": 700,
+      "pixels": [1110, 1079, 420],
+      "pixelEquality": true,
+      "blobEquality": true
+    },
+    {
+      "scheme": "dark",
+      "width": 1120,
+      "height": 700,
+      "pixels": [1138, 1094, 420],
+      "pixelEquality": true,
+      "blobEquality": true
+    }
+  ],
+  "pageErrors": []
+}

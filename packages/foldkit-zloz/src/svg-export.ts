@@ -371,19 +371,6 @@ export function planSvgExport(
             reason: 'No portable renderer was declared for this item.',
           });
     items.push({ target, renderer: resolved });
-    if (resolved.type === 'built-in' && target.kind === 'node') {
-      const node = graph.nodes.find((n) => n.id === target.id);
-      if (
-        node?.architecture?.family === 'event-storming' &&
-        ['external-system', 'hotspot', 'lane'].includes(node.architecture.role)
-      )
-        add(
-          'renderer-unsupported',
-          'unsupported',
-          target,
-          'Workshop semantics are supported; this role has no qualified built-in SVG artwork yet. Declare a host SVG adapter or explicit generic fallback.',
-        );
-    }
     if (resolved.type === 'svg') {
       add(
         'renderer-unverified',

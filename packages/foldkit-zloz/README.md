@@ -5211,8 +5211,8 @@ New vocabulary does not authorize automatic DDD/C4 interpretation or Apply.
 `architectureNodePresets` includes headless entries (hotspot status open, lane group
 kind), not qualified artwork. `createArchitectureNode` validates supplied ports and
 kind; it never silently drops ports or changes kind to satisfy a preset. The optional native node/lane renderers now support these roles, as documented
-below. Their original headless-only artwork guard is superseded for FoldKit views. Built-in SVG planning blocks their unqualified artwork;
-explicit host SVG adapters or loss-declared generic fallback remain available.
+below. Their original headless-only artwork guard is superseded for FoldKit views. The portable workshop projection below now qualifies built-in SVG artwork.
+Explicit host SVG adapters or loss-declared custom-shell fallback remain available.
 Mermaid projection reports omitted semantics and preserves node/parent identity;
 portable packets retain the complete authored descriptors and chosen catalogue.
 
@@ -5313,8 +5313,30 @@ convention/protection toggles, native lane controls, readonly historical review,
 light/dark and diagnostics preferences in the left sidebar. Select **Open workshop
 semantics example**, then **Inspect**.
 
-This qualifies native FoldKit views and controls. Portable built-in SVG/PNG artwork
-remains separately gated; use explicit SVG adapters/fidelity fallback as before.
+This qualifies native FoldKit views and controls. The portable projection below
+separately qualifies built-in SVG/PNG artwork; custom views still need explicit
+SVG adapters/fidelity fallback.
 Mermaid loss handling, causal default catalogues and wire formats are unchanged.
 No publication or deployment. See [ADR 0082](../../docs/adr/0082-compose-workshop-renderers-and-controls.md)
 and [visual/test qualification](../../apps/zloz-demo/evidence/workshop.md).
+
+### Portable workshop artwork (unreleased)
+
+`writeSvgExport` includes canonical external-system dashed outlines and ports,
+labelled lane frames, and hotspot **Open question / Resolved** text and theme
+accents. Authored status is preserved in both light/dark projections; it does not
+follow diagnostics visibility or custom native badge text. Existing graph geometry,
+export bounds, fonts, safe text escaping and primitive/resource budgets apply.
+
+Custom workbench badges (Discuss · open / Agreed · resolved) remain declared
+fallbacks to this canonical text. Semantic edge notation retains its explicit
+loss finding. Review the findings and accept the exact artifact's losses before
+download; system-font wrapping/ink bounds remain unverified. This is portable model
+artwork, not arbitrary HTML capture or an equivalence claim for custom renderers.
+
+The optional `renderPngExport` browser entry consumes the same safe SVG projection;
+pass the reviewed `expectedSvg` to reject changed status/theme/artwork. PNG review
+adds rasterization loss and retains the existing pixel/byte budgets and cancellation.
+No separate workshop raster renderer is required. Canonical models and Undo remain
+unchanged. See [ADR 0083](../../docs/adr/0083-qualify-workshop-portable-artwork.md) and
+[local SVG/PNG evidence](../../apps/zloz-demo/evidence/workshop-export.md).

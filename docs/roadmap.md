@@ -913,6 +913,19 @@ controls. See [ADR 0082](adr/0082-compose-workshop-renderers-and-controls.md) an
 This closes the approved native presentation slice. Built-in portable SVG/PNG
 artwork remains gated; causal defaults, codecs, D1b/C/Q/R and publication are unchanged.
 
-**Recommended next:** qualify portable workshop SVG artwork and hotspot status
-fidelity through the existing export review boundary, then prove PNG uses that same
-qualified projection. Keep EventStorming-to-C4 conversion separately scoped.
+**Portable workshop artwork — implemented locally (2026-11-14), unreleased:**
+Built-in SVG now qualifies external-system outlines/ports, labelled lane frames and
+open/resolved hotspot text with light/dark theme accents. Authored geometry/status
+is preserved without changing graph, codecs or Undo. The original built-in
+unsupported-role guard is superseded for these projections. Custom UI badges and
+semantic edge notation still disclose fidelity loss and require explicit consent;
+font/ink/wrapping findings remain. PNG uses the reviewed SVG unchanged, qualified
+by actual Blob equality, independent RGBA comparison and local accent-pixel checks.
+Workbench evidence covers both themes, preview/download bytes, status/theme
+freshness and Undo. See [ADR 0083](adr/0083-qualify-workshop-portable-artwork.md) and
+[artifact/browser qualification](../apps/zloz-demo/evidence/workshop-export.md).
+This closes the portable workshop artwork slice, not D1b/C/Q/R or publication.
+
+**Recommended next:** define the headless EventStorming-to-C4 mapping preview:
+explicit system/container choices, source identity/provenance, ambiguities and loss
+reporting before any conversion or Apply. Do not infer runtime boundaries from lanes.

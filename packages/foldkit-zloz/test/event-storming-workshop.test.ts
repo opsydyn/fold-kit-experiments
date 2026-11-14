@@ -290,20 +290,16 @@ const svgOptions: ZlozSvgExportOptions = {
   font: { family: 'Inter', size: 14, weight: 400 },
   renderers: { nodes: 'built-in', edges: 'built-in' },
 };
-test('unqualified workshop artwork is explicit in SVG planning; generic fallback requires host loss declaration', () => {
+test('qualified workshop artwork is reviewable; custom shell fallback still requires host loss declaration', () => {
   const editor = createEditor(fixture()),
     plan = planSvgExport(editor, svgOptions);
-  expect(plan.type).toBe('blocked');
-  expect(
-    plan.findings
-      .filter((f) => f.code === 'renderer-unsupported')
-      .map((f) => (f.target.kind === 'node' ? f.target.id : f.target.kind)),
-  ).toEqual(['hotspot', 'lane', 'system']);
+  expect(plan.type).toBe('reviewable');
+  expect(plan.findings.filter((f) => f.code === 'renderer-unsupported')).toEqual([]);
   const overrides = ['lane', 'system', 'hotspot'].map((id) => ({
     target: { kind: 'node' as const, id },
     renderer: {
       type: 'fallback' as const,
-      reason: 'Generic outline; workshop artwork and hotspot status omitted',
+      reason: 'Custom workshop shell becomes canonical static artwork',
     },
   }));
   const fallback = planSvgExport(editor, {

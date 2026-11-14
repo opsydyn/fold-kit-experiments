@@ -438,6 +438,59 @@ The library still installs no listeners: the parent streams pointer events and
 keeps hover, brush and domain in its Model. The web app's `/explore` page links a
 million-point scatter to a latency histogram this way.
 
+## More marks and transforms (unreleased)
+
+The grammar covers the common data-science charts on x and y axes. Every chart
+demo in the web app's gallery that sits on axes is now a spec.
+
+```ts
+// A histogram from raw rows, one series per tier on shared bins.
+{ mark: 'rect', x: 'latency', fill: 'tier', inset: 1, transform: { type: 'bin', thresholds: 20 } }
+
+// A two-dimensional histogram; binned rows carry count for colour.
+{ mark: 'rect', x: 'latency', y: 'payload', fill: 'count', transform: { type: 'bin' } }
+
+// Stacked, diverging and grouped bars, and streamgraphs.
+{ mark: 'bar', x: 'month', y: 'units', fill: 'region', stack: 'zero' }
+{ mark: 'bar', x: 'month', y: 'units', fill: 'region', group: true }
+{ mark: 'area', x: 'date', y: 'downloads', fill: 'framework', stack: { offset: 'center' } }
+
+// Kernel density: a curve per series, or contour lines over a scatter.
+{ mark: 'density', x: 'salary', fill: 'level' }
+{ mark: 'density', x: 'x', y: 'y', bandwidth: 40, thresholds: 6 }
+
+// Symbols, merged with the colour legend when one field drives both.
+{ mark: 'dot', x: 'hp', y: 'mpg', fill: 'origin', symbol: 'origin' }
+```
+
+- **`rect`**:
+  - Spans `x1` to `x2` and `y1` to `y2` on continuous axes.
+  - A missing start begins at the baseline.
+  - `inset` leaves a gap between neighbours.
+- **`bin`**:
+  - Thresholds are a count or explicit breaks; `reduce` is `count` or
+    `proportion`.
+  - Binned rows name their fields plainly (`x1`, `x2`, `count`, `proportion`),
+    so titles and highlights can use them.
+- **`stack`** on bars and areas:
+  - Offsets are `zero`, `normalize`, `center` and `wiggle`; orders follow d3.
+  - `zero` stacks negative values down from zero, so Likert charts need
+    nothing more.
+  - `z` names the series when colour should encode something else.
+- **`group: true`** places a bar's series side by side within each band.
+- **`density`**:
+  - A one-dimensional curve per series, with `bandwidth` in data units.
+  - Two-dimensional contour lines computed in plot pixels, with `bandwidth` in
+    pixels.
+- **`symbol`** on dots maps a field onto the d3 symbol set, or takes a
+  constant such as `{ value: 'square' }`.
+- **`clip: true`** on a spec clips marks to the plot area, for zoomed domains.
+- **`axis: false`** on an axis blanks its labels and grid, for tile maps and
+  calendars.
+- **Constant marks**, such as `{ mark: 'rule', y: { value: 0 } }`, draw once.
+- **`highlightPoints(geometry, markIndex, data, highlight)`** restyles a dense
+  mark for a new highlight without recompiling, keeping its hover index valid.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

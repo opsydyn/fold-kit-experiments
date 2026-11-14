@@ -44,8 +44,8 @@ and colour schemes. The chart layer on top is thin:
 interactive; accessibility by default; typed, pure, testable geometry; and a planned
 JSON-serialisable spec that suits generated charts and other languages.
 
-**Release status:** 0.18.0 to 0.20.0 are complete on the `feat/viz-roadmap-scales`
-branch and not yet released.
+**Release status:** 0.18.0 to 0.21.0 are complete on the `feat/viz-roadmap-scales`
+branch and not yet released. 0.21.0 meets two of its three exit criteria; see below.
 
 ### 0.18.0 — Foundations (next release)
 
@@ -107,40 +107,54 @@ Met by the web app's `/explore` page. Measured in headless Chromium against the 
 server on 2026-11-13: compiling the dense scatter takes 173–200 ms, indexing it about
 40 ms, and a nearest query about 0.008 ms. Hover from pointer move to painted overlay
 has a median of 2–4 ms and a 95th percentile of 16 ms, at the edge of one frame;
-a production build should have more headroom. Moving the brush recompiles the
-scatter in about 680 ms, which is the next thing to make incremental.
+a production build should have more headroom. Moving the brush recompiled the
+scatter: 500–570 ms from pointer release to painted canvas. (An earlier figure of
+680 ms included a fixed wait in the measuring script.) 0.21.0 makes it incremental.
 
 ### 0.21.0 — Cartesian coverage
 
-Seven of the web app's chart demos ship from the library; about 40 chart modules
-still live in `apps/web/src/ui`, built on the library's primitives but not exported.
+At the start of this release, seven of the web app's chart demos shipped from the
+library; about 40 chart modules still lived in `apps/web/src/ui`, built on the library's primitives but not exported.
 This release moves every chart on x and y axes into the grammar.
 
-- [ ] Carried from 0.19.0: a symbol channel on dot marks, drawn with `shape/symbol`
+- [x] Carried from 0.19.0: a symbol channel on dot marks, drawn with `shape/symbol`
       and shown in the legend; and a `density` mark, a one-dimensional kernel density
-      drawn as an area or line, with a two-dimensional form drawn as contour bands
-      through `math/contour`.
-- [ ] Stacking and grouping: `stack` on bar and area marks, with zero, normalised,
+      drawn as an area and outline, with a two-dimensional form drawn as contour lines
+      computed in plot pixels.
+- [x] Stacking and grouping: `stack` on bar and area marks, with zero, normalised,
       diverging and wiggle offsets (the last for streamgraphs), and `group` on bar
       marks for side-by-side series, reusing `shape/stack` and the chart layer's
       grouped bars.
-- [ ] A `bin` transform: bars from raw rows by threshold count or explicit
-      thresholds, and rectangular or hexagonal cells from `math/bin2d`, so a
-      histogram needs no pre-binned data.
-- [ ] Highlight without recompiling: changing a mark's `highlight` restyles the
-      compiled geometry instead of rebuilding it, so the `/explore` brush falls from
-      about 680 ms to within one frame.
-- [ ] Promote the demos the grammar expresses today: area, bar, bubble, bullet,
+- [x] A `bin` transform on a new `rect` mark: histograms from raw rows by threshold
+      count or explicit thresholds, and two-dimensional rectangular histograms, so a
+      histogram needs no pre-binned data. Hexagonal binning stays in `chart/cells`:
+      hexagons tile only in pixel space, which the grammar reaches after scales.
+- [x] Highlight without recompiling: `highlightPoints` restyles a dense mark's
+      compiled geometry and keeps its hover index valid, and the canvas painter draws
+      tiny points as squares. The `/explore` brush fell from 500–570 ms to 84–107 ms,
+      not to one frame; see the exit criteria.
+- [x] Promote the demos the grammar expresses today: area, bar, bubble, bullet,
       bump, calendar heatmap, correlation matrix, curve comparison, diverging bar,
       heatmap, line, log scatter, scatter, threshold bar, tile-grid map, timeline,
       waterfall and zoomable line. The three cell demos close the 0.18.0 cell item.
-- [ ] Promote the demos that need the features above: diverging stacked bar,
+- [x] Promote the demos that need the features above: diverging stacked bar,
       streamgraph, histogram, histogram brush, symbol scatter and density contour.
 
 **Exit criteria:** those 24 demos are plot specs, rendered on the server, and their
 modules in `apps/web/src/ui` are removed. The interactive ones (histogram brush and
 zoomable line) keep their interaction through overlays and the 0.20.0 helpers, not
 bespoke modules. The `/explore` brush highlights within one frame.
+
+Two of three met. All 24 demos are specs, and 22 `ui` modules are removed;
+`histogram-chart` and `scatter-chart` stay because the linked-charts,
+request-diagnostics and comparison reference apps use them. Zoomable line and
+histogram brush are small apps over specs. Small additions the demos needed:
+`clip`, `axis: false`, and constant marks such as reference rules drawing once.
+
+Not met: the `/explore` brush takes 84–107 ms from pointer release to painted
+canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms is the
+canvas rasterising a million squares. One frame needs GPU drawing or a separate
+highlight layer, which moves to Later.
 
 ### 0.22.0 — Beyond Cartesian
 
@@ -165,6 +179,8 @@ phyllotaxis), and `apps/web/src/ui` holds no chart modules.
 
 ### Later — Reach
 
+- One-frame repainting of a million points: WebGL points, or a highlight layer
+  that repaints only the brushed points.
 - Arrow and DuckDB column input, and streaming appends.
 - SVG and PNG export, and themes beyond light and dark.
 - A Jupyter widget that renders the JSON spec.

@@ -138,6 +138,26 @@ The 24 demos above are plot specs rendered on the server; their `ui` modules are
 removed except the two kept for the reference apps; and brushing on `/explore`
 highlights the scatter within one frame.
 
+## Outcome, 2026-11-14
+
+- Implemented as designed, with these changes:
+  - Two-dimensional density draws contour lines (marching squares gives
+    segments, not closed bands).
+  - Bars and areas take `z` to name their series, so a Likert chart can split
+    neutral across zero while colouring by answer.
+- Additions the demos needed:
+  - `clip` on a spec, honoured by both renderers. It is off by default, so dots
+    on the edge of the domain are drawn whole.
+  - `axis: false` blanks an axis's labels and grid.
+  - A mark that reads no fields draws once, even when the plot has data.
+- Measured with headless Chromium against the dev server:
+  - The `/explore` brush takes 84–107 ms from pointer release to painted canvas,
+    down from 500–570 ms.
+  - Painting is 57–77 ms of that: the canvas rasterising a million squares.
+  - `highlightPoints` takes about 3.4 ms (bun).
+  - The one-frame criterion is not met; it needs GPU drawing or a highlight
+    layer.
+
 ## Out of scope
 
 Polar, geographic, network and tree charts (0.22.0); hexagonal binning in the

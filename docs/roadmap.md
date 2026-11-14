@@ -959,6 +959,24 @@ No conversion, Apply, loss-consent token, receipt, new public package API or npm
 publication is introduced. This closes the workbench review slice, not D1b conversion
 or broader C/Q/R qualification.
 
-**Recommended next:** define the headless C4 conversion-plan contract with explicit
-membership/containment decisions, complete source provenance and exact-plan loss
-consent before guarded Apply. Do not infer runtime ownership from workshop lanes.
+**D1b headless C4 conversion plan — implemented locally (2026-11-14), unreleased:**
+Core now builds blocked/reviewable/unchanged plans over the public preview, with no
+partial change list when intent remains unresolved. Each proposed node and every
+direct member of a reinterpreted lane require explicit root, retained organization
+or declared C4 containment. Group kind, local system→container→component hierarchy,
+combined parent cycles and existing graph invariants are checked. Root detachment
+preserves world geometry and discloses removed membership/parent settings; retained
+notes cannot silently become runtime children. Complete source/history/ancestry and
+explicit choices are frozen in provenance. Plan disclosures qualify membership
+meaning, constraints and original workshop/status/relationship losses. A fresh-source
+consent resolver binds affirmative acknowledgement to exact source, mappings,
+placements and findings; consent is not Apply permission. See
+[ADR 0086](adr/0086-plan-explicit-c4-conversion-and-containment.md) and
+[package qualification](../packages/foldkit-zloz/evidence/event-storming-c4-conversion-plan.md).
+No target graph, Apply, receipt, UI/CLI operation, new wire schema or npm publication
+is introduced. D1b conversion/Apply and broader C/Q/R gates remain open.
+
+**Recommended next:** compose the plan's placement decisions, source provenance,
+blockers and exact loss acknowledgement in the workbench before adding guarded
+atomic Apply. Keep current source/policy/lifecycle rechecks and provenance receipts
+as separate transaction requirements.

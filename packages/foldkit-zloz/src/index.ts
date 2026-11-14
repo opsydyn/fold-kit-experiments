@@ -663,3 +663,22 @@ export type {
   ZlozEventStormingC4Disclosure,
   ZlozEventStormingC4Preview,
 } from './event-storming-c4-preview';
+
+export {
+  createEventStormingC4ConversionPlan,
+  resolveEventStormingC4ConversionConsent,
+} from './event-storming-c4-conversion-plan';
+export type {
+  ZlozEventStormingC4Placement,
+  ZlozEventStormingC4MembershipChoice,
+  ZlozEventStormingC4ConversionOptions,
+  ZlozEventStormingC4MembershipState,
+  ZlozEventStormingC4MembershipCode,
+  ZlozEventStormingC4MembershipDecision,
+  ZlozEventStormingC4ConversionBlocker,
+  ZlozEventStormingC4ConversionDisclosure,
+  ZlozEventStormingC4ConversionChanges,
+  ZlozEventStormingC4ConversionPlan,
+  ZlozEventStormingC4LossConsent,
+  ZlozEventStormingC4ConversionConsentDecision,
+} from './event-storming-c4-conversion-plan';

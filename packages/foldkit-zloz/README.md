@@ -5410,3 +5410,104 @@ the host owns ephemeral form state. No package-level controls or CLI conversion
 are added here. See [ADR 0084](../../docs/adr/0084-preview-eventstorming-to-c4-mapping.md),
 [headless qualification](evidence/event-storming-c4-preview.md) and
 [workbench visual evidence](../../apps/zloz-demo/evidence/c4-mapping.md).
+
+### Headless C4 conversion plans and exact loss consent (unreleased)
+
+`createEventStormingC4ConversionPlan(source, options)` builds a complete advisory
+plan from the current model document and host session/revision. It reuses the C4
+mapping preview, but adds explicit placement decisions and exact-plan loss consent
+through `resolveEventStormingC4ConversionConsent`. Neither function edits a model,
+returns a target graph or authorizes Apply.
+
+```ts
+import {
+  createEventStormingWorkshopPattern,
+  createEventStormingC4ConversionPlan,
+  resolveEventStormingC4ConversionConsent,
+  type ZlozEventStormingC4ConversionOptions,
+} from '@opsydyn/foldkit-zloz';
+
+const graph = createEventStormingWorkshopPattern();
+const source = {
+  document: {
+    id: 'payment-workshop',
+    name: 'Payment workshop',
+    snapshot: { graph },
+    editions: [],
+    origin: null,
+  },
+  sessionId: 'workshop-tab:1',
+  revision: 0,
+};
+const options: ZlozEventStormingC4ConversionOptions = {
+  mappings: {
+    nodes: graph.nodes.map((node) =>
+      node.id === 'request'
+        ? {
+            nodeId: node.id,
+            architecture: { family: 'c4' as const, role: 'container' as const },
+            label: 'Payments API',
+          }
+        : { nodeId: node.id, architecture: null },
+    ),
+    edges: graph.edges.map((edge) => ({ edgeId: edge.id, relationship: null })),
+  },
+  memberships: [{ nodeId: 'request', placement: { type: 'organization' } }],
+};
+const plan = createEventStormingC4ConversionPlan(source, options);
+const review = resolveEventStormingC4ConversionConsent(source, options, null);
+// review is consent-required: the host has not recorded acknowledgement.
+```
+
+Every proposed C4 node requires placement. Reinterpreting a lane also requires
+placement of **all direct members**, including retained notes and existing C4/DDD
+nodes. Unrelated nodes cannot be rearranged through conversion options. Placement
+choices are deliberately distinct:
+
+- `{ type: 'root' }` explicitly detaches a diagram parent, preserving world
+  coordinates and removing authored parent-dependent `extent`/`expandParent`
+  fields. Root does not establish real-world ownership or invent an unseen owner.
+- `{ type: 'organization' }` preserves exact existing membership under a retained
+  non-C4 frame. It makes no C4 ownership claim and requires an existing parent.
+- `{ type: 'contained', parentId }` explicitly declares a C4 container inside a
+  software-system group, or a component inside a container group. Both elements
+  need proposed/authored C4 meaning and the parent must already be a group.
+
+These local role/kind rules follow the [C4 abstraction hierarchy](https://c4model.com/abstractions).
+A newly interpreted C4 boundary cannot silently retain organizational members;
+retained notes must be detached or explicitly given compatible C4 meaning.
+Cycles are checked against the combined parent choices. No group promotion,
+implicit reparenting, position translation, frame resizing or element merging occurs.
+This validates declared local containment, not full architecture correctness,
+ownership outside the diagram, protocols, visual enclosure or pixel layout.
+
+Plans are `blocked`, `reviewable` or `unchanged`. Blocked plans include node,
+relationship and membership findings, with **no partial `changes` list**.
+Reviewable changes contain same-ID node/communication replacements and reviewed
+membership edits/declarations. All-retained or empty plans are unchanged and need
+no loss consent. Complete source camera, editions, ancestry, IDs, ports, direction,
+geometry, appearance, host data and original descriptors remain in frozen provenance.
+The private projection is validated against existing graph invariants before a
+complete change list is returned.
+
+Use `plan.disclosures` for the complete plan's losses. They retain workshop/status/
+label/description and reserved relationship findings, and replace the raw preview's
+generic membership warning with decision-specific parent, constraint and containment
+findings. `plan.preview` remains the original advisory projection. Original absence
+of a setting is represented by null in membership review data; authored false is
+preserved distinctly. No new canonical node/edge descriptor or wire format is added.
+
+Only after the host records affirmative acknowledgement of every listed loss may it
+construct `{ planKey: plan.key, accepted: true }`. Pass that consent to the resolver
+with the **current source and options**. The resolver rebuilds the plan; changes to
+model/session/revision, graph/data, camera, editions, ancestry, mappings or placements
+invalidate old consent. Null withdraws it. The exact-content key contains source
+data; it is not a credential/hash, must not be logged or put in the DOM, and is not
+proof of a human reviewer or permission to edit.
+
+Consented still does not authorize Apply. A later transaction must independently
+check live source/session/revision, lifecycle, policies, containment, exact loss
+consent and atomic Undo, then retain provenance. No Apply, receipt, CLI operation,
+workbench plan controls, publication or deployment is added here. See
+[ADR 0086](../../docs/adr/0086-plan-explicit-c4-conversion-and-containment.md) and
+[local qualification](evidence/event-storming-c4-conversion-plan.md).

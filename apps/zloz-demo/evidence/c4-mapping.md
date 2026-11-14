@@ -93,3 +93,8 @@ tokens and compact panel rules corrected them before the final captures.
 
 Recommendation: **needs review**. This completes the approved workbench review
 slice, not D1b conversion, C/Q/R closure, release or deployment.
+
+Headless-plan follow-up: [ADR 0086](../../../docs/adr/0086-plan-explicit-c4-conversion-and-containment.md)
+and [package qualification](../../../packages/foldkit-zloz/evidence/event-storming-c4-conversion-plan.md)
+now cover explicit placement and exact-plan consent. The workbench controls in this
+historical receipt remain preview-only; plan/acknowledgement UI and Apply are separate.

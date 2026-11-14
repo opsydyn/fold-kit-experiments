@@ -5,8 +5,10 @@ import { c4PlanReviewPanel } from './c4-plan-review-view';
 import { c4RetainedConversions } from './c4-retained-conversions-view';
 import { Message } from './message';
 import type { Model } from './model';
+import { receiptReviewPanel } from './receipt-review';
 
 export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
+  if (model.receiptReview) return receiptReviewPanel(model, h);
   const context = workbenchC4MappingReview(model),
     selected = context.selected;
   const document = context.preview.provenance.document;
@@ -267,6 +269,7 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
         : [h.p([], ['Open a workshop example from Diagram to review its C4 interpretations.'])]),
       c4PlanReviewPanel(model, h, context),
       c4RetainedConversions(model, h),
+      receiptReviewPanel(model, h),
       h.h3([], ['Unresolved C4 mappings']),
       h.ul(
         [h.AriaLabel('Unresolved C4 mappings')],

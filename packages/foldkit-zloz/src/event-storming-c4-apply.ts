@@ -1,6 +1,8 @@
+import { isNodeArchitecture } from './architecture';
 import { commitGraph } from './editor';
 import {
   resolveEventStormingC4ConversionConsent,
+  createEventStormingC4ConversionPlan,
   type ZlozEventStormingC4ConversionPlan,
   type ZlozEventStormingC4ConversionOptions,
   type ZlozEventStormingC4LossConsent,
@@ -9,11 +11,11 @@ import type { ZlozEventStormingC4Source } from './event-storming-c4-preview';
 import { projectEventStormingC4Graph } from './event-storming-c4-projection';
 import { ZlozError } from './graph';
 import { historyValueEqual } from './history';
-import { captureModelDocument, type ZlozModelDocument } from './model-document';
+import { captureModelDocument, parseModelDocument, type ZlozModelDocument } from './model-document';
 import type { EditorPolicy, EditorState, ZlozNode, ZlozEdge, ZlozGraph } from './types';
 
 type ReviewablePlan = Extract<ZlozEventStormingC4ConversionPlan, { type: 'reviewable' }>;
-/** In-memory unsigned conversion record (no portable decoder in this contract). Source provenance is separate from edition-fork ancestry. */
+/** Unsigned portable v1 conversion receipt. Source provenance is separate from edition-fork ancestry. */
 export type ZlozEventStormingC4Conversion = Readonly<{
   format: 'foldkit-zloz-c4-conversion';
   version: 1;
@@ -172,4 +174,168 @@ export function applyEventStormingC4Conversion(
   }
   const conversion = receipt(plan, target);
   return { type: 'applied', editor: commitGraph(editor, target.snapshot.graph), conversion };
+}
+
+// Data-only boundary. Structural guards establish types; the plan validates domain intent.
+type ReceiptFields = Readonly<{
+  format?: unknown;
+  version?: unknown;
+  source?: unknown;
+  options?: unknown;
+  lossesAccepted?: unknown;
+  document?: unknown;
+  sessionId?: unknown;
+  revision?: unknown;
+  mappings?: unknown;
+  memberships?: unknown;
+  nodes?: unknown;
+  edges?: unknown;
+  nodeId?: unknown;
+  edgeId?: unknown;
+  architecture?: unknown;
+  label?: unknown;
+  relationship?: unknown;
+  placement?: unknown;
+  type?: unknown;
+  parentId?: unknown;
+}>;
+function receiptRecord(value: unknown): value is ReceiptFields {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+  );
+}
+function receiptFields(value: ReceiptFields, names: readonly string[]): boolean {
+  return Object.keys(value).every((key) => names.includes(key));
+}
+function receiptText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+function receiptRevision(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+function nodeChoice(
+  value: unknown,
+): value is NonNullable<
+  NonNullable<ZlozEventStormingC4ConversionOptions['mappings']>['nodes']
+>[number] {
+  return (
+    receiptRecord(value) &&
+    receiptFields(value, ['nodeId', 'architecture', 'label']) &&
+    receiptText(value.nodeId) &&
+    (value.architecture === null ||
+      (isNodeArchitecture(value.architecture) && value.architecture.family === 'c4')) &&
+    (value.label === undefined || receiptText(value.label))
+  );
+}
+function edgeChoice(
+  value: unknown,
+): value is NonNullable<
+  NonNullable<ZlozEventStormingC4ConversionOptions['mappings']>['edges']
+>[number] {
+  return (
+    receiptRecord(value) &&
+    receiptFields(value, ['edgeId', 'relationship']) &&
+    receiptText(value.edgeId) &&
+    (value.relationship === null ||
+      (receiptRecord(value.relationship) &&
+        receiptFields(value.relationship, ['label']) &&
+        receiptText(value.relationship.label)))
+  );
+}
+function memberChoice(
+  value: unknown,
+): value is NonNullable<ZlozEventStormingC4ConversionOptions['memberships']>[number] {
+  if (
+    !receiptRecord(value) ||
+    !receiptFields(value, ['nodeId', 'placement']) ||
+    !receiptText(value.nodeId) ||
+    !receiptRecord(value.placement)
+  )
+    return false;
+  const placement = value.placement;
+  return placement.type === 'contained'
+    ? receiptFields(placement, ['type', 'parentId']) && receiptText(placement.parentId)
+    : (placement.type === 'root' || placement.type === 'organization') &&
+        receiptFields(placement, ['type']);
+}
+function receiptOptions(value: unknown): value is ZlozEventStormingC4ConversionOptions {
+  if (!receiptRecord(value) || !receiptFields(value, ['mappings', 'memberships'])) return false;
+  const mappings = value.mappings;
+  return (
+    (mappings === undefined ||
+      (receiptRecord(mappings) &&
+        receiptFields(mappings, ['nodes', 'edges']) &&
+        (mappings.nodes === undefined ||
+          (Array.isArray(mappings.nodes) && mappings.nodes.every(nodeChoice))) &&
+        (mappings.edges === undefined ||
+          (Array.isArray(mappings.edges) && mappings.edges.every(edgeChoice))))) &&
+    (value.memberships === undefined ||
+      (Array.isArray(value.memberships) && value.memberships.every(memberChoice)))
+  );
+}
+function invalidReceipt(): never {
+  throw new ZlozError('invalid-graph', 'Invalid or unsupported C4 conversion receipt.');
+}
+function receiptDocument(value: ReceiptFields): ZlozModelDocument {
+  return parseModelDocument(
+    JSON.stringify({ format: 'foldkit-zloz-model', version: 1, document: value }),
+  );
+}
+function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
+  if (
+    !receiptRecord(value) ||
+    !receiptFields(value, [
+      'format',
+      'version',
+      'source',
+      'options',
+      'lossesAccepted',
+      'document',
+    ]) ||
+    value.format !== 'foldkit-zloz-c4-conversion' ||
+    value.version !== 1 ||
+    value.lossesAccepted !== true ||
+    !receiptRecord(value.source) ||
+    !receiptFields(value.source, ['document', 'sessionId', 'revision']) ||
+    !receiptText(value.source.sessionId) ||
+    !receiptRevision(value.source.revision) ||
+    !receiptOptions(value.options) ||
+    !receiptRecord(value.source.document) ||
+    !receiptRecord(value.document)
+  )
+    return invalidReceipt();
+  const plan = createEventStormingC4ConversionPlan(
+    {
+      document: receiptDocument(value.source.document),
+      sessionId: value.source.sessionId,
+      revision: value.source.revision,
+    },
+    value.options,
+  );
+  if (plan.type !== 'reviewable' || plan.provenance.document.snapshot.viewport === undefined)
+    return invalidReceipt();
+  const target = convertedDocument(plan);
+  if (!historyValueEqual(receiptDocument(value.document), target)) return invalidReceipt();
+  return receipt(plan, target);
+}
+/** Validate before exporting the entire record; model-only JSON omits conversion receipts. */
+export function serializeEventStormingC4Conversion(
+  conversion: ZlozEventStormingC4Conversion,
+): string {
+  if (!receiptRecord(conversion)) return invalidReceipt();
+  return JSON.stringify(captureReceipt(conversion));
+}
+/** Strict v1 data boundary. Validates consistency, not authorship, current consent or Apply authority. */
+export function parseEventStormingC4Conversion(json: string): ZlozEventStormingC4Conversion {
+  let value: unknown;
+  // oxlint-disable-next-line linteffect/no-try-catch -- Dependency-free receipt JSON boundary translates native syntax errors.
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return invalidReceipt();
+  }
+  if (!receiptRecord(value)) return invalidReceipt();
+  return captureReceipt(value);
 }

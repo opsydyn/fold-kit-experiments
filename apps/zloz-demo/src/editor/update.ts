@@ -63,6 +63,7 @@ import {
   updateC4PlanAcknowledgement,
   applyWorkbenchC4Conversion,
 } from './c4-mapping-review';
+import { downloadC4Receipt, c4ReceiptDownloadFeedback } from './c4-receipts';
 import {
   ArrangeFlow,
   ExportZlozEditions,
@@ -831,6 +832,13 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedC4PlacementClear: (request) => ({
       model: updateC4Placement(model, { ...request, type: 'Cleared' }),
+    }),
+    ClickedC4ReceiptDownload: (request) => downloadC4Receipt(model, request),
+    CompletedC4ReceiptDownload: (request) => ({
+      model: c4ReceiptDownloadFeedback(model, request, true),
+    }),
+    FailedC4ReceiptDownload: (request) => ({
+      model: c4ReceiptDownloadFeedback(model, request, false),
     }),
     ClickedC4ConversionApply: (request) => ({ model: applyWorkbenchC4Conversion(model, request) }),
     ClickedC4ApplyProtection: () => ({

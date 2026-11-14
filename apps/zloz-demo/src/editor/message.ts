@@ -65,6 +65,13 @@ export const Message = defineMessageUnion({
     editionId: Schema.String,
     nodeId: Schema.String,
   },
+  ClickedC4ReceiptDownload: { modelId: Schema.String, epoch: Schema.Number, index: Schema.Number },
+  CompletedC4ReceiptDownload: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    index: Schema.Number,
+  },
+  FailedC4ReceiptDownload: { modelId: Schema.String, epoch: Schema.Number, index: Schema.Number },
   ClickedC4ConversionApply: {
     modelId: Schema.String,
     epoch: Schema.Number,

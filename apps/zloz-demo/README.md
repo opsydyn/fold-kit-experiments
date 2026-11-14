@@ -716,7 +716,20 @@ change the policy before acknowledging again.
 
 **Retained C4 conversions** shows original and target meaning plus reviewed
 placement. Records survive Undo/Redo and model/example changes within this tab.
-They remain separate from DDD's downloadable receipts: C4 records currently have
-no download/reopening support, and reloading loses them. Model JSON exports the
-current document, without the record collection. See
+Choose **Download C4 receipt** to preserve a validated `foldkit-zloz.c4-conversion-*.json`
+file across reloads. **Open conversion receipt** accepts C4 or DDD v1 JSON (one UTF-8
+file, at most 5 MiB). C4 opens in this sidebar with a detached read-only canvas,
+recorded losses, Before/After, change navigation and overview. Invalid files preserve
+the last valid comparison and the working editor. Close comparison to return to the
+exact working editor and Undo history; importing never applies, retains a new
+conversion record or grants current loss consent.
+
+Downloads above the 5 MiB reopening limit are refused with visible feedback, leaving
+the retained record available. Receipts validate source/choices/target consistency,
+not authorship. Records remain
+in memory for retry if download fails. Reloading loses the tab-local collection;
+model JSON exports the current document without it. See
 [production browser evidence and light/dark captures](evidence/c4-apply.md).
+
+See [C4 portable receipt qualification](evidence/c4-receipt.md) for strict literal
+wire tests, validation/rejection cases, read-only navigation and light/dark evidence.

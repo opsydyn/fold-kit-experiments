@@ -5553,5 +5553,20 @@ host identity or human review.
 `canApplyEventStormingC4Conversion`. Granular hooks receive current and full proposed
 values plus the current graph. Membership policy also checks explicit containment
 when the parent ID stays unchanged. All policy inputs are detached and frozen.
-The conversion record currently has no portable decoder or workbench download API.
+`serializeEventStormingC4Conversion(record)` validates and exports the complete
+receipt. `parseEventStormingC4Conversion(json)` strictly decodes the independent
+`foldkit-zloz-c4-conversion` v1 envelope. Both rebuild the recorded source/options
+plan, require a source camera and reviewable changes, and require the complete target
+document to equal the shared conversion projection. Unknown envelope/options fields,
+unsupported versions, invalid choices, unresolved containment and target changes are
+rejected. Existing graph/model/edition codecs are unchanged.
+
+Decoded receipts are detached and frozen. They retain source session/revision, full
+before/after documents, reviewed choices and historical loss acceptance. They validate
+consistency, not authorship or human review. A self-consistent unsigned receipt is
+not an authenticated record. Parsing never calls Apply or grants current consent.
+Malformed input throws the core validation error; there is no I/O or host-size policy
+inside these pure functions. File hosts should bound bytes before fatal UTF-8 decoding.
+The workbench uses a single-file 5 MiB limit, validated download and detached read-only
+before/after reopening. See [ADR 0090](../../docs/adr/0090-validate-portable-c4-conversion-receipts.md).
 See [ADR 0088](../../docs/adr/0088-apply-c4-conversion-atomically.md).

@@ -1,7 +1,7 @@
 import type { ZlozEventStormingC4Placement, ZlozGraph } from '@opsydyn/foldkit-zloz';
 import type { HtmlBuilder } from 'foldkit/html';
 
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 function placementLabel(placement: ZlozEventStormingC4Placement, graph: ZlozGraph): string {
@@ -19,7 +19,7 @@ export function c4RetainedConversions(model: Model, h: HtmlBuilder<Message>) {
       h.p(
         [],
         [
-          'Records stay in this tab through Undo and model changes. Download and reopening are not available yet.',
+          'Records stay in this tab through Undo and model changes. Download a validated receipt to keep it after reload; reopen it below for read-only comparison.',
         ],
       ),
       ...(model.c4Conversions.length === 0
@@ -31,6 +31,19 @@ export function c4RetainedConversions(model: Model, h: HtmlBuilder<Message>) {
               [h.Key(`c4-conversion:${index}`)],
               [
                 h.summary([], [`${before.name} · C4 conversion ${index + 1}`]),
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.OnClick(
+                      Message.ClickedC4ReceiptDownload({
+                        modelId: model.modelIdentity.id,
+                        epoch: model.modelEpoch,
+                        index,
+                      }),
+                    ),
+                  ],
+                  [`Download C4 receipt ${index + 1}`],
+                ),
                 h.p(
                   [],
                   [

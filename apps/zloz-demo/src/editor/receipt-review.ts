@@ -8,6 +8,9 @@ import {
   compareEditions,
   createModelEditor,
   createEventStormingDddConversionPlan,
+  createEventStormingC4ConversionPlan,
+  parseEventStormingC4Conversion,
+  type ZlozEventStormingC4Conversion,
   type ZlozNode,
   type ZlozHistoryChangeItem,
   type ZlozEdge,
@@ -39,12 +42,12 @@ import { workbenchThemes } from './theme';
 
 export type ReceiptReview = Readonly<{
   id: number;
-  receipt: ZlozEventStormingDddConversion;
+  receipt: ZlozEventStormingDddConversion | ZlozEventStormingC4Conversion;
   side: 'before' | 'after';
   focusedChange: ZlozHistoryChangeCursor | null;
   editor: EditorState;
 }>;
-function preview(receipt: ZlozEventStormingDddConversion, side: ReceiptReview['side']) {
+function preview(receipt: ReceiptReview['receipt'], side: ReceiptReview['side']) {
   const document = side === 'before' ? receipt.source.document : receipt.document;
   const zoom = document.snapshot.viewport?.zoom ?? 1;
   return createModelEditor(document, {
@@ -161,6 +164,8 @@ const allowed = new Set<string>([
   'ClickedDiagnosticsEnabled',
   'ClickedDiagnostic',
   'CompletedConversionReceiptDownload',
+  'CompletedC4ReceiptDownload',
+  'FailedC4ReceiptDownload',
   'CompletedSvgDownload',
   'FailedSvgDownload',
   'FailedConversionReceiptDownload',
@@ -170,6 +175,7 @@ export function receiptAllowsMessage(message: Message) {
     allowed.has(message._tag) &&
     (message._tag !== 'SelectedWorkbenchSection' ||
       message.section === 'mapping' ||
+      message.section === 'c4mapping' ||
       message.section === 'diagnostics')
   );
 }
@@ -256,7 +262,12 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
               'Finish active edits, then reopen the receipt. The working model is unchanged.',
           },
         };
-      const decoded = Option.liftThrowable(parseEventStormingDddConversion)(input.json);
+      const ddd: Option.Option<ReceiptReview['receipt']> = Option.liftThrowable(
+        parseEventStormingDddConversion,
+      )(input.json);
+      const decoded = Option.orElse(ddd, () =>
+        Option.liftThrowable(parseEventStormingC4Conversion)(input.json),
+      );
       if (Option.isNone(decoded))
         return { model: { ...model, receiptRead: null, receiptReviewNotice: failure } };
       const receipt = decoded.value;
@@ -271,7 +282,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
             focusedChange: null,
             editor: preview(receipt, 'after'),
           },
-          sidebarSection: 'mapping',
+          sidebarSection: receipt.format === 'foldkit-zloz-c4-conversion' ? 'c4mapping' : 'mapping',
           sidebarCollapsed: false,
           notice: 'Read-only receipt comparison. Working model preserved.',
           receiptReviewNotice: 'Receipt opened for read-only comparison. Working model preserved.',
@@ -293,7 +304,11 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
     Match.tag('SelectedReceiptSide', (input): Return<Model, Message> => {
       const review = model.receiptReview;
       if (!review || review.id !== input.id || review.side === input.side) return { model };
-      if (model.sidebarSection !== 'mapping' || model.sidebarCollapsed) return { model };
+      if (
+        (model.sidebarSection !== 'mapping' && model.sidebarSection !== 'c4mapping') ||
+        model.sidebarCollapsed
+      )
+        return { model };
       const reason = sideAvailability(model);
       if (reason) return { model: { ...model, receiptReviewNotice: reason } };
       if (review.focusedChange) {
@@ -328,7 +343,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
         !review ||
         review.id !== input.id ||
         review.side !== input.side ||
-        model.sidebarSection !== 'mapping' ||
+        (model.sidebarSection !== 'mapping' && model.sidebarSection !== 'c4mapping') ||
         model.sidebarCollapsed
       )
         return { model };
@@ -351,7 +366,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
       if (
         !review ||
         review.id !== input.reviewId ||
-        model.sidebarSection !== 'mapping' ||
+        (model.sidebarSection !== 'mapping' && model.sidebarSection !== 'c4mapping') ||
         model.sidebarCollapsed
       )
         return { model };
@@ -369,7 +384,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
         review.id !== input.reviewId ||
         review.side !== input.side ||
         !sameCursor(input.from, review.focusedChange) ||
-        model.sidebarSection !== 'mapping' ||
+        (model.sidebarSection !== 'mapping' && model.sidebarSection !== 'c4mapping') ||
         model.sidebarCollapsed
       )
         return { model };
@@ -435,13 +450,28 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     after: receiptChangeNavigation(model, 'after'),
   };
   const losses = review
-    ? createEventStormingDddConversionPlan(review.receipt.source, review.receipt.mappings).preview
-        .disclosures
+    ? review.receipt.format === 'foldkit-zloz-c4-conversion'
+      ? createEventStormingC4ConversionPlan(review.receipt.source, review.receipt.options)
+          .disclosures
+      : createEventStormingDddConversionPlan(review.receipt.source, review.receipt.mappings).preview
+          .disclosures
     : [];
   return h.section(
     [h.AriaLabel('Portable receipt comparison'), h.Class('receipt-review')],
     [
       h.h3([], ['Reopen a conversion receipt']),
+      ...(review
+        ? [
+            h.p(
+              [h.Role('status'), h.AriaLabel('Receipt model type')],
+              [
+                review.receipt.format === 'foldkit-zloz-c4-conversion'
+                  ? 'C4 conversion receipt · read-only'
+                  : 'DDD conversion receipt · read-only',
+              ],
+            ),
+          ]
+        : []),
       h.label(
         [h.Class('workbench-field')],
         [

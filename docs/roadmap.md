@@ -1022,7 +1022,23 @@ source/target graphs with one Undo/Redo. See
 No C4 receipt download/import, new wire format, npm publishing or deployment.
 D1b portable review and broader C/Q/R gates remain open.
 
-**Recommended next:** define strict versioned portable C4 conversion receipts,
-validating source provenance, explicit choices, loss acceptance and exact target
-projection before workbench download/reopening. Imported records must remain
-read-only evidence and never become Apply authority.
+**D1b portable C4 conversion receipts — implemented locally (2026-11-14), unreleased:**
+The public core serializer/parser qualify the existing C4 v1 record as a strict
+portable receipt. Both rebuild source/options and require exact complete target
+projection, including camera, authored graph data, editions and ancestry. Unsupported
+versions, unknown reserved fields, unresolved/invalid choices, non-reviewable plans
+and target alterations are rejected. Decoding yields frozen data without Apply or
+current consent. Receipts are unsigned consistency evidence, not authenticated history.
+
+The workbench validates retained records before creating download Commands, retains
+them on failure for retry, and reuses the bounded 5 MiB fatal-UTF-8 reader and detached
+comparison for C4 and DDD. C4 has recorded placement/loss findings, before/after,
+change navigation, overview and light/dark/Minimal-mode support. Invalid or stale reads
+preserve the previous comparison and exact working editor/Undo; closing restores it.
+See [ADR 0090](adr/0090-validate-portable-c4-conversion-receipts.md) and
+[qualification](../apps/zloz-demo/evidence/c4-receipt.md). No npm publishing or deployment.
+Broader domain/agent workflow and C/Q/R completion gates remain evidence-scoped.
+
+**Recommended next:** expose read-only C4 receipt inspection through the Effect CLI,
+with structured JSON provenance, recorded changes/losses and explicit validation or
+incompatibility exits. Keep imported receipt data separate from Apply authority.

@@ -292,6 +292,31 @@ export const DownloadConversionReceipt = Command.define('DownloadConversionRecei
     ),
 });
 
+export const DownloadC4Receipt = Command.define('DownloadC4Receipt', {
+  args: {
+    json: Schema.String,
+    index: Schema.Number,
+    modelId: Schema.String,
+    epoch: Schema.Number,
+  },
+  messages: [Message.CompletedC4ReceiptDownload, Message.FailedC4ReceiptDownload],
+  execute: ({ json, index, modelId, epoch }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `foldkit-zloz.c4-conversion-${index + 1}.json`,
+      });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedC4ReceiptDownload({ modelId, epoch, index }),
+        onFailure: () => Message.FailedC4ReceiptDownload({ modelId, epoch, index }),
+      }),
+    ),
+});
+
 export const ReadConversionReceipt = Command.define('ReadConversionReceipt', {
   args: { id: Schema.Number, file: Schema.instanceOf(File) },
   messages: [Message.SucceededConversionReceiptRead, Message.FailedConversionReceiptRead],

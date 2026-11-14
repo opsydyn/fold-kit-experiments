@@ -1,5 +1,5 @@
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
-import { compilePlot } from '@opsydyn/foldkit-viz/plot';
+import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
@@ -23,6 +23,8 @@ export type SpecMessage = typeof SpecMessage.Type;
 
 export const specApp = (spec: PlotSpec) => {
   const geometry = compilePlot(spec);
+  // Every pre-rendered chart describes itself and carries its data as a hidden table.
+  const table = plotTable(spec);
   return {
     Model: SpecModel,
     Message: SpecMessage,
@@ -30,7 +32,7 @@ export const specApp = (spec: PlotSpec) => {
     update: (model: SpecModel): Return<SpecModel, SpecMessage> => ({ model }),
     view: (_model: SpecModel, h: HtmlBuilder<SpecMessage>): Document => ({
       title: spec.title ?? 'Chart',
-      body: plotChart(h, geometry),
+      body: plotChart(h, geometry, { summary: true, table }),
     }),
   };
 };

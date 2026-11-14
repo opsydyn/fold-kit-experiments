@@ -3,7 +3,7 @@ import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
 import type { PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
 import { targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import type { ChartCommand } from '@opsydyn/foldkit-viz/interaction/keyboard';
-import { compilePlot, invertAxis, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { compilePlot, invertAxis, plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import type {
   Channel,
   Graphic,
@@ -22,7 +22,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { withOutMessage } from 'foldkit/update';
 import type { Return as UpdateReturn, ReturnWithOutMessage } from 'foldkit/update';
 
-import { withAccessibleTable, withAriaLive } from '../shared';
+import { withAriaLive } from '../shared';
 
 /**
  * An interactive chart child over any plot spec. One mark is the target of the
@@ -486,40 +486,38 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
     t.isBar ? Option.none() : Option.some({ x: t.cx, y: t.cy, r: 7 }),
   );
   const brush = Option.map(model.band, ([x0, x1]) => ({ x0, x1 }));
-  const chart = plotChart(h, geometry, { overlay: overlayOf(ring, brush) });
+  const chart = plotChart(h, geometry, {
+    overlay: overlayOf(ring, brush),
+    summary: true,
+    table: plotTable(model.spec),
+  });
   const liveText = Option.match(active, { onNone: () => '', onSome: (t) => t.title });
   const handleKeyDown = chartKeyDown((command) =>
     toParentMessage(Message.PressedKeyNav({ command })),
   );
-  return withAccessibleTable(
-    h,
-    h.div(
-      [
-        h.Class('plot-panel'),
-        h.Role('application'),
-        h.AriaLabel(ariaLabel),
-        h.Attribute('aria-roledescription', 'interactive chart'),
-        h.Tabindex(0),
-        h.OnKeyDownPreventDefault(handleKeyDown),
-        h.Style({ cursor: model.brush ? 'crosshair' : 'pointer', 'touch-action': 'none' }),
-        h.OnMount(
-          Mount.mapMessage(
-            ForwardPointer({ width: geometry.width, height: geometry.height }),
-            toParentMessage,
-          ),
+  return h.div(
+    [
+      h.Class('plot-panel'),
+      h.Role('application'),
+      h.AriaLabel(ariaLabel),
+      h.Attribute('aria-roledescription', 'interactive chart'),
+      h.Tabindex(0),
+      h.OnKeyDownPreventDefault(handleKeyDown),
+      h.Style({ cursor: model.brush ? 'crosshair' : 'pointer', 'touch-action': 'none' }),
+      h.OnMount(
+        Mount.mapMessage(
+          ForwardPointer({ width: geometry.width, height: geometry.height }),
+          toParentMessage,
         ),
-        panel.OnPlotPanelPointer(({ x, y, pressed }) =>
-          toParentMessage(
-            pressed ? Message.PressedPointer({ x, y }) : Message.MovedPointer({ x, y }),
-          ),
+      ),
+      panel.OnPlotPanelPointer(({ x, y, pressed }) =>
+        toParentMessage(
+          pressed ? Message.PressedPointer({ x, y }) : Message.MovedPointer({ x, y }),
         ),
-        h.OnPointerLeave(() => Option.some(toParentMessage(Message.LeftPlot()))),
-        h.OnPointerUp(() => Option.some(toParentMessage(Message.ReleasedPointer()))),
-      ],
-      [withAriaLive(h, chart, liveText)],
-    ),
-    ariaLabel,
-    ['Item'],
-    targets.map((t) => [t.title]),
+      ),
+      h.OnPointerLeave(() => Option.some(toParentMessage(Message.LeftPlot()))),
+      h.OnPointerUp(() => Option.some(toParentMessage(Message.ReleasedPointer()))),
+    ],
+    [withAriaLive(h, chart, liveText)],
   );
 };

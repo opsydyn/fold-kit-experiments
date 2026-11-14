@@ -1,6 +1,8 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { MountAction } from 'foldkit/mount';
 
+import { describePlot } from '../plot/describe.js';
+import type { PlotTable } from '../plot/describe.js';
 import { angularLabel, radialLabel, spokeOf } from '../plot/polar.js';
 import type {
   FacetGeometry,
@@ -53,11 +55,80 @@ export type PlotOverlay = Readonly<{
   color?: string;
 }>;
 
+/** Accessible extras: a summary of what the chart shows, and its data as a table. */
+type AccessibleOptions = Readonly<{
+  /** Add `describePlot`'s plain-language summary to the chart's description. */
+  summary?: boolean;
+  /** A visually hidden table of the data, such as `plotTable(spec)`. */
+  table?: PlotTable;
+}>;
+
 export type PlotChartOptions = Readonly<{
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
-}>;
+}> &
+  AccessibleOptions;
+
+/** Hidden visually, still read by screen readers. */
+const VISUALLY_HIDDEN = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: '0',
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  'white-space': 'nowrap',
+  border: '0',
+} as const;
+
+/** The chart's description, with the summary after it when asked for. */
+const descriptionOf = (geometry: PlotGeometry, options: AccessibleOptions): string =>
+  [geometry.description, options.summary === true ? describePlot(geometry) : '']
+    .filter((part) => part !== '')
+    .join(' ');
+
+/** The data table, visually hidden, with a note when it is cut short. */
+function dataTable<M>(h: HtmlBuilder<M>, table: PlotTable | undefined): ReadonlyArray<Html> {
+  if (table === undefined || table.headers.length === 0) return [];
+  const more = table.total - table.rows.length;
+  return [
+    h.table(
+      [h.Class('plot-data'), h.Style(VISUALLY_HIDDEN)],
+      [
+        h.caption(
+          [],
+          [
+            more > 0
+              ? `${table.caption} (first ${table.rows.length} of ${table.total} rows)`
+              : table.caption,
+          ],
+        ),
+        h.thead(
+          [],
+          [
+            h.tr(
+              [],
+              table.headers.map((header) => h.th([h.Attribute('scope', 'col')], [header])),
+            ),
+          ],
+        ),
+        h.tbody(
+          [],
+          table.rows.map((row) =>
+            h.tr(
+              [],
+              row.map((value, i) =>
+                i === 0 ? h.th([h.Attribute('scope', 'row')], [value]) : h.td([], [value]),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ];
+}
 
 const n = (value: number): string => String(Math.round(value * 100) / 100);
 
@@ -489,7 +560,8 @@ export function plotChart<M>(
   options: PlotChartOptions = {},
 ): Html {
   const palette = options.palette ?? currentColorPalette;
-  const label = [geometry.title, geometry.description].filter((part) => part !== '').join('. ');
+  const description = descriptionOf(geometry, options);
+  const label = [geometry.title, description].filter((part) => part !== '').join('. ');
   const facets = geometry.facets.map((facet) =>
     h.g(
       // Every label in the facet inherits the palette's size unless it sets its own.
@@ -551,11 +623,12 @@ export function plotChart<M>(
         ],
         [
           ...(geometry.title === '' ? [] : [h.title([], [geometry.title])]),
-          ...(geometry.description === '' ? [] : [h.desc([], [geometry.description])]),
+          ...(description === '' ? [] : [h.desc([], [description])]),
           ...facets,
           ...(options.overlay === undefined ? [] : overlayMarks(h, geometry, options.overlay)),
         ],
       ),
+      ...dataTable(h, options.table),
       ...(options.legend === false ? [] : geometry.legends.map((l) => legend(h, l, palette))),
     ],
   );
@@ -573,7 +646,8 @@ export type PlotCanvasOptions<M> = Readonly<{
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
-}>;
+}> &
+  AccessibleOptions;
 
 /**
  * A canvas-painted plot for marks too large for SVG, such as dense dot marks,
@@ -588,7 +662,9 @@ export function plotCanvas<M>(
   options: PlotCanvasOptions<M>,
 ): Html {
   const palette = options.palette ?? currentColorPalette;
-  const label = [geometry.title, geometry.description].filter((part) => part !== '').join('. ');
+  const label = [geometry.title, descriptionOf(geometry, options)]
+    .filter((part) => part !== '')
+    .join('. ');
   return h.figure(
     [h.Class('plot plot-canvas'), h.Style({ margin: '0', 'font-family': palette.fontFamily })],
     [
@@ -628,6 +704,7 @@ export function plotCanvas<M>(
           ),
         ],
       ),
+      ...dataTable(h, options.table),
       ...(options.legend === false ? [] : geometry.legends.map((l) => legend(h, l, palette))),
     ],
   );

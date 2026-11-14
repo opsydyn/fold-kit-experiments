@@ -1,66 +1,49 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import { binEdges, histogram, pixelOf, scatter } from './charts';
 import { Message } from './message';
 import { init } from './model';
 import { update } from './update';
 
-const seedBounds = (model: ReturnType<typeof init>['model']) =>
-  update(
-    model,
-    Message.ReceivedHistogramMessage({
-      message: Histogram.Message.RecordedSvgBounds({
-        clientLeft: 0,
-        renderedPW: model.histogram.layout.pw,
-      }),
-    }),
-  ).model;
+const { model } = init({});
+const axis = histogram(null).facets[0]?.x;
+const at = (ms: number): number => (axis === null || axis === undefined ? 0 : pixelOf(axis, ms));
 
-const selectedModel = () => {
-  const initial = seedBounds(init({}).model);
-  const started = update(
-    initial,
-    Message.ReceivedHistogramMessage({
-      message: Histogram.Message.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
-    }),
-  ).model;
-  const moved = update(
-    started,
-    Message.ReceivedHistogramMessage({
-      message: Histogram.Message.MovedHistogramBrush({ screenX: 180 }),
-    }),
-  ).model;
-  return update(
-    moved,
-    Message.ReceivedHistogramMessage({
-      message: Histogram.Message.EndedHistogramBrush({ screenX: 180 }),
-    }),
-  ).model;
+const drag = (from: number, to: number) => {
+  const pressed = update(model, Message.PressedPointer({ surface: 'histogram', x: from })).model;
+  const moved = update(pressed, Message.MovedPointer({ surface: 'histogram', x: to })).model;
+  return update(moved, Message.ReleasedPointer()).model;
 };
 
-describe('histogram brush selection', () => {
-  it('stores a parent interval and derives filtered scatter points from it', () => {
-    const model = selectedModel();
-    expect(model.selection._tag).toBe('Interval');
-    expect(model.scatter.points).not.toEqual(model.allPoints);
+describe('histogram brush', () => {
+  it('snaps a drag to the bin edges it touches', () => {
+    const brushed = drag(at(160), at(260)).brushed;
+    const starts = binEdges.map(([x0]) => x0);
+    const ends = binEdges.map(([, x1]) => x1);
+    expect(starts).toContain(brushed?.[0]);
+    expect(ends).toContain(brushed?.[1]);
+    expect(brushed?.[0]).toBeLessThanOrEqual(160);
+    expect(brushed?.[1]).toBeGreaterThanOrEqual(260);
   });
 
-  it('clears the parent selection and restores every point', () => {
-    const model = update(
-      selectedModel(),
-      Message.ReceivedHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
-    ).model;
-    expect(model.selection).toEqual({ _tag: 'None' });
-    expect(model.scatter.points).toEqual(model.allPoints);
+  it('dims the requests and bins outside the brushed range', () => {
+    const brushed = drag(at(160), at(260)).brushed;
+    const dots = scatter(brushed).facets[0]?.marks[0]?.graphics ?? [];
+    const bright = dots.filter((g) => g.opacity === 1).length;
+    expect(bright).toBeGreaterThan(0);
+    expect(bright).toBeLessThan(dots.length);
+    const bars = histogram(brushed).facets[0]?.marks[0]?.graphics ?? [];
+    expect(bars.some((g) => g.opacity < 1)).toBe(true);
   });
 
-  it('does not replace the parent selection for a local scatter message', () => {
-    const selected = selectedModel();
-    const model = update(
-      selected,
-      Message.ReceivedScatterMessage({ message: Scatter.Message.HoveredPoint({ index: 0 }) }),
-    ).model;
-    expect(model.selection).toBe(selected.selection);
+  it('clears on a click and on the clear button', () => {
+    expect(drag(100, 101).brushed).toBeNull();
+    const brushed = drag(at(160), at(260));
+    expect(update(brushed, Message.ClearedBrush()).model.brushed).toBeNull();
+  });
+
+  it('ignores drags that start outside the histogram', () => {
+    const pressed = update(model, Message.PressedPointer({ surface: 'outside', x: 50 })).model;
+    expect(pressed.dragFrom).toBeNull();
   });
 });

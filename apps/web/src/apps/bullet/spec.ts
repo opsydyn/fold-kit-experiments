@@ -24,6 +24,7 @@ export const spec: PlotSpec = {
   height: 300,
   title: 'Against target',
   description: 'Each measure as a share of its target, over its qualitative ranges.',
+  margins: { left: 76 },
   x: { label: 'Share of target', domain: [0, 1.8] },
   y: { label: '', padding: 0.35 },
   color: { domain: ['lower range', 'middle range', 'upper range'], range: greys, legend: false },
@@ -39,6 +40,6 @@ export const spec: PlotSpec = {
       strokeWidth: 7,
       title: 'value',
     },
-    { mark: 'rule', x: { value: 1 }, stroke: { value: '#111827' }, strokeWidth: 2 },
+    { mark: 'rule', x: { value: 1 }, stroke: { value: 'currentColor' }, strokeWidth: 2 },
   ],
 };

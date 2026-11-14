@@ -24,6 +24,6 @@ export const spec: PlotSpec = {
   y: { label: 'y', domain: [0.5, 4] },
   marks: [
     { mark: 'dot', x: 'x', y: 'y', r: { value: 2 }, fill: { value: '#94a3b8' }, opacity: 0.6 },
-    { mark: 'density', x: 'x', y: 'y', stroke: { value: '#6366f1' }, bandwidth: 24, thresholds: 7 },
+    { mark: 'density', x: 'x', y: 'y', stroke: { value: '#6366f1' }, bandwidth: 50, thresholds: 6 },
   ],
 };

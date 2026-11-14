@@ -216,16 +216,53 @@ charts in all three apps.
 
 - One-frame repainting of a million points: WebGL points, or a highlight layer
   that repaints only the brushed points.
-- Arrow and DuckDB column input, and streaming appends. Polars fits through Arrow;
-  [assessment](superpowers/specs/2026-11-14-polars-assessment.md) with measurements.
-- A JSON Schema for plot specs, so Rust and Python programs (such as Polars users)
-  can emit checked specs.
+- DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
+  and Arrow data" below.
 - SVG and PNG export, and themes beyond light and dark.
 - A Jupyter widget that renders the JSON spec.
 - Three-dimensional surfaces and scatter through effect-three.
 
 The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
 and no dependency on `foldkit/http`.
+
+## Viz: Polars and Arrow data — 2026-11-14
+
+**Status:** standalone piece of work, separate from the release track above.
+[Assessment](superpowers/specs/2026-11-14-polars-assessment.md), with a measured
+spike.
+
+**Outcome:** data held in Polars (Rust, Python or Bun) or any Arrow source plots
+through the grammar at scale, without becoming a million row objects, and programs
+in other languages can write checked plot specs.
+
+**Where it stands:** Polars already plots on the server through `nodejs-polars`
+with no library changes. A million rows reach JavaScript as Arrow in 9 ms
+against 246 ms as row objects, and once data is columnar the grammar's own
+per-row reads are the cost.
+
+- [ ] Columnar data input: `data` accepts a column table (names to typed or plain
+      arrays, and a length) as well as rows. `read` gets a column path, and dense
+      marks read typed columns directly. Transforms that write new rows keep
+      writing rows.
+- [ ] An Arrow adapter typed structurally (`numRows`, `getChild(name).toArray()`),
+      so flechette and apache-arrow tables plot without foldkit-viz depending on
+      either.
+- [ ] A JSON Schema for `PlotSpec`, generated from the types and published with
+      the package, with every example spec in the repo checked against it, so
+      Rust (`serde`) and Python programs can emit checked specs.
+- [ ] An example of the summary pattern: a server route that aggregates a large
+      Polars frame and plots the result, beside `/explore`'s client-side million
+      points.
+- [ ] Later, once the columnar input exists: translate bin, stack and density
+      into Polars or DuckDB queries, as VegaFusion does for Vega.
+
+**Exit criteria:** a million-row Arrow table from Polars compiles to a dense
+scatter faster than the same data as row objects, measured and recorded; a Rust
+or Python program's spec is validated by the published schema; and the summary
+example runs in the web app.
+
+**Not planned:** Polars in the browser, whose WASM build is an alpha, and any
+dependency on Polars or Arrow inside foldkit-viz.
 
 ## Zloz: brand and product direction — 2026-11-08
 

@@ -5,6 +5,8 @@ import { randomLcg } from '../src/math/random';
 
 type Point = readonly [number, number];
 
+const ORIGIN = [0, 0] as const;
+
 const sites = (seed: number, n: number): ReadonlyArray<Point> => {
   const rng = randomLcg(seed);
   return Array.from({ length: n }, () => [4 + rng() * 432, 4 + rng() * 252] as const);
@@ -27,10 +29,10 @@ describe('Delaunay triangulation', () => {
     const { triangles } = triangulate(points);
     let violations = 0;
     for (let i = 0; i < triangles.length; i += 3) {
-      const [a, b, c] = [triangles[i], triangles[i + 1], triangles[i + 2]].map(
-        (k) => points[k ?? 0] ?? [0, 0],
-      );
-      if (a === undefined || b === undefined || c === undefined) continue;
+      const corner = (k: number | undefined): Point => points[k ?? 0] ?? ORIGIN;
+      const a = corner(triangles[i]),
+        b = corner(triangles[i + 1]),
+        c = corner(triangles[i + 2]);
       const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
       const sq = (p: Point) => p[0] ** 2 + p[1] ** 2;
       const ux = (sq(a) * (b[1] - c[1]) + sq(b) * (c[1] - a[1]) + sq(c) * (a[1] - b[1])) / d;

@@ -111,6 +111,7 @@ import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
+import { c4MappingReviewPanel } from './c4-mapping-review-view';
 import { dddAuditPanel } from './ddd-audit-view';
 import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
@@ -3281,6 +3282,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
+    c4mapping: model.sidebarSection === 'c4mapping' ? [c4MappingReviewPanel(model, h)] : [],
     mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
       ...(workshopInspector ? [workshopInspector] : []),

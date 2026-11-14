@@ -122,6 +122,17 @@ button, input, select { font: inherit; }
 .workbench-sidebar [aria-label='Graph actions'] > button { flex: 1 1 120px; }
 .workbench-sidebar fieldset { min-width: 0; }
 
+
+.c4-mapping-review { display: grid; gap: 12px; align-content: start; }
+.c4-mapping-review > p, .c4-mapping-review > h2, .c4-mapping-review > h3, .c4-mapping-review > ul, .c4-mapping-review .workbench-field { margin: 0; }
+.c4-mapping-review input[type='text'] { width: 100%; min-height: 36px; padding: 8px; font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; }
+.c4-mapping-review input:disabled { opacity: 0.6; }
+.c4-mapping-review .workbench-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.c4-mapping-review .workbench-actions button { padding: 8px; }
+.c4-mapping-review ul { padding-inline-start: 18px; }
+.c4-mapping-review li { margin-block: 8px; }
+.c4-mapping-review li p { margin: 4px 0 0; }
+
 .mapping-review-intro { margin-top: 0; }
 .mapping-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 .mapping-summary span, .mapping-status { display: inline-block; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 6px; font-size: 11px; font-weight: 650; }

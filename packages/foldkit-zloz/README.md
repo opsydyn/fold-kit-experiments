@@ -5404,6 +5404,9 @@ throw `ZlozError`. Source and choices are detached/frozen without freezing input
 Recompute after model/session/revision/choice changes. Provenance is review data,
 not permission or evidence of a human actor. Future conversion planning must
 separately resolve containment, exact-plan consent, live policies and atomic Undo.
-No workbench controls or CLI conversion are added here. See
-[ADR 0084](../../docs/adr/0084-preview-eventstorming-to-c4-mapping.md) and
-[local qualification](evidence/event-storming-c4-preview.md).
+The Astro workbench demonstrates this API in its **C4 mapping review** sidebar,
+with native staged choices and visible provenance/losses. Core owns the preview;
+the host owns ephemeral form state. No package-level controls or CLI conversion
+are added here. See [ADR 0084](../../docs/adr/0084-preview-eventstorming-to-c4-mapping.md),
+[headless qualification](evidence/event-storming-c4-preview.md) and
+[workbench visual evidence](../../apps/zloz-demo/evidence/c4-mapping.md).

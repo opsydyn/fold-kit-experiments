@@ -942,7 +942,23 @@ editor event, consent token or Apply operation. See
 This closes the approved preview slice, not D1b conversion/containment, C/Q/R or
 publication. No new edge schema, wire version, runtime dependency or npm publishing.
 
-**Recommended next:** compose the C4 mapping review in the workbench with explicit
-choices, source provenance, ambiguities and prospective losses. Keep conversion
-planning/containment resolution, exact-plan consent and guarded atomic Apply as
-separately scoped follow-ups.
+**D1b workbench mapping review — implemented locally (2026-11-14), unreleased:**
+A dedicated C4 sidebar composes the package preview while preserving the canvas.
+Native staged fields expose role, structural name, scope, technology and communication
+labels. Preview, Retain, Clear and Reset change advisory choices only. Draft edits
+revoke the affected prior choice; blank names and incompatible group roles are
+protected. Source model/snapshot/ancestry, ambiguities, status/membership and other
+losses stay visible independently of numeric diagnostics. Scoped requests reject
+stale/foreign/hidden targets; historical/busy and other read-only reviews show
+protection reasons. Graph/model/edition changes clear stale review; camera movement
+keeps semantic choices while refreshing provenance. Native controls are keyed by
+reviewed source/item, with a rendered-target status for accessible context.
+See [ADR 0085](adr/0085-compose-c4-mapping-workbench-review.md) and
+[local tests/visual evidence](../apps/zloz-demo/evidence/c4-mapping.md).
+No conversion, Apply, loss-consent token, receipt, new public package API or npm
+publication is introduced. This closes the workbench review slice, not D1b conversion
+or broader C/Q/R qualification.
+
+**Recommended next:** define the headless C4 conversion-plan contract with explicit
+membership/containment decisions, complete source provenance and exact-plan loss
+consent before guarded Apply. Do not infer runtime ownership from workshop lanes.

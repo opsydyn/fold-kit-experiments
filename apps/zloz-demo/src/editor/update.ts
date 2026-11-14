@@ -56,6 +56,7 @@ import {
   createC4ContainerGraph,
   createC4NestedContainerGraph,
 } from './c4-examples';
+import { updateC4MappingReview, reconcileC4MappingReview } from './c4-mapping-review';
 import {
   ArrangeFlow,
   ExportZlozEditions,
@@ -813,6 +814,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },
+    SelectedC4ReviewItem: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'ItemSelected' }),
+    }),
+    ChangedC4ReviewForm: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'FormChanged' }),
+    }),
+    ClickedC4ReviewAction: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'ActionClicked' }),
+    }),
     SelectedMappingReviewItem: (request) => ({
       model: updateMappingReview(model, { ...request, type: 'ItemSelected' }),
     }),
@@ -1577,7 +1587,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
   });
   const result = {
     ...outcome,
-    model: reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
+    model: reconcileC4MappingReview(
+      reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
+    ),
   };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;

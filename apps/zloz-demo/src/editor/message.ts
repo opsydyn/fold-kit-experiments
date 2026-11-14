@@ -31,6 +31,34 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  SelectedC4ReviewItem: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    key: Schema.String,
+  },
+  ChangedC4ReviewForm: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    key: Schema.String,
+    field: Schema.Literals(['role', 'name', 'scope', 'technology']),
+    value: Schema.String,
+  },
+  ClickedC4ReviewAction: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    key: Schema.String,
+    action: Schema.Literals(['preview', 'retain', 'clear', 'reset']),
+  },
+
   ObservedPngReviewInput: { request: Schema.Unknown },
   ClickedPngProtection: {},
   ClickedCustomPngReview: {},

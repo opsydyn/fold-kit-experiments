@@ -26,6 +26,7 @@ import {
 import { Schema } from 'effect';
 
 import { createAlchemyReview, type AlchemyReviewState } from './alchemy-state';
+import type { C4MappingReviewDraft } from './c4-mapping-review';
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
 import type { PacketReviewPreview } from './packet-reader';
 import type { PatchWorkbenchState } from './patch-review';
@@ -309,6 +310,7 @@ export const WorkbenchSection = Schema.Literals([
   'policies',
   'inspect',
   'mapping',
+  'c4mapping',
   'diagnostics',
   'export',
   'svg',
@@ -330,6 +332,7 @@ export const Model = Schema.Struct({
   retainedSvgLayout: Schema.Boolean,
   placement: Schema.Unknown,
   customPalette: Schema.Boolean,
+  c4MappingReview: Schema.NullOr(Schema.Unknown),
   mappingReview: Schema.NullOr(MappingReview),
   mappingLossConsent: Schema.NullOr(
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
@@ -478,6 +481,7 @@ export type Model = Readonly<{
   retainedSvgLayout: boolean;
   placement: ZlozPlacement;
   customPalette: boolean;
+  c4MappingReview: C4MappingReviewDraft | null;
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
@@ -625,6 +629,7 @@ export const init = (namespace = 'test-workbench') => ({
     retainedSvgLayout: false,
     placement: createPlacement(`root:${namespace}/0`),
     customPalette: false,
+    c4MappingReview: null,
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,

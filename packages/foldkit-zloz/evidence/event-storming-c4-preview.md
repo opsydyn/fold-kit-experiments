@@ -82,3 +82,8 @@ Astro warnings/skips remain; this is not a warning-free claim. No dependencies,
 package versions, deployment or registry state were changed.
 
 Recommendation: **needs review**. The approved headless preview slice is complete.
+
+Workbench follow-up: [ADR 0085](../../../docs/adr/0085-compose-c4-mapping-workbench-review.md)
+and the [visual qualification](../../../apps/zloz-demo/evidence/c4-mapping.md)
+now cover host review controls. The headless API and its no-conversion/no-Apply
+boundary remain unchanged; this original package receipt is retained.

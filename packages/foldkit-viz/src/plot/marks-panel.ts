@@ -14,7 +14,15 @@ import { line } from '../shape/line.js';
 import { sankey } from '../shape/sankey.js';
 import { fail, keysOf, numeric, paintOf, read, spanOf, titlesOf, withTitle } from './channels.js';
 import type { Context, Graphics } from './channels.js';
-import type { Graphic, ParallelMark, Row, SankeyMark, SunburstMark, TreemapMark } from './types.js';
+import type {
+  Channel,
+  Graphic,
+  ParallelMark,
+  Row,
+  SankeyMark,
+  SunburstMark,
+  TreemapMark,
+} from './types.js';
 
 /**
  * Marks that fill their panel instead of using the x and y axes: hierarchies
@@ -23,7 +31,7 @@ import type { Graphic, ParallelMark, Row, SankeyMark, SunburstMark, TreemapMark 
 
 // ── Hierarchies from path fields ──────────────────────────────────────────────
 
-type Tree = {
+export type Tree = {
   name: string;
   /** Full path to this node, joined with the separator. */
   id: string;
@@ -32,14 +40,26 @@ type Tree = {
   children: Tree[];
 };
 
-function treeOf(
-  mark: TreemapMark | SunburstMark,
+/** What a hierarchy is built from: leaf paths, and optionally their sizes. */
+export type HierarchySource = Readonly<{ path: Channel; value?: Channel; separator?: string }>;
+
+/**
+ * A hierarchy from rows whose `path` names each leaf, such as "Cloud/AWS".
+ * Without a `value`, each leaf counts once. Sorted largest first unless
+ * `ordered`, which keeps the rows' order, as trees read best.
+ */
+export function treeOf(
+  mark: HierarchySource,
   rows: ReadonlyArray<Row>,
   path: string,
+  ordered = false,
 ): HierarchyNode<Tree> {
   const separator = mark.separator ?? '/';
   const paths = read(rows, mark.path, `${path}.path`);
-  const values = read(rows, mark.value, `${path}.value`).map(numeric);
+  const values =
+    mark.value === undefined
+      ? rows.map(() => 1)
+      : read(rows, mark.value, `${path}.value`).map(numeric);
   const root: Tree = { name: '', id: '', value: 0, children: [] };
   rows.forEach((row, i) => {
     const raw = paths[i];
@@ -65,11 +85,11 @@ function treeOf(
     hierarchy(root, (d) => (d.children.length === 0 ? undefined : d.children)),
     (d) => (d.children.length === 0 ? d.value : 0),
   );
-  return sort(tree, (a, b) => b.value - a.value);
+  return ordered ? tree : sort(tree, (a, b) => b.value - a.value);
 }
 
 /** The first row under a node, so a branch takes the colour of its leading leaf. */
-const firstRow = (node: HierarchyNode<Tree>): Row | undefined =>
+export const firstRow = (node: HierarchyNode<Tree>): Row | undefined =>
   node.data.row ?? leaves(node).find((leaf) => leaf.data.row !== undefined)?.data.row;
 
 function nodePaint(

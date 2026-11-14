@@ -302,6 +302,80 @@ export type ProjectionSpec = Readonly<{
   center?: readonly [number, number];
 }>;
 
+/**
+ * A tree of the rows' `path` fields, laid out tidy (default) or as a cluster
+ * with every leaf level, left to right or `radial`. Leaves take their row's fill.
+ */
+export type TreeMark = CommonMark &
+  Readonly<{
+    mark: 'tree';
+    path: Channel;
+    separator?: string;
+    layout?: 'tidy' | 'cluster';
+    radial?: boolean;
+    labels?: boolean;
+    fill?: Channel;
+    /** The links' colour. */
+    stroke?: Channel;
+  }>;
+/** Circle packing of `path` and `value`; a branch takes its first leaf's fill. */
+export type PackMark = CommonMark &
+  Readonly<{
+    mark: 'pack';
+    path: Channel;
+    value: Channel;
+    separator?: string;
+    fill?: Channel;
+    labels?: boolean;
+    /** Pixels between sibling circles. Default 3. */
+    padding?: number;
+  }>;
+/** Flows between named groups as a chord diagram; groups take categorical colours. */
+export type ChordMark = CommonMark &
+  Readonly<{
+    mark: 'chord';
+    source: Channel;
+    target: Channel;
+    value: Channel;
+    labels?: boolean;
+    /** Degrees between groups. Default 2. */
+    padAngle?: number;
+  }>;
+/** Nodes along a line, in order of first appearance, with an arc above for each link. */
+export type ArcDiagramMark = CommonMark &
+  Readonly<{
+    mark: 'arc-diagram';
+    source: Channel;
+    target: Channel;
+    /** Link weight, for the arcs' widths. Default 1. */
+    value?: Channel;
+    /** The nodes' colour. */
+    fill?: Channel;
+    /** The arcs' colour. */
+    stroke?: Channel;
+    labels?: boolean;
+  }>;
+/** A force-directed graph of links, laid out by a seeded simulation run to a fixed count. */
+export type ForceMark = CommonMark &
+  Readonly<{
+    mark: 'force';
+    source: Channel;
+    target: Channel;
+    fill?: Channel;
+    stroke?: Channel;
+    labels?: boolean;
+    /** Simulation steps. Default 300. */
+    iterations?: number;
+    /** Link length in pixels. Default 60. */
+    distance?: number;
+    /** Charge between nodes; negative repels. Default -120. */
+    strength?: number;
+  }>;
+
+/** Each point's Voronoi cell, clipped to the plot area. */
+export type VoronoiMark = CommonMark &
+  Readonly<{ mark: 'voronoi'; x: Channel; y: Channel; fill?: Channel; stroke?: Channel }>;
+
 /** Marks that fill their panel instead of using the x and y axes. */
 type HierarchyOptions = Readonly<{
   /** Field holding each leaf's path, such as "Cloud/AWS". */
@@ -348,6 +422,12 @@ export type MarkSpec =
   | ArcMark
   | GeoMark
   | GraticuleMark
+  | TreeMark
+  | PackMark
+  | ChordMark
+  | ArcDiagramMark
+  | ForceMark
+  | VoronoiMark
   | TreemapMark
   | SunburstMark
   | SankeyMark

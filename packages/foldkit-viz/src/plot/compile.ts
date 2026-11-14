@@ -54,6 +54,14 @@ import {
   validateDensity,
 } from './marks-density.js';
 import {
+  arcDiagramGraphics,
+  chordGraphics,
+  forceGraphics,
+  packGraphics,
+  treeGraphics,
+  voronoiGraphics,
+} from './marks-network.js';
+import {
   parallelGraphics,
   sankeyGraphics,
   sunburstGraphics,
@@ -107,6 +115,21 @@ const MARKS = {
   arc: { required: ['value'], channels: ['value', 'fill', 'stroke', 'text', 'title'] },
   geo: { required: [], channels: ['fill', 'stroke', 'title'] },
   graticule: { required: [], channels: ['stroke'] },
+  tree: { required: ['path'], channels: ['path', 'fill', 'stroke', 'title'] },
+  pack: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
+  chord: {
+    required: ['source', 'target', 'value'],
+    channels: ['source', 'target', 'value', 'title'],
+  },
+  'arc-diagram': {
+    required: ['source', 'target'],
+    channels: ['source', 'target', 'value', 'fill', 'stroke', 'title'],
+  },
+  voronoi: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
+  force: {
+    required: ['source', 'target'],
+    channels: ['source', 'target', 'fill', 'stroke', 'title'],
+  },
   treemap: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sunburst: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sankey: {
@@ -153,6 +176,11 @@ const OPTIONS = new Set([
   'padAngle',
   'features',
   'step',
+  'layout',
+  'radial',
+  'iterations',
+  'distance',
+  'strength',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -752,8 +780,8 @@ function resolveColor(
   const values: Value[] = [];
   const fields = new Set<string>();
   for (const p of prepared) {
-    // Sankey nodes take categorical colours by name.
-    if (p.mark.mark === 'sankey') {
+    // Sankey nodes and chord groups take categorical colours by name.
+    if (p.mark.mark === 'sankey' || p.mark.mark === 'chord') {
       fields.add('node');
       values.push(
         ...read(p.source, p.mark.source, `${p.path}.source`).map((v) =>
@@ -1222,6 +1250,18 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
     case 'geo':
     case 'graticule':
       return fail(path, `a ${mark.mark} mark needs the plot to have a projection`);
+    case 'tree':
+      return treeGraphics(mark, rows, path, context);
+    case 'pack':
+      return packGraphics(mark, rows, path, context);
+    case 'chord':
+      return chordGraphics(mark, rows, path, context);
+    case 'arc-diagram':
+      return arcDiagramGraphics(mark, rows, path, context);
+    case 'force':
+      return forceGraphics(mark, rows, path, context);
+    case 'voronoi':
+      return voronoiGraphics(mark, rows, path, index, context);
     case 'treemap':
       return treemapGraphics(mark, rows, path, context);
     case 'sunburst':
@@ -1326,6 +1366,11 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
 /** Marks that fill their panel, whatever the plot's coordinates. */
 const PANEL_MARKS: ReadonlySet<MarkType> = new Set([
   'arc',
+  'tree',
+  'pack',
+  'chord',
+  'arc-diagram',
+  'force',
   'treemap',
   'sunburst',
   'sankey',

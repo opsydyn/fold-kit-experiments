@@ -1,38 +1,45 @@
 import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { Message } from './message';
+import { POINTS } from './model';
 import type { Model } from './model';
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const points = model.scatter.points.map((point) => ({ ...point, id: point.id ?? point.label }));
   const keys = Option.match(model.inspection, {
     onNone: () => [],
-    onSome: (inspection) => matchingKeys(points, inspection),
+    onSome: (inspection) => matchingKeys(POINTS, inspection),
   });
-  const scatter: Html = Scatter.view(
-    {
-      model: model.scatter,
-      highlightedKeys: keys,
-      toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
-      ariaLabel: 'Scatter chart — experience vs salary',
-    },
+  const bins = PlotPanel.targetsOf(model.histogram).map((bin) => ({
+    x0: bin.domain[0],
+    x1: bin.domain[1],
+  }));
+  const scatter: Html = PlotPanel.view(
+    Option.isSome(model.inspection)
+      ? {
+          model: model.scatter,
+          highlight: { field: 'id', values: keys },
+          toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
+          ariaLabel: 'Scatter chart — experience vs salary',
+        }
+      : {
+          model: model.scatter,
+          toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
+          ariaLabel: 'Scatter chart — experience vs salary',
+        },
     h,
   );
-
-  const histogram: Html = Histogram.view(
+  const histogram: Html = PlotPanel.view(
     {
       model: model.histogram,
-      highlightedBins: matchingBinIndices(points, keys, model.histogram.bins),
+      emphasis: matchingBinIndices(POINTS, keys, bins),
       toParentMessage: (msg) => Message.ReceivedHistogramMessage({ message: msg }),
       ariaLabel: 'Histogram — salary distribution',
     },
     h,
   );
-
   return {
     title: 'Linked views — foldkit-viz',
     body: h.div(

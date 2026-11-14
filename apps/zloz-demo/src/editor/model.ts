@@ -14,6 +14,7 @@ import {
   type ZlozAuditComparisonState,
   type ZlozDddAuditState,
   type ZlozEventStormingDddLossConsent,
+  type ZlozEventStormingC4LossConsent,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
 import { createReviewReader, type ZlozReviewReaderState } from '@opsydyn/foldkit-zloz-mermaid';
@@ -333,6 +334,10 @@ export const Model = Schema.Struct({
   placement: Schema.Unknown,
   customPalette: Schema.Boolean,
   c4MappingReview: Schema.NullOr(Schema.Unknown),
+  c4PlanConsent: Schema.NullOr(
+    Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
+  ),
+  c4PlanRun: Schema.Number,
   mappingReview: Schema.NullOr(MappingReview),
   mappingLossConsent: Schema.NullOr(
     Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
@@ -482,6 +487,8 @@ export type Model = Readonly<{
   placement: ZlozPlacement;
   customPalette: boolean;
   c4MappingReview: C4MappingReviewDraft | null;
+  c4PlanConsent: ZlozEventStormingC4LossConsent | null;
+  c4PlanRun: number;
   mappingReview: MappingReviewDraft | null;
   mappingLossConsent: ZlozEventStormingDddLossConsent | null;
   mappingConsentRun: number;
@@ -630,6 +637,8 @@ export const init = (namespace = 'test-workbench') => ({
     placement: createPlacement(`root:${namespace}/0`),
     customPalette: false,
     c4MappingReview: null,
+    c4PlanConsent: null,
+    c4PlanRun: 0,
     mappingReview: null,
     mappingLossConsent: null,
     mappingConsentRun: 0,

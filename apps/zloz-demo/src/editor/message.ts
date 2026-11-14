@@ -31,6 +31,51 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  SelectedC4PlacementMember: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    nodeId: Schema.String,
+  },
+  ChangedC4PlacementForm: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    nodeId: Schema.String,
+    field: Schema.Literals(['type', 'parentId']),
+    value: Schema.String,
+  },
+  ClickedC4PlacementReview: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    nodeId: Schema.String,
+  },
+  ClickedC4PlacementClear: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    nodeId: Schema.String,
+  },
+  ClickedC4PlanAcknowledgement: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    revision: Schema.Number,
+    sourceKey: Schema.String,
+    editionId: Schema.String,
+    planKey: Schema.String,
+    generation: Schema.Number,
+    accepted: Schema.Boolean,
+  },
+
   SelectedC4ReviewItem: {
     modelId: Schema.String,
     epoch: Schema.Number,

@@ -102,3 +102,9 @@ was generated successfully. Existing configured warnings/skips remain and are no
 reported as warning-free qualification.
 
 Recommendation: **needs review**. The approved headless plan/consent slice is complete.
+
+Workbench follow-up: [ADR 0087](../../../docs/adr/0087-review-c4-placement-and-exact-losses.md)
+and [visual qualification](../../../apps/zloz-demo/evidence/c4-plan.md) now cover
+placement review and exact acknowledgement. The package plan remains advisory;
+guarded atomic Apply and retained receipts are still separate. This original
+headless receipt is retained.

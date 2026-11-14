@@ -1,6 +1,9 @@
 import {
   architectureNodePresets,
-  previewEventStormingC4Mapping,
+  createEventStormingC4ConversionPlan,
+  resolveEventStormingC4ConversionConsent,
+  type ZlozEventStormingC4MembershipChoice,
+  type ZlozEventStormingC4Placement,
   serializeGraph,
   type C4NodeArchitecture,
   type ZlozEventStormingC4MappingOptions,
@@ -28,7 +31,15 @@ export type C4MappingReviewDraft = C4MappingReviewScope &
     selectedKey: string | null;
     form: C4MappingReviewForm;
     choices: ZlozEventStormingC4MappingOptions;
+    memberships: readonly ZlozEventStormingC4MembershipChoice[];
+    selectedMembershipId: string | null;
+    placementForm: C4PlacementForm;
   }>;
+export type C4PlacementForm = Readonly<{
+  type: '' | 'root' | 'organization' | 'contained';
+  parentId: string;
+}>;
+const emptyPlacement: C4PlacementForm = { type: '', parentId: '' };
 export type C4MappingReviewRequest = C4MappingReviewScope &
   (
     | Readonly<{ type: 'ItemSelected'; key: string }>
@@ -75,7 +86,15 @@ function matches(a: C4MappingReviewScope, b: C4MappingReviewScope): boolean {
 function draft(model: Model, current: C4MappingReviewScope): C4MappingReviewDraft {
   return model.c4MappingReview && matches(model.c4MappingReview, current)
     ? model.c4MappingReview
-    : { ...current, selectedKey: null, form: emptyForm, choices: { nodes: [], edges: [] } };
+    : {
+        ...current,
+        selectedKey: null,
+        form: emptyForm,
+        choices: { nodes: [], edges: [] },
+        memberships: [],
+        selectedMembershipId: null,
+        placementForm: emptyPlacement,
+      };
 }
 function nodeDescriptor(form: C4MappingReviewForm): C4NodeArchitecture | undefined {
   const target = targets.find((entry) => entry.architecture.role === form.role)?.architecture;
@@ -108,18 +127,39 @@ function formFor(
     technology: architecture && 'technology' in architecture ? (architecture.technology ?? '') : '',
   };
 }
+function reviewSource(model: Model) {
+  const source = editor(model);
+  return {
+    document: workbenchDocument({ ...model, editor: source }),
+    sessionId: `${model.modelNamespace}:${model.modelEpoch}:${model.historyReview?.editionId ?? 'working'}`,
+    revision: source.revision,
+  };
+}
+export function c4ReviewProtectionReason(model: Model): string | null {
+  return model.historyReview
+    ? 'Return to the working model before choosing C4 mappings. Historical findings remain available to inspect.'
+    : model.receiptReview
+      ? 'Close the receipt comparison before choosing C4 mappings.'
+      : model.alchemyReview.review || model.alchemyReview.pending
+        ? 'Close Domain review before choosing C4 mappings.'
+        : reviewReaderForScope(model.packetReader, `${model.modelIdentity.id}/${model.modelEpoch}`)
+              .review !== null
+          ? 'Close the review packet preview before choosing C4 mappings.'
+          : modelSessionBusy(model)
+            ? 'Finish active edits, imports or layout before choosing C4 mappings.'
+            : null;
+}
 export function workbenchC4MappingReview(model: Model) {
   const current = scope(model),
     stored = draft(model, current),
     source = editor(model);
-  const preview = previewEventStormingC4Mapping(
-    {
-      document: workbenchDocument({ ...model, editor: source }),
-      sessionId: `${model.modelNamespace}:${model.modelEpoch}:${current.editionId || 'working'}`,
-      revision: source.revision,
-    },
-    stored.choices,
+  const conversion = resolveEventStormingC4ConversionConsent(
+    reviewSource(model),
+    { mappings: stored.choices, memberships: stored.memberships },
+    model.c4PlanConsent,
   );
+  const plan = conversion.plan,
+    preview = plan.preview;
   const items = [
     ...preview.nodes.map((decision) => ({
       kind: 'node' as const,
@@ -145,18 +185,7 @@ export function workbenchC4MappingReview(model: Model) {
     selected?.kind === 'node' ? source.graph.nodes.find((n) => n.id === selected.id) : undefined;
   const form =
     stored.selectedKey === selected?.key ? stored.form : formFor(selected, stored.choices);
-  const reason = model.historyReview
-    ? 'Return to the working model before choosing C4 mappings. Historical findings remain available to inspect.'
-    : model.receiptReview
-      ? 'Close the receipt comparison before choosing C4 mappings.'
-      : model.alchemyReview.review || model.alchemyReview.pending
-        ? 'Close Domain review before choosing C4 mappings.'
-        : reviewReaderForScope(model.packetReader, `${model.modelIdentity.id}/${model.modelEpoch}`)
-              .review !== null
-          ? 'Close the review packet preview before choosing C4 mappings.'
-          : modelSessionBusy(model)
-            ? 'Finish active edits, imports or layout before choosing C4 mappings.'
-            : null;
+  const reason = c4ReviewProtectionReason(model);
   const roles = targets.map((entry) => ({
     value: entry.architecture.role,
     label: entry.label,
@@ -174,8 +203,46 @@ export function workbenchC4MappingReview(model: Model) {
             (!nodeDescriptor(form) || roles.find((role) => role.value === form.role)?.disabled)
           ? 'Choose a C4 role compatible with this node kind.'
           : null);
+  const member =
+    plan.memberships.find((m) => m.nodeId === stored.selectedMembershipId) ??
+    plan.memberships.find((m) => m.type !== 'resolved') ??
+    plan.memberships[0] ??
+    null;
+  const chosen = stored.memberships.find((m) => m.nodeId === member?.nodeId)?.placement;
+  const initialPlacement: C4PlacementForm = {
+    type: chosen?.type ?? '',
+    parentId: chosen?.type === 'contained' ? chosen.parentId : '',
+  };
+  const placementForm =
+    member?.nodeId === stored.selectedMembershipId ? stored.placementForm : initialPlacement;
+  const parents = source.graph.nodes.filter((node) => node.kind === 'group');
+  const placementReason =
+    reason ??
+    (!member
+      ? 'No placement decisions are required for this plan.'
+      : placementForm.type === ''
+        ? 'Choose a placement explicitly.'
+        : placementForm.type === 'contained' &&
+            !parents.some((node) => node.id === placementForm.parentId)
+          ? 'Choose an existing group; compatibility is checked by the package.'
+          : null);
+  const acknowledgementReason =
+    reason ??
+    (conversion.type === 'blocked'
+      ? 'Resolve all mapping and placement blockers before acknowledging losses.'
+      : conversion.type === 'unchanged'
+        ? 'This plan has no conversion changes to acknowledge.'
+        : null);
   return {
     scope: current,
+    conversion,
+    plan,
+    member,
+    placementForm,
+    parents,
+    placementReason,
+    acknowledgementReason,
+    acknowledged: conversion.type === 'consented' && reason === null,
     stored,
     preview,
     items,
@@ -199,7 +266,7 @@ function withoutChoice(
     edges: (choices.edges ?? []).filter((e) => kind !== 'edge' || e.edgeId !== id),
   };
 }
-export function updateC4MappingReview(model: Model, request: C4MappingReviewRequest): Model {
+function updateMapping(model: Model, request: C4MappingReviewRequest): Model {
   if (
     model.sidebarCollapsed ||
     model.sidebarSection !== 'c4mapping' ||
@@ -244,6 +311,9 @@ export function updateC4MappingReview(model: Model, request: C4MappingReviewRequ
         ...base,
         form: { ...emptyForm, name: selected.kind === 'node' ? selected.label : '' },
         choices: { nodes: [], edges: [] },
+        memberships: [],
+        selectedMembershipId: null,
+        placementForm: emptyPlacement,
       },
     };
   const remaining = withoutChoice(base.choices, selected.kind, selected.id);
@@ -293,8 +363,175 @@ export function updateC4MappingReview(model: Model, request: C4MappingReviewRequ
     },
   };
 }
-export function reconcileC4MappingReview(model: Model): Model {
-  return model.c4MappingReview && !matches(model.c4MappingReview, scope(model))
-    ? { ...model, c4MappingReview: null }
-    : model;
+function publish(model: Model, next: C4MappingReviewDraft): Model {
+  const probe = createEventStormingC4ConversionPlan(reviewSource(model), {
+    mappings: next.choices,
+  });
+  const ids = new Set(probe.memberships.map((member) => member.nodeId));
+  const memberships = next.memberships.filter((member) => ids.has(member.nodeId));
+  const selectedMembershipId =
+    next.selectedMembershipId && ids.has(next.selectedMembershipId)
+      ? next.selectedMembershipId
+      : null;
+  return {
+    ...model,
+    c4MappingReview: {
+      ...next,
+      memberships,
+      selectedMembershipId,
+      placementForm: selectedMembershipId ? next.placementForm : emptyPlacement,
+    },
+    c4PlanConsent: null,
+    c4PlanRun: model.c4PlanRun + 1,
+  };
+}
+export function updateC4MappingReview(model: Model, request: C4MappingReviewRequest): Model {
+  const next = updateMapping(model, request);
+  return next === model || request.type === 'ItemSelected' || !next.c4MappingReview
+    ? next
+    : publish(next, next.c4MappingReview);
+}
+export type C4PlacementRequest = C4MappingReviewScope &
+  (
+    | Readonly<{ type: 'MemberSelected'; nodeId: string }>
+    | Readonly<{ type: 'FormChanged'; nodeId: string; field: 'type' | 'parentId'; value: string }>
+    | Readonly<{ type: 'Reviewed' | 'Cleared'; nodeId: string }>
+  );
+export function updateC4Placement(model: Model, request: C4PlacementRequest): Model {
+  if (
+    model.sidebarCollapsed ||
+    model.sidebarSection !== 'c4mapping' ||
+    !matches(scope(model), request)
+  )
+    return model;
+  const context = workbenchC4MappingReview(model),
+    member = context.plan.memberships.find((m) => m.nodeId === request.nodeId);
+  if (!member) return model;
+  if (request.type === 'MemberSelected') {
+    const placement = context.stored.memberships.find(
+      (m) => m.nodeId === request.nodeId,
+    )?.placement;
+    return {
+      ...model,
+      c4MappingReview: {
+        ...context.stored,
+        selectedMembershipId: request.nodeId,
+        placementForm: {
+          type: placement?.type ?? '',
+          parentId: placement?.type === 'contained' ? placement.parentId : '',
+        },
+      },
+    };
+  }
+  if (context.reason || context.member?.nodeId !== request.nodeId) return model;
+  const remaining = context.stored.memberships.filter((m) => m.nodeId !== request.nodeId);
+  const base = {
+    ...context.stored,
+    selectedMembershipId: request.nodeId,
+    placementForm: context.placementForm,
+    memberships: remaining,
+  };
+  if (request.type === 'FormChanged') {
+    if (request.field === 'type') {
+      if (
+        request.value !== '' &&
+        request.value !== 'root' &&
+        request.value !== 'organization' &&
+        request.value !== 'contained'
+      )
+        return model;
+      return publish(model, { ...base, placementForm: { type: request.value, parentId: '' } });
+    }
+    if (
+      request.field !== 'parentId' ||
+      context.placementForm.type !== 'contained' ||
+      (request.value !== '' && !context.parents.some((node) => node.id === request.value))
+    )
+      return model;
+    return publish(model, {
+      ...base,
+      placementForm: { ...base.placementForm, parentId: request.value },
+    });
+  }
+  if (request.type === 'Cleared') return publish(model, { ...base, placementForm: emptyPlacement });
+  if (context.placementReason !== null) return model;
+  let placement: ZlozEventStormingC4Placement;
+  switch (context.placementForm.type) {
+    case 'root':
+      placement = { type: 'root' };
+      break;
+    case 'organization':
+      placement = { type: 'organization' };
+      break;
+    case 'contained':
+      placement = { type: 'contained', parentId: context.placementForm.parentId };
+      break;
+    default:
+      return model;
+  }
+  return publish(model, {
+    ...base,
+    memberships: [...remaining, { nodeId: request.nodeId, placement }],
+  });
+}
+export function updateC4PlanAcknowledgement(
+  model: Model,
+  request: C4MappingReviewScope &
+    Readonly<{ planKey: string; generation: number; accepted: boolean }>,
+): Model {
+  if (
+    model.sidebarCollapsed ||
+    model.sidebarSection !== 'c4mapping' ||
+    !matches(scope(model), request) ||
+    request.generation !== model.c4PlanRun
+  )
+    return model;
+  const context = workbenchC4MappingReview(model);
+  if (context.acknowledgementReason || context.plan.key !== request.planKey) return model;
+  return {
+    ...model,
+    c4PlanConsent: request.accepted ? { planKey: context.plan.key, accepted: true } : null,
+    c4PlanRun: request.accepted ? model.c4PlanRun : model.c4PlanRun + 1,
+  };
+}
+export function reconcileC4MappingReview(previous: Model, model: Model): Model {
+  const invalid = model.c4MappingReview !== null && !matches(model.c4MappingReview, scope(model));
+  const next = invalid ? { ...model, c4MappingReview: null } : model;
+  const beforeSource = editor(previous),
+    afterSource = editor(next);
+  const sourceChanged =
+    previous.modelNamespace !== next.modelNamespace ||
+    previous.modelEpoch !== next.modelEpoch ||
+    previous.modelIdentity !== next.modelIdentity ||
+    previous.editions !== next.editions ||
+    previous.historyReview?.editionId !== next.historyReview?.editionId ||
+    beforeSource.graph !== afterSource.graph ||
+    beforeSource.viewport !== afterSource.viewport ||
+    beforeSource.revision !== afterSource.revision;
+  const choicesChanged =
+    previous.c4MappingReview?.choices !== next.c4MappingReview?.choices ||
+    previous.c4MappingReview?.memberships !== next.c4MappingReview?.memberships;
+  const protectionChanged = c4ReviewProtectionReason(previous) !== c4ReviewProtectionReason(next);
+  const visibilityChanged =
+    (previous.sidebarSection === 'c4mapping' && !previous.sidebarCollapsed) !==
+    (next.sidebarSection === 'c4mapping' && !next.sidebarCollapsed);
+  const staleConsent =
+    next.c4PlanConsent !== null && workbenchC4MappingReview(next).conversion.type !== 'consented';
+  if (
+    !invalid &&
+    !sourceChanged &&
+    !choicesChanged &&
+    !protectionChanged &&
+    !visibilityChanged &&
+    !staleConsent
+  )
+    return next;
+  return {
+    ...next,
+    c4PlanConsent:
+      invalid || sourceChanged || choicesChanged || protectionChanged || staleConsent
+        ? null
+        : next.c4PlanConsent,
+    c4PlanRun: previous.c4PlanRun === next.c4PlanRun ? next.c4PlanRun + 1 : next.c4PlanRun,
+  };
 }

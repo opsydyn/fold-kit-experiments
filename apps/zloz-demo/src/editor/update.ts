@@ -56,7 +56,12 @@ import {
   createC4ContainerGraph,
   createC4NestedContainerGraph,
 } from './c4-examples';
-import { updateC4MappingReview, reconcileC4MappingReview } from './c4-mapping-review';
+import {
+  updateC4MappingReview,
+  reconcileC4MappingReview,
+  updateC4Placement,
+  updateC4PlanAcknowledgement,
+} from './c4-mapping-review';
 import {
   ArrangeFlow,
   ExportZlozEditions,
@@ -146,7 +151,7 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
   );
 }
 
-export function update(model: Model, message: Message): Return<Model, Message> {
+function updateModel(model: Model, message: Message): Return<Model, Message> {
   if ((model.alchemyReview.review || model.alchemyReview.pending) && !alchemyAllowsMessage(message))
     return { model };
   if (
@@ -814,6 +819,21 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },
+    SelectedC4PlacementMember: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'MemberSelected' }),
+    }),
+    ChangedC4PlacementForm: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'FormChanged' }),
+    }),
+    ClickedC4PlacementReview: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'Reviewed' }),
+    }),
+    ClickedC4PlacementClear: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'Cleared' }),
+    }),
+    ClickedC4PlanAcknowledgement: (request) => ({
+      model: updateC4PlanAcknowledgement(model, request),
+    }),
     SelectedC4ReviewItem: (request) => ({
       model: updateC4MappingReview(model, { ...request, type: 'ItemSelected' }),
     }),
@@ -1587,9 +1607,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
   });
   const result = {
     ...outcome,
-    model: reconcileC4MappingReview(
-      reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
-    ),
+    model: reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
   };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
@@ -1614,4 +1632,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       }
     : result;
+}
+
+/** Reconcile every transition, including read-only/import branches that return early. */
+export function update(model: Model, message: Message): Return<Model, Message> {
+  const result = updateModel(model, message),
+    next = reconcileC4MappingReview(model, result.model);
+  return next === result.model ? result : { ...result, model: next };
 }

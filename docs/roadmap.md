@@ -976,7 +976,24 @@ placements and findings; consent is not Apply permission. See
 No target graph, Apply, receipt, UI/CLI operation, new wire schema or npm publication
 is introduced. D1b conversion/Apply and broader C/Q/R gates remain open.
 
-**Recommended next:** compose the plan's placement decisions, source provenance,
-blockers and exact loss acknowledgement in the workbench before adding guarded
-atomic Apply. Keep current source/policy/lifecycle rechecks and provenance receipts
-as separate transaction requirements.
+**D1b workbench plan/placement review — implemented locally (2026-11-14), unreleased:**
+The C4 sidebar now composes package plans and exact consent. Required-member
+selection, staged root/organization/contained placement and explicit Review expose
+package compatibility/blocker findings without selecting a parent automatically.
+Source provenance, exact plan losses and affirmative/revocable acknowledgement
+remain available in Minimal mode. A source/item scope, full plan key and host
+review generation reject stale or withdrawn callbacks, including same-key camera
+and read-only review round trips. Every update path reconciles review state,
+including early-return reader/import branches. Obsolete membership choices are
+pruned instead of resurrected when mappings return. Source model, ports, geometry,
+editions and Undo stay unchanged. Local production keyboard/light-dark/history
+captures and source/lineage comparisons qualify the bounded interaction path.
+See [ADR 0087](adr/0087-review-c4-placement-and-exact-losses.md) and
+[visual/test qualification](../apps/zloz-demo/evidence/c4-plan.md).
+No Apply, receipt, new package API/wire version, npm publishing or deployment.
+D1b atomic conversion and broader C/Q/R gates remain open.
+
+**Recommended next:** implement package-level guarded atomic C4 Apply with current
+source/session/revision, lifecycle, live policies, containment and exact consent
+checks, one Undo and retained provenance. Keep workbench publication and receipt
+review/download as the following integration slice.

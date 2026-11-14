@@ -5508,6 +5508,9 @@ proof of a human reviewer or permission to edit.
 Consented still does not authorize Apply. A later transaction must independently
 check live source/session/revision, lifecycle, policies, containment, exact loss
 consent and atomic Undo, then retain provenance. No Apply, receipt, CLI operation,
-workbench plan controls, publication or deployment is added here. See
-[ADR 0086](../../docs/adr/0086-plan-explicit-c4-conversion-and-containment.md) and
-[local qualification](evidence/event-storming-c4-conversion-plan.md).
+publication or deployment is added here. The Astro workbench now composes placement
+review, package blockers/provenance and exact loss acknowledgement in its C4 sidebar;
+the host owns ephemeral forms and callback generations. Apply remains unavailable.
+See [ADR 0086](../../docs/adr/0086-plan-explicit-c4-conversion-and-containment.md),
+[package qualification](evidence/event-storming-c4-conversion-plan.md) and
+[workbench visual evidence](../../apps/zloz-demo/evidence/c4-plan.md).

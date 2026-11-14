@@ -1,6 +1,7 @@
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { workbenchC4MappingReview, type C4MappingReviewForm } from './c4-mapping-review';
+import { c4PlanReviewPanel } from './c4-plan-review-view';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -8,6 +9,12 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
   const context = workbenchC4MappingReview(model),
     selected = context.selected;
   const document = context.preview.provenance.document;
+  const unresolved = context.items.filter(
+    (item) =>
+      item.decision.type === 'ambiguous' ||
+      item.decision.type === 'unmapped' ||
+      item.decision.type === 'blocked',
+  );
   const identity = { ...context.scope, key: selected?.key ?? '' };
   // Native control identity follows the reviewed item as optional meaning sections appear.
   const controlKey = `${context.scope.epoch}:${context.scope.revision}:${context.scope.editionId}:${selected?.key ?? ''}`;
@@ -57,7 +64,7 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
       h.p(
         [],
         [
-          'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Conversion and Apply are not available here.',
+          'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Review placements and exact plan losses below; no conversion or Apply is performed.',
         ],
       ),
       h.details(
@@ -257,19 +264,23 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
             ),
           ]
         : [h.p([], ['Open a workshop example from Diagram to review its C4 interpretations.'])]),
+      c4PlanReviewPanel(model, h, context),
       h.h3([], ['Unresolved C4 mappings']),
       h.ul(
         [h.AriaLabel('Unresolved C4 mappings')],
-        context.items
-          .filter(
-            (item) =>
-              item.decision.type === 'ambiguous' ||
-              item.decision.type === 'unmapped' ||
-              item.decision.type === 'blocked',
-          )
-          .map((item) => h.li([h.Key(item.key)], [`${item.label}: ${item.decision.reason}`])),
+        unresolved.length
+          ? unresolved.map((item) =>
+              h.li([h.Key(item.key)], [`${item.label}: ${item.decision.reason}`]),
+            )
+          : [h.li([h.Key('no-unresolved')], ['No unresolved mapping choices.'])],
       ),
       h.h3([], ['Prospective C4 semantic losses']),
+      h.p(
+        [],
+        [
+          'These mapping-preview findings precede placement review. Use Exact C4 plan losses above for acknowledgement.',
+        ],
+      ),
       ...(context.preview.disclosures.length
         ? [
             h.ul(

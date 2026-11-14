@@ -926,6 +926,23 @@ freshness and Undo. See [ADR 0083](adr/0083-qualify-workshop-portable-artwork.md
 [artifact/browser qualification](../apps/zloz-demo/evidence/workshop-export.md).
 This closes the portable workshop artwork slice, not D1b/C/Q/R or publication.
 
-**Recommended next:** define the headless EventStorming-to-C4 mapping preview:
-explicit system/container choices, source identity/provenance, ambiguities and loss
-reporting before any conversion or Apply. Do not infer runtime boundaries from lanes.
+**D1b headless C4 mapping preview — implemented locally (2026-11-14), unreleased:**
+`previewEventStormingC4Mapping` captures the complete source document, camera,
+editions, fork ancestry and host session/revision. Explicit choices propose C4
+node descriptors/names or plain communication labels; null retains source meaning.
+No defaults infer scope, runtime boundaries, protocols or causal equivalence.
+Ambiguous actor/external-system candidates remain advisory. Intent/facts/policies,
+lanes and hotspots remain unmapped until explicitly interpreted or retained.
+Existing node-kind rules and authored C4 endpoint checks apply. Loss disclosures
+cover reserved meaning, authored status, organizational frames/membership, labels
+and descriptions. Output is immutable source-ordered review data, with no graph,
+editor event, consent token or Apply operation. See
+[ADR 0084](adr/0084-preview-eventstorming-to-c4-mapping.md) and
+[package qualification](../packages/foldkit-zloz/evidence/event-storming-c4-preview.md).
+This closes the approved preview slice, not D1b conversion/containment, C/Q/R or
+publication. No new edge schema, wire version, runtime dependency or npm publishing.
+
+**Recommended next:** compose the C4 mapping review in the workbench with explicit
+choices, source provenance, ambiguities and prospective losses. Keep conversion
+planning/containment resolution, exact-plan consent and guarded atomic Apply as
+separately scoped follow-ups.

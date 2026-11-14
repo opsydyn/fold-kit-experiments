@@ -650,3 +650,16 @@ export type {
   ZlozWorkshopDecision,
 } from './workshop-controls';
 export { createEventStormingWorkshopPattern } from './workshop-pattern';
+
+export { previewEventStormingC4Mapping } from './event-storming-c4-preview';
+export type {
+  ZlozEventStormingC4Source,
+  ZlozEventStormingC4NodeChoice,
+  ZlozEventStormingC4Relationship,
+  ZlozEventStormingC4EdgeChoice,
+  ZlozEventStormingC4MappingOptions,
+  ZlozEventStormingC4NodePreview,
+  ZlozEventStormingC4EdgePreview,
+  ZlozEventStormingC4Disclosure,
+  ZlozEventStormingC4Preview,
+} from './event-storming-c4-preview';

@@ -5340,3 +5340,70 @@ adds rasterization loss and retains the existing pixel/byte budgets and cancella
 No separate workshop raster renderer is required. Canonical models and Undo remain
 unchanged. See [ADR 0083](../../docs/adr/0083-qualify-workshop-portable-artwork.md) and
 [local SVG/PNG evidence](../../apps/zloz-demo/evidence/workshop-export.md).
+
+### Headless EventStorming-to-C4 mapping preview (unreleased)
+
+`previewEventStormingC4Mapping` returns immutable advisory review data from a model
+document plus host-owned session/revision. It preserves the complete source,
+including camera, editions and fork ancestry. It returns no converted graph,
+editor events, consent token or Apply operation.
+
+```ts
+import { previewEventStormingC4Mapping } from '@opsydyn/foldkit-zloz';
+
+const preview = previewEventStormingC4Mapping(
+  { document: workshopDocument, sessionId: 'workshop-tab:1', revision: editor.revision },
+  {
+    nodes: [
+      {
+        nodeId: 'provider',
+        architecture: { family: 'c4', role: 'software-system', scope: 'external' },
+      },
+      {
+        nodeId: 'request',
+        label: 'Payments API',
+        architecture: { family: 'c4', role: 'container', technology: 'HTTP' },
+      },
+      { nodeId: 'retry-question', architecture: null }, // Explicit retention.
+    ],
+    edges: [
+      {
+        edgeId: 'provider-handles',
+        relationship: { label: 'Requests payment authorization' },
+      },
+      { edgeId: 'provider-emits', relationship: null },
+    ],
+  },
+);
+```
+
+All mappings are explicit. Actors and external systems return non-exhaustive
+ambiguous candidates; scope is never inferred from workshop externality. Commands,
+events and policies do not identify a runtime structure. Hotspots and lanes remain
+unmapped until explicitly reinterpreted or retained. Existing kind/portless group
+contracts still apply: a lane can be explicitly considered as a software-system or
+container frame, never silently turned into a person/component. Optional labels
+name a structural interpretation; omitted descriptions preserve authored prose.
+
+`nodes` and incident `edges` remain in source order. Unrelated C4/DDD nodes and
+nonincident relationships are not remapped. Null explicitly retains source meaning
+and claims no C4 compatibility. An explicit communication label requires both
+endpoints to have explicit C4 proposals or existing authored C4 meaning; otherwise
+its preview is blocked. A causal label or compatible endpoints never infer a
+communication. Relationship choices are plain label projections, not a new reserved
+C4 edge descriptor, inferred protocol or correctness check. Source direction and
+endpoint/port IDs are retained in provenance.
+
+`disclosures` identify prospective replacement of reserved workshop/relationship
+meaning, hotspot open/resolved status, organizational lane meaning, grouping,
+labels and descriptions. Source membership is not validated C4 containment. Read
+all unresolved choices and losses; the function neither drops notes nor authorizes
+conversion. Invalid, duplicate, unknown, nonincident or kind-incompatible choices
+throw `ZlozError`. Source and choices are detached/frozen without freezing inputs.
+
+Recompute after model/session/revision/choice changes. Provenance is review data,
+not permission or evidence of a human actor. Future conversion planning must
+separately resolve containment, exact-plan consent, live policies and atomic Undo.
+No workbench controls or CLI conversion are added here. See
+[ADR 0084](../../docs/adr/0084-preview-eventstorming-to-c4-mapping.md) and
+[local qualification](evidence/event-storming-c4-preview.md).

@@ -1,7 +1,6 @@
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -14,7 +13,7 @@ const routeLabel = (model: Model): string =>
     : 'Diagnostics index';
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const histogram: Html = Histogram.view(
+  const histogram: Html = PlotPanel.view(
     {
       model: model.histogram,
       toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
@@ -22,7 +21,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     },
     h,
   );
-  const scatter: Html = Scatter.view(
+  const scatter: Html = PlotPanel.view(
     {
       model: model.scatter,
       toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),

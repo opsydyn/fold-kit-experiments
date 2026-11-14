@@ -216,7 +216,10 @@ charts in all three apps.
 
 - One-frame repainting of a million points: WebGL points, or a highlight layer
   that repaints only the brushed points.
-- Arrow and DuckDB column input, and streaming appends.
+- Arrow and DuckDB column input, and streaming appends. Polars fits through Arrow;
+  [assessment](superpowers/specs/2026-11-14-polars-assessment.md) with measurements.
+- A JSON Schema for plot specs, so Rust and Python programs (such as Polars users)
+  can emit checked specs.
 - SVG and PNG export, and themes beyond light and dark.
 - A Jupyter widget that renders the JSON spec.
 - Three-dimensional surfaces and scatter through effect-three.

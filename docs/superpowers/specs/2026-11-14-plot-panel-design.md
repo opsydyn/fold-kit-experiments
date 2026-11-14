@@ -57,3 +57,17 @@ the library's pure helpers: `compilePlot`, `indexPlot`, `invertAxis`,
 The three reference apps use `ui/plot-panel`; `ui/histogram-chart` and
 `ui/scatter-chart` are removed; their behaviour (hover linking, brushing,
 filtering, keyboard navigation) is covered by tests against the new child.
+
+## Outcome, 2026-11-14
+
+- Implemented as designed. A press that starts a brush is visible to the parent
+  as the panel's `drag` becoming set, which request diagnostics turns into its
+  machine's `StartedSelection`.
+- Pointer input first went through a Mount stream. The comparison scene tests
+  showed a key press could then overtake an earlier pointer move, so moves and
+  presses are re-dispatched as a synchronous DOM event instead, as the old
+  scatter did. Leaves and releases use the ordinary handlers.
+- A hovered dot is ringed rather than dimming the other dots, so a parent's
+  linked highlight stays visible; a hovered bar dims the others.
+- The panel needs no width observer: its SVG scales to its box, and pointer
+  positions convert through the rendered box.

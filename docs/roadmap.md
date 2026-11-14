@@ -185,9 +185,32 @@ highlight layer, which moves to Later.
 showcase primitives rather than charts (easing curves, colour spaces and
 phyllotaxis), and `apps/web/src/ui` holds no chart modules.
 Met, with the exception 0.21.0 recorded: `histogram-chart` and `scatter-chart`
-remain for the linked-charts, request-diagnostics and comparison reference apps.
+remained for the linked-charts, request-diagnostics and comparison reference apps.
+They are now removed too; see "Reference apps on plot panels" below.
 Also fixed along the way: world maps no longer draw a stripe where a country
 crosses the antimeridian.
+
+### Reference apps on plot panels
+
+[Design](superpowers/specs/2026-11-14-plot-panel-design.md).
+
+- [x] `ui/plot-panel` in the web app: one interactive child over any plot spec.
+      Hovering a dot reports the point, hovering a bar reports its exact bin
+      range, arrow keys step through targets, and a drag on a continuous x axis
+      selects a range. Parents pass `highlight` and `emphasis` back as view props.
+      It is focusable, announces the active target and lists every target in a
+      hidden table. Its pointer facts reach the dispatcher synchronously, so they
+      keep their order with key presses and leaves.
+- [x] Linked charts, request diagnostics and comparison compose plot panels,
+      keeping their parent-owned inspection, brushing and machine states.
+- [x] `ui/histogram-chart`, `ui/scatter-chart` and the shared helpers only they
+      used are removed.
+
+**Exit criteria:** every chart in the web app comes from the grammar.
+Met: `apps/web/src/ui` holds the plot panel, the carousel, and the three demos
+that show primitives rather than charts (easing curves, colour spaces and
+phyllotaxis). Checked in Chromium on 2026-11-14: hovering and brushing link the
+charts in all three apps.
 
 ### Later — Reach
 

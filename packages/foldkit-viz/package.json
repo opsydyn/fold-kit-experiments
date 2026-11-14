@@ -449,7 +449,9 @@
     "test": "bun test",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "api:report": "bun ../../tools/api-surface.ts",
+    "api:check": "bun ../../tools/api-surface.ts --check"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

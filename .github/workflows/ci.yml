@@ -47,6 +47,12 @@ jobs:
       - name: Build workspace
         run: bun run build
 
+      - name: Public API reports are up to date
+        run: |
+          bun run --filter @opsydyn/foldkit-viz build
+          bun run --filter @opsydyn/foldkit-viz api:check
+          bun run --filter @opsydyn/astro-foldkit api:check
+
   effect-three:
     runs-on: ubuntu-latest
     steps:

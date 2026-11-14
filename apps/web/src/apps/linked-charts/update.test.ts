@@ -133,3 +133,43 @@ it('emits data-domain inspection facts from the chart panels', () => {
     PlotPanel.update(model.histogram, PlotPanel.Message.HoveredTarget({ index: 0 })).outMessage,
   ).toEqual({ _tag: 'InspectedRange', domain: bin?.domain, includeEnd: false });
 });
+
+describe('linked updates under any input sequence', () => {
+  // Seeded, so a failure replays: 200 sequences of 25 scatter and histogram inputs.
+  const random = (seed: number) => () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 0xffffffff;
+  };
+
+  it('keeps the histogram on the bin holding the inspected point, or on none', () => {
+    const commands = [
+      { _tag: 'Step', by: 1 },
+      { _tag: 'Step', by: -1 },
+      { _tag: 'Jump', to: 'first' },
+      { _tag: 'Jump', to: 'last' },
+      { _tag: 'Clear' },
+    ] as const;
+    for (let run = 0; run < 200; run += 1) {
+      const next = random(run + 1);
+      let model = initialModel();
+      const points = PlotPanel.targetsOf(model.scatter).length;
+      for (let step = 0; step < 25; step += 1) {
+        const pick = next();
+        const message =
+          pick < 0.4
+            ? PlotPanel.Message.HoveredTarget({ index: Math.floor(next() * points) })
+            : pick < 0.55
+              ? PlotPanel.Message.BlurredTarget()
+              : PlotPanel.Message.PressedKeyNav({
+                  command: commands[Math.floor(next() * commands.length)] ?? commands[0],
+                });
+        model = update(model, Message.ReceivedScatterMessage({ message })).model;
+        const inspection = Option.getOrUndefined(model.inspection);
+        if (inspection?._tag === 'Point') {
+          const point = POINTS.find((p) => p.id === inspection.key);
+          expect(model.histogram.active).toEqual(binHolding(model.histogram, point?.y ?? NaN));
+        } else expect(model.histogram.active).toEqual(Option.none());
+      }
+    }
+  });
+});

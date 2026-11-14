@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add standalone v2 strict/loose connection documents, a shared port-kind matrix and explicit downgrade review. Legacy v1 codecs/editors remain strict; loose editor adoption is separate.
+
 - Add composable native external-system/hotspot/lane renderers, semantic status descriptions, scoped theme accents, live workshop role/status controls and a reusable starter. Guard port additions to portless annotations/frames; demonstrate keyboard, protection, diagnostics and Undo in the workbench.
 
 - Define headless EventStorming external-system participants, portless hotspot annotations with authored status and organizational lane groups; add strict codecs, semantic projection and opt-in workshop conventions while preserving default packet compatibility and explicit renderer/export limits.

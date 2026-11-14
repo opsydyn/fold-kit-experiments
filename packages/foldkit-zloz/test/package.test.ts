@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 import elkManifest from '../../foldkit-zloz-elk/package.json';
 import coreManifest from '../package.json';
+import connectionWire from './fixtures/connection-v2-loose.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
 import workshopWire from './fixtures/workshop-v1.json';
@@ -67,6 +68,7 @@ import { createEventStormingWorkshopPattern, resolveEventStormingWorkshopControl
 import { writeSvgExport, type ZlozSvgPrimitive, type ZlozSvgAdapter, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
+import { resolveConnectionPortPair, parseConnectionDocument, serializeConnectionDocument, captureConnectionDocument, planConnectionDocumentDowngrade, type ZlozConnectionDocument, type ZlozConnectionMode } from '@opsydyn/foldkit-zloz';
 import { parseEventStormingC4Conversion, serializeEventStormingC4Conversion, applyEventStormingC4Conversion, type ZlozEventStormingC4ApplyResult, createEventStormingC4ConversionPlan, resolveEventStormingC4ConversionConsent, type ZlozEventStormingC4ConversionOptions, type ZlozEventStormingC4ConversionPlan, type ZlozEventStormingC4LossConsent, type ZlozEventStormingC4MembershipDecision } from '@opsydyn/foldkit-zloz';
 import { previewEventStormingC4Mapping, type ZlozEventStormingC4Source, type ZlozEventStormingC4Preview } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
@@ -87,6 +89,12 @@ const packedWorkshopRequest:ZlozWorkshopRequest={...packedWorkshopContext.scope!
 const packedWorkshopDecision=resolveEventStormingWorkshopRequest(packedWorkshopEditor,'retry-question',packedWorkshopRequest);
 if(packedWorkshopDecision.type!=='ready'||updateEditor(packedWorkshopEditor,packedWorkshopDecision.event).past.length!==1)throw new Error('Packed workshop controls lost Undo');
 const packedWorkshop=parseWaypointGraph(${JSON.stringify(JSON.stringify(workshopWire))});
+const packedConnection:ZlozConnectionDocument=parseConnectionDocument(${JSON.stringify(JSON.stringify(connectionWire))});
+if(packedConnection.connectionMode!=='loose'||planConnectionDocumentDowngrade(packedConnection).type!=='blocked'||parseConnectionDocument(serializeConnectionDocument(packedConnection)).graph.nodes[0]?.ports[0]?.kind!=='input')throw new Error('Packed v2 connection contract failed');
+if(resolveConnectionPortPair({mode:'loose',sourceKind:'input',targetKind:'input'}).type!=='compatible'||resolveConnectionPortPair({sourceKind:'input',targetKind:'input'}).type!=='incompatible')throw new Error('Packed mode matrix failed');
+const packedStrict=captureConnectionDocument({graph:{nodes:[],edges:[]}});if(packedStrict.connectionMode!=='strict')throw new Error('Default mode changed');
+// @ts-expect-error Future mode is not silently accepted by the versioned contract.
+const futureMode:ZlozConnectionMode='future';void futureMode;
 const packedC4Source:ZlozEventStormingC4Source={document:{id:'packed-workshop',name:'Workshop',snapshot:{graph:packedWorkshop},editions:[],origin:null},sessionId:'consumer:1',revision:0};
 const packedC4Preview:ZlozEventStormingC4Preview=previewEventStormingC4Mapping(packedC4Source,{nodes:[{nodeId:'system',architecture:{family:'c4',role:'software-system',scope:'external'}}]});
 const packedC4Options:ZlozEventStormingC4ConversionOptions={mappings:{nodes:packedWorkshop.nodes.map(n=>n.id==='system'?{nodeId:n.id,architecture:{family:'c4' as const,role:'software-system' as const}}:{nodeId:n.id,architecture:null}),edges:packedWorkshop.edges.map(e=>({edgeId:e.id,relationship:null}))},memberships:[{nodeId:'system',placement:{type:'organization'}}]};

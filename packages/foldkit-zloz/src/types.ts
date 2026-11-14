@@ -151,7 +151,7 @@ export type ZlozEdgeWaypointEditDecision =
   | Readonly<{ type: 'blocked'; reason: string }>
   | Readonly<{ type: 'allowed'; edge: ZlozEdge }>;
 
-/** A directed output-to-input connection with stable identity and JSON-compatible metadata. */
+/** Ordered endpoints with stable identity and JSON metadata. Legacy graph/editor APIs require output→input; explicit v2 connection documents own their port-kind mode. */
 export type ZlozEdge = Readonly<{
   id: string;
   source: Endpoint;

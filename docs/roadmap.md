@@ -150,7 +150,9 @@ and [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-a
 which retain their original source/evidence baselines. E1–E3/P1–P2 and the approved
 D1a workshop, D1b C4 mapping/Apply/portable-receipt/CLI and D2 authored-DDD-audit
 chains are locally implemented within documented limits. C1–C4 scope decisions,
-Q1–Q4 qualification and R1 release guard remain distinct open gates.
+Q1–Q4 qualification and R1 release guard remain distinct open gates. The approved
+C1 headless v2 contract is now recorded below; editor and portable adoption remain
+open, and the linked assessment retains its dated source baseline.
 
 The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
 is a historical gap analysis, not a current inventory. Full React Flow parity,
@@ -1059,8 +1061,20 @@ scope/qualification gates and corrects the batch-transaction gap: modelling patc
 already support atomic multi-operation edits. No runtime or manifest change,
 new scope exclusion, publishing or deployment is authorized.
 
-**Recommended next:** opt-in loose connection semantics at package level, beginning
-with a headless persisted-mode/wire-compatibility contract and literal strict/loose
-endpoint fixtures. Preserve strict defaults, ordered edge meaning and live policies;
-do not hide a changed graph invariant in view callbacks. This recommendation needs
-feature approval; it does not start implementation or accept the other deferrals.
+**C1 headless mode/wire contract — implemented locally (2026-11-14), unreleased:**
+`resolveConnectionPortPair` defines strict defaults and explicit loose input/output
+kind compatibility without granting permission. Dedicated capture/parse/serialize
+APIs persist v2 connection documents and retain authored data/camera; existing v1
+codecs and editors remain strict. Legacy structural/connection validation now share
+the strict matrix. Explicit downgrade planning blocks loose-only edges without a
+partial snapshot or reports loose-mode removal before saving a strict-compatible
+snapshot. Pinned pre-mode Node/Bun code rejects v2 and retains v1 editing/Undo.
+See [ADR 0092](adr/0092-stage-explicit-v2-connection-documents.md) and
+[qualification](../packages/foldkit-zloz/evidence/connection-v2.md). This is not loose
+editor, model/archive, patch/receipt, layout, Mermaid/CLI or UI adoption; C1 remains
+partial and C2–C4/Q/R are unchanged. No publication or deployment.
+
+**Recommended next:** package-owned headless editor adoption of the explicit mode,
+starting with initialization and creation/reconnection proposals/commits, current
+source/lifecycle/per-port/edge checks and one Undo. Define source/history and
+portable-boundary behavior explicitly before native/custom interaction controls.

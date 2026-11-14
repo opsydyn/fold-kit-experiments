@@ -1,4 +1,5 @@
 import { validNodeArchitectureFields, isEdgeArchitecture } from './architecture';
+import { resolveConnectionPortPair, type ZlozConnectionMode } from './connection-mode';
 import { validEdgeWaypoints } from './edge-waypoints';
 import type {
   Endpoint,
@@ -197,8 +198,14 @@ function unique(ids: readonly string[], kind: string): void {
   if (new Set(ids).size !== ids.length)
     throw new ZlozError('invalid-graph', `Duplicate ${kind} ID`);
 }
-/** Identity, finite dimensions, JSON payloads and directed ports. Cycles are allowed. */
+/** Legacy v1 graph/editor invariant. Cycles are allowed; connections remain output→input. */
 export function validateGraph(graph: ZlozGraph): void {
+  validateGraphForConnectionMode(graph, 'strict');
+}
+/** @internal Shared structural validation. Only the v2 document boundary may select another mode. */
+export function validateGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): void {
+  if (mode !== 'strict' && mode !== 'loose')
+    throw new ZlozError('invalid-graph', 'Unsupported connection mode');
   if (!isGraph(graph))
     throw new ZlozError(
       'invalid-graph',
@@ -240,10 +247,15 @@ export function validateGraph(graph: ZlozGraph): void {
   for (const edge of graph.edges) {
     const source = nodes.get(edge.source.node)?.ports.find((port) => port.id === edge.source.port);
     const target = nodes.get(edge.target.node)?.ports.find((port) => port.id === edge.target.port);
-    if (source?.kind !== 'output' || target?.kind !== 'input')
+    if (
+      resolveConnectionPortPair({ mode, sourceKind: source?.kind, targetKind: target?.kind })
+        .type === 'incompatible'
+    )
       throw new ZlozError(
         'invalid-graph',
-        `Edge ${edge.id} requires an existing output and input port`,
+        mode === 'strict'
+          ? `Edge ${edge.id} requires an existing output and input port`
+          : `Edge ${edge.id} requires existing source and target ports`,
       );
   }
 }
@@ -271,7 +283,8 @@ export function parseGraph(text: string): ZlozGraph {
   return parseDocument(text).graph;
 }
 
-function assertDocumentViewport(value: unknown): asserts value is Viewport {
+/** @internal Shared camera validator for explicit document versions. */
+export function assertDocumentViewport(value: unknown): asserts value is Viewport {
   if (
     !isPoint(value) ||
     !('zoom' in value) ||

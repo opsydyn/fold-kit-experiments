@@ -5570,3 +5570,53 @@ inside these pure functions. File hosts should bound bytes before fatal UTF-8 de
 The workbench uses a single-file 5 MiB limit, validated download and detached read-only
 before/after reopening. See [ADR 0090](../../docs/adr/0090-validate-portable-c4-conversion-receipts.md).
 See [ADR 0088](../../docs/adr/0088-apply-c4-conversion-atomically.md).
+
+### Explicit v2 connection documents (headless contract)
+
+`resolveConnectionPortPair({ sourceKind, targetKind, mode? })` reports port-kind
+compatibility. The default is `strict` (output→input). `loose` accepts any existing
+input/output pair, preserving ordered source and target endpoints. Missing ports
+or unsupported modes are incompatible. This result does not check IDs, duplicates,
+lifecycle, per-port/edge policies or permission to edit. Loose is not a symmetric
+relationship and does not change DDD or causal meaning.
+
+Standalone v2 documents persist an explicit `connectionMode`, authored graph and
+optional camera. Use the dedicated APIs:
+
+```ts
+const strict = captureConnectionDocument(parseSnapshot(legacyV1Json));
+const loose = captureConnectionDocument({
+  graph: authoredGraph,
+  viewport: { x: 0, y: 0, zoom: 1 },
+  connectionMode: 'loose',
+});
+const json = serializeConnectionDocument(loose); // Always version 2.
+const reopened = parseConnectionDocument(json); // Detached and deeply frozen.
+const downgrade = planConnectionDocumentDowngrade(reopened);
+```
+
+`captureConnectionDocument` defaults to strict when its input omits the mode and
+preserves an existing explicit mode when recapturing a v2 document. Text decoding
+requires version 2 and a known mode; it never infers one from endpoints. Supported
+node/edge data, ordered identities, geometry, ports, parent constraints and camera
+are retained. Existing portless-group/world-coordinate/uniqueness/finite-data rules
+remain. The envelope, graph-level fields and camera fields reject unknown keys.
+Typed records are revalidated before encoding so corrupt nonfinite data cannot
+silently become JSON null. These pure codecs have no host byte/time limit.
+
+Downgrade is **review planning**, not saving or Apply. A `blocked` plan lists
+incompatible edge IDs and has no partial snapshot. A `reviewable` plan contains a
+prospective strict v1 snapshot plus loss findings. Loose mode always discloses
+`loose-mode-removed`, even when its current edges fit v1: future authoring semantics
+would change. Review that loss before explicitly using `serializeSnapshot` on the
+prospective snapshot. No ports are fabricated or retyped.
+
+This first slice does **not** enable loose editing in `createEditor`, native views,
+model/edition archives, patches, receipts, layout, Mermaid or the CLI. Existing
+`parseGraph`/`parseSnapshot` readers remain v1-only and reject v2. Other existing
+APIs retain strict semantics: do not unwrap v2 data into them expecting mode
+preservation. New editor/portable integration needs the explicit mode, live checks,
+source/history handling and one Undo before interaction controls can follow.
+See [ADR 0092](../../docs/adr/0092-stage-explicit-v2-connection-documents.md) and
+[headless compatibility evidence](evidence/connection-v2.md). C1 remains partial;
+no npm publishing or deployment is part of this contract slice.

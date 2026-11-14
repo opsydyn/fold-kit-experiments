@@ -1,5 +1,12 @@
 # Zloz core roadmap and compatibility reconciliation
 
+Delivery follow-up: the approved C1 headless strict/loose mode and standalone v2
+wire contract is implemented locally; see [ADR 0092](../adr/0092-stage-explicit-v2-connection-documents.md)
+and [qualification](../../packages/foldkit-zloz/evidence/connection-v2.md).
+This assessment retains its `7fa7b3d9` inventory. C1 remains partial: headless editor
+adoption, portable integration and native/custom controls are separate next work;
+C2–C4/Q/R decisions are unchanged.
+
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.
 - evidence: public exports, validators, adapters, literal/consumer tests, ADRs 0078–0091 and linked local receipts; official comparison references checked on 2026-11-14; verification results below.

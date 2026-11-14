@@ -1,3 +1,4 @@
+import { resolveConnectionPortPair } from './connection-mode';
 import type { EdgeEnd, EditorPolicy, Endpoint, ZlozEdge, ZlozGraph, Port } from './types';
 
 type Replacement = Readonly<{ id: string; end: EdgeEnd }>;
@@ -19,7 +20,10 @@ function resolveReason(
   remainingGraph: () => ZlozGraph,
   duplicate: (edge: ZlozEdge, remaining: ZlozGraph) => boolean,
 ) {
-  if (kind(edge.source) !== 'output' || kind(edge.target) !== 'input')
+  if (
+    resolveConnectionPortPair({ sourceKind: kind(edge.source), targetKind: kind(edge.target) })
+      .type === 'incompatible'
+  )
     return 'Choose a compatible port.';
   const sourceReason =
     replaced?.end === 'target' ? null : policy.canConnectPort?.(edge.source, graph);

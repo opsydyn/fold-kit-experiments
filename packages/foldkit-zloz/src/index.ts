@@ -694,3 +694,22 @@ export type {
   ZlozEventStormingC4ApplyPolicy,
   ZlozEventStormingC4ApplyResult,
 } from './event-storming-c4-apply';
+
+export { resolveConnectionPortPair } from './connection-mode';
+export type {
+  ZlozConnectionMode,
+  ZlozConnectionPortPair,
+  ZlozConnectionPortPairDecision,
+} from './connection-mode';
+export {
+  captureConnectionDocument,
+  parseConnectionDocument,
+  serializeConnectionDocument,
+  planConnectionDocumentDowngrade,
+} from './connection-document';
+export type {
+  ZlozConnectionDocument,
+  ZlozConnectionDocumentInput,
+  ZlozConnectionDowngradePlan,
+  ZlozConnectionDowngradeLoss,
+} from './connection-document';

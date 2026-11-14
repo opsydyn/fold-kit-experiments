@@ -1,0 +1,215 @@
+{
+  "format": "foldkit-zloz-model",
+  "version": 2,
+  "document": {
+    "id": "orders",
+    "name": "Orders",
+    "snapshot": {
+      "version": 2,
+      "connectionMode": "strict",
+      "graph": {
+        "nodes": [
+          {
+            "id": "a",
+            "label": "A",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "width": 200,
+              "height": 100
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ]
+          },
+          {
+            "id": "b",
+            "label": "B",
+            "position": {
+              "x": 300,
+              "y": 0
+            },
+            "size": {
+              "width": 200,
+              "height": 100
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "e",
+            "source": {
+              "node": "a",
+              "port": "out"
+            },
+            "target": {
+              "node": "b",
+              "port": "in"
+            }
+          }
+        ]
+      },
+      "viewport": {
+        "x": 1,
+        "y": 2,
+        "zoom": 1
+      }
+    },
+    "editions": [
+      {
+        "id": "first",
+        "name": "First",
+        "snapshot": {
+          "version": 2,
+          "connectionMode": "loose",
+          "graph": {
+            "nodes": [
+              {
+                "id": "a",
+                "label": "A",
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ]
+              },
+              {
+                "id": "b",
+                "label": "B",
+                "position": {
+                  "x": 300,
+                  "y": 0
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "id": "e",
+                "source": {
+                  "node": "a",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "b",
+                  "port": "in"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "origin": {
+      "modelId": "parent",
+      "modelName": "Parent",
+      "edition": {
+        "id": "seed",
+        "name": "Seed",
+        "snapshot": {
+          "version": 2,
+          "connectionMode": "loose",
+          "graph": {
+            "nodes": [
+              {
+                "id": "a",
+                "label": "A",
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "out",
+                    "kind": "output",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ]
+              },
+              {
+                "id": "b",
+                "label": "B",
+                "position": {
+                  "x": 300,
+                  "y": 0
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "in",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "id": "e",
+                "source": {
+                  "node": "a",
+                  "port": "out"
+                },
+                "target": {
+                  "node": "b",
+                  "port": "in"
+                }
+              }
+            ]
+          },
+          "viewport": {
+            "x": 3,
+            "y": 4,
+            "zoom": 2
+          }
+        }
+      }
+    }
+  }
+}

@@ -713,3 +713,24 @@ export type {
   ZlozConnectionDowngradePlan,
   ZlozConnectionDowngradeLoss,
 } from './connection-document';
+
+export {
+  captureEditionV2,
+  parseEditionsV2,
+  serializeEditionsV2,
+  captureModelDocumentV2,
+  parseModelDocumentV2,
+  serializeModelDocumentV2,
+  upgradeEditionsToV2,
+  upgradeModelDocumentToV2,
+  planEditionsV2Downgrade,
+  planModelDocumentV2Downgrade,
+} from './model-document-v2';
+export type {
+  ZlozEditionV2,
+  ZlozModelOriginV2,
+  ZlozModelDocumentV2,
+  ZlozV2DowngradeFinding,
+  ZlozModelV2DowngradePlan,
+  ZlozEditionsV2DowngradePlan,
+} from './model-document-v2';

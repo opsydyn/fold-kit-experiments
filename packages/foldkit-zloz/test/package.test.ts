@@ -12,6 +12,7 @@ import coreManifest from '../package.json';
 import connectionWire from './fixtures/connection-v2-loose.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
+import modelModesWire from './fixtures/model-v2-modes.json';
 import workshopWire from './fixtures/workshop-v1.json';
 
 const exec = promisify(execFile);
@@ -68,7 +69,7 @@ import { createEventStormingWorkshopPattern, resolveEventStormingWorkshopControl
 import { writeSvgExport, type ZlozSvgPrimitive, type ZlozSvgAdapter, planSvgExport, type ZlozSvgExportOptions } from '@opsydyn/foldkit-zloz';
 import { resolvePlacementControls, updatePlacementControls, createPlacement, updatePlacement, resolvePlacement, applyPlacement, type ZlozPlacementContext, type ZlozPlacementSource } from '@opsydyn/foldkit-zloz';
 import { resolveEdgeWaypointControls, resolveEdgeWaypointPreview, resolveEdgeWaypointEdit, type ZlozEdgeWaypoint, type ZlozEdgeWaypointEdit, type ZlozEdgeWaypointEditDecision, serializeGraph as serializeWaypointGraph, parseGraph as parseWaypointGraph, edgePath as waypointPath } from '@opsydyn/foldkit-zloz';
-import { resolveConnectionPortPair, parseConnectionDocument, serializeConnectionDocument, captureConnectionDocument, planConnectionDocumentDowngrade, createEditorFromConnectionDocument, type ZlozConnectionDocument, type ZlozConnectionMode } from '@opsydyn/foldkit-zloz';
+import { resolveConnectionPortPair, parseConnectionDocument, serializeConnectionDocument, captureConnectionDocument, planConnectionDocumentDowngrade, createEditorFromConnectionDocument, captureEditionV2, parseModelDocumentV2, serializeModelDocumentV2, parseEditionsV2, serializeEditionsV2, planModelDocumentV2Downgrade, type ZlozModelDocumentV2, type ZlozEditionV2, type ZlozConnectionDocument, type ZlozConnectionMode } from '@opsydyn/foldkit-zloz';
 import { parseEventStormingC4Conversion, serializeEventStormingC4Conversion, applyEventStormingC4Conversion, type ZlozEventStormingC4ApplyResult, createEventStormingC4ConversionPlan, resolveEventStormingC4ConversionConsent, type ZlozEventStormingC4ConversionOptions, type ZlozEventStormingC4ConversionPlan, type ZlozEventStormingC4LossConsent, type ZlozEventStormingC4MembershipDecision } from '@opsydyn/foldkit-zloz';
 import { previewEventStormingC4Mapping, type ZlozEventStormingC4Source, type ZlozEventStormingC4Preview } from '@opsydyn/foldkit-zloz';
 import { applyEventStormingDddConversion, serializeEventStormingDddConversion, parseEventStormingDddConversion, type ZlozEventStormingDddConversion, createEventStormingDddConversionPlan, resolveEventStormingDddConversionConsent, type ZlozEventStormingDddLossConsent, previewEventStormingDddMapping, type ZlozEventStormingDddPreview, resolveDddRelationshipControls, resolveDddRelationshipRequest, type ZlozDddRelationshipRequest, createContextMapPattern, resolveContextMapRelationship, resolveDddRelationship, dddRelationshipPolicy, isDddEdgeArchitecture, type DddEdgeArchitecture } from '@opsydyn/foldkit-zloz';
@@ -89,6 +90,11 @@ const packedWorkshopRequest:ZlozWorkshopRequest={...packedWorkshopContext.scope!
 const packedWorkshopDecision=resolveEventStormingWorkshopRequest(packedWorkshopEditor,'retry-question',packedWorkshopRequest);
 if(packedWorkshopDecision.type!=='ready'||updateEditor(packedWorkshopEditor,packedWorkshopDecision.event).past.length!==1)throw new Error('Packed workshop controls lost Undo');
 const packedWorkshop=parseWaypointGraph(${JSON.stringify(JSON.stringify(workshopWire))});
+const canonicalV2:ZlozModelDocumentV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(modelModesWire))});
+const canonicalEdition:ZlozEditionV2=captureEditionV2(canonicalV2.editions[0]!);
+if(canonicalEdition.snapshot.connectionMode!=='loose'||parseModelDocumentV2(serializeModelDocumentV2(canonicalV2)).origin?.edition.snapshot.connectionMode!=='loose'||parseEditionsV2(serializeEditionsV2([canonicalEdition]))[0]?.snapshot.connectionMode!=='loose'||planModelDocumentV2Downgrade(canonicalV2).findings.length!==2)throw new Error('Canonical v2 lost checkpoint mode or downgrade findings');
+// @ts-expect-error A checkpoint mode must be explicit in the canonical v2 contract.
+const missingCanonicalMode:ZlozEditionV2={id:'bad',name:'Bad',snapshot:{version:2,graph:{nodes:[],edges:[]}}};void missingCanonicalMode;
 const packedConnection:ZlozConnectionDocument=parseConnectionDocument(${JSON.stringify(JSON.stringify(connectionWire))});
 if(packedConnection.connectionMode!=='loose'||planConnectionDocumentDowngrade(packedConnection).type!=='blocked'||parseConnectionDocument(serializeConnectionDocument(packedConnection)).graph.nodes[0]?.ports[0]?.kind!=='input')throw new Error('Packed v2 connection contract failed');
 if(resolveConnectionPortPair({mode:'loose',sourceKind:'input',targetKind:'input'}).type!=='compatible'||resolveConnectionPortPair({sourceKind:'input',targetKind:'input'}).type!=='incompatible')throw new Error('Packed mode matrix failed');

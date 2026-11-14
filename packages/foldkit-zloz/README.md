@@ -5678,8 +5678,7 @@ qualification; broader accessibility and device acceptance remain open.
 
 Save with `captureConnectionDocument(editor)` to retain mode and camera. Public
 v1 graph/snapshot codecs, model/edition archives, patches/receipts, layout and
-Mermaid/CLI contracts have not adopted v2. Extracting a raw graph or passing an
-editor to a legacy serializer can lose mode when its edges fit strict rules;
+Mermaid/CLI contracts have not adopted v2. Extracting a raw graph can lose mode when its edges fit strict rules;
 explicit downgrade review remains required. C1 remains partial.
 
 See [ADR 0093](../../docs/adr/0093-adopt-connection-mode-in-headless-editor.md) and
@@ -5724,3 +5723,75 @@ Local keyboard/mouse/Chromium touch-emulation checks and screenshots are in
 interaction is now locally qualified within those bounds; real-device, AT and
 cross-browser acceptance remain open. Model/edition, patch/receipt, layout and
 Mermaid/CLI v2 adoption are still separate. C1 remains partial.
+
+### Canonical v2 models and editions
+
+Use the named v2 contracts to retain mode in a canonical model, each edition and
+its pinned immediate-parent edition. Every snapshot is an explicit
+`ZlozConnectionDocument`; modes may differ across checkpoints and never inherit
+from the model's current snapshot.
+
+```ts
+import {
+  captureConnectionDocument,
+  captureEditionV2,
+  captureModelDocumentV2,
+  parseModelDocumentV2,
+  serializeModelDocumentV2,
+} from '@opsydyn/foldkit-zloz';
+
+const edition = captureEditionV2({
+  id: 'before',
+  name: 'Before',
+  snapshot: captureConnectionDocument(editor),
+});
+const document = captureModelDocumentV2({
+  id: 'model:orders',
+  name: 'Orders',
+  snapshot: edition.snapshot,
+  editions: [edition],
+  origin: null,
+});
+const encoded = serializeModelDocumentV2(document);
+const reopened = parseModelDocumentV2(encoded);
+```
+
+`ZlozModelDocumentV2`, `ZlozModelOriginV2` and `ZlozEditionV2` retain the existing
+identity/name/provenance structure. Model envelopes use `foldkit-zloz-model`,
+edition envelopes use `foldkit-zloz-editions`, both with numeric version 2.
+`parseEditionsV2`/`serializeEditionsV2` own the independent edition archive.
+Capture and serialization validate typed data before JSON encoding, then validate
+detached data and deeply freeze it. Missing/future mode or version, unknown
+model/edition/origin fields, duplicate edition IDs, self-parent provenance and
+invalid graph/camera/JSON data reject. The codecs impose no host byte/time limit.
+
+V1 readers remain v1-only, v2 readers v2-only. Explicit
+`upgradeModelDocumentToV2`/`upgradeEditionsToV2` mark validated v1 checkpoints strict
+without inventing metadata. Passing existing v2 snapshots to those upgrades
+rejects rather than resetting their modes. Use the v2 capture APIs to recapture
+already-v2 data.
+
+`planModelDocumentV2Downgrade` and `planEditionsV2Downgrade` validate every owned
+snapshot, including pinned origin. A loose-only edge blocks the entire prospective
+v1 result; no partial history, missing provenance, fabricated ports or dropped
+edges are returned. Otherwise the reviewable plan exposes prospective v1 data and
+`loose-mode-removed` findings for each loose checkpoint, even when its current
+edges are strict-compatible. Findings include exact snapshot paths and blocked
+edge IDs. They carry no present consent, file write or Apply permission: review
+them before explicitly serializing a prospective v1 result.
+
+Current v1 snapshot writers and model/edition constructors reject explicitly v2
+or loose snapshots, including loose editors whose current graph happens to fit
+strict rules. Ordinary strict-editor saves still produce the existing v1 wire
+format. Extracting raw graph data can still discard mode; avoid unwrapping v2
+records as a substitute for explicit downgrade review. Historical implementations
+may not enforce this raw-record guard; old-reader evidence covers versioned wire
+rejection, not universal raw-object safety.
+
+This is a canonical data/compatibility contract. V2 canonical initialization,
+fork, append/review/compare/restore/playback, workbench imports, patches/receipts,
+layouts and Mermaid/CLI are separate adoption boundaries. The standalone v2
+initializer can consume an explicitly chosen v2 snapshot; do not pass canonical
+v2 records into v1 workflow APIs. C1 and broader qualification remain partial.
+See [ADR 0095](../../docs/adr/0095-stage-canonical-v2-model-and-edition-documents.md)
+and [qualification](evidence/model-v2.md). No npm publication or deployment.

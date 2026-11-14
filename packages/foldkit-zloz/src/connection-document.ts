@@ -59,7 +59,8 @@ function freeze<T>(value: T): T {
   }
   return value;
 }
-function assertConnectionDocument(value: unknown): asserts value is ZlozConnectionDocument {
+/** @internal Shared v2 snapshot validator for canonical model/edition boundaries. */
+export function assertConnectionDocument(value: unknown): asserts value is ZlozConnectionDocument {
   if (
     !record(value) ||
     !fields(value, ['version', 'connectionMode', 'graph', 'viewport']) ||

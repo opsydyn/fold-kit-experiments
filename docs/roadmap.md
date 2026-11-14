@@ -1103,6 +1103,21 @@ and [qualification](../packages/foldkit-zloz/evidence/connection-interactions.md
 This advances C1 interactions; real-device/AT/cross-browser, portable adoption and
 broader C/Q/R gates remain open. No npm publication or deployment.
 
-**Recommended next:** define canonical model/edition mode preservation and literal
-old-reader compatibility fixtures before adopting loose sessions in those workflows.
-Keep explicit loss-aware downgrade separate from supported v2 loading/saving.
+**C1 canonical v2 model/edition contract — implemented locally (2026-11-14), unreleased:**
+Explicit v2 model and edition envelopes retain mode in every snapshot, including
+historical and pinned-origin checkpoints. Strict/loose checkpoints can coexist
+without inheriting current mode. Capture/parse/serialize validate and detach/freeze;
+explicit v1 upgrades mark all legacy snapshots strict and refuse already-v2 data.
+Whole-document/archive downgrade plans block any unrepresentable checkpoint or
+report every loose-mode removal before exposing prospective v1 data. Current v1
+snapshot writers reject explicit v2/loose snapshots, preserving ordinary strict
+editor saves and existing v1 wire output. Actual pinned pre-canonical Node/Bun
+readers reject v2 envelopes and retain v1 model/edit/Undo behavior. See
+[ADR 0095](adr/0095-stage-canonical-v2-model-and-edition-documents.md) and
+[qualification](../packages/foldkit-zloz/evidence/model-v2.md).
+Canonical editor/history workflows, other portable adapters and broader C/Q/R
+qualification remain open; C1 is partial. No npm publication or deployment.
+
+**Recommended next:** adopt v2 in package-owned model initialization and read-only
+edition review, retaining each checkpoint mode and independent session/history.
+Fork/restore/playback and workbench adoption follow those boundaries.

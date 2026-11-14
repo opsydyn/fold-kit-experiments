@@ -20,6 +20,13 @@ record package-owned native/custom behavior and the independent connection
 workbench. C1 remains partial at portable and broader qualification boundaries;
 canonical model/edition mode contracts are recommended next.
 
+Canonical follow-up: [ADR 0095](../adr/0095-stage-canonical-v2-model-and-edition-documents.md)
+and [qualification](../../packages/foldkit-zloz/evidence/model-v2.md) record explicit
+v2 models/editions, per-checkpoint modes, compatibility fixtures and whole-document
+downgrade review. The canonical contract recommendation is delivered locally;
+package-owned v2 initialization/read-only edition review is next. C1 and wider
+C/Q/R gates remain partial.
+
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.
 - evidence: public exports, validators, adapters, literal/consumer tests, ADRs 0078–0091 and linked local receipts; official comparison references checked on 2026-11-14; verification results below.

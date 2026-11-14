@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Define explicit canonical v2 model/edition codecs with per-checkpoint connection mode, explicit legacy upgrade and whole-document downgrade findings; prevent current v1 writers from silently dropping explicit v2/loose snapshot intent.
+
 - Adopt fixed editor mode in native mouse/touch wiring, snapping and activation; expose composable source/target port feedback and scope input bindings by view ID. Preserve single activation across pointer release and synthesized click.
 
 - Adopt explicit v2 connection documents in the headless editor with fixed session mode, policy-aware creation/reconnection contexts and atomic Undo; legacy initialization remains strict.

@@ -303,7 +303,18 @@ function viewportFields({ x, y, zoom }: Viewport): Viewport {
 }
 
 /** Save the graph and an optional camera. Other editor state is excluded. */
-export function serializeSnapshot({ graph, viewport }: ZlozSnapshot): string {
+export function serializeSnapshot(snapshot: ZlozSnapshot): string {
+  if (
+    ('version' in snapshot && snapshot.version !== undefined && snapshot.version !== 1) ||
+    ('connectionMode' in snapshot &&
+      snapshot.connectionMode !== undefined &&
+      snapshot.connectionMode !== 'strict')
+  )
+    throw new ZlozError(
+      'invalid-graph',
+      'Explicit v2 or loose snapshots require their v2 codec or a reviewed v1 downgrade',
+    );
+  const { graph, viewport } = snapshot;
   if (viewport === undefined) return serializeGraph(graph);
   validateGraph(graph);
   assertDocumentViewport(viewport);

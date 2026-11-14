@@ -3,16 +3,15 @@ import { defineTaggedUnion } from 'foldkit/schema';
 import { foldChildInit } from 'foldkit/update';
 import type { Return } from 'foldkit/update';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
-import { points } from './data';
+import * as PlotPanel from '../../ui/plot-panel';
+import { histogramSpec, scatterSpec } from './data';
 import { Message } from './message';
 import { initialSettings } from './settings';
 import type { Settings } from './settings';
 
 export type Panel =
-  | Readonly<{ _tag: 'Scatter'; id: number; chart: Scatter.Model }>
-  | Readonly<{ _tag: 'Histogram'; id: number; chart: Histogram.Model }>;
+  | Readonly<{ _tag: 'Scatter'; id: number; chart: PlotPanel.Model }>
+  | Readonly<{ _tag: 'Histogram'; id: number; chart: PlotPanel.Model }>;
 
 const Inspection = defineTaggedUnion({
   Point: { key: Schema.String },
@@ -40,37 +39,16 @@ export function initPanel(
 ): Return<Panel, Message> {
   return Match.value(kind).pipe(
     Match.when('scatter', () =>
-      foldChildInit(
-        Scatter.init({
-          points,
-          config: {
-            color: '#6366f1',
-            activeColor: '#4338ca',
-            xLabel: 'Years experience',
-            yLabel: 'Salary ($)',
-          },
-          dims: { width: 380, height: 260 },
-        }),
-        {
-          toParentModel: (chart): Panel => ({ _tag: 'Scatter', id, chart }),
-          toParentMessage: (message) => Message.GotScatterMessage({ id, message }),
-        },
-      ),
+      foldChildInit(PlotPanel.init({ spec: scatterSpec }), {
+        toParentModel: (chart): Panel => ({ _tag: 'Scatter', id, chart }),
+        toParentMessage: (message) => Message.GotScatterMessage({ id, message }),
+      }),
     ),
     Match.when('histogram', () =>
-      foldChildInit(
-        Histogram.init({
-          data: points.map((point) => ({ value: point.y })),
-          binCount: 8,
-          color: '#6366f1',
-          xLabel: 'Salary ($)',
-          dims: { width: 360, height: 260 },
-        }),
-        {
-          toParentModel: (chart): Panel => ({ _tag: 'Histogram', id, chart }),
-          toParentMessage: (message) => Message.GotHistogramMessage({ id, message }),
-        },
-      ),
+      foldChildInit(PlotPanel.init({ spec: histogramSpec }), {
+        toParentModel: (chart): Panel => ({ _tag: 'Histogram', id, chart }),
+        toParentMessage: (message) => Message.GotHistogramMessage({ id, message }),
+      }),
     ),
     Match.exhaustive,
   );

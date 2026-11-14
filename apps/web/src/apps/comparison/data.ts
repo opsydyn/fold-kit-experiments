@@ -1,3 +1,5 @@
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
+
 import type { KeyedPoint } from '../../ui/shared/inspection';
 
 export const points: ReadonlyArray<KeyedPoint> = [
@@ -32,3 +34,42 @@ export const points: ReadonlyArray<KeyedPoint> = [
   { id: 'salary-29', x: 18, y: 160000, label: '18yr' },
   { id: 'salary-30', x: 20, y: 175000, label: '20yr' },
 ];
+
+/** Salary against experience, one dot per person, keyed by id for linking. */
+export const scatterSpec: PlotSpec = {
+  width: 380,
+  height: 260,
+  data: points,
+  x: { label: 'Years experience' },
+  y: { label: 'Salary ($)' },
+  marks: [
+    {
+      mark: 'dot',
+      x: 'x',
+      y: 'y',
+      key: 'id',
+      r: { value: 5 },
+      fill: { value: '#6366f1' },
+      title: 'label',
+    },
+  ],
+};
+
+/** The same salaries binned, so a bar's range links to the points inside it. */
+export const histogramSpec: PlotSpec = {
+  width: 360,
+  height: 260,
+  data: points,
+  x: { label: 'Salary ($)' },
+  y: { label: 'People' },
+  marks: [
+    {
+      mark: 'rect',
+      x: 'y',
+      fill: { value: '#6366f1' },
+      inset: 1,
+      title: 'count',
+      transform: { type: 'bin', thresholds: 8 },
+    },
+  ],
+};

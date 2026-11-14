@@ -1,15 +1,4 @@
 export { srOnly, withAccessibleTable, withAriaLive } from './accessible-table';
-export type { AxisStyle } from './axes';
-export { xCategoryAxis, xLinearAxis, xLinearGridlines, yGridlines } from './axes';
-export type { CursorTooltipStyle } from './cursor-tooltip';
-export { cursorTooltip, nearestIndex, nearestPoint } from './cursor-tooltip';
-export type { CrosshairState } from './dispatch';
-export { CROSSHAIR_IDLE, crosshairActive, isDimmed, isHighlighted } from './dispatch';
 export { arrowKeyNav, nextIndex } from './keyboard';
-export type { Dims, Layout, Margins } from './layout';
-export { DEFAULT_DIMS, DEFAULT_MARGINS, layoutFor } from './layout';
-export { extentWithPadding, r3 } from './math';
 export type { SvgRootConfig } from './svg-root';
 export { svgRoot } from './svg-root';
-export type { TooltipStyle } from './tooltip';
-export { valueTooltip } from './tooltip';

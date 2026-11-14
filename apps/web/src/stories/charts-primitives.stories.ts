@@ -1,14 +1,8 @@
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import type { Meta, StoryObj } from '@storybook/html';
-import { Option, Schema } from 'effect';
-import type { Html, HtmlBuilder } from 'foldkit/html';
-import { makeElement } from 'foldkit/runtime';
-import { foldChild } from 'foldkit/update';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { specApp } from '../apps/spec-app';
-import * as ScatterChart from '../ui/scatter-chart';
-import { mountFoldkit, mountFoldkitProgram } from './mount';
+import { mountFoldkit } from './mount';
 
 export default {
   title: 'Charts/Primitives',
@@ -57,7 +51,7 @@ const SAMPLE_AREA = [
   { label: 'Aug', value: 5900 },
 ];
 
-const SAMPLE_SCATTER: ReadonlyArray<ScatterChart.Point> = [
+const SAMPLE_SCATTER = [
   { label: 'Alice', x: 2, y: 52 },
   { label: 'Bob', x: 5, y: 68 },
   { label: 'Carol', x: 8, y: 85 },
@@ -115,36 +109,6 @@ const areaSpec = (data: Sample, label: string, args: SeriesArgs): PlotSpec => ({
     ...lineSpec(data, label, args).marks,
   ],
 });
-
-// ── Mount helper ───────────────────────────────────────────────────────────────
-
-// Generate unique DOM IDs. Each call produces a short collision-resistant id.
-const nextId = () => `fk-story-${Math.random().toString(36).slice(2, 9)}`;
-
-// Schema.Any is a no-op codec: chart models don't round-trip through JSON in
-// Storybook (no HMR model preservation), so encoding is never invoked.
-// SAFETY: The app model and message contracts establish this value before the assertion.
-const STORY_MODEL_SCHEMA = Schema.Any as Schema.Codec<never, never, never, never>;
-
-function mountChart<Mod, Msg extends { _tag: string }>(
-  init: () => UpdateReturn<Mod, Msg>,
-  update: (model: Mod, msg: Msg) => UpdateReturn<Mod, Msg>,
-  view: (model: Mod, h: HtmlBuilder<Msg>) => Html,
-): HTMLElement {
-  return mountFoldkitProgram(
-    (container) =>
-      makeElement<Mod, Msg>({
-        // SAFETY: The app model and message contracts establish this value before the assertion.
-        Model: STORY_MODEL_SCHEMA as Schema.Codec<Mod, any, unknown, unknown>,
-        init,
-        update,
-        view,
-        container: Object.assign(container, { id: nextId() }),
-        devTools: false,
-      }),
-    'display:inline-block;',
-  );
-}
 
 // ── Bar chart ──────────────────────────────────────────────────────────────────
 
@@ -271,7 +235,6 @@ export const Area: StoryObj<AreaArgs> = {
 
 type ScatterArgs = {
   color: string;
-  activeColor: string;
   radius: number;
   xLabel: string;
   yLabel: string;
@@ -281,14 +244,12 @@ export const Scatter: StoryObj<ScatterArgs> = {
   name: 'Scatter chart',
   args: {
     color: '#f97316',
-    activeColor: '#ea580c',
     radius: 5,
     xLabel: 'Experience (yrs)',
     yLabel: 'Salary ($k)',
   },
   argTypes: {
-    color: { control: 'color', description: 'Default point stroke' },
-    activeColor: { control: 'color', description: 'Active point fill and stroke' },
+    color: { control: 'color', description: 'Point fill' },
     radius: {
       control: { type: 'range', min: 2, max: 14, step: 1 },
       description: 'Point radius (px)',
@@ -296,33 +257,31 @@ export const Scatter: StoryObj<ScatterArgs> = {
     xLabel: { control: 'text', description: 'X-axis label' },
     yLabel: { control: 'text', description: 'Y-axis label' },
   },
-  render: (args) => {
-    const { model: model0 } = ScatterChart.init({
-      points: SAMPLE_SCATTER,
-      config: {
-        color: args.color,
-        activeColor: args.activeColor,
-        radius: args.radius,
-        xLabel: args.xLabel,
-        yLabel: args.yLabel,
-      },
-    });
-    return mountChart<ScatterChart.Model, ScatterChart.Message>(
-      () => ({ model: model0 }),
-      foldChild({
-        update: ScatterChart.update,
-        read: (model: ScatterChart.Model) => Option.some(model),
-        write: (_model, next) => next,
-        toParentMessage: (message) => message,
-        foldOutMessage: () => (model) => ({ model }),
+  render: (args) =>
+    mountFoldkit(
+      specApp({
+        width: 480,
+        height: 300,
+        title: 'Experience and salary',
+        data: SAMPLE_SCATTER,
+        x: { label: args.xLabel },
+        y: { label: args.yLabel },
+        marks: [
+          {
+            mark: 'dot',
+            x: 'x',
+            y: 'y',
+            r: { value: args.radius },
+            fill: { value: args.color },
+            title: 'label',
+          },
+        ],
       }),
-      (model, h) => ScatterChart.view({ model, toParentMessage: (m) => m }, h),
-    );
-  },
+    ),
   parameters: {
     docs: {
       description: {
-        story: 'Scatter chart — nearest-point cursor tracking; adjust dot size and axis labels.',
+        story: 'Scatter chart — adjust dot size and axis labels; each point names itself on hover.',
       },
     },
   },

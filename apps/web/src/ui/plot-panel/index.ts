@@ -12,8 +12,8 @@ import type {
   Row,
   Value,
 } from '@opsydyn/foldkit-viz/plot';
-import { Effect, Option, Queue, Schema, Stream } from 'effect';
-import { Mount } from 'foldkit';
+import { Effect, Option, Schema } from 'effect';
+import { CustomElement, Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { withOutMessage } from 'foldkit/update';
@@ -76,6 +76,8 @@ export const Message = defineMessageUnion({
   HoveredTarget: { index: Schema.Number },
   BlurredTarget: {},
   ClearedBrush: {},
+  /** The pointer forwarding Mount has attached its listeners. */
+  CompletedForwardPointer: {},
   /** New rows for the spec, such as a filtered set of points. */
   ReplacedRows: { rows: Schema.Unknown },
 });
@@ -313,6 +315,7 @@ export const update = (model: Model, message: Message): Return =>
       return { model: { ...model, drag: Option.some(x), band: Option.some([x, x]) } };
     },
     ReleasedPointer: () => endBrush(model),
+    CompletedForwardPointer: () => ({ model }),
     PressedKeyNav: ({ direction }) => {
       const count = targetsOf(model).length;
       if (count === 0) return { model };
@@ -338,59 +341,57 @@ export const update = (model: Model, message: Message): Return =>
 
 // POINTER
 
-type PointerMessage = Extract<
-  Message,
-  { _tag: 'MovedPointer' | 'LeftPlot' | 'PressedPointer' | 'ReleasedPointer' }
->;
+/** A pointer move or press, already in plot pixels. */
+const PointerFact = Schema.Struct({ x: Schema.Number, y: Schema.Number, pressed: Schema.Boolean });
+
+const POINTER_EVENT = 'plot-panel-pointer';
+
+/** The panel's own DOM event, so pointer facts reach the dispatcher as typed messages. */
+const panelEvents = CustomElement.define({
+  tag: 'foldkit-plot-panel',
+  properties: {},
+  events: { [POINTER_EVENT]: PointerFact },
+});
 
 /**
- * Pointer events on the panel, in plot pixels. The drawing is scaled to its
- * box, so positions convert through the rendered SVG's bounding rectangle.
+ * Re-dispatches pointer moves and presses on the panel as plot-pixel facts,
+ * synchronously, so they enter the dispatcher in order with key presses and
+ * leaves rather than through a queue that later input could overtake. The
+ * drawing scales to its box, so positions convert through the rendered SVG.
  */
-export const PlotPointer = Mount.defineStream('PlotPanelPointer', {
+export const ForwardPointer = Mount.define('ForwardPlotPanelPointer', {
   args: { width: Schema.Number, height: Schema.Number },
-  messages: [
-    Message.MovedPointer,
-    Message.LeftPlot,
-    Message.PressedPointer,
-    Message.ReleasedPointer,
-  ],
-  execute: ({ element, width, height }) =>
-    Stream.callback<PointerMessage>((queue) => {
-      const toPlot = (event: PointerEvent) => {
+  messages: [Message.CompletedForwardPointer],
+  execute: ({ element, width, height }) => {
+    const listen = Effect.sync(() => {
+      const listener = (event: Event) => {
+        if (!(event instanceof PointerEvent)) return;
         const drawn = element.querySelector('svg') ?? element;
-        return pointerToPlot(
+        const { x, y } = pointerToPlot(
           { x: event.clientX, y: event.clientY },
           drawn.getBoundingClientRect(),
           { width, height },
         );
+        const pressed = event.type === 'pointerdown';
+        // Keep receiving moves while a brush drags outside the panel.
+        if (pressed && element instanceof HTMLElement && event.pointerId !== undefined)
+          element.setPointerCapture?.(event.pointerId);
+        element.dispatchEvent(new CustomEvent(POINTER_EVENT, { detail: { x, y, pressed } }));
       };
-      const onPointer = (event: Event) => {
-        if (!(event instanceof PointerEvent)) return;
-        if (event.type === 'pointerleave') return Queue.offerUnsafe(queue, Message.LeftPlot());
-        if (event.type === 'pointerup') return Queue.offerUnsafe(queue, Message.ReleasedPointer());
-        const { x, y } = toPlot(event);
-        if (event.type === 'pointerdown') {
-          // Keep receiving moves while a brush drags outside the panel.
-          if (element instanceof HTMLElement) element.setPointerCapture(event.pointerId);
-          return Queue.offerUnsafe(queue, Message.PressedPointer({ x, y }));
-        }
-        return Queue.offerUnsafe(queue, Message.MovedPointer({ x, y }));
-      };
-      const types = ['pointermove', 'pointerleave', 'pointerdown', 'pointerup'];
-      const acquire = Effect.sync(() => {
-        for (const type of types) element.addEventListener(type, onPointer);
-      });
-      return Effect.acquireRelease(acquire, () =>
-        Effect.sync(() => {
-          for (const type of types) element.removeEventListener(type, onPointer);
-        }),
-      ).pipe(
-        // The listeners stay until the owning panel's Mount is removed.
-        // oxlint-disable-next-line linteffect/no-effect-never
-        Effect.andThen(Effect.never),
-      );
-    }),
+      element.addEventListener('pointermove', listener);
+      element.addEventListener('pointerdown', listener);
+      return listener;
+    });
+    return Effect.acquireRelease(listen, (listener) =>
+      Effect.sync(() => {
+        element.removeEventListener('pointermove', listener);
+        element.removeEventListener('pointerdown', listener);
+      }),
+    ).pipe(
+      Effect.map(() => Message.CompletedForwardPointer()),
+      Effect.withSpan('ForwardPlotPanelPointer'),
+    );
+  },
 });
 
 // VIEW
@@ -455,6 +456,7 @@ function overlayOf(ring: Option.Option<Ring>, brush: Option.Option<Band>): PlotO
 
 export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const { model, toParentMessage, ariaLabel } = config;
+  const panel = panelEvents.withMessage(h);
   const { targets } = compile(model.spec, model.mark);
   const spec =
     config.highlight === undefined
@@ -470,7 +472,9 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
       const t = targets[i];
       return t === undefined ? [] : [t.graphic];
     }),
-    ...Option.match(active, { onNone: () => [], onSome: (t) => [t.graphic] }),
+    // A hovered bar stands out by dimming the rest; a hovered dot has its ring instead,
+    // so the parent's linked highlights stay as they are.
+    ...Option.match(active, { onNone: () => [], onSome: (t) => (t.isBar ? [t.graphic] : []) }),
   ]);
   const geometry = emphasise(base, model.mark, emphasised);
   const ring = Option.flatMap(active, (t) =>
@@ -494,10 +498,17 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
         h.Style({ cursor: model.brush ? 'crosshair' : 'pointer', 'touch-action': 'none' }),
         h.OnMount(
           Mount.mapMessage(
-            PlotPointer({ width: geometry.width, height: geometry.height }),
+            ForwardPointer({ width: geometry.width, height: geometry.height }),
             toParentMessage,
           ),
         ),
+        panel.OnPlotPanelPointer(({ x, y, pressed }) =>
+          toParentMessage(
+            pressed ? Message.PressedPointer({ x, y }) : Message.MovedPointer({ x, y }),
+          ),
+        ),
+        h.OnPointerLeave(() => Option.some(toParentMessage(Message.LeftPlot()))),
+        h.OnPointerUp(() => Option.some(toParentMessage(Message.ReleasedPointer()))),
       ],
       [withAriaLive(h, chart, liveText)],
     ),

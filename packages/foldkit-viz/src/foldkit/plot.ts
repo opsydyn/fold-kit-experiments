@@ -1,7 +1,15 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { MountAction } from 'foldkit/mount';
 
-import type { FacetGeometry, Graphic, Legend, PlotAxis, PlotGeometry } from '../plot/types.js';
+import { angularLabel, spokeOf } from '../plot/polar.js';
+import type {
+  FacetGeometry,
+  Graphic,
+  Legend,
+  PlotAxis,
+  PlotGeometry,
+  PolarGeometry,
+} from '../plot/types.js';
 
 /**
  * Renders compiled plot geometry (ADR 0037) with the parent's builder: one
@@ -183,6 +191,53 @@ function gridLines<M>(
   return lines.length === 0
     ? []
     : [h.g([h.Class('plot-grid'), h.Stroke(palette.grid), h.AriaHidden(true)], lines)];
+}
+
+/** A polar facet's frame: rings, spokes, and labels round the outside. */
+function polarFrame<M>(h: HtmlBuilder<M>, p: PolarGeometry, palette: PlotPalette): Html {
+  const size = palette.labelSize;
+  return h.g(
+    [h.Class('plot-polar'), h.FontSize(String(size)), h.AriaHidden(true)],
+    [
+      h.g(
+        [h.Stroke(palette.grid), h.Fill('none')],
+        [
+          ...p.radii.map((t) => h.circle([h.Cx(n(p.cx)), h.Cy(n(p.cy)), h.R(n(t.radius))], [])),
+          ...p.angles.map((t) => {
+            const [x1, y1, x2, y2] = spokeOf(p, t.angle);
+            return h.line([h.X1(n(x1)), h.Y1(n(y1)), h.X2(n(x2)), h.Y2(n(y2))], []);
+          }),
+        ],
+      ),
+      h.circle(
+        [h.Cx(n(p.cx)), h.Cy(n(p.cy)), h.R(n(p.outer)), h.Fill('none'), h.Stroke(palette.axis)],
+        [],
+      ),
+      ...p.angles.map((t) => {
+        const at = angularLabel(p, t.angle);
+        return h.text(
+          [
+            h.X(n(at.x)),
+            h.Y(n(at.y + size / 3)),
+            h.TextAnchor(at.anchor),
+            h.Fill(palette.mutedText),
+          ],
+          [t.label],
+        );
+      }),
+      ...p.radii.map((t) =>
+        h.text(
+          [
+            h.X(n(p.cx + 3)),
+            h.Y(n(p.cy - t.radius - 2)),
+            h.Fill(palette.mutedText),
+            h.Opacity('0.75'),
+          ],
+          [t.label],
+        ),
+      ),
+    ],
+  );
 }
 
 function axis<M>(h: HtmlBuilder<M>, facet: FacetGeometry, a: PlotAxis, palette: PlotPalette): Html {
@@ -457,6 +512,7 @@ export function plotChart<M>(
               ),
             ]),
         ...gridLines(h, facet, palette),
+        ...(facet.polar === null ? [] : [polarFrame(h, facet.polar, palette)]),
         ...(facet.x === null ? [] : [axis(h, facet, facet.x, palette)]),
         ...(facet.y === null ? [] : [axis(h, facet, facet.y, palette)]),
         ...clipped(

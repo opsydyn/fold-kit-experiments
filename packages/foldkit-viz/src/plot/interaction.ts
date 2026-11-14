@@ -143,7 +143,12 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
     for (const mark of facet.marks)
       for (const g of mark.graphics)
         if (g.kind === 'points') total += g.count;
-        else if (g.kind === 'circle' || g.kind === 'rect' || isSymbolPath(g)) total += 1;
+        else if (
+          g.kind === 'circle' ||
+          g.kind === 'rect' ||
+          (mark.mark === 'dot' && isSymbolPath(g))
+        )
+          total += 1;
   const xs = new Float64Array(total),
     ys = new Float64Array(total),
     owner = new Uint32Array(total),
@@ -167,7 +172,11 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
             row[n] = g.rows[i] ?? -1;
             n += 1;
           }
-        } else if (g.kind === 'circle' || g.kind === 'rect' || isSymbolPath(g)) {
+        } else if (
+          g.kind === 'circle' ||
+          g.kind === 'rect' ||
+          (mark.mark === 'dot' && isSymbolPath(g))
+        ) {
           const id =
             owners.push({ facet: facet.key, mark: mark.index, key: g.key, dense: false }) - 1;
           const [cx, cy] = centreOf(g);

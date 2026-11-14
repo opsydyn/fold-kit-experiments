@@ -1,4 +1,11 @@
-import type { FacetGeometry, Graphic, PlotAxis, PlotGeometry } from '../plot/types.js';
+import { angularLabel, spokeOf } from '../plot/polar.js';
+import type {
+  FacetGeometry,
+  Graphic,
+  PlotAxis,
+  PlotGeometry,
+  PolarGeometry,
+} from '../plot/types.js';
 
 /**
  * Paints compiled plot geometry (ADR 0037) on a 2D canvas context: grid,
@@ -91,6 +98,35 @@ function paintGrid(ctx: PlotCanvasContext, facet: FacetGeometry, settings: Setti
     for (const t of facet.x.ticks) segment(ctx, t.position, plot.top, t.position, plot.bottom);
   if (facet.y?.grid)
     for (const t of facet.y.ticks) segment(ctx, plot.left, t.position, plot.right, t.position);
+}
+
+function paintPolar(ctx: PlotCanvasContext, p: PolarGeometry, settings: Settings): void {
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = settings.colors.grid;
+  for (const t of p.radii) {
+    ctx.beginPath();
+    ctx.arc(p.cx, p.cy, t.radius, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+  for (const t of p.angles) {
+    const [x1, y1, x2, y2] = spokeOf(p, t.angle);
+    segment(ctx, x1, y1, x2, y2);
+  }
+  ctx.strokeStyle = settings.colors.axis;
+  ctx.beginPath();
+  ctx.arc(p.cx, p.cy, p.outer, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.font = `${settings.labelSize}px ${settings.font}`;
+  ctx.fillStyle = settings.colors.mutedText;
+  ctx.textBaseline = 'middle';
+  for (const t of p.angles) {
+    const at = angularLabel(p, t.angle);
+    ctx.textAlign = at.anchor === 'start' ? 'left' : at.anchor === 'end' ? 'right' : 'center';
+    ctx.fillText(t.label, at.x, at.y);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  for (const t of p.radii) ctx.fillText(t.label, p.cx + 3, p.cy - t.radius - 2);
 }
 
 function paintAxis(
@@ -271,6 +307,7 @@ export function paintPlot(
       );
     }
     paintGrid(ctx, facet, settings);
+    if (facet.polar !== null) paintPolar(ctx, facet.polar, settings);
     if (facet.x !== null) paintAxis(ctx, facet, facet.x, settings);
     if (facet.y !== null) paintAxis(ctx, facet, facet.y, settings);
     // A clipped plot keeps marks inside their plot area, so a zoomed axis never

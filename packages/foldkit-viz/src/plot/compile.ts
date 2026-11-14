@@ -38,6 +38,7 @@ import type {
   PositionScale,
   SymbolScale,
 } from './channels.js';
+import { arcGraphics, validateArc } from './marks-arc.js';
 import {
   densityGraphics,
   densityRows,
@@ -52,6 +53,7 @@ import {
 } from './marks-panel.js';
 import { binRows, rectGraphics, validateRect } from './marks-rect.js';
 import { boxGraphics, linkGraphics, violinGraphics } from './marks-statistical.js';
+import { polarFrame, polarGraphics, polarScales } from './polar.js';
 import { seriesFieldOf, stackRows, validateStacking } from './stack.js';
 import type {
   Channel,
@@ -94,6 +96,7 @@ const MARKS = {
   violin: { required: ['x', 'y'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   density: { required: ['x'], channels: ['x', 'y', 'fill', 'stroke', 'title'] },
   link: { required: ['x1', 'y1'], channels: ['x1', 'y1', 'x2', 'y2', 'stroke', 'title'] },
+  arc: { required: ['value'], channels: ['value', 'fill', 'stroke', 'text', 'title'] },
   treemap: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sunburst: { required: ['path', 'value'], channels: ['path', 'value', 'fill', 'title'] },
   sankey: {
@@ -134,6 +137,10 @@ const OPTIONS = new Set([
   'stack',
   'group',
   'inset',
+  'inner',
+  'start',
+  'end',
+  'padAngle',
 ]);
 const TRANSFORMABLE = {
   line: ['regression', 'loess', 'window', 'downsample'],
@@ -178,6 +185,7 @@ function validateMark(mark: MarkSpec, path: string): void {
     fail(`${path}.symbol`, `unknown symbol "${String(mark.symbol.value)}"`);
   if (mark.mark === 'density') validateDensity(mark, path);
   if (mark.mark === 'rect') validateRect(mark, path);
+  if (mark.mark === 'arc') validateArc(mark, path);
   if (mark.mark === 'bar' || mark.mark === 'area') validateStacking(mark, path);
   if (mark.mark === 'rule' && 'x' in mark === 'y' in mark)
     fail(path, 'a rule mark takes exactly one of x and y');
@@ -1197,6 +1205,8 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
       return densityGraphics(mark, rows, path, context);
     case 'rect':
       return rectGraphics(mark, rows, path, index, context, (name) => channel(p, name));
+    case 'arc':
+      return arcGraphics(mark, rows, path, index, context);
     case 'treemap':
       return treemapGraphics(mark, rows, path, context);
     case 'sunburst':
@@ -1298,7 +1308,22 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
 
 // ── Compile ───────────────────────────────────────────────────────────────────
 
+/** Marks that fill their panel, whatever the plot's coordinates. */
+const PANEL_MARKS: ReadonlySet<MarkType> = new Set([
+  'arc',
+  'treemap',
+  'sunburst',
+  'sankey',
+  'parallel',
+]);
+
 function validateSpec(spec: PlotSpec): void {
+  const coordinates: unknown = spec.coordinates ?? 'cartesian';
+  if (coordinates !== 'cartesian' && coordinates !== 'polar')
+    fail(
+      'coordinates',
+      `unknown coordinates "${String(coordinates)}"; expected cartesian or polar`,
+    );
   if (!(Number.isFinite(spec.width) && spec.width > 0))
     fail('width', 'must be finite and positive');
   if (!(Number.isFinite(spec.height) && spec.height > 0))
@@ -1388,20 +1413,30 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
   const size = resolveSize(all, spec);
 
   const facets: ReadonlyArray<FacetGeometry> = cells.map((cell, f) => {
-    const x = xInfo === null ? null : buildScale(xInfo, 'x', cell.bounds, spec);
-    const y = yInfo === null ? null : buildScale(yInfo, 'y', cell.bounds, spec);
+    const frame = spec.coordinates === 'polar' ? polarFrame(cell.bounds, spec) : null;
+    const polar = frame === null ? null : polarScales(xInfo, yInfo, frame);
+    const x =
+      polar !== null ? polar.x : xInfo === null ? null : buildScale(xInfo, 'x', cell.bounds, spec);
+    const y =
+      polar !== null ? polar.y : yInfo === null ? null : buildScale(yInfo, 'y', cell.bounds, spec);
     const context: Context = { x, y, color, symbol, size, bounds: cell.bounds };
     const marks: ReadonlyArray<MarkGeometry> = (perFacet[f] ?? []).map((p) => ({
       mark: p.mark.mark,
       index: p.index,
-      graphics: markGraphics(p, context),
+      graphics:
+        frame !== null && !PANEL_MARKS.has(p.mark.mark)
+          ? polarGraphics(p.mark, p.rows, p.path, p.index, context, frame, (name) =>
+              channel(p, name),
+            )
+          : markGraphics(p, context),
     }));
     return {
       key: cell.key,
       label: cell.label,
       plot: cell.bounds,
-      x: x?.axis ?? null,
-      y: y?.axis ?? null,
+      x: polar === null ? (x?.axis ?? null) : null,
+      y: polar === null ? (y?.axis ?? null) : null,
+      polar: polar?.geometry ?? null,
       marks,
     };
   });

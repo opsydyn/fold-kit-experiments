@@ -1,4 +1,5 @@
 export { compilePlot } from './compile.js';
+export { angularLabel, spokeOf } from './polar.js';
 export type * from './types.js';
 export {
   highlightPoints,

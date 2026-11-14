@@ -258,6 +258,29 @@ export type RectMark = CommonMark &
     transform?: BinTransform;
   }>;
 
+/**
+ * A pie, donut or gauge filling its panel: one slice per row, in order, over
+ * the sweep from `start` to `end` degrees clockwise from twelve o'clock.
+ */
+export type ArcMark = CommonMark &
+  Readonly<{
+    mark: 'arc';
+    value: Channel;
+    fill?: Channel;
+    stroke?: Channel;
+    /** Written in the middle, from the first row, such as a total or a reading. */
+    text?: Channel;
+    /** Inner radius as a share of the outer, for a donut. Default 0. */
+    inner?: number;
+    /** Degrees. Default 0, and a full circle. */
+    start?: number;
+    end?: number;
+    /** Gap between slices, in degrees. Default 0. */
+    padAngle?: number;
+    /** Write each slice's share on it when there is room. Default false. */
+    labels?: boolean;
+  }>;
+
 /** Marks that fill their panel instead of using the x and y axes. */
 type HierarchyOptions = Readonly<{
   /** Field holding each leaf's path, such as "Cloud/AWS". */
@@ -301,6 +324,7 @@ export type MarkSpec =
   | ViolinMark
   | DensityMark
   | LinkMark
+  | ArcMark
   | TreemapMark
   | SunburstMark
   | SankeyMark
@@ -327,6 +351,13 @@ export type PlotSpec = Readonly<{
    * false, so dots on the edge of the domain are drawn whole.
    */
   clip?: boolean;
+  /** Polar maps x to angle and y to radius, in the largest circle each facet fits. */
+  coordinates?: 'cartesian' | 'polar';
+  /**
+   * Polar layout: the inner radius as a share of the outer, and where the angle
+   * starts, in degrees clockwise from twelve o'clock.
+   */
+  polar?: Readonly<{ inner?: number; start?: number }>;
   marks: ReadonlyArray<MarkSpec>;
 }>;
 
@@ -428,6 +459,19 @@ export type PlotAxis = Readonly<{
   constant?: number;
 }>;
 
+/** A polar facet's frame: rings at the radial ticks and spokes at the angular ones. */
+export type PolarGeometry = Readonly<{
+  cx: number;
+  cy: number;
+  inner: number;
+  outer: number;
+  /** Angular ticks, in radians clockwise from twelve o'clock. */
+  angles: ReadonlyArray<Readonly<{ value: number | string; angle: number; label: string }>>;
+  radii: ReadonlyArray<Readonly<{ value: number; radius: number; label: string }>>;
+  /** The radial axis title. */
+  label: string;
+}>;
+
 export type FacetGeometry = Readonly<{
   key: string;
   /** The facet's field values, for its heading; empty when there are no facets. */
@@ -435,6 +479,8 @@ export type FacetGeometry = Readonly<{
   plot: PlotBounds;
   x: PlotAxis | null;
   y: PlotAxis | null;
+  /** Polar plots: the frame to draw in place of x and y axes. */
+  polar: PolarGeometry | null;
   marks: ReadonlyArray<MarkGeometry>;
 }>;
 

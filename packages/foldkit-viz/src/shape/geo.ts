@@ -385,16 +385,27 @@ export function geoCentroid(
 
 // ──── Path renderer ───────────────────────────────────────────────────────────
 
+/**
+ * A polygon ring as path data. Without antimeridian clipping, a ring that
+ * crosses 180° would jump across the whole map; unwrapping its longitudes
+ * instead carries it on past the edge, as Russia's and Fiji's do.
+ */
 function ringPath(proj: Projection, ring: ReadonlyArray<GeoCoord>): string {
   if (ring.length === 0) return '';
   const first = ring[0];
   if (!first) return '';
   const [x0, y0] = proj(first[0], first[1]);
   let d = `M${x0.toFixed(1)},${y0.toFixed(1)}`;
+  let previous = first[0];
+  let offset = 0;
   for (let i = 1; i < ring.length; i++) {
     const coord = ring[i];
     if (!coord) continue;
-    const [xi, yi] = proj(coord[0], coord[1]);
+    const step = coord[0] - previous;
+    if (step > 180) offset -= 360;
+    else if (step < -180) offset += 360;
+    previous = coord[0];
+    const [xi, yi] = proj(coord[0] + offset, coord[1]);
     d += `L${xi.toFixed(1)},${yi.toFixed(1)}`;
   }
   return `${d}Z`;

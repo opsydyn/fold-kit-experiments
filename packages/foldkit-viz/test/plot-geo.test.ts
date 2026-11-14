@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { compilePlot } from '../src/plot';
 import type { Graphic, PlotSpec } from '../src/plot';
-import type { GeoFeatureCollection } from '../src/shape/geo';
+import type { GeoFeatureCollection } from '../src/ring/geo';
 
 const base = {
   width: 400,
@@ -81,6 +81,38 @@ describe('projected maps', () => {
     }).flatMap(numbersIn);
     const spread = (ns: ReadonlyArray<number>) => Math.max(...ns) - Math.min(...ns);
     expect(spread(zoomed)).toBeGreaterThan(spread(plain));
+  });
+
+  it('carries a polygon across the antimeridian on past the edge instead of across the map', () => {
+    const fiji: GeoFeatureCollection = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [170, -20],
+                [-170, -20],
+                [-170, -10],
+                [170, -10],
+                [170, -20],
+              ],
+            ],
+          },
+        },
+      ],
+    };
+    const [ring] = graphics({
+      ...base,
+      projection: { type: 'equirectangular' },
+      marks: [{ mark: 'geo', features: fiji }],
+    });
+    const xs = numbersIn(ring).filter((_, i) => i % 2 === 0);
+    // The ring spans 20° of longitude, not the 340° the other way round, so it
+    // is a sliver of the fitted width rather than all of it.
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(100);
   });
 
   it('draws a graticule', () => {

@@ -1,4 +1,4 @@
-import { angularLabel, spokeOf } from '../plot/polar.js';
+import { angularLabel, radialLabel, spokeOf } from '../plot/polar.js';
 import type {
   FacetGeometry,
   Graphic,
@@ -126,7 +126,10 @@ function paintPolar(ctx: PlotCanvasContext, p: PolarGeometry, settings: Settings
   }
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
-  for (const t of p.radii) ctx.fillText(t.label, p.cx + 3, p.cy - t.radius - 2);
+  for (const t of p.radii) {
+    const [x, y] = radialLabel(p, t.radius);
+    ctx.fillText(t.label, x, y);
+  }
 }
 
 function paintAxis(

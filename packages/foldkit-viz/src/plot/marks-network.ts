@@ -96,7 +96,10 @@ export function treeGraphics(
       title,
     });
   if (mark.radial === true) {
-    const longest = spanOf(all.map((n) => textWidth(n.data.name)))?.[1] ?? 0;
+    // Only leaves are labelled round a radial tree; branches name themselves on hover.
+    const longest =
+      spanOf(all.filter((n) => n.children === undefined).map((n) => textWidth(n.data.name)))?.[1] ??
+      0;
     const radius = Math.max(
       10,
       Math.min(bounds.width, bounds.height) / 2 - (labels ? longest + 8 : 8),
@@ -121,7 +124,7 @@ export function treeGraphics(
     for (const n of laid) {
       const [x, y] = at(n.x, n.y);
       node(n.data.id, x, y, n.source, n.data.id);
-      if (!labels) continue;
+      if (!labels || n.source.children !== undefined) continue;
       const right = Math.sin(n.x) >= 0;
       const [lx, ly] = at(n.x, n.y + 6);
       graphics.push({
@@ -131,7 +134,7 @@ export function treeGraphics(
         y: round(ly + 4),
         text: n.data.name,
         fill: 'currentColor',
-        anchor: n.depth === 0 ? 'middle' : right ? 'start' : 'end',
+        anchor: right ? 'start' : 'end',
         opacity: 0.9,
       });
     }

@@ -1,7 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { MountAction } from 'foldkit/mount';
 
-import { angularLabel, spokeOf } from '../plot/polar.js';
+import { angularLabel, radialLabel, spokeOf } from '../plot/polar.js';
 import type {
   FacetGeometry,
   Graphic,
@@ -228,8 +228,8 @@ function polarFrame<M>(h: HtmlBuilder<M>, p: PolarGeometry, palette: PlotPalette
       ...p.radii.map((t) =>
         h.text(
           [
-            h.X(n(p.cx + 3)),
-            h.Y(n(p.cy - t.radius - 2)),
+            h.X(n(radialLabel(p, t.radius)[0])),
+            h.Y(n(radialLabel(p, t.radius)[1])),
             h.Fill(palette.mutedText),
             h.Opacity('0.75'),
           ],

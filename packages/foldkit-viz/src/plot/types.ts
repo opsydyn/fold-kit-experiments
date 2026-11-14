@@ -573,6 +573,8 @@ export type PolarGeometry = Readonly<{
   /** Angular ticks, in radians clockwise from twelve o'clock. */
   angles: ReadonlyArray<Readonly<{ value: number | string; angle: number; label: string }>>;
   radii: ReadonlyArray<Readonly<{ value: number; radius: number; label: string }>>;
+  /** Where the radial tick labels run: midway between the first two spokes, clear of both. */
+  radialAngle: number;
   /** The radial axis title. */
   label: string;
 }>;

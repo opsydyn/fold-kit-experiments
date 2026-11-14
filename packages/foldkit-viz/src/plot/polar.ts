@@ -179,9 +179,27 @@ export function polarScales(
       outer,
       angles: shown(xInfo) ? angles : [],
       radii: shown(yInfo) ? radii : [],
+      radialAngle: radialAngleOf(angles, start),
       label: yInfo?.label ?? '',
     },
   };
+}
+
+/** Midway between the first two spokes, or an eighth of a turn on when there are none. */
+const radialAngleOf = (angles: ReadonlyArray<PolarGeometry['angles'][number]>, start: number) => {
+  const [first, second] = angles;
+  return first !== undefined && second !== undefined
+    ? (first.angle + second.angle) / 2
+    : start + Math.PI / 8;
+};
+
+/** A radial tick label's position, along the radial label angle. */
+export function radialLabel(geometry: PolarGeometry, radius: number): readonly [number, number] {
+  const a = geometry.radialAngle;
+  return [
+    round(geometry.cx + radius * Math.sin(a) + 2),
+    round(geometry.cy - radius * Math.cos(a) - 2),
+  ];
 }
 
 const axisOf = (info: AxisInfo, range: readonly [number, number]) => ({

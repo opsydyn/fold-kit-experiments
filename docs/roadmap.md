@@ -1129,9 +1129,22 @@ selection policies, rejecting authored edits, node measurement and Undo/Redo.
 Strict/loose working/checkpoint combinations and installed Node/Bun/TypeScript
 consumers qualify the boundary. See [ADR 0096](adr/0096-initialize-v2-models-and-review-editions.md)
 and [qualification](../packages/foldkit-zloz/evidence/model-workflow-v2.md).
-Fork, append, comparison/ghosts, restore/playback, CLI/workbench and broader C/Q/R
-gates remain open. C1 is partial. No npm publication or deployment.
+Forking is recorded below; append, comparison/ghosts, restore/playback, CLI/workbench
+and broader C/Q/R gates remain open. C1 is partial. No npm publication or deployment.
 
-**Recommended next:** add v2 edition forking with immutable source provenance and
-a fresh target session retaining the chosen checkpoint mode. Keep cross-mode
-restore/playback adoption separate until their history semantics are explicit.
+**C1 v2 edition forking — implemented locally (2026-11-14), unreleased:**
+`forkEditionV2` validates the whole source, selects an owned edition and freshly
+checks policy against detached frozen source/edition/target identity. Invalid
+identity, missing edition or veto returns no target. Allowed results retain the
+checkpoint's exact mode/camera/data, start with no editions and pin their immediate
+parent without mutating source or working history. `createModelEditorV2` composes
+that data into a fresh target session with independent Undo; absent checkpoint
+camera uses the target initializer's default, not review/working navigation.
+Strict/loose mode pairs, policy failures, fork-of-fork and installed consumers
+qualify the boundary. See [ADR 0097](adr/0097-fork-v2-editions-with-pinned-provenance.md)
+and [qualification](../packages/foldkit-zloz/evidence/edition-fork-v2.md).
+V2 append, comparison/ghosts, restore/playback, CLI/workbench and wider C/Q/R gates
+remain open; C1 remains partial. No npm publication or deployment.
+
+**Recommended next:** add v2 edition comparison with explicit mode-only changes,
+before comparison presentation and cross-mode restore/playback adoption.

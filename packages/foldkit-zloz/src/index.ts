@@ -741,3 +741,6 @@ export {
   updateHistoryReviewV2,
 } from './model-workflow-v2';
 export type { ZlozHistoryReviewV2 } from './model-workflow-v2';
+
+export { forkEditionV2 } from './edition-fork-v2';
+export type { ZlozEditionForkPolicyV2, ZlozEditionForkResultV2 } from './edition-fork-v2';

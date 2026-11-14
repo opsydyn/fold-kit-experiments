@@ -31,7 +31,13 @@ Workflow follow-up: [ADR 0096](../adr/0096-initialize-v2-models-and-review-editi
 and [qualification](../../packages/foldkit-zloz/evidence/model-workflow-v2.md)
 record whole-model initialization and independent read-only edition review across
 checkpoint modes. The initialization/review recommendation is delivered locally;
-v2 forking is next. Remaining workflow/adapter and broader C/Q/R gates stay open.
+v2 forking is recorded below. Remaining workflow/adapter and broader C/Q/R gates stay open.
+
+Fork follow-up: [ADR 0097](../adr/0097-fork-v2-editions-with-pinned-provenance.md)
+and [qualification](../../packages/foldkit-zloz/evidence/edition-fork-v2.md) record
+v2 edition-owned forks, fresh policy checks, pinned immediate-parent provenance and
+fresh target sessions. V2 comparison with explicit mode-only changes is next;
+C1 and remaining workflow/adapter/C/Q/R gates remain partial.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

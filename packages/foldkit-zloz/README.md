@@ -5788,8 +5788,8 @@ records as a substitute for explicit downgrade review. Historical implementation
 may not enforce this raw-record guard; old-reader evidence covers versioned wire
 rejection, not universal raw-object safety.
 
-This is a canonical data/compatibility contract. V2 canonical initialization and read-only review are delivered below. Fork,
-append/compare/restore/playback, workbench imports, patches/receipts,
+This is a canonical data/compatibility contract. V2 canonical initialization, read-only review and forking are delivered below.
+Append/compare/restore/playback, workbench imports, patches/receipts,
 layouts and Mermaid/CLI are separate adoption boundaries. The standalone v2
 initializer can consume an explicitly chosen v2 snapshot; do not pass canonical
 v2 records into v1 workflow APIs. C1 and broader qualification remain partial.
@@ -5842,8 +5842,63 @@ unfiltered input directly to its nested editor. Independent native views require
 distinct IDs to scope their bindings.
 
 V1 initializers/reviews and all wire formats retain their existing boundaries.
-V2 fork, append, comparison/ghosts, restore/playback, CLI and workbench adoption
-remain separate; a read-only review does not Apply a checkpoint or change the
+V2 forking is delivered below. Append, comparison/ghosts, restore/playback, CLI
+and workbench adoption remain separate; a read-only review does not Apply a checkpoint or change the
 working mode. C1 and broader qualification remain partial. See
 [ADR 0096](../../docs/adr/0096-initialize-v2-models-and-review-editions.md) and
 [qualification](evidence/model-workflow-v2.md).
+
+### V2 edition forking
+
+`forkEditionV2` creates a new canonical document from a source-owned edition.
+Compose its allowed result with `createModelEditorV2` for a fresh target session:
+
+```ts
+import { forkEditionV2, createModelEditorV2 } from '@opsydyn/foldkit-zloz';
+
+const result = forkEditionV2(
+  sourceDocument,
+  selectedEditionId,
+  {
+    id: 'alternative',
+    name: 'Alternative',
+  },
+  currentForkPolicy,
+);
+
+if (result.type === 'forked') {
+  const targetEditor = createModelEditorV2(result.document);
+  // Retain targetEditor in the host model; it has its own Undo/Redo.
+}
+```
+
+`ZlozEditionForkPolicyV2.canForkEdition` receives a freshly validated/detached frozen
+source, its owned selected edition and a frozen copied target identity. Every call
+reevaluates policy. Nonempty rejection strings are retained; blank rejection
+strings remain vetoes with a readable fallback. Thrown policy failures propagate
+without returning a target. The host owns workspace-wide ID availability and can
+veto conflicts; the package invents no IDs/timestamps and performs no registry I/O.
+
+`ZlozEditionForkResultV2` is `forked` with a document or `blocked` with a reason.
+Targets need a nonempty ID/name and an ID distinct from the source. Missing edition
+or invalid identity blocks before policy. The function searches only source-owned
+editions, never current state, navigated review state, origin or a foreign edition.
+The complete source must validate, including unselected and origin checkpoints.
+V1 data requires explicit upgrade rather than implicit strict interpretation.
+
+An allowed document retains the selected snapshot's mode, authored ports/endpoints,
+metadata, geometry and camera. Its edition list is empty. Origin pins the immediate
+source model ID/name plus the immutable selected edition; target snapshot and pin
+are separate detached values. A fork-of-fork pins only its immediate parent. Graph
+IDs remain local and unchanged, while source/current model and working history
+remain untouched.
+
+Forking returns data, not an editor or an external write. Default v2 initialization
+creates an editable target in the checkpoint mode with fresh revision, Undo/Redo,
+selection and transient state. It uses the checkpoint camera, or its own default
+when none is authored; review/working navigation is not inherited. Normal target
+edits have independent Undo. No restore, mode-changing event or source Undo entry
+is introduced. V1 behavior/wire formats stay unchanged; append, v2 comparison/ghosts,
+restore/playback and CLI/workbench adoption remain separate. C1 remains partial.
+See [ADR 0097](../../docs/adr/0097-fork-v2-editions-with-pinned-provenance.md) and
+[qualification](evidence/edition-fork-v2.md).

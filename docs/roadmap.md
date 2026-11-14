@@ -134,24 +134,23 @@ track.
 **Mini map discoverability — delivered:** Navigation exposes a **Mini map** toggle
 using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
-## Zloz core: parity and domain modelling — reconciled 2026-11-13
+## Zloz core: parity and domain modelling — reconciled 2026-11-14
 
-**Current source baseline:** `1cff6114` plus the local DDD completion slice on the isolated `codex/zloz-context-map` branch.
-The November 12 audit retains its original `03e972b` baseline as historical evidence.
+**Current source baseline:** `7fa7b3d9`, isolated `codex/zloz-context-map` branch.
 Package manifests identify 0.3.0; branch implementation, registry publication and
-hosted deployment are separate states. This reconciliation does not verify current
-PR/CI/registry status and authorizes no npm publication or deployment. The Effect
-CLI publication remains deferred; this branch lacks the requested
-`private: true` manifest guard, tracked as R1. The inspected publication ADR is
-still marked Proposed and does not itself specify that field; the current
-reconciliation corrects the older audit's attribution.
+hosted deployment are separate states. This reconciliation checks no current
+PR/CI/registry state and authorizes no npm publication or deployment. CLI publication
+remains deferred: its requested `private: true` manifest guard is still absent (R1),
+even though the publish workflow excludes CLI from its choice allowlist.
 
-The [November 13 domain/compatibility reconciliation](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
-is the current D/C/Q inventory and next-feature recommendation at `e9ab5880`.
-It supersedes the priorities in the [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-audit.md),
-which remains a dated source/evidence baseline. Authored edges, palette placement,
-portable review/Apply and retained SVG/PNG implementation chains are delivered
-locally within their documented limits; qualification and scope decisions remain.
+The [November 14 roadmap/compatibility reconciliation](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
+is the current inventory and next-feature recommendation. It supersedes the dated
+[November 13 inventory](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+and [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-audit.md),
+which retain their original source/evidence baselines. E1–E3/P1–P2 and the approved
+D1a workshop, D1b C4 mapping/Apply/portable-receipt/CLI and D2 authored-DDD-audit
+chains are locally implemented within documented limits. C1–C4 scope decisions,
+Q1–Q4 qualification and R1 release guard remain distinct open gates.
 
 The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
 is a historical gap analysis, not a current inventory. Full React Flow parity,
@@ -182,7 +181,7 @@ preserves identity, editions and origin that diagram-only imports omit.
 ### Remaining work and completion criteria
 
 Core is **not complete**. The current
-[domain/compatibility decisions and qualification gates](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+[domain/compatibility decisions and qualification gates](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
 identify implemented work, unresolved gaps and proposed dispositions. Recommendations
 are not approved exclusions. Historical receipts qualify only their stated scope.
 
@@ -211,16 +210,17 @@ are not approved exclusions. Historical receipts qualify only their stated scope
    rows remain open.
    Review packets and conversion receipts remain distinct; reading does not import
    either into the working model.
-3. **Domain and compatibility decisions (D1–D2, C1–C4):** the current branch
-   now has the locally implemented DDD audit/review/comparison chain (D2) using
-   the explicit resolver/catalogue, public review/navigation APIs and Effect CLI.
-   See [workflow qualification](../apps/zloz-demo/evidence/ddd-audit.md).
-   Additional correctness rules and DDD packet formats are separately scoped.
-   D1a workshop semantics are now defined locally below; their renderer qualification
-   and D1b EventStorming-to-C4 conversion remain separate gaps. Strict output→input, world-coordinate/portless groups,
-   the documented ELK/flat-force envelope and advanced catalogue deferrals need
-   explicit scope approval or further implementation. They are not closed by
-   custom renderers or this recommendation. DDD conversion is already delivered.
+3. **Domain and compatibility decisions (D1–D2, C1–C4):** approved D1a's seven-role
+   workshop semantics, native controls and SVG/PNG artwork, D1b's explicit C4 mapping,
+   placement/consent, atomic Apply, portable receipts/read-only reopening/CLI inspection,
+   and D2's authored convention audit/review/deltas are implemented locally. See
+   [current API/evidence inventory](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md).
+   These scopes do not promise every modelling vocabulary or universal architecture
+   correctness. Strict output→input (C1), world-coordinate/portless groups (C2),
+   layout bounds/cancellation (C3) and advanced catalogue decisions (C4) still require
+   implementation or explicit approved dispositions. P2 already supplies atomic
+   multi-operation edge edits; a dedicated multi-connect interaction remains separate.
+   Full parity and proposed deferrals are not approved by this reconciliation.
 4. **Qualification (Q1–Q4):** refresh packed consumer/SSR-hydration evidence and
    representative benchmarks with agreed budgets. Run comprehensive accessibility
    and device acceptance after functional work; accessible interaction remains a
@@ -1052,7 +1052,15 @@ npm publishing or deployment. See
 [ADR 0091](adr/0091-inspect-c4-receipts-through-effect-cli.md) and
 [CLI qualification](../packages/foldkit-zloz-cli/evidence/c4-receipt-inspect.md).
 
-**Recommended next:** reconcile the remaining domain/agent and compatibility gates
-against the now-complete C4 review/Apply/portable-receipt/inspection path. Identify
-one next core feature from explicit open criteria rather than extending this chain
-without a remaining user outcome.
+**Roadmap reconciliation — completed locally (2026-11-14):**
+[The refreshed assessment](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
+closes the stale approved-domain implementation inventory, retains C1–C4/Q1–Q4/R1
+scope/qualification gates and corrects the batch-transaction gap: modelling patches
+already support atomic multi-operation edits. No runtime or manifest change,
+new scope exclusion, publishing or deployment is authorized.
+
+**Recommended next:** opt-in loose connection semantics at package level, beginning
+with a headless persisted-mode/wire-compatibility contract and literal strict/loose
+endpoint fixtures. Preserve strict defaults, ordered edge meaning and live policies;
+do not hide a changed graph invariant in view callbacks. This recommendation needs
+feature approval; it does not start implementation or accept the other deferrals.

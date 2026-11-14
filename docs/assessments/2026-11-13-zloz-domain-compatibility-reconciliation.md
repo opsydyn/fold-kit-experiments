@@ -1,5 +1,11 @@
 # Zloz domain and compatibility reconciliation
 
+Current-inventory supersession: see the
+[November 14 reconciliation](2026-11-14-zloz-core-roadmap-reconciliation.md) at
+`7fa7b3d9`. Approved workshop/C4/DDD chains and CLI receipt inspection are now
+implemented locally. The source tables and recommendation below remain dated
+historical analysis; they are not current missing-feature claims.
+
 Delivery follow-up: the approved headless DDD audit is now implemented locally;
 see [ADR 0078](../adr/0078-audit-declared-ddd-relationships.md) and
 [package qualification](../../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).

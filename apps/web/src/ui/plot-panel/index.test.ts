@@ -75,10 +75,26 @@ describe('plot panel inspection', () => {
   });
 
   it('steps through targets with the arrow keys, wrapping round', () => {
-    const first = update(scatter, Message.PressedKeyNav({ direction: 'next' }));
+    const first = update(scatter, Message.PressedKeyNav({ command: { _tag: 'Step', by: 1 } }));
     expect(first.outMessage).toMatchObject({ _tag: 'InspectedPoint', key: 'a' });
-    const back = update(first.model, Message.PressedKeyNav({ direction: 'prev' }));
+    const back = update(first.model, Message.PressedKeyNav({ command: { _tag: 'Step', by: -1 } }));
     expect(back.outMessage).toMatchObject({ _tag: 'InspectedPoint', key: 'c' });
+  });
+});
+
+describe('plot panel keys', () => {
+  const press = (model: typeof scatter, key: string) =>
+    update(
+      model,
+      Message.PressedKeyNav({ command: { _tag: 'Jump', to: key === 'End' ? 'last' : 'first' } }),
+    );
+
+  it('jumps to either end and clears on Escape', () => {
+    expect(press(scatter, 'End').outMessage).toMatchObject({ _tag: 'InspectedPoint', key: 'c' });
+    const first = press(scatter, 'Home');
+    expect(first.outMessage).toMatchObject({ _tag: 'InspectedPoint', key: 'a' });
+    const cleared = update(first.model, Message.PressedKeyNav({ command: { _tag: 'Clear' } }));
+    expect(cleared.outMessage).toEqual({ _tag: 'ClearedInspection' });
   });
 });
 

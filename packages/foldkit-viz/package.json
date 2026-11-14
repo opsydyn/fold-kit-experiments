@@ -197,6 +197,12 @@
       ],
       "canvas/plot": [
         "./dist/canvas/plot.d.mts"
+      ],
+      "interaction/keyboard": [
+        "./dist/interaction/keyboard.d.mts"
+      ],
+      "foldkit/keyboard": [
+        "./dist/foldkit/keyboard.d.mts"
       ]
     }
   },
@@ -424,6 +430,14 @@
     "./canvas/plot": {
       "types": "./dist/canvas/plot.d.mts",
       "import": "./dist/canvas/plot.mjs"
+    },
+    "./interaction/keyboard": {
+      "types": "./dist/interaction/keyboard.d.mts",
+      "import": "./dist/interaction/keyboard.mjs"
+    },
+    "./foldkit/keyboard": {
+      "types": "./dist/foldkit/keyboard.d.mts",
+      "import": "./dist/foldkit/keyboard.mjs"
     }
   },
   "publishConfig": {

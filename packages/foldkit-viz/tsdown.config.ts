@@ -13,6 +13,8 @@ export default defineConfig({
     'chart/orbit': 'src/chart/orbit.ts',
     'foldkit/orbit': 'src/foldkit/orbit.ts',
     'foldkit/plot': 'src/foldkit/plot.ts',
+    'foldkit/keyboard': 'src/foldkit/keyboard.ts',
+    'interaction/keyboard': 'src/interaction/keyboard.ts',
     'canvas/plot': 'src/canvas/plot.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',

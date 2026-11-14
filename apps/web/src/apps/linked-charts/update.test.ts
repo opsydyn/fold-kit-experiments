@@ -108,7 +108,7 @@ it('links keyboard inspection through semantic point events', () => {
   const result = update(
     model,
     Message.ReceivedScatterMessage({
-      message: PlotPanel.Message.PressedKeyNav({ direction: 'next' }),
+      message: PlotPanel.Message.PressedKeyNav({ command: { _tag: 'Step', by: 1 } }),
     }),
   );
   expect(result.model.scatter.active).toEqual(Option.some(0));

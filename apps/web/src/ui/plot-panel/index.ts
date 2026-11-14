@@ -1,5 +1,8 @@
+import { chartKeyDown } from '@opsydyn/foldkit-viz/foldkit/keyboard';
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
 import type { PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
+import type { ChartCommand } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import { compilePlot, invertAxis, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import type {
   Channel,
@@ -19,7 +22,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { withOutMessage } from 'foldkit/update';
 import type { Return as UpdateReturn, ReturnWithOutMessage } from 'foldkit/update';
 
-import { arrowKeyNav, nextIndex, withAccessibleTable, withAriaLive } from '../shared';
+import { withAccessibleTable, withAriaLive } from '../shared';
 
 /**
  * An interactive chart child over any plot spec. One mark is the target of the
@@ -72,7 +75,8 @@ export const Message = defineMessageUnion({
   LeftPlot: {},
   PressedPointer: { x: Schema.Number, y: Schema.Number },
   ReleasedPointer: {},
-  PressedKeyNav: { direction: Schema.String },
+  /** A chart key's command: step, page, jump to an end, clear or select. */
+  PressedKeyNav: { command: Schema.Unknown },
   HoveredTarget: { index: Schema.Number },
   BlurredTarget: {},
   ClearedBrush: {},
@@ -316,11 +320,12 @@ export const update = (model: Model, message: Message): Return =>
     },
     ReleasedPointer: () => endBrush(model),
     CompletedForwardPointer: () => ({ model }),
-    PressedKeyNav: ({ direction }) => {
+    PressedKeyNav: ({ command }) => {
       const count = targetsOf(model).length;
       if (count === 0) return { model };
-      const current = Option.getOrElse(model.active, () => -1);
-      return inspect(model, Option.some(nextIndex(count, current, direction)));
+      // SAFETY: PressedKeyNav is built only from chartKeyDown's ChartCommand, in view.
+      const next = targetAfter(count, Option.getOrUndefined(model.active), command as ChartCommand);
+      return inspect(model, next === undefined ? Option.none() : Option.some(next));
     },
     HoveredTarget: ({ index }) => inspect(model, Option.some(index)),
     BlurredTarget: () => inspect(model, Option.none()),
@@ -483,8 +488,9 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const brush = Option.map(model.band, ([x0, x1]) => ({ x0, x1 }));
   const chart = plotChart(h, geometry, { overlay: overlayOf(ring, brush) });
   const liveText = Option.match(active, { onNone: () => '', onSome: (t) => t.title });
-  const handleKeyDown = (key: string) =>
-    arrowKeyNav(key, (direction) => toParentMessage(Message.PressedKeyNav({ direction })));
+  const handleKeyDown = chartKeyDown((command) =>
+    toParentMessage(Message.PressedKeyNav({ command })),
+  );
   return withAccessibleTable(
     h,
     h.div(

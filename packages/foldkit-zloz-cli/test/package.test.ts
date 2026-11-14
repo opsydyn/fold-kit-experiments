@@ -18,6 +18,7 @@ import {
 
 import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
+import c4ReceiptWire from '../../foldkit-zloz/test/fixtures/c4-conversion-v1.json';
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
@@ -226,6 +227,44 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await writeFile(dddFile, dddText);
     await writeFile(dddRulesFile, dddRulesText);
     for (const runtime of ['node', 'bun']) {
+      const c4Input = JSON.stringify(c4ReceiptWire);
+      const c4Report = await run([runtime, bin, 'c4', 'receipt', 'inspect'], c4Input);
+      expect(c4Report.code).toBe(0);
+      expect(c4Report.stderr).toBe('');
+      expect(c4Report.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(c4Report.stdout)).toMatchObject({
+        operation: 'c4-receipt-inspect',
+        status: 'inspected',
+        data: {
+          authority: 'read-only-evidence',
+          provenance: c4ReceiptWire.source,
+          target: c4ReceiptWire.document,
+        },
+      });
+      const c4Future = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        JSON.stringify({ ...c4ReceiptWire, version: 2 }),
+      );
+      expect(c4Future.code).toBe(1);
+      expect(c4Future.stderr).toBe('');
+      expect(JSON.parse(c4Future.stdout).diagnostics[0].code).toBe('incompatible-c4-receipt');
+      const c4Invalid = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        JSON.stringify({
+          ...c4ReceiptWire,
+          document: { ...c4ReceiptWire.document, name: 'Forged target' },
+        }),
+      );
+      expect(c4Invalid.code).toBe(2);
+      expect(c4Invalid.stderr).toBe('');
+      expect(JSON.parse(c4Invalid.stdout).diagnostics[0].code).toBe('invalid-c4-receipt');
+      const c4Utf8 = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        new Uint8Array([0xc3, 0x28]),
+      );
+      expect(c4Utf8.code).toBe(2);
+      expect(JSON.parse(c4Utf8.stdout).diagnostics[0].code).toBe('invalid-utf8');
+
       const compareInput = JSON.stringify(dddReview);
       const dddComparison = await run(
         [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before'],
@@ -598,7 +637,11 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse, type CliC4ReceiptInspection } from '@opsydyn/foldkit-zloz-cli';
+const c4Authority:CliC4ReceiptInspection['authority']='read-only-evidence'; void c4Authority;
+// @ts-expect-error Historical loss acceptance is never current Apply authority.
+const c4Apply:CliC4ReceiptInspection['authority']='apply-authorized'; void c4Apply;
+const c4Scope:Extract<CliResponse,{operation:'c4-receipt-inspect',status:'inspected'}>['scope']='recorded-conversion'; void c4Scope;
 const dddDelta:Extract<CliResponse,{operation:'ddd-compare',status:'compared'}>['data']['summary']={introduced:0,resolved:0,persisting:0}; void dddDelta;
 const dddReport:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0}; void dddReport;
 // @ts-expect-error DDD response data never has an inference count.

@@ -16,6 +16,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { Cause, Effect, Exit, Runtime, Schema, Sink, Stdio, Stream } from 'effect';
 
+import c4ReceiptWire from '../../foldkit-zloz/test/fixtures/c4-conversion-v1.json';
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
@@ -1009,6 +1010,95 @@ test('workshop codecs and external-system rule files have explicit opt-in while 
     const rejected = await invoke(['validate'], invalid);
     expect(rejected.code).toBe(2);
     expect(JSON.parse(rejected.text).status).toBe('rejected');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('C4 receipt inspection reports complete provenance, before/after changes and recorded losses as read-only JSON', async () => {
+  const text = JSON.stringify(c4ReceiptWire);
+  const result = await invoke(['c4', 'receipt', 'inspect'], text);
+  expect(result.code).toBe(0);
+  expect(result.text.trim().split('\n')).toHaveLength(1);
+  const response = JSON.parse(result.text);
+  expect(response.operation).toBe('c4-receipt-inspect');
+  expect(response.status).toBe('inspected');
+  expect(response.scope).toBe('recorded-conversion');
+  expect(response.data.provenance).toEqual(c4ReceiptWire.source);
+  expect(response.data.target).toEqual(c4ReceiptWire.document);
+  expect(response.data.choices).toEqual(c4ReceiptWire.options);
+  expect(response.data.authority).toBe('read-only-evidence');
+  expect(response.data.lossesAccepted).toBe(true);
+  expect(response.data.changes.nodes.map((n: { id: string }) => n.id)).toEqual(['event', 'system']);
+  expect(response.data.changes.edges[0]).toMatchObject({
+    id: 'emits',
+    kind: 'changed',
+    before: { label: 'Emits' },
+    after: { label: 'Reports' },
+  });
+  expect(response.data.losses.map((f: { code: string }) => f.code)).toContain(
+    'parent-constraints-removed',
+  );
+  expect(response.diagnostics.every((d: { severity: string }) => d.severity === 'loss')).toBe(true);
+  expect(response.diagnostics.length).toBeGreaterThan(0);
+  expect(JSON.stringify(c4ReceiptWire)).toBe(text);
+});
+test('C4 unsupported format/version exits 1 while invalid data and malformed invocation exit 2', async () => {
+  for (const wire of [
+    { ...c4ReceiptWire, version: 2 },
+    { ...c4ReceiptWire, format: 'foldkit-zloz-ddd-conversion' },
+    { format: 'foldkit-zloz-c4-conversion', version: 2, uninterpretable: null },
+  ]) {
+    const result = await invoke(['c4', 'receipt', 'inspect'], JSON.stringify(wire));
+    expect(result.code).toBe(1);
+    expect(JSON.parse(result.text)).toMatchObject({
+      operation: 'c4-receipt-inspect',
+      status: 'rejected',
+    });
+    expect(JSON.parse(result.text).diagnostics[0].code).toBe('incompatible-c4-receipt');
+    expect(JSON.parse(result.text).data).toBeUndefined();
+  }
+  for (const text of [
+    '{',
+    'null',
+    '{}',
+    JSON.stringify({ ...c4ReceiptWire, lossesAccepted: false }),
+    JSON.stringify({ ...c4ReceiptWire, version: '1' }),
+    JSON.stringify({ ...c4ReceiptWire, format: 14 }),
+    JSON.stringify({ ...c4ReceiptWire, extra: true }),
+    JSON.stringify({
+      ...c4ReceiptWire,
+      document: { ...c4ReceiptWire.document, name: 'Forged target' },
+    }),
+  ]) {
+    const result = await invoke(['c4', 'receipt', 'inspect'], text);
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text).status).toBe('rejected');
+    expect(JSON.parse(result.text).data).toBeUndefined();
+  }
+  expect(
+    (await invoke(['c4', 'receipt', 'inspect', '--apply'], JSON.stringify(c4ReceiptWire))).code,
+  ).toBe(2);
+});
+test('C4 file inspection preserves bytes and reports missing/oversized input with exit 2', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-c4-inspect-'));
+  // oxlint-disable-next-line linteffect/no-try-catch -- Native fixture cleanup must run on failure.
+  try {
+    const input = join(directory, 'receipt.json');
+    const text = JSON.stringify(c4ReceiptWire);
+    await writeFile(input, text);
+    const result = await invoke(['c4', 'receipt', 'inspect', '--input', input], '');
+    expect(result.code).toBe(0);
+    expect(await readFile(input, 'utf8')).toBe(text);
+    const missing = await invoke(
+      ['c4', 'receipt', 'inspect', '--input', join(directory, 'missing')],
+      '',
+    );
+    expect(missing.code).toBe(2);
+    expect(JSON.parse(missing.text).diagnostics[0].code).toBe('input-unavailable');
+    const large = await invoke(['c4', 'receipt', 'inspect'], 'x'.repeat(inputByteLimit + 1));
+    expect(large.code).toBe(2);
+    expect(JSON.parse(large.text).diagnostics[0].code).toBe('input-limit');
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

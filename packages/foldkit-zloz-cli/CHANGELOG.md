@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add read-only C4 receipt inspection with full provenance, before/after changes, recorded losses and explicit incompatible/invalid exits.
+
 - Add DDD edition comparison through Effect CLI with exact structured deltas, regression exits and explicit validation/selector failures.
 
 - Add Effect CLI DDD audit with deterministic JSON reports, data-only custom conventions and explicit compatible/incompatible/input exit semantics.

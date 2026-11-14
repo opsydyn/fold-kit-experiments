@@ -4,6 +4,9 @@ import type {
   ZlozEventStormingRelationshipAudit,
   ZlozRelationshipAuditComparison,
   ZlozModellingPatchPreview,
+  ZlozEventStormingC4Conversion,
+  ZlozEventStormingC4ConversionDisclosure,
+  ZlozHistoryComparison,
 } from '@opsydyn/foldkit-zloz';
 import type {
   MermaidBundle,
@@ -16,6 +19,7 @@ import { Data, Runtime, Schema } from 'effect';
 export const cliProtocol = 'foldkit-zloz-cli/v1';
 export type CliOperation =
   | 'validate'
+  | 'c4-receipt-inspect'
   | 'mermaid-export'
   | 'ddd-audit'
   | 'ddd-compare'
@@ -52,7 +56,27 @@ export type CliReviewPacketSummary = Readonly<{
   }>;
   audit: Pick<ZlozRelationshipAuditComparison, 'status' | 'summary'>;
 }>;
+/** Read-only report; recorded acceptance is not current consent or verified authorship. */
+export type CliC4ReceiptInspection = Readonly<{
+  format: ZlozEventStormingC4Conversion['format'];
+  version: 1;
+  authority: 'read-only-evidence';
+  provenance: ZlozEventStormingC4Conversion['source'];
+  target: ZlozEventStormingC4Conversion['document'];
+  choices: ZlozEventStormingC4Conversion['options'];
+  changes: Pick<ZlozHistoryComparison, 'nodes' | 'edges'>;
+  losses: readonly ZlozEventStormingC4ConversionDisclosure[];
+  lossesAccepted: true;
+}>;
 export type CliResponse =
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'c4-receipt-inspect';
+      status: 'inspected';
+      scope: 'recorded-conversion';
+      data: CliC4ReceiptInspection;
+      diagnostics: readonly CliDiagnostic[];
+    }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'ddd-audit';
@@ -162,6 +186,7 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'invalid-rules'
     | 'model-required'
     | 'invalid-patch'
+    | 'invalid-c4-receipt'
     | 'unknown-baseline'
     | 'unknown-edition'
     | Extract<ZlozReviewPacketParseResult, { status: 'rejected' }>['code'];
@@ -202,6 +227,18 @@ export class CliInvocationRejected extends Data.TaggedError('CliInvocationReject
 export const encodeResponse = Schema.encodeUnknownSync(Schema.fromJsonString(Schema.Json));
 
 export class CliPatchRejected extends Data.TaggedError('CliPatchRejected') {
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+
+/** A syntactically readable receipt belongs to a different format/version contract. */
+export class CliC4ReceiptIncompatible extends Data.TaggedError('CliC4ReceiptIncompatible')<{
+  readonly message: string;
+  readonly subject: string;
+  readonly path?: string;
+}> {
+  readonly code = 'incompatible-c4-receipt';
+  readonly dimension = 'identity';
   readonly [Runtime.errorExitCode] = 1;
   readonly [Runtime.errorReported] = false;
 }

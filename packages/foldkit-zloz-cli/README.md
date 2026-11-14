@@ -1,7 +1,7 @@
 # Foldkit Zloz CLI
 
-An independent Effect CLI package for validating Zloz models, auditing causal relationships and exporting
-Mermaid bundles. **Local 0.1.0 candidate; not published to npm.** No Mermaid parser,
+An independent Effect CLI package for validating Zloz models, auditing relationships,
+inspecting C4 receipts and exporting Mermaid bundles. **Local 0.1.0 candidate; not published to npm.** No Mermaid parser,
 browser, Foldkit runtime or layout engine is installed by this package.
 
 ## Use in this workspace
@@ -23,8 +23,9 @@ zloz mermaid export --help
 
 Input defaults to stdin (`--input -`). Interactive stdin requires a file or pipe;
 the command does not wait indefinitely for a terminal to supply a document.
-Input must be UTF-8, at most **1,048,576 bytes**, and a canonical version-one graph
-snapshot, or `foldkit-zloz-model` v1 document. Example:
+Input must be UTF-8 and at most **1,048,576 bytes**. Model commands accept canonical
+version-one graph snapshots or `foldkit-zloz-model` v1 documents; C4 inspection uses
+the independent receipt contract described below. Graph example:
 
 ```json
 { "version": 1, "graph": { "nodes": [], "edges": [] } }
@@ -492,3 +493,41 @@ expand the selected convention. Core exposes the data-only
 `eventStormingWorkshopRelationshipRules` catalogue for consumers to serialize when
 wanted. Existing UTF-8/JSON limits, input exits, DDD family separation and read-only
 behavior are unchanged. Renderers and npm publication are separate gates.
+
+## Inspect a portable C4 conversion receipt
+
+```sh
+zloz c4 receipt inspect --input payments.c4-conversion.json
+cat payments.c4-conversion.json | zloz c4 receipt inspect
+```
+
+This read-only command uses the strict core v1 receipt decoder. It emits one
+`foldkit-zloz-cli/v1` JSON response with operation `c4-receipt-inspect`, status
+`inspected` and scope `recorded-conversion`. `data` contains:
+
+- `format`, `version` and `authority: "read-only-evidence"`.
+- `provenance`: complete source document, session and revision, including camera,
+  editions and fork ancestry; `target`: the validated target document.
+- `choices`: recorded C4 mappings and placements.
+- `changes.nodes` and `changes.edges`: ID-sorted before/after history changes with
+  semantic/layout classification.
+- `losses`: recorded plan findings, including meaning, membership and constraint
+  losses; `lossesAccepted: true` describes historical recorded acceptance only.
+
+Loss findings also appear in `diagnostics` with severity `loss`. They do not make a
+valid inspection fail. The command validates source/choices/target consistency,
+not authorship or a historical human action. It never calls Apply, activates a
+model, appends records, grants current consent or writes files.
+
+Exit **0** means validated inspection; **1** means an explicitly unsupported string
+format or numeric version (`incompatible-c4-receipt`); **2** means invalid input,
+I/O, invocation or output failure. Core rejection uses `invalid-c4-receipt`;
+UTF-8, malformed JSON, unreadable input and byte limits retain the shared diagnostic
+codes. Rejected responses contain no inspection data. Unsupported versions are
+classified before inspecting their payload. Incorrectly typed/missing format or
+version fields are invalid data, not a readable future contract.
+
+The existing CLI **1 MiB** input limit applies to files and stdin; the workbench's
+**5 MiB** limit is separate. There are no layout, policy override or Apply flags.
+See [qualification](evidence/c4-receipt-inspect.md) and
+[ADR 0091](../../docs/adr/0091-inspect-c4-receipts-through-effect-cli.md).

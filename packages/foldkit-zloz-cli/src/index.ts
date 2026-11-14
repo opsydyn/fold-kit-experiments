@@ -23,15 +23,17 @@ import {
   type MermaidDirection,
   type MermaidLossPolicy,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { Console, Effect, Match, Option, Result, Stdio } from 'effect';
+import { Console, Effect, Match, Option, Result, Schema, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
+import { inspectC4Receipt } from './c4-receipt';
 import { readDddRelationshipRules } from './ddd-relationship-rules';
-import { readDocument, readTextInput, writeResponse, type CliDocument } from './io';
+import { readDocument, readTextInput, readJsonInput, writeResponse, type CliDocument } from './io';
 import {
   cliProtocol,
   CliInputError,
+  CliC4ReceiptIncompatible,
   type CliDiagnostic,
   CliConversionRejected,
   CliAuditIncompatible,
@@ -50,6 +52,7 @@ export {
   cliProtocol,
   CliDiagnostic,
   CliInputError,
+  CliC4ReceiptIncompatible,
   CliOutputError,
   CliConversionRejected,
   CliAuditIncompatible,
@@ -58,10 +61,18 @@ export {
   CliPatchRejected,
   CliInvocationRejected,
 } from './protocol';
-export type { CliOperation, CliResponse, CliReviewPacketSummary } from './protocol';
+export type {
+  CliOperation,
+  CliResponse,
+  CliReviewPacketSummary,
+  CliC4ReceiptInspection,
+} from './protocol';
 
 type Operation = Exclude<CliOperation, 'invocation'>;
-function rejectInput(operation: Operation, error: CliInputError) {
+function rejectInput<E extends CliInputError | CliC4ReceiptIncompatible>(
+  operation: Operation,
+  error: E,
+) {
   return Effect.gen(function* () {
     const diagnostic: CliDiagnostic = {
       code: error.code,
@@ -793,6 +804,49 @@ const patchDryRunCommand = Command.make(
   ),
 );
 const patchCommand = Command.make('patch').pipe(Command.withSubcommands([patchDryRunCommand]));
+const c4ReceiptEnvelope = Schema.Struct({ format: Schema.String, version: Schema.Number });
+function executeC4ReceiptInspection(input: string) {
+  const inspecting = Effect.gen(function* () {
+    const { text, value } = yield* readJsonInput(input);
+    if (
+      Schema.is(c4ReceiptEnvelope)(value) &&
+      (value.format !== 'foldkit-zloz-c4-conversion' || value.version !== 1)
+    )
+      return yield* Effect.fail(
+        new CliC4ReceiptIncompatible({
+          subject: input,
+          message:
+            'Expected a foldkit-zloz-c4-conversion v1 receipt; this format or version is unsupported.',
+        }),
+      );
+    const response = yield* Effect.try({
+      try: () => inspectC4Receipt(text),
+      catch: () =>
+        new CliInputError({
+          code: 'invalid-c4-receipt',
+          dimension: 'semantics',
+          subject: input,
+          message:
+            'C4 receipt validation failed. Source, choices, recorded acceptance and complete target must satisfy the v1 conversion contract.',
+        }),
+    });
+    yield* writeResponse(response);
+  });
+  return inspecting.pipe(Effect.withSpan('zloz.cli.c4ReceiptInspect'));
+}
+const c4ReceiptInspect = Command.make('inspect', { input }, (config) =>
+  executeC4ReceiptInspection(config.input).pipe(
+    Effect.catchTag(['CliInputError', 'CliC4ReceiptIncompatible'], (error) =>
+      rejectInput('c4-receipt-inspect', error),
+    ),
+  ),
+).pipe(
+  Command.withDescription(
+    'Strict read-only C4 receipt inspection with provenance, changes and recorded loss findings.',
+  ),
+);
+const c4Receipt = Command.make('receipt').pipe(Command.withSubcommands([c4ReceiptInspect]));
+const c4Command = Command.make('c4').pipe(Command.withSubcommands([c4Receipt]));
 export const zlozCommand = Command.make('zloz').pipe(
   Command.withDescription(
     'Compose systems. Connect ideas. Validate and audit Zloz models; export Mermaid as JSON.',
@@ -804,6 +858,7 @@ export const zlozCommand = Command.make('zloz').pipe(
     dddCommand,
     reviewCommand,
     patchCommand,
+    c4Command,
   ]),
 );
 

@@ -1,0 +1,198 @@
+{
+  "result": "passed",
+  "sourceUnchanged": true,
+  "cases": [
+    {
+      "runtime": "node",
+      "case": "valid-with-losses-stdin",
+      "exit": 0,
+      "status": "inspected",
+      "diagnostics": [
+        "workshop-meaning-replaced",
+        "label-replaced",
+        "workshop-meaning-replaced",
+        "relationship-meaning-replaced",
+        "label-replaced",
+        "membership-replaced",
+        "parent-constraints-removed",
+        "membership-replaced"
+      ],
+      "changes": {
+        "nodes": 2,
+        "edges": 1
+      }
+    },
+    {
+      "runtime": "node",
+      "case": "valid-file",
+      "exit": 0,
+      "status": "inspected",
+      "diagnostics": [
+        "workshop-meaning-replaced",
+        "label-replaced",
+        "workshop-meaning-replaced",
+        "relationship-meaning-replaced",
+        "label-replaced",
+        "membership-replaced",
+        "parent-constraints-removed",
+        "membership-replaced"
+      ],
+      "changes": {
+        "nodes": 2,
+        "edges": 1
+      }
+    },
+    {
+      "runtime": "node",
+      "case": "future-version",
+      "exit": 1,
+      "status": "rejected",
+      "diagnostics": ["incompatible-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "foreign-format",
+      "exit": 1,
+      "status": "rejected",
+      "diagnostics": ["incompatible-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "forged-target",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "invalid-json",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-json"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "invalid-utf8",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-utf8"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "input-limit",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["input-limit"],
+      "changes": null
+    },
+    {
+      "runtime": "node",
+      "case": "missing-file",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["input-unavailable"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "valid-with-losses-stdin",
+      "exit": 0,
+      "status": "inspected",
+      "diagnostics": [
+        "workshop-meaning-replaced",
+        "label-replaced",
+        "workshop-meaning-replaced",
+        "relationship-meaning-replaced",
+        "label-replaced",
+        "membership-replaced",
+        "parent-constraints-removed",
+        "membership-replaced"
+      ],
+      "changes": {
+        "nodes": 2,
+        "edges": 1
+      }
+    },
+    {
+      "runtime": "bun",
+      "case": "valid-file",
+      "exit": 0,
+      "status": "inspected",
+      "diagnostics": [
+        "workshop-meaning-replaced",
+        "label-replaced",
+        "workshop-meaning-replaced",
+        "relationship-meaning-replaced",
+        "label-replaced",
+        "membership-replaced",
+        "parent-constraints-removed",
+        "membership-replaced"
+      ],
+      "changes": {
+        "nodes": 2,
+        "edges": 1
+      }
+    },
+    {
+      "runtime": "bun",
+      "case": "future-version",
+      "exit": 1,
+      "status": "rejected",
+      "diagnostics": ["incompatible-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "foreign-format",
+      "exit": 1,
+      "status": "rejected",
+      "diagnostics": ["incompatible-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "forged-target",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-c4-receipt"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "invalid-json",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-json"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "invalid-utf8",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["invalid-utf8"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "input-limit",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["input-limit"],
+      "changes": null
+    },
+    {
+      "runtime": "bun",
+      "case": "missing-file",
+      "exit": 2,
+      "status": "rejected",
+      "diagnostics": ["input-unavailable"],
+      "changes": null
+    }
+  ]
+}

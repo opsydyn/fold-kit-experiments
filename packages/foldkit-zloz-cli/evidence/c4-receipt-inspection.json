@@ -1,0 +1,532 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "c4-receipt-inspect",
+  "status": "inspected",
+  "scope": "recorded-conversion",
+  "data": {
+    "format": "foldkit-zloz-c4-conversion",
+    "version": 1,
+    "authority": "read-only-evidence",
+    "provenance": {
+      "document": {
+        "id": "payments",
+        "name": "Payments workshop",
+        "snapshot": {
+          "graph": {
+            "nodes": [
+              {
+                "id": "lane",
+                "kind": "group",
+                "label": "Discovery",
+                "position": { "x": 0, "y": 0 },
+                "size": { "width": 700, "height": 400 },
+                "ports": [],
+                "architecture": { "family": "event-storming", "role": "lane" }
+              },
+              {
+                "id": "system",
+                "label": "Provider",
+                "position": { "x": 50, "y": 70 },
+                "size": { "width": 200, "height": 120 },
+                "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                "parentId": "lane",
+                "extent": "parent",
+                "expandParent": false,
+                "architecture": { "family": "event-storming", "role": "external-system" },
+                "data": { "owner": "team" }
+              },
+              {
+                "id": "event",
+                "label": "Payment accepted",
+                "position": { "x": 350, "y": 70 },
+                "size": { "width": 200, "height": 120 },
+                "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                "parentId": "lane",
+                "architecture": { "family": "event-storming", "role": "domain-event" }
+              }
+            ],
+            "edges": [
+              {
+                "id": "emits",
+                "label": "Emits",
+                "source": { "node": "system", "port": "out" },
+                "target": { "node": "event", "port": "in" },
+                "architecture": { "family": "event-storming", "role": "emits" },
+                "data": { "keep": "relation" }
+              }
+            ]
+          },
+          "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+        },
+        "editions": [
+          {
+            "id": "discovery",
+            "name": "Discovery",
+            "snapshot": {
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "lane",
+                    "kind": "group",
+                    "label": "Discovery",
+                    "position": { "x": 0, "y": 0 },
+                    "size": { "width": 700, "height": 400 },
+                    "ports": [],
+                    "architecture": { "family": "event-storming", "role": "lane" }
+                  },
+                  {
+                    "id": "system",
+                    "label": "Provider",
+                    "position": { "x": 50, "y": 70 },
+                    "size": { "width": 200, "height": 120 },
+                    "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                    "parentId": "lane",
+                    "extent": "parent",
+                    "expandParent": false,
+                    "architecture": { "family": "event-storming", "role": "external-system" },
+                    "data": { "owner": "team" }
+                  },
+                  {
+                    "id": "event",
+                    "label": "Payment accepted",
+                    "position": { "x": 350, "y": 70 },
+                    "size": { "width": 200, "height": 120 },
+                    "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                    "parentId": "lane",
+                    "architecture": { "family": "event-storming", "role": "domain-event" }
+                  }
+                ],
+                "edges": [
+                  {
+                    "id": "emits",
+                    "label": "Emits",
+                    "source": { "node": "system", "port": "out" },
+                    "target": { "node": "event", "port": "in" },
+                    "architecture": { "family": "event-storming", "role": "emits" },
+                    "data": { "keep": "relation" }
+                  }
+                ]
+              },
+              "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+            }
+          }
+        ],
+        "origin": {
+          "modelId": "parent",
+          "modelName": "Original workshop",
+          "edition": {
+            "id": "discovery",
+            "name": "Discovery",
+            "snapshot": {
+              "graph": {
+                "nodes": [
+                  {
+                    "id": "lane",
+                    "kind": "group",
+                    "label": "Discovery",
+                    "position": { "x": 0, "y": 0 },
+                    "size": { "width": 700, "height": 400 },
+                    "ports": [],
+                    "architecture": { "family": "event-storming", "role": "lane" }
+                  },
+                  {
+                    "id": "system",
+                    "label": "Provider",
+                    "position": { "x": 50, "y": 70 },
+                    "size": { "width": 200, "height": 120 },
+                    "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                    "parentId": "lane",
+                    "extent": "parent",
+                    "expandParent": false,
+                    "architecture": { "family": "event-storming", "role": "external-system" },
+                    "data": { "owner": "team" }
+                  },
+                  {
+                    "id": "event",
+                    "label": "Payment accepted",
+                    "position": { "x": 350, "y": 70 },
+                    "size": { "width": 200, "height": 120 },
+                    "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                    "parentId": "lane",
+                    "architecture": { "family": "event-storming", "role": "domain-event" }
+                  }
+                ],
+                "edges": [
+                  {
+                    "id": "emits",
+                    "label": "Emits",
+                    "source": { "node": "system", "port": "out" },
+                    "target": { "node": "event", "port": "in" },
+                    "architecture": { "family": "event-storming", "role": "emits" },
+                    "data": { "keep": "relation" }
+                  }
+                ]
+              },
+              "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+            }
+          }
+        }
+      },
+      "sessionId": "workshop:1",
+      "revision": 4
+    },
+    "target": {
+      "id": "payments",
+      "name": "Payments workshop",
+      "snapshot": {
+        "graph": {
+          "nodes": [
+            {
+              "id": "lane",
+              "kind": "group",
+              "label": "Discovery",
+              "position": { "x": 0, "y": 0 },
+              "size": { "width": 700, "height": 400 },
+              "ports": [],
+              "architecture": { "family": "event-storming", "role": "lane" }
+            },
+            {
+              "id": "system",
+              "label": "Payment system",
+              "position": { "x": 50, "y": 70 },
+              "size": { "width": 200, "height": 120 },
+              "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+              "architecture": { "family": "c4", "role": "software-system", "scope": "external" },
+              "data": { "owner": "team" }
+            },
+            {
+              "id": "event",
+              "label": "Payment accepted",
+              "position": { "x": 350, "y": 70 },
+              "size": { "width": 200, "height": 120 },
+              "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+              "architecture": { "family": "c4", "role": "component" }
+            }
+          ],
+          "edges": [
+            {
+              "id": "emits",
+              "label": "Reports",
+              "source": { "node": "system", "port": "out" },
+              "target": { "node": "event", "port": "in" },
+              "data": { "keep": "relation" }
+            }
+          ]
+        },
+        "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+      },
+      "editions": [
+        {
+          "id": "discovery",
+          "name": "Discovery",
+          "snapshot": {
+            "graph": {
+              "nodes": [
+                {
+                  "id": "lane",
+                  "kind": "group",
+                  "label": "Discovery",
+                  "position": { "x": 0, "y": 0 },
+                  "size": { "width": 700, "height": 400 },
+                  "ports": [],
+                  "architecture": { "family": "event-storming", "role": "lane" }
+                },
+                {
+                  "id": "system",
+                  "label": "Provider",
+                  "position": { "x": 50, "y": 70 },
+                  "size": { "width": 200, "height": 120 },
+                  "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                  "parentId": "lane",
+                  "extent": "parent",
+                  "expandParent": false,
+                  "architecture": { "family": "event-storming", "role": "external-system" },
+                  "data": { "owner": "team" }
+                },
+                {
+                  "id": "event",
+                  "label": "Payment accepted",
+                  "position": { "x": 350, "y": 70 },
+                  "size": { "width": 200, "height": 120 },
+                  "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                  "parentId": "lane",
+                  "architecture": { "family": "event-storming", "role": "domain-event" }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "emits",
+                  "label": "Emits",
+                  "source": { "node": "system", "port": "out" },
+                  "target": { "node": "event", "port": "in" },
+                  "architecture": { "family": "event-storming", "role": "emits" },
+                  "data": { "keep": "relation" }
+                }
+              ]
+            },
+            "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+          }
+        }
+      ],
+      "origin": {
+        "modelId": "parent",
+        "modelName": "Original workshop",
+        "edition": {
+          "id": "discovery",
+          "name": "Discovery",
+          "snapshot": {
+            "graph": {
+              "nodes": [
+                {
+                  "id": "lane",
+                  "kind": "group",
+                  "label": "Discovery",
+                  "position": { "x": 0, "y": 0 },
+                  "size": { "width": 700, "height": 400 },
+                  "ports": [],
+                  "architecture": { "family": "event-storming", "role": "lane" }
+                },
+                {
+                  "id": "system",
+                  "label": "Provider",
+                  "position": { "x": 50, "y": 70 },
+                  "size": { "width": 200, "height": 120 },
+                  "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+                  "parentId": "lane",
+                  "extent": "parent",
+                  "expandParent": false,
+                  "architecture": { "family": "event-storming", "role": "external-system" },
+                  "data": { "owner": "team" }
+                },
+                {
+                  "id": "event",
+                  "label": "Payment accepted",
+                  "position": { "x": 350, "y": 70 },
+                  "size": { "width": 200, "height": 120 },
+                  "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+                  "parentId": "lane",
+                  "architecture": { "family": "event-storming", "role": "domain-event" }
+                }
+              ],
+              "edges": [
+                {
+                  "id": "emits",
+                  "label": "Emits",
+                  "source": { "node": "system", "port": "out" },
+                  "target": { "node": "event", "port": "in" },
+                  "architecture": { "family": "event-storming", "role": "emits" },
+                  "data": { "keep": "relation" }
+                }
+              ]
+            },
+            "viewport": { "x": 20, "y": 30, "zoom": 0.8 }
+          }
+        }
+      }
+    },
+    "choices": {
+      "mappings": {
+        "nodes": [
+          { "nodeId": "lane", "architecture": null },
+          {
+            "nodeId": "system",
+            "architecture": { "family": "c4", "role": "software-system", "scope": "external" },
+            "label": "Payment system"
+          },
+          { "nodeId": "event", "architecture": { "family": "c4", "role": "component" } }
+        ],
+        "edges": [{ "edgeId": "emits", "relationship": { "label": "Reports" } }]
+      },
+      "memberships": [
+        { "nodeId": "system", "placement": { "type": "root" } },
+        { "nodeId": "event", "placement": { "type": "root" } }
+      ]
+    },
+    "changes": {
+      "nodes": [
+        {
+          "id": "event",
+          "kind": "changed",
+          "before": {
+            "id": "event",
+            "label": "Payment accepted",
+            "position": { "x": 350, "y": 70 },
+            "size": { "width": 200, "height": 120 },
+            "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+            "parentId": "lane",
+            "architecture": { "family": "event-storming", "role": "domain-event" }
+          },
+          "after": {
+            "id": "event",
+            "label": "Payment accepted",
+            "position": { "x": 350, "y": 70 },
+            "size": { "width": 200, "height": 120 },
+            "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+            "architecture": { "family": "c4", "role": "component" }
+          },
+          "semanticChanged": true,
+          "layoutChanged": false
+        },
+        {
+          "id": "system",
+          "kind": "changed",
+          "before": {
+            "id": "system",
+            "label": "Provider",
+            "position": { "x": 50, "y": 70 },
+            "size": { "width": 200, "height": 120 },
+            "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+            "parentId": "lane",
+            "extent": "parent",
+            "expandParent": false,
+            "architecture": { "family": "event-storming", "role": "external-system" },
+            "data": { "owner": "team" }
+          },
+          "after": {
+            "id": "system",
+            "label": "Payment system",
+            "position": { "x": 50, "y": 70 },
+            "size": { "width": 200, "height": 120 },
+            "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+            "architecture": { "family": "c4", "role": "software-system", "scope": "external" },
+            "data": { "owner": "team" }
+          },
+          "semanticChanged": true,
+          "layoutChanged": true
+        }
+      ],
+      "edges": [
+        {
+          "id": "emits",
+          "kind": "changed",
+          "before": {
+            "id": "emits",
+            "label": "Emits",
+            "source": { "node": "system", "port": "out" },
+            "target": { "node": "event", "port": "in" },
+            "architecture": { "family": "event-storming", "role": "emits" },
+            "data": { "keep": "relation" }
+          },
+          "after": {
+            "id": "emits",
+            "label": "Reports",
+            "source": { "node": "system", "port": "out" },
+            "target": { "node": "event", "port": "in" },
+            "data": { "keep": "relation" }
+          },
+          "semanticChanged": true,
+          "layoutChanged": false
+        }
+      ]
+    },
+    "losses": [
+      {
+        "kind": "node",
+        "id": "system",
+        "code": "workshop-meaning-replaced",
+        "reason": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance."
+      },
+      {
+        "kind": "node",
+        "id": "system",
+        "code": "label-replaced",
+        "reason": "The authored workshop label would be replaced by an explicit structural name."
+      },
+      {
+        "kind": "node",
+        "id": "event",
+        "code": "workshop-meaning-replaced",
+        "reason": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance."
+      },
+      {
+        "kind": "edge",
+        "id": "emits",
+        "code": "relationship-meaning-replaced",
+        "reason": "The reserved relationship descriptor would be replaced by a plain, explicitly named C4 communication. Causal order, DDD meaning and runtime communication are not equivalent."
+      },
+      {
+        "kind": "edge",
+        "id": "emits",
+        "code": "label-replaced",
+        "reason": "The source edge label would be replaced by an explicit communication label."
+      },
+      {
+        "kind": "node",
+        "id": "system",
+        "code": "membership-replaced",
+        "reason": "The authored parent membership would be removed or replaced; world coordinates and original membership remain in provenance."
+      },
+      {
+        "kind": "node",
+        "id": "system",
+        "code": "parent-constraints-removed",
+        "reason": "Root placement would remove authored parent-dependent extent/expansion settings; source settings remain in provenance."
+      },
+      {
+        "kind": "node",
+        "id": "event",
+        "code": "membership-replaced",
+        "reason": "The authored parent membership would be removed or replaced; world coordinates and original membership remain in provenance."
+      }
+    ],
+    "lossesAccepted": true
+  },
+  "diagnostics": [
+    {
+      "code": "workshop-meaning-replaced",
+      "subject": "system",
+      "message": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "label-replaced",
+      "subject": "system",
+      "message": "The authored workshop label would be replaced by an explicit structural name.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "workshop-meaning-replaced",
+      "subject": "event",
+      "message": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "relationship-meaning-replaced",
+      "subject": "emits",
+      "message": "The reserved relationship descriptor would be replaced by a plain, explicitly named C4 communication. Causal order, DDD meaning and runtime communication are not equivalent.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "label-replaced",
+      "subject": "emits",
+      "message": "The source edge label would be replaced by an explicit communication label.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "membership-replaced",
+      "subject": "system",
+      "message": "The authored parent membership would be removed or replaced; world coordinates and original membership remain in provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "parent-constraints-removed",
+      "subject": "system",
+      "message": "Root placement would remove authored parent-dependent extent/expansion settings; source settings remain in provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "membership-replaced",
+      "subject": "event",
+      "message": "The authored parent membership would be removed or replaced; world coordinates and original membership remain in provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    }
+  ]
+}

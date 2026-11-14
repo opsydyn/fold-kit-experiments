@@ -1039,6 +1039,20 @@ See [ADR 0090](adr/0090-validate-portable-c4-conversion-receipts.md) and
 [qualification](../apps/zloz-demo/evidence/c4-receipt.md). No npm publishing or deployment.
 Broader domain/agent workflow and C/Q/R completion gates remain evidence-scoped.
 
-**Recommended next:** expose read-only C4 receipt inspection through the Effect CLI,
-with structured JSON provenance, recorded changes/losses and explicit validation or
-incompatibility exits. Keep imported receipt data separate from Apply authority.
+**D1b Effect CLI C4 receipt inspection — implemented locally (2026-11-14), unreleased:**
+`zloz c4 receipt inspect` strictly decodes portable C4 v1 receipts and reports full
+source provenance, target document, explicit choices, before/after history changes
+and recorded plan losses. JSON declares `authority: read-only-evidence`; historical
+acceptance never grants current consent. Loss findings remain data and exit 0.
+Unsupported format/version exits 1 without inspecting the payload; invalid input,
+I/O/UTF-8/JSON, invocation and output failures exit 2 with structured diagnostics
+and no partial inspection. The CLI retains its bounded 1 MiB file/stdin reader.
+No Apply, session activation, file writes, dependencies, core/wire version changes,
+npm publishing or deployment. See
+[ADR 0091](adr/0091-inspect-c4-receipts-through-effect-cli.md) and
+[CLI qualification](../packages/foldkit-zloz-cli/evidence/c4-receipt-inspect.md).
+
+**Recommended next:** reconcile the remaining domain/agent and compatibility gates
+against the now-complete C4 review/Apply/portable-receipt/inspection path. Identify
+one next core feature from explicit open criteria rather than extending this chain
+without a remaining user outcome.

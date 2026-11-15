@@ -48,8 +48,8 @@ describe('requests it refuses', () => {
 
   it('takes the defaults when a parameter is absent or empty', () => {
     expect(optionsFrom(new URL('http://localhost/?bin='))).toEqual({
-      binWidth: 50,
-      maxLatency: 3_000,
+      ok: true,
+      value: { binWidth: 50, maxLatency: 3_000 },
     });
   });
 });

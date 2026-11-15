@@ -744,3 +744,6 @@ export type { ZlozHistoryReviewV2 } from './model-workflow-v2';
 
 export { forkEditionV2 } from './edition-fork-v2';
 export type { ZlozEditionForkPolicyV2, ZlozEditionForkResultV2 } from './edition-fork-v2';
+
+export { compareEditionsV2 } from './history-comparison-v2';
+export type { ZlozHistoryComparisonV2, ZlozHistoryModeChangeV2 } from './history-comparison-v2';

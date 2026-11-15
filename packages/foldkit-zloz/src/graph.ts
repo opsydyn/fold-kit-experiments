@@ -302,8 +302,8 @@ function viewportFields({ x, y, zoom }: Viewport): Viewport {
   return { x, y, zoom };
 }
 
-/** Save the graph and an optional camera. Other editor state is excluded. */
-export function serializeSnapshot(snapshot: ZlozSnapshot): string {
+/** Internal v1 boundary: never silently erase explicit v2 or loose intent. */
+export function assertLegacySnapshotMode(snapshot: ZlozSnapshot): void {
   if (
     ('version' in snapshot && snapshot.version !== undefined && snapshot.version !== 1) ||
     ('connectionMode' in snapshot &&
@@ -314,6 +314,11 @@ export function serializeSnapshot(snapshot: ZlozSnapshot): string {
       'invalid-graph',
       'Explicit v2 or loose snapshots require their v2 codec or a reviewed v1 downgrade',
     );
+}
+
+/** Save the graph and an optional camera. Other editor state is excluded. */
+export function serializeSnapshot(snapshot: ZlozSnapshot): string {
+  assertLegacySnapshotMode(snapshot);
   const { graph, viewport } = snapshot;
   if (viewport === undefined) return serializeGraph(graph);
   validateGraph(graph);

@@ -1,12 +1,13 @@
 import { createEditor, updateEditor } from './editor';
 import { edgePath } from './geometry';
-import { ZlozError, parseSnapshot, serializeSnapshot } from './graph';
+import { ZlozError, assertLegacySnapshotMode, parseSnapshot, serializeSnapshot } from './graph';
 import type {
   EditorEvent,
   EditorPolicy,
   EditorState,
   JsonValue,
   ZlozEdge,
+  ZlozGraph,
   ZlozNode,
   ZlozSnapshot,
 } from './types';
@@ -247,11 +248,21 @@ export function compareEditions(
   baseline: ZlozEdition,
   selected: ZlozEdition,
 ): ZlozHistoryComparison {
-  const before = baseline.snapshot.graph,
-    after = selected.snapshot.graph;
+  assertLegacySnapshotMode(baseline.snapshot);
+  assertLegacySnapshotMode(selected.snapshot);
   return {
     baseline,
     selected,
+    ...compareHistoryGraphs(baseline.snapshot.graph, selected.snapshot.graph),
+  };
+}
+
+/** Internal shared graph diff; callers own their versioned snapshot validation. */
+export function compareHistoryGraphs(
+  before: ZlozGraph,
+  after: ZlozGraph,
+): Pick<ZlozHistoryComparison, 'nodes' | 'edges'> {
+  return {
     nodes: changes(before.nodes, after.nodes, nodeMeaning, nodeLayout, nodeLayout),
     edges: changes(
       before.edges,

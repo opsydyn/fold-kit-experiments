@@ -36,8 +36,15 @@ v2 forking is recorded below. Remaining workflow/adapter and broader C/Q/R gates
 Fork follow-up: [ADR 0097](../adr/0097-fork-v2-editions-with-pinned-provenance.md)
 and [qualification](../../packages/foldkit-zloz/evidence/edition-fork-v2.md) record
 v2 edition-owned forks, fresh policy checks, pinned immediate-parent provenance and
-fresh target sessions. V2 comparison with explicit mode-only changes is next;
+fresh target sessions. V2 comparison is recorded below;
 C1 and remaining workflow/adapter/C/Q/R gates remain partial.
+
+Comparison follow-up (2026-11-15): [ADR 0098](../adr/0098-compare-v2-editions-with-explicit-mode-changes.md)
+and [qualification](../../packages/foldkit-zloz/evidence/history-comparison-v2.md)
+record immutable v2 comparisons with explicit mode-only meaning, shared graph
+deltas and legacy boundary rejection. Package-level v2 comparison presentation
+with mode feedback/ghosts is next. Append, restore/playback, adapter adoption and
+broader C/Q/R gates remain open; C1 stays partial.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

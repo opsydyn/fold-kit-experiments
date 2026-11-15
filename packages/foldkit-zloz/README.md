@@ -5902,3 +5902,39 @@ is introduced. V1 behavior/wire formats stay unchanged; append, v2 comparison/gh
 restore/playback and CLI/workbench adoption remain separate. C1 remains partial.
 See [ADR 0097](../../docs/adr/0097-fork-v2-editions-with-pinned-provenance.md) and
 [qualification](evidence/edition-fork-v2.md).
+
+### V2 edition comparison
+
+Use `compareEditionsV2` for two explicitly selected v2 checkpoints. It validates
+both in their own modes and returns detached, deeply frozen pins and deltas.
+
+```ts
+import { compareEditionsV2 } from '@opsydyn/foldkit-zloz';
+
+const comparison = compareEditionsV2(baselineEdition, selectedEdition);
+if (comparison.modeChange.kind === 'changed') {
+  console.log(comparison.modeChange.before, comparison.modeChange.after);
+}
+// True for mode-only changes, even with no node/edge deltas.
+console.log(comparison.semanticChanged);
+console.log(comparison.layoutChanged);
+```
+
+`ZlozHistoryModeChangeV2` distinguishes unchanged mode from strict→loose and
+loose→strict. Node/edge changes reuse the existing stable-ID comparison and its
+semantic/layout separation. Mode-only changes leave both arrays empty; authored
+port kinds and endpoints are retained. Moving a connected node can still report
+edge layout changes. Equal edition IDs are permitted; the caller selects both
+checkpoints without an implicit current-document lookup.
+
+Aggregate semantic change includes mode and graph meaning; aggregate layout
+change includes graph presentation. Edition identity/name and camera remain in
+the captured pins but are excluded from these flags. They do not assert whole
+checkpoint equality. Comparison has no editor, policy, Undo or Apply side effects.
+The v1 `compareEditions` entry point rejects explicit v2/loose snapshots; manually
+unwrapping graphs can still discard mode. Use the named versioned API.
+
+See [ADR 0098](../../docs/adr/0098-compare-v2-editions-with-explicit-mode-changes.md)
+and [qualification](evidence/history-comparison-v2.md). V2 presentation/ghosts,
+append, restore/playback and CLI/workbench adoption remain separate; C1 stays
+partial. No npm publication or deployment.

@@ -1146,5 +1146,16 @@ and [qualification](../packages/foldkit-zloz/evidence/edition-fork-v2.md).
 V2 append, comparison/ghosts, restore/playback, CLI/workbench and wider C/Q/R gates
 remain open; C1 remains partial. No npm publication or deployment.
 
-**Recommended next:** add v2 edition comparison with explicit mode-only changes,
-before comparison presentation and cross-mode restore/playback adoption.
+**C1 v2 edition comparison — implemented locally (2026-11-15), unreleased:**
+`compareEditionsV2` validates checkpoints in their own modes and returns immutable
+detached pins, stable-ID graph deltas and explicit unchanged/strict→loose/loose→strict
+mode records. Mode-only changes set semantic change without inventing node/edge
+changes; graph layout is independent. Camera/edition metadata are retained but
+excluded from graph/mode flags. V1 comparison rejects explicit v2/loose inputs.
+See [ADR 0098](adr/0098-compare-v2-editions-with-explicit-mode-changes.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-comparison-v2.md).
+Presentation/ghosts, append, restore/playback and CLI/workbench adoption remain
+open; C1 and wider C/Q/R gates stay partial. No npm publication or deployment.
+
+**Recommended next:** package-level v2 comparison presentation with explicit mode
+feedback and history ghosts, before cross-mode restore/playback adoption.

@@ -10,6 +10,20 @@
 
 - Add pure, content-bound review-packet export controls and optional composable Foldkit views.
 
+## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.3.0...foldkit-zloz-mermaid-v0.4.0) (2026-11-15)
+
+
+### Features
+
+* **zloz:** add portable authored edge waypoints ([e5218b8](https://github.com/opsydyn/fold-kit-experiments/commit/e5218b89a834066c40e10a7a2c72d466b3df5713))
+* **zloz:** complete native v2 authoring and review ([3ad374f](https://github.com/opsydyn/fold-kit-experiments/commit/3ad374fbb40eea89c40d1793bf88ec3a2c945327))
+* **zloz:** compose review packet export controls ([f23d27c](https://github.com/opsydyn/fold-kit-experiments/commit/f23d27c5abd831d21eb624d4b3930ad1a88c3c2f))
+* **zloz:** define DDD relationship contracts ([45604f4](https://github.com/opsydyn/fold-kit-experiments/commit/45604f43796e3352d70a9d5cb82f896a1532434b))
+* **zloz:** define EventStorming workshop semantics ([458ab16](https://github.com/opsydyn/fold-kit-experiments/commit/458ab1679cff22a7788eaaf61e711e2584133e3b))
+* **zloz:** open portable packets in guarded read-only reviews ([ae1fcce](https://github.com/opsydyn/fold-kit-experiments/commit/ae1fcce175916f9b5eaa45ac6440fdcd2bd76a48))
+* **zloz:** qualify v2 portable adapter boundaries ([e19efa7](https://github.com/opsydyn/fold-kit-experiments/commit/e19efa782bcd22424d62ea545fafa8770120a49c))
+* **zloz:** strictly decode portable review packets ([58344d9](https://github.com/opsydyn/fold-kit-experiments/commit/58344d902e2825006cf5d306fa3daf80840b20de))
+
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.2.0...foldkit-zloz-mermaid-v0.3.0) (2026-11-10)
 
 ### Features

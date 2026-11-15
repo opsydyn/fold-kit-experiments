@@ -1,12 +1,12 @@
 {
   "packages/astro-foldkit": "0.13.0",
-  "packages/foldkit-viz": "0.17.0",
+  "packages/foldkit-viz": "0.18.0",
   "packages/effect-three": "0.6.4",
   "packages/effect-three-foldkit": "0.6.4",
   "packages/effect-three-rapier": "0.6.4",
   "packages/effect-three-troika": "0.6.4",
-  "packages/foldkit-zloz": "0.3.0",
-  "packages/foldkit-zloz-elk": "0.3.0",
-  "packages/foldkit-zloz-force": "0.3.0",
-  "packages/foldkit-zloz-mermaid": "0.3.0"
+  "packages/foldkit-zloz": "0.4.0",
+  "packages/foldkit-zloz-elk": "0.4.0",
+  "packages/foldkit-zloz-force": "0.4.0",
+  "packages/foldkit-zloz-mermaid": "0.4.0"
 }

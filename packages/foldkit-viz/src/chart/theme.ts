@@ -63,6 +63,51 @@ export const darkTheme: ChartTheme = {
   series: { ...defaultSeries, stroke: '#8fbaff', fill: '#8fbaff' },
 };
 
+/**
+ * Black on white at WCAG AAA: text and tick labels at 7:1 or more, axes and
+ * focus at 4.5:1, a grid a reader can follow, larger labels and heavier marks.
+ */
+export const highContrastLightTheme: ChartTheme = {
+  background: '#ffffff',
+  text: '#000000',
+  mutedText: '#24292f',
+  grid: '#a4adb8',
+  axis: '#3d4450',
+  focus: '#0a3fbf',
+  selection: '#000000',
+  tooltipBackground: '#000000',
+  tooltipText: '#ffffff',
+  fontFamily: 'system-ui, sans-serif',
+  labelSize: 13,
+  series: { ...defaultSeries, stroke: '#0a3fbf', fill: '#0a3fbf', strokeWidth: 3, pointRadius: 5 },
+};
+
+/** White on black at WCAG AAA, as `highContrastLightTheme`, with a yellow focus ring. */
+export const highContrastDarkTheme: ChartTheme = {
+  background: '#000000',
+  text: '#ffffff',
+  mutedText: '#e6edf3',
+  grid: '#5c6570',
+  axis: '#c9d1d9',
+  focus: '#ffd60a',
+  selection: '#ffffff',
+  tooltipBackground: '#ffffff',
+  tooltipText: '#000000',
+  fontFamily: 'system-ui, sans-serif',
+  labelSize: 13,
+  series: { ...defaultSeries, stroke: '#7cc4ff', fill: '#7cc4ff', strokeWidth: 3, pointRadius: 5 },
+};
+
+/** The themes by name, for a theme chosen in JSON, Python or a notebook. */
+export type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
+
+export const chartThemes: Readonly<Record<ThemeName, ChartTheme>> = {
+  light: lightTheme,
+  dark: darkTheme,
+  'high-contrast-light': highContrastLightTheme,
+  'high-contrast-dark': highContrastDarkTheme,
+};
+
 /** Paint is opaque CSS. Opacity and size are separately validated numeric fields. */
 export function resolveSeriesStyle(
   theme: ChartTheme,

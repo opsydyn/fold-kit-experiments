@@ -317,6 +317,7 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
+const chartThemes: Readonly<Record<ThemeName, ChartTheme>>;
 type ChordMark = CommonMark & Readonly<{
   mark: 'chord';
   source: Channel;
@@ -631,6 +632,8 @@ type HexBin<T> = Readonly<{
   count: number;
   values: ReadonlyArray<T>;
 }>;
+const highContrastDarkTheme: ChartTheme;
+const highContrastLightTheme: ChartTheme;
 type Highlight = Readonly<{
   field: string;
   range?: readonly [number, number] | readonly [string, string];
@@ -1248,6 +1251,7 @@ type TextMark = CommonMark & Readonly<{
   dx?: number;
   dy?: number;
 }>;
+type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
 function themeProperties(theme: ChartTheme): {
   '--chart-background': string;
   '--chart-text': string;
@@ -1758,8 +1762,11 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
+const chartThemes: Readonly<Record<ThemeName, ChartTheme>>;
 function createSeriesStyles(domain: ReadonlyArray<string>, palette: ReadonlyArray<string>, overrides?: ReadonlyMap<string, Partial<SeriesStyle>>): ReadonlyMap<string, SeriesStyle>;
 const darkTheme: ChartTheme;
+const highContrastDarkTheme: ChartTheme;
+const highContrastLightTheme: ChartTheme;
 const lightTheme: ChartTheme;
 function resolveSeriesStyle(theme: ChartTheme, chart: Partial<SeriesStyle>, series: Partial<SeriesStyle>, datum: Partial<SeriesStyle>): SeriesStyle;
 type SeriesStyle = Readonly<{
@@ -1771,6 +1778,7 @@ type SeriesStyle = Readonly<{
   symbol: SymbolType;
   dashPattern: string;
 }>;
+type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
 function themeProperties(theme: ChartTheme): {
   '--chart-background': string;
   '--chart-text': string;
@@ -2386,6 +2394,7 @@ type ColorScaleConfig = Readonly<{
   interpolator: (t: number) => string;
   clamp?: boolean;
 }>;
+function contrastRatio(a: string, b: string): number;
 function divergingScale(config: DivergingScaleConfig): (value: number) => string;
 type DivergingScaleConfig = Readonly<{
   domain: readonly [number, number, number];

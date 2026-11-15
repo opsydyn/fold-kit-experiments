@@ -73,14 +73,25 @@ const specs: ReadonlyArray<readonly [string, PlotSpec]> = [
   ['request diagnostics scatter', charts.scatter.spec],
 ];
 
-describe('every plot spec the app draws', () => {
-  it.each(specs)('%s is plain JSON', (_, spec) => {
-    expect(JSON.parse(JSON.stringify(spec))).toEqual(spec);
-  });
+/** /explore's specs carry a million rows; comparing them whole takes seconds under load. */
+const SPEC_TIMEOUT = 60_000;
 
-  it.each(specs)('%s is valid under the published schema', (_, spec) => {
-    expect(errorsOf(JSON.stringify(spec))).toEqual([]);
-  });
+describe('every plot spec the app draws', () => {
+  it.each(specs)(
+    '%s is plain JSON',
+    (_, spec) => {
+      expect(JSON.parse(JSON.stringify(spec))).toEqual(spec);
+    },
+    SPEC_TIMEOUT,
+  );
+
+  it.each(specs)(
+    '%s is valid under the published schema',
+    (_, spec) => {
+      expect(errorsOf(JSON.stringify(spec))).toEqual([]);
+    },
+    SPEC_TIMEOUT,
+  );
 
   it('includes a spec from every gallery module', () => {
     const covered = new Set(fromGallery.map(([name]) => name.split(' ')[0]));

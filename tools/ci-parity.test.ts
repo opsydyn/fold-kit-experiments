@@ -351,7 +351,25 @@ describe('project tasks are their package scripts', () => {
   });
 });
 
+/**
+ * Ignored by git but not by moon, which matches its patterns against absolute
+ * paths: a checkout inside a .worktrees folder would otherwise hash no files.
+ */
+const NOT_IGNORED: ReadonlyArray<string> = ['**/.worktrees/**'];
+
 describe('moon leaves installs and files to the workspace', () => {
+  test("no ignore pattern matches this checkout's own files, wherever it lives", () => {
+    // moon matches ignore patterns against absolute paths, so a pattern that
+    // matches a parent folder of the checkout leaves every task hashing nothing.
+    const own = ['package.json', 'packages/foldkit-viz/src/plot/compile.ts'].map((path) =>
+      join(root, path),
+    );
+    const matching = workspace.hasher.ignorePatterns.filter((pattern) =>
+      own.some((path) => new Glob(pattern).match(path)),
+    );
+    expect(matching).toEqual([]);
+  });
+
   test('tasks are hashed from what git sees, plus the lockfile and catalog', async () => {
     expect(workspace.hasher.walkStrategy).toBe('vcs');
     // Explicit input globs do not consult git, so moon must ignore what git ignores.
@@ -380,9 +398,15 @@ describe('moon leaves installs and files to the workspace', () => {
           return line.endsWith('/') ? `${glob}/**` : glob;
         }),
     );
-    expect(ignored.filter((pattern) => !workspace.hasher.ignorePatterns.includes(pattern))).toEqual(
-      [],
-    );
+    expect(
+      ignored.filter(
+        (pattern) =>
+          !workspace.hasher.ignorePatterns.includes(pattern) && !NOT_IGNORED.includes(pattern),
+      ),
+    ).toEqual([]);
+    expect(
+      workspace.hasher.ignorePatterns.filter((pattern) => NOT_IGNORED.includes(pattern)),
+    ).toEqual([]);
     expect(inherited.implicitInputs).toEqual(['/bun.lock', '/package.json']);
   });
 

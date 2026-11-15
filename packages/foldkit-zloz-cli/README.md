@@ -23,8 +23,8 @@ zloz mermaid export --help
 
 Input defaults to stdin (`--input -`). Interactive stdin requires a file or pipe;
 the command does not wait indefinitely for a terminal to supply a document.
-Input must be UTF-8 and at most **1,048,576 bytes**. Model commands accept canonical
-version-one graph snapshots or `foldkit-zloz-model` v1 documents; C4 inspection uses
+Input must be UTF-8 and at most **1,048,576 bytes**. Validation and Mermaid export accept canonical v1/v2 snapshots and models;
+legacy audit/patch/packet operations require v1. C4 inspection uses
 the independent receipt contract described below. Graph example:
 
 ```json
@@ -531,3 +531,26 @@ The existing CLI **1 MiB** input limit applies to files and stdin; the workbench
 **5 MiB** limit is separate. There are no layout, policy override or Apply flags.
 See [qualification](evidence/c4-receipt-inspect.md) and
 [ADR 0091](../../docs/adr/0091-inspect-c4-receipts-through-effect-cli.md).
+
+## V2 compatibility inspection
+
+```sh
+zloz validate -i model-v2.json
+zloz compatibility inspect -i model-v2.json
+zloz mermaid export -i model-v2.json --loss-policy report
+```
+
+Validate accepts canonical v2 models and standalone v2 connection documents. Its
+v2 response adds `documentVersion: 2` and explicit current `connectionMode`; legacy
+v1 validation responses retain their exact shape. Compatibility inspection requires
+a v2 model, checks current/edition/origin modes and reports package adapter gates
+plus downgrade findings. It performs no downgrade, graph write or Apply.
+
+V2 Mermaid output uses `foldkit-zloz-mermaid/v2`, with explicit bundle mode and
+ordered endpoint identity. Source-only loose authoring rules, camera and model
+metadata omissions require loss acceptance. V1 audit, patch and packet commands
+validate v2 input, then reject with `adapter-version-required` and **exit 1**;
+malformed input retains **exit 2**. Existing receipt/packet inspection keeps its
+independent strict v1 wire reader. New native v2 mutation/evidence wire formats are
+not shipped in this batch. `readPortableDocument` exposes discriminated v1/v2
+records for embeddings; `readDocument` and `readGraph` retain v1-only semantics.

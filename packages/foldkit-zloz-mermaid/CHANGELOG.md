@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add explicit v2 connection-document export with retained mode, ordered identity and source-only loss reporting; legacy graph export stays strict.
+
 - Add a pure guarded review-packet reader and composable Foldkit opening/comparison controls.
 
 - Add pure, content-bound review-packet export controls and optional composable Foldkit views.

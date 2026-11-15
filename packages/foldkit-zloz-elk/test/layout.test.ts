@@ -401,3 +401,27 @@ test('real ELK reserves nested and empty group headings, including widths larger
     }
   }
 });
+
+test('ELK accepts explicit loose requests without rewriting ordered port identity', async () => {
+  const loose = {
+    ...graph,
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      ports: node.ports.map((port) => ({ ...port, kind: 'input' as const })),
+    })),
+  };
+  const request = {
+    requestId: 'loose-elk',
+    revision: 0,
+    graph: loose,
+    connectionMode: 'loose' as const,
+  };
+  const before = JSON.stringify(request);
+  const result = await createElkLayout()(request);
+  expect(result.routes.map((route) => route.id)).toEqual(loose.edges.map((edge) => edge.id));
+  expect(result.positions.map((position) => position.id).sort()).toEqual(
+    loose.nodes.map((node) => node.id).sort(),
+  );
+  expect(JSON.stringify(request)).toBe(before);
+  await expect(createElkLayout()({ ...request, connectionMode: 'strict' })).rejects.toThrow();
+});

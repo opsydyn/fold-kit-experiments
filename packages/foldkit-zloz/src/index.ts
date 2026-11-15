@@ -791,3 +791,6 @@ export type {
   ZlozEditionPlaybackV2,
 } from './history-workflow-v2';
 export type { ZlozConnectionHistoryFrame, ZlozConnectionHistory } from './types';
+
+export { assessPortableCompatibilityV2 } from './portable-compatibility-v2';
+export type { ZlozPortableCompatibilityV2 } from './portable-compatibility-v2';

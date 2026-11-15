@@ -1216,6 +1216,25 @@ Existing architecture/connection workspaces remain independent. V1 formats rejec
 v2 input; broader patch/receipt/review-packet/Mermaid/CLI and layout adoption remains
 separate. C2–C4/Q/R are unchanged. No npm publishing or deployment.
 
-**Recommended next:** reconcile the remaining portable-adapter gaps into one
-bounded v2 compatibility batch, with explicit format/capability decisions before
-changing projection or Apply behavior.
+**C1 v2 portable capability/decision batch — implemented locally (2026-11-15), unreleased:**
+`assessPortableCompatibilityV2` validates current, archived and origin checkpoints,
+reports native/projected/version-required adapter capabilities and whole-model
+strict downgrade findings without prospective downgraded data or Apply authority.
+Mode-aware layout requests retain ordered endpoints and graph/mode Undo; real ELK
+and force engines are covered. Explicit Mermaid v2 bundles retain mode and identity,
+with source-only loose semantics/camera losses requiring report consent. Legacy
+graph-only Mermaid remains strict. Effect CLI supports bounded v2 validation,
+`compatibility inspect` and explicit v2 Mermaid projection; v1-only operations
+report valid-but-incompatible input with exit 1, distinct from invalid data (exit 2).
+
+See [ADR 0103](adr/0103-qualify-v2-portable-adapter-boundaries.md) and
+[batch qualification](../packages/foldkit-zloz/evidence/portable-compatibility-v2.md).
+This closes the capability decisions and safe adoption, not all C1 portability.
+V1 patches, conversion receipts, review packets and relationship audits remain
+version-required boundaries. Their native v2 formats are not shipped. C2–C4/Q/R
+stay open; no npm publishing or deployment.
+
+**Recommended next:** one native v2 authoring/review batch: mode-aware audits,
+patch dry-run/Apply, conversion receipts and portable review packets, with explicit
+wire versions and old-reader fixtures. This closes the coupled semantic and
+evidence paths together rather than unwrapping loose graphs into v1 contracts.

@@ -1,0 +1,66 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "compatibility-inspect",
+  "status": "inspected",
+  "data": {
+    "scope": "format-capability-only",
+    "modelId": "orders",
+    "checkpoints": [
+      { "path": "/snapshot", "connectionMode": "strict", "strictIncompatibleEdges": [] },
+      { "path": "/editions/0/snapshot", "connectionMode": "loose", "strictIncompatibleEdges": [] },
+      {
+        "path": "/origin/edition/snapshot",
+        "connectionMode": "loose",
+        "strictIncompatibleEdges": []
+      }
+    ],
+    "adapters": [
+      {
+        "adapter": "layout",
+        "status": "supported",
+        "reason": "Mode-aware layout requests preserve ordered ports and mode. Engine-specific eligibility, policies and freshness still apply."
+      },
+      {
+        "adapter": "mermaid",
+        "status": "projection",
+        "reason": "Use exportConnectionMermaid. The v2 bundle retains mode and ordered identity; source-only semantics and other omissions require explicit loss reporting."
+      },
+      {
+        "adapter": "modelling-patch",
+        "status": "requires-version",
+        "reason": "The v1 patch source, validation and Apply contract require strict snapshots. A new patch wire version is required for native v2 authoring."
+      },
+      {
+        "adapter": "conversion-receipt",
+        "status": "requires-version",
+        "reason": "V1 conversion receipts embed strict before/after snapshots. Reopening evidence never authorizes a downgrade or new Apply."
+      },
+      {
+        "adapter": "review-packet",
+        "status": "requires-version",
+        "reason": "V1 packets embed strict selected snapshots and reproducible v1 projections/audits. Native v2 packets require a new wire version."
+      },
+      {
+        "adapter": "relationship-audit",
+        "status": "requires-version",
+        "reason": "Existing graph/model audit contracts validate strict graphs and v1 checkpoints. No implicit graph extraction or model downgrade is supported."
+      }
+    ],
+    "downgrade": {
+      "type": "reviewable",
+      "findings": [
+        {
+          "code": "loose-mode-removed",
+          "reason": "A v1 snapshot does not retain loose connection semantics. Review this change to future authoring before explicitly saving the strict snapshot.",
+          "path": "/editions/0/snapshot"
+        },
+        {
+          "code": "loose-mode-removed",
+          "reason": "A v1 snapshot does not retain loose connection semantics. Review this change to future authoring before explicitly saving the strict snapshot.",
+          "path": "/origin/edition/snapshot"
+        }
+      ]
+    }
+  },
+  "diagnostics": []
+}

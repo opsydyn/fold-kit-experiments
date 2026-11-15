@@ -1,12 +1,12 @@
 import { commitGraph } from './editor';
 import { finitePoint } from './geometry';
-import { copyGraph, validateGraph, ZlozError } from './graph';
+import { copyGraphForConnectionMode, validateGraphForConnectionMode, ZlozError } from './graph';
 import { resolveLayoutGroupHeader } from './group-header';
 import type { EditorState, LayoutRequest, LayoutResult, LayoutRequestOptions } from './types';
 
 /** Validate a typed engine request, including explicit label envelopes. Not a raw-data decoder. */
 export function validateLayoutRequest(request: LayoutRequest): void {
-  validateGraph(request.graph);
+  validateGraphForConnectionMode(request.graph, request.connectionMode ?? 'strict');
   if (!request.requestId.trim() || !Number.isSafeInteger(request.revision) || request.revision < 0)
     throw new ZlozError('invalid-layout', 'Invalid layout request identity');
   const seen = new Set<string>();
@@ -40,7 +40,12 @@ export function layoutRequest(
   requestId: string,
   options: LayoutRequestOptions = {},
 ): LayoutRequest {
-  const base = { requestId, revision: state.revision, graph: copyGraph(state.graph) };
+  const base = {
+    requestId,
+    revision: state.revision,
+    graph: copyGraphForConnectionMode(state.graph, state.connectionMode ?? 'strict'),
+    connectionMode: state.connectionMode ?? 'strict',
+  };
   const withLabels =
     options.edgeLabels === undefined
       ? base
@@ -68,6 +73,7 @@ export function layoutRequest(
 function currentResult(state: EditorState, active: LayoutRequest, result: LayoutResult): boolean {
   return (
     state.gesture.type === 'idle' &&
+    (state.connectionMode ?? 'strict') === (active.connectionMode ?? 'strict') &&
     result.requestId === active.requestId &&
     result.revision === active.revision &&
     state.revision === active.revision

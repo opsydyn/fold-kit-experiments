@@ -3,6 +3,7 @@
  * @module CLI
  */
 import {
+  assessPortableCompatibilityV2,
   parseModellingPatch,
   dryRunModellingPatch,
   auditDddRelationships,
@@ -16,6 +17,7 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import {
   exportMermaid,
+  exportConnectionMermaid,
   createReviewPacket,
   parseReviewPacket,
   type ZlozReviewPacket,
@@ -29,10 +31,19 @@ import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 import manifest from '../package.json';
 import { inspectC4Receipt } from './c4-receipt';
 import { readDddRelationshipRules } from './ddd-relationship-rules';
-import { readDocument, readTextInput, readJsonInput, writeResponse, type CliDocument } from './io';
+import {
+  readDocument,
+  readPortableDocument,
+  readTextInput,
+  readJsonInput,
+  writeResponse,
+  type CliDocument,
+  type CliPortableDocument,
+} from './io';
 import {
   cliProtocol,
   CliInputError,
+  CliAdapterIncompatible,
   CliC4ReceiptIncompatible,
   type CliDiagnostic,
   CliConversionRejected,
@@ -46,12 +57,13 @@ import {
   type CliResponse,
 } from './protocol';
 import { readRelationshipRules } from './relationship-rules';
-export { inputByteLimit, readGraph, readDocument } from './io';
-export type { CliDocument } from './io';
+export { inputByteLimit, readGraph, readDocument, readPortableDocument } from './io';
+export type { CliDocument, CliPortableDocument } from './io';
 export {
   cliProtocol,
   CliDiagnostic,
   CliInputError,
+  CliAdapterIncompatible,
   CliC4ReceiptIncompatible,
   CliOutputError,
   CliConversionRejected,
@@ -69,7 +81,7 @@ export type {
 } from './protocol';
 
 type Operation = Exclude<CliOperation, 'invocation'>;
-function rejectInput<E extends CliInputError | CliC4ReceiptIncompatible>(
+function rejectInput<E extends CliInputError | CliC4ReceiptIncompatible | CliAdapterIncompatible>(
   operation: Operation,
   error: E,
 ) {
@@ -93,7 +105,9 @@ function rejectInput<E extends CliInputError | CliC4ReceiptIncompatible>(
 }
 function readForOperation(operation: Operation, input: string) {
   return readDocument(input).pipe(
-    Effect.catchTag(['CliInputError'], (error) => rejectInput(operation, error)),
+    Effect.catchTag(['CliInputError', 'CliAdapterIncompatible'], (error) =>
+      rejectInput(operation, error),
+    ),
   );
 }
 function requireModel(document: CliDocument, input: string, operation: Operation) {
@@ -117,10 +131,12 @@ function requireModel(document: CliDocument, input: string, operation: Operation
 function execute(
   operation: Operation,
   input: string,
-  project: (document: CliDocument) => CliResponse,
+  project: (document: CliPortableDocument) => CliResponse,
 ) {
   return Effect.gen(function* () {
-    const document = yield* readForOperation(operation, input);
+    const document = yield* readPortableDocument(input).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
+    );
     const response = project(document);
     const reporting = writeResponse(response).pipe(
       Effect.filterOrFail(
@@ -131,22 +147,38 @@ function execute(
     yield* reporting;
   });
 }
-const graphOf = (document: CliDocument): ZlozGraph =>
+const isModel = (
+  value: CliPortableDocument,
+): value is Extract<CliPortableDocument, { kind: 'model' | 'model-v2' }> =>
+  value.kind === 'model' || value.kind === 'model-v2';
+const graphOf = (document: CliPortableDocument): ZlozGraph =>
   Match.value(document).pipe(
-    Match.when({ kind: 'model' }, (value) => value.document.snapshot.graph),
+    Match.when(isModel, (value) => value.document.snapshot.graph),
     Match.orElse((value) => value.snapshot.graph),
   );
-const summarize = (document: CliDocument): CliResponse => {
+const summarize = (document: CliPortableDocument): CliResponse => {
   const graph = graphOf(document);
+  const versionFields = Match.value(document).pipe(
+    Match.when({ kind: 'model-v2' }, ({ document }) => ({
+      connectionMode: document.snapshot.connectionMode,
+      documentVersion: 2 as const,
+    })),
+    Match.when({ kind: 'connection-v2' }, ({ snapshot }) => ({
+      connectionMode: snapshot.connectionMode,
+      documentVersion: 2 as const,
+    })),
+    Match.orElse(() => ({})),
+  );
   const response: Extract<CliResponse, { status: 'valid' }> = {
     protocol: cliProtocol,
     operation: 'validate' as const,
     status: 'valid' as const,
     summary: { nodes: graph.nodes.length, edges: graph.edges.length },
     diagnostics: [],
+    ...versionFields,
   };
   return Match.value(document).pipe(
-    Match.when({ kind: 'model' }, ({ document }) => ({
+    Match.when(isModel, ({ document }) => ({
       ...response,
       model: {
         id: document.id,
@@ -173,9 +205,9 @@ const snapshotLosses = (snapshot: ZlozSnapshot): readonly CliDiagnostic[] =>
       },
     ]),
   );
-const metadataLosses = (document: CliDocument): readonly CliDiagnostic[] =>
+const metadataLosses = (document: CliPortableDocument): readonly CliDiagnostic[] =>
   Match.value(document).pipe(
-    Match.when({ kind: 'model' }, ({ document }) => [
+    Match.when(isModel, ({ document }) => [
       {
         code: 'model-metadata-omitted',
         severity: 'loss' as const,
@@ -185,6 +217,7 @@ const metadataLosses = (document: CliDocument): readonly CliDiagnostic[] =>
           'Mermaid projects only the current graph; model identity, editions, lineage and capture camera are omitted. Keep model JSON as the authoritative document.',
       },
     ]),
+    Match.when({ kind: 'connection-v2' }, () => []),
     Match.orElse((value) => snapshotLosses(value.snapshot)),
   );
 const rejectConversion = (diagnostics: readonly CliDiagnostic[]): CliResponse => ({
@@ -195,9 +228,17 @@ const rejectConversion = (diagnostics: readonly CliDiagnostic[]): CliResponse =>
 });
 const convert =
   (direction: MermaidDirection, lossPolicy: MermaidLossPolicy) =>
-  (document: CliDocument): CliResponse => {
+  (document: CliPortableDocument): CliResponse => {
     const losses = metadataLosses(document);
-    const result = exportMermaid(graphOf(document), { direction, lossPolicy });
+    const result = Match.value(document).pipe(
+      Match.when({ kind: 'model-v2' }, ({ document }) =>
+        exportConnectionMermaid(document.snapshot, { direction, lossPolicy }),
+      ),
+      Match.when({ kind: 'connection-v2' }, ({ snapshot }) =>
+        exportConnectionMermaid(snapshot, { direction, lossPolicy }),
+      ),
+      Match.orElse((value) => exportMermaid(graphOf(value), { direction, lossPolicy })),
+    );
     const diagnostics = [...result.diagnostics, ...losses];
     return Match.value({ result, policy: lossPolicy, hasMetadataLoss: losses.length > 0 }).pipe(
       Match.when({ result: { status: 'converted' }, policy: 'reject', hasMetadataLoss: true }, () =>
@@ -510,8 +551,47 @@ const input = Flag.String('input').pipe(
   Flag.withAlias('i'),
   Flag.withDefault('-'),
   Flag.withDescription(
-    'Version-one graph, snapshot or model JSON file, or - for stdin (1 MiB maximum).',
+    'Zloz document JSON file, or - for stdin (1 MiB maximum). Each operation declares supported versions.',
   ),
+);
+const compatibilityInspect = Command.make('inspect', { input }, (config) =>
+  Effect.gen(function* () {
+    const document = yield* readPortableDocument(config.input).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('compatibility-inspect', error)),
+    );
+    const selection = Match.value(document).pipe(
+      Match.when({ kind: 'model-v2' }, ({ document }) => Result.succeed(document)),
+      Match.orElse(() =>
+        Result.fail(
+          new CliInputError({
+            code: 'model-required',
+            message:
+              'Compatibility inspection requires a canonical v2 model, including editions and origin.',
+            dimension: 'identity',
+            subject: config.input,
+          }),
+        ),
+      ),
+    );
+    const selectingModel = Effect.fromResult(selection).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('compatibility-inspect', error)),
+    );
+    const model = yield* selectingModel;
+    yield* writeResponse({
+      protocol: cliProtocol,
+      operation: 'compatibility-inspect',
+      status: 'inspected',
+      data: assessPortableCompatibilityV2(model),
+      diagnostics: [],
+    });
+  }),
+).pipe(
+  Command.withDescription(
+    'Read-only v2 model adapter capabilities and downgrade findings. No conversion or Apply.',
+  ),
+);
+const compatibilityCommand = Command.make('compatibility').pipe(
+  Command.withSubcommands([compatibilityInspect]),
 );
 const direction = Flag.Literals('direction', ['LR', 'RL', 'TB', 'BT']).pipe(Flag.withDefault('LR'));
 const lossPolicy = Flag.Literals('loss-policy', ['reject', 'report']).pipe(
@@ -522,7 +602,7 @@ const validate = Command.make('validate', { input }, (config) =>
   execute('validate', config.input, summarize),
 ).pipe(
   Command.withDescription(
-    'Validate a canonical version-one Zloz document and report node/edge counts.',
+    'Validate a canonical v1 or v2 Zloz document and report counts plus explicit v2 mode.',
   ),
 );
 const exportCommand = Command.make('export', { input, direction, lossPolicy }, (config) =>
@@ -853,6 +933,7 @@ export const zlozCommand = Command.make('zloz').pipe(
   ),
   Command.withSubcommands([
     validate,
+    compatibilityCommand,
     mermaidCommand,
     relationshipsCommand,
     dddCommand,

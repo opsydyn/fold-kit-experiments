@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Qualify loose-mode requests through shared core validation with real-engine endpoint-identity tests.
+
 - Reserve declared group headings through padding/minimum size, with qualified DOWN compound-minimum normalization and nested/empty group coverage.
 
 - Reserve caller-declared composite edge-label bounds in compound layouts and return validated world-coordinate boxes, including custom badges on unlabeled edges.

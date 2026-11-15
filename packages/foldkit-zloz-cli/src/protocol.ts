@@ -1,4 +1,6 @@
 import type {
+  ZlozPortableCompatibilityV2,
+  ZlozConnectionMode,
   ZlozDddRelationshipAudit,
   ZlozDddRelationshipAuditComparison,
   ZlozEventStormingRelationshipAudit,
@@ -10,6 +12,7 @@ import type {
 } from '@opsydyn/foldkit-zloz';
 import type {
   MermaidBundle,
+  MermaidBundleV2,
   ZlozReviewPacket,
   ZlozReviewPacketDiagnostic,
   ZlozReviewPacketParseResult,
@@ -18,6 +21,7 @@ import { Data, Runtime, Schema } from 'effect';
 
 export const cliProtocol = 'foldkit-zloz-cli/v1';
 export type CliOperation =
+  | 'compatibility-inspect'
   | 'validate'
   | 'c4-receipt-inspect'
   | 'mermaid-export'
@@ -69,6 +73,13 @@ export type CliC4ReceiptInspection = Readonly<{
   lossesAccepted: true;
 }>;
 export type CliResponse =
+  | Readonly<{
+      protocol: typeof cliProtocol;
+      operation: 'compatibility-inspect';
+      status: 'inspected';
+      data: ZlozPortableCompatibilityV2;
+      diagnostics: readonly CliDiagnostic[];
+    }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'c4-receipt-inspect';
@@ -124,6 +135,8 @@ export type CliResponse =
       operation: 'validate';
       status: 'valid';
       summary: Readonly<{ nodes: number; edges: number }>;
+      documentVersion?: 2;
+      connectionMode?: ZlozConnectionMode;
       model?: Readonly<{
         id: string;
         name: string;
@@ -144,7 +157,7 @@ export type CliResponse =
       protocol: typeof cliProtocol;
       operation: 'mermaid-export';
       status: 'converted';
-      data: MermaidBundle;
+      data: MermaidBundle | MermaidBundleV2;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -239,6 +252,19 @@ export class CliC4ReceiptIncompatible extends Data.TaggedError('CliC4ReceiptInco
 }> {
   readonly code = 'incompatible-c4-receipt';
   readonly dimension = 'identity';
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+
+/** A valid input whose native adapter version is unavailable, distinct from invalid input (exit 2). */
+export class CliAdapterIncompatible extends Data.TaggedError('CliAdapterIncompatible')<{
+  readonly subject: string;
+}> {
+  readonly code = 'adapter-version-required';
+  readonly message =
+    'This operation requires a v1 document. Native v2 support requires a versioned adapter contract; inspect compatibility before an explicit downgrade.';
+  readonly dimension = 'semantics';
+  readonly path = undefined;
   readonly [Runtime.errorExitCode] = 1;
   readonly [Runtime.errorReported] = false;
 }

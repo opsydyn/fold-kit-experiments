@@ -1,5 +1,13 @@
 # Zloz core roadmap and compatibility reconciliation
 
+Delivery follow-up (2026-11-15): the approved v2 portable capability/decision batch
+adds whole-model capability inspection, mode-aware ELK/force requests, explicit
+v2 Mermaid projections and bounded CLI validation/inspection. Native v2
+patch/receipt/packet/audit wire contracts remain version-required; C1 is partial.
+See [ADR 0103](../adr/0103-qualify-v2-portable-adapter-boundaries.md) and
+[qualification](../../packages/foldkit-zloz/evidence/portable-compatibility-v2.md).
+The dated inventory below retains its original baseline.
+
 Delivery follow-up (standalone contract): the approved C1 headless strict/loose mode and standalone v2
 wire contract is implemented locally; see [ADR 0092](../adr/0092-stage-explicit-v2-connection-documents.md)
 and [qualification](../../packages/foldkit-zloz/evidence/connection-v2.md).

@@ -4,7 +4,16 @@
  * @module Mermaid
  */
 // ADR 0008: Optional pure export; the headless parser spike is not a production import API.
-import { validateGraph, type ZlozGraph, type ZlozNode } from '@opsydyn/foldkit-zloz';
+import {
+  validateGraph,
+  captureConnectionDocument,
+  serializeConnectionDocument,
+  parseConnectionDocument,
+  type ZlozConnectionDocument,
+  type ZlozConnectionMode,
+  type ZlozGraph,
+  type ZlozNode,
+} from '@opsydyn/foldkit-zloz';
 
 export const mermaidProtocol = 'foldkit-flow-mermaid/v1';
 /** Maximum generated source size, in UTF-16 code units. */
@@ -12,6 +21,8 @@ export const mermaidSourceLimit = 32768;
 export type MermaidDirection = 'LR' | 'RL' | 'TB' | 'BT';
 export type MermaidLossPolicy = 'reject' | 'report';
 export type MermaidDiagnosticCode =
+  | 'connection-mode-omitted'
+  | 'viewport-omitted'
   | 'invalid-graph'
   | 'invalid-options'
   | 'unsupported-subgraph'
@@ -134,14 +145,17 @@ function isOptions(value: unknown): value is MermaidExportOptions {
  * Losses reject by default. `report` consents to omitted fields, never to errors.
  * Keep the bundle's identity metadata with source; source alone contains safe aliases.
  */
-export function exportMermaid(
+function projectMermaid(
   graph: ZlozGraph,
   options: MermaidExportOptions = {},
+  mode: ZlozConnectionMode = 'strict',
+  initialDiagnostics: readonly MermaidDiagnostic[] = [],
 ): MermaidExportResult {
   // Core throws on invalid input. Normalize only at this public conversion boundary.
   // oxlint-disable-next-line linteffect/no-try-catch
   try {
-    validateGraph(graph);
+    if (mode === 'strict') validateGraph(graph);
+    else captureConnectionDocument({ graph, connectionMode: mode });
   } catch (error) {
     return rejected([
       diagnostic(
@@ -173,7 +187,7 @@ export function exportMermaid(
         'Empty groups have no reliable visible Mermaid boundary; export does not invent placeholder nodes.',
       ),
     ]);
-  const diagnostics: MermaidDiagnostic[] = [];
+  const diagnostics: MermaidDiagnostic[] = [...initialDiagnostics];
   const identity: MermaidIdentity = {
     version: 1,
     nodes: graph.nodes.map((node): MermaidIdentity['nodes'][number] => {
@@ -354,4 +368,77 @@ export function exportMermaid(
     diagnostics,
   };
   return { protocol: mermaidProtocol, status: 'converted', value, diagnostics };
+}
+
+/** Legacy graph-only export remains strict. Use the explicit v2 entry for loose documents. */
+export function exportMermaid(
+  graph: ZlozGraph,
+  options: MermaidExportOptions = {},
+): MermaidExportResult {
+  return projectMermaid(graph, options);
+}
+export const mermaidProtocolV2 = 'foldkit-zloz-mermaid/v2';
+export type MermaidBundleV2 = Omit<MermaidBundle, 'protocol'> &
+  Readonly<{ protocol: typeof mermaidProtocolV2; connectionMode: ZlozConnectionMode }>;
+export type MermaidExportResultV2 =
+  | Readonly<{
+      protocol: typeof mermaidProtocolV2;
+      status: 'converted';
+      value: MermaidBundleV2;
+      diagnostics: readonly MermaidDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof mermaidProtocolV2;
+      status: 'rejected';
+      diagnostics: readonly MermaidDiagnostic[];
+    }>;
+/** Explicit v2 projection. Bundle mode is retained; Mermaid source is never a canonical document. */
+export function exportConnectionMermaid(
+  document: ZlozConnectionDocument,
+  options: MermaidExportOptions = {},
+): MermaidExportResultV2 {
+  // oxlint-disable-next-line linteffect/no-try-catch
+  try {
+    const source = parseConnectionDocument(serializeConnectionDocument(document));
+    const losses: MermaidDiagnostic[] = [];
+    if (source.connectionMode === 'loose')
+      losses.push(
+        diagnostic(
+          'connection-mode-omitted',
+          'loss',
+          'semantics',
+          'The v2 bundle retains loose mode, but Mermaid source cannot express future port-connection rules.',
+        ),
+      );
+    if (source.viewport)
+      losses.push(
+        diagnostic('viewport-omitted', 'loss', 'layout', 'Mermaid omits the snapshot camera.'),
+      );
+    const result = projectMermaid(source.graph, options, source.connectionMode, losses);
+    return result.status === 'converted'
+      ? {
+          protocol: mermaidProtocolV2,
+          status: 'converted',
+          value: {
+            ...result.value,
+            protocol: mermaidProtocolV2,
+            connectionMode: source.connectionMode,
+          },
+          diagnostics: result.diagnostics,
+        }
+      : { protocol: mermaidProtocolV2, status: 'rejected', diagnostics: result.diagnostics };
+  } catch (error) {
+    return {
+      protocol: mermaidProtocolV2,
+      status: 'rejected',
+      diagnostics: [
+        diagnostic(
+          'invalid-graph',
+          'error',
+          'semantics',
+          error instanceof Error ? error.message : 'Invalid v2 document.',
+        ),
+      ],
+    };
+  }
 }

@@ -1103,3 +1103,88 @@ test('C4 file inspection preserves bytes and reports missing/oversized input wit
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('v2 validation, compatibility inspection and Mermaid retain mode while legacy operations reject explicitly', async () => {
+  const nodes = ['a', 'b'].map((id) => ({
+    id,
+    label: id,
+    position: { x: 0, y: 0 },
+    size: { width: 100, height: 80 },
+    ports: [{ id: 'p', kind: 'input', side: 'left', offset: 0.5 }],
+  }));
+  const snapshot = {
+    version: 2,
+    connectionMode: 'loose',
+    graph: {
+      nodes,
+      edges: [{ id: 'e', source: { node: 'a', port: 'p' }, target: { node: 'b', port: 'p' } }],
+    },
+  };
+  const wire = JSON.stringify({
+    format: 'foldkit-zloz-model',
+    version: 2,
+    document: { id: 'm', name: 'M', snapshot, editions: [], origin: null },
+  });
+  const valid = await invoke(['validate'], wire);
+  expect(valid.code).toBe(0);
+  expect(JSON.parse(valid.text).connectionMode).toBe('loose');
+  expect(JSON.parse(valid.text).model.id).toBe('m');
+  const inspected = await invoke(['compatibility', 'inspect'], wire);
+  expect(inspected.code).toBe(0);
+  expect(JSON.parse(inspected.text).data.downgrade.type).toBe('blocked');
+  const projected = await invoke(['mermaid', 'export', '--loss-policy', 'report'], wire);
+  expect(projected.code).toBe(0);
+  expect(JSON.parse(projected.text).data.connectionMode).toBe('loose');
+  expect(JSON.parse(projected.text).data.protocol).toBe('foldkit-zloz-mermaid/v2');
+  const rejected = await invoke(['mermaid', 'export'], wire);
+  expect(rejected.code).toBe(1);
+  for (const args of [
+    ['ddd', 'audit'],
+    ['relationships', 'audit'],
+    ['ddd', 'compare', '--baseline', 'base'],
+    ['relationships', 'compare', '--baseline', 'base'],
+    ['review', 'packet', '--baseline', 'base'],
+  ]) {
+    const incompatible = await invoke(args, wire);
+    expect(incompatible.code).toBe(1);
+    expect(JSON.parse(incompatible.text).diagnostics[0].code).toBe('adapter-version-required');
+  }
+  expect((await invoke(['validate'], JSON.stringify(snapshot))).code).toBe(0);
+  expect(
+    (
+      await invoke(
+        ['validate'],
+        wire.replace('"connectionMode":"loose"', '"connectionMode":"strict"'),
+      )
+    ).code,
+  ).toBe(2);
+});
+
+test('patch source gating distinguishes valid v2 source from malformed data before reading a proposal', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-v2-patch-gate-'));
+  // oxlint-disable-next-line linteffect/no-try-catch
+  try {
+    const source = join(directory, 'source.json');
+    const text = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/model-v2-modes.json', import.meta.url),
+      'utf8',
+    );
+    await writeFile(source, text);
+    const result = await invoke(
+      ['patch', 'dry-run', '--source', source, '--session', 'session', '--revision', '0'],
+      '{invalid proposal never read',
+    );
+    expect(result.code).toBe(1);
+    expect(JSON.parse(result.text).diagnostics[0].code).toBe('adapter-version-required');
+    expect(await readFile(source, 'utf8')).toBe(text);
+    await writeFile(source, '{invalid source');
+    const malformed = await invoke(
+      ['patch', 'dry-run', '--source', source, '--session', 'session', '--revision', '0'],
+      '{}',
+    );
+    expect(malformed.code).toBe(2);
+    expect(JSON.parse(malformed.text).diagnostics[0].code).toBe('invalid-json');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

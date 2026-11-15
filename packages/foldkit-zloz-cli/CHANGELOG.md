@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add bounded v2 validation, compatibility inspection and explicit v2 Mermaid selection; distinguish valid-but-incompatible v1 adapters (exit 1) from invalid input (exit 2).
+
 - Add read-only C4 receipt inspection with full provenance, before/after changes, recorded losses and explicit incompatible/invalid exits.
 
 - Add DDD edition comparison through Effect CLI with exact structured deltas, regression exits and explicit validation/selector failures.

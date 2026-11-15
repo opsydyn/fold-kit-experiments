@@ -6198,3 +6198,28 @@ Existing v1 codecs reject v2 envelopes/explicit snapshots. Mermaid, patches,
 receipts, review packets and CLI have separate versioned adoption gates; this batch
 does not silently upgrade or unwrap their documents. No npm publishing/deployment
 or full C1/C2–C4/Q/R completion is implied.
+
+### V2 portable adapter capabilities
+
+`assessPortableCompatibilityV2(model)` validates every current, edition and origin
+checkpoint and reports adapter capabilities, strict-incompatible edge IDs and
+whole-model downgrade findings. It returns review data only: no converted model,
+consent or Apply permission. `format-capability-only` does not imply that a chosen
+layout engine supports every graph.
+
+```ts
+const report = assessPortableCompatibilityV2(model);
+// layout: supported; mermaid: explicit v2 projection
+// patches, receipts, review packets and audits: versioned native adoption required
+```
+
+`layoutRequest` carries the current mode; manually authored requests default to
+strict when mode is absent. ELK/force preserve endpoint identity and Apply checks
+mode alongside request identity/revision. Geometry changes retain graph-and-mode
+Undo in v2 model sessions. No layout operation changes mode.
+
+The optional Mermaid package exposes `exportConnectionMermaid(document, options)`;
+keep its v2 protocol and mode with its identity map. V1 graph export stays strict.
+Patches, receipts, packets and audits keep their established v1 contracts. Never
+unwrap a loose graph or silently downgrade a model to reach those APIs. See
+[ADR 0103](../../docs/adr/0103-qualify-v2-portable-adapter-boundaries.md).

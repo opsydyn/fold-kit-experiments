@@ -627,6 +627,8 @@ export type EditorEvent =
   | Readonly<{ type: 'RedoPressed' }>;
 /** Detached graph snapshot with request identity and document revision for stale-result protection. */
 export type LayoutRequest = Readonly<{
+  /** Absence preserves legacy strict requests. Never infer from port kinds. */
+  connectionMode?: ZlozConnectionMode;
   requestId: string;
   revision: number;
   graph: ZlozGraph;

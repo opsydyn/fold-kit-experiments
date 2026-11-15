@@ -73,3 +73,21 @@ test('public engine rejects unsupported and malformed graphs', async () => {
   const invalid = { ...graph, nodes: [...graph.nodes, ...graph.nodes] };
   await expect(engine({ graph: invalid, requestId: 'invalid', revision: 0 })).rejects.toThrow();
 });
+
+test('force accepts explicit loose requests without rewriting ordered port identity', async () => {
+  const loose = {
+    ...graph,
+    edges: graph.edges.map((edge) => ({ ...edge, source: { ...edge.source, port: 'in' } })),
+  };
+  const request = {
+    requestId: 'loose-force',
+    revision: 0,
+    graph: loose,
+    connectionMode: 'loose' as const,
+  };
+  const before = JSON.stringify(request);
+  const result = await createForceLayout()(request);
+  expect(result.routes.map((route) => route.id)).toEqual(loose.edges.map((edge) => edge.id));
+  expect(JSON.stringify(request)).toBe(before);
+  await expect(createForceLayout()({ ...request, connectionMode: 'strict' })).rejects.toThrow();
+});

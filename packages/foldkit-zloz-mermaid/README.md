@@ -298,3 +298,20 @@ and actions remain available. Hosts own detached canvas rendering and interactio
 protection. Reading grants no editing/import permission, authenticity guarantee or
 new loss consent. See [ADR 0059](../../docs/adr/0059-open-review-packets-with-detached-reader-controls.md)
 and [local qualification](../../apps/zloz-demo/evidence/review-reader.md).
+
+## Explicit v2 connection documents
+
+```ts
+import { exportConnectionMermaid } from '@opsydyn/foldkit-zloz-mermaid';
+const result = exportConnectionMermaid(documentV2, { lossPolicy: 'report' });
+// Converted bundles use foldkit-zloz-mermaid/v2 and retain connectionMode.
+```
+
+This entry validates the complete v2 connection document and preserves ordered
+source/target identity even for input-to-input or output-to-output links. Mermaid
+source cannot express loose future-connection rules or the camera; those losses
+reject by default. `report` accepts projection omissions, never invalid graphs.
+Keep canonical JSON as authority. No general import or model reconstruction is
+promised. The existing `exportMermaid(graph)` remains strict and its protocol and
+output are unchanged. V1 review packets/readers remain v1; they do not accept v2
+bundles or silently remove checkpoint modes.

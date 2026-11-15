@@ -226,7 +226,45 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     });
     await writeFile(dddFile, dddText);
     await writeFile(dddRulesFile, dddRulesText);
+    const looseWire = JSON.parse(
+      await readFile(
+        new URL('../../foldkit-zloz/test/fixtures/connection-v2-loose.json', import.meta.url),
+        'utf8',
+      ),
+    );
     for (const runtime of ['node', 'bun']) {
+      const v2Input = JSON.stringify({
+        format: 'foldkit-zloz-model',
+        version: 2,
+        document: {
+          id: 'v2-model',
+          name: 'V2 model',
+          snapshot: looseWire,
+          editions: [],
+          origin: null,
+        },
+      });
+      const v2Validated = await run([runtime, bin, 'validate'], v2Input);
+      expect(v2Validated.code).toBe(0);
+      expect(JSON.parse(v2Validated.stdout).connectionMode).toBe('loose');
+      const compatibility = await run([runtime, bin, 'compatibility', 'inspect'], v2Input);
+      expect(compatibility.code).toBe(0);
+      expect(JSON.parse(compatibility.stdout).data.downgrade.type).toBe('blocked');
+      expect(JSON.parse(compatibility.stdout).data.checkpoints[0].strictIncompatibleEdges).toEqual([
+        'orders-billing',
+      ]);
+      const v2Projection = await run(
+        [runtime, bin, 'mermaid', 'export', '--loss-policy', 'report'],
+        v2Input,
+      );
+      expect(v2Projection.code).toBe(0);
+      expect(JSON.parse(v2Projection.stdout).data.protocol).toBe('foldkit-zloz-mermaid/v2');
+      expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].sourcePort).toBe('shared');
+      expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].targetPort).toBe('shared');
+      const v2Audit = await run([runtime, bin, 'ddd', 'audit'], v2Input);
+      expect(v2Audit.code).toBe(1);
+      expect(JSON.parse(v2Audit.stdout).diagnostics[0].code).toBe('adapter-version-required');
+
       const c4Input = JSON.stringify(c4ReceiptWire);
       const c4Report = await run([runtime, bin, 'c4', 'receipt', 'inspect'], c4Input);
       expect(c4Report.code).toBe(0);

@@ -56,11 +56,13 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
 
     const source = `import { createEditor } from '@opsydyn/foldkit-zloz';
-import { createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
+import { createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportConnectionMermaid, type MermaidExportResultV2, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
 const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: {x:0,y:0}, size: {width:200,height:100}, ports: [] }], edges: [] });
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
 if (exportMermaid(editor.graph).status !== 'rejected' || editor.past.length !== 0) throw new Error('Loss/history contract failed');
+const modeProjection:MermaidExportResultV2=exportConnectionMermaid({version:2,connectionMode:'loose',graph:editor.graph},{lossPolicy:'report'});
+if(modeProjection.status!=='converted'||modeProjection.value.connectionMode!=='loose'||modeProjection.value.protocol!=='foldkit-zloz-mermaid/v2'||!modeProjection.diagnostics.some(d=>d.code==='connection-mode-omitted'))throw new Error('Explicit v2 projection failed');
 const nested = exportMermaid({ nodes: [
  { id: 'outer', kind: 'group', label: 'Outer', position: {x:0,y:0}, size: {width:400,height:300}, ports: [] },
  { id: 'inner', kind: 'group', parentId: 'outer', label: 'Inner', position: {x:10,y:10}, size: {width:300,height:200}, ports: [] },

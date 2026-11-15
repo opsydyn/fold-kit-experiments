@@ -16,8 +16,12 @@ choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
 `0.13.0`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. `0.13.0` peers on FoldKit
 `>=0.170.0 <0.171.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
 release of the integration, not this one. This is a tested
-baseline, not a claim about the latest release or every supported Astro version.
-For a different version, check its declarations and release notes first.
+baseline, not a claim about the latest release. The integration peers on Astro
+`>=5.0.0`, and the repository's CI builds a fixture site with each of Astro 5, 6
+and 7; Astro 4 is unsupported, as FoldKit's Vite plugin needs Vite's environment
+API. For a different version, check its declarations and release notes first.
+Upgrading from FoldKit 0.167: follow the
+[0.170 migration guide](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/migrations/foldkit-0.170.md).
 With FoldKit, pin `@effect/platform-browser` to the same version as `effect` (`4.1.0`
 here). FoldKit 0.170 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
 requires an equal or newer `effect` and fails to resolve against an exact `4.1.0`.

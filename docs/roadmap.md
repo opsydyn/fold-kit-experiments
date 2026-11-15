@@ -220,7 +220,16 @@ charts in all three apps.
 - DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
   and Arrow data" below.
 - SVG and PNG export, and themes beyond light and dark.
-- A Jupyter widget that renders the JSON spec.
+- Jupyter support, in two steps:
+  - **TypeScript kernels first.** Deno's kernel (`deno jupyter`) shows any cell
+    value with a `Symbol.for('Jupyter.display')` method returning a MIME bundle,
+    and imports npm packages. The community Bun kernel (`jupyter-bun`, 0.1.0)
+    uses the same protocol. A framework-free `plotSvg(geometry)` (the SVG export
+    above) and a helper returning that display bundle (SVG, the text summary and
+    the data table) would work in both, depending on neither. Static output only:
+    widget support is undocumented for both kernels.
+  - **Then Python:** a widget (anywidget) that renders a JSON spec, which a Python
+    program writes and checks against the published schema.
 - Three-dimensional surfaces and scatter through effect-three.
 
 The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
@@ -228,18 +237,18 @@ and no dependency on `foldkit/http`.
 
 ## Viz: Polars and Arrow data — 2026-11-14
 
-**Status:** standalone piece of work, separate from the release track above.
-[Assessment](superpowers/specs/2026-11-14-polars-assessment.md), with a measured
-spike.
+**Status:** done except the later item, on the `feat/viz-columnar-data` branch
+(unreleased). [Assessment](superpowers/specs/2026-11-14-polars-assessment.md) and
+[design and results](superpowers/specs/2026-11-15-columnar-data-design.md).
 
 **Outcome:** data held in Polars (Rust, Python or Bun) or any Arrow source plots
 through the grammar at scale, without becoming a million row objects, and programs
 in other languages can write checked plot specs.
 
-**Where it stands:** Polars already plots on the server through `nodejs-polars`
-with no library changes. A million rows reach JavaScript as Arrow in 9 ms
-against 246 ms as row objects, and once data is columnar the grammar's own
-per-row reads are the cost.
+**Where it stands:** `data` takes a column table or an Arrow table, and a dense
+scatter over columns builds no rows: a million-row Polars frame plots in 86 ms
+through Arrow against 248 ms through row objects. The package publishes a JSON
+Schema for `PlotSpec`, and `apps/polars-summary` shows the summary pattern.
 
 - [x] Columnar data input: `data` accepts a column table (names to typed or plain
       arrays, and a length) as well as rows. `read` gets a column path, and dense
@@ -271,6 +280,14 @@ per-row reads are the cost.
 scatter faster than the same data as row objects, measured and recorded; a Rust
 or Python program's spec is validated by the published schema; and the summary
 example runs in the web app.
+
+- Met: 86 ms through Arrow columns against 248 ms through row objects.
+- Met in substance: every spec the web app draws is validated as JSON text, the
+  form any program sends, by a standard JSON Schema validator (ajv). No Rust or
+  Python program has been run against it yet.
+- Changed: the summary example is a standalone Bun app, not a web app page.
+  Polars is a native add-on, and the web app runs on Cloudflare Workers, where a
+  request-time Polars route cannot run.
 
 **Not planned:** Polars in the browser, whose WASM build is an alpha, and any
 dependency on Polars or Arrow inside foldkit-viz.

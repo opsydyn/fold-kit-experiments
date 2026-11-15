@@ -77,8 +77,9 @@ Three independent consumer skills are maintained alongside the packages:
 
 - [astro-foldkit](skills/astro-foldkit/SKILL.md): Astro islands, typed props,
   server-rendered pages, hydration and lifecycle boundaries.
-- [foldkit-viz](skills/foldkit-viz/SKILL.md): pure geometry, optional FoldKit
-  rendering, chart interaction and accessibility; no Astro dependency.
+- [foldkit-viz](skills/foldkit-viz/SKILL.md): pure geometry, the declarative plot
+  grammar and its JSON Schema, column and Arrow data, optional FoldKit rendering,
+  chart interaction and accessibility; no Astro dependency.
 - [effect-three](skills/effect-three/SKILL.md): 3D scenes derived from the Model,
   the FoldKit adapter, Rapier physics and troika labels, Model-owned cameras and XR,
   WebGL or WebGPU, and headless tests; no Astro dependency.
@@ -117,6 +118,7 @@ fold-kit-experiments/
 │   ├── zloz-promo/        — Zloz promo: shared family identity, native Compose example, highlighted source
 │   ├── zloz-demo/       — Zloz architecture workbench: persistent canvas and left controls
 │   ├── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
+│   ├── polars-summary/    — Bun server: Polars bins a million rows per request; only the summary is plotted
 │   └── docs/              — docs/ as a Starlight site: decisions, spikes, releases, working notes
 ├── infra/
 │   ├── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
@@ -209,21 +211,22 @@ declared outside the catalog or a published package's version drifts from it.
 
 ## Commands
 
-| Command                   | Action                                                |
-| :------------------------ | :---------------------------------------------------- |
-| `bun dev`                 | Start the demo app at `localhost:4321`                |
-| `bun storybook`           | Start Storybook at `localhost:6006`                   |
-| `bun build`               | Build the packages, demo app and both promo sites     |
-| `bun run dev:promo`       | Start the promo site at `localhost:4322`              |
-| `bun run dev:three-promo` | Start the effect-three promo site at `localhost:4323` |
-| `bun run dev:tech-radar`  | Start the tech radar at `localhost:4326`              |
-| `bun run dev:docs`        | Start the docs site at `localhost:4327`               |
-| `bun run test`            | Run all workspace test scripts sequentially           |
-| `bun typecheck`           | Typecheck all workspaces                              |
-| `bun run check`           | oxlint + oxfmt format check                           |
-| `bun run ci:check`        | The CI `check` job, cached (see below)                |
-| `bun run ci:clean`        | The CI `check` job as CI runs it, from scratch        |
-| `bun run hooks:install`   | Install the pre-commit and pre-push hooks             |
+| Command                      | Action                                                |
+| :--------------------------- | :---------------------------------------------------- |
+| `bun dev`                    | Start the demo app at `localhost:4321`                |
+| `bun storybook`              | Start Storybook at `localhost:6006`                   |
+| `bun build`                  | Build the packages, demo app and both promo sites     |
+| `bun run dev:promo`          | Start the promo site at `localhost:4322`              |
+| `bun run dev:three-promo`    | Start the effect-three promo site at `localhost:4323` |
+| `bun run dev:tech-radar`     | Start the tech radar at `localhost:4326`              |
+| `bun run dev:docs`           | Start the docs site at `localhost:4327`               |
+| `bun run dev:polars-summary` | Start the Polars summary server at `localhost:4330`   |
+| `bun run test`               | Run all workspace test scripts sequentially           |
+| `bun typecheck`              | Typecheck all workspaces                              |
+| `bun run check`              | oxlint + oxfmt format check                           |
+| `bun run ci:check`           | The CI `check` job, cached (see below)                |
+| `bun run ci:clean`           | The CI `check` job as CI runs it, from scratch        |
+| `bun run hooks:install`      | Install the pre-commit and pre-push hooks             |
 
 ### CI and local checks
 

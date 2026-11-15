@@ -602,6 +602,31 @@ it with any JSON Schema validator: `jsonschema` in Python, or the
 `jsonschema` crate in Rust. In JSON, a column table's columns are arrays. A
 `"$schema"` key is allowed, for editors, and `compilePlot` ignores it.
 
+- **Checked by the schema:** marks, channel types, transforms, scales, and
+  `color.scheme`, which must be one of the 21 schemes `math/schemes` exports
+  (`tableau10`, `viridis`, `rdBu` and the rest; the `SchemeName` type). An
+  unknown key anywhere is rejected, including a misspelt top-level key that
+  `compilePlot` would ignore.
+- **Not checked by the schema:** what depends on the data, such as whether a
+  field a channel names exists in the rows. `compilePlot` reports those, by
+  spec path.
+
+The repository's [Polars summary app](https://github.com/opsydyn/fold-kit-experiments/tree/main/apps/polars-summary)
+is a worked example: a Bun server that bins a million rows in Polars on each
+request and sends a spec of the summary.
+
+### Upgrading
+
+Two changes need code changes in some callers:
+
+- **`spec.data` and `mark.data` are `PlotData`:** rows or a column table. Code
+  that reads them as rows (to look a row up, say) should call `rowsOf(data)`,
+  which returns rows either way. Code that only writes specs is unaffected.
+- **`color.scheme` is a `SchemeName`**, not any string. A scheme held in a
+  plain `string` must be narrowed to `SchemeName`. A spec parsed from JSON is
+  unaffected at compile time, and `compilePlot` still rejects an unknown
+  scheme at run time.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

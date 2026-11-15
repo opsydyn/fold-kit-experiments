@@ -1,100 +1,53 @@
-# The workspace's checks, one definition each. The CI workflow runs these tasks
-# by name, so a check passes locally exactly when its CI step would.
-#
-#   bun moon run root:check        the CI `check` job, in this checkout
-#   bun run ci:clean               the same, in a fresh checkout of HEAD
-#   bun moon run root:<task>       any one step
-#
-# Nothing is cached: the checks are cheap to trust and costly to trust wrongly.
-# So no task declares inputs, which also stops moon hashing the whole tree.
-# Every task runs in CI whatever changed (moon's default runs only tasks it
-# finds affected), and CI sets MOON_BASE=HEAD because a pull request's shallow
-# checkout has no main branch for moon to compare against.
-
-language: typescript
-
-taskOptions:
-  cache: false
-  runInCI: always
-  outputStyle: stream
-  runFromWorkspaceRoot: true
+# The repository root as a moon project: the checks that cover every file,
+# and the git hooks. Package checks live in each package's moon.yml, and the
+# CI jobs are root package.json scripts (`ci:*`) that run tasks across projects.
 
 tasks:
-  # The CI `check` job's steps, in its order.
+  # `bun run check`, split so each part caches on its own inputs. The
+  # effect-three packages' stricter lint is their own `lint` task.
   lint:
-    description: oxlint, the effect-three package lint, oxfmt, the catalog and the skills
-    inputs: []
-    script: bun run check
-  typecheck:
-    description: every workspace's typecheck, one after another
-    inputs: []
-    script: bun typecheck
+    description: oxlint over the repository
+    script: oxlint .
+    env:
+      NODE_OPTIONS: --experimental-strip-types
+  format:
+    description: oxfmt --check over the repository
+    script: oxfmt --check .
+  catalog:
+    description: shared dependency versions come from the root catalogs
+    script: bun tools/check-catalog.ts
+    inputs: ['/**/package.json', '/tools/check-catalog.ts']
+  skills:
+    description: skills name the versions the workspace uses
+    script: bun tools/check-skills.ts
+    inputs: ['/skills/**/*', '/**/package.json', '/tools/check-skills.ts']
   test:
-    description: the root tool tests and every workspace's tests
-    inputs: []
-    script: bun run test
-  build:
-    description: the integration and the sites
-    inputs: []
-    script: bun run build
-  api-reports:
-    description: public API reports match the built type declarations
-    inputs: []
+    description: the root tool and workflow tests
     script: >-
-      bun run --filter @opsydyn/foldkit-viz build &&
-      bun run --filter @opsydyn/foldkit-viz api:check &&
-      bun run --filter @opsydyn/astro-foldkit api:check
-  size-budgets:
-    description: each Viz entry point is within its gzipped budget
-    inputs: []
-    script: bun run --filter @opsydyn/foldkit-viz size:check
-  check:
-    description: the CI `check` job
-    inputs: []
-    command: noop
-    deps: [lint, typecheck, test, build, api-reports, size-budgets]
-    options:
-      runDepsInParallel: false
+      bun test ./.github/scripts/format-release-changelogs.test.js
+      ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts
+      ./tools/ci-parity.test.ts
+    inputs:
+      - '/.github/**/*'
+      - '/tools/**/*'
+      - '/.moon/*.yml'
+      - '/.moon/tasks/**/*'
+      - '/**/moon.yml'
+      - '/**/package.json'
+      - '/release-please-config.json'
+      - '/.release-please-manifest.json'
 
-  # The other CI jobs, which need browsers or several Astro installs.
-  astro-compat:
-    description: the CI `astro-compat` job, building a site with each supported Astro major
-    inputs: []
-    script: >-
-      bun run --filter @opsydyn/astro-foldkit build &&
-      bun run --filter @opsydyn/astro-foldkit compat:astro 5 6 7
-  effect-three:
-    description: the CI `effect-three` job; needs Playwright's Chromium
-    inputs: []
-    script: >-
-      bun run --filter @opsydyn/effect-three pack:check &&
-      bun run --filter @opsydyn/effect-three-foldkit pack:check &&
-      bun run --filter @opsydyn/effect-three-rapier pack:check &&
-      bun run --filter @opsydyn/effect-three-troika pack:check &&
-      bun run --filter @opsydyn/effect-three api:check &&
-      bun run --filter @opsydyn/effect-three-foldkit api:check &&
-      bun run --filter @opsydyn/effect-three-rapier api:check &&
-      bun run --filter @opsydyn/effect-three-troika api:check &&
-      bun run --filter @opsydyn/effect-three-foldkit test:e2e
-  foldkit-zloz:
-    description: the CI `foldkit-zloz` job; needs Playwright's Chromium
-    inputs: []
-    script: >-
-      bun run --filter @opsydyn/foldkit-zloz test &&
-      bun run --filter @opsydyn/foldkit-zloz-elk test &&
-      bun run --filter @opsydyn/foldkit-zloz-force test &&
-      bun run --filter @opsydyn/foldkit-zloz-mermaid test &&
-      bun run --filter @opsydyn/foldkit-zloz-cli test &&
-      bun run --filter @opsydyn/web test:e2e e2e/zloz.spec.ts
-
-  # Git hooks.
+  # Git hooks: never cached, since each reads the working tree or a fresh checkout.
   pre-commit:
     description: format and lint the staged files, in seconds
-    inputs: []
     script: bun tools/pre-commit.ts
+    options:
+      cache: false
   pre-push:
     description: >-
-      the checks that need no browser and no test run, in a fresh checkout of HEAD,
-      so a missing build or a stale file cannot hide a failure CI would see
-    inputs: []
-    script: bun tools/ci-local.ts lint typecheck api-reports size-budgets
+      the CI check job in a fresh checkout of HEAD, reusing the shared cache, so
+      only what changed runs and a stale build or untracked file cannot hide a
+      failure CI would see
+    script: bun tools/ci-local.ts ci:check
+    options:
+      cache: false

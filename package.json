@@ -92,7 +92,10 @@
     "dev:docs": "bun run --filter @opsydyn/docs dev",
     "relay": "bun packages/effect-three-samples/scripts/relay.ts",
     "hooks:install": "moon sync vcs-hooks",
-    "ci:check": "moon run root:check",
+    "ci:check": "moon run :lint root:format root:catalog root:skills :typecheck :test :build :api-check :size-check && moon run :integration",
+    "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e",
+    "ci:foldkit-zloz": "moon run web:e2e-zloz",
+    "ci:astro-compat": "moon run astro-foldkit:compat",
     "ci:clean": "bun tools/ci-local.ts"
   },
   "devDependencies": {

@@ -1,0 +1,23 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    script: 'tsc -b && bun build ./src/index.ts ./src/deterministic.ts ./src/worker.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked'
+    deps: ['^:build']
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc -b && tsc -p tsconfig.test.json'
+    deps: ['build', '^:build']
+  test:
+    script: 'bun test --pass-with-no-tests ./src ./test'
+    deps: ['^:build']
+  api-check:
+    script: 'api-extractor run'
+    deps: ['build']
+  lint:
+    script: 'bun run lint'
+  pack-check:
+    script: 'publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only'
+    deps: ['build']
+    options:
+      cache: false

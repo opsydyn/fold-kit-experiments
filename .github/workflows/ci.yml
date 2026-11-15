@@ -14,8 +14,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Each job's checks are moon tasks in /moon.yml, which the git hooks and
-# `bun run ci:check` / `bun run ci:clean` run too. A pull request's shallow
+# Each job runs its root `ci:<job>` script, a moon run that the git hooks and
+# local runs use too (tools/ci-parity.test.ts keeps them in step). CI starts
+# with an empty moon cache, so it runs every task. A pull request's shallow
 # checkout has no main branch, so moon compares against HEAD.
 env:
   MOON_BASE: HEAD
@@ -41,8 +42,8 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint, typecheck, test, build, API reports and size budgets
-        run: bun moon run root:check
+      - name: Lint, typecheck, test, build, API reports, size budgets, then integration tests
+        run: bun run ci:check
 
   astro-compat:
     runs-on: ubuntu-latest
@@ -65,7 +66,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build a site with each supported Astro major
-        run: bun moon run root:astro-compat
+        run: bun run ci:astro-compat
 
   effect-three:
     runs-on: ubuntu-latest
@@ -91,8 +92,8 @@ jobs:
         working-directory: packages/effect-three-foldkit
         run: bunx playwright install --with-deps --only-shell chromium
 
-      - name: Package checks, API reports, browser and visual tests
-        run: bun moon run root:effect-three
+      - name: Package checks, browser and visual tests
+        run: bun run ci:effect-three
 
       - name: Upload golden diffs
         if: failure()
@@ -121,8 +122,8 @@ jobs:
       - name: Install browser
         working-directory: apps/web
         run: bunx --no-install playwright install --with-deps chromium
-      - name: Package tarballs, adapters, CLI and the browser editing journey
-        run: bun moon run root:foldkit-zloz
+      - name: Browser editing journey
+        run: bun run ci:foldkit-zloz
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

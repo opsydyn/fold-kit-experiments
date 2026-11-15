@@ -46,8 +46,9 @@ bun run test                          # workspace tests; excludes vendored upstr
 bun typecheck                         # all workspaces
 bun run check                         # oxlint + oxfmt --check (both must pass before committing)
 bun run check:fix                     # oxfmt then oxlint --fix
-bun run ci:clean                      # the CI check job in a fresh checkout of HEAD
-bun moon run root:<task>              # one CI step: lint, typecheck, test, build, api-reports, size-budgets
+bun run ci:check                      # the CI check job through moon, cached: only what changed reruns
+bun run ci:clean                      # the same in a fresh checkout of HEAD (what pre-push runs)
+bun moon run <project>:<task>         # one task and its dependencies, e.g. web:typecheck
 bun run --filter @opsydyn/web dev     # single-workspace dev
 bun run dev:promo                    # promo site at localhost:4322
 ```
@@ -261,6 +262,13 @@ bun run test       # all workspace tests must pass
 A checkout you have worked in can pass where CI fails, for example when a
 typecheck reads a `dist/` you built earlier. Before pushing, or when a CI check
 fails that passed here, run `bun run ci:clean`: it runs the CI `check` job in a
-fresh checkout of HEAD. Commit first, since it checks HEAD and not uncommitted
-changes. The pre-push hook runs its fast half; do not skip hooks with
-`--no-verify` unless asked.
+fresh checkout of HEAD, reusing this checkout's moon cache (add `-- --no-cache`
+for CI's empty cache). Commit first, since it checks HEAD and not uncommitted
+changes. The pre-push hook runs it; do not skip hooks with `--no-verify` unless
+asked.
+
+moon caches each task by its inputs, so a task must not read or rewrite files
+another task produces unless it declares that task in `deps`. A test that
+rebuilds or packs packages belongs in that package's `test:integration` or
+`test:package` script, which runs alone after the parallel checks.
+`tools/ci-parity.test.ts` checks each moon task against its package script.

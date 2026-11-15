@@ -353,11 +353,11 @@ test('root tests include the hook while strict checks and workspace tests stay i
   expect(manifest.scripts.check).toBe(
     'NODE_OPTIONS="--experimental-strip-types" oxlint . && bun run --filter \'@opsydyn/effect-three*\' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts',
   );
-  // The job's checks are the moon task root:check; tools/ci-parity.test.ts pins its steps.
+  // The job's checks are the root ci:check script; tools/ci-parity.test.ts pins it.
   const ci = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/ci.yml')).text());
   expect(ci.jobs.check.steps.filter((step) => step.run).map((step) => step.run)).toEqual([
     'bun install --frozen-lockfile',
-    'bun moon run root:check',
+    'bun run ci:check',
   ]);
 });
 

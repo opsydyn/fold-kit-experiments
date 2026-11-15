@@ -220,29 +220,49 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run test`            | Run all workspace test scripts sequentially           |
 | `bun typecheck`           | Typecheck all workspaces                              |
 | `bun run check`           | oxlint + oxfmt format check                           |
-| `bun run ci:check`        | The CI `check` job, in this checkout                  |
-| `bun run ci:clean`        | The CI `check` job, in a fresh checkout of HEAD       |
+| `bun run ci:check`        | The CI `check` job, cached (see below)                |
+| `bun run ci:clean`        | The CI `check` job in a fresh checkout of HEAD        |
 | `bun run hooks:install`   | Install the pre-commit and pre-push hooks             |
 
 ### CI and local checks
 
-CI runs moon tasks from [`moon.yml`](moon.yml), and so do the git hooks and the
-`ci:*` scripts, so each check has one definition. `bun moon run root:<task>` runs
-one step: `lint`, `typecheck`, `test`, `build`, `api-reports`, `size-budgets`, or
-a whole job: `check`, `astro-compat`, `effect-three`, `foldkit-zloz`.
-`tools/ci-parity.test.ts` fails if a CI step stops being one of these tasks.
+[moon](https://moonrepo.dev) runs every check, in CI and locally. Each workspace
+package is a moon project whose tasks are its package scripts without the
+dependency builds they start with: moon builds those dependencies first, once,
+from the workspace graph, and caches every task by the hash of its inputs and
+its dependencies' outputs. A run repeats only what a change can affect, and
+restores cached builds into `dist/`.
+
+| Command                          | Runs                                                                        |
+| :------------------------------- | :-------------------------------------------------------------------------- |
+| `bun run ci:check`               | The CI `check` job: lint, typecheck, test, build, API reports, size budgets |
+| `bun run ci:clean`               | `ci:check` in a fresh checkout of HEAD, reusing this checkout's cache       |
+| `bun run ci:clean -- --no-cache` | The same from an empty cache, as CI runs it                                 |
+| `bun moon run web:typecheck`     | One task and what it depends on                                             |
+| `bun moon run :test`             | One task in every project                                                   |
+
+`ci:check` runs in two phases. Everything runs in parallel first; then the tests
+that rebuild or pack packages themselves (each package's `integration` task, its
+`test:integration` or `test:package` script) run one at a time, so they never
+replace a `dist/` another task is reading. With nothing changed it takes seconds;
+from an empty cache, about three minutes.
 
 `bun run hooks:install` installs two hooks, once per clone:
 
 - **pre-commit**: formats and lints the staged files, in seconds.
-- **pre-push**: lint, typecheck, API reports and size budgets, in a fresh checkout
-  of HEAD after a frozen install, about three minutes. A build or untracked file
-  left in your checkout cannot hide a failure CI would see.
+- **pre-push**: `ci:clean`, so a build or untracked file left in your checkout
+  cannot hide a failure CI would see, while the shared cache keeps it to the
+  tasks your commits affect.
 
 Skip either with `--no-verify`. The hooks apply to every worktree of the clone,
-and do nothing in a checkout without `moon.yml`. `bun run ci:clean [task...]`
-runs any tasks the way pre-push does; with no task it runs the whole `check` job,
-tests included. It warns when your Bun or Node.js differs from CI's.
+and do nothing in a checkout without `moon.yml`. `ci:clean` warns when your Bun
+or Node.js differs from CI's.
+
+`tools/ci-parity.test.ts` keeps all of this in step: each CI job runs its
+`ci:<job>` script; each moon task equals its package script; moon builds what a
+script built first; and moon ignores every path `.gitignore` does. Package
+scripts keep their dependency builds, so `bun run --filter <package> <script>`
+and the deploy workflows work without moon.
 
 Use `bun run test` at the root: bare `bun test` bypasses the workspace script
 and can traverse vendored reference repositories. To work within a single

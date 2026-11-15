@@ -1,21 +1,31 @@
-// Runs moon tasks the way CI does: in a fresh checkout of HEAD, after a frozen
-// install, with CI set, one task after another, stopping at the first failure.
+// Runs root package scripts the way CI does: in a fresh checkout of HEAD, after a
+// frozen install, with CI set, one after another, stopping at the first failure.
 //
 // A checkout that has been worked in hides failures CI would see: a built
 // dist/ that a typecheck quietly reads, an untracked file a test imports, a
 // lockfile that no longer matches. This checks the commit, not the folder.
 // Uncommitted changes are not included, which is also what a push sends.
 //
-//   bun tools/ci-local.ts [task...]   (default: check, the whole CI check job)
+// The fresh checkout uses this checkout's moon cache (.moon/cache, linked), so
+// only tasks whose inputs differ from an earlier run here run again, and cached
+// builds are restored into it. Pass --no-cache to run everything from an empty
+// cache, as CI does. (moon 2.5's sharedWorktreeCache does not share between
+// `git worktree add` checkouts, hence the link.)
+//
+//   bun tools/ci-local.ts [--no-cache] [script...]   (default: ci:check)
 //
 // It also warns when the local Bun or Node.js differs from the versions CI uses.
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const tasks = process.argv.slice(2).length > 0 ? process.argv.slice(2) : ['check'];
+const args = process.argv.slice(2);
+const noCache = args.includes('--no-cache');
+// `bun run ci:clean -- --no-cache` passes the `--` through.
+const named = args.filter((arg) => arg !== '--no-cache' && arg !== '--');
+const scripts = named.length > 0 ? named : ['ci:check'];
 const repo = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).stdout.trim();
 
 interface Manifest {
@@ -47,7 +57,14 @@ const checkout = mkdtempSync(join(tmpdir(), 'ci-local-'));
 // inherit them and run its tasks back in this checkout. Drop them, then set what
 // the workflow sets: moon compares against HEAD, as CI's shallow checkout has no main.
 const inherited = Object.entries(process.env).filter(([name]) => !name.startsWith('MOON_'));
-const env = { ...Object.fromEntries(inherited), CI: 'true', MOON_BASE: 'HEAD' };
+const env = {
+  ...Object.fromEntries(inherited),
+  CI: 'true',
+  MOON_BASE: 'HEAD',
+  MOON_CACHE: noCache ? 'off' : 'read-write',
+};
+
+/** Runs one command in a step, reporting how long it took. */
 const run = (label: string, command: string, args: ReadonlyArray<string>, cwd: string): boolean => {
   const start = performance.now();
   console.log(`\nci-local ▸ ${label}`);
@@ -55,6 +72,16 @@ const run = (label: string, command: string, args: ReadonlyArray<string>, cwd: s
   const seconds = ((performance.now() - start) / 1000).toFixed(0);
   console.log(`ci-local ${ok ? '✓' : '✗'} ${label} (${seconds} s)`);
   return ok;
+};
+
+/** Points the fresh checkout's moon cache at this checkout's. */
+const linkCache = (): boolean => {
+  const cache = join(repo, '.moon', 'cache');
+  mkdirSync(cache, { recursive: true });
+  mkdirSync(join(checkout, '.moon'), { recursive: true });
+  symlinkSync(cache, join(checkout, '.moon', 'cache'));
+  console.log(`\nci-local ✓ moon cache linked from ${cache}`);
+  return true;
 };
 
 /** spawnSync reports failures rather than throwing, so only an interrupt skips the cleanup. */
@@ -67,17 +94,26 @@ process.once('SIGINT', () => {
   process.exit(130);
 });
 
-type Step = readonly [label: string, command: string, args: ReadonlyArray<string>, cwd: string];
+type Step = readonly [label: string, perform: () => boolean];
 const steps: ReadonlyArray<Step> = [
-  [`check out ${head}`, 'git', ['worktree', 'add', '--detach', checkout, 'HEAD'], repo],
-  ['bun install --frozen-lockfile', 'bun', ['install', '--frozen-lockfile'], checkout],
-  ...tasks.map((task): Step => [`root:${task}`, 'bun', ['moon', 'run', `root:${task}`], checkout]),
+  [
+    `check out ${head}`,
+    () => run(`check out ${head}`, 'git', ['worktree', 'add', '--detach', checkout, 'HEAD'], repo),
+  ],
+  ...(noCache ? [] : [['link the moon cache', linkCache] satisfies Step]),
+  [
+    'bun install --frozen-lockfile',
+    () => run('bun install --frozen-lockfile', 'bun', ['install', '--frozen-lockfile'], checkout),
+  ],
+  ...scripts.map((script): Step => [script, () => run(script, 'bun', ['run', script], checkout)]),
 ];
-const failed = steps.find(([label, command, args, cwd]) => !run(label, command, args, cwd))?.[0];
+const failed = steps.find(([, perform]) => !perform())?.[0];
 removeCheckout();
 
 if (failed !== undefined) {
   console.error(`\nci-local: ${failed} failed on ${head}, as it would in CI.`);
   process.exit(1);
 }
-console.log(`\nci-local: ${tasks.join(', ')} passed on a fresh checkout of ${head}.`);
+console.log(
+  `\nci-local: ${scripts.join(', ')} passed on a fresh checkout of ${head}${noCache ? ', from an empty cache' : ''}.`,
+);

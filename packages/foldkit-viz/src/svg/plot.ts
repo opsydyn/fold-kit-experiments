@@ -1,4 +1,8 @@
-import { currentColorPalette, plotFigure, plotGraphic } from '../plot/render.js';
+import { chartThemes } from '../chart/theme.js';
+import type { ThemeName } from '../chart/theme.js';
+import { standaloneLegends } from '../plot/legend.js';
+import type { LegendLayout } from '../plot/legend.js';
+import { currentColorPalette, n, plotFigure, plotGraphic } from '../plot/render.js';
 import type { PlotBuilder, PlotChartOptions, PlotOverlay, PlotPalette } from '../plot/render.js';
 import type { PlotGeometry } from '../plot/types.js';
 
@@ -8,20 +12,6 @@ import type { PlotGeometry } from '../plot/types.js';
  * markup comes from plot/render, the renderer foldkit/plot uses, so a page and
  * an export always draw the same chart.
  */
-
-/**
- * Concrete colours for a standalone SVG. Image renderers and file viewers have
- * no page colour to inherit and most cannot resolve `color-mix`, so the default
- * page palette would draw black or missing grid lines there.
- */
-export const svgPalette: PlotPalette = {
-  text: '#1f2328',
-  mutedText: '#59636e',
-  grid: '#d1d9e0',
-  axis: '#818b98',
-  fontFamily: 'system-ui, Helvetica, Arial, sans-serif',
-  labelSize: 11,
-};
 
 type MarkupAttribute =
   | Readonly<{ kind: 'attribute'; name: string; value: string }>
@@ -139,24 +129,154 @@ const markupBuilder: PlotBuilder<MarkupAttribute, Markup> = {
   Style: (value) => ({ kind: 'style', value }),
 };
 
-export type PlotSvgOptions = Omit<PlotChartOptions, 'legend' | 'table'>;
+/** A theme by name, such as `'dark'`, or any palette, such as a ChartTheme or `currentColorPalette`. */
+export type PlotTheme = ThemeName | PlotPalette;
+
+/** A theme name read from JSON or Python is a string; anything else is already a palette. */
+const isThemeName = (theme: PlotTheme): theme is ThemeName => typeof theme === 'string';
+
+/** The palette a theme names. An unknown name is an error, as a spec's unknown scheme is. */
+export function paletteOf(theme: PlotTheme): PlotPalette {
+  if (!isThemeName(theme)) return theme;
+  const palette = chartThemes[theme];
+  if (palette === undefined)
+    throw new RangeError(`theme: "${theme}" is not one of ${Object.keys(chartThemes).join(', ')}`);
+  return palette;
+}
+
+export type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> &
+  Readonly<{
+    /** Default `'light'`: concrete colours, since an image has no page colour to inherit. */
+    theme?: PlotTheme;
+    /** Paint the theme's background behind the chart. Default true. */
+    background?: boolean;
+  }>;
+
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+/** A laid-out legend as SVG, for a standalone chart. */
+function legendGraphics<A, N>(h: PlotBuilder<A, N>, layout: LegendLayout, palette: PlotPalette): N {
+  return h.g(
+    [h.Class('plot-legend'), h.FontSize(String(palette.labelSize)), h.AriaHidden(true)],
+    layout.marks.map((mark) => {
+      switch (mark.kind) {
+        case 'swatch':
+          return h.rect(
+            [
+              h.X(n(mark.x)),
+              h.Y(n(mark.y)),
+              h.Width(n(mark.size)),
+              h.Height(n(mark.size)),
+              h.Fill(mark.color),
+            ],
+            [],
+          );
+        case 'band':
+          return h.rect(
+            [
+              h.Class('plot-legend-band'),
+              h.X(n(mark.x)),
+              h.Y(n(mark.y)),
+              // A hair wider, so neighbouring bands leave no seam.
+              h.Width(n(mark.width + 0.5)),
+              h.Height(n(mark.height)),
+              h.Fill(mark.color),
+            ],
+            [],
+          );
+        case 'symbol':
+          return h.path(
+            [
+              h.D(mark.path),
+              h.Transform(`translate(${n(mark.x)},${n(mark.y)})`),
+              h.Fill(mark.color ?? 'currentColor'),
+            ],
+            [],
+          );
+        case 'label':
+          return h.text(
+            [
+              h.X(n(mark.x)),
+              h.Y(n(mark.y + palette.labelSize / 3)),
+              h.Fill(palette.text),
+              ...(mark.title ? [h.FontWeight('600')] : []),
+            ],
+            [mark.text],
+          );
+      }
+    }),
+  );
+}
 
 /**
- * The chart as a standalone SVG document at its compiled size: marks, axes,
- * title and description, in `svgPalette` unless given another. Legends and the
- * data table are HTML beside the SVG, so they are in `plotHtml` only.
+ * The chart as a standalone SVG document: marks, axes, title and description,
+ * then its legends drawn below the plot (the document grows to fit them),
+ * over the theme's background. `legend: false` and `background: false` leave
+ * them out.
  */
 export function plotSvg(geometry: PlotGeometry, options: PlotSvgOptions = {}): string {
-  return plotGraphic(markupBuilder, geometry, { palette: svgPalette, ...options }, 'fixed').markup;
+  const { theme = 'light', background, ...rest } = options;
+  const palette = paletteOf(theme);
+  const h = markupBuilder;
+  const legends =
+    rest.legend === false ? undefined : standaloneLegends(geometry, palette.labelSize);
+  const height = n(geometry.height + (legends?.height ?? 0));
+  const paint = background === false ? undefined : palette.background;
+  return plotGraphic(
+    h,
+    geometry,
+    { ...rest, palette },
+    {
+      attributes: [
+        h.Attribute('xmlns', SVG_NAMESPACE),
+        h.ViewBox(`0 0 ${geometry.width} ${height}`),
+        h.Width(String(geometry.width)),
+        h.Height(height),
+        h.Attribute('font-family', palette.fontFamily),
+        // Marks drawn in currentColor take the palette's text colour outside a page.
+        ...(palette.text === 'currentColor' ? [] : [h.Attribute('color', palette.text)]),
+      ],
+      under:
+        paint === undefined
+          ? []
+          : [
+              h.rect(
+                [
+                  h.Class('plot-background'),
+                  h.X('0'),
+                  h.Y('0'),
+                  h.Width(String(geometry.width)),
+                  h.Height(height),
+                  h.Fill(paint),
+                ],
+                [],
+              ),
+            ],
+      over:
+        legends === undefined || legends.height === 0 ? [] : [legendGraphics(h, legends, palette)],
+    },
+  ).markup;
 }
+
+export type PlotHtmlOptions = PlotChartOptions &
+  Readonly<{
+    /**
+     * A theme for a chart that should not follow its page: the figure then
+     * paints the theme's background and text colour. Takes precedence over
+     * `palette`.
+     */
+    theme?: PlotTheme;
+  }>;
 
 /**
  * The whole chart as an HTML fragment, the same markup foldkit/plot's
  * `plotChart` renders: a figure holding the SVG, its data table and legends,
- * in the page's colour by default.
+ * in the page's colour unless given a theme.
  */
-export function plotHtml(geometry: PlotGeometry, options: PlotChartOptions = {}): string {
-  return plotFigure(markupBuilder, geometry, options).markup;
+export function plotHtml(geometry: PlotGeometry, options: PlotHtmlOptions = {}): string {
+  const { theme, ...rest } = options;
+  if (theme === undefined) return plotFigure(markupBuilder, geometry, rest).markup;
+  return plotFigure(markupBuilder, geometry, { ...rest, palette: paletteOf(theme) }, true).markup;
 }
 
 export { currentColorPalette };

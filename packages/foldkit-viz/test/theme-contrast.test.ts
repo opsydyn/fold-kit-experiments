@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 
-import { chartThemes, darkTheme, highContrastDarkTheme, highContrastLightTheme, lightTheme } from '../src/chart/theme.js';
+import {
+  chartThemes,
+  darkTheme,
+  highContrastDarkTheme,
+  highContrastLightTheme,
+  lightTheme,
+} from '../src/chart/theme.js';
 import type { ChartTheme, ThemeName } from '../src/chart/theme.js';
 import { contrastRatio } from '../src/math/color.js';
 
@@ -63,7 +69,9 @@ describe('chart themes', () => {
       expect(failures(theme, AAA)).toEqual([]);
       // A grid a reader can follow, still quieter than the axes.
       expect(contrastRatio(theme.grid, theme.background)).toBeGreaterThanOrEqual(2);
-      expect(contrastRatio(theme.grid, theme.background)).toBeLessThan(contrastRatio(theme.axis, theme.background));
+      expect(contrastRatio(theme.grid, theme.background)).toBeLessThan(
+        contrastRatio(theme.axis, theme.background),
+      );
     });
 
   it('sets high-contrast labels larger and marks heavier than the standard themes', () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { darkTheme, lightTheme } from '../src/chart/theme.js';
 import { compilePlot, describePlot, plotTable } from '../src/plot/index.js';
 import type { PlotSpec } from '../src/plot/index.js';
 import { displayPlot, jupyterDisplay, plotMimeBundle } from '../src/svg/jupyter.js';
@@ -24,6 +25,21 @@ describe('plotMimeBundle', () => {
     expect(bundle['text/html']).toBe(plotHtml(geometry, { summary: true }));
     expect(bundle['image/svg+xml']).toBe(plotSvg(geometry, { summary: true }));
     expect(bundle['text/plain']).toBe(`Dose response. ${describePlot(geometry)}`);
+  });
+
+  it('themes both pictures when asked: the figure on its own background, the SVG in the same colours', () => {
+    const dark = plotMimeBundle(geometry, { theme: 'dark', legend: false });
+    expect(dark['text/html']).toBe(plotHtml(geometry, { theme: 'dark', legend: false }));
+    expect(dark['text/html']).toContain(`background: ${darkTheme.background}`);
+    expect(dark['image/svg+xml']).toBe(plotSvg(geometry, { theme: 'dark', legend: false }));
+    expect(dark['image/svg+xml']).toContain(`color="${darkTheme.text}"`);
+  });
+
+  it('follows the notebook in HTML, and paints the SVG in the light theme, by default', () => {
+    expect(bundle['text/html']).toStartWith(
+      '<figure class="plot" style="margin: 0; font-family: system-ui, sans-serif">',
+    );
+    expect(bundle['image/svg+xml']).toContain(`fill="${lightTheme.background}"`);
   });
 
   it('names the chart in text even without a title', () => {

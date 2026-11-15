@@ -95,6 +95,11 @@ export type PlotPalette = Readonly<{
   axis: string;
   fontFamily: string;
   labelSize: number;
+  /**
+   * Painted behind a standalone SVG or image. A page owns its own background,
+   * so plotChart ignores it. Every ChartTheme has one.
+   */
+  background?: string;
 }>;
 
 /** Neutral defaults built on currentColor, so a plot follows the page's text colour. */
@@ -196,7 +201,7 @@ function dataTable<A, N>(h: PlotBuilder<A, N>, table: PlotTable | undefined): Re
   ];
 }
 
-const n = (value: number): string => String(Math.round(value * 100) / 100);
+export const n = (value: number): string => String(Math.round(value * 100) / 100);
 
 /**
  * Packed points as SVG: one path of circles per colour (and per dimmed state),
@@ -627,20 +632,22 @@ function clipped<A, N>(
 }
 
 /**
- * How the chart's root `<svg>` sizes itself: `fluid` fills its container up to
- * the plot's width, for a page; `fixed` is a standalone SVG document at the
- * plot's own size, carrying its namespace and font, for a file or an image.
+ * The chart's root `<svg>`: its sizing attributes, and anything drawn under
+ * the plot (a background) or over it (legends). A page's root is fluid
+ * (plotFigure); svg/plot builds a standalone document's.
  */
-export type PlotSizing = 'fluid' | 'fixed';
+export type PlotRoot<A, N> = Readonly<{
+  attributes: ReadonlyArray<A>;
+  under?: ReadonlyArray<N>;
+  over?: ReadonlyArray<N>;
+}>;
 
-const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
-
-/** The chart's SVG alone: axes, marks and overlay, without the legend or table. */
+/** The chart's SVG: axes, marks and overlay, inside the root the caller sizes. */
 export function plotGraphic<A, N>(
   h: PlotBuilder<A, N>,
   geometry: PlotGeometry,
   options: PlotChartOptions,
-  sizing: PlotSizing,
+  root: PlotRoot<A, N>,
 ): N {
   const palette = options.palette ?? currentColorPalette;
   const description = descriptionOf(geometry, options);
@@ -688,20 +695,48 @@ export function plotGraphic<A, N>(
       ],
     ),
   );
-  const viewBox = h.ViewBox(`0 0 ${geometry.width} ${geometry.height}`);
-  const sized =
-    sizing === 'fixed'
-      ? [
-          h.Attribute('xmlns', SVG_NAMESPACE),
-          viewBox,
-          h.Width(String(geometry.width)),
-          h.Height(String(geometry.height)),
-          h.Attribute('font-family', palette.fontFamily),
-          // Marks drawn in currentColor take the palette's text colour outside a page.
-          ...(palette.text === 'currentColor' ? [] : [h.Attribute('color', palette.text)]),
-        ]
-      : [
-          viewBox,
+  return h.svg(
+    [...root.attributes, h.Role('img'), ...(label === '' ? [] : [h.AriaLabel(label)])],
+    [
+      ...(geometry.title === '' ? [] : [h.title([], [geometry.title])]),
+      ...(description === '' ? [] : [h.desc([], [description])]),
+      ...(root.under ?? []),
+      ...facets,
+      ...(options.overlay === undefined ? [] : overlayMarks(h, geometry, options.overlay)),
+      ...(root.over ?? []),
+    ],
+  );
+}
+
+/**
+ * The whole chart for a page: the SVG, then its data table and legends, in a
+ * figure. With `surface`, the figure paints the palette's own background and
+ * text colour, for a chart themed apart from its page.
+ */
+export function plotFigure<A, N>(
+  h: PlotBuilder<A, N>,
+  geometry: PlotGeometry,
+  options: PlotChartOptions = {},
+  surface = false,
+): N {
+  const palette = options.palette ?? currentColorPalette;
+  const style = { margin: '0', 'font-family': palette.fontFamily };
+  const painted =
+    surface && palette.background !== undefined
+      ? {
+          ...style,
+          background: palette.background,
+          color: palette.text,
+          padding: '12px',
+          'border-radius': '6px',
+        }
+      : style;
+  return h.figure(
+    [h.Class('plot'), h.Style(painted)],
+    [
+      plotGraphic(h, geometry, options, {
+        attributes: [
+          h.ViewBox(`0 0 ${geometry.width} ${geometry.height}`),
           h.Width('100%'),
           h.Style({
             display: 'block',
@@ -709,28 +744,10 @@ export function plotGraphic<A, N>(
             height: 'auto',
             overflow: 'visible',
           }),
-        ];
-  return h.svg(
-    [...sized, h.Role('img'), ...(label === '' ? [] : [h.AriaLabel(label)])],
-    [
-      ...(geometry.title === '' ? [] : [h.title([], [geometry.title])]),
-      ...(description === '' ? [] : [h.desc([], [description])]),
-      ...facets,
-      ...(options.overlay === undefined ? [] : overlayMarks(h, geometry, options.overlay)),
+        ],
+      }),
+      ...plotExtras(h, geometry, options),
     ],
-  );
-}
-
-/** The whole chart for a page: the SVG, then its data table and legends, in a figure. */
-export function plotFigure<A, N>(
-  h: PlotBuilder<A, N>,
-  geometry: PlotGeometry,
-  options: PlotChartOptions = {},
-): N {
-  const palette = options.palette ?? currentColorPalette;
-  return h.figure(
-    [h.Class('plot'), h.Style({ margin: '0', 'font-family': palette.fontFamily })],
-    [plotGraphic(h, geometry, options, 'fluid'), ...plotExtras(h, geometry, options)],
   );
 }
 

@@ -101,12 +101,12 @@ export const highContrastDarkTheme: ChartTheme = {
 /** The themes by name, for a theme chosen in JSON, Python or a notebook. */
 export type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
 
-export const chartThemes: Readonly<Record<ThemeName, ChartTheme>> = {
+export const chartThemes = {
   light: lightTheme,
   dark: darkTheme,
   'high-contrast-light': highContrastLightTheme,
   'high-contrast-dark': highContrastDarkTheme,
-};
+} as const satisfies Readonly<Record<ThemeName, ChartTheme>>;
 
 /** Paint is opaque CSS. Opacity and size are separately validated numeric fields. */
 export function resolveSeriesStyle(

@@ -1,8 +1,8 @@
 import { compilePlot } from '../plot/compile.js';
 import { describePlot, plotTable } from '../plot/describe.js';
-import type { PlotChartOptions } from '../plot/render.js';
 import type { PlotGeometry, PlotSpec } from '../plot/types.js';
 import { plotHtml, plotSvg } from './plot.js';
+import type { PlotHtmlOptions } from './plot.js';
 
 /**
  * Inline charts in Jupyter notebooks run by a JavaScript kernel: Deno's
@@ -24,12 +24,18 @@ export type PlotMimeBundle = Readonly<{
 
 export type JupyterDisplayable = Readonly<{ [jupyterDisplay]: () => PlotMimeBundle }>;
 
+/**
+ * What a notebook shows: the figure's options, and a theme for both pictures.
+ * Without a theme the HTML follows the notebook and the SVG uses `light`.
+ */
+export type PlotDisplayOptions = Omit<PlotHtmlOptions, 'palette'>;
+
 /** A compiled plot as a MIME bundle, such as for `Deno.jupyter.display(bundle, { raw: true })`. */
 export function plotMimeBundle(
   geometry: PlotGeometry,
-  options: PlotChartOptions = {},
+  options: PlotDisplayOptions = {},
 ): PlotMimeBundle {
-  const { legend: _legend, table: _table, ...svgOptions } = options;
+  const { table: _table, ...svgOptions } = options;
   return {
     'text/html': plotHtml(geometry, options),
     'image/svg+xml': plotSvg(geometry, svgOptions),
@@ -47,7 +53,7 @@ export function plotMimeBundle(
  * displayPlot({ width: 480, height: 300, data, marks: [{ mark: 'dot', x: 'a', y: 'b' }] });
  * ```
  */
-export function displayPlot(spec: PlotSpec, options: PlotChartOptions = {}): JupyterDisplayable {
+export function displayPlot(spec: PlotSpec, options: PlotDisplayOptions = {}): JupyterDisplayable {
   const bundle = plotMimeBundle(compilePlot(spec), {
     summary: true,
     table: plotTable(spec),

@@ -317,7 +317,64 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
-const chartThemes: Readonly<Record<ThemeName, ChartTheme>>;
+const chartThemes: {
+  readonly light: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly dark: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-light': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-dark': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+};
 type ChordMark = CommonMark & Readonly<{
   mark: 'chord';
   source: Channel;
@@ -1762,7 +1819,64 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
-const chartThemes: Readonly<Record<ThemeName, ChartTheme>>;
+const chartThemes: {
+  readonly light: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly dark: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-light': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-dark': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+};
 function createSeriesStyles(domain: ReadonlyArray<string>, palette: ReadonlyArray<string>, overrides?: ReadonlyMap<string, Partial<SeriesStyle>>): ReadonlyMap<string, SeriesStyle>;
 const darkTheme: ChartTheme;
 const highContrastDarkTheme: ChartTheme;
@@ -2026,6 +2140,7 @@ type PlotPalette = Readonly<{
   axis: string;
   fontFamily: string;
   labelSize: number;
+  background?: string;
 }>;
 ```
 
@@ -2212,12 +2327,13 @@ function zoomDomain(domain: ContinuousDomain, factor: number, anchor: number, bo
 ## ./jupyter
 
 ```ts
-function displayPlot(spec: PlotSpec, options?: PlotChartOptions): JupyterDisplayable;
+function displayPlot(spec: PlotSpec, options?: PlotDisplayOptions): JupyterDisplayable;
 const jupyterDisplay: unique symbol;
 type JupyterDisplayable = Readonly<{
   [jupyterDisplay]: () => PlotMimeBundle;
 }>;
-function plotMimeBundle(geometry: PlotGeometry, options?: PlotChartOptions): PlotMimeBundle;
+type PlotDisplayOptions = Omit<PlotHtmlOptions, 'palette'>;
+function plotMimeBundle(geometry: PlotGeometry, options?: PlotDisplayOptions): PlotMimeBundle;
 type PlotMimeBundle = Readonly<{
   'text/html': string;
   'image/svg+xml': string;
@@ -3722,12 +3838,16 @@ type StateFlowNodeRole = 'initial' | 'normal' | 'active' | 'error' | 'transient'
 
 ```ts
 const currentColorPalette: PlotPalette;
+function paletteOf(theme: PlotTheme): PlotPalette;
 type PlotChartOptions = Readonly<{
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
 }> & AccessibleOptions;
-function plotHtml(geometry: PlotGeometry, options?: PlotChartOptions): string;
+function plotHtml(geometry: PlotGeometry, options?: PlotHtmlOptions): string;
+type PlotHtmlOptions = PlotChartOptions & Readonly<{
+  theme?: PlotTheme;
+}>;
 type PlotOverlay = Readonly<{
   crosshair?: Readonly<{
     x: number;
@@ -3752,8 +3872,12 @@ type PlotPalette = Readonly<{
   axis: string;
   fontFamily: string;
   labelSize: number;
+  background?: string;
 }>;
 function plotSvg(geometry: PlotGeometry, options?: PlotSvgOptions): string;
-type PlotSvgOptions = Omit<PlotChartOptions, 'legend' | 'table'>;
-const svgPalette: PlotPalette;
+type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> & Readonly<{
+  theme?: PlotTheme;
+  background?: boolean;
+}>;
+type PlotTheme = ThemeName | PlotPalette;
 ```

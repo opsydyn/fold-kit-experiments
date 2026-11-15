@@ -1,5 +1,8 @@
 # Each task is the package script of the same name without its dependency
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+# Files outside this folder its tasks read; see .moon/tasks/reads-*.yml.
+tags: ['reads-workspace-manifests']
+
 tasks:
   build:
     script: 'tsc -b && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked'

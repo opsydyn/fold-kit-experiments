@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join, normalize } from 'node:path';
 
 import { Glob } from 'bun';
 
@@ -34,7 +34,12 @@ interface MoonTask {
 }
 interface MoonProject {
   readonly id?: string;
+  readonly tags?: ReadonlyArray<string>;
   readonly tasks?: Readonly<Record<string, MoonTask>>;
+}
+interface TaggedInputs {
+  readonly inheritedBy?: { readonly tags?: ReadonlyArray<string> };
+  readonly implicitInputs?: ReadonlyArray<string>;
 }
 interface Manifest {
   readonly name: string;
@@ -83,6 +88,7 @@ const rootManifest = await json<Manifest>('package.json');
 interface Project {
   readonly id: string;
   readonly dir: string;
+  readonly tags: ReadonlyArray<string>;
   readonly manifest: Manifest;
   readonly tasks: Readonly<Record<string, MoonTask>>;
 }
@@ -97,6 +103,7 @@ const projects: ReadonlyArray<Project> = await Promise.all(
     return {
       id: config.id ?? basename(dir),
       dir,
+      tags: config.tags ?? [],
       manifest: await json<Manifest>(path),
       tasks: config.tasks ?? {},
     };
@@ -439,5 +446,157 @@ describe('git hooks', () => {
   test('pre-push runs the CI check job in a fresh checkout', () => {
     expect(rootTasks['pre-commit']?.script).toBe('bun tools/pre-commit.ts');
     expect(rootTasks['pre-push']?.script).toBe('bun tools/ci-local.ts ci:check');
+  });
+});
+
+// ── Files a project reads outside its own folder ──────────────────────────────
+
+/** Inherited task files that add inputs to the projects carrying a tag. */
+const taggedInputs = await Promise.all(
+  [...new Glob('.moon/tasks/*.yml').scanSync({ cwd: root })].map((file) =>
+    yaml<TaggedInputs>(file),
+  ),
+);
+
+/** What every task of a project hashes besides its own folder, as workspace-relative globs. */
+const extraInputs = (project: Project): ReadonlyArray<string> =>
+  [
+    ...inherited.implicitInputs,
+    ...taggedInputs
+      .filter(({ inheritedBy }) => inheritedBy?.tags?.some((tag) => project.tags.includes(tag)))
+      .flatMap(({ implicitInputs }) => implicitInputs ?? []),
+    ...Object.values(project.tasks).flatMap(({ inputs }) => inputs ?? []),
+  ].map((glob) => glob.replace(/^\//, ''));
+
+/** Code no moon task runs: browser evidence scripts and spikes. */
+const NOT_RUN = /\/(evidence|spikes)\//;
+const CODE = /\.(ts|tsx|mts|js|mjs|astro)$/;
+const RELATIVE = /['"`](\.\.\/[^'"`$\s]*)/g;
+
+/**
+ * Relative paths in a project's code that are not reads of another folder, as
+ * `file :: literal`, each with why.
+ */
+const NOT_READS: ReadonlyMap<string, string> = new Map([
+  [
+    'apps/promo/test/comparison-source.test.ts :: ../../',
+    "the apps folder, as the source collector's base; it reads promo's files and apps/web/src (the reads-web-sources tag)",
+  ],
+  [
+    'apps/promo/test/comparison-state.test.ts :: ../../secret',
+    'a path outside the sources that the collector must refuse',
+  ],
+  [
+    'apps/promo/test/source-lines.test.ts :: ../../secret',
+    'a path outside the sources that the reader must refuse',
+  ],
+  [
+    'infra/tech-radar/alchemy.run.ts :: ../../apps/tech-radar',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'infra/zloz/alchemy.run.ts :: ../../apps/zloz-demo',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'infra/zloz/alchemy.run.ts :: ../../packages/foldkit-zloz*/**',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'infra/zloz/alchemy.run.ts :: ../../packages/astro-foldkit/**',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'infra/zloz/alchemy.run.ts :: ../../packages/foldkit-viz/**',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'infra/zloz/alchemy.run.ts :: ../../docs/assets/zloz/final/*.svg',
+    'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
+  ],
+  [
+    'packages/foldkit-zloz-cli/test/package.test.ts :: ../../..',
+    'the repository root, as the working directory for packing; its integration inputs cover the packages',
+  ],
+  [
+    'packages/foldkit-zloz/test/package.test.ts :: ../../..',
+    'the repository root, as the working directory for packing; its integration inputs cover the packages',
+  ],
+
+  [
+    'apps/docs/astro.config.ts :: ../../',
+    'the repository root, for links to repository files; the site reads only docs/',
+  ],
+  [
+    'apps/docs/test/repoDocs.test.ts :: ../../packages/effect-three/src/index.ts',
+    'a link the test rewrites, not a file it reads',
+  ],
+  [
+    'packages/effect-three/scripts/check-single-effect.ts :: ../../..',
+    'the repository root, from which it reads every workspace manifest (the reads-workspace-manifests tag) and the install (bun.lock)',
+  ],
+  [
+    'packages/foldkit-zloz-alchemy/test/package.test.ts :: ../..',
+    'the packages folder, as the working directory for packing; the packages it packs are its workspace dependencies',
+  ],
+  [
+    'packages/foldkit-zloz-alchemy/test/package.test.ts :: ../../src/descriptor',
+    'text the test expects in packed output, not a file it reads',
+  ],
+  [
+    'packages/foldkit-zloz-force/test/package.test.ts :: ../../..',
+    'the repository root, as the working directory for packing; its integration inputs cover the packages',
+  ],
+  [
+    'packages/foldkit-zloz-mermaid/test/package.test.ts :: ../../..',
+    'the repository root, as the working directory for packing; its integration inputs cover the packages',
+  ],
+]);
+
+const tracked = (dir: string): ReadonlyArray<string> =>
+  new TextDecoder()
+    .decode(Bun.spawnSync(['git', 'ls-files', dir], { cwd: root }).stdout)
+    .split('\n')
+    .filter((file) => CODE.test(file) && !NOT_RUN.test(file));
+
+/** Each relative path in a project's code that leaves its folder and its dependencies. */
+function outsideReads(
+  project: Project,
+): ReadonlyArray<{ readonly key: string; readonly target: string }> {
+  const dependencies = [...closure(project)].flatMap((name) => byName.get(name)?.dir ?? []);
+  const within = (target: string, dir: string) => target === dir || target.startsWith(`${dir}/`);
+  return tracked(project.dir).flatMap((file) =>
+    [...readFileSync(join(root, file), 'utf8').matchAll(RELATIVE)].flatMap(([, literal = '']) => {
+      // An import query such as ?raw names the same file; a glob reads under its prefix.
+      const path = literal.replace(/\?.*$/, '').replace(/[*{].*$/, '');
+      const target = normalize(join(dirname(file), path)).replace(/\/$/, '');
+      if (target.startsWith('..') || within(target, project.dir)) return [];
+      if (dependencies.some((dir) => within(target, dir))) return [];
+      return [{ key: `${file} :: ${literal}`, target }];
+    }),
+  );
+}
+
+describe('files a project reads outside its folder', () => {
+  const reads = projects.flatMap((project) =>
+    outsideReads(project).map((read) => ({ project, ...read })),
+  );
+
+  test("are hashed into its tasks' inputs, or explained as not reads", () => {
+    const unhashed = reads
+      .filter(({ key }) => !NOT_READS.has(key))
+      .filter(
+        ({ project, target }) =>
+          !extraInputs(project).some(
+            (glob) => new Glob(glob).match(target) || new Glob(glob).match(`${target}/file`),
+          ),
+      )
+      .map(({ key, target }) => `${key} (reads ${target})`);
+    expect(unhashed).toEqual([]);
+  });
+
+  test('every explanation still matches a path in the code', () => {
+    const found = new Set(reads.map(({ key }) => key));
+    expect([...NOT_READS.keys()].filter((key) => !found.has(key))).toEqual([]);
   });
 });

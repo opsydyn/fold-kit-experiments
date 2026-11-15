@@ -2,6 +2,7 @@ import {
   resolveEdgeReconnection,
   resolveEventStormingRelationship,
   eventStormingRelationshipRules,
+  resolveContextMapRelationship,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -17,11 +18,23 @@ import {
   type EdgePathStyle,
   type ZlozNode,
   type EditorEvent,
+  type ZlozPlacementInput,
   type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
+import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { zlozPngReview, zlozPngAction } from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozSvgReview, zlozSvgDownloadButton } from '@opsydyn/foldkit-zloz/foldkit';
 import {
   zlozView,
+  zlozDddRelationshipControls,
+  zlozDddRelationshipPatternSelect,
+  zlozDddUpstreamRole,
+  zlozDddDownstreamRoleSelect,
+  zlozDddRelationshipReasons,
+  zlozContextMapConnector,
+  zlozContextMapLabel,
+  zlozContextMapParticipant,
   zlozEventStormingRelationshipControls,
   zlozEventStormingRelationshipSelect,
   zlozEventStormingRelationshipInference,
@@ -45,6 +58,7 @@ import {
   zlozPlaybackStatus,
   zlozPlaybackReason,
   zlozEventStormingNode,
+  zlozEventStormingGroup,
   type ZlozEventStormingNodeOptions,
   zlozHistoryGhosts,
   zlozGroupFrame,
@@ -86,10 +100,20 @@ import {
   type ZlozBackground,
   type ZlozNodeRenderContext,
 } from '@opsydyn/foldkit-zloz/foldkit';
+import {
+  zlozPlacementHost,
+  zlozPalette,
+  zlozPaletteEntry,
+  zlozPlacementPreview,
+} from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option, Schema } from 'effect';
-import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
+import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
+import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
+import { c4MappingReviewPanel } from './c4-mapping-review-view';
+import { dddAuditPanel } from './ddd-audit-view';
+import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import {
   delegatedRelationship,
@@ -97,6 +121,7 @@ import {
 } from './event-storming-relationships';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
+import { mappingReviewPanel } from './mapping-review-view';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -113,6 +138,7 @@ import {
   EdgeLabelDesign,
   NodeToolbarDesign,
   EdgeToolbarDesign,
+  WaypointDesign,
   ContextMenuDesign,
   ConnectionListDesign,
   ResizeReadoutDesign,
@@ -124,8 +150,12 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { packetReaderPanel } from './packet-reader';
+import { workbenchPlacement } from './palette';
+import { patchWorkbenchPanel } from './patch-review';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
+import { workbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -153,9 +183,13 @@ import {
   canvasStatusCard,
 } from './presentation';
 import { relationshipControlsContext } from './relationship-controls';
+import { workbenchPacketContext } from './review-packet';
 import { searchDiagram } from './search';
+import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
+import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
+import { workshopPanel } from './workshop-view';
 
 type WorkbenchEdgeHooks = {
   edgeGeometry?: typeof raisedEdge;
@@ -165,7 +199,30 @@ type WorkbenchEdgeHooks = {
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createZlozNodeBodyCache();
 const orbitBodyCache = createZlozNodeBodyCache();
+const stormOptionsWithoutCache: ZlozEventStormingNodeOptions<Message> = {
+  renderStatus: ({ architecture }, builder) =>
+    architecture.role === 'hotspot'
+      ? builder.span(
+          [
+            builder.DataAttribute('workbench-hotspot', architecture.status),
+            builder.Style({
+              border: '1px solid currentColor',
+              borderRadius: '999px',
+              padding: '3px 10px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color:
+                architecture.status === 'resolved'
+                  ? 'var(--zloz-event-storming-hotspot-resolved)'
+                  : 'var(--zloz-event-storming-hotspot-open)',
+            }),
+          ],
+          [architecture.status === 'open' ? 'Discuss · open' : 'Agreed · resolved'],
+        )
+      : null,
+};
 const stormOptions: ZlozEventStormingNodeOptions<Message> = {
+  ...stormOptionsWithoutCache,
   bodyCache: createZlozNodeBodyCache(),
 };
 const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
@@ -174,7 +231,9 @@ const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>)
   zlozC4Node(context, h, c4Options) ??
   zlozDddNode(context, h, dddOptions);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Group(context, h, c4Options) ?? zlozDddGroup(context, h, dddOptions);
+  zlozEventStormingGroup(context, h, stormOptions) ??
+  zlozC4Group(context, h, c4Options) ??
+  zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
   renderBadge: ({ architecture }, h) =>
     architecture.role === 'aggregate-root'
@@ -186,7 +245,7 @@ const dddOptions: ZlozDddNodeOptions<Message> = {
   bodyCache: createZlozNodeBodyCache(),
 };
 const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h) ??
+  zlozEventStormingNode(context, h, stormOptionsWithoutCache) ??
   zlozDddNode(context, h, dddOptionsWithoutCache) ??
   zlozC4Node(context, h);
 const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -194,7 +253,9 @@ const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>
   zlozDddNode(context, h, dddOptions) ??
   zlozC4Node(context, h, c4Options);
 const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddGroup(context, h, dddOptions) ?? zlozC4Group(context, h, c4Options);
+  zlozEventStormingGroup(context, h, stormOptions) ??
+  zlozDddGroup(context, h, dddOptions) ??
+  zlozC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -274,6 +335,7 @@ const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozDddNode(context, h, historyDddOptions) ??
   zlozC4Node(context, h, historyC4Options);
 const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozEventStormingGroup(context, h, historyStormOptions) ??
   zlozDddGroup(context, h, historyDddOptions) ??
   zlozC4Group(context, h, historyC4Options) ??
   zlozGroupFrame(
@@ -375,15 +437,30 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const comparison = workbenchHistoryComparison(model);
   const changeNavigator = historyChangeNavigatorContext(model, comparison);
+  const packetControls = model.sidebarSection === 'history' ? workbenchPacketContext(model) : null;
+  const dddPanel = model.sidebarSection === 'history' ? dddAuditPanel(model, h) : null;
   const auditControls = model.sidebarSection === 'history' ? workbenchAuditContext(model) : null;
   const auditRequest = (request: ZlozAuditComparisonRequest) =>
     Message.ObservedAuditComparisonInput({
       request,
-      modelId: model.modelIdentity.id,
-      epoch: model.modelEpoch,
+      modelId,
+      epoch,
     });
+  const workshopInspector = model.sidebarSection === 'inspect' ? workshopPanel(model, h) : null;
+  const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
+  const hasContextMap = model.editor.graph.edges.some(
+    (edge) => edge.architecture?.family === 'ddd' && edge.architecture.scope === 'strategic',
+  );
+  const contextMapRelationships = new Map(
+    model.contextMapPresentation
+      ? model.editor.graph.edges.flatMap((edge) => {
+          const relation = resolveContextMapRelationship(model.editor.graph, edge);
+          return relation ? [[edge.id, relation] as const] : [];
+        })
+      : [],
+  );
   const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
@@ -477,6 +554,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.historyReview !== null ||
     model.editor.gesture.type !== 'idle';
   const relationshipControls = relationshipControlsContext(model);
+  const dddControls = workbenchDddControls(model);
+  const hasDddNodes = model.editor.graph.nodes.some((node) => node.architecture?.family === 'ddd');
+  const dddInspectorVisible =
+    hasDddNodes && model.sidebarSection === 'inspect' && !model.sidebarCollapsed;
   const incompatibleRelationship = selectedEdge
     ? causalRules.find(
         (rule) =>
@@ -488,8 +569,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       )?.architecture
     : undefined;
   const insertionReason = patternInsertionReason(model);
+  const placementControls = workbenchPlacement(model);
+  const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
-    !model.minimalMode && selectedNode
+    !model.minimalMode &&
+      selectedNode &&
+      !(
+        selectedNode.architecture?.family === 'event-storming' &&
+        selectedNode.architecture.role === 'hotspot'
+      )
       ? portInspectorContext(model.editor, selectedNode.id, policy, {
           idPrefix: 'workbench-port-inspector',
         })
@@ -562,6 +650,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
+    alchemy: [alchemyReviewPanel(model, h)],
+    review: packetReaderPanel(model, h),
+    patch: patchWorkbenchPanel(model, h),
     history: [
       h.div(
         [h.Role('group'), h.AriaLabel('Edition playback')],
@@ -855,6 +946,93 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       button('Load Order history example', Message.ClickedOrderHistory()),
       button('Load scrubber history example', Message.ClickedScrubberHistory()),
       button('Load causal audit example', Message.ClickedAuditExample()),
+      h.h3([], ['Portable review']),
+      ...(packetControls
+        ? [
+            zlozReviewPacketControls(
+              h,
+              packetControls,
+              (request) => Message.ObservedReviewPacketInput({ request, modelId, epoch }),
+              {
+                attributes: [
+                  h.Style({
+                    display: 'grid',
+                    gap: '8px',
+                    padding: '12px',
+                    border: '1px solid var(--rule)',
+                    borderRadius: '8px',
+                  }),
+                ],
+                showCounts: !model.minimalMode && model.diagnosticsEnabled,
+                renderStatus: () =>
+                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+                renderScope: (context, builder) =>
+                  builder.div(
+                    [],
+                    [
+                      builder.strong([], ['Selected snapshots only']),
+                      builder.p([builder.AriaLabel('Review packet scope')], [context.scopeText]),
+                    ],
+                  ),
+                renderLayout: (parts, _context, builder) => [
+                  ...[parts.scope, parts.status].filter((item): item is Html => item !== null),
+                  ...(parts.diagnostics.length
+                    ? [
+                        builder.details(
+                          [],
+                          [
+                            builder.summary([], ['Inspect projection losses']),
+                            builder.ul(
+                              [
+                                builder.AriaLabel('Review packet diagnostics'),
+                                builder.Style({
+                                  maxHeight: '220px',
+                                  overflow: 'auto',
+                                  padding: '0',
+                                  margin: '8px 0',
+                                }),
+                              ],
+                              parts.diagnostics,
+                            ),
+                          ],
+                        ),
+                      ]
+                    : []),
+                  ...[parts.consent, parts.reason, parts.download].filter(
+                    (item): item is Html => item !== null,
+                  ),
+                ],
+                renderDiagnostic: (item, builder) =>
+                  builder.li(
+                    [
+                      builder.Style({
+                        listStyle: 'none',
+                        padding: '8px',
+                        marginBottom: '4px',
+                        borderLeft: '3px solid var(--rule)',
+                        background: 'var(--panel)',
+                      }),
+                    ],
+                    [
+                      builder.strong(
+                        [],
+                        [
+                          item.side === 'baseline'
+                            ? 'Baseline'
+                            : item.side === 'selected'
+                              ? 'Target'
+                              : 'Packet',
+                        ],
+                      ),
+                      ` · ${item.severity}${item.subject ? ` · ${item.subject}` : ''}`,
+                      builder.p([], [item.message]),
+                    ],
+                  ),
+              },
+            ),
+          ]
+        : []),
+      ...(dddPanel ? [dddPanel] : []),
       h.h3([], ['Causal findings']),
       h.p(
         [],
@@ -1155,10 +1333,170 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.p(
         [],
         [
-          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model and playback is a later slice.',
+          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model. Playback uses read-only editions.',
         ],
       ),
     ],
+    png:
+      model.sidebarSection === 'png' && !model.sidebarCollapsed
+        ? [
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.retainedPngLayout),
+                  h.OnClick(Message.ClickedRetainedPngLayout()),
+                ]),
+                'Use retained layout in PNG',
+              ],
+            ),
+            h.p(
+              [],
+              [
+                model.retainedPngLayout
+                  ? model.editor.routes.length > 0
+                    ? 'Retained routes are included. PNG still flattens vector and label artwork.'
+                    : 'Arrange with ELK before reviewing retained routes.'
+                  : 'Canonical PNG geometry is selected. SVG has its own setting.',
+              ],
+            ),
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectPngDownloads),
+                  h.OnClick(Message.ClickedPngProtection()),
+                ]),
+                'Protect PNG exports',
+              ],
+            ),
+            button(
+              model.customPngReview ? 'Use native PNG controls' : 'Use custom PNG controls',
+              Message.ClickedCustomPngReview(),
+            ),
+            zlozPngReview(
+              h,
+              workbenchPngReview(model),
+              (request) => Message.ObservedPngReviewInput({ request }),
+              {
+                diagnostics,
+                renderDownload: model.customPngReview
+                  ? (context, builder, onRequest) =>
+                      zlozPngAction(
+                        builder,
+                        context,
+                        'download',
+                        onRequest,
+                        [
+                          builder.Style({
+                            background: 'var(--blue)',
+                            color: 'var(--paper)',
+                            padding: '12px',
+                            border: '0',
+                            'border-radius': '8px',
+                          }),
+                        ],
+                        ['↓ Save reviewed PNG'],
+                      )
+                  : undefined,
+              },
+            ),
+          ]
+        : [],
+    svg:
+      model.sidebarSection === 'svg' && !model.sidebarCollapsed
+        ? [
+            h.p([], ['Canonical model artwork, with visible portability and fidelity findings.']),
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.retainedSvgLayout),
+                  h.OnClick(Message.ClickedRetainedSvgLayout()),
+                ]),
+                'Use retained layout in SVG',
+              ],
+            ),
+            h.p(
+              [],
+              [
+                model.retainedSvgLayout
+                  ? model.editor.routes.length > 0
+                    ? 'Retained routes are included. Label artwork remains subject to fidelity findings.'
+                    : 'Arrange with ELK before reviewing retained routes.'
+                  : 'Canonical SVG geometry is selected.',
+              ],
+            ),
+            h.label(
+              [],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectSvgDownloads),
+                  h.OnClick(Message.ClickedSvgDownloadProtection()),
+                ]),
+                'Protect SVG downloads',
+              ],
+            ),
+            button(
+              model.customSvgReview ? 'Use native SVG controls' : 'Use custom SVG controls',
+              Message.ClickedCustomSvgReview(),
+            ),
+            zlozSvgReview(
+              h,
+              workbenchSvgReview(model),
+              (request) => Message.ObservedSvgReviewInput({ request }),
+              {
+                diagnostics,
+                renderFinding: model.customSvgReview
+                  ? (finding, builder) =>
+                      builder.li(
+                        [
+                          builder.Class('svg-finding-card'),
+                          builder.Style({
+                            border: '1px solid var(--rule)',
+                            padding: '10px',
+                            'border-radius': '8px',
+                            'margin-bottom': '8px',
+                            'list-style': 'none',
+                          }),
+                        ],
+                        [
+                          builder.strong(
+                            [],
+                            [
+                              `${finding.severity.toUpperCase()} · ${finding.target.kind}${'id' in finding.target ? ` ${finding.target.id}` : ''}`,
+                            ],
+                          ),
+                          builder.p([], [finding.reason]),
+                        ],
+                      )
+                  : undefined,
+                renderDownload: model.customSvgReview
+                  ? (context, builder, onRequest) =>
+                      zlozSvgDownloadButton(
+                        builder,
+                        context,
+                        onRequest,
+                        [
+                          builder.Style({
+                            background: 'var(--blue)',
+                            color: 'var(--paper)',
+                            padding: '12px',
+                            'border-radius': '8px',
+                            border: '0',
+                          }),
+                        ],
+                        ['↓ Download reviewed SVG'],
+                      )
+                  : undefined,
+              },
+            ),
+          ]
+        : [],
     diagram: [
       h.div(
         [h.Role('group'), h.AriaLabel('Insert architecture patterns')],
@@ -1180,6 +1518,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'Protect pattern insertion',
             ],
           ),
+          h.h3([], ['Placement palette']),
+          button(
+            model.customPalette ? 'Use native palette' : 'Use custom palette',
+            Message.ClickedCustomPalette(),
+          ),
+          zlozPalette(h, placementControls, placementInput, {
+            diagnostics,
+            renderEntry: model.customPalette
+              ? (entry, builder) =>
+                  zlozPaletteEntry(
+                    builder,
+                    entry,
+                    [
+                      builder.Style({
+                        'border-radius': '16px',
+                        border: '2px dashed var(--flow-selection)',
+                        padding: '14px',
+                        display: 'grid',
+                        gap: '4px',
+                      }),
+                    ],
+                    [
+                      builder.strong([], ['◇ ' + entry.label]),
+                      builder.span([], ['Compose a new system element']),
+                    ],
+                  )
+              : undefined,
+          }),
           button(
             'Insert C4 context pattern',
             Message.ClickedInsertPattern({ pattern: 'c4-context' }),
@@ -1193,6 +1559,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           button(
             'Insert event-storming pattern',
             Message.ClickedInsertPattern({ pattern: 'event-storming' }),
+            insertionReason !== null,
+          ),
+          button(
+            'Insert context-map starter',
+            Message.ClickedInsertPattern({ pattern: 'context-map' }),
             insertionReason !== null,
           ),
           ...(insertionReason === null
@@ -1222,6 +1593,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   'Open event-storming example',
                   Message.SelectedExample({ example: 'event-storming' }),
                 ),
+                button(
+                  'Open workshop semantics example',
+                  Message.SelectedExample({ example: 'event-storming-workshop' }),
+                ),
                 button('Open release workflow', Message.SelectedExample({ example: 'release' })),
                 button(
                   'Open C4 system context',
@@ -1239,6 +1614,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   'Open DDD Order aggregate',
                   Message.SelectedExample({ example: 'ddd-orders' }),
                 ),
+                button('Open DDD context map', Message.SelectedExample({ example: 'context-map' })),
                 button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
                 button(
                   'Open grouped Onion Architecture',
@@ -1629,7 +2005,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       h.Disabled(model.historyReview !== null),
                       h.OnClick(Message.ClickedSemanticRelationships()),
                     ]),
-                    'Validate causal relationships',
+                    'Validate DDD and causal relationships',
                   ],
                 ),
                 h.label(
@@ -1757,11 +2133,22 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.div(
               [h.Class('ddd-diagram-caption')],
               [
-                h.h2([], ['Ordering · domain model']),
+                h.h2(
+                  [],
+                  [
+                    hasContextMap
+                      ? 'Context map · strategic relationships'
+                      : 'Ordering · domain model',
+                  ],
+                ),
                 h.p(
                   [],
                   [
-                    'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
+                    hasContextMap
+                      ? model.contextMapPresentation
+                        ? 'Connectable context cards show authored influence and cooperation. Arrows describe upstream/downstream influence, not message flow. Symmetric partnerships and shared kernels have no arrow.'
+                        : 'Context-map presentation is disabled. Strategic meaning remains in the model.'
+                      : 'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
                   ],
                 ),
                 h.ul(
@@ -1799,6 +2186,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         : []),
     ],
     appearance: [
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.contextMapPresentation),
+            h.OnClick(Message.ClickedContextMapPresentation()),
+          ]),
+          'Context-map presentation',
+        ],
+      ),
       h.label(
         [h.Class('workbench-field')],
         [
@@ -1947,6 +2345,38 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ),
             ],
           ),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Waypoint controls',
+          h.select(
+            [
+              h.AriaLabel('Waypoint controls'),
+              h.Value(model.waypointDesign),
+              h.OnChange((value) =>
+                Message.SelectedWaypointDesign({
+                  waypointDesign: Schema.decodeUnknownSync(WaypointDesign)(value),
+                }),
+              ),
+            ],
+            ['off', 'native', 'custom'].map((value) =>
+              h.option([h.Value(value), h.Selected(model.waypointDesign === value)], [value]),
+            ),
+          ),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-check')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.AriaLabel('Protect bend editing'),
+            h.Checked(model.protectWaypointEdits),
+            h.OnClick(Message.ClickedWaypointProtection()),
+          ]),
+          'Protect bend editing',
         ],
       ),
       h.label(
@@ -2745,7 +3175,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Disabled(model.historyReview !== null),
             h.OnClick(Message.ClickedSemanticRelationships()),
           ]),
-          'Validate causal relationships',
+          'Validate DDD and causal relationships',
         ],
       ),
       h.label(
@@ -2852,7 +3282,126 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
+    c4mapping: model.sidebarSection === 'c4mapping' ? [c4MappingReviewPanel(model, h)] : [],
+    mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
+      ...(workshopInspector ? [workshopInspector] : []),
+      ...(hasDddNodes
+        ? [
+            h.h2([], ['DDD relationship']),
+            h.label(
+              [h.Class('workbench-field')],
+              [
+                'Inspect DDD relationship',
+                h.select(
+                  [
+                    h.AriaLabel('Inspect DDD relationship'),
+                    h.Value(selectedEdge?.id ?? ''),
+                    h.OnChange((id) =>
+                      zlozInput(
+                        id
+                          ? { type: 'EdgeSelected', id, additive: false }
+                          : { type: 'SelectionCleared' },
+                      ),
+                    ),
+                  ],
+                  [
+                    h.option([h.Value('')], ['Choose a connection']),
+                    ...model.editor.graph.edges.map((edge) =>
+                      h.option(
+                        [h.Value(edge.id), h.Selected(edge.id === selectedEdge?.id)],
+                        [edge.label || edge.id],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            h.label(
+              [h.Class('workbench-field')],
+              [
+                h.input([
+                  h.Type('checkbox'),
+                  h.Checked(model.protectDddRelationships),
+                  h.Disabled(model.historyReview !== null || busyModelSession),
+                  h.OnClick(Message.ClickedDddRelationshipProtection()),
+                ]),
+                'Protect Orders–Billing meaning edits',
+              ],
+            ),
+            zlozDddRelationshipControls(
+              h,
+              dddControls,
+              (request) => Message.ObservedDddRelationshipInput({ request, modelId, epoch }),
+              {
+                attributes: [
+                  h.Style({
+                    display: 'grid',
+                    gap: '10px',
+                    padding: '12px',
+                    border: '1px solid var(--rule)',
+                    borderRadius: '8px',
+                  }),
+                ],
+                renderPattern: (context, builder, onRequest) =>
+                  builder.label(
+                    [builder.Class('workbench-field')],
+                    [
+                      builder.strong([], ['Pattern contract']),
+                      zlozDddRelationshipPatternSelect(builder, context, onRequest),
+                    ],
+                  ),
+                renderUpstream: (control, context, builder, onRequest) =>
+                  builder.label(
+                    [
+                      builder.Key(control.role),
+                      builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+                    ],
+                    [
+                      zlozDddUpstreamRole(builder, context, control, onRequest),
+                      builder.span([], [control.label]),
+                    ],
+                  ),
+                renderDownstream: (context, builder, onRequest) => {
+                  const select = zlozDddDownstreamRoleSelect(builder, context, onRequest);
+                  return select
+                    ? builder.label(
+                        [builder.Class('workbench-field')],
+                        ['Downstream contract', select],
+                      )
+                    : null;
+                },
+                renderStatus: () =>
+                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+                renderReasons: (context, builder) => {
+                  const reason =
+                    context.reason ??
+                    context.pattern.reason ??
+                    context.downstream?.reason ??
+                    context.upstream.find((control) => control.reason !== null)?.reason;
+                  const details = zlozDddRelationshipReasons(builder, context);
+                  return builder.div(
+                    [],
+                    [
+                      ...(reason
+                        ? [builder.p([builder.AriaLabel('DDD protection reason')], [reason])]
+                        : []),
+                      builder.p([], ['Each change can be undone.']),
+                      ...(details
+                        ? [
+                            builder.details(
+                              [],
+                              [builder.summary([], ['Pattern compatibility details']), details],
+                            ),
+                          ]
+                        : []),
+                    ],
+                  );
+                },
+              },
+            ),
+          ]
+        : []),
       ...(!model.minimalMode && selectedEdge
         ? [
             h.div(
@@ -3220,11 +3769,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const notice = h.p(
     [h.Role('status'), h.AriaLive('polite'), ...(diagnostics.status ? [] : [h.Style(hidden)])],
-    [model.notice],
+    [
+      model.alchemyReview.review || model.alchemyReview.pending
+        ? model.alchemyReview.notice
+        : model.notice,
+    ],
   );
   return {
     title,
-    body: h.div(
+    body: zlozPlacementHost(
+      h,
+      placementControls,
+      placementInput,
       [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
       [
         zlozView(h, model.editor, {
@@ -3393,8 +3949,40 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           doubleClickZoom: model.doubleClickZoom,
           spaceToPan: model.spaceToPan,
           middleButtonPan: model.middleButtonPan,
-          renderEdgeLabel: (context, builder) =>
-            model.edgeLabelDesign === 'badge' ? edgeBadge(context, builder) : undefined,
+          renderEdge: (context, builder) => {
+            const relationship = contextMapRelationships.get(context.edge.id);
+            return relationship
+              ? zlozContextMapConnector(builder, context, relationship)
+              : undefined;
+          },
+          renderEdgeLabel: (context, builder) => {
+            const relationship = contextMapRelationships.get(context.edge.id);
+            return relationship
+              ? zlozContextMapLabel(builder, context, relationship, zlozInput, {
+                  renderSource: (participant, _relationship, h) =>
+                    participant.badges.length
+                      ? zlozContextMapParticipant(h, participant, {
+                          renderBadge: (badge, h) =>
+                            h.span(
+                              [
+                                h.Title(badge.description),
+                                h.AriaLabel(badge.description),
+                                h.Style({
+                                  border: '1px solid var(--flow-node-border)',
+                                  borderRadius: '999px',
+                                  padding: '1px 5px',
+                                  fontWeight: '650',
+                                }),
+                              ],
+                              [badge.text],
+                            ),
+                        })
+                      : undefined,
+                })
+              : model.edgeLabelDesign === 'badge'
+                ? edgeBadge(context, builder)
+                : undefined;
+          },
           renderEdgeLabelEditor: (context, builder) =>
             model.edgeLabelDesign === 'badge' ? edgeBadgeEditor(context, builder) : undefined,
           connectionGeometry: (context) => {
@@ -3450,6 +4038,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             builder.div(
               [],
               [
+                ...[zlozPlacementPreview(builder, placementControls)].flatMap((preview) =>
+                  preview === null ? [] : [preview],
+                ),
                 ...(model.showWorldAnnotation && !model.historyReview
                   ? [releaseGateAnnotation(context, builder)]
                   : []),
@@ -3486,7 +4077,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             if (model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming')
               return model.retainNodeViews
                 ? retainedDddGroup(context, builder)
-                : (zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
+                : (zlozEventStormingGroup(context, builder, stormOptionsWithoutCache) ??
+                    zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
                     zlozC4Group(context, builder));
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews
@@ -3505,11 +4097,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.nodeToolbarDesign === 'compact'
               ? compactNodeToolbar(context, builder)
               : undefined,
-          edgeToolbar: !(
-            model.nodeDesign === 'event-storming' &&
-            model.sidebarSection === 'diagram' &&
-            !model.sidebarCollapsed
-          ),
+          edgeToolbar:
+            !dddInspectorVisible &&
+            !(
+              model.nodeDesign === 'event-storming' &&
+              model.sidebarSection === 'diagram' &&
+              !model.sidebarCollapsed
+            ),
+          edgeWaypoints: model.waypointDesign !== 'off',
+          canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
+          renderEdgeWaypoints:
+            model.waypointDesign === 'custom'
+              ? (context, builder) => customWaypointControls(context, builder, zlozInput)
+              : undefined,
           edgeReconnection: true,
           connectionCreation: true,
           renderConnectionCreation: (context, builder) =>

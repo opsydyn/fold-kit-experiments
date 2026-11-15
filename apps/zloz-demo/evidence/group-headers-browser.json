@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "default group headings unchanged until opt-in",
+    "profile selection never arranges automatically",
+    "keyboard Arrange retains focus",
+    "actual 640x112 heading at 24-unit top/left inset; children retain a 24-unit gap",
+    "RIGHT and DOWN reserve space with real ELK",
+    "declared group headers compose with measured edge labels",
+    "light/dark and Minimal mode preserve heading geometry",
+    "native zoom preserves world bounds",
+    "original geometry, nine findings and working model/lineage preserved",
+    "no page errors or external requests"
+  ],
+  "pageErrors": []
+}

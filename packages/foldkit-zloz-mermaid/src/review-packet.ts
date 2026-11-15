@@ -3,7 +3,7 @@ import {
   compareModelEventStormingRelationships,
   auditEventStormingRelationships,
   eventStormingRelationshipRules,
-  isEdgeArchitecture,
+  isEventStormingEdgeArchitecture,
   type ZlozModelDocument,
   type ZlozSnapshot,
   type ZlozRelationshipAuditSelection,
@@ -29,6 +29,7 @@ export type ZlozReviewPacketDiagnostic = Readonly<{
   side: 'packet' | 'baseline' | 'selected';
   code:
     | MermaidDiagnostic['code']
+    | 'packet-limit'
     | 'invalid-options'
     | 'unknown-baseline'
     | 'unknown-edition'
@@ -82,7 +83,7 @@ function isDataRule(value: unknown): value is ZlozEventStormingRelationshipRule 
     Object.keys(value).every((key) =>
       ['architecture', 'sources', 'targets', 'label'].includes(key),
     ) &&
-    isEdgeArchitecture(value.architecture) &&
+    isEventStormingEdgeArchitecture(value.architecture) &&
     typeof value.label === 'string' &&
     Array.isArray(value.sources) &&
     value.sources.every(isString) &&
@@ -90,7 +91,7 @@ function isDataRule(value: unknown): value is ZlozEventStormingRelationshipRule 
     value.targets.every(isString)
   );
 }
-function isReviewPacketOptions(value: unknown): value is ZlozReviewPacketOptions {
+export function isReviewPacketOptions(value: unknown): value is ZlozReviewPacketOptions {
   return (
     isRecord(value) &&
     Object.keys(value).every((key) => ['direction', 'lossPolicy', 'rules'].includes(key)) &&

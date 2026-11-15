@@ -1,0 +1,44 @@
+{
+  "format": "foldkit-zloz-patch",
+  "version": 1,
+  "id": "rename-orders-context",
+  "source": {
+    "modelId": "commerce",
+    "sessionId": "commerce/session-1",
+    "revision": 7,
+    "graph": {
+      "nodes": [
+        {
+          "id": "orders",
+          "label": "Orders",
+          "position": { "x": 0, "y": 0 },
+          "size": { "width": 240, "height": 160 },
+          "ports": [],
+          "architecture": { "family": "ddd", "role": "bounded-context" },
+          "data": { "owner": "commerce" }
+        }
+      ],
+      "edges": []
+    }
+  },
+  "provenance": {
+    "actor": { "kind": "human", "id": "reviewer" },
+    "reason": "Clarify ownership while retaining DDD meaning.",
+    "references": [{ "kind": "review-packet", "id": "commerce-review-1" }]
+  },
+  "operations": [
+    {
+      "id": "rename-orders",
+      "type": "node.replace",
+      "node": {
+        "id": "orders",
+        "label": "Order management",
+        "position": { "x": 0, "y": 0 },
+        "size": { "width": 240, "height": 160 },
+        "ports": [],
+        "architecture": { "family": "ddd", "role": "bounded-context" },
+        "data": { "owner": "commerce" }
+      }
+    }
+  ]
+}

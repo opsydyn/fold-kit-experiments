@@ -1,4 +1,6 @@
 import { validNodeArchitectureFields, isEdgeArchitecture } from './architecture';
+import { resolveConnectionPortPair, type ZlozConnectionMode } from './connection-mode';
+import { validEdgeWaypoints } from './edge-waypoints';
 import type {
   Endpoint,
   ZlozEdge,
@@ -129,7 +131,8 @@ function isResizeLimits(value: unknown): value is NodeResizeLimits {
       Number(value.minHeight) <= Number(value.maxHeight))
   );
 }
-function isNode(value: unknown): value is ZlozNode {
+/** @internal Structural node validation shared by graph and proposal boundaries. */
+export function isNode(value: unknown): value is ZlozNode {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -156,7 +159,8 @@ function isNode(value: unknown): value is ZlozNode {
     validNodeArchitectureFields(value)
   );
 }
-function isEdge(value: unknown): value is ZlozEdge {
+/** @internal Structural edge validation shared by graph and proposal boundaries. */
+export function isEdge(value: unknown): value is ZlozEdge {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -167,6 +171,7 @@ function isEdge(value: unknown): value is ZlozEdge {
     isEndpoint(value.source) &&
     'target' in value &&
     isEndpoint(value.target) &&
+    (!('waypoints' in value) || validEdgeWaypoints(value.waypoints)) &&
     (!('pathStyle' in value) ||
       value.pathStyle === 'straight' ||
       value.pathStyle === 'stepped' ||
@@ -176,7 +181,8 @@ function isEdge(value: unknown): value is ZlozEdge {
     (!('architecture' in value) || isEdgeArchitecture(value.architecture))
   );
 }
-function isGraph(value: unknown): value is ZlozGraph {
+/** @internal Structural graph guard shared with bounded proposal input validation. */
+export function isGraph(value: unknown): value is ZlozGraph {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -192,8 +198,14 @@ function unique(ids: readonly string[], kind: string): void {
   if (new Set(ids).size !== ids.length)
     throw new ZlozError('invalid-graph', `Duplicate ${kind} ID`);
 }
-/** Identity, finite dimensions, JSON payloads and directed ports. Cycles are allowed. */
+/** Legacy v1 graph/editor invariant. Cycles are allowed; connections remain output→input. */
 export function validateGraph(graph: ZlozGraph): void {
+  validateGraphForConnectionMode(graph, 'strict');
+}
+/** @internal Shared structural validation. The v2 document boundary and its editor session own nonlegacy modes. */
+export function validateGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): void {
+  if (mode !== 'strict' && mode !== 'loose')
+    throw new ZlozError('invalid-graph', 'Unsupported connection mode');
   if (!isGraph(graph))
     throw new ZlozError(
       'invalid-graph',
@@ -235,10 +247,15 @@ export function validateGraph(graph: ZlozGraph): void {
   for (const edge of graph.edges) {
     const source = nodes.get(edge.source.node)?.ports.find((port) => port.id === edge.source.port);
     const target = nodes.get(edge.target.node)?.ports.find((port) => port.id === edge.target.port);
-    if (source?.kind !== 'output' || target?.kind !== 'input')
+    if (
+      resolveConnectionPortPair({ mode, sourceKind: source?.kind, targetKind: target?.kind })
+        .type === 'incompatible'
+    )
       throw new ZlozError(
         'invalid-graph',
-        `Edge ${edge.id} requires an existing output and input port`,
+        mode === 'strict'
+          ? `Edge ${edge.id} requires an existing output and input port`
+          : `Edge ${edge.id} requires existing source and target ports`,
       );
   }
 }
@@ -266,7 +283,8 @@ export function parseGraph(text: string): ZlozGraph {
   return parseDocument(text).graph;
 }
 
-function assertDocumentViewport(value: unknown): asserts value is Viewport {
+/** @internal Shared camera validator for explicit document versions. */
+export function assertDocumentViewport(value: unknown): asserts value is Viewport {
   if (
     !isPoint(value) ||
     !('zoom' in value) ||
@@ -284,8 +302,24 @@ function viewportFields({ x, y, zoom }: Viewport): Viewport {
   return { x, y, zoom };
 }
 
+/** Internal v1 boundary: never silently erase explicit v2 or loose intent. */
+export function assertLegacySnapshotMode(snapshot: ZlozSnapshot): void {
+  if (
+    ('version' in snapshot && snapshot.version !== undefined && snapshot.version !== 1) ||
+    ('connectionMode' in snapshot &&
+      snapshot.connectionMode !== undefined &&
+      snapshot.connectionMode !== 'strict')
+  )
+    throw new ZlozError(
+      'invalid-graph',
+      'Explicit v2 or loose snapshots require their v2 codec or a reviewed v1 downgrade',
+    );
+}
+
 /** Save the graph and an optional camera. Other editor state is excluded. */
-export function serializeSnapshot({ graph, viewport }: ZlozSnapshot): string {
+export function serializeSnapshot(snapshot: ZlozSnapshot): string {
+  assertLegacySnapshotMode(snapshot);
+  const { graph, viewport } = snapshot;
   if (viewport === undefined) return serializeGraph(graph);
   validateGraph(graph);
   assertDocumentViewport(viewport);
@@ -302,4 +336,12 @@ export function parseSnapshot(text: string): ZlozSnapshot {
 
 export function copyGraph(graph: ZlozGraph): ZlozGraph {
   return parseGraph(serializeGraph(graph));
+}
+
+/** @internal Editor-owned detachment without changing a legacy v1 codec boundary. */
+export function copyGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): ZlozGraph {
+  validateGraphForConnectionMode(graph, mode);
+  const detached: ZlozGraph = JSON.parse(JSON.stringify(graph));
+  validateGraphForConnectionMode(detached, mode);
+  return detached;
 }

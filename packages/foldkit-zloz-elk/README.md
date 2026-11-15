@@ -67,3 +67,53 @@ real layout plus the optional FoldKit renderer.
 
 See [publication standards](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md) and
 [dependency notices](THIRD-PARTY-NOTICES.md).
+
+### Compound preview layouts (unreleased)
+
+Configured `direction` and `spacing` now apply to root **and group parent**
+containers. A real-engine regression retains at least the requested inter-layer
+gap for RIGHT and DOWN inside a boundary; nested-boundary routes and custom anchors
+remain tested. This corrects grouped children silently using ELK defaults.
+
+For a detached read-only editor, compose `layoutRequest`, `createElkLayout` and
+core's `applyPreviewLayout`; use `applyLayout` for normal undoable editing. The
+workbench opts into ELK on explicit request, with direction controls, logical
+cancellation, geometry-only restoration and preserved source/findings. See
+[qualification](../../apps/zloz-demo/evidence/alchemy-layout.md). Label dimensions
+are not yet supplied to ELK, so this is not a universal label-collision guarantee.
+
+### Custom label envelopes (unreleased)
+
+Pass `layoutRequest(editor, id, { edgeLabels: [{ id: edgeId, size: { width: 176,
+height: 36 } }] })` to reserve space for a composite label, including badges.
+One envelope per existing edge is supported. ELK returns centered world-coordinate
+boxes in `result.routes[*].label`; core validates and retains them on application.
+Nested layouts use ROOT coordinates for both route points and labels. Unlabeled
+custom content uses a private sizing token inside ELK, without changing graph text.
+Omitting hints preserves the previous geometry-only behavior. Caller-supplied
+engines must return the requested label IDs, dimensions and finite positions.
+Supply sizes matching the actual renderer; arbitrary custom geometry, inaccurate
+bounds and group headers are outside this space-reservation guarantee.
+
+For intrinsic custom badges, core's `startLabelMeasurement`,
+`updateLabelMeasurements` and `resolveLabelMeasurements` can supply the explicit
+`edgeLabels` hints. The optional Foldkit view measures HTML border boxes only on
+request. Recheck freshness before both starting ELK and applying its result; ELK
+does not load fonts, inspect DOM or start measurement itself. See the
+[core measured-label guide](../foldkit-zloz/README.md#opt-in-measured-label-bounds-unreleased).
+
+### Group heading envelopes (unreleased)
+
+Core requests may declare `groupHeaders` with an existing group ID, header `size`,
+`padding: { top, right, bottom, left }` and a `gap` before children. ELK maps these
+to parent padding and a minimum group size, including empty groups and headings
+wider than their content. Core rejects results that violate the reserved area.
+Share the same declaration with C4/DDD `groupHeader` renderer options. Omitted
+hints keep the existing 52/24/24/24 parent padding.
+
+The pinned elkjs 0.12.1 adapter corrects transposed minima for nonempty DOWN groups;
+empty groups use physical axes. Wide/tall nested/empty and cross-boundary-edge
+regressions qualify both directions. Requalify the correction when upgrading ELK
+or supplying a worker from another version. No post-layout stretching is used.
+These hints reserve child-node space; they do not guarantee arbitrary route or
+custom-artwork collision avoidance.

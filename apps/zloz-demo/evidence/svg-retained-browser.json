@@ -1,0 +1,70 @@
+{
+  "browser": "151.0.7922.34",
+  "nativeRouteCount": 3,
+  "retainedBytesDifferFromCanonical": true,
+  "samples": [
+    {
+      "scheme": "light",
+      "bounds": { "x": 40, "y": 74, "width": 820, "height": 286 },
+      "findings": [
+        {
+          "code": "bounds-estimated",
+          "severity": "unverified",
+          "target": { "kind": "document" },
+          "reason": "Authored envelopes, bends, declared custom bounds and opted-in effective routes/label envelopes exclude unmeasured text ink, strokes, port artwork and custom geometry. Unprovided transient routes are excluded. Padding is explicit, not a fit guarantee."
+        },
+        {
+          "code": "font-unverified",
+          "severity": "unverified",
+          "target": { "kind": "document" },
+          "reason": "System fonts are not embedded; glyph substitution, text wrapping and ink bounds are unverified."
+        },
+        {
+          "code": "layout-label-content-unverified",
+          "severity": "unverified",
+          "target": { "kind": "edge", "id": "reads" },
+          "reason": "The world-space label envelope and anchor do not reproduce custom badges, editors, wrapping or font ink. Declare a vector adapter, explicit fallback or omission for custom label content."
+        },
+        {
+          "code": "renderer-unverified",
+          "severity": "unverified",
+          "target": { "kind": "edge", "id": "reads" },
+          "reason": "SVG renderer badge@1 is host-declared, not qualified by this planner. Fixture vector badge; host declaration remains unverified"
+        }
+      ]
+    },
+    {
+      "scheme": "dark",
+      "bounds": { "x": 40, "y": 74, "width": 820, "height": 286 },
+      "findings": [
+        {
+          "code": "bounds-estimated",
+          "severity": "unverified",
+          "target": { "kind": "document" },
+          "reason": "Authored envelopes, bends, declared custom bounds and opted-in effective routes/label envelopes exclude unmeasured text ink, strokes, port artwork and custom geometry. Unprovided transient routes are excluded. Padding is explicit, not a fit guarantee."
+        },
+        {
+          "code": "font-unverified",
+          "severity": "unverified",
+          "target": { "kind": "document" },
+          "reason": "System fonts are not embedded; glyph substitution, text wrapping and ink bounds are unverified."
+        },
+        {
+          "code": "layout-label-content-unverified",
+          "severity": "unverified",
+          "target": { "kind": "edge", "id": "reads" },
+          "reason": "The world-space label envelope and anchor do not reproduce custom badges, editors, wrapping or font ink. Declare a vector adapter, explicit fallback or omission for custom label content."
+        },
+        {
+          "code": "renderer-unverified",
+          "severity": "unverified",
+          "target": { "kind": "edge", "id": "reads" },
+          "reason": "SVG renderer badge@1 is host-declared, not qualified by this planner. Fixture vector badge; host declaration remains unverified"
+        }
+      ]
+    }
+  ],
+  "checks": "keyboard opt-in/default, no-route protection, actual ELK/native path equality, exact downloaded bytes, source/lineage unchanged, light/dark workbench and standalone safe-vector badge",
+  "pageErrors": [],
+  "externalRequests": []
+}

@@ -73,20 +73,23 @@ export function auditEventStormingRelationships(
       };
       return result.inferred ? { ...meaning, status: 'inferred' } : { ...meaning, status: 'typed' };
     }
+    const architecture = edge.architecture?.family === 'event-storming' ? edge.architecture : null;
     if (result.type === 'blocked')
       return {
         ...base,
         status: 'blocked',
         code: result.code,
         message: result.reason,
-        architecture: edge.architecture ? { ...edge.architecture } : null,
-        relationshipKey: edge.architecture ? eventStormingRelationshipKey(edge.architecture) : null,
+        architecture: architecture ? { ...architecture } : null,
+        relationshipKey: architecture ? eventStormingRelationshipKey(architecture) : null,
       };
     return {
       ...base,
       status: 'unrelated',
       code: 'unrelated',
-      message: 'This untyped connection has no event-storming meaning.',
+      message: edge.architecture
+        ? 'This connection carries another architecture family, outside the causal audit.'
+        : 'This untyped connection has no event-storming meaning.',
       architecture: null,
       relationshipKey: null,
     };

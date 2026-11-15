@@ -1,0 +1,3 @@
+fixtures/strict-optional-repro.ts(19,77): error TS2375: Type 'typeof Item' is not assignable to type 'Any' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  The types of 'definition.read' are incompatible between these types.
+    Type 'undefined' is not assignable to type 'AnyContract'.

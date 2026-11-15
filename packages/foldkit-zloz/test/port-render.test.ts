@@ -6,7 +6,14 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import { zlozView, zlozPort, zlozNodeFrame, type ZlozViewOptions } from '../src/foldkit';
-import { createEditor, updateEditor, type EditorEvent, type EditorState } from '../src/index';
+import {
+  captureConnectionDocument,
+  createEditorFromConnectionDocument,
+  createEditor,
+  updateEditor,
+  type EditorEvent,
+  type EditorState,
+} from '../src/index';
 
 const initial = createEditor({
   nodes: [
@@ -114,4 +121,46 @@ test('resolved ports reach custom shells and preserve fallback and locked port b
     true,
   );
   expect(document.querySelector('[data-flow-port="out"]')?.textContent).toBe('+');
+});
+
+test('loose ports expose source/target intent to native and composable controls without relabelling authored kinds', async () => {
+  const editor = createEditorFromConnectionDocument(
+    captureConnectionDocument({ graph: initial.graph, connectionMode: 'loose' }),
+  );
+  for (const custom of [false, true]) {
+    const renderPort: ZlozViewOptions<EditorEvent>['renderPort'] = custom
+      ? (context, h) =>
+          zlozPort(
+            h,
+            context,
+            context.port,
+            [h.DataAttribute('custom-intent', context.connectionEnd)],
+            [context.label],
+          )
+      : undefined;
+    const options = renderPort ? { renderPort } : {};
+    const before = await render(editor, options);
+    const input = before.querySelector('[data-flow-owner="b"][data-flow-port="in"]');
+    expect(input?.getAttribute('aria-label')).toBe('Connect from Target: Primary');
+    expect(input?.getAttribute('data-flow-port-kind')).toBe('input');
+    expect(
+      before.querySelector('[data-flow-surface]')?.getAttribute('data-flow-connection-mode'),
+    ).toBe('loose');
+    if (custom) expect(input?.getAttribute('data-custom-intent')).toBe('source');
+    const staged = updateEditor(editor, {
+      type: 'PortActivated',
+      endpoint: { node: 'b', port: 'in' },
+    });
+    const after = await render(staged, options);
+    const output = after.querySelector('[data-flow-owner="a"][data-flow-port="out"]');
+    expect(output?.getAttribute('aria-label')).toBe('Connect to Source: out');
+    expect(output?.getAttribute('data-flow-port-kind')).toBe('output');
+    if (custom) expect(output?.getAttribute('data-custom-intent')).toBe('target');
+    expect(
+      after
+        .querySelector('[data-flow-owner="b"][data-flow-port="in"]')
+        ?.getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(after.querySelector('#ports-help')?.textContent).toContain('any port');
+  }
 });

@@ -2,7 +2,14 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { architectureNodePresets, type EventStormingNodeArchitecture } from './architecture';
-import { zlozDragHandle, zlozNodeFrame, type ZlozNodeRenderContext } from './composition';
+import {
+  zlozDragHandle,
+  zlozNodeFrame,
+  zlozGroupFrame,
+  type ZlozGroupHeaderOptions,
+  type ZlozNodeRenderContext,
+} from './composition';
+import { resolveLayoutGroupHeader, groupHeaderPosition } from './group-header';
 import type { ZlozNodeBodyCache } from './node-body-cache';
 import { nodeShapeGeometry } from './node-shape';
 import { portRenderViews } from './port-render';
@@ -22,6 +29,10 @@ export type ZlozEventStormingContentRenderer<M> = (
 export type ZlozEventStormingNodeOptions<M> = Readonly<{
   attributes?: Parameters<HtmlBuilder<M>['div']>[0];
   bodyCache?: ZlozNodeBodyCache;
+  groupHeader?: ZlozGroupHeaderOptions;
+  renderStatus?: ZlozEventStormingContentRenderer<M>;
+  /** Accessible semantic description; null omits it, undefined keeps the canonical meaning. */
+  describeMeaning?: (context: ZlozEventStormingContentContext) => string | null | undefined;
   renderType?: ZlozEventStormingContentRenderer<M>;
   renderName?: ZlozEventStormingContentRenderer<M>;
   renderDescription?: ZlozEventStormingContentRenderer<M>;
@@ -38,7 +49,13 @@ const accents = {
   'domain-event': 'var(--flow-event-storming-event, #c2410c)',
   policy: 'var(--flow-event-storming-policy, #7e22ce)',
   actor: 'var(--flow-event-storming-actor, #a16207)',
+  'external-system': 'var(--zloz-event-storming-external-system, #0e7490)',
+  hotspot: 'var(--zloz-event-storming-hotspot-open, #be123c)',
+  lane: 'var(--zloz-event-storming-lane, #64748b)',
 };
+// ADR 0082: native accents are scoped tokens; semantic hotspot status is separately visible.
+const roleAccent = (role: EventStormingNodeArchitecture['role']) =>
+  Object.entries(accents).find(([key]) => key === role)?.[1];
 function part<M>(
   renderer: ZlozEventStormingContentRenderer<M> | undefined,
   context: ZlozEventStormingContentContext,
@@ -81,8 +98,29 @@ function artwork<M>(
           ...part(options.renderName, context, h, () =>
             h.strong([h.Style({ 'font-size': '16px', 'line-height': '1.25' })], [node.label]),
           ),
+          ...part(options.renderStatus, context, h, () =>
+            architecture.role === 'hotspot'
+              ? h.span(
+                  [
+                    h.DataAttribute('zloz-hotspot-status', architecture.status),
+                    h.Style({
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      border: '1px solid currentColor',
+                      borderRadius: '999px',
+                      padding: '2px 8px',
+                      color:
+                        architecture.status === 'resolved'
+                          ? 'var(--zloz-event-storming-hotspot-resolved, #047857)'
+                          : 'var(--zloz-event-storming-hotspot-open, #be123c)',
+                    }),
+                  ],
+                  [architecture.status === 'open' ? 'Open question' : 'Resolved'],
+                )
+              : null,
+          ),
           ...part(options.renderDescription, context, h, () =>
-            architecture.description
+            architecture.description && node.kind !== 'group'
               ? h.span(
                   [h.Style({ 'font-size': '12px', 'line-height': '1.35' })],
                   [architecture.description],
@@ -93,10 +131,28 @@ function artwork<M>(
       : custom === null
         ? []
         : [custom];
+  if (node.kind === 'group')
+    return h.span(
+      [
+        h.DataAttribute('zloz-event-storming-body', node.id),
+        h.Style({
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          alignItems: 'flex-start',
+          overflow: 'hidden',
+        }),
+      ],
+      content,
+    );
   const geometry = nodeShapeGeometry(node);
   const bounds = geometry.contentBounds;
   const stroke =
-    selected || selectionPreview ? 'var(--flow-selection, #2563eb)' : accents[architecture.role];
+    selected || selectionPreview
+      ? 'var(--flow-selection, #2563eb)'
+      : architecture.role === 'hotspot' && architecture.status === 'resolved'
+        ? 'var(--zloz-event-storming-hotspot-resolved, #047857)'
+        : (roleAccent(architecture.role) ?? 'var(--flow-node-border, #64748b)');
   return h.span(
     [h.DataAttribute('zloz-event-storming-body', node.id), h.Style({ display: 'contents' })],
     [
@@ -120,7 +176,9 @@ function artwork<M>(
               h.Fill('var(--flow-node-background, #fff)'),
               h.Stroke(stroke),
               h.StrokeWidth(selected || selectionPreview ? '3' : '2'),
-              h.StrokeDasharray(selectionPreview ? '6 4' : 'none'),
+              h.StrokeDasharray(
+                selectionPreview ? '6 4' : architecture.role === 'external-system' ? '8 4' : 'none',
+              ),
               h.Style({ 'vector-effect': 'non-scaling-stroke' }),
             ],
             [],
@@ -164,6 +222,52 @@ function artwork<M>(
     ],
   );
 }
+function described<M>(
+  context: ZlozNodeRenderContext,
+  h: HtmlBuilder<M>,
+  options: ZlozEventStormingNodeOptions<M>,
+) {
+  const architecture = context.node.architecture;
+  if (architecture?.family !== 'event-storming') return { context, description: null };
+  const custom = options.describeMeaning?.({
+    node: context.node,
+    architecture,
+    selected: context.state.selectedNodes.includes(context.node.id),
+    selectionPreview: context.selectionPreview,
+  });
+  const text =
+    custom === undefined
+      ? architecture.role === 'hotspot'
+        ? `Hotspot. ${architecture.status === 'open' ? 'Open question' : 'Resolved annotation'}.`
+        : architecture.role === 'lane'
+          ? 'Organizational workshop lane.'
+          : architecture.role === 'external-system'
+            ? 'External system participant.'
+            : null
+      : custom;
+  if (text === null) return { context, description: null };
+  const id = `${context.descriptionId}-workshop-${encodeURIComponent(context.node.id)}`;
+  return {
+    context: { ...context, descriptionId: `${context.descriptionId} ${id}` },
+    description: h.span(
+      [
+        h.Id(id),
+        h.Style({
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: '0',
+          margin: '-1px',
+          overflow: 'hidden',
+          clipPath: 'inset(50%)',
+          whiteSpace: 'nowrap',
+          border: '0',
+        }),
+      ],
+      [text],
+    ),
+  };
+}
 /** Optional note renderer. Native geometry, sockets, selection, policies and controls remain live. */
 export function zlozEventStormingNode<M>(
   context: ZlozNodeRenderContext,
@@ -172,6 +276,7 @@ export function zlozEventStormingNode<M>(
 ): Html | undefined {
   const { node, state } = context;
   if (node.kind === 'group' || node.architecture?.family !== 'event-storming') return undefined;
+  const semantic = described(context, h, options);
   const selected = state.selectedNodes.includes(node.id);
   const body = options.bodyCache
     ? options.bodyCache(node, artwork<M>, [h, node, selected, context.selectionPreview, options])
@@ -193,7 +298,7 @@ export function zlozEventStormingNode<M>(
     [
       zlozDragHandle(
         h,
-        context,
+        semantic.context,
         [
           h.Style({
             position: 'absolute',
@@ -210,8 +315,114 @@ export function zlozEventStormingNode<M>(
         ],
         [body],
       ),
+      ...(semantic.description ? [semantic.description] : []),
       ...(context.ports ?? portRenderViews(h, context, target, undefined)),
       ...controls,
+    ],
+  );
+}
+
+/** Lane frame using the existing portless group lifecycle and optional shared heading geometry. */
+export function zlozEventStormingGroup<M>(
+  context: ZlozNodeRenderContext,
+  h: HtmlBuilder<M>,
+  options: ZlozEventStormingNodeOptions<M> = defaults,
+): Html | undefined {
+  const { node } = context;
+  if (
+    node.kind !== 'group' ||
+    node.architecture?.family !== 'event-storming' ||
+    node.architecture.role !== 'lane'
+  )
+    return undefined;
+  const semantic = described(context, h, options);
+  const borderWidth = 2;
+  const declaredHeader = options.groupHeader
+    ? options.groupHeader.sizing === 'intrinsic'
+      ? { position: groupHeaderPosition(node, options.groupHeader), size: undefined }
+      : resolveLayoutGroupHeader(node, options.groupHeader)
+    : undefined;
+  const header = context.collapsed ? undefined : declaredHeader;
+  const intrinsic = Boolean(header && options.groupHeader?.sizing === 'intrinsic');
+  const selected = context.state.selectedNodes.includes(node.id) || context.selectionPreview;
+  const border = context.dropTarget
+    ? 'var(--flow-valid-target, #0f766e)'
+    : selected
+      ? 'var(--flow-selection, #2563eb)'
+      : 'var(--zloz-event-storming-lane, #64748b)';
+  return zlozGroupFrame(
+    h,
+    context,
+    [
+      h.DataAttribute('zloz-event-storming-group', node.architecture.role),
+      h.Style({
+        background: 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
+        border: `${borderWidth}px ${context.dropTarget ? 'solid' : 'dashed'} ${border}`,
+        color: 'var(--flow-node-color, #172033)',
+      }),
+      ...(options.attributes ?? []),
+    ],
+    [
+      zlozDragHandle(
+        h,
+        semantic.context,
+        [
+          ...(header ? [h.DataAttribute('zloz-group-header', node.id)] : []),
+          h.Style({
+            position: 'absolute',
+            top: `${header ? header.position.y - node.position.y : 8}px`,
+            left: `${header ? header.position.x - node.position.x : 16}px`,
+            width: intrinsic
+              ? 'max-content'
+              : header?.size
+                ? `${header.size.width}px`
+                : 'calc(100% - 144px)',
+            height: intrinsic
+              ? 'max-content'
+              : `${header?.size ? header.size.height : Math.max(0, Math.min(56, node.size.height - 16))}px`,
+            overflow: 'hidden',
+            padding: '0',
+            border: '0',
+            background: 'transparent',
+            color: 'inherit',
+            'font-family': 'inherit',
+            'text-align': 'left',
+            cursor: context.state.readOnly ? 'pointer' : 'grab',
+          }),
+        ],
+        [
+          options.bodyCache
+            ? options.bodyCache(node, artwork<M>, [
+                h,
+                node,
+                selected,
+                context.selectionPreview,
+                options,
+              ])
+            : artwork(h, node, selected, context.selectionPreview, options),
+        ],
+      ),
+      ...(semantic.description ? [semantic.description] : []),
+      ...(options.renderControls?.(context, h) ?? [
+        h.div(
+          [
+            h.Style({
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              display: 'flex',
+              gap: '6px',
+              pointerEvents: 'auto',
+              zIndex: '2',
+            }),
+          ],
+          [
+            ...(context.contextAction ? [context.contextAction] : []),
+            ...(context.collapseToggle ? [context.collapseToggle] : []),
+          ],
+        ),
+        ...context.resizeHandles,
+      ]),
     ],
   );
 }

@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "public composable DDD review and custom cards",
+    "exact introduced/resolved/persisting counts and same-edition review",
+    "edge/source/target navigation selects the correct immutable edition",
+    "keyboard Enter retains focus",
+    "baseline and target remain independent of displayed camera",
+    "single-target current and edition review",
+    "filters, minimal mode and global diagnostics retain reasons and functionality",
+    "finding focus pauses playback and invalidates queued ticks",
+    "working snapshot and existing Undo preserved",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

@@ -1,0 +1,436 @@
+{
+  "format": "foldkit-zloz-ddd-conversion",
+  "version": 2,
+  "source": {
+    "document": {
+      "id": "native-v2",
+      "name": "Synthetic native v2 fixture",
+      "snapshot": {
+        "version": 2,
+        "connectionMode": "loose",
+        "graph": {
+          "nodes": [
+            {
+              "id": "a",
+              "label": "Orders",
+              "position": {
+                "x": 20,
+                "y": 40
+              },
+              "size": {
+                "width": 200,
+                "height": 100
+              },
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "side": "right",
+                  "offset": 0.5
+                }
+              ],
+              "data": {
+                "owner": "commerce"
+              },
+              "architecture": {
+                "family": "event-storming",
+                "role": "domain-event"
+              }
+            },
+            {
+              "id": "b",
+              "label": "Billing",
+              "position": {
+                "x": 320,
+                "y": 40
+              },
+              "size": {
+                "width": 200,
+                "height": 100
+              },
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "side": "left",
+                  "offset": 0.5
+                }
+              ],
+              "architecture": {
+                "family": "event-storming",
+                "role": "domain-event"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "orders-billing",
+              "source": {
+                "node": "a",
+                "port": "shared"
+              },
+              "target": {
+                "node": "b",
+                "port": "shared"
+              },
+              "label": "Uses",
+              "data": {
+                "preserve": true
+              }
+            }
+          ]
+        },
+        "viewport": {
+          "x": 10,
+          "y": 30,
+          "zoom": 0.8
+        }
+      },
+      "editions": [
+        {
+          "id": "base",
+          "name": "Strict empty baseline",
+          "snapshot": {
+            "version": 2,
+            "connectionMode": "strict",
+            "graph": {
+              "nodes": [
+                {
+                  "id": "a",
+                  "label": "Orders",
+                  "position": {
+                    "x": 20,
+                    "y": 40
+                  },
+                  "size": {
+                    "width": 200,
+                    "height": 100
+                  },
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "side": "right",
+                      "offset": 0.5
+                    }
+                  ],
+                  "data": {
+                    "owner": "commerce"
+                  },
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  }
+                },
+                {
+                  "id": "b",
+                  "label": "Billing",
+                  "position": {
+                    "x": 320,
+                    "y": 40
+                  },
+                  "size": {
+                    "width": 200,
+                    "height": 100
+                  },
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "side": "left",
+                      "offset": 0.5
+                    }
+                  ],
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  }
+                }
+              ],
+              "edges": []
+            }
+          }
+        }
+      ],
+      "origin": null
+    },
+    "sessionId": "native-v2-fixture",
+    "revision": 0
+  },
+  "mappings": {
+    "nodes": [],
+    "edges": [
+      {
+        "edgeId": "orders-billing",
+        "architecture": null
+      }
+    ],
+    "relationships": {
+      "rules": [
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "references"
+          },
+          "sources": ["entity", "value-object", "aggregate-root", "domain-service"],
+          "targets": ["entity", "value-object", "aggregate-root"],
+          "label": "References",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "contains"
+          },
+          "sources": ["aggregate", "aggregate-root", "entity", "value-object"],
+          "targets": ["entity", "value-object", "aggregate-root"],
+          "label": "Contains",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "emits"
+          },
+          "sources": ["aggregate", "aggregate-root", "entity", "domain-service"],
+          "targets": ["domain-event"],
+          "label": "Emits",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "persists"
+          },
+          "sources": ["repository"],
+          "targets": ["entity", "aggregate-root"],
+          "label": "Persists",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "uses"
+          },
+          "sources": ["entity", "aggregate-root", "domain-service"],
+          "targets": ["domain-service", "repository"],
+          "label": "Uses",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "strategic",
+            "role": "partnership"
+          },
+          "sources": ["bounded-context"],
+          "targets": ["bounded-context"],
+          "label": "Partnership",
+          "direction": "symmetric"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "strategic",
+            "role": "shared-kernel"
+          },
+          "sources": ["bounded-context"],
+          "targets": ["bounded-context"],
+          "label": "Shared kernel",
+          "direction": "symmetric"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "strategic",
+            "role": "upstream-downstream"
+          },
+          "sources": ["bounded-context"],
+          "targets": ["bounded-context"],
+          "label": "Upstream → downstream",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "strategic",
+            "role": "customer-supplier"
+          },
+          "sources": ["bounded-context"],
+          "targets": ["bounded-context"],
+          "label": "Supplier → customer",
+          "direction": "directed"
+        },
+        {
+          "architecture": {
+            "family": "ddd",
+            "scope": "tactical",
+            "role": "feeds"
+          },
+          "sources": ["aggregate", "aggregate-root", "domain-event", "read-model"],
+          "targets": ["read-model"],
+          "label": "Declared consumption",
+          "direction": "directed"
+        }
+      ]
+    }
+  },
+  "lossesAccepted": true,
+  "document": {
+    "id": "native-v2",
+    "name": "Synthetic native v2 fixture",
+    "snapshot": {
+      "version": 2,
+      "connectionMode": "loose",
+      "graph": {
+        "nodes": [
+          {
+            "id": "a",
+            "label": "Orders",
+            "position": {
+              "x": 20,
+              "y": 40
+            },
+            "size": {
+              "width": 200,
+              "height": 100
+            },
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "data": {
+              "owner": "commerce"
+            },
+            "architecture": {
+              "family": "ddd",
+              "role": "domain-event"
+            }
+          },
+          {
+            "id": "b",
+            "label": "Billing",
+            "position": {
+              "x": 320,
+              "y": 40
+            },
+            "size": {
+              "width": 200,
+              "height": 100
+            },
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "ddd",
+              "role": "domain-event"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "orders-billing",
+            "source": {
+              "node": "a",
+              "port": "shared"
+            },
+            "target": {
+              "node": "b",
+              "port": "shared"
+            },
+            "label": "Uses",
+            "data": {
+              "preserve": true
+            }
+          }
+        ]
+      },
+      "viewport": {
+        "x": 10,
+        "y": 30,
+        "zoom": 0.8
+      }
+    },
+    "editions": [
+      {
+        "id": "base",
+        "name": "Strict empty baseline",
+        "snapshot": {
+          "version": 2,
+          "connectionMode": "strict",
+          "graph": {
+            "nodes": [
+              {
+                "id": "a",
+                "label": "Orders",
+                "position": {
+                  "x": 20,
+                  "y": 40
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "side": "right",
+                    "offset": 0.5
+                  }
+                ],
+                "data": {
+                  "owner": "commerce"
+                },
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "domain-event"
+                }
+              },
+              {
+                "id": "b",
+                "label": "Billing",
+                "position": {
+                  "x": 320,
+                  "y": 40
+                },
+                "size": {
+                  "width": 200,
+                  "height": 100
+                },
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "side": "left",
+                    "offset": 0.5
+                  }
+                ],
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "domain-event"
+                }
+              }
+            ],
+            "edges": []
+          }
+        }
+      }
+    ],
+    "origin": null
+  }
+}

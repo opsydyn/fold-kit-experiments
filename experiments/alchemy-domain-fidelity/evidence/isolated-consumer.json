@@ -1,0 +1,20 @@
+{
+  "profiles": ["NodeNext", "Bundler"],
+  "outcomes": [
+    {
+      "runtime": "node",
+      "nodes": 8,
+      "edges": 8,
+      "handlers": 0
+    },
+    {
+      "runtime": "bun",
+      "nodes": 8,
+      "edges": 8,
+      "handlers": 0
+    }
+  ],
+  "foldkitInstalled": false,
+  "reactInstalled": false,
+  "usesMonorepoNodeModules": false
+}

@@ -1,12 +1,13 @@
 import { createEditor, updateEditor } from './editor';
 import { edgePath } from './geometry';
-import { ZlozError, parseSnapshot, serializeSnapshot } from './graph';
+import { ZlozError, assertLegacySnapshotMode, parseSnapshot, serializeSnapshot } from './graph';
 import type {
   EditorEvent,
   EditorPolicy,
   EditorState,
   JsonValue,
   ZlozEdge,
+  ZlozGraph,
   ZlozNode,
   ZlozSnapshot,
 } from './types';
@@ -165,7 +166,7 @@ export function updateHistoryReview(
 function canonical<T>(value: T): string {
   return JSON.stringify(value, (_key, item: JsonValue) =>
     record(item)
-      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
       : item,
   );
 }
@@ -247,18 +248,36 @@ export function compareEditions(
   baseline: ZlozEdition,
   selected: ZlozEdition,
 ): ZlozHistoryComparison {
-  const before = baseline.snapshot.graph,
-    after = selected.snapshot.graph;
+  assertLegacySnapshotMode(baseline.snapshot);
+  assertLegacySnapshotMode(selected.snapshot);
   return {
     baseline,
     selected,
+    ...compareHistoryGraphs(baseline.snapshot.graph, selected.snapshot.graph),
+  };
+}
+
+/** Internal shared graph diff; callers own their versioned snapshot validation. */
+export function compareHistoryGraphs(
+  before: ZlozGraph,
+  after: ZlozGraph,
+): Pick<ZlozHistoryComparison, 'nodes' | 'edges'> {
+  return {
     nodes: changes(before.nodes, after.nodes, nodeMeaning, nodeLayout, nodeLayout),
     edges: changes(
       before.edges,
       after.edges,
-      ({ pathStyle: _path, ...meaning }) => meaning,
-      (edge) => ({ pathStyle: edge.pathStyle, path: edgePath(before, edge) }),
-      (edge) => ({ pathStyle: edge.pathStyle, path: edgePath(after, edge) }),
+      ({ pathStyle: _path, waypoints: _waypoints, ...meaning }) => meaning,
+      (edge) => ({
+        pathStyle: edge.pathStyle,
+        waypoints: edge.waypoints,
+        path: edgePath(before, edge),
+      }),
+      (edge) => ({
+        pathStyle: edge.pathStyle,
+        waypoints: edge.waypoints,
+        path: edgePath(after, edge),
+      }),
     ),
   };
 }

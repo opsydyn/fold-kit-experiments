@@ -5,8 +5,11 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { alchemyReviewCanvas } from './alchemy-review';
 import { Message } from './message';
 import type { Model, WorkbenchSection } from './model';
+import { packetReviewActive, packetReviewCanvas } from './packet-reader';
+import { receiptReviewCanvas } from './receipt-review';
 
 export type WorkbenchControls = Readonly<Record<WorkbenchSection, readonly Html[]>>;
 const sections: readonly (readonly [WorkbenchSection, string])[] = [
@@ -17,8 +20,15 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['ports', 'Ports'],
   ['policies', 'Policies'],
   ['inspect', 'Inspect'],
+  ['mapping', 'Mapping review'],
+  ['c4mapping', 'C4 mapping review'],
   ['diagnostics', 'Diagnostics'],
   ['export', 'Mermaid export'],
+  ['svg', 'SVG export'],
+  ['png', 'PNG export'],
+  ['review', 'Review packets'],
+  ['patch', 'Patch review'],
+  ['alchemy', 'Domain review'],
 ];
 
 function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
@@ -96,7 +106,21 @@ export function workbenchLayout(
         [h.Class('workbench-sidebar'), h.AriaLabel('Workbench controls')],
         [
           h.a(
-            [h.Class('workbench-skip'), h.Href('#' + encodeURIComponent(parts.canvasId))],
+            [
+              h.Class('workbench-skip'),
+              h.Href(
+                '#' +
+                  encodeURIComponent(
+                    model.alchemyReview.review
+                      ? `alchemy-${model.alchemyReview.review.id}-surface`
+                      : packetReviewActive(model) && model.packetPreview
+                        ? `packet-${model.packetPreview.id}-${model.packetPreview.side}-surface`
+                        : model.receiptReview
+                          ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
+                          : parts.canvasId,
+                  ),
+              ),
+            ],
             ['Skip to canvas'],
           ),
           h.div(
@@ -130,14 +154,37 @@ export function workbenchLayout(
             ? [
                 zlozViewportControl(
                   h,
-                  viewportControlActions(model.editor).fitView,
+                  viewportControlActions(
+                    model.alchemyReview.review
+                      ? model.alchemyReview.review.editor
+                      : packetReviewActive(model) && model.packetPreview
+                        ? model.packetPreview.editor
+                        : model.editor,
+                  ).fitView,
                   (event) =>
-                    Message.ObservedModelInput({
-                      modelId: model.modelIdentity.id,
-                      epoch: model.modelEpoch,
-                      message: event,
-                    }),
-                  [h.Class('workbench-rail-fit')],
+                    model.alchemyReview.review
+                      ? Message.ObservedAlchemyInput({
+                          id: model.alchemyReview.review.id,
+                          message: event,
+                        })
+                      : packetReviewActive(model) && model.packetPreview
+                        ? Message.ObservedPacketCanvasInput({
+                            scope: model.packetPreview.scope,
+                            id: model.packetPreview.id,
+                            side: model.packetPreview.side,
+                            message: event,
+                          })
+                        : Message.ObservedModelInput({
+                            modelId: model.modelIdentity.id,
+                            epoch: model.modelEpoch,
+                            message: event,
+                          }),
+                  [
+                    h.Class('workbench-rail-fit'),
+                    h.Disabled(
+                      model.alchemyReview.pending !== null && model.alchemyReview.review === null,
+                    ),
+                  ],
                   ['Fit'],
                 ),
               ]
@@ -157,6 +204,18 @@ export function workbenchLayout(
                     [
                       h.Key(section),
                       h.Type('button'),
+                      h.Disabled(
+                        ((model.alchemyReview.review !== null ||
+                          model.alchemyReview.pending !== null) &&
+                          section !== 'alchemy' &&
+                          section !== 'diagnostics') ||
+                          (model.receiptReview !== null &&
+                            section !== 'mapping' &&
+                            section !== 'diagnostics') ||
+                          (packetReviewActive(model) &&
+                            section !== 'review' &&
+                            section !== 'diagnostics'),
+                      ),
                       h.AriaPressed(String(model.sidebarSection === section)),
                       h.AriaControls(`workbench-${section}`),
                       h.OnClick(Message.SelectedWorkbenchSection({ section })),
@@ -196,8 +255,17 @@ export function workbenchLayout(
           h.Style({ position: 'relative' }),
         ],
         [
-          parts.canvas,
-          ...(model.historyReview
+          model.alchemyReview.review
+            ? alchemyReviewCanvas(model, h)
+            : packetReviewActive(model)
+              ? packetReviewCanvas(model, h)
+              : model.receiptReview
+                ? receiptReviewCanvas(model, h)
+                : parts.canvas,
+          ...(model.historyReview &&
+          !model.receiptReview &&
+          !model.alchemyReview.review &&
+          !packetReviewActive(model)
             ? [
                 h.div(
                   [

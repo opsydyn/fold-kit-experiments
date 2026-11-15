@@ -4,7 +4,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { ZlozDiagnostics } from './diagnostics';
 import { minimapGeometry } from './geometry';
-import { groupsInPaintOrder, presentEditorGroups } from './group-presentation';
+import { groupsInPaintOrder, presentEditorGroups, presentVisibleGraph } from './group-presentation';
 import { ZlozMinimapInput } from './mount';
 import type { EditorEvent, EditorState, ZlozMinimapGeometry, ZlozNode } from './types';
 
@@ -123,7 +123,7 @@ export function zlozViewportControl<M>(
 /** Collapsed-group presentation, in paint order, shared by default and custom minimaps. */
 export function minimapContext(state: EditorState): ZlozMinimapContext | undefined {
   if (!state.surface) return undefined;
-  const presentation = presentEditorGroups(state);
+  const presentation = presentVisibleGraph(state);
   if (!presentation.nodes.length) return undefined;
   return {
     state,

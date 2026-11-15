@@ -1,8 +1,15 @@
+import type { ZlozPngReviewRequest } from '@opsydyn/foldkit-zloz';
+import type { ZlozSvgReviewRequest } from '@opsydyn/foldkit-zloz';
+import type { ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
+import type { ZlozDddRelationshipRequest } from '@opsydyn/foldkit-zloz';
 import {
   applyLayout,
   resolveHistoryComparisonRequest,
   updateEditionPlayback,
   createEventStormingPattern,
+  createEventStormingWorkshopPattern,
+  type ZlozWorkshopRequest,
+  createContextMapPattern,
   appendEdition,
   mergeEditions,
   resolveEditionRestore,
@@ -27,9 +34,11 @@ import {
   type ZlozGraph,
   type ZlozSnapshot,
   type ZlozAuditComparisonRequest,
+  type ZlozDddAuditRequest,
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
+import type { ZlozReviewPacketRequest } from '@opsydyn/foldkit-zloz-mermaid';
 import {
   portInspectorContext,
   portPositionDraft,
@@ -40,12 +49,21 @@ import {
 import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
+import { alchemyAllowsMessage, isAlchemyMessage, updateAlchemyReview } from './alchemy-review';
 import { loadAuditExample, updateWorkbenchAudit } from './audit-comparison';
 import {
   createC4ContextGraph,
   createC4ContainerGraph,
   createC4NestedContainerGraph,
 } from './c4-examples';
+import {
+  updateC4MappingReview,
+  reconcileC4MappingReview,
+  updateC4Placement,
+  updateC4PlanAcknowledgement,
+  applyWorkbenchC4Conversion,
+} from './c4-mapping-review';
+import { downloadC4Receipt, c4ReceiptDownloadFeedback } from './c4-receipts';
 import {
   ArrangeFlow,
   ExportZlozEditions,
@@ -59,7 +77,9 @@ import {
   SaveThemePreference,
   SaveZloz,
 } from './command';
+import { loadDddAuditExample, updateWorkbenchDddAudit } from './ddd-audit';
 import { createDddOrderGraph } from './ddd-examples';
+import { editWorkbenchDddRelationship } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import { delegatedRelationship } from './event-storming-relationships';
 import {
@@ -71,6 +91,14 @@ import {
 } from './history';
 import { focusWorkbenchHistoryChange } from './history-navigation';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
+import {
+  reconcileMappingReview,
+  updateMappingReview,
+  updateMappingLossAcknowledgement,
+  applyWorkbenchMapping,
+  downloadWorkbenchConversion,
+  conversionDownloadFeedback,
+} from './mapping-review';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -87,6 +115,14 @@ import {
   openModelDocument,
   modelSessionBusy,
 } from './model-sessions';
+import {
+  isPacketReaderMessage,
+  packetAllowsMessage,
+  packetReviewActive,
+  updatePacketReader,
+} from './packet-reader';
+import { updateWorkbenchPlacement } from './palette';
+import { updatePatchWorkbench, isPatchWorkbenchMessage } from './patch-review';
 import { insertWorkbenchPattern } from './pattern-insertion';
 import {
   toggleHistoryPlayback,
@@ -97,10 +133,15 @@ import {
   playbackInterruptedBy,
   reconcileHistoryPlayback,
 } from './playback';
+import { updateWorkbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
+import { updateReceiptReview, receiptAllowsMessage, isReceiptMessage } from './receipt-review';
 import { editWorkbenchRelationship } from './relationship-controls';
+import { updateWorkbenchPacket } from './review-packet';
 import { searchDiagram } from './search';
+import { updateWorkbenchSvgReview } from './svg-review';
+import { editWorkbenchWorkshop } from './workshop';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -112,7 +153,24 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
   );
 }
 
-export function update(model: Model, message: Message): Return<Model, Message> {
+function updateModel(model: Model, message: Message): Return<Model, Message> {
+  if ((model.alchemyReview.review || model.alchemyReview.pending) && !alchemyAllowsMessage(message))
+    return { model };
+  if (
+    packetReviewActive(model) &&
+    !packetAllowsMessage(message) &&
+    !isPatchWorkbenchMessage(message)
+  )
+    return { model };
+  if (
+    model.receiptReview &&
+    !isPacketReaderMessage(message) &&
+    !isPatchWorkbenchMessage(message) &&
+    !isReceiptMessage(message) &&
+    !receiptAllowsMessage(message)
+  )
+    return { model };
+  if (isAlchemyMessage(message)) return updateAlchemyReview(model, message);
   if (
     message._tag === 'ObservedModelInput' &&
     (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
@@ -166,7 +224,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? { model }
         : { model: { ...model, historyReview } };
     }
-    if (!historyAllowsMessage(message)) return { model };
+    if (
+      !historyAllowsMessage(message) &&
+      !isReceiptMessage(message) &&
+      !isPacketReaderMessage(message) &&
+      !isPatchWorkbenchMessage(message)
+    )
+      return { model };
   }
   const changedPosition = (change: ZlozPortPositionDraftChange): Return<Model, Message> => ({
     model: model.portPositionDraft
@@ -228,6 +292,59 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const outcome: Return<Model, Message> = Message.match(message, {
+    ObservedPngReviewInput: ({ request }) =>
+      updateWorkbenchPngReview(
+        model,
+        /* SAFETY: package controls and render Commands emit only typed PNG facts. */ request as ZlozPngReviewRequest,
+      ),
+    ClickedPngProtection: () => ({
+      model: { ...model, protectPngDownloads: !model.protectPngDownloads },
+    }),
+    ClickedRetainedPngLayout: () => ({
+      model: { ...model, retainedPngLayout: !model.retainedPngLayout },
+    }),
+    ClickedCustomPngReview: () => ({
+      model: { ...model, customPngReview: !model.customPngReview },
+    }),
+    CompletedPngDownload: () => ({ model: { ...model, notice: 'Reviewed PNG downloaded.' } }),
+    FailedPngDownload: () => ({
+      model: {
+        ...model,
+        notice: 'PNG download failed. The reviewed image is available for retry.',
+      },
+    }),
+    ObservedSvgReviewInput: ({ request }) => {
+      // SAFETY: the package SVG review helpers emit only ZlozSvgReviewRequest facts.
+      return updateWorkbenchSvgReview(model, request as ZlozSvgReviewRequest);
+    },
+    ClickedSvgDownloadProtection: () => ({
+      model: { ...model, protectSvgDownloads: !model.protectSvgDownloads },
+    }),
+    ClickedRetainedSvgLayout: () => ({
+      model: { ...model, retainedSvgLayout: !model.retainedSvgLayout },
+    }),
+    ClickedCustomSvgReview: () => ({
+      model: { ...model, customSvgReview: !model.customSvgReview },
+    }),
+    CompletedSvgDownload: (request) =>
+      updateWorkbenchSvgReview(model, {
+        ...request,
+        type: 'SvgDownloadSettled',
+        outcome: 'succeeded',
+      }),
+    FailedSvgDownload: (request) =>
+      updateWorkbenchSvgReview(model, {
+        ...request,
+        type: 'SvgDownloadSettled',
+        outcome: 'failed',
+      }),
+    ObservedPlacementInput: ({ input }) => ({
+      model: updateWorkbenchPlacement(
+        model,
+        /* SAFETY: the package placement host emits only typed placement input facts. */ input as ZlozPlacementInput,
+      ),
+    }),
+    ClickedCustomPalette: () => ({ model: { ...model, customPalette: !model.customPalette } }),
     ClickedScrubberHistory: () => {
       const decision = mergeEditions(model.editions, scrubberEditions());
       return {
@@ -545,7 +662,27 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         notice: 'Two example editions loaded. Your working model is preserved.',
       },
     }),
+    ObservedReviewPacketInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: the public packet controls emit typed requests through Schema.Unknown; the resolver rechecks exact content, consent and host protection.
+      const request = raw as ZlozReviewPacketRequest;
+      return updateWorkbenchPacket(model, request, modelId, epoch);
+    },
+    CompletedReviewPacketDownload: () => ({
+      model: {
+        ...model,
+        notice: 'Review packet downloaded. Working graph and Undo are unchanged.',
+      },
+    }),
+    FailedReviewPacketDownload: () => ({
+      model: { ...model, notice: 'Could not download the review packet. Try again.' },
+    }),
     ClickedAuditExample: () => ({ model: loadAuditExample(model) }),
+    ClickedDddAuditExample: () => ({ model: loadDddAuditExample(model) }),
+    ObservedDddAuditInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: package DDD controls emit typed requests through this internal Schema.Unknown message field.
+      const request = raw as ZlozDddAuditRequest;
+      return { model: updateWorkbenchDddAudit(model, request, modelId, epoch) };
+    },
     ObservedAuditComparisonInput: ({ modelId, epoch, request: raw }) => {
       // SAFETY: the public comparison view emits typed requests through this Schema.Unknown field; the resolver rechecks current identity and policy.
       const request = raw as ZlozAuditComparisonRequest;
@@ -684,40 +821,174 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },
+    SelectedC4PlacementMember: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'MemberSelected' }),
+    }),
+    ChangedC4PlacementForm: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'FormChanged' }),
+    }),
+    ClickedC4PlacementReview: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'Reviewed' }),
+    }),
+    ClickedC4PlacementClear: (request) => ({
+      model: updateC4Placement(model, { ...request, type: 'Cleared' }),
+    }),
+    ClickedC4ReceiptDownload: (request) => downloadC4Receipt(model, request),
+    CompletedC4ReceiptDownload: (request) => ({
+      model: c4ReceiptDownloadFeedback(model, request, true),
+    }),
+    FailedC4ReceiptDownload: (request) => ({
+      model: c4ReceiptDownloadFeedback(model, request, false),
+    }),
+    ClickedC4ConversionApply: (request) => ({ model: applyWorkbenchC4Conversion(model, request) }),
+    ClickedC4ApplyProtection: () => ({
+      model:
+        model.sidebarCollapsed || model.sidebarSection !== 'c4mapping'
+          ? model
+          : { ...model, protectC4Apply: !model.protectC4Apply },
+    }),
+    ClickedC4PlanAcknowledgement: (request) => ({
+      model: updateC4PlanAcknowledgement(model, request),
+    }),
+    SelectedC4ReviewItem: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'ItemSelected' }),
+    }),
+    ChangedC4ReviewForm: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'FormChanged' }),
+    }),
+    ClickedC4ReviewAction: (request) => ({
+      model: updateC4MappingReview(model, { ...request, type: 'ActionClicked' }),
+    }),
+    SelectedMappingReviewItem: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ItemSelected' }),
+    }),
+    SelectedMappingReviewChoice: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ChoiceSelected' }),
+    }),
+    ClickedMappingLossAcknowledgement: (request) => ({
+      model: updateMappingLossAcknowledgement(model, request),
+    }),
+    ChosePatchFiles: () => updatePatchWorkbench(model, message),
+    SucceededPatchRead: () => updatePatchWorkbench(model, message),
+    FailedPatchRead: () => updatePatchWorkbench(model, message),
+    ClickedPatchReadCancel: () => updatePatchWorkbench(model, message),
+    ClickedPatchExample: () => updatePatchWorkbench(model, message),
+    ClickedPatchProtection: () => updatePatchWorkbench(model, message),
+    ClickedCustomPatchControls: () => updatePatchWorkbench(model, message),
+    ObservedPatchReviewInput: () => updatePatchWorkbench(model, message),
+    ClickedPatchDownload: () => updatePatchWorkbench(model, message),
+    CompletedPatchDownload: () => updatePatchWorkbench(model, message),
+    FailedPatchDownload: () => updatePatchWorkbench(model, message),
+    ChoseReviewPacketFiles: () => updatePacketReader(model, message),
+    ObservedReviewReaderInput: () => updatePacketReader(model, message),
+    SucceededReviewPacketRead: () => updatePacketReader(model, message),
+    FailedReviewPacketRead: () => updatePacketReader(model, message),
+    ObservedPacketCanvasInput: () => updatePacketReader(model, message),
+    ClickedPacketOpeningProtection: () => updatePacketReader(model, message),
+    ChangedAlchemyText: () => updateAlchemyReview(model, message),
+    ClickedAlchemyReview: () => updateAlchemyReview(model, message),
+    ClickedAlchemyFinding: () => updateAlchemyReview(model, message),
+    ClickedAlchemyExample: () => updateAlchemyReview(model, message),
+    SelectedAlchemyLayoutDirection: () => updateAlchemyReview(model, message),
+    ClickedAlchemyLayout: () => updateAlchemyReview(model, message),
+    SelectedAlchemyHeadingDetail: () => updateAlchemyReview(model, message),
+    ClickedMeasureAlchemyHeadings: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyHeadings: () => updateAlchemyReview(model, message),
+    ObservedAlchemyHeadings: () => updateAlchemyReview(model, message),
+    SelectedAlchemyGroupHeader: () => updateAlchemyReview(model, message),
+    SelectedAlchemyLabelMode: () => updateAlchemyReview(model, message),
+    SelectedAlchemyLabelDetail: () => updateAlchemyReview(model, message),
+    ClickedMeasureAlchemyLabels: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyLabels: () => updateAlchemyReview(model, message),
+    ObservedAlchemyLabels: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyLayout: () => updateAlchemyReview(model, message),
+    ClickedRestoreAlchemyLayout: () => updateAlchemyReview(model, message),
+    SucceededAlchemyLayout: () => updateAlchemyReview(model, message),
+    FailedAlchemyLayout: () => updateAlchemyReview(model, message),
+
+    ChoseAlchemyFiles: () => updateAlchemyReview(model, message),
+    SucceededAlchemyRead: () => updateAlchemyReview(model, message),
+    FailedAlchemyRead: () => updateAlchemyReview(model, message),
+    ClickedCancelAlchemyRead: () => updateAlchemyReview(model, message),
+    ClickedCloseAlchemyReview: () => updateAlchemyReview(model, message),
+    ObservedAlchemyInput: () => updateAlchemyReview(model, message),
+    ChoseConversionReceiptFiles: () => updateReceiptReview(model, message),
+    SucceededConversionReceiptRead: () => updateReceiptReview(model, message),
+    FailedConversionReceiptRead: () => updateReceiptReview(model, message),
+    ClickedCancelReceiptRead: () => updateReceiptReview(model, message),
+    ClickedCloseReceiptReview: () => updateReceiptReview(model, message),
+    SelectedReceiptSide: () => updateReceiptReview(model, message),
+    ClickedReceiptOverview: () => updateReceiptReview(model, message),
+    ClickedReceiptChange: () => updateReceiptReview(model, message),
+    ClickedReceiptChangeStep: () => updateReceiptReview(model, message),
+    ObservedReceiptInput: () => updateReceiptReview(model, message),
+    ClickedApplyMappingConversion: (request) => ({ model: applyWorkbenchMapping(model, request) }),
+    ClickedMappingApplyProtection: () => ({
+      model:
+        model.historyReview || modelSessionBusy(model)
+          ? model
+          : { ...model, protectMappingApply: !model.protectMappingApply },
+    }),
+    ClickedDownloadConversionReceipt: (input) => downloadWorkbenchConversion(model, input),
+    CompletedConversionReceiptDownload: (input) => ({
+      model: conversionDownloadFeedback(model, input, true),
+    }),
+    FailedConversionReceiptDownload: (input) => ({
+      model: conversionDownloadFeedback(model, input, false),
+    }),
+    ClickedResetMappingReview: (request) => ({
+      model: updateMappingReview(model, { ...request, type: 'ResetClicked' }),
+    }),
     SelectedExample: ({ example }) => {
       const graph =
-        example === 'event-storming'
-          ? createEventStormingPattern({ includeAggregate: true })
-          : example === 'large-workflow'
-            ? createLargeWorkflowGraph()
-            : example === 'protected-orbits'
-              ? createProtectedWorkflowGraph()
-              : example === 'ddd-orders'
-                ? createDddOrderGraph()
-                : example === 'c4-context'
-                  ? createC4ContextGraph()
-                  : example === 'c4-nested-containers'
-                    ? createC4NestedContainerGraph()
-                    : example === 'c4-containers'
-                      ? createC4ContainerGraph()
-                      : {
-                          release: initialGraph,
-                          onion: onionGraph,
-                          'grouped-onion': groupedOnionGraph,
-                          'port-snapping': portSnappingGraph,
-                        }[example];
+        example === 'event-storming-workshop'
+          ? createEventStormingWorkshopPattern()
+          : example === 'context-map'
+            ? createContextMapPattern()
+            : example === 'event-storming'
+              ? createEventStormingPattern({ includeAggregate: true })
+              : example === 'large-workflow'
+                ? createLargeWorkflowGraph()
+                : example === 'protected-orbits'
+                  ? createProtectedWorkflowGraph()
+                  : example === 'ddd-orders'
+                    ? createDddOrderGraph()
+                    : example === 'c4-context'
+                      ? createC4ContextGraph()
+                      : example === 'c4-nested-containers'
+                        ? createC4NestedContainerGraph()
+                        : example === 'c4-containers'
+                          ? createC4ContainerGraph()
+                          : {
+                              release: initialGraph,
+                              onion: onionGraph,
+                              'grouped-onion': groupedOnionGraph,
+                              'port-snapping': portSnappingGraph,
+                            }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
           ...model,
           editor,
-          semanticRelationships: example === 'event-storming' ? true : model.semanticRelationships,
+          mappingReview: null,
+          mappingReviewNotice: '',
+          modelEpoch: model.modelEpoch + 1,
+          workshopConventions:
+            example === 'event-storming-workshop' ? true : model.workshopConventions,
+          protectWorkshopMeaning:
+            example === 'event-storming-workshop' ? true : model.protectWorkshopMeaning,
+          semanticRelationships:
+            example === 'event-storming-workshop' ||
+            example === 'event-storming' ||
+            example === 'context-map'
+              ? true
+              : model.semanticRelationships,
           nodeDesign:
-            example === 'event-storming'
+            example === 'event-storming' || example === 'event-storming-workshop'
               ? 'event-storming'
               : example === 'protected-orbits'
                 ? 'orbits'
-                : example === 'ddd-orders'
+                : example === 'ddd-orders' || example === 'context-map'
                   ? 'ddd'
                   : example === 'c4-context' ||
                       example === 'c4-containers' ||
@@ -1043,6 +1314,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedNodeToolbarDesign: ({ nodeToolbarDesign }) => ({
       model: { ...model, nodeToolbarDesign },
     }),
+    SelectedWaypointDesign: ({ waypointDesign }) => ({ model: { ...model, waypointDesign } }),
+    ClickedWaypointProtection: () => ({
+      model: { ...model, protectWaypointEdits: !model.protectWaypointEdits },
+    }),
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),
@@ -1051,6 +1326,31 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedRelationshipInference: (input) => ({
       model: editWorkbenchRelationship(model, { ...input, type: 'InferenceApplied' }),
+    }),
+    ObservedDddRelationshipInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: public DDD controls emit typed requests through Schema.Unknown; the resolver rechecks edge/revision and live protection, while the host checks model/session/inspector.
+      const request = raw as ZlozDddRelationshipRequest;
+      return { model: editWorkbenchDddRelationship(model, request, modelId, epoch) };
+    },
+    ClickedDddRelationshipProtection: () => ({
+      model:
+        model.historyReview || modelSessionBusy(model)
+          ? model
+          : { ...model, protectDddRelationships: !model.protectDddRelationships },
+    }),
+    ClickedContextMapPresentation: () => ({
+      model: { ...model, contextMapPresentation: !model.contextMapPresentation },
+    }),
+    ObservedWorkshopInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: public workshop controls emit typed requests through this internal Schema.Unknown field.
+      const request = raw as ZlozWorkshopRequest;
+      return { model: editWorkbenchWorkshop(model, request, modelId, epoch) };
+    },
+    ClickedWorkshopProtection: () => ({
+      model: { ...model, protectWorkshopMeaning: !model.protectWorkshopMeaning },
+    }),
+    ClickedWorkshopConvention: () => ({
+      model: { ...model, workshopConventions: !model.workshopConventions },
     }),
     ClickedSemanticRelationships: () => ({
       model: { ...model, semanticRelationships: !model.semanticRelationships },
@@ -1321,7 +1621,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
   });
-  const result = { ...outcome, model: reconcileHistoryPlayback(model, outcome.model) };
+  const result = {
+    ...outcome,
+    model: reconcileMappingReview(model, reconcileHistoryPlayback(model, outcome.model)),
+  };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
   const invalidLabel =
@@ -1345,4 +1648,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       }
     : result;
+}
+
+/** Reconcile every transition, including read-only/import branches that return early. */
+export function update(model: Model, message: Message): Return<Model, Message> {
+  const result = updateModel(model, message),
+    next = reconcileC4MappingReview(model, result.model);
+  return next === result.model ? result : { ...result, model: next };
 }

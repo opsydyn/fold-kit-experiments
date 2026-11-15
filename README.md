@@ -49,6 +49,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 | [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
 | [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid projections, portable review packets and conversion-loss reporting                      |
 | [`@opsydyn/foldkit-zloz-cli`](packages/foldkit-zloz-cli/)         | Effect CLI: model validation, causal audits, review packets, Mermaid bundles and JSON diagnostics    |
+| [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private read-only Domain inspection and SDK-free portable projection; compatibility gates retained   |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import and npm publication remain separate work. See the

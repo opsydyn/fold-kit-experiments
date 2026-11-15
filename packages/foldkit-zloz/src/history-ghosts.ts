@@ -5,7 +5,7 @@ import { edgePath } from './geometry';
 import type { ZlozHistoryChange, ZlozHistoryComparison } from './history';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Canonical node outline geometry is a domain concept.
 import { nodeShapeGeometry, nodeShapeBoundaryPoint } from './node-shape';
-import type { ZlozEdge, ZlozNode } from './types';
+import type { ZlozEdge, ZlozGraph, ZlozNode } from './types';
 
 export type ZlozHistoryGhostOptions<M> = Readonly<{
   enabled?: boolean;
@@ -35,6 +35,22 @@ export function zlozHistoryGhosts<M>(
   comparison: ZlozHistoryComparison,
   options: ZlozHistoryGhostOptions<M> = {},
 ): Html | null {
+  return renderHistoryGraphGhosts(h, comparison, options);
+}
+
+type HistoryGhostComparison = Pick<ZlozHistoryComparison, 'nodes' | 'edges'> &
+  Readonly<{
+    baseline: Readonly<{ snapshot: Readonly<{ graph: ZlozGraph }> }>;
+    selected: Readonly<{ snapshot: Readonly<{ graph: ZlozGraph }> }>;
+  }>;
+/** Internal graph-only drawing shared by explicit versioned presentation adapters. */
+export function renderHistoryGraphGhosts<M>(
+  h: HtmlBuilder<M>,
+  comparison: HistoryGhostComparison,
+  options: ZlozHistoryGhostOptions<M> = {},
+  previousLabel = 'Previous',
+  displaySide: 'baseline' | 'selected' = 'selected',
+): Html | null {
   if (options.enabled === false) return null;
   const nodes =
     options.nodes === false
@@ -42,9 +58,15 @@ export function zlozHistoryGhosts<M>(
       : comparison.nodes.flatMap((change) => {
           const custom = options.renderNode?.(change, h);
           if (custom !== undefined) return custom === null ? [] : [custom];
-          const node = change.before ?? change.after;
+          const node =
+            displaySide === 'baseline'
+              ? (change.after ?? change.before)
+              : (change.before ?? change.after);
           if (!node) return [];
-          const old = change.before !== null && (change.kind === 'removed' || change.layoutChanged);
+          const old =
+            displaySide === 'baseline'
+              ? change.after !== null && (change.kind === 'added' || change.layoutChanged)
+              : change.before !== null && (change.kind === 'removed' || change.layoutChanged);
           // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the core's canonical outline.
           const geometry = nodeShapeGeometry(node);
           return [
@@ -85,7 +107,7 @@ export function zlozHistoryGhosts<M>(
                     h.Style({ 'font-size': '12px' }),
                   ],
                   [
-                    `${change.kind === 'removed' ? 'Removed' : change.kind === 'added' ? 'Added' : old ? 'Previous' : 'Changed'}: ${node.label}`,
+                    `${change.kind === 'removed' ? 'Removed' : change.kind === 'added' ? 'Added' : old ? previousLabel : 'Changed'}: ${node.label}`,
                   ],
                 ),
               ],
@@ -98,11 +120,19 @@ export function zlozHistoryGhosts<M>(
       : comparison.edges.flatMap((change) => {
           const custom = options.renderEdge?.(change, h);
           if (custom !== undefined) return custom === null ? [] : [custom];
-          const edge = change.before ?? change.after;
+          const edge =
+            displaySide === 'baseline'
+              ? (change.after ?? change.before)
+              : (change.before ?? change.after);
           if (!edge) return [];
-          const graph = change.before
-            ? comparison.baseline.snapshot.graph
-            : comparison.selected.snapshot.graph;
+          const graph =
+            displaySide === 'baseline'
+              ? change.after
+                ? comparison.selected.snapshot.graph
+                : comparison.baseline.snapshot.graph
+              : change.before
+                ? comparison.baseline.snapshot.graph
+                : comparison.selected.snapshot.graph;
           return [
             h.path(
               [
@@ -132,8 +162,8 @@ export function zlozHistoryGhosts<M>(
             return [];
           const custom = options.renderMovement?.(change, h);
           if (custom !== undefined) return custom === null ? [] : [custom];
-          const a = change.before,
-            b = change.after;
+          const a = displaySide === 'baseline' ? change.after : change.before,
+            b = displaySide === 'baseline' ? change.before : change.after;
           const horizontal =
             Math.abs(b.position.x - a.position.x) >= Math.abs(b.position.y - a.position.y);
           const forward = horizontal ? b.position.x > a.position.x : b.position.y > a.position.y;

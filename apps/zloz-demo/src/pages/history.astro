@@ -1,0 +1,18 @@
+---
+import History from '../history-workbench/app';
+import WorkbenchShell from '../layouts/WorkbenchShell.astro';
+---
+<WorkbenchShell title="History workbench | Foldkit Zloz" heading="History workbench" mainLabel="History workbench" history>
+  <History client:load />
+  <noscript>Enable JavaScript to review mixed-mode editions and try mode-aware Undo.</noscript>
+</WorkbenchShell>
+
+<style is:global>
+.history-workbench .workbench-sidebar-scroll button { padding: 6px 10px; margin: 4px 4px 4px 0; }
+.history-workbench .workbench-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.history-workbench .history-changes ul { list-style: none; padding: 0; display: grid; gap: 6px; }
+.history-workbench .history-changes label { display: inline-flex; align-items: center; gap: 4px; margin: 8px 8px 8px 0; }
+.history-workbench .history-changes button { text-align: left; width: 100%; }
+.history-workbench details { margin-block: 12px; }
+.history-workbench summary { cursor: pointer; color: var(--accent); }
+</style>

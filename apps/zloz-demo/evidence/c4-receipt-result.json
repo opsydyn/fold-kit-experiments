@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "evidence": [
+    "explicit mapping/placement/loss review",
+    "live protection disables Apply and withdraws consent",
+    "protection round trip requires fresh acknowledgement",
+    "Space acknowledges; Enter applies",
+    "one Undo/Redo restores full source/target graphs",
+    "record survives Undo",
+    "retained source/target meaning visible in Minimal mode",
+    "light/dark sidebar preserves canvas",
+    "model identity, editions, ancestry, ports and geometry preserved",
+    "validated C4 download equals exported source and target documents",
+    "receipt opens before/after read-only in Minimal mode in light and dark",
+    "Next change and side navigation use detached comparison",
+    "forged target rejection preserves last valid comparison and working Undo",
+    "closing preserves exact working graph and retained record collection"
+  ],
+  "pageErrors": []
+}

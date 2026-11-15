@@ -18,6 +18,10 @@ import {
 
 import mermaid from '../../foldkit-zloz-mermaid/package.json';
 import core from '../../foldkit-zloz/package.json';
+import c4ReceiptWire from '../../foldkit-zloz/test/fixtures/c4-conversion-v1.json';
+import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
+import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
+import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
 import manifest from '../package.json';
 
 const exec = promisify(execFile);
@@ -26,7 +30,7 @@ const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
 const graph =
   '{"version":1,"graph":{"nodes":[{"id":"orders","label":"Orders","position":{"x":0,"y":0},"size":{"width":200,"height":100},"ports":[]}],"edges":[]}}';
 
-test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O contracts', async () => {
+async function qualifyInstalledRuntime(selectedRuntime: 'node' | 'bun') {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-cli-consumer-'));
   // Native package/process fixtures must be removed even when a command fails.
   // oxlint-disable-next-line linteffect/no-try-catch
@@ -34,10 +38,14 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await exec('bun', ['run', '--filter', manifest.name, 'pack:check'], {
       cwd: root,
       maxBuffer: 5 * 1024 * 1024,
+      timeout: 60_000,
+      killSignal: 'SIGKILL',
     });
     for (const name of ['foldkit-zloz', 'foldkit-zloz-mermaid'])
       await exec('bun', ['pm', 'pack', '--destination', directory], {
         cwd: path.join(root, 'packages', name),
+        timeout: 30_000,
+        killSignal: 'SIGKILL',
       });
     await writeFile(
       path.join(directory, 'package.json'),
@@ -54,6 +62,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await exec('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], {
       cwd: directory,
       maxBuffer: 5 * 1024 * 1024,
+      timeout: 60_000,
+      killSignal: 'SIGKILL',
     });
     for (const dependency of [
       'foldkit',
@@ -66,13 +76,15 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ])
       expect(existsSync(path.join(directory, 'node_modules', dependency))).toBe(false);
     const bin = path.join(directory, 'node_modules/.bin/zloz');
-    const run = async (command: readonly string[], input = '') => {
+    const run = async (command: readonly string[], input: string | Uint8Array = '') => {
       const child = Bun.spawn([...command], {
         cwd: directory,
         stdin: 'pipe',
         stdout: 'pipe',
         stderr: 'pipe',
         env: { ...process.env, NO_COLOR: '1' },
+        timeout: 15_000,
+        killSignal: 'SIGKILL',
       });
       child.stdin.write(input);
       child.stdin.end();
@@ -90,6 +102,10 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     expect(help.stdout).toContain('relationships');
     expect(help.stdout).toContain('review');
     expect(help.stderr).toBe('');
+    const reviewHelp = await run([bin, 'review', '--help']);
+    expect(reviewHelp.code).toBe(0);
+    expect(reviewHelp.stdout).toContain('inspect');
+    expect(reviewHelp.stdout).toContain('validate');
     const version = await run([bin, '--version']);
     expect(version.code).toBe(0);
     expect(version.stdout).toContain(manifest.version);
@@ -175,7 +191,307 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         ],
       }),
     );
-    for (const runtime of ['node', 'bun']) {
+    const patchLiteral = JSON.parse(
+      await readFile(
+        path.join(root, 'packages/foldkit-zloz/test/fixtures/modelling-patch-v1.json'),
+        'utf8',
+      ),
+    );
+    const patchSourceFile = path.join(directory, 'patch-source.model.json');
+    await writeFile(
+      patchSourceFile,
+      serializeModelDocument(
+        captureModelDocument({
+          id: patchLiteral.source.modelId,
+          name: 'Commerce',
+          snapshot: { graph: patchLiteral.source.graph },
+          editions: [],
+          origin: null,
+        }),
+      ),
+    );
+    const dddFile = path.join(directory, 'ddd.json'),
+      dddRulesFile = path.join(directory, 'ddd-rules.json');
+    const dddText = JSON.stringify(dddWire);
+    const dddCustom = JSON.stringify({
+      ...dddWire,
+      graph: {
+        ...dddWire.graph,
+        edges: dddWire.graph.edges.filter((edge) => edge.id === 'e-custom'),
+      },
+    });
+    const dddRulesText = JSON.stringify({
+      version: 1,
+      rules: [
+        {
+          architecture: { family: 'ddd', scope: 'tactical', role: 'custom', name: 'enriches' },
+          sources: ['aggregate-root'],
+          targets: ['domain-event'],
+          label: 'Enriches',
+          direction: 'directed',
+        },
+      ],
+    });
+    await writeFile(dddFile, dddText);
+    await writeFile(dddRulesFile, dddRulesText);
+    const looseWire = JSON.parse(
+      await readFile(
+        new URL('../../foldkit-zloz/test/fixtures/connection-v2-loose.json', import.meta.url),
+        'utf8',
+      ),
+    );
+    const nativeText = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/model-native-v2.json', import.meta.url),
+      'utf8',
+    );
+    const nativeSource = path.join(directory, 'native-v2.model.json');
+    await writeFile(nativeSource, nativeText);
+    const nativePatch = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/modelling-patch-v2.json', import.meta.url),
+      'utf8',
+    );
+    async function verifyRuntime(runtime: 'node' | 'bun') {
+      const nativePacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'base', '--loss-policy', 'report'],
+        nativeText,
+      );
+      expect(nativePacket.code).toBe(0);
+      const nativePacketValue = JSON.parse(nativePacket.stdout).data;
+      expect(nativePacketValue.version).toBe(2);
+      expect(nativePacketValue.selected.snapshot.connectionMode).toBe('loose');
+      const nativePacketOpened = await run(
+        [runtime, bin, 'review', 'inspect'],
+        JSON.stringify(nativePacketValue),
+      );
+      expect(nativePacketOpened.code).toBe(0);
+      expect(JSON.parse(nativePacketOpened.stdout).data).toEqual(nativePacketValue);
+      const nativePreview = await run(
+        [
+          runtime,
+          bin,
+          'patch',
+          'dry-run',
+          '--source',
+          nativeSource,
+          '--session',
+          'native-v2-fixture',
+          '--revision',
+          '0',
+        ],
+        nativePatch,
+      );
+      expect(nativePreview.code).toBe(0);
+      expect(JSON.parse(nativePreview.stdout).data.patch.source.connectionMode).toBe('loose');
+      for (const [family, receiptFile] of [
+        ['c4', 'c4-conversion-v2'],
+        ['ddd', 'ddd-conversion-v2'],
+        ['patch', 'modelling-patch-receipt-v2'],
+      ] as const) {
+        const receiptText = await readFile(
+          new URL(`../../foldkit-zloz/test/fixtures/${receiptFile}.json`, import.meta.url),
+          'utf8',
+        );
+        const nativeReceipt = await run([runtime, bin, family, 'receipt', 'inspect'], receiptText);
+        expect(nativeReceipt.code).toBe(0);
+        expect(JSON.parse(nativeReceipt.stdout).data.authority).toBe('read-only-evidence');
+        if (family !== 'c4')
+          expect(JSON.parse(nativeReceipt.stdout).data.review.losses.length).toBeGreaterThan(0);
+        expect(nativeReceipt.stderr).toBe('');
+      }
+
+      const v2Input = JSON.stringify({
+        format: 'foldkit-zloz-model',
+        version: 2,
+        document: {
+          id: 'v2-model',
+          name: 'V2 model',
+          snapshot: looseWire,
+          editions: [],
+          origin: null,
+        },
+      });
+      const v2Validated = await run([runtime, bin, 'validate'], v2Input);
+      expect(v2Validated.code).toBe(0);
+      expect(JSON.parse(v2Validated.stdout).connectionMode).toBe('loose');
+      const compatibility = await run([runtime, bin, 'compatibility', 'inspect'], v2Input);
+      expect(compatibility.code).toBe(0);
+      expect(JSON.parse(compatibility.stdout).data.downgrade.type).toBe('blocked');
+      expect(JSON.parse(compatibility.stdout).data.checkpoints[0].strictIncompatibleEdges).toEqual([
+        'orders-billing',
+      ]);
+      const v2Projection = await run(
+        [runtime, bin, 'mermaid', 'export', '--loss-policy', 'report'],
+        v2Input,
+      );
+      expect(v2Projection.code).toBe(0);
+      expect(JSON.parse(v2Projection.stdout).data.protocol).toBe('foldkit-zloz-mermaid/v2');
+      expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].sourcePort).toBe('shared');
+      expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].targetPort).toBe('shared');
+      const v2Audit = await run([runtime, bin, 'ddd', 'audit'], v2Input);
+      expect(v2Audit.code).toBe(0);
+      expect(JSON.parse(v2Audit.stdout).connectionMode).toBe('loose');
+
+      const c4Input = JSON.stringify(c4ReceiptWire);
+      const c4Report = await run([runtime, bin, 'c4', 'receipt', 'inspect'], c4Input);
+      expect(c4Report.code).toBe(0);
+      expect(c4Report.stderr).toBe('');
+      expect(c4Report.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(c4Report.stdout)).toMatchObject({
+        operation: 'c4-receipt-inspect',
+        status: 'inspected',
+        data: {
+          authority: 'read-only-evidence',
+          provenance: c4ReceiptWire.source,
+          target: c4ReceiptWire.document,
+        },
+      });
+      const c4Future = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        JSON.stringify({ ...c4ReceiptWire, version: 99 }),
+      );
+      expect(c4Future.code).toBe(1);
+      expect(c4Future.stderr).toBe('');
+      expect(JSON.parse(c4Future.stdout).diagnostics[0].code).toBe('incompatible-c4-receipt');
+      const c4Invalid = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        JSON.stringify({
+          ...c4ReceiptWire,
+          document: { ...c4ReceiptWire.document, name: 'Forged target' },
+        }),
+      );
+      expect(c4Invalid.code).toBe(2);
+      expect(c4Invalid.stderr).toBe('');
+      expect(JSON.parse(c4Invalid.stdout).diagnostics[0].code).toBe('invalid-c4-receipt');
+      const c4Utf8 = await run(
+        [runtime, bin, 'c4', 'receipt', 'inspect'],
+        new Uint8Array([0xc3, 0x28]),
+      );
+      expect(c4Utf8.code).toBe(2);
+      expect(JSON.parse(c4Utf8.stdout).diagnostics[0].code).toBe('invalid-utf8');
+
+      const compareInput = JSON.stringify(dddReview);
+      const dddComparison = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before'],
+        compareInput,
+      );
+      expect(dddComparison.code).toBe(1);
+      expect(dddComparison.stderr).toBe('');
+      expect(dddComparison.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(dddComparison.stdout)).toMatchObject({
+        operation: 'ddd-compare',
+        status: 'compared',
+        data: { summary: { introduced: 2, resolved: 3, persisting: 1 } },
+      });
+      const stable = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before', '--edition', 'ddd-before'],
+        compareInput,
+      );
+      expect(stable.code).toBe(0);
+      expect(stable.stderr).toBe('');
+      expect(JSON.parse(stable.stdout).data.selected.audit.status).toBe('incompatible');
+      const customComparison = await run(
+        [runtime, bin, 'ddd', 'compare', '--baseline', 'ddd-before', '--rules', dddRulesFile],
+        compareInput,
+      );
+      expect(customComparison.code).toBe(0);
+      expect(JSON.parse(customComparison.stdout).data.summary).toEqual({
+        introduced: 0,
+        resolved: 2,
+        persisting: 2,
+      });
+      for (const [args, value, code] of [
+        [['--baseline', 'missing'], compareInput, 'unknown-baseline'],
+        [['--baseline', 'ddd-before', '--edition', 'missing'], compareInput, 'unknown-edition'],
+        [['--baseline', 'ddd-before'], empty, 'model-required'],
+        [['--baseline', 'ddd-before'], '{bad', 'invalid-json'],
+        [['--baseline', 'ddd-before', '--rules', '-'], compareInput, 'invalid-rules'],
+      ] as const) {
+        const invalid = await run([runtime, bin, 'ddd', 'compare', ...args], value);
+        expect(invalid.code).toBe(2);
+        expect(invalid.stderr).toBe('');
+        expect(JSON.parse(invalid.stdout)).toMatchObject({
+          operation: 'ddd-compare',
+          status: 'rejected',
+          diagnostics: [{ code }],
+        });
+      }
+      const missingBaseline = await run([runtime, bin, 'ddd', 'compare'], compareInput);
+      expect(missingBaseline.code).toBe(2);
+      expect(missingBaseline.stdout).toBe('');
+      expect(JSON.parse(missingBaseline.stderr).operation).toBe('invocation');
+      const dddHelp = await run([runtime, bin, 'ddd', 'audit', '--help']);
+      expect(dddHelp.code).toBe(0);
+      expect(dddHelp.stderr).toBe('');
+      expect(dddHelp.stdout).toContain('--rules');
+      const dddIncompatible = await run([runtime, bin, 'ddd', 'audit', '-i', dddFile]);
+      expect(dddIncompatible.code).toBe(1);
+      expect(dddIncompatible.stderr).toBe('');
+      expect(dddIncompatible.stdout.trim().split('\n')).toHaveLength(1);
+      expect(JSON.parse(dddIncompatible.stdout)).toMatchObject({
+        operation: 'ddd-audit',
+        status: 'audited',
+      });
+      expect(JSON.parse(dddIncompatible.stdout).data).toEqual(dddExpected);
+      const dddCompatible = await run(
+        [runtime, bin, 'ddd', 'audit', '--rules', dddRulesFile],
+        dddCustom,
+      );
+      expect(dddCompatible.code).toBe(0);
+      expect(dddCompatible.stderr).toBe('');
+      expect(JSON.parse(dddCompatible.stdout).data.summary).toEqual({
+        edges: 1,
+        typed: 1,
+        unrelated: 0,
+        blocked: 0,
+      });
+      const dddEmpty = await run([runtime, bin, 'ddd', 'audit'], empty);
+      expect(dddEmpty.code).toBe(0);
+      expect(dddEmpty.stderr).toBe('');
+      for (const value of ['{bad', new Uint8Array([0xc3]), ' '.repeat(1048577)]) {
+        const rejected = await run([runtime, bin, 'ddd', 'audit'], value);
+        expect(rejected.code).toBe(2);
+        expect(rejected.stderr).toBe('');
+        expect(JSON.parse(rejected.stdout)).toMatchObject({
+          operation: 'ddd-audit',
+          status: 'rejected',
+        });
+      }
+      const wrongFamily = await run([runtime, bin, 'ddd', 'audit', '--rules', customRules], empty);
+      expect(wrongFamily.code).toBe(2);
+      expect(wrongFamily.stderr).toBe('');
+      expect(JSON.parse(wrongFamily.stdout).diagnostics[0].code).toBe('invalid-rules');
+      const invalidDddFlag = await run([runtime, bin, 'ddd', 'audit', '--family', 'causal']);
+      expect(invalidDddFlag.code).toBe(2);
+      expect(invalidDddFlag.stdout).toBe('');
+      expect(JSON.parse(invalidDddFlag.stderr)).toMatchObject({
+        operation: 'invocation',
+        status: 'rejected',
+      });
+      expect(await readFile(dddFile, 'utf8')).toBe(dddText);
+      expect(await readFile(dddRulesFile, 'utf8')).toBe(dddRulesText);
+      const patchArgs = [
+        runtime,
+        bin,
+        'patch',
+        'dry-run',
+        '--source',
+        patchSourceFile,
+        '--session',
+        patchLiteral.source.sessionId,
+        '--revision',
+        '7',
+      ];
+      const patchDryRun = await run(patchArgs, JSON.stringify(patchLiteral));
+      expect(patchDryRun.code).toBe(0);
+      expect(patchDryRun.stderr).toBe('');
+      expect(JSON.parse(patchDryRun.stdout).data.graph.nodes[0].label).toBe('Order management');
+      const patchStale = await run([...patchArgs.slice(0, -1), '8'], JSON.stringify(patchLiteral));
+      expect(patchStale.code).toBe(1);
+      expect(JSON.parse(patchStale.stdout).data.findings[0].code).toBe('source-changed');
+      const patchInvalid = await run(patchArgs, new Uint8Array([0xc3]));
+      expect(patchInvalid.code).toBe(2);
+      expect(JSON.parse(patchInvalid.stdout).diagnostics[0].code).toBe('invalid-utf8');
+
       const packet = await run([
         runtime,
         bin,
@@ -195,6 +511,35 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         status: 'created',
         data: { format: 'foldkit-zloz-review', comparison: { summary: { introduced: 1 } } },
       });
+      const rawPacket = JSON.stringify(JSON.parse(packet.stdout).data);
+      const reviewPacketFile = path.join(directory, 'portable-review.json');
+      await writeFile(reviewPacketFile, rawPacket);
+      const validated = await run([runtime, bin, 'review', 'validate', '-i', reviewPacketFile]);
+      expect(validated.code).toBe(0);
+      expect(validated.stderr).toBe('');
+      expect(JSON.parse(validated.stdout)).toMatchObject({
+        operation: 'review-validate',
+        status: 'valid',
+        summary: { audit: { status: 'regressed', summary: { introduced: 1 } } },
+      });
+      const inspected = await run([runtime, bin, 'review', 'inspect'], rawPacket);
+      expect(inspected.code).toBe(0);
+      expect(inspected.stderr).toBe('');
+      expect(JSON.parse(inspected.stdout).data).toEqual(JSON.parse(rawPacket));
+      expect(await readFile(reviewPacketFile, 'utf8')).toBe(rawPacket);
+      const badPacket = JSON.parse(rawPacket);
+      badPacket.projections.selected.source += ' forged';
+      const refused = await run([runtime, bin, 'review', 'inspect'], JSON.stringify(badPacket));
+      expect(refused.code).toBe(2);
+      expect(refused.stderr).toBe('');
+      expect(JSON.parse(refused.stdout)).toMatchObject({
+        operation: 'review-inspect',
+        status: 'rejected',
+        diagnostics: [{ code: 'inconsistent-packet', path: '/projections/selected/source' }],
+      });
+      const badUtf8 = await run([runtime, bin, 'review', 'validate'], Uint8Array.of(0xc3));
+      expect(badUtf8.code).toBe(2);
+      expect(JSON.parse(badUtf8.stdout).diagnostics[0].code).toBe('invalid-utf8');
       const strictPacket = await run(
         [runtime, bin, 'review', 'packet', '--baseline', 'baseline'],
         comparisonText,
@@ -378,6 +723,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       expect(missing.code).toBe(2);
       expect(JSON.parse(missing.stdout).diagnostics[0].code).toBe('input-unavailable');
     }
+    await verifyRuntime(selectedRuntime);
     expect(await readFile(modelFile, 'utf8')).toBe(graph);
     expect(await readFile(portableFile, 'utf8')).toBe(modelText);
     expect(await readFile(comparisonFile, 'utf8')).toBe(comparisonText);
@@ -396,7 +742,15 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     ).toContain('unsupported-label-encoding');
     await writeFile(
       path.join(directory, 'consumer.ts'),
-      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse } from '@opsydyn/foldkit-zloz-cli';
+      `import { CliReviewInputRejected, CliAuditRegression, readDocument, readGraph, run, cliProtocol, type CliDocument, type CliResponse, type CliC4ReceiptInspection } from '@opsydyn/foldkit-zloz-cli';
+const c4Authority:CliC4ReceiptInspection['authority']='read-only-evidence'; void c4Authority;
+// @ts-expect-error Historical loss acceptance is never current Apply authority.
+const c4Apply:CliC4ReceiptInspection['authority']='apply-authorized'; void c4Apply;
+const c4Scope:Extract<CliResponse,{operation:'c4-receipt-inspect',status:'inspected'}>['scope']='recorded-conversion'; void c4Scope;
+const dddDelta:Extract<CliResponse,{operation:'ddd-compare',status:'compared'}>['data']['summary']={introduced:0,resolved:0,persisting:0}; void dddDelta;
+const dddReport:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0}; void dddReport;
+// @ts-expect-error DDD response data never has an inference count.
+const dddInference:Extract<CliResponse,{status:'audited',operation:'ddd-audit'}>['data']['summary']={edges:0,typed:0,unrelated:0,blocked:0,inferred:1}; void dddInference;
 const packet:Extract<CliResponse,{status:'created'}>['data']['format']='foldkit-zloz-review'; void packet; void CliReviewInputRejected;
 const comparison:Extract<CliResponse,{status:'compared'}>['data']['summary']={introduced:0,resolved:1,persisting:2}; void comparison; void CliAuditRegression;
 const result: CliResponse = { protocol: cliProtocol, operation: 'validate', status: 'valid', summary: { nodes: 0, edges: 0 }, diagnostics: [] }; void run; void result; void readDocument; void readGraph; const document: CliDocument = { kind: 'snapshot', snapshot: { graph: { nodes: [], edges: [] } } }; void document;`,
@@ -417,7 +771,7 @@ const result: CliResponse = { protocol: cliProtocol, operation: 'validate', stat
           mode,
           'consumer.ts',
         ],
-        { cwd: directory },
+        { cwd: directory, timeout: 30_000, killSignal: 'SIGKILL' },
       );
     await writeFile(
       path.join(directory, 'signal.mjs'),
@@ -431,6 +785,8 @@ NodeRuntime.runMain(main.pipe(Effect.provide(NodeServices.layer)),{disableErrorR
       stdin: 'pipe',
       stdout: 'pipe',
       stderr: 'pipe',
+      timeout: 10_000,
+      killSignal: 'SIGKILL',
     });
     const reader = child.stderr.getReader();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -456,4 +812,12 @@ NodeRuntime.runMain(main.pipe(Effect.provide(NodeServices.layer)),{disableErrorR
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-}, 60_000);
+}
+
+// Each runtime gets its own cold package fixture and budget. Keep these serial:
+// pack:check rebuilds shared workspace outputs, even when Bun uses --concurrent.
+test.serial.each(['node', 'bun'] as const)(
+  'qualified tarballs preserve %s exit, I/O and consumer type contracts',
+  qualifyInstalledRuntime,
+  120_000,
+);

@@ -27,6 +27,34 @@ const NearbyTarget = Schema.Struct({
 });
 export const BrowserInput = Schema.Union([
   Schema.Struct({
+    type: Schema.Literal('EdgeWaypointDragStarted'),
+    id: Schema.String,
+    waypointId: Schema.String,
+    revision: Schema.Number,
+    ...Pointer,
+    point: Point,
+    snapBypassed: Schema.optionalKey(Schema.Boolean),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeWaypointNudged'),
+    id: Schema.String,
+    waypointId: Schema.String,
+    revision: Schema.Number,
+    delta: Point,
+    snapBypassed: Schema.optionalKey(Schema.Boolean),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeWaypointRemoved'),
+    id: Schema.String,
+    waypointId: Schema.String,
+    revision: Schema.Number,
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeWaypointSnapBypassChanged'),
+    ...Pointer,
+    bypassed: Schema.Boolean,
+  }),
+  Schema.Struct({
     type: Schema.Literal('ContextOpened'),
     context: Schema.Struct({
       kind: Schema.Literals(['node', 'edge']),
@@ -97,6 +125,7 @@ export const BrowserInput = Schema.Union([
     target: Schema.optionalKey(Endpoint),
     nearbyTargets: Schema.optionalKey(Schema.Array(NearbyTarget)),
     portAnchorSnapBypassed: Schema.optionalKey(Schema.Boolean),
+    waypointSnapBypassed: Schema.optionalKey(Schema.Boolean),
   }),
   Schema.Struct({
     type: Schema.Literal('ReconnectionDragStarted'),
@@ -153,6 +182,7 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({
     type: Schema.Literal('PortActivated'),
     endpoint: Endpoint,
+    end: Schema.optionalKey(Schema.Literals(['source', 'target'])),
   }),
   Schema.Struct({
     type: Schema.Literals([

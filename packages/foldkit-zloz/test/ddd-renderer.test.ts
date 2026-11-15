@@ -1,5 +1,6 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Node outline geometry is a domain contract. */
 import { expect, test } from 'bun:test';
+import assert from 'node:assert/strict';
 
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -23,6 +24,7 @@ import {
   type EditorEvent,
   type EditorState,
   type ZlozGraph,
+  type ZlozNode,
 } from '../src/index';
 
 const graph: ZlozGraph = {
@@ -36,6 +38,7 @@ const graph: ZlozGraph = {
         'domain-service',
         'repository',
         'bounded-context',
+        'read-model',
       ] as const
     ).map((role, index) =>
       createArchitectureNode({
@@ -115,9 +118,9 @@ async function render(
   return window.document;
 }
 
-test('all eight DDD roles retain native semantics, canonical geometry and family fallback', async () => {
+test('all nine DDD roles retain native semantics, canonical geometry and family fallback', async () => {
   const document = await render();
-  expect(document.querySelectorAll('[data-flow-ddd-node]')).toHaveLength(7);
+  expect(document.querySelectorAll('[data-flow-ddd-node]')).toHaveLength(8);
   expect(document.querySelectorAll('[data-flow-ddd-group]')).toHaveLength(2);
   for (const label of [
     'Entity',
@@ -138,6 +141,9 @@ test('all eight DDD roles retain native semantics, canonical geometry and family
   expect(document.querySelector('[data-flow-ddd-group="bounded-context"]')?.textContent).toContain(
     'Supporting subdomain',
   );
+  expect(
+    document.querySelector('[data-flow-node="read-model"] [data-flow-ddd-type]')?.textContent,
+  ).toBe('Read Model');
   const repository = document.querySelector('[data-flow-node="repository"]');
   expect(repository?.querySelector('[data-flow-ddd-outline]')?.getAttribute('d')).toBe(
     nodeShapeGeometry(graph.nodes[5]!).outlinePath,
@@ -238,4 +244,40 @@ test('custom body and controls can be omitted without losing ports, dimensions o
       '[data-flow-ddd-node] [data-flow-resize], [data-flow-ddd-group] [data-flow-resize]',
     ),
   ).toHaveLength(0);
+});
+
+test('declared group header geometry composes custom content and keeps compact collapsed headings', async () => {
+  const node = graph.nodes.find((n) => n.id === 'bounded-context-boundary');
+  assert(node);
+  const state = createEditor({ nodes: [node], edges: [] });
+  const options = {
+    groupHeader: {
+      id: node.id,
+      size: { width: 600, height: 112 },
+      padding: { top: 24, right: 24, bottom: 24, left: 24 },
+      gap: 24,
+    },
+    renderBody: (_context: { node: ZlozNode }, h: HtmlBuilder<EditorEvent>) =>
+      h.div([h.DataAttribute('custom-group-heading', '')], ['Custom architecture heading']),
+  };
+  const document = await render(state, options, { minimalMode: true });
+  const header = document.querySelector('[data-zloz-group-header]');
+  expect(header?.getAttribute('style')).toContain('width: 600px');
+  expect(header?.getAttribute('style')).toContain('height: 112px');
+  expect(header?.getAttribute('style')).toContain('left: 24px');
+  expect(header?.getAttribute('style')).toContain('top: 24px');
+  expect(header?.textContent).toContain('Custom architecture heading');
+  const intrinsic = await render(state, {
+    ...options,
+    groupHeader: { ...options.groupHeader, sizing: 'intrinsic' },
+  });
+  expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
+    'width: max-content',
+  );
+  expect(intrinsic.querySelector('[data-zloz-group-header]')?.getAttribute('style')).toContain(
+    'height: max-content',
+  );
+  const collapsed = await render({ ...state, collapsedGroups: [node.id] }, options);
+  expect(collapsed.querySelector('[data-zloz-group-header]')).toBeNull();
+  expect(collapsed.querySelector('[data-custom-group-heading]')).not.toBeNull();
 });

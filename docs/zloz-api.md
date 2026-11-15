@@ -297,3 +297,49 @@ and [ADR 0035](adr/0035-export-portable-review-packets.md).
 `CliDiagnostic` also exposes an exact optional `side` field for packet diagnostics,
 including projection rejection. Its schema retains that field when decoding;
 existing command diagnostics omit it and retain their original JSON shape.
+
+### Read-only review-packet readers (unreleased)
+
+The optional Mermaid package exports `createReviewReader`, `reviewReaderForScope`,
+`resolveReviewReader` and `updateReviewReader` with typed state, request, side,
+options and update contracts. Its `/foldkit` entry exports `zlozReviewReader` and
+view options/parts. Hosts own bounded IO, unique model-incarnation scopes and
+detached read-only canvases. Stale, cancelled, invalid or protected reads retain
+the last accepted packet and side; opening grants no model-edit authority.
+See the [reader guide](../packages/foldkit-zloz-mermaid/README.md#read-only-packet-reader-unreleased)
+and [ADR 0059](adr/0059-open-review-packets-with-detached-reader-controls.md).
+
+### Modelling-patch proposals and dry runs (unreleased)
+
+Core exports `captureModellingPatch` and `dryRunModellingPatch` with public source,
+provenance, operation, proposal, change, loss, finding, candidate, preview and
+options types. Six explicit node/edge add/replace/remove operations produce a
+detached frozen prospective graph after source identity/revision/content and core
+invariant checks. Review policies disclose blockers without hiding valid proposals.
+No editor mutation or Apply authority follows from dry run. See the
+[contract guide](../packages/foldkit-zloz/README.md#headless-modelling-patches-and-dry-runs-unreleased),
+[ADR 0060](adr/0060-preview-bounded-modelling-patches-before-apply.md) and
+[local evidence](../packages/foldkit-zloz/evidence/modelling-patch.md).
+
+### Strict modelling-patch text decoding (unreleased)
+
+Core exports `parseModellingPatch`, `ZlozModellingPatchParseOptions` and
+`ZlozModellingPatchParseResult`. Decode one raw v1 proposal with bounded JSON
+grammar/duplicate-key preflight followed by the existing object validator.
+`parsed` contains owned frozen data; `rejected` contains a code, reason and JSON
+Pointer path. Configuration can tighten the v1 character/depth/value caps.
+Decoding grants no dry-run success or Apply authority. See the
+[decoder guide](../packages/foldkit-zloz/README.md#strict-versioned-patch-decoding-unreleased)
+and [ADR 0061](adr/0061-decode-versioned-modelling-patch-text-strictly.md).
+
+### Reviewed patch Apply and controls (unreleased)
+
+Core exports `resolveModellingPatchReview`, `resolveModellingPatchAcknowledgement`
+and `applyModellingPatch`, plus identity, consent, options, review/request, receipt
+and Apply-result types. The optional `/foldkit` entry exposes the native review,
+acknowledgement and Apply helpers with nullable slots/layout and diagnostic controls.
+Apply reconstructs current source and policy, requires exact-content acknowledgement,
+and returns the editor and provenance receipt together after one Undo commit.
+The Effect CLI adds inspect-only `patch dry-run` against a separate current source.
+See [ADR 0062](adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md) and
+[completion evidence](../apps/zloz-demo/evidence/p2-completion.md).

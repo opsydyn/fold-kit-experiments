@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Add native v2 review packet creation, strict recomputing decoding and independent read-only side opening, with explicit reopening budgets and unchanged v1 readers.
+
+- Add explicit v2 connection-document export with retained mode, ordered identity and source-only loss reporting; legacy graph export stays strict.
+
+- Add a pure guarded review-packet reader and composable Foldkit opening/comparison controls.
+
+- Add pure, content-bound review-packet export controls and optional composable Foldkit views.
+
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.2.0...foldkit-zloz-mermaid-v0.3.0) (2026-11-10)
 
 ### Features

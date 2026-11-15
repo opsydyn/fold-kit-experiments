@@ -6,11 +6,18 @@ import {
   ZlozError,
   portPosition,
   portBoundaryPosition,
-  validateGraph,
+  validateLayoutRequest,
+  resolveLayoutGroupHeader,
   type EdgeRoute,
   type LayoutEngine,
 } from '@opsydyn/foldkit-zloz';
-import type { ELK as ElkInstance, ElkNode, ElkEdgeSection } from 'elkjs/lib/elk-api';
+import type {
+  ELK as ElkInstance,
+  ElkNode,
+  ElkEdgeSection,
+  ElkLabel,
+  LayoutOptions as ElkLayoutProperties,
+} from 'elkjs/lib/elk-api';
 import ELK from 'elkjs/lib/elk.bundled.js';
 
 export type ElkLayoutOptions = Readonly<{
@@ -53,14 +60,44 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
   if (!Number.isFinite(spacing) || spacing <= 0)
     throw new ZlozError('invalid-layout', 'Layout spacing must be positive and finite');
   return async (request) => {
-    validateGraph(request.graph);
+    validateLayoutRequest(request);
+    const labelHints = new Map((request.edgeLabels ?? []).map((label) => [label.id, label]));
+    const groupHeaders = new Map((request.groupHeaders ?? []).map((header) => [header.id, header]));
     const nodeIds = new Map(request.graph.nodes.map((node, index) => [node.id, `n:${index}`]));
     const portIds = new Map<string, Map<string, string>>();
     const hasGroups = request.graph.nodes.some((node) => node.kind === 'group');
+    const layoutOptions = {
+      'elk.algorithm': 'layered',
+      'elk.direction': options.direction ?? 'RIGHT',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.spacing.nodeNode': String(spacing),
+      'elk.layered.spacing.nodeNodeBetweenLayers': String(spacing),
+    } as const;
     const children: ElkNode[] = [];
     const elkNodes = new Map(
       request.graph.nodes.map((node, index): [string, ElkNode] => {
-        if (node.kind === 'group')
+        if (node.kind === 'group') {
+          const hint = groupHeaders.get(node.id);
+          const header = hint ? resolveLayoutGroupHeader(node, hint) : undefined;
+          const groupOptions: ElkLayoutProperties = {
+            ...layoutOptions,
+            'elk.padding': '[top=52,left=24,bottom=24,right=24]',
+          };
+          if (header) {
+            const p = header.contentPadding;
+            groupOptions['elk.padding'] =
+              `[top=${p.top},left=${p.left},bottom=${p.bottom},right=${p.right}]`;
+            groupOptions['elk.nodeSize.constraints'] = 'MINIMUM_SIZE';
+            // ELK 0.12.1 transposes compound graph minima in DOWN, but leaf/empty group minima remain physical.
+            // Keep this correction behind the adapter; nested/empty, wide/tall real-engine regressions qualify upgrades.
+            const transposed =
+              options.direction === 'DOWN' &&
+              request.graph.nodes.some((child) => child.parentId === node.id);
+            const minimum = header.minimumSize;
+            groupOptions['elk.nodeSize.minimum'] = transposed
+              ? `(${minimum.height},${minimum.width})`
+              : `(${minimum.width},${minimum.height})`;
+          }
           return [
             node.id,
             {
@@ -68,9 +105,10 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
               width: node.size.width,
               height: node.size.height,
               children: [],
-              layoutOptions: { 'elk.padding': '[top=52,left=24,bottom=24,right=24]' },
+              layoutOptions: groupOptions,
             },
           ];
+        }
         const ports = new Map(node.ports.map((port, at) => [port.id, `p:${index}:${at}`]));
         portIds.set(node.id, ports);
         return [
@@ -109,32 +147,49 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
     const graph: ElkNode = {
       id: 'graph',
       layoutOptions: {
-        'elk.algorithm': 'layered',
+        ...layoutOptions,
         'elk.hierarchyHandling': hasGroups ? 'INCLUDE_CHILDREN' : 'SEPARATE_CHILDREN',
         'elk.json.shapeCoords': 'ROOT',
         'elk.json.edgeCoords': 'ROOT',
-        'elk.direction': options.direction ?? 'RIGHT',
-        'elk.edgeRouting': 'ORTHOGONAL',
-        'elk.spacing.nodeNode': String(spacing),
-        'elk.layered.spacing.nodeNodeBetweenLayers': String(spacing),
       },
       children,
-      edges: request.graph.edges.map((edge, index) => ({
-        id: `e:${index}`,
-        sources: [portIds.get(edge.source.node)?.get(edge.source.port) ?? ''],
-        targets: [portIds.get(edge.target.node)?.get(edge.target.port) ?? ''],
-      })),
+      edges: request.graph.edges.map((edge, index) => {
+        const base = {
+          id: `e:${index}`,
+          sources: [portIds.get(edge.source.node)?.get(edge.source.port) ?? ''],
+          targets: [portIds.get(edge.target.node)?.get(edge.target.port) ?? ''],
+        };
+        const hint = labelHints.get(edge.id);
+        return hint
+          ? {
+              ...base,
+              labels: [
+                {
+                  id: `l:${index}`,
+                  text: edge.label?.trim() || 'label',
+                  width: hint.size.width,
+                  height: hint.size.height,
+                  layoutOptions: { 'elk.edgeLabels.placement': 'CENTER' },
+                },
+              ],
+            }
+          : base;
+      }),
     };
     const elk = options.elk ?? new ELK();
     const result = await elk.layout(graph);
     const laidOutNodes = new Map<string, ElkNode>();
     const laidOutEdges = new Map<string, ElkEdgeSection[]>();
+    const laidOutLabels = new Map<string, readonly ElkLabel[]>();
     const pending = [result];
     while (pending.length > 0) {
       const node = pending.pop();
       if (!node) break;
       laidOutNodes.set(node.id, node);
-      for (const edge of node.edges ?? []) laidOutEdges.set(edge.id, edge.sections ?? []);
+      for (const edge of node.edges ?? []) {
+        laidOutEdges.set(edge.id, edge.sections ?? []);
+        laidOutLabels.set(edge.id, edge.labels ?? []);
+      }
       for (const child of node.children ?? []) pending.push(child);
     }
     const positions = request.graph.nodes.map((node) => {
@@ -177,12 +232,35 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
         ...points,
         portPosition({ ...targetNode, position: targetPosition }, edge.target.port),
       ];
-      return {
+      const route = {
         id: edge.id,
         points: anchored.filter((point, index) => {
           const previous = anchored[index - 1];
           return !previous || previous.x !== point.x || previous.y !== point.y;
         }),
+      };
+      const hint = labelHints.get(edge.id);
+      if (!hint) return route;
+      const labels = laidOutLabels.get(`e:${index}`) ?? [],
+        label = labels[0];
+      if (
+        labels.length !== 1 ||
+        !label ||
+        label.id !== `l:${index}` ||
+        label.x === undefined ||
+        label.y === undefined ||
+        !Number.isFinite(label.x) ||
+        !Number.isFinite(label.y) ||
+        label.width !== hint.size.width ||
+        label.height !== hint.size.height
+      )
+        throw new ZlozError('invalid-layout', `ELK omitted a valid label box for ${edge.id}`);
+      return {
+        ...route,
+        label: {
+          position: { x: label.x + hint.size.width / 2, y: label.y + hint.size.height / 2 },
+          size: { ...hint.size },
+        },
       };
     });
     return { requestId: request.requestId, revision: request.revision, positions, routes };

@@ -1,4 +1,7 @@
-import { isEdgeArchitecture, type EventStormingEdgeArchitecture } from './architecture';
+import {
+  isEventStormingEdgeArchitecture,
+  type EventStormingEdgeArchitecture,
+} from './architecture';
 import { ZlozError } from './graph';
 import type { EditorPolicy, ZlozEdge, ZlozGraph, ZlozNode } from './types';
 export type EventStormingParticipantRole =
@@ -6,7 +9,8 @@ export type EventStormingParticipantRole =
   | 'command'
   | 'aggregate'
   | 'domain-event'
-  | 'policy';
+  | 'policy'
+  | 'external-system';
 export type ZlozEventStormingRelationshipRule = Readonly<{
   architecture: EventStormingEdgeArchitecture;
   sources: readonly EventStormingParticipantRole[];
@@ -59,10 +63,29 @@ export const eventStormingRelationshipRules: readonly ZlozEventStormingRelations
     rule('activates', 'domain-event', 'policy', 'Activates'),
     rule('triggers', 'policy', 'command', 'Triggers'),
   ]);
+/** ADR 0081: explicit opt-in; preserve the legacy default catalogue for existing portable packets. */
+export const eventStormingWorkshopRelationshipRules: readonly ZlozEventStormingRelationshipRule[] =
+  Object.freeze(
+    eventStormingRelationshipRules.map((item) =>
+      Object.freeze({
+        ...item,
+        sources:
+          item.architecture.role === 'issues' || item.architecture.role === 'emits'
+            ? Object.freeze([...item.sources, 'external-system' as const])
+            : item.sources,
+        targets:
+          item.architecture.role === 'handles'
+            ? Object.freeze([...item.targets, 'external-system' as const])
+            : item.targets,
+      }),
+    ),
+  );
 export function eventStormingParticipantRole(node: ZlozNode): EventStormingParticipantRole | null {
   const value = node.architecture;
   return value?.family === 'event-storming'
-    ? value.role
+    ? value.role === 'hotspot' || value.role === 'lane'
+      ? null
+      : value.role
     : value?.family === 'ddd' && (value.role === 'aggregate' || value.role === 'aggregate-root')
       ? 'aggregate'
       : value?.family === 'ddd' && value.role === 'domain-event'
@@ -80,12 +103,15 @@ export function checkedEventStormingRelationshipRules(
   const ids = new Set<string>();
   for (const item of rules) {
     if (
-      !isEdgeArchitecture(item.architecture) ||
+      !isEventStormingEdgeArchitecture(item.architecture) ||
       !item.label.trim() ||
       !item.sources.length ||
       !item.targets.length ||
       [...item.sources, ...item.targets].some(
-        (role) => !['actor', 'command', 'aggregate', 'domain-event', 'policy'].includes(role),
+        (role) =>
+          !['actor', 'command', 'aggregate', 'domain-event', 'policy', 'external-system'].includes(
+            role,
+          ),
       ) ||
       ids.has(eventStormingRelationshipKey(item.architecture))
     )
@@ -104,6 +130,8 @@ export function resolveEventStormingRelationship(
   options: ZlozEventStormingRelationshipOptions = {},
 ): ZlozEventStormingRelationshipDecision {
   const rules = checkedEventStormingRelationshipRules(options);
+  if (edge.architecture && edge.architecture.family !== 'event-storming')
+    return { type: 'unrelated' };
   const source = graph.nodes.find((node) => node.id === edge.source.node),
     target = graph.nodes.find((node) => node.id === edge.target.node);
   if (!source || !target)
@@ -113,8 +141,13 @@ export function resolveEventStormingRelationship(
       reason: 'Relationship endpoints must exist in the current graph.',
     };
   const roleOf = options.roleOf ?? eventStormingParticipantRole;
-  const from = roleOf(source),
-    to = roleOf(target);
+  const participant = (node: ZlozNode) =>
+    node.architecture?.family === 'event-storming' &&
+    (node.architecture.role === 'hotspot' || node.architecture.role === 'lane')
+      ? null
+      : roleOf(node);
+  const from = participant(source),
+    to = participant(target);
   if (!edge.architecture && !from && !to) return { type: 'unrelated' };
   if (!from || !to)
     return {

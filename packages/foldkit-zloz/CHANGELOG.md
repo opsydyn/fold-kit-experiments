@@ -1,5 +1,79 @@
 # Changelog
 
+## Unreleased
+
+- Add native v2 audits/comparisons, mode-pinned modelling patches with atomic Apply/receipts, and C4/DDD conversion plans/Apply/portable receipts. Preserve strict v1 wrappers and validate native evidence before reopening.
+
+- Add v2 portable capability review and mode-aware layout requests/Apply, preserving graph-and-mode Undo.
+
+- Complete v2 history workflows: atomic/idempotent merge, guarded graph+mode restore with one Undo, full-mode history frames in v2 model sessions, pinned mixed-mode playback and side-aware ghosts. Retain incompatible cross-mode clipboard data with visible paste rejection. Legacy graph-only sessions and wire formats remain unchanged.
+
+- Add mode-preserving v2 edition append with full archive validation, frozen output and explicit duplicate/conflict results carrying read-only comparison pins. Fix shared JSON equality for reordered distinct Unicode keys with equal locale collation.
+
+- Add v2 mode-aware change navigation with scoped cursors, chosen-side focus, live protection reasons and native/custom controls; mode inspection emits no camera or editing event.
+
+- Add validated v2 comparison presentation with composable mode/status text and shared inert ghosts; preserve per-layer preferences through minimal mode.
+
+- Add immutable v2 edition comparison with explicit mode-only semantic changes, shared graph deltas and legacy rejection of explicit v2/loose comparison inputs.
+
+- Add v2 edition-owned forking with fresh policy checks, immutable immediate-parent provenance and checkpoint mode/camera retention; compose with v2 initialization for independent target history.
+
+- Add v2 canonical model initialization and independent read-only edition review, retaining checkpoint modes and immutable pins with fail-closed navigation and fresh history.
+
+- Define explicit canonical v2 model/edition codecs with per-checkpoint connection mode, explicit legacy upgrade and whole-document downgrade findings; prevent current v1 writers from silently dropping explicit v2/loose snapshot intent.
+
+- Adopt fixed editor mode in native mouse/touch wiring, snapping and activation; expose composable source/target port feedback and scope input bindings by view ID. Preserve single activation across pointer release and synthesized click.
+
+- Adopt explicit v2 connection documents in the headless editor with fixed session mode, policy-aware creation/reconnection contexts and atomic Undo; legacy initialization remains strict.
+
+- Add standalone v2 strict/loose connection documents, a shared port-kind matrix and explicit downgrade review. Legacy v1 codecs/initialization remain strict; explicit editor adoption is listed above.
+
+- Add composable native external-system/hotspot/lane renderers, semantic status descriptions, scoped theme accents, live workshop role/status controls and a reusable starter. Guard port additions to portless annotations/frames; demonstrate keyboard, protection, diagnostics and Undo in the workbench.
+
+- Define headless EventStorming external-system participants, portless hotspot annotations with authored status and organizational lane groups; add strict codecs, semantic projection and opt-in workshop conventions while preserving default packet compatibility and explicit renderer/export limits.
+
+- Add read-only DDD current/edition review, deterministic audit comparison, composable FoldKit controls and fresh policy-aware edge/source/target navigation.
+
+- Add headless DDD relationship audit with deterministic detached reports, current convention resolution, explicit unrelated edges and separate graph/catalogue validation; no inferred meaning or graph mutations.
+
+- Adopt retained-layout PNG review/encoding with immutable queued route/label snapshots, independent workbench opt-in, stale-result suppression and existing pixel/byte budgets.
+
+- Render opted-in retained SVG routes and centre-anchored labels; expose frozen geometry to vector adapters and exact-artifact review. Correct retained label bounds to use the native centre-anchor convention.
+
+- Add opt-in detached SVG layout planning with exact-source/renderer freshness, effective route/label bounds and explicit fidelity findings; the initial writer guard is superseded by retained SVG rendering above.
+
+- Add opt-in intrinsic C4/DDD group-heading measurement with size-free spacing specs, complete-batch validation and source/revision/renderer/visibility freshness, sharing scoped resources with edge measurement.
+
+- Add explicit group-header layout envelopes, shared C4/DDD header geometry and atomic child-area validation without changing graph persistence.
+
+- Add opt-in rendered label measurement with scoped Foldkit lifecycle resources, complete-batch validation, source/revision/renderer freshness and explicit re-layout.
+
+- Add explicit composite edge-label layout envelopes, validated transient result boxes and shared view, controls, fit/reveal and culling support, preserving geometry policy and Undo semantics.
+
+- Add native DDD read-model nodes, explicit tactical feeds relationships and framework-neutral declared-consumption resolution, reusing existing policy/editing/Undo and v1 persistence.
+
+- Add bounded package PNG planning, exact-source review controls and optional browser encoding/download with explicit fidelity losses, cancellation and cleanup.
+
+- Add reviewed modelling-patch controls and live policy-aware atomic Apply with retained provenance and one Undo.
+
+- Add strict versioned patch text decoding with duplicate-key, JSON grammar/framing, finite-number and resource-limit checks.
+
+- Add bounded data-only modelling-patch proposals, source/provenance checks and immutable dry-run previews with policy/loss findings.
+
+- Add atomic EventStorming-to-DDD Apply with live source/consent/lifecycle/policy checks, one graph Undo and portable before/after provenance receipts.
+
+- Add headless EventStorming-to-DDD conversion plans with pinned source provenance, whole-plan blockers and exact-plan affirmative loss consent; no Apply transaction.
+
+- Add a pure EventStorming-to-DDD mapping preview with explicit per-ID choices, unresolved intent, DDD compatibility and prospective semantic-loss disclosures.
+
+- Add composable DDD pattern and side-role editing controls with live policy/revision checks and native Foldkit helpers.
+
+- Add context-map starter, semantic projection, composable connectors and participant badges.
+- Allow custom semantic labels on unlabeled edges while retaining default fallback visibility.
+
+- Add typed tactical and strategic DDD relationship contracts, pure resolution and opt-in editor policy.
+- Preserve DDD descriptors across codecs, Undo and history; protect them from causal-only controls and audits.
+
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.2.0...foldkit-zloz-v0.3.0) (2026-11-10)
 
 ### Features

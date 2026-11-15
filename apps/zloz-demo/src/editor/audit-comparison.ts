@@ -10,12 +10,14 @@ import {
   type ZlozEdition,
 } from '@opsydyn/foldkit-zloz';
 
+import { workbenchRelationshipOptions } from './event-storming-relationships';
 import type { Model } from './model';
 import { modelSessionBusy, workbenchDocument } from './model-sessions';
 import { pauseHistoryPlayback, playbackInspectionReason } from './playback';
 
 function options(model: Model) {
   return {
+    ...workbenchRelationshipOptions(model),
     blockedReason:
       playbackInspectionReason(model) ??
       (!(model.historyReview?.editor.surface ?? model.editor.surface)

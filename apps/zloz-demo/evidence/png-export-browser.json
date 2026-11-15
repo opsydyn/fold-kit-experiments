@@ -1,0 +1,37 @@
+{
+  "browser": "151.0.7922.34",
+  "model": {
+    "width": 828,
+    "height": 268,
+    "bytes": 12798
+  },
+  "viewport": {
+    "width": 2380,
+    "height": 2052,
+    "bytes": 121823
+  },
+  "previewDownloadEqual": true,
+  "cleanup": {
+    "urls": 0,
+    "canvases": [
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0]
+    ]
+  },
+  "nativeOutcomes": {
+    "consent": "loss-consent-required",
+    "success": "rendered",
+    "custom": "rendered",
+    "limit": "plan-blocked",
+    "changed": "source-changed",
+    "bytes": "output-invalid",
+    "empty": "encoding-failed",
+    "timeout": "timeout",
+    "aborted": "aborted"
+  },
+  "pageErrors": []
+}

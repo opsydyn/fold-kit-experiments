@@ -1,0 +1,120 @@
+{
+  "format": "foldkit-zloz-editions",
+  "version": 2,
+  "editions": [
+    {
+      "id": "strict-start",
+      "name": "Strict foundation",
+      "snapshot": {
+        "version": 2,
+        "connectionMode": "strict",
+        "graph": {
+          "nodes": [
+            {
+              "id": "a",
+              "label": "Orders",
+              "position": { "x": 90, "y": 140 },
+              "size": { "width": 220, "height": 130 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "right", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            },
+            {
+              "id": "b",
+              "label": "Billing",
+              "position": { "x": 440, "y": 140 },
+              "size": { "width": 220, "height": 130 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            }
+          ],
+          "edges": []
+        }
+      }
+    },
+    {
+      "id": "loose-evolved",
+      "name": "Loose collaboration",
+      "snapshot": {
+        "version": 2,
+        "connectionMode": "loose",
+        "graph": {
+          "nodes": [
+            {
+              "id": "a",
+              "label": "Orders",
+              "position": { "x": 140, "y": 320 },
+              "size": { "width": 220, "height": 130 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "right", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            },
+            {
+              "id": "b",
+              "label": "Billing",
+              "position": { "x": 440, "y": 140 },
+              "size": { "width": 220, "height": 130 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "shared-inputs",
+              "source": { "node": "a", "port": "in" },
+              "target": { "node": "b", "port": "in" },
+              "label": "Loose-mode link"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "captured-1",
+      "name": "Captured loose working state",
+      "snapshot": {
+        "version": 2,
+        "connectionMode": "loose",
+        "graph": {
+          "nodes": [
+            {
+              "id": "a",
+              "label": "Orders",
+              "position": { "x": 140, "y": 320 },
+              "size": { "width": 220, "height": 64 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "right", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            },
+            {
+              "id": "b",
+              "label": "Billing",
+              "position": { "x": 440, "y": 140 },
+              "size": { "width": 220, "height": 64 },
+              "ports": [
+                { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+                { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "shared-inputs",
+              "source": { "node": "a", "port": "in" },
+              "target": { "node": "b", "port": "in" },
+              "label": "Loose-mode link"
+            }
+          ]
+        },
+        "viewport": { "x": 0, "y": 0, "zoom": 1 }
+      }
+    }
+  ]
+}

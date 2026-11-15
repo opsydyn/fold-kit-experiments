@@ -1,0 +1,35 @@
+{
+  "literal": {
+    "status": "parsed",
+    "model": {
+      "id": "orders",
+      "name": "Orders"
+    },
+    "baseline": {
+      "kind": "edition",
+      "id": "before",
+      "name": "Before"
+    },
+    "selected": {
+      "kind": "current"
+    },
+    "summary": {
+      "introduced": 1,
+      "resolved": 0,
+      "persisting": 0
+    },
+    "frozen": true
+  },
+  "inconsistent": {
+    "status": "rejected",
+    "code": "inconsistent-packet",
+    "reason": "Packet content differs from its recomputed snapshots, audit, conventions or projections.",
+    "path": "/diagnostics"
+  },
+  "wide": {
+    "status": "rejected",
+    "code": "limit-exceeded",
+    "reason": "Review packet exceeds its JSON value budget.",
+    "path": ""
+  }
+}

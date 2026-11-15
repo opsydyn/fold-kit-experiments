@@ -600,3 +600,136 @@ Inspect contains selected-item/port controls and the connection list. Diagnostic
 opens its options directly. The Mermaid section retains explicit loss consent
 and nested hierarchy metadata. Diagram handles, contextual editing and feedback
 remain on the canvas. See [layout evidence](evidence/sidebar.md).
+
+### Workshop mapping review
+
+Open **Diagram → Open event-storming example**, then **Mapping review**. Inspect a
+node or connection, use convention proposals, choose explicit DDD meaning or keep
+the workshop meaning. The panel composes the package's
+`previewEventStormingDddMapping`; it displays ambiguity, incompatibility and
+prospective semantic-loss reasons beside the unchanged source canvas.
+
+Choices are temporary and reset when the displayed source/session changes. They do
+not enter graph JSON, editions or Undo. History supports inspection while choices
+are disabled with an explanation. Minimal/global diagnostics hide optional numeric
+summary badges while preserving functional choices and reasons. Preview choices
+leave the graph untouched; guarded Apply below publishes an acknowledged conversion.
+
+See [local browser evidence](evidence/mapping-review.md) for light/dark captures and
+source-preservation checks.
+
+Inside **Mapping review**, expand **Conversion plan review** to inspect source
+provenance, blockers and all prospective semantic losses. Resolve uncertain mappings
+or explicitly keep their workshop meaning before acknowledging losses. The native
+checkbox records acknowledgement only for the exact current package plan; uncheck
+it to withdraw. Source, camera, mapping, archive and model/history changes invalidate
+it. The app also rejects old checkbox callbacks after a change-and-revert.
+
+Provenance and loss reasons remain available with diagnostics hidden. Acknowledgement
+is temporary UI state and is absent from exported model JSON and Undo. Acknowledgement
+records review; the Apply control independently rechecks current source and policies.
+See [plan review evidence](evidence/mapping-plan.md) for the real fork/provenance flow
+and light/dark captures.
+
+### Apply and retain conversion receipts
+
+After resolving or explicitly retaining uncertain mappings, acknowledge the listed
+losses in **Conversion plan review** and choose **Apply DDD conversion**. The package
+transaction checks the live source, lifecycle, loss consent and current editing
+policy. **Protect conversion Apply** demonstrates a live veto with a visible reason.
+Enabled semantic conventions validate the complete final affected graph; editing
+protections remain in force. Failed or stale Apply publishes neither editor changes
+nor a receipt.
+
+Success publishes the editor and complete immutable receipt in one Foldkit update.
+One Undo restores the source graph; Redo restores the conversion. **Retained conversion
+receipts** remain independent of those graph actions, source edits and model switches.
+Each active model shows its own receipts. **Download conversion receipt** exports
+the package's full original/converted model and mapping envelope through a Command.
+Failures leave the receipt retained for retry. Receipts live in this tab: download
+them to preserve provenance after closing it. Model-only JSON does not contain the
+receipt collection. No automatic persistence or conversion replay is provided. Downloaded receipts
+can be reopened for read-only comparison, as described below.
+
+See [Apply browser evidence](evidence/mapping-apply.md) for source/target equality,
+Undo/Redo, per-model retention, policy guards and light/dark captures.
+
+### Reopen a downloaded conversion receipt
+
+In **Mapping review**, choose **Open conversion receipt** and select the downloaded
+`foldkit-zloz.conversion-*.json` file (UTF-8 v1 JSON, up to 5 MiB). The workbench
+validates its original/converted documents and opens a detached **read-only receipt**
+canvas. Use **Before conversion**, **After conversion** and **Show receipt overview**
+to inspect the recorded change. The sidebar shows semantic/layout differences,
+ancestry, source identifiers and recorded loss reasons. Theme and minimal diagnostics
+remain available; editing controls are unavailable during comparison.
+
+**Return to working model** or **Close comparison** restores the exact working
+editor and Undo history, including any edition you were inspecting. Opening a
+receipt never activates its model, appends an Apply receipt or grants loss consent.
+Validation checks data consistency, not authorship. Invalid or tampered files leave
+the last valid comparison intact; retry or cancel the pending read. Comparison state
+is tab-local; reopen the original file after closing the tab.
+
+See [local browser evidence](evidence/receipt-review.md) and
+[ADR 0047](../../docs/adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md).
+
+Each recorded change also has **Focus before** and **Focus after** controls. They
+select that side and frame the node or the connection's endpoints using Zloz's
+public history navigation primitives. The chosen row is highlighted, and native
+buttons retain keyboard focus. If the canvas is not measured, a gesture is active
+or another receipt is being read, controls show the reason they are unavailable.
+Manual camera navigation clears the marker; mount-time capture cancellation does
+not. The receipt, working model and Undo history remain unchanged.
+
+See [receipt focus evidence](evidence/receipt-focus.md).
+
+**Previous change** and **Next change** walk recorded changes while keeping the
+chosen Before/After side. Next starts at the first change; controls stop at each
+end and show why they are unavailable. The position readout remains available in
+minimal mode. Stale queued clicks cannot advance from a different receipt, side
+or selection. This composes the package's public `resolveHistoryChangeStep` with
+the existing detached focus adapter. See [step navigation evidence](evidence/receipt-step.md).
+
+Switching **Before conversion** / **After conversion** now keeps the focused node
+or connection and its Previous/Next position. **Show receipt overview** explicitly
+clears selection and fits all nodes without changing the comparison side. These
+controls recheck current receipt scope and show availability reasons for pending
+reads, gestures or missing canvas measurement. No focused change means side
+switching uses the recorded snapshot camera.
+
+See [side continuity and overview evidence](evidence/receipt-side.md).
+
+### Apply a reviewed C4 conversion
+
+Open **C4 mapping review** for a workshop model. Explicitly map or retain every
+node and relationship, then review each required placement under **C4 conversion
+plan review**. Inspect the source provenance and exact losses, acknowledge them,
+and choose **Apply C4 conversion**. The canvas changes in one Undo step.
+
+The action shows current protection reasons. **Protect C4 conversion Apply** lets
+you demonstrate a host veto; unlocking requires a fresh loss acknowledgement.
+Enabled semantic relationship rules also check the final affected connections.
+Retaining a workshop link may therefore block conversion if its reinterpreted
+endpoints no longer satisfy the rule. Review explicit communication mappings or
+change the policy before acknowledging again.
+
+**Retained C4 conversions** shows original and target meaning plus reviewed
+placement. Records survive Undo/Redo and model/example changes within this tab.
+Choose **Download C4 receipt** to preserve a validated `foldkit-zloz.c4-conversion-*.json`
+file across reloads. **Open conversion receipt** accepts C4 or DDD v1 JSON (one UTF-8
+file, at most 5 MiB). C4 opens in this sidebar with a detached read-only canvas,
+recorded losses, Before/After, change navigation and overview. Invalid files preserve
+the last valid comparison and the working editor. Close comparison to return to the
+exact working editor and Undo history; importing never applies, retains a new
+conversion record or grants current loss consent.
+
+Downloads above the 5 MiB reopening limit are refused with visible feedback, leaving
+the retained record available. Receipts validate source/choices/target consistency,
+not authorship. Records remain
+in memory for retry if download fails. Reloading loses the tab-local collection;
+model JSON exports the current document without it. See
+[production browser evidence and light/dark captures](evidence/c4-apply.md).
+
+See [C4 portable receipt qualification](evidence/c4-receipt.md) for strict literal
+wire tests, validation/rejection cases, read-only navigation and light/dark evidence.

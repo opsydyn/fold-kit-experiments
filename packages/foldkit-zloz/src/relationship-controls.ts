@@ -1,4 +1,5 @@
 import type { EventStormingEdgeArchitecture } from './architecture';
+import { dddRelationshipKey } from './ddd-relationships';
 import {
   eventStormingRelationshipKey,
   checkedEventStormingRelationshipRules,
@@ -76,8 +77,14 @@ export function resolveEventStormingRelationshipControls(
   options: ZlozEventStormingRelationshipControlsOptions = {},
 ): ZlozEventStormingRelationshipControlsContext {
   const edge = state.graph.edges.find((item) => item.id === edgeId) ?? null;
+  const architecture = edge?.architecture?.family === 'event-storming' ? edge.architecture : null;
+  const foreignArchitecture = edge?.architecture?.family === 'ddd' ? edge.architecture : null;
+  const foreign = foreignArchitecture !== null;
   const reason =
     denial(options.blockedReason) ??
+    (foreign
+      ? 'This connection carries DDD meaning; causal controls cannot overwrite it.'
+      : null) ??
     (state.readOnly
       ? 'This diagram is read-only.'
       : state.gesture.type !== 'idle'
@@ -85,7 +92,11 @@ export function resolveEventStormingRelationshipControls(
         : !edge
           ? 'Select a connection to edit its relationship.'
           : null);
-  const value = edge?.architecture ? eventStormingRelationshipKey(edge.architecture) : null;
+  const value = architecture
+    ? eventStormingRelationshipKey(architecture)
+    : foreignArchitecture
+      ? `ddd:${dddRelationshipKey(foreignArchitecture)}`
+      : null;
   const conventions = options.conventions ?? {};
   const rules = checkedEventStormingRelationshipRules(conventions);
   function choice(
@@ -109,24 +120,36 @@ export function resolveEventStormingRelationshipControls(
       compatibilityReason: decision?.type === 'blocked' ? decision.reason : null,
     };
   }
-  const choices = edge
+  const choices: ZlozEventStormingRelationshipChoice[] = foreignArchitecture
     ? [
-        choice(null, options.clearLabel?.trim() || 'Untyped / inferred'),
-        ...rules.map((rule) =>
-          choice(
-            value === eventStormingRelationshipKey(rule.architecture)
-              ? (edge.architecture ?? rule.architecture)
-              : rule.architecture,
-            options.labelRule?.(rule).trim() || rule.label,
-          ),
-        ),
+        {
+          key: value,
+          label: `Stored DDD relationship: ${dddRelationshipKey(foreignArchitecture)}`,
+          architecture: null,
+          reason,
+          compatibilityReason: null,
+          currentOnly: true,
+        },
       ]
-    : [];
-  if (edge?.architecture && !choices.some((item) => item.key === value))
-    choices.push(choice(edge.architecture, `Stored relationship: ${value}`, true));
-  const inferred = edge
-    ? resolveEventStormingRelationship(state.graph, candidate(edge, null), conventions)
-    : null;
+    : edge
+      ? [
+          choice(null, options.clearLabel?.trim() || 'Untyped / inferred'),
+          ...rules.map((rule) =>
+            choice(
+              value === eventStormingRelationshipKey(rule.architecture)
+                ? (architecture ?? rule.architecture)
+                : rule.architecture,
+              options.labelRule?.(rule).trim() || rule.label,
+            ),
+          ),
+        ]
+      : [];
+  if (architecture && !choices.some((item) => item.key === value))
+    choices.push(choice(architecture, `Stored relationship: ${value}`, true));
+  const inferred =
+    edge && !foreign
+      ? resolveEventStormingRelationship(state.graph, candidate(edge, null), conventions)
+      : null;
   const inferredArchitecture = inferred?.type === 'allowed' ? inferred.architecture : null;
   const inferenceReason =
     reason ??
@@ -152,8 +175,9 @@ export function resolveEventStormingRelationshipControls(
       architecture: inferredArchitecture,
       request: edge ? { type: 'InferenceApplied', edgeId: edge.id } : null,
     },
-    statusText:
-      current?.type === 'allowed'
+    statusText: foreign
+      ? 'This connection carries DDD relationship meaning.'
+      : current?.type === 'allowed'
         ? `${current.inferred ? 'Inferred' : 'Typed'}: ${current.rule.label}.`
         : current?.type === 'blocked'
           ? `Unresolved: ${current.reason}`
@@ -172,6 +196,11 @@ export function resolveEventStormingRelationshipRequest(
   if (edgeId !== request.edgeId || !state.graph.edges.some((edge) => edge.id === request.edgeId))
     return { type: 'ignored' };
   const context = resolveEventStormingRelationshipControls(state, edgeId, options);
+  if (context.edge?.architecture?.family === 'ddd')
+    return {
+      type: 'blocked',
+      reason: context.reason ?? 'Causal controls cannot overwrite DDD meaning.',
+    };
   if (request.type === 'InferenceApplied')
     return context.inference.reason
       ? { type: 'blocked', reason: context.inference.reason }

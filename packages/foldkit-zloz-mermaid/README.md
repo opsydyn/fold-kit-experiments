@@ -1,10 +1,9 @@
 # Foldkit Zloz Mermaid
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
-FoldKit or Effect dependency is installed. Requires the matching Zloz core peer.
-Version 0.2.0 is a local release candidate; npm publication has not been performed.
-
-After publication:
+Foldkit or Effect dependency is installed by the headless entry. Requires the
+matching Zloz core peer. The published baseline is 0.3.0; the export controls below
+are the next unreleased feature.
 
 ```sh
 npm install @opsydyn/foldkit-zloz @opsydyn/foldkit-zloz-mermaid
@@ -147,3 +146,205 @@ The package additionally exports `ZlozReviewPacketOptions`,
 Packet JSON round-trip tests reproduce its audit using only the chosen snapshots
 and exported rules. The optional adapter still installs no Effect, Foldkit,
 Mermaid parser, browser or layout engine. See [ADR 0035](../../docs/adr/0035-export-portable-review-packets.md).
+
+## Strict review-packet reopening (unreleased)
+
+```ts
+import { parseReviewPacket } from '@opsydyn/foldkit-zloz-mermaid';
+
+const result = parseReviewPacket(fileText);
+if (result.status === 'parsed') {
+  // Owned, deeply frozen read-only data. No editor/model import is performed.
+  console.log(result.value.comparison.summary, result.value.diagnostics);
+} else {
+  console.log(result.code, result.reason, result.path);
+}
+```
+
+`ZlozReviewPacketParseResult` distinguishes `parsed` and `rejected`. Rejection codes
+are `invalid-json`, `limit-exceeded`, `unsupported-format`, `unsupported-version`,
+`invalid-packet` and `inconsistent-packet`; `path` is a JSON Pointer (empty for root).
+Invalid configured limits throw the existing core configuration error.
+
+The decoder accepts exact `foldkit-zloz-review` v1 packets in selected-snapshots
+scope. It validates snapshots/identities and data-only conventions, then recomputes
+all audits, deltas, diagnostics, Mermaid sources and identity/fidelity projections
+through the existing creator. The full wire representation must agree, with object
+key order ignored and array order retained. Unknown fields, duplicate JSON keys
+(including escaped aliases), non-finite numbers, conflicting edition identities,
+invalid rules, stale findings and forged projections reject. Returned data is the
+recomputed packet, never trusted cached projections. Current, distinct-edition and
+same-edition comparisons are supported. Builtin v1 conventions must match the
+builtin catalogue; custom catalogues retain their explicit validated rule data.
+
+Optional limits are `maxCharacters` (default 2,000,000 UTF-16 code units, cap
+16,000,000), `maxDepth` (64, cap 128), and `maxValues` (100,000, cap 1,000,000).
+All must be positive safe integers. Nesting/duplicate keys are scanned before
+JSON.parse; value traversal and freezing avoid spread-based argument limits.
+These are input-shape budgets, not a wall-clock or peak-memory guarantee. Hosts
+own file-byte limits, decoding and worker isolation when needed.
+
+Reopening validates **self-consistency, not authenticity**. A coherently rewritten
+packet can still be valid. Parsing does not execute Mermaid or confer model import,
+editing, graph mutation or trust in an author's identity. The decoder performs
+no IO; the reader below and Effect CLI compose it at their host boundaries. See
+[ADR 0057](../../docs/adr/0057-decode-portable-review-packets-strictly.md) and
+[decoder qualification](evidence/review-packet-parse.md). PNG and Alchemy remain deferred.
+
+## Composable review-packet controls (unreleased)
+
+The root entry exports `resolveReviewPacketControls` and
+`resolveReviewPacketRequest`. The optional `/foldkit` entry exports
+`zlozReviewPacketControls`, `zlozReviewPacketConsent`, `zlozReviewPacketDownload`
+and their view/parts types. Install matching `foldkit` to use the native controls;
+it remains an optional peer and is not installed for headless consumers.
+
+```ts
+import {
+  resolveReviewPacketControls,
+  resolveReviewPacketRequest,
+} from '@opsydyn/foldkit-zloz-mermaid';
+import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+
+const selection = { baselineId: 'before', selectedId: null }; // null = current
+const state = { consentKey: null }; // host-owned, ephemeral Foldkit model state
+const context = resolveReviewPacketControls(document, selection, state, {
+  blockedReason: null, // supply live host protection; direction and data-only rules are optional
+});
+const controls = zlozReviewPacketControls(
+  h,
+  context,
+  (request) => Message.ObservedReviewPacketInput({ request }),
+  {
+    showCounts: !minimalMode && diagnosticsEnabled,
+    renderStatus: () => (minimalMode || !diagnosticsEnabled ? null : undefined),
+  },
+);
+// In update: rebuild with the current document, selection, state and options.
+const decision = resolveReviewPacketRequest(document, selection, state, request);
+// ready: retain decision.state; blocked: show decision.reason;
+// download: pass decision.packet to a host Command, never perform I/O in update.
+```
+
+Preview materializes report-mode projections in memory. Scope text discloses that
+both full authored snapshots and cameras travel; only Mermaid omissions need
+loss consent. Projection errors always block download. Consent and requests use
+an opaque, exact-content key; a fresh resolution catches changes to chosen sources,
+model identity/name, graph/camera, conventions and projection direction. The key
+contains packet data: keep it ephemeral, do not log it, put it in DOM attributes or
+use it as an authentication credential. Hosts also check session identity/epoch
+and current protection before acting; they own storage/download and any playback
+pause. Unrelated history changes do not alter a selected-snapshot packet.
+
+Every part has a nullable/custom renderer, with independent attributes, labels,
+layout and count visibility. Custom diagnostics own list-item semantics. Native
+checkbox/button helpers retain disabled state and accessible protection reasons.
+Hiding a part never bypasses the pure request resolver. Counts can disappear in
+minimal mode while functional scope, losses and reasons remain available. No
+packet import, graph mutation or new Undo entry is implied. Exact serialization
+costs packet-sized memory and projection work while previewing; no performance
+claim is made. See [ADR 0037](../../docs/adr/0037-compose-review-packet-export-controls.md).
+
+## Read-only packet reader (unreleased)
+
+```ts
+import {
+  createReviewReader,
+  resolveReviewReader,
+  updateReviewReader,
+} from '@opsydyn/foldkit-zloz-mermaid';
+
+let reader = createReviewReader('model-id/incarnation-1');
+const started = updateReviewReader(reader, {
+  scope: reader.scope,
+  type: 'ReadRequested',
+  file: { name: file.name, byteLength: file.size },
+});
+reader = started.state;
+const readDescriptor = started.read;
+// Continue only when readDescriptor exists.
+// A host Command reads the File within maxBytes,
+// checking actual bytes and decoding fatal UTF-8. Return its correlated fact:
+if (readDescriptor) {
+  reader = updateReviewReader(reader, {
+    scope: readDescriptor.scope,
+    type: 'ReadSucceeded',
+    run: readDescriptor.run,
+    text: fileText,
+  }).state;
+}
+const snapshot = resolveReviewReader(reader).snapshot;
+// Render snapshot in a detached read-only editor. Do not replace the working model.
+```
+
+`updateReviewReader` returns `{ state, read }`. Its requests include correlated
+read success/failure/cancel, `SideSelected` and `ReviewClosed`. `blockedReason` and
+`selectionReason` are live policies; opening is checked again at completion.
+`reviewReaderForScope` resets the reader when the host model incarnation changes.
+Use unique scopes: stale callbacks must never collide with a new model session.
+Default `maxBytes` is 1 MiB (configurable integer 1–16,000,000); the host must enforce
+actual bytes before and after IO. `parseOptions` independently bounds decoding.
+No file IO occurs in the package. Cancellation prevents publication; it need not
+abort underlying IO. Invalid/stale/protected/cancelled reads preserve the last
+good review and chosen side. Closing invalidates pending reads.
+
+The optional `@opsydyn/foldkit-zloz-mermaid/foldkit` export `zlozReviewReader`
+accepts the HtmlBuilder, state, request callback, file callback, live policy and
+view options. It renders native opening/cancel/close and baseline/selected controls,
+audit findings and projection losses. `renderSummary`, `renderFinding` and
+`renderLayout` compose custom presentations; undefined falls back, null omits.
+`showCounts: false` and `instructions: false` provide a clean UI while findings
+and actions remain available. Hosts own detached canvas rendering and interaction
+protection. Reading grants no editing/import permission, authenticity guarantee or
+new loss consent. See [ADR 0059](../../docs/adr/0059-open-review-packets-with-detached-reader-controls.md)
+and [local qualification](../../apps/zloz-demo/evidence/review-reader.md).
+
+## Explicit v2 connection documents
+
+```ts
+import { exportConnectionMermaid } from '@opsydyn/foldkit-zloz-mermaid';
+const result = exportConnectionMermaid(documentV2, { lossPolicy: 'report' });
+// Converted bundles use foldkit-zloz-mermaid/v2 and retain connectionMode.
+```
+
+This entry validates the complete v2 connection document and preserves ordered
+source/target identity even for input-to-input or output-to-output links. Mermaid
+source cannot express loose future-connection rules or the camera; those losses
+reject by default. `report` accepts projection omissions, never invalid graphs.
+Keep canonical JSON as authority. No general import or model reconstruction is
+promised. The existing `exportMermaid(graph)` remains strict and its protocol and
+output are unchanged. V1 review packets/readers remain v1; they do not accept v2
+bundles or silently remove checkpoint modes.
+
+## Native v2 review packets
+
+```ts
+const result = createReviewPacketV2(
+  modelV2,
+  { baselineId: 'baseline' },
+  {
+    lossPolicy: 'report',
+  },
+);
+if (result.status === 'created') {
+  const text = JSON.stringify(result.value);
+  const opened = openReviewPacketV2(text, 'selected', workingEditor);
+  // opened.review.editor is independent and read-only when status is 'opened'.
+}
+```
+
+Version-2 packets retain baseline/selected connection documents, modes, data-only
+conventions, mode-aware audit comparisons and v2 Mermaid projections. The scope is
+selected snapshots, not a whole-model/ancestry archive. Role interpretation stays
+`zloz-event-storming/v1` because domain rules are independent from port kinds.
+
+`parseReviewPacketV2` shares strict bounded scanning and deterministic recomputation
+with the v1 decoder. Conflicting side identities, duplicate fields, altered modes,
+forged projections/audits or unknown fields reject. V1 readers stay fixed at v1.
+Creation checks default reopening budgets (2,000,000 characters, depth 64, 100,000
+JSON values) and reports `packet-limit` before claiming portable success.
+
+`openReviewPacketV2` revalidates text before initializing either side in its saved
+mode with zero Undo, leaving the working editor/history untouched. Packets and
+recorded findings never authorize editing, import or Apply. Native workbench file
+controls remain a separate adoption slice.

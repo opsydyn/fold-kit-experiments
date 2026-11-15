@@ -1,0 +1,18 @@
+# Match the package scripts; integration packs the core and adapter in isolation.
+tasks:
+  build:
+    script: 'tsdown'
+    deps: ['^:build']
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc --noEmit'
+    deps: ['^:build']
+  test:
+    script: "bun test ./test --path-ignore-patterns='**/package.test.ts'"
+    deps: ['build', '^:build']
+  integration:
+    script: 'bun test ./test/package.test.ts'
+    deps: ['build']
+    inputs: ['/packages/foldkit-zloz*/**/*', '/tools/pack-zloz.ts']
+    options:
+      mutex: 'rebuilds-packages'

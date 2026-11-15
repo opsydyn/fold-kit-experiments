@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "root",
+        "label": "Order",
+        "position": { "x": 0, "y": 0 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [
+          { "id": "out", "kind": "output", "side": "right", "offset": 0.5 },
+          { "id": "in", "kind": "input", "side": "left", "offset": 0.5 }
+        ],
+        "architecture": { "family": "ddd", "role": "aggregate-root" }
+      },
+      {
+        "id": "event",
+        "label": "Placed",
+        "position": { "x": 200, "y": 0 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+        "architecture": { "family": "ddd", "role": "domain-event" }
+      },
+      {
+        "id": "repo",
+        "label": "Orders",
+        "position": { "x": 0, "y": 100 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+        "architecture": { "family": "ddd", "role": "repository" }
+      },
+      {
+        "id": "read",
+        "label": "Summary",
+        "position": { "x": 200, "y": 100 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }],
+        "architecture": { "family": "ddd", "role": "read-model" }
+      },
+      {
+        "id": "left",
+        "label": "Ordering",
+        "position": { "x": 0, "y": 200 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [
+          { "id": "out", "kind": "output", "side": "right", "offset": 0.5 },
+          { "id": "in", "kind": "input", "side": "left", "offset": 0.5 }
+        ],
+        "architecture": { "family": "ddd", "role": "bounded-context" }
+      },
+      {
+        "id": "right",
+        "label": "Payments",
+        "position": { "x": 200, "y": 200 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [
+          { "id": "out", "kind": "output", "side": "right", "offset": 0.5 },
+          { "id": "in", "kind": "input", "side": "left", "offset": 0.5 }
+        ],
+        "architecture": { "family": "ddd", "role": "bounded-context" }
+      },
+      {
+        "id": "workshop",
+        "label": "Customer",
+        "position": { "x": 0, "y": 300 },
+        "size": { "width": 100, "height": 60 },
+        "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+        "architecture": { "family": "event-storming", "role": "actor" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "z-feeds",
+        "source": { "node": "root", "port": "out" },
+        "target": { "node": "read", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "tactical", "role": "feeds" }
+      },
+      {
+        "id": "A-emits",
+        "label": "Placed event",
+        "source": { "node": "root", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "tactical", "role": "emits" }
+      },
+      {
+        "id": "b-strategic",
+        "source": { "node": "left", "port": "out" },
+        "target": { "node": "right", "port": "in" },
+        "architecture": {
+          "family": "ddd",
+          "scope": "strategic",
+          "role": "upstream-downstream",
+          "upstream": ["open-host-service", "published-language"],
+          "downstream": "anti-corruption-layer",
+          "description": "Explicit influence"
+        }
+      },
+      {
+        "id": "c-side-absent",
+        "source": { "node": "right", "port": "out" },
+        "target": { "node": "left", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "strategic", "role": "customer-supplier" }
+      },
+      {
+        "id": "d-role",
+        "source": { "node": "repo", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "tactical", "role": "emits" }
+      },
+      {
+        "id": "e-custom",
+        "source": { "node": "root", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "architecture": {
+          "family": "ddd",
+          "scope": "tactical",
+          "role": "custom",
+          "name": "enriches"
+        }
+      },
+      {
+        "id": "f-self",
+        "source": { "node": "left", "port": "out" },
+        "target": { "node": "left", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "strategic", "role": "partnership" }
+      },
+      {
+        "id": "g-foreign-participant",
+        "source": { "node": "workshop", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "tactical", "role": "emits" }
+      },
+      {
+        "id": "á-untyped",
+        "source": { "node": "root", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "data": { "privateNote": "not report data" }
+      },
+      {
+        "id": "i-causal",
+        "source": { "node": "root", "port": "out" },
+        "target": { "node": "event", "port": "in" },
+        "architecture": { "family": "event-storming", "role": "emits" }
+      },
+      {
+        "id": "j-bad-feed",
+        "source": { "node": "repo", "port": "out" },
+        "target": { "node": "read", "port": "in" },
+        "architecture": { "family": "ddd", "scope": "tactical", "role": "feeds" }
+      }
+    ]
+  }
+}

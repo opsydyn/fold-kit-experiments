@@ -1,0 +1,30 @@
+{
+  "candidateIntegrity": "sha512-/aEfwgDaguq4XMt+HhHR1mDckW0cCXAJ2HVdaibJ7PofVfZ0UBG+DF8mV+07lzK5EyJAfQqM5MYFUyMgwIIWzg==",
+  "coreIntegrity": "sha512-EcExDRv35oBzEzhT9Pw3v5qomyiGktgEk8A+ekbO/keqwRP5VjTUO+2t9xvFpZ2O+TORYKGeREHYwoveoSwXPQ==",
+  "packageEntry": "@opsydyn/zloz-alchemy-domain-fidelity-spike",
+  "packedFixtureHandlers": false,
+  "profiles": ["NodeNext", "Bundler"],
+  "outcomes": [
+    {
+      "runtime": "node",
+      "nodes": 8,
+      "edges": 8,
+      "handlers": 0,
+      "readModels": 1,
+      "feeds": 1,
+      "losses": 8
+    },
+    {
+      "runtime": "bun",
+      "nodes": 8,
+      "edges": 8,
+      "handlers": 0,
+      "readModels": 1,
+      "feeds": 1,
+      "losses": 8
+    }
+  ],
+  "foldkitInstalled": false,
+  "reactInstalled": false,
+  "usesMonorepoNodeModules": false
+}

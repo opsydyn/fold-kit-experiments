@@ -1,17 +1,21 @@
 import {
   eventStormingRelationshipRules,
+  eventStormingWorkshopRelationshipRules,
   type ZlozEventStormingRelationshipOptions,
   type ZlozEdge,
 } from '@opsydyn/foldkit-zloz';
 
 import type { Model } from './model';
 export function workbenchRelationshipOptions(
-  model: Pick<Model, 'customStormingRelationships'>,
+  model: Pick<Model, 'customStormingRelationships'> & Partial<Pick<Model, 'workshopConventions'>>,
 ): ZlozEventStormingRelationshipOptions {
+  const rules = model.workshopConventions
+    ? eventStormingWorkshopRelationshipRules
+    : eventStormingRelationshipRules;
   return model.customStormingRelationships
     ? {
         rules: [
-          ...eventStormingRelationshipRules,
+          ...rules,
           {
             architecture: { family: 'event-storming', role: 'custom', name: 'delegates' },
             sources: ['command'],
@@ -20,7 +24,9 @@ export function workbenchRelationshipOptions(
           },
         ],
       }
-    : {};
+    : model.workshopConventions
+      ? { rules }
+      : {};
 }
 /** Fixture action still uses ordinary typed ConnectionCreated and all current editor policies. */
 export function delegatedRelationship(model: Model): ZlozEdge | null {

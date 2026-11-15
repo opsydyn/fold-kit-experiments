@@ -55,12 +55,21 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
     ])
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
 
-    const source = `import { createEditor } from '@opsydyn/foldkit-zloz';
-import { createReviewPacket, type ZlozReviewPacketResult, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
+    const source = `import { createEditor, createModelEditorV2 } from '@opsydyn/foldkit-zloz';
+import { createReviewPacketV2, parseReviewPacketV2, openReviewPacketV2, createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportConnectionMermaid, type MermaidExportResultV2, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';
 const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: {x:0,y:0}, size: {width:200,height:100}, ports: [] }], edges: [] });
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
 if (exportMermaid(editor.graph).status !== 'rejected' || editor.past.length !== 0) throw new Error('Loss/history contract failed');
+const modeProjection:MermaidExportResultV2=exportConnectionMermaid({version:2,connectionMode:'loose',graph:editor.graph},{lossPolicy:'report'});
+if(modeProjection.status!=='converted'||modeProjection.value.connectionMode!=='loose'||modeProjection.value.protocol!=='foldkit-zloz-mermaid/v2'||!modeProjection.diagnostics.some(d=>d.code==='connection-mode-omitted'))throw new Error('Explicit v2 projection failed');
+const nativePacketModel={id:'native-packet',name:'Native packet',origin:null,snapshot:{version:2 as const,connectionMode:'loose' as const,graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{version:2 as const,connectionMode:'strict' as const,graph:editor.graph}}]};
+const nativePacket=createReviewPacketV2(nativePacketModel,{baselineId:'base'},{lossPolicy:'report'});
+if(nativePacket.status!=='created')throw new Error('Native packet creation failed');
+const nativePacketText=JSON.stringify(nativePacket.value), nativeReopened=parseReviewPacketV2(nativePacketText);
+if(nativeReopened.status!=='parsed'||nativeReopened.value.selected.snapshot.connectionMode!=='loose'||parseReviewPacket(nativePacketText).status!=='rejected')throw new Error('Native packet compatibility failed');
+const nativeWorking=createModelEditorV2(nativePacketModel),nativeOpened=openReviewPacketV2(nativePacketText,'selected',nativeWorking);
+if(nativeOpened.status!=='opened'||!nativeOpened.review.editor.readOnly||nativeOpened.review.editor.connectionMode!=='loose'||nativeWorking.past.length)throw new Error('Native packet read-only history failed');
 const nested = exportMermaid({ nodes: [
  { id: 'outer', kind: 'group', label: 'Outer', position: {x:0,y:0}, size: {width:400,height:300}, ports: [] },
  { id: 'inner', kind: 'group', parentId: 'outer', label: 'Inner', position: {x:10,y:10}, size: {width:300,height:200}, ports: [] },
@@ -70,6 +79,21 @@ if (nested.status !== 'converted' || nested.value.identity.nodes[1]?.kind !== 'g
 const packet: ZlozReviewPacketResult = createReviewPacket({id:'review',name:'Review',origin:null,snapshot:{graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{graph:editor.graph}}]},{baselineId:'base'},{lossPolicy:'report'});
 if(packet.status!=='created'||packet.value.baseline.source.id!=='base'||packet.value.format!=='foldkit-zloz-review'||packet.value.conventions.rules.length!==6||packet.value.projections.selected.direction!=='LR')throw new Error('Review packet contract failed');
 const portable=JSON.parse(JSON.stringify(packet.value)); if(portable.selected.snapshot.graph.nodes[0].id!=='end')throw new Error('Packet portability failed');
+const opened:ZlozReviewPacketParseResult=parseReviewPacket(JSON.stringify(packet.value));
+if(opened.status!=='parsed'||!Object.isFrozen(opened.value)||opened.value.selected.snapshot.graph.nodes[0]?.id!=='end')throw new Error('Packet decoder failed');
+const reader=createReviewReader('consumer/1');
+const pending=updateReviewReader(reader,{scope:reader.scope,type:'ReadRequested',file:{name:'packet.json',byteLength:JSON.stringify(packet.value).length}});
+const read=updateReviewReader(pending.state,{scope:reader.scope,type:'ReadSucceeded',run:1,text:JSON.stringify(packet.value)});
+if(!pending.read||resolveReviewReader(read.state).snapshot?.graph.nodes[0]?.id!=='end')throw new Error('Packed reader failed');
+const tooWide=parseReviewPacket('['+Array(150001).fill(0).join(',')+']');
+if(tooWide.status!=='rejected'||tooWide.code!=='limit-exceeded')throw new Error('Packet size guard failed');
+const forged=JSON.parse(JSON.stringify(packet.value));forged.projections.selected.source+=' changed';
+if(parseReviewPacket(JSON.stringify(forged)).status!=='rejected')throw new Error('Packet consistency guard failed');
+
+const doc={id:'preview',name:'Preview',origin:null,snapshot:{graph:editor.graph},editions:[{id:'base',name:'Base',snapshot:{graph:editor.graph}}]};
+const selection={baselineId:'base',selectedId:null}, state={consentKey:null};
+const preview=resolveReviewPacketControls(doc,selection,state); if(!preview.key||!preview.requiresConsent)throw new Error('Missing packet preview');
+if(resolveReviewPacketRequest(doc,selection,state,{type:'DownloadClicked',key:preview.key}).type!=='blocked')throw new Error('Missing packet consent guard');
 console.log('mermaid-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');
@@ -113,6 +137,67 @@ console.log('mermaid-consumer-ok');
       });
       expect(result.stdout.trim()).toBe('mermaid-consumer-ok');
     }
+    // The optional view entry must also work from the installed tarball, without coupling the root to Foldkit.
+    await exec(
+      'npm',
+      [
+        'install',
+        '--offline',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        'foldkit@0.170.0',
+        'effect@4.1.0',
+        '@effect/platform-browser@4.1.0',
+      ],
+      { ...options, cwd: directory },
+    );
+    const viewSource = `import { zlozReviewReader, zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+const options:ZlozReviewPacketViewOptions<unknown>={showCounts:false,renderStatus:()=>null};
+if([zlozReviewReader,zlozReviewPacketControls,zlozReviewPacketConsent,zlozReviewPacketDownload].some(value=>typeof value!=='function')||options.showCounts!==false)throw new Error('Missing packed view contract');
+console.log('mermaid-view-consumer-ok');`;
+    const viewFile = path.join(directory, 'view.mts');
+    await writeFile(viewFile, viewSource);
+    for (const resolution of ['Bundler', 'NodeNext'])
+      await exec(
+        tsc,
+        [
+          '--noEmit',
+          '--strict',
+          '--skipLibCheck',
+          '--target',
+          'ES2022',
+          '--module',
+          resolution === 'NodeNext' ? 'NodeNext' : 'ESNext',
+          '--moduleResolution',
+          resolution,
+          viewFile,
+        ],
+        { ...options, cwd: directory },
+      );
+    await exec(
+      tsc,
+      [
+        '--skipLibCheck',
+        '--target',
+        'ES2022',
+        '--module',
+        'NodeNext',
+        '--outDir',
+        'compiled',
+        viewFile,
+      ],
+      { ...options, cwd: directory },
+    );
+    for (const runtime of ['node', 'bun'])
+      expect(
+        (
+          await exec(runtime, [path.join(directory, 'compiled/view.mjs')], {
+            ...options,
+            cwd: directory,
+          })
+        ).stdout.trim(),
+      ).toBe('mermaid-view-consumer-ok');
     const contents = await exec('tar', ['-tzf', adapter], options);
     for (const file of ['LICENSE', 'README.md', 'CHANGELOG.md', 'THIRD-PARTY-NOTICES.md'])
       expect(contents.stdout).toContain(`package/${file}`);

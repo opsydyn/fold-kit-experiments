@@ -56,7 +56,10 @@ export function resolveConnectionCreation(
   options: ZlozConnectionCreationOptions = {},
 ): ZlozConnectionCreationContext {
   const source = state.connection;
-  const validation = connectionValidation(state.graph, policy);
+  const loose = state.connectionMode === 'loose';
+  const sourceName = loose ? 'source' : 'output';
+  const targetName = loose ? 'target' : 'input';
+  const validation = connectionValidation(state.graph, policy, undefined, state.connectionMode);
   const proposal = source ? validation.proposedEdge(source, source) : null;
   const visible = new Set(presentEditorGroups(state).nodes.map(({ id }) => id));
   const guard = state.readOnly
@@ -66,8 +69,8 @@ export function resolveConnectionCreation(
       : null;
   const sourceReason = !source
     ? null
-    : validation.portKind(source) !== 'output'
-      ? 'Choose a compatible output port.'
+    : !validation.portKind(source) || (!loose && validation.portKind(source) !== 'output')
+      ? `Choose a compatible ${sourceName} port.`
       : (policy.canConnectPort?.(source, state.graph) ?? null);
   const cancel: ZlozConnectionCreationAction = {
     event: { type: 'GestureCancelled' },
@@ -84,7 +87,7 @@ export function resolveConnectionCreation(
     const entries: ZlozConnectionCreationChoice[] = [];
     for (const node of state.graph.nodes) {
       for (const port of node.ports) {
-        if (port.kind !== (end === 'source' ? 'output' : 'input')) continue;
+        if (!loose && port.kind !== (end === 'source' ? 'output' : 'input')) continue;
         const endpoint = { node: node.id, port: port.id };
         const entryValue = endpointValue(endpoint);
         const current = entryValue === value;
@@ -102,9 +105,13 @@ export function resolveConnectionCreation(
             (end === 'source'
               ? (policy.canConnectPort?.(endpoint, state.graph) ?? null)
               : !proposal
-                ? 'Choose an output port first.'
+                ? loose
+                  ? 'Choose a source port first.'
+                  : 'Choose an output port first.'
                 : validation.reason({ ...proposal, target: endpoint })),
-          event: { type: 'PortActivated', endpoint },
+          event: loose
+            ? { type: 'PortActivated', endpoint, end }
+            : { type: 'PortActivated', endpoint },
         });
       }
     }
@@ -116,8 +123,10 @@ export function resolveConnectionCreation(
         label: `${source.node}: ${source.port} (unavailable)`,
         current: true,
         hidden: true,
-        reason: 'Current output port is no longer available.',
-        event: { type: 'PortActivated', endpoint: source },
+        reason: `Current ${sourceName} port is no longer available.`,
+        event: loose
+          ? { type: 'PortActivated', endpoint: source, end }
+          : { type: 'PortActivated', endpoint: source },
       });
     }
     return {
@@ -127,17 +136,26 @@ export function resolveConnectionCreation(
       reason,
       cancel,
       label: end === 'source' ? 'New connection source' : 'New connection target',
-      placeholder: end === 'source' ? 'Choose an output port' : 'Choose an input port',
+      placeholder:
+        end === 'source'
+          ? loose
+            ? 'Choose a source port'
+            : 'Choose an output port'
+          : loose
+            ? 'Choose a target port'
+            : 'Choose an input port',
       hint:
         reason !== null
           ? null
           : end === 'target' && !source
-            ? 'Choose an output port first.'
+            ? loose
+              ? 'Choose a source port first.'
+              : 'Choose an output port first.'
             : entries.some(({ reason }) => reason === null)
               ? null
               : end === 'source'
-                ? 'No eligible output ports.'
-                : 'No eligible input ports.',
+                ? `No eligible ${sourceName} ports.`
+                : `No eligible ${targetName} ports.`,
     };
   };
   return { source: field('source'), target: field('target'), cancel };

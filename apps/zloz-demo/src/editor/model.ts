@@ -1,5 +1,10 @@
+import { createPngReview, type ZlozPngReviewState } from '@opsydyn/foldkit-zloz';
 import {
   createEditor,
+  createSvgReview,
+  type ZlozSvgReviewState,
+  createPlacement,
+  type ZlozPlacement,
   type EditorState,
   type ZlozEdition,
   type ZlozEditionPlayback,
@@ -7,7 +12,13 @@ import {
   type ZlozGraph,
   type LayoutRequest,
   type ZlozAuditComparisonState,
+  type ZlozDddAuditState,
+  type ZlozEventStormingDddLossConsent,
+  type ZlozEventStormingC4LossConsent,
+  type ZlozEventStormingC4Conversion,
+  type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
+import { createReviewReader, type ZlozReviewReaderState } from '@opsydyn/foldkit-zloz-mermaid';
 import {
   resolveZlozDiagnostics,
   type ZlozColorScheme,
@@ -16,7 +27,12 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
 
+import { createAlchemyReview, type AlchemyReviewState } from './alchemy-state';
+import type { C4MappingReviewDraft } from './c4-mapping-review';
 import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
+import type { PacketReviewPreview } from './packet-reader';
+import type { PatchWorkbenchState } from './patch-review';
+import type { ReceiptReview } from './receipt-review';
 
 export const initialGraph: ZlozGraph = {
   nodes: [
@@ -196,6 +212,8 @@ export type ContextMenuDesign = typeof ContextMenuDesign.Type;
 export const NodeToolbarDesign = Schema.Literals(['off', 'standard', 'compact']);
 export type NodeToolbarDesign = typeof NodeToolbarDesign.Type;
 
+export const WaypointDesign = Schema.Literals(['off', 'native', 'custom']);
+export type WaypointDesign = typeof WaypointDesign.Type;
 export const EdgeToolbarDesign = Schema.Literals(['standard', 'compact']);
 export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
 
@@ -263,19 +281,88 @@ const PortLabelDraft = Schema.Struct({
   text: Schema.String,
 });
 
+const MappingReview = Schema.Struct({
+  modelId: Schema.String,
+  epoch: Schema.Number,
+  revision: Schema.Number,
+  sourceKey: Schema.String,
+  selectedKey: Schema.NullOr(Schema.String),
+  choices: Schema.Array(
+    Schema.Struct({
+      kind: Schema.Literals(['node', 'edge']),
+      id: Schema.String,
+      value: Schema.String,
+    }),
+  ),
+});
+export type MappingReviewDraft = typeof MappingReview.Type;
+
+export type RetainedMappingReceipt = Readonly<{
+  id: string;
+  sequence: number;
+  conversion: ZlozEventStormingDddConversion;
+}>;
+
 export const WorkbenchSection = Schema.Literals([
+  'alchemy',
   'diagram',
   'appearance',
   'navigation',
   'ports',
   'policies',
   'inspect',
+  'mapping',
+  'c4mapping',
   'diagnostics',
   'export',
+  'svg',
+  'png',
+  'review',
+  'patch',
   'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  alchemyReview: Schema.Unknown,
+  pngReview: Schema.Unknown,
+  protectPngDownloads: Schema.Boolean,
+  customPngReview: Schema.Boolean,
+  retainedPngLayout: Schema.Boolean,
+  svgReview: Schema.Unknown,
+  protectSvgDownloads: Schema.Boolean,
+  customSvgReview: Schema.Boolean,
+  retainedSvgLayout: Schema.Boolean,
+  placement: Schema.Unknown,
+  customPalette: Schema.Boolean,
+  c4MappingReview: Schema.NullOr(Schema.Unknown),
+  c4PlanConsent: Schema.NullOr(
+    Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
+  ),
+  c4PlanRun: Schema.Number,
+  c4Conversions: Schema.Array(Schema.Unknown),
+  protectC4Apply: Schema.Boolean,
+  c4ApplyNotice: Schema.String,
+  mappingReview: Schema.NullOr(MappingReview),
+  mappingLossConsent: Schema.NullOr(
+    Schema.Struct({ planKey: Schema.String, accepted: Schema.Literal(true) }),
+  ),
+  mappingConsentRun: Schema.Number,
+  patchWorkbench: Schema.Unknown,
+  packetReader: Schema.Unknown,
+  packetPreview: Schema.NullOr(Schema.Unknown),
+  protectReviewOpening: Schema.Boolean,
+  receiptReview: Schema.NullOr(Schema.Unknown),
+  receiptRead: Schema.NullOr(
+    Schema.Struct({ id: Schema.Number, modelId: Schema.String, epoch: Schema.Number }),
+  ),
+  receiptReadRun: Schema.Number,
+  receiptReviewNotice: Schema.String,
+  mappingReceipts: Schema.Array(
+    Schema.Struct({ id: Schema.String, sequence: Schema.Number, conversion: Schema.Unknown }),
+  ),
+  mappingReceiptSequence: Schema.Number,
+  protectMappingApply: Schema.Boolean,
+  mappingReviewNotice: Schema.String,
   sidebarSection: WorkbenchSection,
   sidebarCollapsed: Schema.Boolean,
   keyboardPortTargets: Schema.Boolean,
@@ -334,9 +421,15 @@ export const Model = Schema.Struct({
   connectionListDesign: ConnectionListDesign,
   contextMenuDesign: ContextMenuDesign,
   nodeToolbarDesign: NodeToolbarDesign,
+  waypointDesign: WaypointDesign,
+  protectWaypointEdits: Schema.Boolean,
   edgeToolbarDesign: EdgeToolbarDesign,
+  protectDddRelationships: Schema.Boolean,
+  contextMapPresentation: Schema.Boolean,
   semanticRelationships: Schema.Boolean,
   customStormingRelationships: Schema.Boolean,
+  workshopConventions: Schema.Boolean,
+  protectWorkshopMeaning: Schema.Boolean,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   wheelNavigation: WheelNavigation,
@@ -365,7 +458,9 @@ export const Model = Schema.Struct({
   playbackReducedMotion: Schema.NullOr(Schema.Boolean),
   playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
+  reviewPacketConsentKey: Schema.NullOr(Schema.String),
   auditComparison: Schema.Unknown,
+  dddAudit: Schema.Unknown,
   historyChangeFilters: Schema.Struct({
     added: Schema.Boolean,
     removed: Schema.Boolean,
@@ -385,6 +480,38 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  pngReview: ZlozPngReviewState;
+  protectPngDownloads: boolean;
+  customPngReview: boolean;
+  retainedPngLayout: boolean;
+  svgReview: ZlozSvgReviewState;
+  protectSvgDownloads: boolean;
+  customSvgReview: boolean;
+  retainedSvgLayout: boolean;
+  placement: ZlozPlacement;
+  customPalette: boolean;
+  c4MappingReview: C4MappingReviewDraft | null;
+  c4PlanConsent: ZlozEventStormingC4LossConsent | null;
+  c4PlanRun: number;
+  c4Conversions: readonly ZlozEventStormingC4Conversion[];
+  protectC4Apply: boolean;
+  c4ApplyNotice: string;
+  mappingReview: MappingReviewDraft | null;
+  mappingLossConsent: ZlozEventStormingDddLossConsent | null;
+  mappingConsentRun: number;
+  patchWorkbench: PatchWorkbenchState;
+  packetReader: ZlozReviewReaderState;
+  packetPreview: PacketReviewPreview | null;
+  protectReviewOpening: boolean;
+  alchemyReview: AlchemyReviewState;
+  receiptReview: ReceiptReview | null;
+  receiptRead: Readonly<{ id: number; modelId: string; epoch: number }> | null;
+  receiptReadRun: number;
+  receiptReviewNotice: string;
+  mappingReceipts: readonly RetainedMappingReceipt[];
+  mappingReceiptSequence: number;
+  protectMappingApply: boolean;
+  mappingReviewNotice: string;
   sidebarSection: WorkbenchSection;
   sidebarCollapsed: boolean;
   keyboardPortTargets: boolean;
@@ -437,9 +564,15 @@ export type Model = Readonly<{
   connectionListDesign: ConnectionListDesign;
   contextMenuDesign: ContextMenuDesign;
   nodeToolbarDesign: NodeToolbarDesign;
+  waypointDesign: WaypointDesign;
+  protectWaypointEdits: boolean;
   edgeToolbarDesign: EdgeToolbarDesign;
+  protectDddRelationships: boolean;
+  contextMapPresentation: boolean;
   semanticRelationships: boolean;
   customStormingRelationships: boolean;
+  workshopConventions: boolean;
+  protectWorkshopMeaning: boolean;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   wheelNavigation: WheelNavigation;
@@ -472,7 +605,9 @@ export type Model = Readonly<{
   playbackReducedMotion: boolean | null;
   playbackVisible: boolean;
   historyBaselineId: string | null;
+  reviewPacketConsentKey: string | null;
   auditComparison: ZlozAuditComparisonState;
+  dddAudit: ZlozDddAuditState;
   historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
@@ -484,6 +619,48 @@ export type Model = Readonly<{
 }>;
 export const init = (namespace = 'test-workbench') => ({
   model: {
+    patchWorkbench: {
+      scope: '',
+      run: 0,
+      pending: null,
+      patch: null,
+      consent: null,
+      receipts: [],
+      notice: '',
+      protected: false,
+      custom: false,
+    },
+    packetReader: createReviewReader(`root:${namespace}/0`),
+    packetPreview: null,
+    protectReviewOpening: false,
+    pngReview: createPngReview(`root:${namespace}/0`),
+    protectPngDownloads: false,
+    customPngReview: false,
+    retainedPngLayout: false,
+    svgReview: createSvgReview(`root:${namespace}/0`),
+    protectSvgDownloads: false,
+    customSvgReview: false,
+    retainedSvgLayout: false,
+    placement: createPlacement(`root:${namespace}/0`),
+    customPalette: false,
+    c4MappingReview: null,
+    c4PlanConsent: null,
+    c4PlanRun: 0,
+    c4Conversions: [],
+    protectC4Apply: false,
+    c4ApplyNotice: '',
+    mappingReview: null,
+    mappingLossConsent: null,
+    mappingConsentRun: 0,
+    alchemyReview: createAlchemyReview(),
+    receiptReview: null,
+    receiptRead: null,
+    receiptReadRun: 0,
+    receiptReviewNotice: '',
+    mappingReceipts: [],
+    mappingReceiptSequence: 0,
+    protectMappingApply: false,
+    mappingReviewNotice: '',
     sidebarSection: 'diagram',
     sidebarCollapsed: false,
     keyboardPortTargets: false,
@@ -538,8 +715,14 @@ export const init = (namespace = 'test-workbench') => ({
     contextMenuDesign: 'standard',
     nodeToolbarDesign: 'off',
     edgeToolbarDesign: 'standard',
+    waypointDesign: 'native',
+    protectWaypointEdits: false,
+    protectDddRelationships: false,
+    contextMapPresentation: true,
     semanticRelationships: false,
     customStormingRelationships: false,
+    workshopConventions: false,
+    protectWorkshopMeaning: false,
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     wheelNavigation: 'zoom',
@@ -568,6 +751,12 @@ export const init = (namespace = 'test-workbench') => ({
     playbackReducedMotion: null,
     playbackVisible: false,
     historyBaselineId: null,
+    reviewPacketConsentKey: null,
+    dddAudit: {
+      baselineId: null,
+      selectedId: null,
+      filters: { introduced: true, resolved: true, persisting: true },
+    },
     auditComparison: {
       baselineId: null,
       selectedId: null,

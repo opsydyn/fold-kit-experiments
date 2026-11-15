@@ -3,6 +3,7 @@ import type {
   ZlozNodeAppearance,
   ZlozEdgeArchitecture,
 } from './architecture';
+import type { ZlozConnectionMode } from './connection-mode';
 
 /** JSON payloads survive save/reload; views and runtime resources stay in the host. */
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
@@ -138,13 +139,28 @@ export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
 /** The endpoint of an existing directed edge. */
 export type EdgeEnd = 'source' | 'target';
 
-/** A directed output-to-input connection with stable identity and JSON-compatible metadata. */
+/** Stable within its edge. Position is an authored world-space bend, not an endpoint. */
+export type ZlozEdgeWaypoint = Readonly<{ id: string; position: Point }>;
+/** Replace all bends atomically. Null restores automatic geometry; revision guards delayed requests. */
+export type ZlozEdgeWaypointEdit = Readonly<{
+  id: string;
+  revision: number;
+  waypoints: readonly ZlozEdgeWaypoint[] | null;
+}>;
+export type ZlozEdgeWaypointEditDecision =
+  | Readonly<{ type: 'unchanged' }>
+  | Readonly<{ type: 'blocked'; reason: string }>
+  | Readonly<{ type: 'allowed'; edge: ZlozEdge }>;
+
+/** Ordered endpoints with stable identity and JSON metadata. Legacy graph/editor APIs require output→input; explicit v2 connection documents own their port-kind mode. */
 export type ZlozEdge = Readonly<{
   id: string;
   source: Endpoint;
   target: Endpoint;
-  /** Omit to use the layout route, with a straight fallback. */
+  /** Used without authored waypoints. Omit to use the layout route, with a straight fallback. */
   pathStyle?: EdgePathStyle;
+  /** Non-empty ordered bends, with unique non-blank IDs. Overrides pathStyle and layout routes. */
+  waypoints?: readonly ZlozEdgeWaypoint[];
   architecture?: ZlozEdgeArchitecture;
   label?: string;
   data?: JsonValue;
@@ -153,7 +169,35 @@ export type ZlozEdge = Readonly<{
 export type ZlozGraph = Readonly<{ nodes: readonly ZlozNode[]; edges: readonly ZlozEdge[] }>;
 /** Versioned document content. Graph-only documents omit the camera. */
 export type ZlozSnapshot = Readonly<{ graph: ZlozGraph; viewport?: Viewport }>;
-export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
+/** Declared label rectangle in world units, centered at position. Transient layout geometry. */
+/** World-space centre anchor and envelope size, shared by native views and image export. */
+export type LayoutLabelBox = Readonly<{ position: Point; size: Size }>;
+export type LayoutEdgeLabel = Readonly<{ id: string; size: Size }>;
+export type LayoutGroupPadding = Readonly<{
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}>;
+/** Declared top-left header envelope; padding surrounds header/content and gap separates header from children. */
+export type LayoutGroupHeaderSpec = Readonly<{
+  id: string;
+  padding: LayoutGroupPadding;
+  gap: number;
+}>;
+export type LayoutGroupHeader = LayoutGroupHeaderSpec & Readonly<{ size: Size }>;
+export type LayoutGroupHeaderGeometry = Readonly<{
+  position: Point;
+  size: Size;
+  minimumSize: Size;
+  contentPadding: LayoutGroupPadding;
+}>;
+export type LayoutRequestOptions = Readonly<{
+  edgeLabels?: readonly LayoutEdgeLabel[];
+  groupHeaders?: readonly LayoutGroupHeader[];
+}>;
+/** Transient engine output; label boxes and routes do not alter authored edges. */
+export type EdgeRoute = Readonly<{ id: string; points: readonly Point[]; label?: LayoutLabelBox }>;
 export type AlignmentGuide = Readonly<{
   /** A fixed x draws a vertical guide; a fixed y draws a horizontal guide. */
   axis: 'x' | 'y';
@@ -180,6 +224,17 @@ type NodeGesture = Readonly<{
   ids: readonly string[];
 }>;
 export type Gesture =
+  | Readonly<{
+      type: 'edge-waypoint-drag';
+      id: string;
+      waypointId: string;
+      revision: number;
+      pointer: number;
+      origin: Point;
+      start: Point;
+      point: Point;
+      bypassed: boolean;
+    }>
   | Readonly<{ type: 'idle' }>
   | Readonly<{
       type: 'port-anchor-drag';
@@ -229,11 +284,22 @@ export type ZlozVisibility = Readonly<{
   hiddenEdgeIds?: readonly string[];
 }>;
 
-/** Host-owned editor Model. Retain the complete state returned by updateEditor; serialize graph data separately. */
+/** Host-owned editor Model. Retain the complete state returned by updateEditor; save v2 mode with captureConnectionDocument(state). */
+export type ZlozConnectionHistoryFrame = Readonly<{
+  graph: ZlozGraph;
+  connectionMode: ZlozConnectionMode;
+}>;
+export type ZlozConnectionHistory = Readonly<{
+  past: readonly ZlozConnectionHistoryFrame[];
+  future: readonly ZlozConnectionHistoryFrame[];
+}>;
+
 export type EditorState = Readonly<{
   context: EditorContext | null;
   connectionsExpanded: boolean;
   graph: ZlozGraph;
+  /** Fixed for this editor session. Omission in older host-constructed states means strict. */
+  connectionMode?: ZlozConnectionMode;
   clipboard: ZlozGraph | null;
   collapsedGroups: readonly string[];
   visibility?: ZlozVisibility | undefined;
@@ -266,8 +332,11 @@ export type EditorState = Readonly<{
   /** Omitted means corners first. Captured at the start of each anchor drag. */
   portAnchorSnapPriority?: PortAnchorSnapPriority | undefined;
   gesture: Gesture;
+  /** In v2 model sessions these are compatibility projections of connectionHistory frames. */
   past: readonly ZlozGraph[];
   future: readonly ZlozGraph[];
+  /** Owns graph+mode Undo in v2 model sessions; never patch its graph projections independently. */
+  connectionHistory?: ZlozConnectionHistory;
   historyLimit: number;
   readOnly: boolean;
   snapToGrid: boolean;
@@ -346,6 +415,8 @@ export type PortEditCandidate = Readonly<{
 
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
+  /** Veto authored bends independently of semantic meaning or reconnection. */
+  canChangeEdgeWaypoints?: (edge: ZlozEdge, next: ZlozEdge, graph: ZlozGraph) => string | null;
   /** Veto semantic changes; receives current node, validated proposed node and current graph. */
   canChangeNodeArchitecture?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
   /** Veto semantic metadata edits independently of wiring and route changes. */
@@ -377,6 +448,26 @@ export type EditorPolicy = Readonly<{
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
+  | Readonly<{ type: 'EdgeWaypointsChanged' } & ZlozEdgeWaypointEdit>
+  | Readonly<{
+      type: 'EdgeWaypointDragStarted';
+      id: string;
+      waypointId: string;
+      revision: number;
+      pointer: number;
+      point: Point;
+      snapBypassed?: boolean;
+    }>
+  | Readonly<{
+      type: 'EdgeWaypointNudged';
+      id: string;
+      waypointId: string;
+      revision: number;
+      delta: Point;
+      snapBypassed?: boolean;
+    }>
+  | Readonly<{ type: 'EdgeWaypointRemoved'; id: string; waypointId: string; revision: number }>
+  | Readonly<{ type: 'EdgeWaypointSnapBypassChanged'; pointer: number; bypassed: boolean }>
   | Readonly<{ type: 'ContextOpened'; context: EditorContext; anchorToNode?: boolean }>
   | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'ConnectionListToggled' }>
@@ -422,6 +513,7 @@ export type EditorEvent =
       /** Nearby rendered ports in ascending distance order, used only without an exact target. */
       nearbyTargets?: readonly NearbyTarget[];
       portAnchorSnapBypassed?: boolean;
+      waypointSnapBypassed?: boolean;
     }>
   | Readonly<{
       type: 'DragPanned';
@@ -518,7 +610,12 @@ export type EditorEvent =
       type: 'PortPositionsChanged';
       positions: readonly Readonly<{ endpoint: Endpoint; position: PortPosition }>[];
     }>
-  | Readonly<{ type: 'PortActivated'; endpoint: Endpoint }>
+  | Readonly<{
+      type: 'PortActivated';
+      endpoint: Endpoint;
+      /** Explicit chooser intent; omission retains direct activation semantics. */
+      end?: EdgeEnd;
+    }>
   | Readonly<{ type: 'CopyPressed' }>
   | Readonly<{ type: 'PastePressed' }>
   | Readonly<{ type: 'DuplicatePressed' }>
@@ -529,7 +626,15 @@ export type EditorEvent =
   | Readonly<{ type: 'UndoPressed' }>
   | Readonly<{ type: 'RedoPressed' }>;
 /** Detached graph snapshot with request identity and document revision for stale-result protection. */
-export type LayoutRequest = Readonly<{ requestId: string; revision: number; graph: ZlozGraph }>;
+export type LayoutRequest = Readonly<{
+  /** Absence preserves legacy strict requests. Never infer from port kinds. */
+  connectionMode?: ZlozConnectionMode;
+  requestId: string;
+  revision: number;
+  graph: ZlozGraph;
+  edgeLabels?: readonly LayoutEdgeLabel[];
+  groupHeaders?: readonly LayoutGroupHeader[];
+}>;
 /** Every node exactly once in world coordinates; optional sizes apply only to groups. Routes identify existing edges. */
 export type LayoutResult = Readonly<{
   requestId: string;

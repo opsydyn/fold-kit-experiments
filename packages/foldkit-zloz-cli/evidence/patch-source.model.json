@@ -1,0 +1,26 @@
+{
+  "format": "foldkit-zloz-model",
+  "version": 1,
+  "document": {
+    "id": "commerce",
+    "name": "Commerce",
+    "snapshot": {
+      "graph": {
+        "nodes": [
+          {
+            "id": "orders",
+            "label": "Orders",
+            "position": { "x": 0, "y": 0 },
+            "size": { "width": 240, "height": 160 },
+            "ports": [],
+            "architecture": { "family": "ddd", "role": "bounded-context" },
+            "data": { "owner": "commerce" }
+          }
+        ],
+        "edges": []
+      }
+    },
+    "editions": [],
+    "origin": null
+  }
+}

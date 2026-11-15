@@ -1,0 +1,1134 @@
+{
+  "provenance": "Summaries of real compiled CLI stdout; complete inspected data was asserted equal to input.",
+  "inputPreserved": true,
+  "rows": [
+    {
+      "runtime": "node",
+      "scenario": "validate-file",
+      "exitCode": 0,
+      "operation": "review-validate",
+      "status": "valid",
+      "model": {
+        "id": "orders",
+        "name": "Orders"
+      },
+      "audit": {
+        "status": "regressed",
+        "summary": {
+          "introduced": 1,
+          "resolved": 0,
+          "persisting": 0
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:0",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:1",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:2",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:3",
+          "side": "baseline"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "支付:edge",
+          "side": "selected"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "side": "selected",
+          "code": "viewport-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "subject": null,
+          "message": "The snapshot camera is retained in the packet but omitted from its Mermaid projection."
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "scenario": "inspect-stdin",
+      "exitCode": 0,
+      "operation": "review-inspect",
+      "status": "inspected",
+      "model": {
+        "id": "orders",
+        "name": "Orders"
+      },
+      "audit": {
+        "introduced": 1,
+        "resolved": 0,
+        "persisting": 0
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:0",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:1",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:2",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:3",
+          "side": "baseline"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "支付:edge",
+          "side": "selected"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "side": "selected",
+          "code": "viewport-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "subject": null,
+          "message": "The snapshot camera is retained in the packet but omitted from its Mermaid projection."
+        }
+      ],
+      "inspectionMatchesInput": true,
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "scenario": "reject-forged",
+      "exitCode": 2,
+      "operation": "review-inspect",
+      "status": "rejected",
+      "model": null,
+      "audit": null,
+      "diagnostics": [
+        {
+          "code": "inconsistent-packet",
+          "message": "Packet content differs from its recomputed snapshots, audit, conventions or projections.",
+          "dimension": "semantics",
+          "subject": "-",
+          "severity": "error",
+          "path": "/projections/selected/source"
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "scenario": "reject-invalid-utf8",
+      "exitCode": 2,
+      "operation": "review-validate",
+      "status": "rejected",
+      "model": null,
+      "audit": null,
+      "diagnostics": [
+        {
+          "code": "invalid-utf8",
+          "message": "Input must be valid UTF-8.",
+          "dimension": "syntax",
+          "subject": "-",
+          "severity": "error"
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "scenario": "validate-file",
+      "exitCode": 0,
+      "operation": "review-validate",
+      "status": "valid",
+      "model": {
+        "id": "orders",
+        "name": "Orders"
+      },
+      "audit": {
+        "status": "regressed",
+        "summary": {
+          "introduced": 1,
+          "resolved": 0,
+          "persisting": 0
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:0",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:1",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:2",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:3",
+          "side": "baseline"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "支付:edge",
+          "side": "selected"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "side": "selected",
+          "code": "viewport-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "subject": null,
+          "message": "The snapshot camera is retained in the packet but omitted from its Mermaid projection."
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "scenario": "inspect-stdin",
+      "exitCode": 0,
+      "operation": "review-inspect",
+      "status": "inspected",
+      "model": {
+        "id": "orders",
+        "name": "Orders"
+      },
+      "audit": {
+        "introduced": 1,
+        "resolved": 0,
+        "persisting": 0
+      },
+      "diagnostics": [
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:0",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:1",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:2",
+          "side": "baseline"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "step:3",
+          "side": "baseline"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "baseline"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:0",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:1",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:2",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:3",
+          "side": "selected"
+        },
+        {
+          "code": "node-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "note:4",
+          "side": "selected"
+        },
+        {
+          "code": "edge-fields-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Not represented: architecture.",
+          "subject": "支付:edge",
+          "side": "selected"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null,
+          "side": "selected"
+        },
+        {
+          "side": "selected",
+          "code": "viewport-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "subject": null,
+          "message": "The snapshot camera is retained in the packet but omitted from its Mermaid projection."
+        }
+      ],
+      "inspectionMatchesInput": true,
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "scenario": "reject-forged",
+      "exitCode": 2,
+      "operation": "review-inspect",
+      "status": "rejected",
+      "model": null,
+      "audit": null,
+      "diagnostics": [
+        {
+          "code": "inconsistent-packet",
+          "message": "Packet content differs from its recomputed snapshots, audit, conventions or projections.",
+          "dimension": "semantics",
+          "subject": "-",
+          "severity": "error",
+          "path": "/projections/selected/source"
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "scenario": "reject-invalid-utf8",
+      "exitCode": 2,
+      "operation": "review-validate",
+      "status": "rejected",
+      "model": null,
+      "audit": null,
+      "diagnostics": [
+        {
+          "code": "invalid-utf8",
+          "message": "Input must be valid UTF-8.",
+          "dimension": "syntax",
+          "subject": "-",
+          "severity": "error"
+        }
+      ],
+      "inspectionMatchesInput": null,
+      "stderr": ""
+    }
+  ]
+}

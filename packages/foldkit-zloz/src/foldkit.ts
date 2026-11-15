@@ -2,6 +2,30 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+
+import type {
+  ZlozGroupHeaderMeasurementRequest,
+  ZlozGroupHeaderMeasurementResult,
+} from './group-header-measurement';
+import { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
+export { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
+export type { ZlozGroupHeaderMeasurementOptions } from './group-header-measurement-mount';
+import type { ZlozLabelMeasurementRequest, ZlozLabelMeasurementResult } from './label-measurement';
+import { zlozLabelMeasurement } from './label-measurement-mount';
+export { zlozLabelMeasurement } from './label-measurement-mount';
+export type { ZlozLabelMeasurementOptions } from './label-measurement-mount';
+import {
+  resolveEdgeWaypointControls,
+  type ZlozEdgeWaypointControlsContext,
+} from './waypoint-controls';
+import { zlozEdgeWaypoints } from './waypoint-controls-view';
+import { resolveEdgeWaypointPreview } from './waypoint-interaction';
+export {
+  zlozEdgeWaypoints,
+  zlozEdgeWaypointHandle,
+  zlozEdgeWaypointAction,
+  zlozEdgeWaypointReadout,
+} from './waypoint-controls-view';
 export {
   zlozEndpointSearchInput,
   zlozEndpointSearchClear,
@@ -203,7 +227,11 @@ export {
   zlozEdgeHitTarget,
   zlozWorldOverlayItem,
 } from './composition';
-export type { ZlozNodeRenderContext, ZlozWorldOverlayItemOptions } from './composition';
+export type {
+  ZlozNodeRenderContext,
+  ZlozWorldOverlayItemOptions,
+  ZlozGroupHeaderOptions,
+} from './composition';
 export { zlozC4Node, zlozC4Group } from './c4-renderer';
 export { zlozDddNode, zlozDddGroup } from './ddd-renderer';
 export type {
@@ -241,7 +269,7 @@ export { resolveZlozDiagnostics } from './diagnostics';
 export type { ZlozDiagnostics, ZlozDiagnosticOptions } from './diagnostics';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type ZlozEdgeGeometryPolicy } from './edge-geometry';
-import { boxBounds, portBoundaryPosition } from './geometry';
+import { boxBounds, finitePoint, portBoundaryPosition } from './geometry';
 import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
 import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 export type {
@@ -432,6 +460,22 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     renderGroupShell?: (context: ZlozNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Zloz's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: ZlozEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** One-shot group heading measurement; use intrinsic C4/DDD groupHeader sizing or custom scoped targets. */
+    groupHeaderMeasurement?:
+      | Readonly<{
+          request: ZlozGroupHeaderMeasurementRequest;
+          onMeasured: (result: ZlozGroupHeaderMeasurementResult) => M;
+          timeoutMs?: number;
+        }>
+      | undefined;
+    /** Opt-in one-shot measurement. Store the pending request in your Model and validate the result in core. */
+    labelMeasurement?:
+      | Readonly<{
+          timeoutMs?: number;
+          request: ZlozLabelMeasurementRequest;
+          onMeasured: (result: ZlozLabelMeasurementResult) => M;
+        }>
+      | undefined;
     /** Replaces the badge at the resolved anchor. Undefined uses the default; null hides the badge. */
     renderEdgeLabel?: (context: ZlozEdgeLabelContext, h: HtmlBuilder<M>) => Html | null | undefined;
     /** Replaces the active inline editor. Undefined uses the default form. */
@@ -498,6 +542,19 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     canResizeNode?: EditorPolicy['canResizeNode'];
     canSelectNode?: EditorPolicy['canSelectNode'];
     canSelectEdge?: EditorPolicy['canSelectEdge'];
+    /** Opt-in controls for the selected visible connection. */
+    edgeWaypoints?: boolean;
+    /** CSS-pixel label displacement when a selected authored bend meets its anchor. Defaults to { x: 0, y: -32 }; zero disables. */
+    waypointLabelOffset?: Point;
+    canChangeEdgeWaypoints?: EditorPolicy['canChangeEdgeWaypoints'];
+    /** Undefined uses the default; null hides controls. Native helpers retain delegated input. */
+    renderEdgeWaypoints?:
+      | ((
+          context: ZlozEdgeWaypointControlsContext & Readonly<{ diagnostics: ZlozDiagnostics }>,
+          h: HtmlBuilder<M>,
+        ) => Html | null | undefined)
+      | undefined;
+
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: ZlozEdgeToolbarContext,
@@ -1236,7 +1293,9 @@ function canvasHelpView<M>(
       : []),
     ...(spaceToPan ? ['Focus the canvas, then hold Space and drag the background to pan. '] : []),
     ...(middleButtonPan ? ['Middle-drag the background to pan. '] : []),
-    'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
+    state.connectionMode === 'loose'
+      ? 'Tab to a title, then use arrow keys to move it. Drag from any port to any port, or activate the source then target with Enter or Space. Port kinds stay unchanged. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.'
+      : 'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
       : []),
@@ -1578,6 +1637,7 @@ function retainedNodeLayer<M>(
   selectedNodes: readonly string[],
   readOnly: boolean,
   connection: EditorState['connection'],
+  connectionMode: EditorState['connectionMode'],
   descriptionId: string,
   resizeHandles: boolean,
   contextEnabled: boolean,
@@ -1595,7 +1655,7 @@ function retainedNodeLayer<M>(
       mountedMask === undefined
         ? graph.nodes
         : graph.nodes.filter((_, index) => mountedMask[index] === '1'),
-      { graph, selectedNodes, readOnly, connection },
+      { graph, selectedNodes, readOnly, connection, connectionMode },
       options,
       resolveZlozDiagnostics({}),
       descriptionId,
@@ -1629,6 +1689,7 @@ export function zlozView<M>(
     (!Number.isFinite(doubleClickZoomFactor) || doubleClickZoomFactor <= 1)
   )
     throw new RangeError('Double-click zoom factor must be finite and greater than 1');
+  if (options.waypointLabelOffset) finitePoint(options.waypointLabelOffset);
   const diagnostics = resolveZlozDiagnostics(options);
   const presentation = presentVisibleGraph(state);
   const selectionPreview =
@@ -1640,7 +1701,7 @@ export function zlozView<M>(
   );
   const collapsedGroups = new Set(state.collapsedGroups);
   const visibleEdges = presentation.edges;
-  const routes = new Map(state.routes.map((route) => [route.id, route.points]));
+  const routes = new Map(state.routes.map((route) => [route.id, route]));
   const canvas = viewportItems(
     state,
     presentation,
@@ -1889,6 +1950,7 @@ export function zlozView<M>(
           state.selectedNodes,
           state.readOnly,
           state.connection,
+          state.connectionMode,
           descriptionId,
           Boolean(options.resizeHandles),
           Boolean(contextEnabled),
@@ -1914,16 +1976,24 @@ export function zlozView<M>(
       );
   const nodeLayer = options.nodeViewCache && !canRetainNodes ? [nodeLayerFrame(h, nodes)] : nodes;
   const markerId = `${options.id}-arrow`;
-  const edgeGeometries = canvas.edges.map((edge) => ({
-    edge,
-    selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
-    ...resolveEdgeGeometry(state.graph, edge, {
-      policy: options.edgeGeometry,
-      route: routes.get(edge.id),
-      sourceGroup: presentation.hiddenBy.get(edge.source.node),
-      targetGroup: presentation.hiddenBy.get(edge.target.node),
-    }),
-  }));
+  const waypointPreview = resolveEdgeWaypointPreview(state, options);
+  const edgeGeometries = canvas.edges.map((stored) => {
+    const edge =
+      waypointPreview.type === 'allowed' && waypointPreview.edge.id === stored.id
+        ? waypointPreview.edge
+        : stored;
+    return {
+      edge,
+      selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
+      ...resolveEdgeGeometry(state.graph, edge, {
+        policy: options.edgeGeometry,
+        route: routes.get(edge.id)?.points,
+        labelPosition: routes.get(edge.id)?.label?.position,
+        sourceGroup: presentation.hiddenBy.get(edge.source.node),
+        targetGroup: presentation.hiddenBy.get(edge.target.node),
+      }),
+    };
+  });
   const toolbarEnabled = options.edgeToolbar === true && !state.readOnly;
   const toolbarId = `${encodeURIComponent(options.id)}-edge-actions`;
   const activeEdge =
@@ -1984,10 +2054,26 @@ export function zlozView<M>(
   };
   const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition, selectionDisabledReason }) => {
     const selected = state.selectedEdges.includes(edge.id);
+    const offsetLabel =
+      options.edgeWaypoints &&
+      selected &&
+      !presentation.hiddenBy.has(edge.source.node) &&
+      !presentation.hiddenBy.has(edge.target.node) &&
+      labelPosition &&
+      edge.waypoints?.some(
+        ({ position }) =>
+          Math.hypot(position.x - labelPosition.x, position.y - labelPosition.y) *
+            state.viewport.zoom <
+          28,
+      );
+    const labelOffset = offsetLabel
+      ? (options.waypointLabelOffset ?? { x: 0, y: -32 })
+      : { x: 0, y: 0 };
     const labelEditable = !state.readOnly && selectionDisabledReason === undefined;
     const draft =
       labelEditable && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
-    if (!labelPosition || (!draft && !edge.label && (!labelEditable || !selected))) return [];
+    const defaultLabelVisible = Boolean(draft || edge.label || (labelEditable && selected));
+    if (!labelPosition || (!defaultLabelVisible && !options.renderEdgeLabel)) return [];
     const context: ZlozEdgeLabelContext = {
       edge,
       labelPosition,
@@ -2012,16 +2098,17 @@ export function zlozView<M>(
           ],
         ))
       : options.renderEdgeLabel?.(context, h);
-    if (content === null) return [];
+    if (content === null || (!defaultLabelVisible && content === undefined)) return [];
     return [
       h.div(
         [
           h.Key(`edge-label:${edge.id}`),
+          ...(options.labelMeasurement ? [h.DataAttribute('zloz-measured-label', edge.id)] : []),
           h.DataAttribute('flow-no-drag', ''),
           h.Style({
             position: 'absolute',
-            left: `${labelPosition.x}px`,
-            top: `${labelPosition.y}px`,
+            left: `${labelPosition.x + labelOffset.x / state.viewport.zoom}px`,
+            top: `${labelPosition.y + labelOffset.y / state.viewport.zoom}px`,
             transform: 'translate(-50%, -50%)',
             'pointer-events': labelEditable ? 'auto' : 'none',
             'z-index': draft ? '2' : 'auto',
@@ -2330,10 +2417,12 @@ export function zlozView<M>(
     : [];
   const canvasPart = h.div(
     [
-      h.Key('surface'),
+      // A distinct view ID owns a distinct scoped input binding and message mapping.
+      h.Key(`${options.id}-surface`),
       h.Id(`${options.id}-surface`),
       h.DataAttribute('flow-surface', options.id),
       h.DataAttribute('flow-readonly', String(state.readOnly)),
+      h.DataAttribute('flow-connection-mode', state.connectionMode ?? 'strict'),
       h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
       h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
       h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
@@ -2361,6 +2450,10 @@ export function zlozView<M>(
       h.AriaLabel(options.label),
       h.AriaDescribedBy(descriptionId),
       h.OnMount(Mount.mapMessage(ZlozInput(), (message) => options.onEvent(message.event))),
+      ...(options.labelMeasurement ? [h.DataAttribute('zloz-label-measurement-scope', '')] : []),
+      ...(options.groupHeaderMeasurement
+        ? [h.DataAttribute('zloz-group-header-measurement-scope', '')]
+        : []),
       h.Style({
         position: 'relative',
         overflow: 'hidden',
@@ -2379,6 +2472,26 @@ export function zlozView<M>(
       }),
     ],
     [
+      ...(options.groupHeaderMeasurement
+        ? [
+            zlozGroupHeaderMeasurement(
+              h,
+              options.groupHeaderMeasurement.request,
+              options.groupHeaderMeasurement.onMeasured,
+              options.groupHeaderMeasurement,
+            ),
+          ]
+        : []),
+      ...(options.labelMeasurement
+        ? [
+            zlozLabelMeasurement(
+              h,
+              options.labelMeasurement.request,
+              options.labelMeasurement.onMeasured,
+              options.labelMeasurement,
+            ),
+          ]
+        : []),
       ...backgroundView(h, state, options.id, options.background),
       h.div(
         [
@@ -2445,6 +2558,20 @@ export function zlozView<M>(
           ),
           ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
           ...edgeLabels,
+          ...(options.edgeWaypoints && state.selectedEdges.length === 1
+            ? (() => {
+                const selectedId = state.selectedEdges[0];
+                if (selectedId === undefined) return [];
+                const context = resolveEdgeWaypointControls(state, selectedId, options);
+                if (!context || !visibleEdges.some((edge) => edge.id === context.edge.id))
+                  return [];
+                const custom = options.renderEdgeWaypoints?.({ ...context, diagnostics }, h);
+                return custom === null
+                  ? []
+                  : [custom ?? zlozEdgeWaypoints(h, context, options.onEvent, diagnostics)];
+              })()
+            : []),
+
           ...(worldOverlay === null || worldOverlay === undefined
             ? []
             : [
@@ -2799,7 +2926,7 @@ export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics'
 
 export { zlozHistoryGhosts } from './history-ghosts';
 export type { ZlozHistoryGhostOptions } from './history-ghosts';
-export { zlozEventStormingNode } from './event-storming-renderer';
+export { zlozEventStormingNode, zlozEventStormingGroup } from './event-storming-renderer';
 export type {
   ZlozEventStormingContentContext,
   ZlozEventStormingContentRenderer,
@@ -2878,3 +3005,96 @@ export type {
   ZlozEventStormingRelationshipControlsParts,
   ZlozEventStormingRelationshipControlsViewOptions,
 } from './relationship-controls-view';
+
+export {
+  zlozContextMapConnector,
+  zlozContextMapLabel,
+  zlozContextMapParticipant,
+} from './context-map-view';
+export type {
+  ZlozContextMapConnectorOptions,
+  ZlozContextMapLabelOptions,
+  ZlozContextMapParticipantOptions,
+  ZlozContextMapLabelParts,
+} from './context-map-view';
+export {
+  zlozDddRelationshipControls,
+  zlozDddRelationshipPatternSelect,
+  zlozDddUpstreamRole,
+  zlozDddDownstreamRoleSelect,
+  zlozDddRelationshipStatus,
+  zlozDddRelationshipReasons,
+} from './ddd-relationship-controls-view';
+export type {
+  ZlozDddRelationshipControlsViewOptions,
+  ZlozDddRelationshipControlsParts,
+} from './ddd-relationship-controls-view';
+
+export {
+  zlozPlacementHost,
+  zlozPaletteEntry,
+  zlozPalette,
+  zlozPlacementAction,
+  zlozPlacementPreview,
+} from './placement-controls-view';
+export type { ZlozPaletteViewOptions } from './placement-controls-view';
+export { bindPlacementInput } from './placement-input';
+
+export {
+  zlozSvgReview,
+  zlozSvgReviewSelect,
+  zlozSvgReviewPreview,
+  zlozSvgLossCheckbox,
+  zlozSvgDownloadButton,
+} from './svg-review-view';
+export type { ZlozSvgReviewParts, ZlozSvgReviewViewOptions } from './svg-review-view';
+
+export {
+  zlozModellingPatchReview,
+  zlozModellingPatchAcknowledgement,
+  zlozModellingPatchApply,
+} from './modelling-patch-review-view';
+export type {
+  ZlozModellingPatchReviewParts,
+  ZlozModellingPatchReviewViewOptions,
+} from './modelling-patch-review-view';
+
+export { zlozPngReview, zlozPngAction, zlozPngPreview } from './png-review-view';
+export type { ZlozPngReviewParts, ZlozPngReviewViewOptions } from './png-review-view';
+
+export {
+  zlozDddAuditControls,
+  zlozDddAuditEditionSelect,
+  zlozDddAuditFindingFilter,
+  zlozDddAuditFindingButton,
+  zlozDddAuditStatus,
+  zlozDddAuditReason,
+} from './ddd-audit-controls-view';
+export type { ZlozDddAuditParts, ZlozDddAuditViewOptions } from './ddd-audit-controls-view';
+
+export {
+  zlozEventStormingWorkshopControls,
+  zlozWorkshopSelect,
+  zlozWorkshopStatusButton,
+} from './workshop-controls-view';
+export type { ZlozWorkshopParts, ZlozWorkshopViewOptions } from './workshop-controls-view';
+
+export {
+  zlozHistoryComparisonPresentationV2,
+  zlozHistoryGhostsV2,
+} from './history-presentation-v2-view';
+export type {
+  ZlozHistoryPresentationPartsV2,
+  ZlozHistoryPresentationViewOptionsV2,
+  ZlozHistoryGhostOptionsV2,
+} from './history-presentation-v2-view';
+
+export {
+  zlozHistoryChangeNavigatorV2,
+  zlozHistoryChangeButtonV2,
+} from './history-change-navigator-v2-view';
+export type {
+  ZlozHistoryChangeNavigatorHandlersV2,
+  ZlozHistoryChangeNavigatorPartsV2,
+  ZlozHistoryChangeNavigatorViewOptionsV2,
+} from './history-change-navigator-v2-view';

@@ -1,0 +1,42 @@
+{
+  "name": "@opsydyn/zloz-alchemy-domain-fidelity-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private read-only Alchemy adapter qualification candidate; requires unreleased native core contracts.",
+  "files": [
+    "dist/adapter.js",
+    "dist/adapter.d.ts",
+    "dist/index.js",
+    "dist/index.d.ts",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/adapter.js",
+  "types": "./dist/adapter.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/adapter.d.ts",
+      "import": "./dist/adapter.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:bun": "bun test test",
+    "qualify": "npm run build && node qualify.mjs && node adapter-qualify.mjs",
+    "test:consumer": "npm run build && node consumer-test.mjs"
+  },
+  "dependencies": {
+    "@alchemy.run/domain": "2.0.0-beta.85",
+    "alchemy": "2.0.0-beta.85",
+    "effect": "4.1.0"
+  },
+  "devDependencies": {
+    "@opsydyn/foldkit-zloz": "file:../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.3.0.tgz",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@opsydyn/foldkit-zloz": "0.3.0"
+  }
+}

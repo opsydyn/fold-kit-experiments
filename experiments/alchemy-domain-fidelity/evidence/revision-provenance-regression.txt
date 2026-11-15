@@ -1,0 +1,55 @@
+
+> @opsydyn/zloz-alchemy-domain-fidelity-spike@0.0.0 test
+> npm run build && node --test test/*.test.mjs
+
+
+> @opsydyn/zloz-alchemy-domain-fidelity-spike@0.0.0 build
+> tsc -p tsconfig.json
+
+✔ actual pinned declarations produce the independently specified manifest and canonical graph without executing handlers (2.423291ms)
+✔ reordering and shared event declarations preserve identities and canonical output (0.168834ms)
+✖ known edition change is visible, while namespaces, renames and explicit aliases retain honest identity (7.571417ms)
+✔ duplicate identities, alias collisions, unknown aliases and source limits reject without mutating declarations (0.40475ms)
+✔ unknown vocabulary is retained explicitly and missing references block all graph output (0.34625ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.316292
+
+✖ failing tests:
+
+test at test/fidelity.test.mjs:58:1
+✖ known edition change is visible, while namespaces, renames and explicit aliases retain honest identity (7.571417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'example%2Fbank/Bank/aggregate/Account',
+  +   'example%2Fbank/Bank/command/DepositMoney',
+  +   'example%2Fbank/Bank/command/GrantBonus',
+  +   'example%2Fbank/Bank/event/MoneyDeposited',
+  +   'example%2Fbank/Bank/model/Bank',
+  +   'example%2Fbank/Bank/policy/Notify',
+  +   'example%2Fbank/Bank/stream/Ledger',
+  +   'example%2Fbank/Bank/view/AccountSummary'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///private/tmp/foldkit-zloz-context-map-20261111/experiments/alchemy-domain-fidelity/test/fidelity.test.mjs:117:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'example%2Fbank/Bank/aggregate/Account', 'example%2Fbank/Bank/command/DepositMoney', 'example%2Fbank/Bank/command/GrantBonus', 'example%2Fbank/Bank/event/MoneyDeposited', 'example%2Fbank/Bank/model/Bank', 'example%2Fbank/Bank/policy/Notify', 'example%2Fbank/Bank/stream/Ledger', 'example%2Fbank/Bank/view/AccountSummary' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,6 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { zlozPort } from './composition';
+import { zlozPort, portConnectionEnd } from './composition';
 import { portAnchor } from './geometry';
 import type { Endpoint, Point, Port } from './types';
 
@@ -12,6 +12,8 @@ export type ZlozPortRenderContext = PortNodeContext &
     /** Canonical normalized anchor within the node frame. */
     anchor: Point;
     active: boolean;
+    /** Current activation intent, independent of authored kind in loose sessions. */
+    connectionEnd: 'source' | 'target';
     /** Current accepted connection-drag target. */
     target: boolean;
     disabledReason: string | null;
@@ -66,6 +68,7 @@ export function portRenderViews<M>(
       port,
       label: port.label ?? port.id,
       anchor: portAnchor(port, node),
+      connectionEnd: portConnectionEnd(state, port),
       active: state.connection?.node === node.id && state.connection.port === port.id,
       target: target?.node === node.id && target.port === port.id,
       disabledReason: context.canConnectPort?.(endpoint, state.graph) ?? null,

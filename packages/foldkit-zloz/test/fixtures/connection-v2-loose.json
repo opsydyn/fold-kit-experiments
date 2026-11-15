@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "connectionMode": "loose",
+  "graph": {
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Orders",
+        "position": { "x": 20, "y": 40 },
+        "size": { "width": 200, "height": 100 },
+        "ports": [{ "id": "shared", "kind": "input", "side": "right", "offset": 0.5 }],
+        "data": { "owner": "commerce" }
+      },
+      {
+        "id": "b",
+        "label": "Billing",
+        "position": { "x": 320, "y": 40 },
+        "size": { "width": 200, "height": 100 },
+        "ports": [{ "id": "shared", "kind": "input", "side": "left", "offset": 0.5 }]
+      }
+    ],
+    "edges": [
+      {
+        "id": "orders-billing",
+        "source": { "node": "a", "port": "shared" },
+        "target": { "node": "b", "port": "shared" },
+        "label": "Uses",
+        "data": { "preserve": true }
+      }
+    ]
+  },
+  "viewport": { "x": 10, "y": 30, "zoom": 0.8 }
+}

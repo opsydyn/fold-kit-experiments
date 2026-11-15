@@ -1,0 +1,144 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "mermaid-export",
+  "status": "converted",
+  "data": {
+    "protocol": "foldkit-zloz-mermaid/v2",
+    "source": "flowchart LR\n  n_61[\"Orders\"]\n  n_62[\"Billing\"]\n  n_61 e_6f_72_64_65_72_73_2d_62_69_6c_6c_69_6e_67@-->|\"Uses\"| n_62\n",
+    "direction": "LR",
+    "identity": {
+      "version": 1,
+      "nodes": [
+        { "mermaidId": "n_61", "flowId": "a", "ports": [{ "id": "shared", "kind": "input" }] },
+        { "mermaidId": "n_62", "flowId": "b", "ports": [{ "id": "shared", "kind": "input" }] }
+      ],
+      "edges": [
+        {
+          "mermaidId": "e_6f_72_64_65_72_73_2d_62_69_6c_6c_69_6e_67",
+          "flowId": "orders-billing",
+          "sourceNode": "n_61",
+          "sourcePort": "shared",
+          "targetNode": "n_62",
+          "targetPort": "shared"
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "code": "connection-mode-omitted",
+        "severity": "loss",
+        "dimension": "semantics",
+        "message": "The v2 bundle retains loose mode, but Mermaid source cannot express future port-connection rules.",
+        "subject": null
+      },
+      {
+        "code": "viewport-omitted",
+        "severity": "loss",
+        "dimension": "layout",
+        "message": "Mermaid omits the snapshot camera.",
+        "subject": null
+      },
+      {
+        "code": "node-fields-omitted",
+        "severity": "loss",
+        "dimension": "semantics",
+        "message": "Not represented: data.",
+        "subject": "a"
+      },
+      {
+        "code": "port-details-omitted",
+        "severity": "loss",
+        "dimension": "layout",
+        "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+        "subject": "a"
+      },
+      {
+        "code": "port-details-omitted",
+        "severity": "loss",
+        "dimension": "layout",
+        "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+        "subject": "b"
+      },
+      {
+        "code": "edge-fields-omitted",
+        "severity": "loss",
+        "dimension": "semantics",
+        "message": "Not represented: data.",
+        "subject": "orders-billing"
+      },
+      {
+        "code": "layout-omitted",
+        "severity": "loss",
+        "dimension": "layout",
+        "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+        "subject": null
+      },
+      {
+        "code": "identity-map-required",
+        "severity": "loss",
+        "dimension": "identity",
+        "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+        "subject": null
+      }
+    ],
+    "connectionMode": "loose"
+  },
+  "diagnostics": [
+    {
+      "code": "connection-mode-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "The v2 bundle retains loose mode, but Mermaid source cannot express future port-connection rules.",
+      "subject": null
+    },
+    {
+      "code": "viewport-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Mermaid omits the snapshot camera.",
+      "subject": null
+    },
+    {
+      "code": "node-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: data.",
+      "subject": "a"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "a"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "b"
+    },
+    {
+      "code": "edge-fields-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "Not represented: data.",
+      "subject": "orders-billing"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null
+    }
+  ]
+}

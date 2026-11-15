@@ -2,6 +2,10 @@ import { Buffer } from 'node:buffer';
 
 import {
   parseModelDocument,
+  parseModelDocumentV2,
+  parseConnectionDocument,
+  type ZlozModelDocumentV2,
+  type ZlozConnectionDocument,
   parseSnapshot,
   type ZlozModelDocument,
   type JsonValue,
@@ -10,7 +14,13 @@ import {
 import { Effect, FileSystem, Match, Schema, Stdio, Stream } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 
-import { CliInputError, CliOutputError, encodeResponse, type CliResponse } from './protocol';
+import {
+  CliInputError,
+  CliAdapterIncompatible,
+  CliOutputError,
+  encodeResponse,
+  type CliResponse,
+} from './protocol';
 
 /** Hard UTF-8 byte limit shared by file and stdin input. */
 export const inputByteLimit = 1_048_576;
@@ -75,15 +85,32 @@ function decodeJson(text: string, input: string) {
 export type CliDocument =
   | Readonly<{ kind: 'snapshot'; snapshot: ZlozSnapshot }>
   | Readonly<{ kind: 'model'; document: ZlozModelDocument }>;
+export type CliPortableDocument =
+  | CliDocument
+  | Readonly<{ kind: 'model-v2'; document: ZlozModelDocumentV2 }>
+  | Readonly<{ kind: 'connection-v2'; snapshot: ZlozConnectionDocument }>;
+const v2Marker = Schema.Struct({ version: Schema.Literal(2) });
 const modelMarker = Schema.Struct({ format: Schema.Literal('foldkit-zloz-model') });
 const parseCliDocument = (text: string, model: boolean): CliDocument =>
   Match.value(model).pipe(
     Match.when(true, () => ({ kind: 'model' as const, document: parseModelDocument(text) })),
     Match.orElse(() => ({ kind: 'snapshot' as const, snapshot: parseSnapshot(text) })),
   );
+const parsePortableDocument = (text: string, value: JsonValue): CliPortableDocument =>
+  Match.value({ v2: Schema.is(v2Marker)(value), model: Schema.is(modelMarker)(value) }).pipe(
+    Match.when({ v2: true, model: true }, () => ({
+      kind: 'model-v2' as const,
+      document: parseModelDocumentV2(text),
+    })),
+    Match.when({ v2: true }, () => ({
+      kind: 'connection-v2' as const,
+      snapshot: parseConnectionDocument(text),
+    })),
+    Match.orElse(({ model }) => parseCliDocument(text, model)),
+  );
 const decodeDocument = (text: string, value: JsonValue, input: string) =>
   Effect.try({
-    try: () => parseCliDocument(text, Schema.is(modelMarker)(value)),
+    try: () => parsePortableDocument(text, value),
     catch: (cause) =>
       new CliInputError({
         code: 'invalid-document',
@@ -92,8 +119,8 @@ const decodeDocument = (text: string, value: JsonValue, input: string) =>
         subject: input,
       }),
   });
-/** Scoped UTF-8 JSON input shared by document and data-only configuration readers. */
-export function readJsonInput(input: string) {
+/** Scoped bounded UTF-8 text; packet decoding must inspect raw JSON before any schema parse. */
+export function readTextInput(input: string) {
   const reading = Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const stdio = yield* Stdio.Stdio;
@@ -112,16 +139,34 @@ export function readJsonInput(input: string) {
     );
     const chunks = yield* collectInput(source, input);
     const text = yield* decodeUtf8(chunks, input);
+    return text;
+  });
+  return reading.pipe(Effect.withSpan('zloz.cli.readTextInput'));
+}
+/** JSON interpretation remains separate from the shared bounded UTF-8 reader. */
+export function readJsonInput(input: string) {
+  const reading = Effect.gen(function* () {
+    const text = yield* readTextInput(input);
     const value = yield* decodeJson(text, input);
     return { text, value };
   });
   return reading.pipe(Effect.withSpan('zloz.cli.readJsonInput'));
 }
 /** Document interpretation remains separate from the shared bounded JSON input boundary. */
-export function readDocument(input: string) {
+export function readPortableDocument(input: string) {
   return readJsonInput(input).pipe(
     Effect.flatMap(({ text, value }) => decodeDocument(text, value, input)),
     Effect.withSpan('zloz.cli.readDocument'),
+  );
+}
+/** Existing adapters remain v1-only; a validated v2 document is incompatible, not malformed. */
+export function readDocument(input: string) {
+  return readPortableDocument(input).pipe(
+    Effect.filterOrFail(
+      (document): document is CliDocument =>
+        document.kind === 'model' || document.kind === 'snapshot',
+      () => new CliAdapterIncompatible({ subject: input }),
+    ),
   );
 }
 /** Graph-only compatibility seam: never implicitly projects a model document. */
@@ -152,4 +197,25 @@ export function writeResponse(response: CliResponse) {
     );
     return response;
   });
+}
+
+/** Bounded native JSON header classification; dedicated receipt decoders inspect raw text before recursive schemas. */
+export function readReceiptInput(input: string) {
+  return readTextInput(input).pipe(
+    Effect.flatMap((text) =>
+      Effect.try({
+        try: () => {
+          const value: unknown = JSON.parse(text);
+          return { text, value };
+        },
+        catch: () =>
+          new CliInputError({
+            code: 'invalid-json',
+            message: 'Input must be valid JSON.',
+            dimension: 'syntax',
+            subject: input,
+          }),
+      }),
+    ),
+  );
 }

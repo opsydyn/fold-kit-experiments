@@ -531,7 +531,8 @@ function connectionPath(
 
 /** Preserve explicit authored styles and layout routing for finished edges. */
 export const raisedEdge: import('@opsydyn/foldkit-zloz').ZlozEdgeGeometryPolicy = (context) => {
-  if (context.edge.pathStyle !== undefined || context.route) return undefined;
+  if (context.edge.waypoints || context.edge.pathStyle !== undefined || context.route)
+    return undefined;
   return connectionPath(context, context.edge.source, context.edge.target);
 };
 
@@ -539,7 +540,7 @@ export const raisedEdge: import('@opsydyn/foldkit-zloz').ZlozEdgeGeometryPolicy 
 export const raisedConnection: import('@opsydyn/foldkit-zloz').ZlozConnectionGeometryPolicy = (
   context,
 ) => {
-  if (context.edge?.pathStyle !== undefined) return undefined;
+  if (context.edge?.waypoints || context.edge?.pathStyle !== undefined) return undefined;
   return connectionPath(context, context.sourceEndpoint, context.targetEndpoint);
 };
 

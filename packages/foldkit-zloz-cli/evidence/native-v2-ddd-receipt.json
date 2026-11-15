@@ -1,0 +1,496 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "ddd-receipt-inspect",
+  "status": "inspected",
+  "scope": "recorded-evidence",
+  "data": {
+    "authority": "read-only-evidence",
+    "receipt": {
+      "format": "foldkit-zloz-ddd-conversion",
+      "version": 2,
+      "source": {
+        "document": {
+          "editions": [
+            {
+              "id": "base",
+              "name": "Strict empty baseline",
+              "snapshot": {
+                "connectionMode": "strict",
+                "graph": {
+                  "edges": [],
+                  "nodes": [
+                    {
+                      "architecture": {
+                        "family": "event-storming",
+                        "role": "domain-event"
+                      },
+                      "data": {
+                        "owner": "commerce"
+                      },
+                      "id": "a",
+                      "label": "Orders",
+                      "ports": [
+                        {
+                          "id": "shared",
+                          "kind": "input",
+                          "offset": 0.5,
+                          "side": "right"
+                        }
+                      ],
+                      "position": {
+                        "x": 20,
+                        "y": 40
+                      },
+                      "size": {
+                        "height": 100,
+                        "width": 200
+                      }
+                    },
+                    {
+                      "architecture": {
+                        "family": "event-storming",
+                        "role": "domain-event"
+                      },
+                      "id": "b",
+                      "label": "Billing",
+                      "ports": [
+                        {
+                          "id": "shared",
+                          "kind": "input",
+                          "offset": 0.5,
+                          "side": "left"
+                        }
+                      ],
+                      "position": {
+                        "x": 320,
+                        "y": 40
+                      },
+                      "size": {
+                        "height": 100,
+                        "width": 200
+                      }
+                    }
+                  ]
+                },
+                "version": 2
+              }
+            }
+          ],
+          "id": "native-v2",
+          "name": "Synthetic native v2 fixture",
+          "origin": null,
+          "snapshot": {
+            "connectionMode": "loose",
+            "graph": {
+              "edges": [
+                {
+                  "data": {
+                    "preserve": true
+                  },
+                  "id": "orders-billing",
+                  "label": "Uses",
+                  "source": {
+                    "node": "a",
+                    "port": "shared"
+                  },
+                  "target": {
+                    "node": "b",
+                    "port": "shared"
+                  }
+                }
+              ],
+              "nodes": [
+                {
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  },
+                  "data": {
+                    "owner": "commerce"
+                  },
+                  "id": "a",
+                  "label": "Orders",
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "offset": 0.5,
+                      "side": "right"
+                    }
+                  ],
+                  "position": {
+                    "x": 20,
+                    "y": 40
+                  },
+                  "size": {
+                    "height": 100,
+                    "width": 200
+                  }
+                },
+                {
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  },
+                  "id": "b",
+                  "label": "Billing",
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "offset": 0.5,
+                      "side": "left"
+                    }
+                  ],
+                  "position": {
+                    "x": 320,
+                    "y": 40
+                  },
+                  "size": {
+                    "height": 100,
+                    "width": 200
+                  }
+                }
+              ]
+            },
+            "version": 2,
+            "viewport": {
+              "x": 10,
+              "y": 30,
+              "zoom": 0.8
+            }
+          }
+        },
+        "sessionId": "native-v2-fixture",
+        "revision": 0
+      },
+      "mappings": {
+        "nodes": [],
+        "edges": [
+          {
+            "edgeId": "orders-billing",
+            "architecture": null
+          }
+        ],
+        "relationships": {
+          "rules": [
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "references",
+                "scope": "tactical"
+              },
+              "sources": ["entity", "value-object", "aggregate-root", "domain-service"],
+              "targets": ["entity", "value-object", "aggregate-root"],
+              "label": "References",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "contains",
+                "scope": "tactical"
+              },
+              "sources": ["aggregate", "aggregate-root", "entity", "value-object"],
+              "targets": ["entity", "value-object", "aggregate-root"],
+              "label": "Contains",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "emits",
+                "scope": "tactical"
+              },
+              "sources": ["aggregate", "aggregate-root", "entity", "domain-service"],
+              "targets": ["domain-event"],
+              "label": "Emits",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "persists",
+                "scope": "tactical"
+              },
+              "sources": ["repository"],
+              "targets": ["entity", "aggregate-root"],
+              "label": "Persists",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "uses",
+                "scope": "tactical"
+              },
+              "sources": ["entity", "aggregate-root", "domain-service"],
+              "targets": ["domain-service", "repository"],
+              "label": "Uses",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "partnership",
+                "scope": "strategic"
+              },
+              "sources": ["bounded-context"],
+              "targets": ["bounded-context"],
+              "label": "Partnership",
+              "direction": "symmetric"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "shared-kernel",
+                "scope": "strategic"
+              },
+              "sources": ["bounded-context"],
+              "targets": ["bounded-context"],
+              "label": "Shared kernel",
+              "direction": "symmetric"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "upstream-downstream",
+                "scope": "strategic"
+              },
+              "sources": ["bounded-context"],
+              "targets": ["bounded-context"],
+              "label": "Upstream → downstream",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "customer-supplier",
+                "scope": "strategic"
+              },
+              "sources": ["bounded-context"],
+              "targets": ["bounded-context"],
+              "label": "Supplier → customer",
+              "direction": "directed"
+            },
+            {
+              "architecture": {
+                "family": "ddd",
+                "role": "feeds",
+                "scope": "tactical"
+              },
+              "sources": ["aggregate", "aggregate-root", "domain-event", "read-model"],
+              "targets": ["read-model"],
+              "label": "Declared consumption",
+              "direction": "directed"
+            }
+          ]
+        }
+      },
+      "lossesAccepted": true,
+      "document": {
+        "editions": [
+          {
+            "id": "base",
+            "name": "Strict empty baseline",
+            "snapshot": {
+              "connectionMode": "strict",
+              "graph": {
+                "edges": [],
+                "nodes": [
+                  {
+                    "architecture": {
+                      "family": "event-storming",
+                      "role": "domain-event"
+                    },
+                    "data": {
+                      "owner": "commerce"
+                    },
+                    "id": "a",
+                    "label": "Orders",
+                    "ports": [
+                      {
+                        "id": "shared",
+                        "kind": "input",
+                        "offset": 0.5,
+                        "side": "right"
+                      }
+                    ],
+                    "position": {
+                      "x": 20,
+                      "y": 40
+                    },
+                    "size": {
+                      "height": 100,
+                      "width": 200
+                    }
+                  },
+                  {
+                    "architecture": {
+                      "family": "event-storming",
+                      "role": "domain-event"
+                    },
+                    "id": "b",
+                    "label": "Billing",
+                    "ports": [
+                      {
+                        "id": "shared",
+                        "kind": "input",
+                        "offset": 0.5,
+                        "side": "left"
+                      }
+                    ],
+                    "position": {
+                      "x": 320,
+                      "y": 40
+                    },
+                    "size": {
+                      "height": 100,
+                      "width": 200
+                    }
+                  }
+                ]
+              },
+              "version": 2
+            }
+          }
+        ],
+        "id": "native-v2",
+        "name": "Synthetic native v2 fixture",
+        "origin": null,
+        "snapshot": {
+          "connectionMode": "loose",
+          "graph": {
+            "nodes": [
+              {
+                "architecture": {
+                  "family": "ddd",
+                  "role": "domain-event"
+                },
+                "data": {
+                  "owner": "commerce"
+                },
+                "id": "a",
+                "label": "Orders",
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "offset": 0.5,
+                    "side": "right"
+                  }
+                ],
+                "position": {
+                  "x": 20,
+                  "y": 40
+                },
+                "size": {
+                  "height": 100,
+                  "width": 200
+                }
+              },
+              {
+                "architecture": {
+                  "family": "ddd",
+                  "role": "domain-event"
+                },
+                "id": "b",
+                "label": "Billing",
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "offset": 0.5,
+                    "side": "left"
+                  }
+                ],
+                "position": {
+                  "x": 320,
+                  "y": 40
+                },
+                "size": {
+                  "height": 100,
+                  "width": 200
+                }
+              }
+            ],
+            "edges": [
+              {
+                "data": {
+                  "preserve": true
+                },
+                "id": "orders-billing",
+                "label": "Uses",
+                "source": {
+                  "node": "a",
+                  "port": "shared"
+                },
+                "target": {
+                  "node": "b",
+                  "port": "shared"
+                }
+              }
+            ]
+          },
+          "version": 2,
+          "viewport": {
+            "x": 10,
+            "y": 30,
+            "zoom": 0.8
+          }
+        }
+      }
+    },
+    "review": {
+      "kind": "ddd",
+      "changes": {
+        "nodes": [
+          {
+            "nodeId": "a",
+            "sourceArchitecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "type": "proposed",
+            "origin": "convention",
+            "architecture": {
+              "family": "ddd",
+              "role": "domain-event"
+            },
+            "reason": "The workshop note is already an explicitly named domain event; review its DDD interpretation."
+          },
+          {
+            "nodeId": "b",
+            "sourceArchitecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "type": "proposed",
+            "origin": "convention",
+            "architecture": {
+              "family": "ddd",
+              "role": "domain-event"
+            },
+            "reason": "The workshop note is already an explicitly named domain event; review its DDD interpretation."
+          }
+        ],
+        "edges": []
+      },
+      "losses": [
+        {
+          "kind": "node",
+          "id": "a",
+          "code": "workshop-meaning-replaced",
+          "reason": "Conversion would replace the reserved EventStorming node descriptor. Source meaning is recorded in the preview; preserve provenance separately."
+        },
+        {
+          "kind": "node",
+          "id": "b",
+          "code": "workshop-meaning-replaced",
+          "reason": "Conversion would replace the reserved EventStorming node descriptor. Source meaning is recorded in the preview; preserve provenance separately."
+        }
+      ]
+    }
+  },
+  "diagnostics": []
+}

@@ -267,8 +267,8 @@ dependency on Polars or Arrow inside foldkit-viz.
 
 ## Zloz: brand and product direction — 2026-11-08
 
-**Status:** user-defined roadmap direction. Brand migration, new sites and hosting
-are planned delivery slices; this entry records their intended scope.
+**Status:** brand migration, identity assets, promo and workbench hosting are
+delivered. The remaining improvements are tracked below.
 
 ### Name and positioning
 
@@ -306,12 +306,11 @@ modelling toolkit within that family.
 - **Open by nature:** models should travel beyond the editor rather than remain
   trapped inside it.
 
-### Planned delivery
+### Brand and site delivery
 
-1. **Brand and naming migration.** Inventory public copy, documentation, package
-   names, imports, types, routes and examples before applying the Flow → Zloz
-   rename. Decide technical names and compatibility/migration handling explicitly;
-   external branding does not by itself rename existing APIs or saved formats.
+1. **Brand and naming migration — delivered.** Public packages, imports, routes
+   and API documentation use Zloz. Saved-data compatibility and deprecated
+   source aliases are documented separately in the migration guide.
 2. **Distinct Zloz logo and shared family identity.** Create a logo representing
    Zloz, while following the styling, typography and visual identity established
    by the Viz and Three promo sites. Define reusable assets and light/dark usage.
@@ -338,9 +337,10 @@ modelling toolkit within that family.
 5. **Cloudflare hosting.** Published and qualified: [workbench](https://zloz.opsydyn.xyz/)
    and [promo](https://opsydyn.github.io/fold-kit-experiments/zloz/).
    Both website deployments are independent of npm publication.
-6. **Publication last.** Finish feature work and site qualification before the
-   npm publication slice. Verify chosen ASCII package names, migration guidance,
-   packed-consumer behavior and release automation at that boundary.
+6. **Initial npm publication — delivered.** Core, ELK, force and Mermaid packages
+   are available as `@opsydyn/foldkit-zloz*` at **0.3.0**. Future releases still
+   require packed-consumer and release qualification; website delivery does not
+   establish registry correctness.
 
 The current implementation uses `packages/foldkit-zloz*` and
 `apps/zloz-demo`. Its [nested Mermaid export](../apps/zloz-demo/evidence/mermaid-subgraphs.md)
@@ -365,8 +365,8 @@ separate. The historical imperative fidelity driver is not the production CLI.
 **Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
 record candidate package mappings, compatibility boundaries, family styling,
-logo directions and promo/demo information architecture. Their technical names
-remain proposals for implementation review. The user selected **B — Nested frame**
+logo directions and promo/demo information architecture. They are historical planning records; the ASCII technical names have since
+been implemented. The user selected **B — Nested frame**
 after reviewing the three SVG concepts.
 
 **Next bounded promo slice:** export the edited Compose graph as canonical JSON
@@ -377,134 +377,265 @@ themes; a separate dark-green identity is not intended. The separate
 feature recommendation for searchable sidebar settings remains on the workbench
 track.
 
-**Suggested workbench UX follow-up:** make the mini map discoverable in Navigation
-with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse the
-existing `overview` flag and respect global diagnostics/Minimal mode. This is a
-proposed follow-up prompted by the user's difficulty locating the control.
+**Mini map discoverability — delivered:** Navigation exposes a **Mini map** toggle
+using the existing `overview` preference and diagnostics/Minimal mode behavior.
 
-## Zloz core: parity and domain modelling — 2026-11-08
+## Zloz core: parity and domain modelling — reconciled 2026-11-14
 
-**Status:** review completed; proposed delivery order, not implemented features.
-The [current core assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
-records capability gaps, package ownership, compatibility constraints and the
-claim-to-evidence map. Full React Flow parity and competitive superiority are
-not established.
+**Current source baseline:** `7fa7b3d9`, isolated `codex/zloz-context-map` branch.
+Package manifests identify 0.3.0; branch implementation, registry publication and
+hosted deployment are separate states. This reconciliation checks no current
+PR/CI/registry state and authorizes no npm publication or deployment. CLI publication
+remains deferred. The latest main integration supplies the requested `private: true`
+CLI manifest guard and removes public publish configuration, closing the local R1
+manifest gap. Local packing remains consumer qualification, not publication.
 
-Maintain two tracks: a reliable, customizable editor floor and a differentiated
-architecture modelling lifecycle. Package-owned functionality stays reusable;
-Astro is the demonstration shell. Prioritize the following bounded slices:
+The [November 14 roadmap/compatibility reconciliation](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
+is the current inventory and next-feature recommendation. It supersedes the dated
+[November 13 inventory](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+and [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-audit.md),
+which retain their original source/evidence baselines. E1–E3/P1–P2 and the approved
+D1a workshop, D1b C4 mapping/Apply/portable-receipt/CLI and D2 authored-DDD-audit
+chains are locally implemented within documented limits. C1–C4 scope decisions,
+Q1–Q4 qualification remains open; release qualification is separate from the now-present R1 manifest guard. The approved
+C1 headless v2 contract is now recorded below; editor and portable adoption remain
+open, and the linked assessment retains its dated source baseline.
 
-1. **DDD preset renderers — implemented locally:** all eight existing semantic
-   roles have composable node/group presentation and a light/dark Order aggregate
-   demo. See the [qualification receipt](../apps/zloz-demo/evidence/ddd-renderers.md).
-2. **History and time travel — first slice implemented locally:** a first-class
-   product pillar. Core owns named immutable editions, a separate versioned archive,
-   read-only review and semantic/layout comparison. The optional Foldkit ghost
-   layer composes with the History sidebar and Order editions demo. See the
-   [qualification receipt](../apps/zloz-demo/evidence/history.md). The subsequent
-   [import/restore slice](../apps/zloz-demo/evidence/edition-restore.md) adds atomic
-   archive merge and explicit graph-only restore with one Undo, required freshness
-   and live policy checks. The fork slice adds separate model identity, pinned immediate origin, an independent editor/Undo and model JSON; playback and automatic persistence remain open.
-   Start with named
-   immutable editions, read-only rewind and return to the present; then semantic/
-   layout comparison and explicit restore or fork into a new working model.
-   Include opt-in ghost nodes/edges, previous positions and movement connectors
-   like Tech Radar, with clear change states and independent visibility controls.
-   Establish the contract before expanding persisted domain vocabulary.
-3. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
-   policy checks, full rollback and one Undo per insertion.
-4. **DDD relationships/context maps:** typed tactical and strategic meaning,
-   serialization and conversion-loss handling; respect portless group boundaries.
-5. **EventStorming discovery:** explicit compatibility decision, configurable
-   semantic cards, optional links and valid uncertainty; then workshop patterns
-   and deliberate links to DDD/C4 concepts.
-6. **Agent modelling operations:** build on the standalone CLI with validated
-   patches, dry runs and reviewable changes; no automatic writable-agent rollout.
+The [2026-11-08 assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
+is a historical gap analysis, not a current inventory. Full React Flow parity,
+performance superiority and a validated competitive USP remain unestablished.
 
-Alongside these, evaluate authored edge waypoints, palette/drop workflows and
-image export against architecture tasks. Coordinate collaboration with its
-separate proposal; no collaboration runtime is claimed here. Keep accessible
-interaction and unrestricted visual composition in each slice. Retain the later
-comprehensive a11y qualification gate and publication-last decision.
+Maintain two tracks: a reliable, customizable editor floor and an architecture
+modelling lifecycle. Package-owned functionality stays reusable; Astro composes
+and demonstrates it.
 
-**Recommended next:** composable packet export controls in the workbench: use the
-chosen audit baseline/target, preview scope and conversion losses, then explicitly
-consent to a JSON download through the public builder. Preserve the current graph
-and Undo. Keep packet import and executable agent actions outside that UI slice.
+### Delivered capabilities
 
-Portable review packets are implemented locally in the optional Mermaid package
-and Effect CLI. Chosen snapshots, model/source identity, a complete data-only
-convention catalogue, audit comparison and both Mermaid projections travel in a
-versioned JSON envelope. Conversion losses require report-mode consent; errors
-reject atomically. Artifact creation is separate from semantic regression gating.
-There is no packet import, workbench export UI or publication in this slice.
+| Capability                                 | Current scope and evidence                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Architecture presentation                  | C4 presets and nine DDD roles including read-model, composable node/group renderers, light/dark demos. [DDD receipt](../apps/zloz-demo/evidence/ddd-renderers.md).                                                                                                                                                                                                                                                  |
+| Atomic patterns                            | Validated fragments, deterministic ID remapping, live policies, rollback, C4/DDD starters and one Undo. [Pattern receipt](../apps/zloz-demo/evidence/pattern-insertion.md).                                                                                                                                                                                                                                         |
+| EventStorming discovery                    | Semantic cards, process starter, typed causal links, custom data-only conventions, undoable meaning and composable editing controls. [Discovery](../apps/zloz-demo/evidence/event-storming.md), [relationships](../apps/zloz-demo/evidence/relationships.md), [controls](../apps/zloz-demo/evidence/relationship-controls.md).                                                                                      |
+| History and comparison                     | Immutable named editions, read-only rewind, ghost geometry, semantic/layout comparison, comparison controls and change navigation. [History](../apps/zloz-demo/evidence/history.md), [comparison](../apps/zloz-demo/evidence/comparison-controls.md), [navigation](../apps/zloz-demo/evidence/change-navigator.md).                                                                                                 |
+| Playback                                   | Opt-in playback, pause/rewind, reduced-motion handling, composable transport and identity-based scrubber. [Engine](../apps/zloz-demo/evidence/edition-playback.md), [controls](../apps/zloz-demo/evidence/playback-controls.md), [scrubber](../apps/zloz-demo/evidence/edition-scrubber.md).                                                                                                                        |
+| Restore, forks and model portability       | Guarded graph-only restore with one Undo; separate model identity, pinned origin and independent Undo for forks; canonical model JSON import/export and CLI validation. [Restore](../apps/zloz-demo/evidence/edition-restore.md), [forks](../apps/zloz-demo/evidence/model-forks.md), [import](../apps/zloz-demo/evidence/model-import.md).                                                                         |
+| Causal audit and edition-aware audit delta | Package and Effect CLI reports; introduced/resolved/persisting findings; composable workbench controls, filters and source-aware reveal. Artifact creation and regression gating are separate. [CLI audit](../packages/foldkit-zloz-cli/evidence/relationship-audit.md), [comparison](../packages/foldkit-zloz-cli/evidence/relationship-comparison.md), [workbench](../apps/zloz-demo/evidence/audit-controls.md). |
+| Portable review packets                    | Optional Mermaid package and CLI combine chosen snapshots, source/model identity, convention catalogue, audit comparison and both Mermaid projections. Loss reporting requires explicit opt-in; errors reject atomically. [Packet receipt](../packages/foldkit-zloz-cli/evidence/review-packet.md).                                                                                                                 |
 
-A package-level read-only causal audit and Effect CLI command are implemented
-locally. Reports classify every edge in deterministic identity order, preserve
-typed/inferred/unrelated distinctions and return structured semantic reasons.
-The CLI scopes model audits to the current graph and supports bounded data-only
-custom rule catalogues, with distinct compatibility and input-error exits.
+These receipts qualify their stated local/package/CLI surfaces. They do not prove
+that every feature is deployed, comprehensively accessible or faster than another
+editor. Graph/snapshot/edition v1 compatibility remains unchanged; full model JSON
+preserves identity, editions and origin that diagram-only imports omit.
 
-Edition-aware audit comparison is implemented locally at package and Effect CLI
-level. Explicit owned baseline/target editions (or current graph as target) use
-one convention and report introduced, resolved and persisting findings with both
-full audits. Comparison exit 1 gates new findings; existing incompatibilities stay
-visible even when there is no regression. Missing IDs fail closed. No UI,
-serialization migration or publication is claimed for this slice.
+### Remaining work and completion criteria
 
-Composable audit comparison controls are implemented locally in the package and
-demonstrated in the workbench sidebar. Baseline/target selection stays independent
-of the displayed camera. Category filters, custom finding cards and source-aware
-reveal keep resolved edges on the baseline and other findings on the target.
-Requests recheck model/comparison/finding identity, filters and host protection;
-the host also checks epochs, pauses playback for navigation and preserves working
-graph/Undo. Numeric status/counts follow minimal mode and global diagnostics.
+Core is **not complete**. The current
+[domain/compatibility decisions and qualification gates](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
+identify implemented work, unresolved gaps and proposed dispositions. Recommendations
+are not approved exclusions. Historical receipts qualify only their stated scope.
 
-Composable causal controls are implemented locally: a pure current-edge context,
-identity-safe request resolver, native select/inference/status/reason helpers and
-nullable rendering/layout slots. The workbench consumes the public controls with
-custom wrappers and rechecks target/model scope, current conventions and policy.
-Unknown stored meanings remain visible, and inference is explicitly undoable.
+1. **Editor floor (E1–E3):** E1 waypoint data/controls and E2 normalized palette
+   placement/interaction are implemented below, with package tests and local
+   browser evidence. The E3 SVG planning contract is implemented below; SVG
+   writing and representative browser qualification are implemented below;
+   SVG/PNG review/download and opt-in retained routes/centre label envelopes are
+   implemented locally; see [SVG evidence](../apps/zloz-demo/evidence/svg-retained.md)
+   and [PNG evidence](../apps/zloz-demo/evidence/png-retained.md). These chains no
+   longer need new implementations. Physical-device/manual AT
+   acceptance remains distinct from synthetic and Chromium qualification; these
+   branch additions are unreleased.
+2. **Portable review lifecycle (P1–P2):** strict packet decoding, Effect CLI
+   validation/inspection and guarded read-only workbench reopening are implemented
+   on this branch, unreleased. See the [reader receipt](../apps/zloz-demo/evidence/review-reader.md).
+   Headless modelling-patch proposals/dry runs are also implemented on this branch;
+   see the [patch receipt](../packages/foldkit-zloz/evidence/modelling-patch.md).
+   Strict versioned patch text decoding is implemented; see the
+   [decoder receipt](../packages/foldkit-zloz/evidence/modelling-patch-parse.md).
+   P2's remaining local chain is implemented: Effect CLI dry run, exact-content
+   review/acknowledgement, policy-aware atomic Apply, one Undo and retained/downloaded
+   provenance. See [completion evidence](../apps/zloz-demo/evidence/p2-completion.md).
+   The separately scoped Alchemy review/private descriptor adapter has local
+   progress; SDK/provider/publication gates remain separate. Broader D/C/Q audit
+   rows remain open.
+   Review packets and conversion receipts remain distinct; reading does not import
+   either into the working model.
+3. **Domain and compatibility decisions (D1–D2, C1–C4):** approved D1a's seven-role
+   workshop semantics, native controls and SVG/PNG artwork, D1b's explicit C4 mapping,
+   placement/consent, atomic Apply, portable receipts/read-only reopening/CLI inspection,
+   and D2's authored convention audit/review/deltas are implemented locally. See
+   [current API/evidence inventory](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md).
+   These scopes do not promise every modelling vocabulary or universal architecture
+   correctness. Strict output→input (C1), world-coordinate/portless groups (C2),
+   layout bounds/cancellation (C3) and advanced catalogue decisions (C4) still require
+   implementation or explicit approved dispositions. P2 already supplies atomic
+   multi-operation edge edits; a dedicated multi-connect interaction remains separate.
+   Full parity and proposed deferrals are not approved by this reconciliation.
+4. **Qualification (Q1–Q4):** refresh packed consumer/SSR-hydration evidence and
+   representative benchmarks with agreed budgets. Run comprehensive accessibility
+   and device acceptance after functional work; accessible interaction remains a
+   requirement in every slice. Close all feature rows and scope decisions with
+   linked acceptance evidence before declaring bounded core completion.
 
-Typed causal relationships are implemented locally with six default conventions,
-named custom rules, extensible role interpretation, strict descriptor syntax,
-opt-in composed policies and undoable semantic edits. The detailed workbench
-process adds an aggregate root and demonstrates unresolved drafts, readable
-protection reasons and custom Delegates relationships. Mermaid discloses semantic
-loss instead of silently claiming descriptor fidelity.
+Release follow-through is a separate gate: reviewed commits/PR, current CI,
+package identity and artifact/provenance/consumer qualification before separately
+approved publication or deployment. Automatic persistence, collaboration and team
+runtime remain separate planning streams; no infrastructure activation is implied.
+Keep unrestricted visual composition and diagnostics preferences first class.
 
-Package-owned change navigation is implemented locally with composable kind
-filters, accessible entries, explicit scoped focus requests and live protection
-reasons. The workbench demonstrates custom badges, current/removed geometry
-focus and playback pause while preserving the working model and Undo.
-Package-owned comparison controls are implemented locally: identity-safe baseline
-selection, independently retained ghost preferences, minimal-mode visibility,
-visible host restrictions and native composable Foldkit controls. The workbench
-uses the public contract for controls and effective canvas visibility.
-The edition scrubber is implemented locally with identity-based seeking, custom
-labels/value text, native range/Open helpers, renderer slots and host session
-guards. An eight-checkpoint workbench sample demonstrates direct navigation. Composable package playback controls, status,
-availability reasons, ordered subsets and renderer/layout slots are implemented
-locally; the workbench uses the public helpers with a custom visual composition. Opt-in deterministic edition playback, pause,
-rewind and reduced-motion handling are implemented locally, using existing
-read-only projections and optional ghost comparisons.
-Event-storming command, domain-event, policy and actor notes, a composable package
-renderer and process starter are now implemented locally with existing geometry,
-serialization and atomic insertion APIs. Atomic pattern insertion is
-implemented locally with validated self-contained fragments, explicit ID maps,
-live policies, C4/DDD starters and one Undo per insertion. Model-document
-workbench import and CLI validation are now implemented locally with explicit
-identity conflicts and conversion-loss reporting. Forking is implemented locally with package-owned
-model identity, pinned source edition, independent editing/Undo, policy checks,
-session switching and an explicit model codec. Graph/snapshot/edition v1 remain
-unchanged. The existing diagram importer remains graph/snapshot-only; Open model
-JSON and CLI readDocument preserve the full envelope. Mermaid projection requires
-explicit loss consent. See [the adapter qualification receipt](../apps/zloz-demo/evidence/model-import.md)
-and [the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
-DDD renderers retain the current
-descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
-with people, explore how its architecture evolves, and review/communicate the
-same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.
+**Implemented on this branch, unreleased:** composable packet preview/consent
+controls in the optional Mermaid adapter and History sidebar, using chosen audit
+sources, exact-content freshness and host protection without changing graph/Undo.
+See the [workbench receipt](../apps/zloz-demo/evidence/review-packet-controls.md).
+
+**DDD relationship contract — implemented on this branch, unreleased:** typed
+tactical/strategic descriptors, explicit logical resolution, configurable
+conventions and opt-in policies reuse canonical codecs, semantic history and
+Undo. Causal tooling remains family-scoped; logical frame references do not create
+drawable group endpoints. See [ADR 0038](adr/0038-define-ddd-relationship-contracts.md)
+and the [package qualification receipt](../packages/foldkit-zloz/evidence/ddd-relationships.md).
+
+**Context-map presentation — implemented on this branch, unreleased:** package
+projection, connectors and labels share existing geometry/interaction contracts;
+a four-context starter uses real ports and atomic insertion. The workbench shows
+light/dark themes, custom source badges, native editing/Undo and a presentation
+toggle independent of diagnostic visibility. See [ADR 0039](adr/0039-compose-context-map-presentation.md)
+and [local evidence](../apps/zloz-demo/evidence/context-map.md).
+
+**DDD editing controls — implemented on this branch, unreleased:** package-owned
+pattern/side-role controls recheck inspector/revision and live policy, preserve
+authored descriptions/absence and apply ordinary undoable events. Native helpers
+and custom workbench wrappers show protected fields without hiding stored meaning.
+See [ADR 0040](adr/0040-compose-ddd-relationship-editing-controls.md) and
+[local evidence](../apps/zloz-demo/evidence/ddd-relationship-controls.md).
+
+**Workshop mapping preview — implemented on this branch, unreleased:** a pure
+package API proposes EventStorming-to-DDD node and incident-edge mappings, keeps
+ambiguous intent explicit, accepts per-ID choices and reports prospective semantic
+loss without changing the graph/history. Existing DDD anchors and unrelated C4
+meaning remain preserved. See [ADR 0041](adr/0041-preview-event-storming-ddd-mappings.md)
+and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-preview.md).
+
+**Mapping review panel — implemented on this branch, unreleased:** the left
+sidebar composes the package preview with explicit choices, native inspection,
+ambiguity/compatibility/loss reasons and independent diagnostics preferences.
+Temporary choices are source/session scoped and leave graph, Undo and lineage
+unchanged. See [ADR 0042](adr/0042-compose-workshop-mapping-review.md) and
+[local evidence](../apps/zloz-demo/evidence/mapping-review.md).
+
+**Conversion plan contract — implemented on this branch, unreleased:** package-owned
+plans pin complete source provenance and host session/revision, list same-ID
+semantic replacements and block unresolved intent. Explicit all-loss consent is
+bound to a freshly rebuilt exact plan; it grants no edit permission. See
+[ADR 0043](adr/0043-plan-workshop-conversion-and-loss-consent.md) and
+[package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-conversion-plan.md).
+
+**Plan provenance and loss acknowledgement — implemented on this branch, unreleased:**
+the Mapping review sidebar composes the package plan/consent resolver, shows source
+and fork provenance, blockers and all prospective losses, and records only transient
+exact-plan acknowledgement. Callback generations prevent revival after withdrawal
+or source change-and-revert. Graph, Undo and authoritative exports remain unchanged.
+See [ADR 0044](adr/0044-review-plan-provenance-and-losses-in-workbench.md) and
+[local evidence](../apps/zloz-demo/evidence/mapping-plan.md).
+
+**Atomic package Apply — implemented on this branch, unreleased:** the core
+rebuilds and validates the live plan/consent, stages descriptor-only replacements,
+checks whole/granular policies and commits once. Portable conversion receipts retain
+full source, target and mapping provenance independently of unchanged model v1/fork
+ancestry. Late vetoes preserve the editor; Undo/Redo covers the complete graph change.
+See [ADR 0045](adr/0045-apply-ddd-conversion-atomically-with-portable-provenance.md)
+and [package evidence](../packages/foldkit-zloz/evidence/event-storming-ddd-apply.md).
+
+**Workbench Apply and receipt retention — implemented on this branch, unreleased:**
+Mapping review rechecks the package transaction, current source/consent and complete
+final-state semantics, then publishes editor plus a per-model retained receipt in
+one Foldkit update. Receipt download is a scoped Command; Undo/Redo and model switches
+preserve immutable provenance. See [ADR 0046](adr/0046-publish-workbench-apply-and-receipts-together.md)
+and [local evidence](../apps/zloz-demo/evidence/mapping-apply.md).
+
+**Portable receipt reopening — implemented on this branch, unreleased:**
+Mapping review validates downloaded receipts and shows a detached read-only
+Before/After canvas, recorded changes, ancestry and loss reasons. Working models,
+Undo and consent remain unchanged; invalid input preserves the last good comparison.
+See [ADR 0047](adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md) and
+[local evidence](../apps/zloz-demo/evidence/receipt-review.md).
+
+**Receipt change focus — implemented on this branch, unreleased:**
+Recorded nodes and connections have explicit Focus before/after controls backed
+by public history navigation primitives. Scope, membership, surface and gesture
+checks guard detached camera changes; native focus, selected-row feedback and
+minimal-mode controls preserve the working graph and receipt. See
+[local evidence](../apps/zloz-demo/evidence/receipt-focus.md).
+
+**Receipt change stepping — implemented on this branch, unreleased:**
+The core package exposes pure stable-identity Previous/Next resolution through
+existing focus/filter contracts. Workbench controls preserve the chosen side,
+show position and stop at boundaries; stale cursor/side callbacks cannot advance.
+See [ADR 0048](adr/0048-step-through-receipt-changes-on-the-selected-side.md) and
+[local evidence](../apps/zloz-demo/evidence/receipt-step.md).
+
+**Receipt side continuity and overview — implemented on this branch, unreleased:**
+Before/After switches preserve focused node/connection identity, camera focus and
+traversal position. Show receipt overview clears selection and fits all nodes on
+the chosen side. Live availability guards preserve the previous view on rejection.
+See [local evidence](../apps/zloz-demo/evidence/receipt-side.md).
+
+**Updated next-track priority (2026-11-13):** the user's consolidated completion
+request moves PNG next after P2, then a separately scoped Alchemy integration
+review. This supersedes the earlier all-core-first sequencing, without declaring
+D1–D2/C1–C4 or Q1–Q4 complete. Provider activation, dependency adoption and deployment
+remain separate decisions.
+
+**Authored edge waypoints — implemented on this branch, unreleased:** named
+world-space bends, finite/identity validation, public preview/edit contract, live
+revision/policy/protection checks, one Undo and additive v1 persistence. Shared
+geometry covers labels/hit paths, reconnection preview, culling, fit/reveal,
+overview and history. Copy/pattern insertion translates bends; layout and endpoint
+moves preserve their authored world positions. Native authoring controls remain
+open. See [ADR 0049](adr/0049-author-portable-edge-waypoints.md) and
+[package evidence](../packages/foldkit-zloz/evidence/edge-waypoints.md).
+
+**Composable waypoint controls — implemented on this branch, unreleased:** public
+transient gesture/preview and control resolvers, native handle/action/readout helpers
+and an opt-in Foldkit slot. Pointer drag commits once on release; Escape discards,
+arrow keys nudge, Alt bypasses the grid and Delete removes the focused bend. Live
+policy/revision checks, diagnostics preferences and light/dark themes remain shared.
+The workbench offers Off/Native/Custom designs and independent bend protection.
+See [ADR 0050](adr/0050-compose-waypoint-interaction-controls.md) and
+[local qualification](../apps/zloz-demo/evidence/waypoint-controls.md).
+
+**Headless palette/external placement — implemented on this branch, unreleased:**
+immutable scoped sessions, explicit world/screen/client targets, grid and optional
+node-frame anchor snapping, parent intent, live policy/freshness checks and one
+atomic Undo. Preview is detached and non-publishing; cancel/restart/commit reject
+old callbacks. Pattern insertion shares private proposal preparation, preserving
+its existing public contract. See [ADR 0051](adr/0051-plan-and-apply-headless-placement.md)
+and [package evidence](../packages/foldkit-zloz/evidence/placement.md).
+
+**Palette interaction — implemented on this branch, unreleased:** core control
+resolver/update facts and optional native/custom Foldkit entry/action/host/preview
+helpers. A scoped input resource supports mouse/touch and keyboard placement,
+fresh origin samples, cancellation and live protection. The workbench supplies C4
+and DDD cards with a native/custom switch. See
+[interaction evidence](../apps/zloz-demo/evidence/palette.md).
+
+**SVG export contract — implemented on this branch, unreleased:** pure package
+planning for canonical model/camera/explicit bounds, shared theme paints, backgrounds,
+font/assets and renderer coverage. Item-addressed findings distinguish omission,
+fallback, unverified adapters and unsupported content. No SVG file is emitted yet.
+See [ADR 0052](adr/0052-plan-portable-svg-export.md) and
+[contract evidence](../packages/foldkit-zloz/evidence/svg-export.md).
+
+**SVG writer — implemented on this branch, unreleased:** standalone canonical SVG
+strings, shared geometry/labels/ports, safe typed vector adapters, atomic rejection,
+explicit loss acknowledgement and retained uncertainty. Real light/dark/custom/crop/
+transparent files have local Chromium evidence. Resource-byte embedding is unsupported.
+See [ADR 0053](adr/0053-write-svg-through-typed-primitives.md) and
+[writer evidence](../packages/foldkit-zloz/evidence/svg-writer.md).
+
+**Current continuation:** SVG review/download controls and validated embedded-font
+resources have since been implemented (see the later receipts above). P2's reviewed
+patch lifecycle and package-owned PNG export are locally implemented. The Alchemy integration review now proposes a bounded declaration-fidelity spike; broader compatibility/qualification work
+remains tracked separately.
 
 ## Release: Keyed Chart Comparison
 
@@ -719,3 +850,670 @@ Met, 2026-11-14: linked charts, request diagnostics and comparison compose indep
 - [ ] Do not build a second router inside either package.
 - [ ] Do not turn `foldkit-viz` into a DOM/event runtime; keep rendering and browser wiring at the app boundary.
 - [ ] Do not treat broad baseline lint cleanup as a prerequisite for product slices.
+
+**PNG export — implemented on this branch, unreleased (2026-11-13):** bounded pure
+planning/review, opt-in browser encoding with safe SVG/custom adapters, exact PNG
+preview/download bytes, source/settings freshness, protection and explicit loss
+acceptance. Native/custom controls and light/dark/transparent/viewport/scale demos
+live in the workbench sidebar. See [ADR 0063](adr/0063-rasterize-reviewed-model-artwork-as-png.md)
+and [local PNG evidence](../apps/zloz-demo/evidence/png-export.md). This completes
+the functional PNG boundary; broader font/browser/device and D/C/Q qualification
+remain tracked separately. The approved Alchemy review is recorded below.
+
+**Alchemy Domain review — complete, self-review (2026-11-13):** exact published
+beta.85 peers align with this checkout, and public declaration metadata is present.
+Current docs drift from parts of the pinned API, and several Domain constructs
+lack equivalent Zloz roles. Recommend an optional adapter boundary, starting with
+a read-only declaration-fidelity spike; no dependency/provider/runtime adoption
+has occurred. See [the decision and stop conditions](assessments/2026-11-13-zloz-alchemy-domain-integration.md).
+Recommendation: **needs review**. Existing D/C/Q qualification remains open.
+
+**Alchemy declaration-fidelity spike — implemented locally, unreleased (2026-11-13):**
+The private experiment pins beta.85 and maps a real synthetic Domain fixture under
+Node/Bun, with golden manifests/graphs, explicit untyped roles/relationships, strict
+identity/alias checks and core edition comparison. The outside-repo consumer needs
+neither Foldkit nor React. Standard omitted-read declarations expose a retained
+strict-optional TypeScript compatibility failure; the positive fixture has an
+explicit read contract. Production adapter adoption remains on hold.
+See [ADR 0064](adr/0064-qualify-alchemy-declarations-in-an-isolated-spike.md) and
+[spike receipt](../experiments/alchemy-domain-fidelity/evidence/receipt.md).
+Next proposed slice: framework-neutral read-model and declared-consumption contracts
+under D1, then revisit optional adapter extraction and its compatibility gate.
+D/C/Q closure and user-task qualification remain open. Recommendation: **needs review**.
+
+**Read models and declared consumption — implemented locally, unreleased (2026-11-13):**
+Core now recognises native DDD read-model nodes and directed tactical `feeds`
+relationships, with a framework-neutral two-ID declaration guard/resolver. The
+explicit source may be an aggregate/root, event type or read model; target is a
+read model. Existing DDD rendering, policy/controls, serialization, editions and
+Undo compose the descriptors without runtime assumptions or new dependencies.
+See [ADR 0065](adr/0065-declare-read-model-consumption-without-runtime-semantics.md)
+and [contract evidence](../packages/foldkit-zloz/evidence/declared-consumption.md).
+This addresses the read-model/dependency subset of D1, not streams/sagas/policies,
+EventStorming-to-C4 mapping or complete D/C/Q closure. Next proposed slice: qualify
+an optional read-only Alchemy adapter against this native subset, retaining exact
+version/identity/loss reporting and the upstream strict-optional compatibility gate.
+Recommendation: **needs review**. No adapter adoption or release is implied.
+
+**Optional read-only Alchemy candidate — qualified privately (2026-11-13):**
+The isolated candidate now has a packed adapter entry, exact caller-declared
+beta.85 gate, native stateful-view/read-model and core-resolved consumption mapping,
+immutable source/projection/findings and complete fixture topology coverage.
+Stateless/mixed-source rejection and chained view identity are tested. Installed
+Node/Bun and strict NodeNext/Bundler consumers pass without Foldkit/React.
+Omitted-read and stateless-view strict-optional compiler failures remain explicit;
+only the local unreleased core source/artifact is qualified, not published 0.3.0.
+See [ADR 0066](adr/0066-qualify-a-private-read-only-alchemy-adapter.md) and
+[candidate evidence](../experiments/alchemy-domain-fidelity/evidence/adapter-receipt.md).
+Next proposed slice: extract a private workspace adapter with separate Domain
+inspection and portable validated projection entries. Keep SDK/runtime imports out
+of the portable boundary; full compatibility and release remain separate gates.
+Recommendation: **needs review**. No production dependency/provider adoption occurred.
+
+**Private Alchemy workspace adapter — extracted locally (2026-11-13):**
+`@opsydyn/foldkit-zloz-alchemy` is private. Its portable root decodes a strict,
+versioned data descriptor and recomputes graph/findings using core only; `/domain`
+separately inspects trusted already-loaded declarations with exact caller-declared
+beta.85 gating. Packed runtime/type consumers verify the split without SDK/Effect
+on the portable path. Identity aliases, complete source-fact coverage, native
+read-model/consumption mapping and edition continuity remain tested. The two
+upstream strict-optional compiler failures and unpublished native-core requirement
+remain explicit gates. No Apply, provider or release integration was added.
+See [ADR 0067](adr/0067-split-private-alchemy-inspection-and-portable-projection.md),
+[package contract](../packages/foldkit-zloz-alchemy/README.md) and
+[qualification](../packages/foldkit-zloz-alchemy/evidence/qualification.md).
+This completes the extraction proposed above, not D/C/Q closure or general SDK
+compatibility. Next proposed slice: read-only workbench descriptor review through
+the portable entry, with bounded host text decoding, source provenance and visible
+loss findings before any editing. Recommendation: **needs review**.
+
+**Read-only Domain descriptor workbench — implemented locally (2026-11-13):**
+The left-sidebar Domain review accepts paste or a bounded UTF-8 JSON file through
+the private adapter's portable root. Host preflight checks 1 MiB, depth/value limits,
+decoded duplicate keys and framing before projection. A detached navigation-only
+canvas shows declared provenance, source-fact coverage and every loss/unverified
+finding, including under Minimal mode. Bad input preserves the previous review;
+read identities reject cancellation/supersession/context races. The working model,
+Undo, editions, lineage and consent remain untouched. First-measurement Fit and
+explicit Fit/return controls complete the single-canvas review. Native SDK execution,
+Apply and release remain outside scope; exact beta.85, upstream strict-optional
+failures and unpublished native-core requirements remain gates.
+See [ADR 0068](adr/0068-review-alchemy-descriptors-through-a-bounded-host-boundary.md)
+and [tests/browser/visual evidence](../apps/zloz-demo/evidence/alchemy-review.md).
+This completes the descriptor-review slice proposed above, not broader D/C/Q
+closure. Next proposed slice: package-level source-fact navigation linking each
+finding to its node or relation in the detached canvas. Recommendation: **needs review**.
+
+**Package-level finding navigation — implemented locally (2026-11-13):**
+The private portable adapter now resolves findings into source-linked node/relation
+navigation recipes. Requests bind host review scope plus full canonical descriptor
+content and finding identity; activation rechecks live read-only/measurement/gesture,
+protection, coverage, target/endpoints and core visibility. Missing/ambiguous/hidden
+facts have explicit reasons. Recipes reveal collapsed targets before selection,
+without graph/Undo changes. Native workbench Reveal buttons preserve keyboard focus,
+show selected-target feedback and compose with Minimal mode, invalid-input retention
+and review replacement guards. SDK imports, Apply, execution and publication remain
+outside this slice; existing compatibility gates remain unchanged.
+See [ADR 0069](adr/0069-reveal-portable-findings-with-scoped-navigation-recipes.md),
+[portable API](../packages/foldkit-zloz-alchemy/README.md#finding-navigation-portable-entry)
+and [tests/visual evidence](../apps/zloz-demo/evidence/alchemy-finding.md).
+This completes the finding-navigation slice above, not general Domain fidelity or
+broader D/C/Q closure. Next proposed slice: opt-in descriptor-preview layout using
+the existing ELK adapter, preserving source identity/findings while improving dense
+relation-label readability. Recommendation: **needs review**.
+
+**Opt-in descriptor preview layout — implemented locally (2026-11-13):**
+Core now exposes `applyPreviewLayout`, sharing geometry validation with normal
+layout while preserving read-only state and Undo. Domain review lazily invokes the
+existing ELK adapter on explicit Arrange, with RIGHT/DOWN, Cancel and Restore
+original controls. Source projection/IDs/coverage/findings and working model/history
+remain unchanged. Scoped active requests reject stale, failed or cancelled results;
+preview navigation invalidates pending work. Finding requests survive layout and
+restore. A reproduced grouped ELK option bug is fixed: direction/spacing now reach
+group parents as well as root. Real engine, installed-consumer, workbench and browser
+checks retain inspected light/dark evidence. SDK/runtime/publication gates remain.
+See [ADR 0070](adr/0070-layout-detached-descriptor-previews-with-elk.md),
+[core API](../packages/foldkit-zloz/README.md#read-only-preview-layout-unreleased)
+and [qualification/captures](../apps/zloz-demo/evidence/alchemy-layout.md).
+This completes the preview-layout slice above, not D/C/Q or full label fidelity.
+Next proposed slice: package-level edge-label bounds in layout requests, allowing
+ELK to reserve space for labels and custom badges. Recommendation: **needs review**.
+
+**Explicit layout label envelopes — implemented locally (2026-11-13), unreleased:**
+Core accepts validated, detached per-edge composite label sizes in layout requests
+and retains centered world-coordinate result boxes. Missing/unexpected boxes fail
+atomically. Shared view geometry, controls, fit/reveal and culling consume the boxes
+while preserving authored/custom geometry precedence. ELK reserves CENTER labels
+in compound RIGHT/DOWN layouts, including custom badges with no graph text. The
+workbench demonstrates a fixed text-plus-tag renderer sharing its declared 176 by
+36 envelope. Source/projection/findings and working Undo remain unchanged.
+See [ADR 0071](adr/0071-reserve-explicit-layout-label-envelopes.md) and
+[qualification/captures](../apps/zloz-demo/evidence/alchemy-label-bounds.md).
+This closes the preceding label-bounds slice; D/C/Q gates remain open.
+
+Next proposed slice: opt-in measured label envelopes through the Foldkit lifecycle,
+with stale-result protection before re-layout, so custom renderers need not keep
+manual size constants in sync. Recommendation: **needs review**. No automatic
+measurement, engine adoption or publication is implied.
+
+**Opt-in measured label envelopes — implemented locally (2026-11-13), unreleased:**
+Core provides transient measurement state, complete-batch validation and repeated
+request/revision/exact-source/render-key checks. A scoped Foldkit Mount waits for
+font readiness, measures fractional HTML border boxes once in world units and
+releases observers/timers on completion, failure or cancellation. Missing labels
+and bounded deadlines produce visible failures. The view is unchanged by default;
+custom hosts can compose the same probe. Domain review demonstrates intrinsic
+compact/expanded badges, Measure/Cancel, explicit Arrange, theme invalidation and
+focus-preserving protection reasons. Measurement and layout preserve source,
+findings, working graph and Undo; installed consumer, native-boundary, SSR and
+browser evidence accompany [ADR 0072](adr/0072-measure-rendered-labels-with-scoped-freshness.md)
+and [qualification/captures](../apps/zloz-demo/evidence/measured-labels.md).
+This closes the preceding measurement slice; D/C/Q and publication gates remain.
+
+Next proposed slice: explicit group-header envelopes in layout requests, allowing
+custom C4/DDD container headings to reserve space instead of relying on ELK's
+fixed header padding. Recommendation: **needs review**. No implementation of that
+follow-up, automatic layout, provider activation or publication is implied.
+
+**Explicit group-header envelopes — implemented locally (2026-11-13), unreleased:**
+Layout requests accept detached header sizes, padding and gap for unique groups.
+A pure resolver supplies world header rectangles, minimum bounds and child padding;
+core rejects incomplete space reservations atomically while preserving stale/Undo
+and read-only semantics. C4/DDD renderer options share this geometry and keep
+compact collapsed headings. ELK reserves nested/empty groups in RIGHT/DOWN, with
+real-engine wide/tall and cross-boundary-edge qualification of its pinned compound
+minimum-vector correction. The workbench demonstrates opt-in expanded headings,
+explicit Arrange, cancellation, original geometry, themes/Minimal mode and measured
+edge-label composition. Source/findings/working history remain unchanged. See
+[ADR 0073](adr/0073-declare-group-header-layout-envelopes.md) and
+[qualification/captures](../apps/zloz-demo/evidence/group-headers.md).
+This closes the prior heading-bounds slice; D/C/Q and publication gates remain.
+
+Next proposed slice: opt-in measured group-heading bounds using the existing scoped
+measurement/freshness pattern, so custom C4/DDD headings can size intrinsically.
+Recommendation: **needs review**. No automatic layout or publication is implied.
+
+**Opt-in measured group headings — implemented locally (2026-11-13), unreleased:**
+Intrinsic C4/DDD group headings now accept size-free identity/padding/gap specs.
+Core validates complete measured batches, combines sizes into layout declarations
+and rechecks source/revision/renderer/collapsed visibility before reuse. A scoped
+Foldkit Mount shares the existing box observer, deadline, cleanup and isolation
+logic with edge measurement. The workbench demos summary/provenance variants,
+Measure/Cancel, explicit Arrange, theme invalidation and combined edge/heading
+measurement. Source/findings/working Undo remain unchanged. See
+[ADR 0074](adr/0074-measure-intrinsic-group-headings.md) and
+[qualification/captures](../apps/zloz-demo/evidence/measured-group-headers.md).
+This closes the preceding measured-heading slice; D/C/Q and publication gates remain.
+
+Next proposed slice: define opt-in SVG export fidelity for retained layout routes
+and measured label anchors, with explicit custom-renderer findings, before extending
+PNG. Recommendation: **needs review**. No export behavior or publishing is changed
+by this recommendation.
+
+**Retained layout SVG contract — implemented locally (2026-11-13), unreleased:**
+Core captures detached routes/label envelopes and plans their effective bounds
+against exact source and host renderer keys. Invalid/stale batches and custom
+content limitations are explicit; authored geometry keeps native precedence.
+The writer blocks non-empty retained layout until the rendering slice. Defaults,
+working history, review controls and PNG remain unchanged. See
+[ADR 0075](adr/0075-plan-retained-layout-svg-fidelity.md) and
+[contract evidence](assessments/2026-11-13-zloz-svg-layout-contract.md).
+This closes the preceding contract proposal. D/C/Q and publication gates remain.
+
+Next proposed slice: consume retained routes and label anchors in the SVG writer
+and vector-adapter context, qualify emitted files, and expose explicit workbench
+review opt-in before extending PNG. Recommendation: **needs review**.
+
+**Retained layout SVG writer — implemented locally (2026-11-13), unreleased:**
+The existing writer now consumes validated retained paths and centre label anchors,
+matching native authored-geometry precedence. Vector adapters receive frozen route,
+box and resolved geometry context; safe text primitives support middle baseline.
+The planner's prior top-left interpretation of label bounds is corrected to the
+native/ELK centre convention. Package review includes layout in exact-artifact
+identity. The workbench offers unchecked SVG opt-in without changing source/Undo
+or PNG. This supersedes the preceding planning-only writer restriction. See
+[ADR 0076](adr/0076-write-retained-layout-svg.md) and
+[verification and captures](../apps/zloz-demo/evidence/svg-retained.md).
+D/C/Q, provider and publication gates remain unchanged.
+
+Next proposed slice: opt-in retained-layout PNG review/encoding using the qualified
+SVG boundary, with stale-result protection and pixel-budget/browser evidence.
+Recommendation: **needs review**. No publication or provider activation is implied.
+
+**Retained layout PNG — implemented locally (2026-11-13), unreleased:**
+PNG review/encoding now qualifies the existing SVG layout context end-to-end.
+Queued render payloads bind to validated, frozen routes/label boxes and copied
+limits. Stale/changed/cancelled reviews cannot publish old pixels. The workbench
+has an independent unchecked PNG setting with missing-route protection, preserving
+source/Undo and the SVG choice. Existing dimension/pixel/byte limits apply before
+allocation; custom badge pixels, light/dark output, transparency and 2x dimensions
+have browser evidence. See [ADR 0077](adr/0077-adopt-retained-layout-png.md) and
+[verification/captures](../apps/zloz-demo/evidence/png-retained.md).
+This closes the preceding PNG proposal. D/C/Q and publication gates remain.
+
+**Domain/compatibility reconciliation — completed locally (2026-11-13):**
+[Current assessment](assessments/2026-11-13-zloz-domain-compatibility-reconciliation.md)
+records exact package boundaries, delivered export/layout work, open D1–D2/C1–C4
+items, proposed item-specific deferrals and Q/R evidence gaps. No scope deferral
+is silently approved; full parity, core completion and a validated USP remain
+unestablished. This closes the preceding documentation proposal.
+
+**Headless DDD audit — implemented locally (2026-11-13), unreleased:**
+`auditDddRelationships` uses the current resolver/catalogue and returns deterministic
+entries for every authored edge: typed-compatible, blocked or unrelated. Structural
+graph errors and invalid conventions reject separately; nested descriptors and
+endpoints are detached. No meaning is inferred or graph/Undo/wire formats changed.
+Literal expected reports and installed consumers qualify the headless contract.
+See [ADR 0078](adr/0078-audit-declared-ddd-relationships.md) and
+[package evidence](../packages/foldkit-zloz/evidence/ddd-relationship-audit.md).
+This closes the prior headless-report recommendation. The local DDD completion
+entry below now covers UI/CLI/delta integration; other D/C/Q/release gates remain.
+
+**DDD Effect CLI audit — implemented locally (2026-11-13), unreleased:**
+`zloz ddd audit` exposes the exact core report and per-edge diagnostics through an
+additive `ddd-audit` JSON operation. Exits are 0 compatible, 1 incompatible, and 2
+invalid input/rules/invocation. Version-one DDD catalogue files use bounded Effect
+Schema decoding and core validation. Existing causal commands and convention
+files remain separate. Node/Bun binary and installed-consumer evidence is linked
+in [qualification](../packages/foldkit-zloz-cli/evidence/ddd-audit.md) and
+[ADR 0079](adr/0079-expose-ddd-audit-through-effect-cli.md).
+This closes the prior CLI recommendation; no publishing or manifest change.
+
+**DDD review and comparison — implemented locally (2026-11-13), unreleased:**
+The approved combined slice completes the D2 convention audit workflow: public
+`compareModelDddRelationships`, standalone/current/edition review controls,
+composable FoldKit views, live guarded edge/source/target navigation and Effect CLI
+`ddd compare` with structured JSON. Findings use edge ID/code identity; one catalogue
+applies to both sides. Exit 0 for comparison means no introduced findings, not a
+compatible target. Invalid input/catalogues/edition selectors reject separately.
+The workbench composes custom finding cards in History with independent baseline
+and target selections, read-only edition navigation, paused playback, diagnostics
+preferences and unchanged working graph/Undo. Tests, installed Node/Bun consumers,
+light/dark browser evidence and API documentation are recorded in
+[qualification](../apps/zloz-demo/evidence/ddd-audit.md) and
+[ADR 0080](adr/0080-complete-ddd-audit-review-and-comparison.md).
+
+D2 is complete for **authored relationship conventions and their audit/review/delta
+workflow**. This does not establish universal DDD correctness, new topology rules,
+DDD review packets or closure of D1/C/Q/R. Those are not silently counted as done.
+No npm publishing, version bumps, deployment or provider activation.
+
+**D1a workshop semantics — implemented locally (2026-11-13), unreleased:**
+The package distinguishes external-system causal participants, portless hotspot
+annotations with required authored open/resolved status, and portless lane groups.
+Strict role/kind/port validation and public semantic projection preserve existing
+world-coordinate membership, codecs, semantic history, live policies and Undo.
+An explicit opt-in workshop relationship catalogue supports systems issuing and
+handling commands/emitting events; the original default remains unchanged so old
+builtin review packets remain reproducible. CLI data-only role decoding supports
+external-system but rejects annotation/frame roles. DDD preview leaves new roles
+unmapped; explicit replacement retains provenance and requires loss consent,
+including hotspot status. Existing note artwork declines the roles; SVG reports
+unqualified built-in artwork with explicit adapter/fallback escape paths. No new
+renderer, theme, layout engine, annotation attachments or C4 conversion is claimed.
+See [ADR 0081](adr/0081-define-eventstorming-workshop-semantics.md) and
+[qualification](../packages/foldkit-zloz/evidence/event-storming-workshop.md).
+This closes the approved headless vocabulary contract, not renderer, D1b/C/Q/R
+qualification. No npm publishing or deployment.
+
+**Native workshop presentation/editing — implemented locally (2026-11-13), unreleased:**
+Package node/lane renderers now support external-system participants, open/resolved
+hotspots and organizational frames using native geometry, sockets/collapse/resize,
+shared headers and optional body caching. Status/content/controls and semantic
+handle descriptions are composable, with scoped light/dark accent tokens. Pure
+role/status controls recheck selection, visibility, revision, descriptor, lifecycle
+and live policy before ordinary Undoable events. Explicit native status buttons,
+visible protection reasons and custom layouts stay usable independently of numeric
+diagnostics. Port additions to annotations/groups return capability denials without
+changing graph/Undo. A public starter and Astro Inspect demo show opt-in conventions,
+custom badges, facilitator protection, history read-only state and native keyboard
+controls. See [ADR 0082](adr/0082-compose-workshop-renderers-and-controls.md) and
+[tests/light-dark evidence](../apps/zloz-demo/evidence/workshop.md).
+This closes the approved native presentation slice. Built-in portable SVG/PNG
+artwork remains gated; causal defaults, codecs, D1b/C/Q/R and publication are unchanged.
+
+**Portable workshop artwork — implemented locally (2026-11-14), unreleased:**
+Built-in SVG now qualifies external-system outlines/ports, labelled lane frames and
+open/resolved hotspot text with light/dark theme accents. Authored geometry/status
+is preserved without changing graph, codecs or Undo. The original built-in
+unsupported-role guard is superseded for these projections. Custom UI badges and
+semantic edge notation still disclose fidelity loss and require explicit consent;
+font/ink/wrapping findings remain. PNG uses the reviewed SVG unchanged, qualified
+by actual Blob equality, independent RGBA comparison and local accent-pixel checks.
+Workbench evidence covers both themes, preview/download bytes, status/theme
+freshness and Undo. See [ADR 0083](adr/0083-qualify-workshop-portable-artwork.md) and
+[artifact/browser qualification](../apps/zloz-demo/evidence/workshop-export.md).
+This closes the portable workshop artwork slice, not D1b/C/Q/R or publication.
+
+**D1b headless C4 mapping preview — implemented locally (2026-11-14), unreleased:**
+`previewEventStormingC4Mapping` captures the complete source document, camera,
+editions, fork ancestry and host session/revision. Explicit choices propose C4
+node descriptors/names or plain communication labels; null retains source meaning.
+No defaults infer scope, runtime boundaries, protocols or causal equivalence.
+Ambiguous actor/external-system candidates remain advisory. Intent/facts/policies,
+lanes and hotspots remain unmapped until explicitly interpreted or retained.
+Existing node-kind rules and authored C4 endpoint checks apply. Loss disclosures
+cover reserved meaning, authored status, organizational frames/membership, labels
+and descriptions. Output is immutable source-ordered review data, with no graph,
+editor event, consent token or Apply operation. See
+[ADR 0084](adr/0084-preview-eventstorming-to-c4-mapping.md) and
+[package qualification](../packages/foldkit-zloz/evidence/event-storming-c4-preview.md).
+This closes the approved preview slice, not D1b conversion/containment, C/Q/R or
+publication. No new edge schema, wire version, runtime dependency or npm publishing.
+
+**D1b workbench mapping review — implemented locally (2026-11-14), unreleased:**
+A dedicated C4 sidebar composes the package preview while preserving the canvas.
+Native staged fields expose role, structural name, scope, technology and communication
+labels. Preview, Retain, Clear and Reset change advisory choices only. Draft edits
+revoke the affected prior choice; blank names and incompatible group roles are
+protected. Source model/snapshot/ancestry, ambiguities, status/membership and other
+losses stay visible independently of numeric diagnostics. Scoped requests reject
+stale/foreign/hidden targets; historical/busy and other read-only reviews show
+protection reasons. Graph/model/edition changes clear stale review; camera movement
+keeps semantic choices while refreshing provenance. Native controls are keyed by
+reviewed source/item, with a rendered-target status for accessible context.
+See [ADR 0085](adr/0085-compose-c4-mapping-workbench-review.md) and
+[local tests/visual evidence](../apps/zloz-demo/evidence/c4-mapping.md).
+No conversion, Apply, loss-consent token, receipt, new public package API or npm
+publication is introduced. This closes the workbench review slice, not D1b conversion
+or broader C/Q/R qualification.
+
+**D1b headless C4 conversion plan — implemented locally (2026-11-14), unreleased:**
+Core now builds blocked/reviewable/unchanged plans over the public preview, with no
+partial change list when intent remains unresolved. Each proposed node and every
+direct member of a reinterpreted lane require explicit root, retained organization
+or declared C4 containment. Group kind, local system→container→component hierarchy,
+combined parent cycles and existing graph invariants are checked. Root detachment
+preserves world geometry and discloses removed membership/parent settings; retained
+notes cannot silently become runtime children. Complete source/history/ancestry and
+explicit choices are frozen in provenance. Plan disclosures qualify membership
+meaning, constraints and original workshop/status/relationship losses. A fresh-source
+consent resolver binds affirmative acknowledgement to exact source, mappings,
+placements and findings; consent is not Apply permission. See
+[ADR 0086](adr/0086-plan-explicit-c4-conversion-and-containment.md) and
+[package qualification](../packages/foldkit-zloz/evidence/event-storming-c4-conversion-plan.md).
+No target graph, Apply, receipt, UI/CLI operation, new wire schema or npm publication
+is introduced. D1b conversion/Apply and broader C/Q/R gates remain open.
+
+**D1b workbench plan/placement review — implemented locally (2026-11-14), unreleased:**
+The C4 sidebar now composes package plans and exact consent. Required-member
+selection, staged root/organization/contained placement and explicit Review expose
+package compatibility/blocker findings without selecting a parent automatically.
+Source provenance, exact plan losses and affirmative/revocable acknowledgement
+remain available in Minimal mode. A source/item scope, full plan key and host
+review generation reject stale or withdrawn callbacks, including same-key camera
+and read-only review round trips. Every update path reconciles review state,
+including early-return reader/import branches. Obsolete membership choices are
+pruned instead of resurrected when mappings return. Source model, ports, geometry,
+editions and Undo stay unchanged. Local production keyboard/light-dark/history
+captures and source/lineage comparisons qualify the bounded interaction path.
+See [ADR 0087](adr/0087-review-c4-placement-and-exact-losses.md) and
+[visual/test qualification](../apps/zloz-demo/evidence/c4-plan.md).
+No Apply, receipt, new package API/wire version, npm publishing or deployment.
+D1b atomic conversion and broader C/Q/R gates remain open.
+
+**D1b package-level atomic C4 Apply — implemented locally (2026-11-14), unreleased:**
+The public Apply API rebuilds current plans/containment and exact consent, compares
+live graph/camera/revision, and checks lifecycle, read-only, external busy, enabled
+Undo and live whole-transaction/architecture/label/membership policies. One shared
+internal projection prevents review/publication drift. Every rejection leaves the
+original editor intact; successful publication returns one graph Undo transaction
+and a frozen source/choice/target provenance record together. Explicit containment
+is policy-controlled even when its parent ID stays unchanged. Host identity,
+synchronous editor/record publication and storage remain host responsibilities.
+See [ADR 0088](adr/0088-apply-c4-conversion-atomically.md) and
+[qualification](../packages/foldkit-zloz/evidence/event-storming-c4-apply.md).
+No workbench Apply, portable receipt codec, npm publishing or deployment in this
+slice. D1b host integration and broader C/Q/R completion gates remain open.
+
+**D1b workbench atomic C4 Apply — implemented locally (2026-11-14), unreleased:**
+The left sidebar now exposes guarded Apply after mapping/placement review and exact
+loss acknowledgement. It rechecks core validation and live host semantic policies,
+shows protection reasons, rejects stale/replayed callbacks and publishes editor plus
+frozen conversion record in one synchronous update. Relevant policy round trips
+withdraw consent and invalidate old callbacks. Retained source/target meaning remains
+inspectable through Undo/Redo, example changes and Minimal mode. Records are tab-local
+and separate from portable DDD receipts; reload loses them. Production light/dark
+keyboard evidence checks protection, publication, retained provenance and exported
+source/target graphs with one Undo/Redo. See
+[ADR 0089](adr/0089-publish-c4-apply-and-provenance-in-workbench.md) and
+[visual/test qualification](../apps/zloz-demo/evidence/c4-apply.md).
+No C4 receipt download/import, new wire format, npm publishing or deployment.
+D1b portable review and broader C/Q/R gates remain open.
+
+**D1b portable C4 conversion receipts — implemented locally (2026-11-14), unreleased:**
+The public core serializer/parser qualify the existing C4 v1 record as a strict
+portable receipt. Both rebuild source/options and require exact complete target
+projection, including camera, authored graph data, editions and ancestry. Unsupported
+versions, unknown reserved fields, unresolved/invalid choices, non-reviewable plans
+and target alterations are rejected. Decoding yields frozen data without Apply or
+current consent. Receipts are unsigned consistency evidence, not authenticated history.
+
+The workbench validates retained records before creating download Commands, retains
+them on failure for retry, and reuses the bounded 5 MiB fatal-UTF-8 reader and detached
+comparison for C4 and DDD. C4 has recorded placement/loss findings, before/after,
+change navigation, overview and light/dark/Minimal-mode support. Invalid or stale reads
+preserve the previous comparison and exact working editor/Undo; closing restores it.
+See [ADR 0090](adr/0090-validate-portable-c4-conversion-receipts.md) and
+[qualification](../apps/zloz-demo/evidence/c4-receipt.md). No npm publishing or deployment.
+Broader domain/agent workflow and C/Q/R completion gates remain evidence-scoped.
+
+**D1b Effect CLI C4 receipt inspection — implemented locally (2026-11-14), unreleased:**
+`zloz c4 receipt inspect` strictly decodes portable C4 v1 receipts and reports full
+source provenance, target document, explicit choices, before/after history changes
+and recorded plan losses. JSON declares `authority: read-only-evidence`; historical
+acceptance never grants current consent. Loss findings remain data and exit 0.
+Unsupported format/version exits 1 without inspecting the payload; invalid input,
+I/O/UTF-8/JSON, invocation and output failures exit 2 with structured diagnostics
+and no partial inspection. The CLI retains its bounded 1 MiB file/stdin reader.
+No Apply, session activation, file writes, dependencies, core/wire version changes,
+npm publishing or deployment. See
+[ADR 0091](adr/0091-inspect-c4-receipts-through-effect-cli.md) and
+[CLI qualification](../packages/foldkit-zloz-cli/evidence/c4-receipt-inspect.md).
+
+**Roadmap reconciliation — completed locally (2026-11-14):**
+[The refreshed assessment](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
+closes the stale approved-domain implementation inventory, retains C1–C4/Q1–Q4
+scope/qualification gates and corrects the batch-transaction gap: modelling patches
+already support atomic multi-operation edits. No runtime or manifest change,
+new scope exclusion, publishing or deployment is authorized.
+
+**C1 headless mode/wire contract — implemented locally (2026-11-14), unreleased:**
+`resolveConnectionPortPair` defines strict defaults and explicit loose input/output
+kind compatibility without granting permission. Dedicated capture/parse/serialize
+APIs persist v2 connection documents and retain authored data/camera; existing v1
+codecs and editors remain strict. Legacy structural/connection validation now share
+the strict matrix. Explicit downgrade planning blocks loose-only edges without a
+partial snapshot or reports loose-mode removal before saving a strict-compatible
+snapshot. Pinned pre-mode Node/Bun code rejects v2 and retains v1 editing/Undo.
+See [ADR 0092](adr/0092-stage-explicit-v2-connection-documents.md) and
+[qualification](../packages/foldkit-zloz/evidence/connection-v2.md). This is not loose
+editor, model/archive, patch/receipt, layout, Mermaid/CLI or UI adoption; C1 remains
+partial and C2–C4/Q/R are unchanged. No publication or deployment.
+
+**C1 headless editor adoption — implemented locally (2026-11-14), unreleased:**
+`createEditorFromConnectionDocument` revalidates/detaches explicit v2 source,
+retains its mode and initializes its camera; legacy initialization stays strict.
+The fixed session mode reaches editor-owned copying/validation, creation and
+reconnection commits/contexts, ordinary edits and history. Current kind checks,
+per-port/end/global policies, ordered duplicates and read-only/gesture guards
+remain live. Creation source restaging carries explicit chooser intent in loose
+mode; pointer reducer previews/releases share current validation. Successful edits
+commit once and Undo/Redo retain mode; blocked/no-op edits add no history. Save
+with `captureConnectionDocument(editor)`; no mode-changing event or portable
+adapter support is implied. See [ADR 0093](adr/0093-adopt-connection-mode-in-headless-editor.md)
+and [qualification](../packages/foldkit-zloz/evidence/connection-editor.md).
+This advances C1's package editor contract; native/custom interactions and the
+workbench are recorded in the follow-up below. Portable adoption and broader
+C/Q/R gates remain open. No npm publication.
+
+**C1 native/custom interactions — implemented locally (2026-11-14), unreleased:**
+Native mouse/touch starts, nearby candidates and tap release follow the fixed editor
+mode. Native labels and custom `connectionEnd` feedback distinguish source/target
+activation while retaining authored kinds. Retained-node dependencies include mode;
+view IDs scope input binding lifetimes. Wire release consumes the ensuing pointer
+click once without swallowing keyboard activation. `/connections/` demonstrates
+independent strict/loose histories, native/custom ports, protection, read-only and
+light/dark themes in the shared left-sidebar shell. Package tests and local Chromium
+keyboard/mouse/emulated-touch evidence are linked in [ADR 0094](adr/0094-adopt-loose-mode-in-native-port-interactions.md)
+and [qualification](../packages/foldkit-zloz/evidence/connection-interactions.md).
+This advances C1 interactions; real-device/AT/cross-browser, portable adoption and
+broader C/Q/R gates remain open. No npm publication or deployment.
+
+**C1 canonical v2 model/edition contract — implemented locally (2026-11-14), unreleased:**
+Explicit v2 model and edition envelopes retain mode in every snapshot, including
+historical and pinned-origin checkpoints. Strict/loose checkpoints can coexist
+without inheriting current mode. Capture/parse/serialize validate and detach/freeze;
+explicit v1 upgrades mark all legacy snapshots strict and refuse already-v2 data.
+Whole-document/archive downgrade plans block any unrepresentable checkpoint or
+report every loose-mode removal before exposing prospective v1 data. Current v1
+snapshot writers reject explicit v2/loose snapshots, preserving ordinary strict
+editor saves and existing v1 wire output. Actual pinned pre-canonical Node/Bun
+readers reject v2 envelopes and retain v1 model/edit/Undo behavior. See
+[ADR 0095](adr/0095-stage-canonical-v2-model-and-edition-documents.md) and
+[qualification](../packages/foldkit-zloz/evidence/model-v2.md).
+Canonical editor/history workflows, other portable adapters and broader C/Q/R
+qualification remain open; C1 is partial. No npm publication or deployment.
+
+**C1 v2 model initialization/read-only review — implemented locally (2026-11-14), unreleased:**
+`createModelEditorV2` validates the whole canonical model and opens a detached current
+snapshot session with its own mode and fresh Undo/Redo. `createHistoryReviewV2` pins
+a detached edition and initializes a separate literal read-only editor in checkpoint
+mode; authored camera wins, otherwise working camera is copied. Only zoom limits,
+fit padding and copied surface size are inherited; review Undo capacity is zero.
+`updateHistoryReviewV2` composes the fail-closed navigation whitelist and live
+selection policies, rejecting authored edits, node measurement and Undo/Redo.
+Strict/loose working/checkpoint combinations and installed Node/Bun/TypeScript
+consumers qualify the boundary. See [ADR 0096](adr/0096-initialize-v2-models-and-review-editions.md)
+and [qualification](../packages/foldkit-zloz/evidence/model-workflow-v2.md).
+Forking is recorded below; append, comparison/ghosts, restore/playback, CLI/workbench
+and broader C/Q/R gates remain open. C1 is partial. No npm publication or deployment.
+
+**C1 v2 edition forking — implemented locally (2026-11-14), unreleased:**
+`forkEditionV2` validates the whole source, selects an owned edition and freshly
+checks policy against detached frozen source/edition/target identity. Invalid
+identity, missing edition or veto returns no target. Allowed results retain the
+checkpoint's exact mode/camera/data, start with no editions and pin their immediate
+parent without mutating source or working history. `createModelEditorV2` composes
+that data into a fresh target session with independent Undo; absent checkpoint
+camera uses the target initializer's default, not review/working navigation.
+Strict/loose mode pairs, policy failures, fork-of-fork and installed consumers
+qualify the boundary. See [ADR 0097](adr/0097-fork-v2-editions-with-pinned-provenance.md)
+and [qualification](../packages/foldkit-zloz/evidence/edition-fork-v2.md).
+V2 append, comparison/ghosts, restore/playback, CLI/workbench and wider C/Q/R gates
+remain open; C1 remains partial. No npm publication or deployment.
+
+**C1 v2 edition comparison — implemented locally (2026-11-15), unreleased:**
+`compareEditionsV2` validates checkpoints in their own modes and returns immutable
+detached pins, stable-ID graph deltas and explicit unchanged/strict→loose/loose→strict
+mode records. Mode-only changes set semantic change without inventing node/edge
+changes; graph layout is independent. Camera/edition metadata are retained but
+excluded from graph/mode flags. V1 comparison rejects explicit v2/loose inputs.
+See [ADR 0098](adr/0098-compare-v2-editions-with-explicit-mode-changes.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-comparison-v2.md).
+Presentation/ghosts, append, restore/playback and CLI/workbench adoption remain
+open; C1 and wider C/Q/R gates stay partial. No npm publication or deployment.
+
+**C1 v2 comparison presentation — implemented locally (2026-11-15), unreleased:**
+`resolveHistoryComparisonPresentationV2` validates chosen checkpoints and returns
+immutable comparison/text/visibility context. Optional FoldKit status parts expose
+mode changes even without graph deltas; the v2 ghost wrapper reuses existing inert
+geometry under the world transform. Saved per-layer choices survive minimal mode;
+text, layout and marks are composable. Public tests, packed consumers and a static
+light/dark Chromium fixture qualify this package boundary. See
+[ADR 0099](adr/0099-present-v2-comparisons-with-mode-feedback-and-ghosts.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-presentation-v2.md).
+This is not mounted workbench/CLI adoption or restore/playback. Those boundaries,
+v2 change navigation/append and wider C/Q/R gates stay open; C1 remains partial.
+No npm publication or deployment.
+
+**C1 v2 change navigation — implemented locally (2026-11-15), unreleased:**
+Package resolvers and optional native/custom FoldKit controls include an explicit
+mode-change entity without a fake graph ID or reveal event. Direct focus and
+Previous/Next preserve the host's chosen side, freshly check scope/filters/reasons
+and block absent-side items without fallback or skipping. Independent read-only
+reviews retain checkpoint modes and working history. Tests, installed consumers,
+a side-target mutation and static light/dark evidence qualify the boundary. See
+[ADR 0100](adr/0100-navigate-v2-changes-with-explicit-mode-inspection.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-navigation-v2.md).
+V2 append/merge, restore/playback, CLI/workbench adoption and wider C/Q/R gates
+remain open; C1 stays partial. No npm publishing or deployment.
+
+**C1 v2 edition append — implemented locally (2026-11-15), unreleased:**
+`appendEditionV2` validates/detaches the whole archive and candidate, preserves
+checkpoint modes/cameras/data and returns a frozen ordered appended archive only
+for a fresh ID. Reused IDs block with explicit duplicate/conflict codes and frozen
+existing/proposed pins for comparison, never a replacement archive. Current model,
+origin and working/review histories remain independent. See
+[ADR 0101](adr/0101-append-v2-editions-with-explicit-identity-conflicts.md) and
+[qualification](../packages/foldkit-zloz/evidence/edition-append-v2.md).
+This headless slice adds no UI or persistence authority. V2 merge, restore/playback,
+CLI/workbench and wider C/Q/R gates remain open; C1 stays partial. No npm publishing
+or deployment.
+
+**C1 v2 history/workflow completion batch — implemented locally (2026-11-15), unreleased:**
+Atomic v2 merge validates both collections, skips identical imports and blocks all
+conflicting additions. V2 model sessions own graph+mode Undo frames with compatible
+graph projections; guarded restore rechecks revision, lifecycle and live policies,
+including mode-only transactions. Mixed-mode playback pins independent read-only
+reviews, with opt-in timing, pause/rewind and reduced-motion handling. Side-aware
+ghosts retain chronological meaning; incompatible clipboard paste after cross-mode
+Undo reports a reason without losing data or Redo.
+
+The mounted `/history/` workspace composes capture, bounded v2 model/archive I/O,
+comparison/ghosts/change navigation, playback and protected preview/restore in four
+sidebar sections. Epoch/run/import tokens reject stale work; previous working
+sessions retain their own history. Light/dark/minimal and real mounted file/playback
+flows are qualified. See [ADR 0102](adr/0102-complete-v2-history-workflows.md),
+[package qualification](../packages/foldkit-zloz/evidence/history-workflow-v2.md) and
+[mounted evidence](../apps/zloz-demo/evidence/history-workflow-v2.md).
+
+This closes the approved **v2 history/workflow batch**, not all C1 compatibility.
+Existing architecture/connection workspaces remain independent. V1 formats reject
+v2 input; broader patch/receipt/review-packet/Mermaid/CLI and layout adoption remains
+separate. C2–C4/Q/R are unchanged. No npm publishing or deployment.
+
+**C1 v2 portable capability/decision batch — implemented locally (2026-11-15), unreleased:**
+`assessPortableCompatibilityV2` validates current, archived and origin checkpoints,
+reports native/projected/version-required adapter capabilities and whole-model
+strict downgrade findings without prospective downgraded data or Apply authority.
+Mode-aware layout requests retain ordered endpoints and graph/mode Undo; real ELK
+and force engines are covered. Explicit Mermaid v2 bundles retain mode and identity,
+with source-only loose semantics/camera losses requiring report consent. Legacy
+graph-only Mermaid remains strict. Effect CLI supports bounded v2 validation,
+`compatibility inspect` and explicit v2 Mermaid projection; v1-only operations
+report valid-but-incompatible input with exit 1, distinct from invalid data (exit 2).
+
+See [ADR 0103](adr/0103-qualify-v2-portable-adapter-boundaries.md) and
+[batch qualification](../packages/foldkit-zloz/evidence/portable-compatibility-v2.md).
+This closes the capability decisions and safe adoption, not all C1 portability.
+V1 patches, conversion receipts, review packets and relationship audits remain
+version-required boundaries. Their native v2 formats are not shipped. C2–C4/Q/R
+stay open; no npm publishing or deployment.
+
+**C1 native v2 authoring/review batch — implemented locally (2026-11-15), unreleased:**
+Mode-aware connection audits and model comparisons reuse domain rules and include
+checkpoint modes. V2 patches pin source mode/session/revision, preserve ordered
+ports and use live policy/consent checks for atomic Apply with one Undo. Strict
+v2 patch receipts recompute the result. C4/DDD native previews, plans, consent,
+Apply and v2 receipts retain complete source/target models, camera and all archive/
+origin modes, with bounded consistency validation before read-only reopening.
+V1 readers and default wrapper contracts remain fixed at v1.
+
+V2 review packets retain selected snapshots/modes, audit deltas and v2 Mermaid
+projections; strict reopening recomputes them and can create an independent
+read-only review. Generated evidence checks reopening budgets. Effect CLI selects
+native v2 audit/compare, patch dry-run and packet paths; C4/DDD v1/v2 and patch v2
+receipt inspectors return explicit read-only evidence and validation/incompatibility
+exits. Native packet creation respects the CLI's stricter byte limit.
+
+See [ADR 0104](adr/0104-adopt-native-v2-authoring-and-review.md) and
+[qualification](../packages/foldkit-zloz/evidence/native-authoring-review-v2.md).
+This closes the approved **native package/CLI authoring and review batch**. It does
+not migrate existing mounted workbench file/control flows or close all C1/C2–C4/Q/R.
+No npm publishing, deployment or PR.
+
+**Recommended next:** one mounted native v2 authoring/review workbench slice:
+visible audit/patch/loss review, guarded Apply/Undo, receipt and packet download,
+and read-only reopening using these package APIs. Capture mounted light/dark
+and file-flow evidence.

@@ -1,0 +1,207 @@
+{
+  "format": "foldkit-zloz-patch-receipt",
+  "version": 2,
+  "patch": {
+    "format": "foldkit-zloz-patch",
+    "id": "rename-native",
+    "operations": [
+      {
+        "id": "rename",
+        "node": {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "a",
+          "label": "Orders modelled",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        },
+        "type": "node.replace"
+      }
+    ],
+    "provenance": {
+      "actor": {
+        "id": "synthetic-fixture",
+        "kind": "tool"
+      },
+      "reason": "Exercise native v2 preservation",
+      "references": []
+    },
+    "source": {
+      "connectionMode": "loose",
+      "graph": {
+        "edges": [
+          {
+            "data": {
+              "preserve": true
+            },
+            "id": "orders-billing",
+            "label": "Uses",
+            "source": {
+              "node": "a",
+              "port": "shared"
+            },
+            "target": {
+              "node": "b",
+              "port": "shared"
+            }
+          }
+        ],
+        "nodes": [
+          {
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "a",
+            "label": "Orders",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 20,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          {
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "id": "b",
+            "label": "Billing",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "left"
+              }
+            ],
+            "position": {
+              "x": 320,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          }
+        ]
+      },
+      "modelId": "native-v2",
+      "revision": 0,
+      "sessionId": "native-v2-fixture"
+    },
+    "version": 2
+  },
+  "snapshot": {
+    "connectionMode": "loose",
+    "graph": {
+      "edges": [
+        {
+          "data": {
+            "preserve": true
+          },
+          "id": "orders-billing",
+          "label": "Uses",
+          "source": {
+            "node": "a",
+            "port": "shared"
+          },
+          "target": {
+            "node": "b",
+            "port": "shared"
+          }
+        }
+      ],
+      "nodes": [
+        {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "a",
+          "label": "Orders modelled",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        },
+        {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "id": "b",
+          "label": "Billing",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "left"
+            }
+          ],
+          "position": {
+            "x": 320,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        }
+      ]
+    },
+    "version": 2
+  },
+  "revision": 1,
+  "reviewed": true,
+  "lossesAccepted": true
+}

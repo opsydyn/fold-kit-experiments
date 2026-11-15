@@ -71,7 +71,8 @@
       "infra": {
         "@alchemy.run/cloudflare": "2.0.0-beta.85",
         "@alchemy.run/frontend-frameworks": "2.0.0-beta.85",
-        "alchemy": "2.0.0-beta.85"
+        "alchemy": "2.0.0-beta.85",
+        "@alchemy.run/domain": "2.0.0-beta.85"
       }
     }
   },
@@ -80,7 +81,7 @@
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
-    "test": "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts ./tools/ci-parity.test.ts && bun run --sequential --filter '*' test",
+    "test": "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts ./tools/ci-parity.test.ts ./tools/pre-commit.test.ts && bun run --sequential --filter '*' test",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",

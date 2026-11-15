@@ -1,0 +1,35 @@
+{
+  "result": "passed",
+  "baseline": "36de608a1a4d56c8b0e87f72b84f4ede30f9b830",
+  "measuredParent": "36de608a1a4d56c8b0e87f72b84f4ede30f9b830",
+  "oldBundleSha256": "a31502b4e56a8993b95cbc4aaf4e40f6b9d8b4e7d5f45e75919e249b98a47f27",
+  "strictModelSha256": "e41e36b1ab917ee114eea187892796363da7435d6ff9fc76f2295e482ebb97c6",
+  "looseModelSha256": "c30bb941dc687432c3c628fcc7a9f84c92013cd119d705b0efe528a51162b6c7",
+  "results": [
+    {
+      "runtime": "node",
+      "result": "passed",
+      "checks": [
+        "literal v1 model and origin remain readable",
+        "literal v1 editions remain readable",
+        "strict loose and mixed canonical v2 models reject",
+        "strict and loose v2 edition archives reject",
+        "explicit whole-model v1 downgrade remains readable",
+        "legacy model editing and one Undo remain unchanged"
+      ]
+    },
+    {
+      "runtime": "bun",
+      "result": "passed",
+      "checks": [
+        "literal v1 model and origin remain readable",
+        "literal v1 editions remain readable",
+        "strict loose and mixed canonical v2 models reject",
+        "strict and loose v2 edition archives reject",
+        "explicit whole-model v1 downgrade remains readable",
+        "legacy model editing and one Undo remain unchanged"
+      ]
+    }
+  ],
+  "limitation": "Actual pinned pre-canonical source under local Node/Bun; not every historical artifact, current CI, adapter or hosted qualification."
+}

@@ -5,8 +5,22 @@ import {
   sameGuides,
   type ResizeAlignment,
 } from './alignment';
+import { copyEdgeArchitecture, sameEdgeArchitecture } from './architecture';
+import {
+  parseConnectionDocument,
+  serializeConnectionDocument,
+  type ZlozConnectionDocument,
+} from './connection-document';
+import {
+  appendConnectionHistory,
+  measureConnectionHistory,
+  travelConnectionHistory,
+} from './connection-history';
+import { resolveConnectionPortPair, type ZlozConnectionMode } from './connection-mode';
 import { connectionReason, portKind, proposedEdge } from './connection-validation';
 import { resolveDeletion } from './deletion';
+import { resolveEdgeWaypointEdit } from './edge-waypoint-edit';
+import { edgeWaypointBounds, translateEdgeWaypoints } from './edge-waypoints';
 import {
   boxBounds,
   clampZoom,
@@ -23,7 +37,12 @@ import {
   validViewport,
   zoomAt,
 } from './geometry';
-import { copyGraph, ZlozError, validateGraph, withPortPosition } from './graph';
+import {
+  copyGraphForConnectionMode,
+  ZlozError,
+  validateGraphForConnectionMode,
+  withPortPosition,
+} from './graph';
 import {
   groupAtDropPoint,
   presentEditorGroups,
@@ -63,6 +82,12 @@ import type {
   ResizeHandle,
   Viewport,
 } from './types';
+import {
+  startEdgeWaypointDrag,
+  moveEdgeWaypointDrag,
+  nudgeEdgeWaypointRequest,
+  resolveEdgeWaypointPreview,
+} from './waypoint-interaction';
 
 function validateFitViewPadding(padding: number): void {
   if (!Number.isFinite(padding) || padding < 0)
@@ -97,6 +122,25 @@ function selectionIsVisible(state: EditorState, kind: 'node' | 'edge', id: strin
 
 /** Validate and detach an authored graph, then initialize host-owned editor state. Throws ZlozError for invalid input. */
 export function createEditor(graph: ZlozGraph, options: EditorOptions = {}): EditorState {
+  return initializeEditor(graph, options, 'strict');
+}
+
+/** Initialize from a validated explicit v2 document. Mode is fixed for the session; options may override its camera. */
+export function createEditorFromConnectionDocument(
+  document: ZlozConnectionDocument,
+  options: EditorOptions = {},
+): EditorState {
+  const source = parseConnectionDocument(serializeConnectionDocument(document));
+  const viewport = options.viewport ?? source.viewport;
+  const preferences: EditorOptions = viewport === undefined ? options : { ...options, viewport };
+  return initializeEditor(source.graph, preferences, source.connectionMode);
+}
+
+function initializeEditor(
+  graph: ZlozGraph,
+  options: EditorOptions,
+  connectionMode: ZlozConnectionMode,
+): EditorState {
   const zoomLimits = options.zoomLimits ?? defaultZoomLimits;
   validateZoomLimits(zoomLimits);
   const fitViewPadding = options.fitViewPadding ?? defaultFitViewPadding;
@@ -145,7 +189,8 @@ export function createEditor(graph: ZlozGraph, options: EditorOptions = {}): Edi
   if (!Number.isInteger(historyLimit) || historyLimit < 0 || historyLimit > 1000)
     throw new ZlozError('invalid-edit', 'History limit must be an integer from 0 to 1000');
   return {
-    graph: copyGraph(graph),
+    graph: copyGraphForConnectionMode(graph, connectionMode),
+    connectionMode,
     context: null,
     connectionsExpanded: false,
     clipboard: null,
@@ -372,16 +417,24 @@ function retainedCollapsedGroups(state: EditorState, graph: ZlozGraph) {
 
 /** Shared transaction boundary; document publications invalidate cached routes. */
 export function commitGraph(state: EditorState, graph: ZlozGraph): EditorState {
-  validateGraph(graph);
+  return commitConnectionGraph(state, graph, state.connectionMode ?? 'strict');
+}
+/** Internal v2 restore publication; callers own freshness and policy checks. */
+export function commitConnectionGraph(
+  state: EditorState,
+  graph: ZlozGraph,
+  connectionMode: ZlozConnectionMode,
+): EditorState {
+  validateGraphForConnectionMode(graph, connectionMode);
   return {
     ...cancelFit(state),
     graph,
+    connectionMode,
     context: null,
     revision: state.revision + 1,
     collapsedGroups: retainedCollapsedGroups(state, graph),
     edgeLabelDraft: null,
-    past: history(state, state.graph),
-    future: [],
+    ...appendConnectionHistory(state, state.graph),
     routes: [],
     gesture: { type: 'idle' },
     connection: null,
@@ -392,18 +445,21 @@ export function commitGraph(state: EditorState, graph: ZlozGraph): EditorState {
 }
 function selectedFragment(state: EditorState): ZlozGraph {
   const included = withDescendants(state.graph, state.selectedNodes);
-  return copyGraph({
-    nodes: state.graph.nodes
-      .filter((node) => included.has(node.id))
-      .map((node) => {
-        if (node.parentId === undefined || included.has(node.parentId)) return node;
-        const { parentId: _, extent: _extent, expandParent: _expandParent, ...root } = node;
-        return root;
-      }),
-    edges: state.graph.edges.filter(
-      (edge) => included.has(edge.source.node) && included.has(edge.target.node),
-    ),
-  });
+  return copyGraphForConnectionMode(
+    {
+      nodes: state.graph.nodes
+        .filter((node) => included.has(node.id))
+        .map((node) => {
+          if (node.parentId === undefined || included.has(node.parentId)) return node;
+          const { parentId: _, extent: _extent, expandParent: _expandParent, ...root } = node;
+          return root;
+        }),
+      edges: state.graph.edges.filter(
+        (edge) => included.has(edge.source.node) && included.has(edge.target.node),
+      ),
+    },
+    state.connectionMode ?? 'strict',
+  );
 }
 
 function insertFragment(
@@ -412,6 +468,17 @@ function insertFragment(
   canSelectNode: EditorPolicy['canSelectNode'],
 ): EditorState {
   if (fragment.nodes.length === 0) return state;
+  const incompatible = fragment.edges
+    .map((edge) =>
+      resolveConnectionPortPair({
+        mode: state.connectionMode ?? 'strict',
+        sourceKind: portKind(fragment, edge.source),
+        targetKind: portKind(fragment, edge.target),
+      }),
+    )
+    .find((decision) => decision.type === 'incompatible');
+  if (incompatible?.type === 'incompatible')
+    return { ...state, notice: `Clipboard cannot be pasted in this mode. ${incompatible.reason}` };
   const taken = new Set([...state.graph.nodes, ...state.graph.edges].map((item) => item.id));
   let sequence = 1;
   const nextId = () => {
@@ -447,7 +514,7 @@ function insertFragment(
     return node.parentId === undefined ? copy : { ...copy, parentId: remap(node.parentId) };
   });
   const edges = fragment.edges.map((edge) => ({
-    ...edge,
+    ...translateEdgeWaypoints(edge, { x: offset, y: offset }),
     id: nextId(),
     source: { ...edge.source, node: remap(edge.source.node) },
     target: { ...edge.target, node: remap(edge.target.node) },
@@ -504,7 +571,12 @@ function containedOffset(graph: ZlozGraph, moving: ReadonlySet<string>, delta: P
   };
 }
 
-function move(graph: ZlozGraph, moving: ReadonlySet<string>, delta: Point): ZlozGraph {
+function move(
+  graph: ZlozGraph,
+  moving: ReadonlySet<string>,
+  delta: Point,
+  mode: ZlozConnectionMode,
+): ZlozGraph {
   finitePoint(delta);
   const offset = containedOffset(graph, moving, delta);
   if (offset.x === 0 && offset.y === 0) return graph;
@@ -516,7 +588,7 @@ function move(graph: ZlozGraph, moving: ReadonlySet<string>, delta: Point): Zloz
         : node,
     ),
   };
-  validateGraph(moved);
+  validateGraphForConnectionMode(moved, mode);
   return moved;
 }
 function reparentDraggedNodes(
@@ -702,15 +774,21 @@ function expandRevealAncestors(state: EditorState, targets: readonly ZlozNode[])
 }
 
 function storedRouteBounds(state: EditorState, edge: ZlozEdge) {
+  if (edge.waypoints)
+    return edge.waypoints.map(({ position }) => ({ position, size: { width: 0, height: 0 } }));
   if (edge.pathStyle !== undefined) return [];
-  return (
-    state.routes
-      .find(({ id }) => id === edge.id)
-      ?.points.map((position) => ({
-        position,
-        size: { width: 0, height: 0 },
-      })) ?? []
-  );
+  const route = state.routes.find(({ id }) => id === edge.id);
+  const points =
+    route?.points.map((position) => ({ position, size: { width: 0, height: 0 } })) ?? [];
+  if (route?.label)
+    points.push({
+      position: {
+        x: route.label.position.x - route.label.size.width / 2,
+        y: route.label.position.y - route.label.size.height / 2,
+      },
+      size: route.label.size,
+    });
+  return points;
 }
 
 function selectionBounds(state: EditorState): readonly Pick<ZlozNode, 'position' | 'size'>[] {
@@ -774,6 +852,47 @@ export function updateEditor(
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  if (event.type === 'EdgeWaypointRemoved') {
+    const edge = state.graph.edges.find((edge) => edge.id === event.id);
+    if (!edge?.waypoints?.some((waypoint) => waypoint.id === event.waypointId)) return state;
+    const waypoints = edge.waypoints.filter((waypoint) => waypoint.id !== event.waypointId);
+    return updateEditor(
+      state,
+      {
+        type: 'EdgeWaypointsChanged',
+        id: event.id,
+        revision: event.revision,
+        waypoints: waypoints.length ? waypoints : null,
+      },
+      policy,
+    );
+  }
+  if (event.type === 'EdgeWaypointDragStarted')
+    return startEdgeWaypointDrag(cancelFit(state), event, policy);
+  if (event.type === 'EdgeWaypointNudged') {
+    const request = nudgeEdgeWaypointRequest(state, event);
+    return request
+      ? updateEditor(state, { type: 'EdgeWaypointsChanged', ...request }, policy)
+      : state;
+  }
+  if (event.type === 'EdgeWaypointSnapBypassChanged') {
+    const drag = state.gesture;
+    return drag.type === 'edge-waypoint-drag' && drag.pointer === event.pointer
+      ? moveEdgeWaypointDrag(state, drag.point, event.bypassed, policy)
+      : state;
+  }
+  if (event.type === 'EdgeWaypointsChanged') {
+    const decision = resolveEdgeWaypointEdit(state, event, policy);
+    if (decision.type === 'blocked') return { ...state, notice: decision.reason };
+    if (decision.type === 'unchanged') return state;
+    return {
+      ...commitGraph(state, {
+        ...state.graph,
+        edges: state.graph.edges.map((edge) => (edge.id === event.id ? decision.edge : edge)),
+      }),
+      routes: state.routes,
+    };
+  }
   if (event.type === 'FitViewAnimationFrame') return advanceFit(state, event);
   if (event.type === 'NodeFocusChanged')
     return (state.focusedNodeId ?? null) === event.id
@@ -872,7 +991,7 @@ export function updateEditor(
       const moving = withDescendants(state.graph, state.selectedNodes);
       const reason = movementReason(state.graph, moving, policy.canMoveNode);
       if (reason !== undefined) return { ...state, notice: reason };
-      const graph = move(state.graph, moving, event.delta);
+      const graph = move(state.graph, moving, event.delta, state.connectionMode ?? 'strict');
       return graph === state.graph ? state : commitGraph(state, graph);
     }
     case 'EdgeSelected': {
@@ -1046,7 +1165,20 @@ export function updateEditor(
       const nodes =
         event.type === 'FitSelectionClicked'
           ? selectionBounds(state)
-          : presentEditorGroups(state).nodes;
+          : (() => {
+              const presentation = presentVisibleGraph(state);
+              return [
+                ...presentation.nodes,
+                ...edgeWaypointBounds(presentation.edges, presentation.hiddenBy),
+                ...presentation.edges.flatMap((edge) =>
+                  presentation.hiddenBy.has(edge.source.node) ||
+                  presentation.hiddenBy.has(edge.target.node) ||
+                  !state.routes.find((route) => route.id === edge.id)?.label
+                    ? []
+                    : storedRouteBounds(state, edge),
+                ),
+              ];
+            })();
       if (nodes.length === 0) return state;
       return fitEditorBounds(state, surface, nodes);
     }
@@ -1097,7 +1229,7 @@ export function updateEditor(
       const { surface, viewport } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
       finitePoint(event.point);
-      const presentation = presentEditorGroups(state);
+      const presentation = presentVisibleGraph(state);
       if (state.visibility && presentation.nodes.length === 0) return state;
       const { x, y, width, height } = minimapGeometry(presentation, surface, viewport);
       const worldX = x + Math.max(0, Math.min(1, event.point.x)) * width;
@@ -1251,6 +1383,13 @@ export function updateEditor(
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       finitePoint(event.point);
+      if (gesture.type === 'edge-waypoint-drag')
+        return moveEdgeWaypointDrag(
+          state,
+          event.point,
+          event.waypointSnapBypassed ?? gesture.bypassed,
+          policy,
+        );
       if (gesture.type === 'port-anchor-drag') {
         const reason = state.readOnly
           ? 'This diagram is read-only.'
@@ -1332,6 +1471,7 @@ export function updateEditor(
       if (gesture.type === 'connection-drag') {
         const existing =
           gesture.reconnect && state.graph.edges.find((edge) => edge.id === gesture.reconnect?.id);
+        if (gesture.reconnect && !existing) return cancel(state);
         if (existing && gesture.reconnect) {
           const reason =
             policy.canReconnect?.(existing, gesture.reconnect.end, state.graph) ?? null;
@@ -1351,7 +1491,13 @@ export function updateEditor(
               existing && gesture.reconnect
                 ? { ...existing, [gesture.reconnect.end]: endpoint }
                 : proposedEdge(state.graph, state.connection, endpoint);
-            const reason = connectionReason(state.graph, edge, policy, gesture.reconnect);
+            const reason = connectionReason(
+              state.graph,
+              edge,
+              policy,
+              gesture.reconnect,
+              state.connectionMode,
+            );
             if (reason === null) {
               const distance = candidate.distance ?? Infinity;
               if (feedback.target === null) {
@@ -1472,7 +1618,7 @@ export function updateEditor(
           : { offset: fallback, guides: [] };
       const bounded = containedOffset(gesture.before, moving, offset);
       const visibleGuides = bounded.x === offset.x && bounded.y === offset.y ? guides : [];
-      const graph = move(gesture.before, moving, bounded);
+      const graph = move(gesture.before, moving, bounded, state.connectionMode ?? 'strict');
       const canReparent = gesture.ids.some((id) => {
         const node = gesture.before.nodes.find((node) => node.id === id);
         return (
@@ -1499,6 +1645,26 @@ export function updateEditor(
     }
     case 'PointerReleased': {
       const gesture = state.gesture;
+      if (gesture.type === 'edge-waypoint-drag') {
+        if (gesture.pointer !== event.pointer) return state;
+        const check = resolveEdgeWaypointPreview(state, policy);
+        const idle: EditorState = { ...state, gesture: { type: 'idle' } };
+        return check.type === 'blocked'
+          ? { ...idle, notice: check.reason }
+          : check.type === 'allowed'
+            ? updateEditor(
+                idle,
+                {
+                  type: 'EdgeWaypointsChanged',
+                  id: gesture.id,
+                  revision: gesture.revision,
+                  waypoints: check.edge.waypoints ?? null,
+                },
+                policy,
+              )
+            : idle;
+      }
+
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       if (gesture.type === 'port-anchor-drag') {
@@ -1518,8 +1684,7 @@ export function updateEditor(
         return {
           ...state,
           gesture: { type: 'idle' },
-          past: history(state, gesture.before),
-          future: [],
+          ...appendConnectionHistory(state, gesture.before),
           notice: 'Port positioned',
         };
       }
@@ -1586,8 +1751,7 @@ export function updateEditor(
       return {
         ...state,
         gesture: { type: 'idle' },
-        past: history(state, gesture.before),
-        future: [],
+        ...appendConnectionHistory(state, gesture.before),
         notice: gesture.type === 'node-resize' ? 'Node resized' : 'Nodes moved',
       };
     }
@@ -1633,8 +1797,7 @@ export function updateEditor(
       return {
         ...cancelFit(state),
         graph: measure(state.graph),
-        past: state.past.map(measure),
-        future: state.future.map(measure),
+        ...measureConnectionHistory(state, measure),
         gesture,
         revision: state.revision + 1,
         routes: [],
@@ -1746,7 +1909,8 @@ export function updateEditor(
       };
     }
     case 'ConnectionDragStarted': {
-      if (portKind(state.graph, event.endpoint) !== 'output') return state;
+      const kind = portKind(state.graph, event.endpoint);
+      if (!kind || (state.connectionMode !== 'loose' && kind !== 'output')) return state;
       const reason = policy.canConnectPort?.(event.endpoint, state.graph) ?? null;
       if (reason !== null) return { ...state, notice: reason };
       finitePoint(event.point);
@@ -1759,7 +1923,10 @@ export function updateEditor(
           point: event.point,
           target: null,
         },
-        notice: 'Drag to an input port. Escape cancels.',
+        notice:
+          state.connectionMode === 'loose'
+            ? 'Drag to a port. Escape cancels.'
+            : 'Drag to an input port. Escape cancels.',
       };
     }
     case 'NodeResizeStarted':
@@ -1832,7 +1999,13 @@ export function updateEditor(
     case 'NodeAdded':
       return commitGraph(state, {
         ...state.graph,
-        nodes: [...state.graph.nodes, ...copyGraph({ nodes: [event.node], edges: [] }).nodes],
+        nodes: [
+          ...state.graph.nodes,
+          ...copyGraphForConnectionMode(
+            { nodes: [event.node], edges: [] },
+            state.connectionMode ?? 'strict',
+          ).nodes,
+        ],
       });
     case 'NodeLabelChanged':
       if (!state.graph.nodes.some((node) => node.id === event.id && node.label !== event.label))
@@ -1851,12 +2024,15 @@ export function updateEditor(
       const { [key]: previous, ...without } = node;
       const value =
         event.type === 'NodeArchitectureChanged' ? event.architecture : event.appearance;
-      validateGraph({
-        ...state.graph,
-        nodes: state.graph.nodes.map((item) =>
-          item.id === node.id ? (value === null ? without : { ...node, [key]: value }) : item,
-        ),
-      });
+      validateGraphForConnectionMode(
+        {
+          ...state.graph,
+          nodes: state.graph.nodes.map((item) =>
+            item.id === node.id ? (value === null ? without : { ...node, [key]: value }) : item,
+          ),
+        },
+        state.connectionMode ?? 'strict',
+      );
       if (
         value === null
           ? previous === undefined
@@ -2012,25 +2188,13 @@ export function updateEditor(
       const next: ZlozEdge =
         event.architecture === null
           ? without
-          : { ...edge, architecture: { ...event.architecture } };
+          : { ...edge, architecture: copyEdgeArchitecture(event.architecture) };
       const graph = {
         ...state.graph,
         edges: state.graph.edges.map((item) => (item.id === edge.id ? next : item)),
       };
-      validateGraph(graph);
-      const value = next.architecture;
-      if (
-        value === undefined
-          ? previous === undefined
-          : previous !== undefined &&
-            Object.keys(value).length === Object.keys(previous).length &&
-            Object.entries(value).every(([key, item]) =>
-              Object.entries(previous).some(
-                ([otherKey, other]) => key === otherKey && item === other,
-              ),
-            )
-      )
-        return state;
+      validateGraphForConnectionMode(graph, state.connectionMode ?? 'strict');
+      if (sameEdgeArchitecture(previous, next.architecture)) return state;
       const veto = policy.canChangeEdgeArchitecture?.(edge, next, state.graph);
       const reason = veto == null ? null : veto.trim() || 'Relationship editing is unavailable.';
       return reason === null
@@ -2042,12 +2206,15 @@ export function updateEditor(
       return {
         ...commitGraph(
           state,
-          copyGraph({
-            ...state.graph,
-            edges: state.graph.edges.map((edge) =>
-              edge.id === event.id ? { ...edge, data: event.data } : edge,
-            ),
-          }),
+          copyGraphForConnectionMode(
+            {
+              ...state.graph,
+              edges: state.graph.edges.map((edge) =>
+                edge.id === event.id ? { ...edge, data: event.data } : edge,
+              ),
+            },
+            state.connectionMode ?? 'strict',
+          ),
         ),
         routes: state.routes,
       };
@@ -2060,7 +2227,7 @@ export function updateEditor(
       const locked = policy.canReconnect?.(existing, event.end, state.graph) ?? null;
       if (locked !== null) return { ...state, notice: locked };
       const edge = { ...existing, [event.end]: { ...event.endpoint } };
-      const reason = connectionReason(state.graph, edge, policy, event);
+      const reason = connectionReason(state.graph, edge, policy, event, state.connectionMode);
       if (reason !== null) return { ...state, notice: reason };
       return {
         ...commitGraph(state, {
@@ -2072,10 +2239,19 @@ export function updateEditor(
     }
     case 'ConnectionCreated': {
       const graph = { ...state.graph, edges: [...state.graph.edges, event.edge] };
-      validateGraph(graph);
-      const reason = connectionReason(state.graph, event.edge, policy);
+      validateGraphForConnectionMode(graph, state.connectionMode ?? 'strict');
+      const reason = connectionReason(
+        state.graph,
+        event.edge,
+        policy,
+        undefined,
+        state.connectionMode,
+      );
       if (reason !== null) return { ...state, notice: reason, connection: null };
-      return { ...commitGraph(state, copyGraph(graph)), notice: 'Connection created' };
+      return {
+        ...commitGraph(state, copyGraphForConnectionMode(graph, state.connectionMode ?? 'strict')),
+        notice: 'Connection created',
+      };
     }
     case 'PortLabelChanged': {
       const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
@@ -2188,16 +2364,27 @@ export function updateEditor(
         .find((node) => node.id === event.endpoint.node)
         ?.ports.find((item) => item.id === event.endpoint.port);
       if (!port) return state;
-      if (port.kind === 'output') {
+      const loose = state.connectionMode === 'loose';
+      if (
+        event.end === 'source' ||
+        (event.end !== 'target' && (loose ? !state.connection : port.kind === 'output'))
+      ) {
+        if (!loose && port.kind !== 'output') return state;
         const reason = policy.canConnectPort?.(event.endpoint, state.graph) ?? null;
         if (reason !== null) return { ...state, notice: reason };
         return {
           ...state,
           connection: { ...event.endpoint },
-          notice: 'Choose an input port to connect. Escape cancels.',
+          notice: loose
+            ? 'Choose a port to connect. Escape cancels.'
+            : 'Choose an input port to connect. Escape cancels.',
         };
       }
-      if (!state.connection) return { ...state, notice: 'Choose an output port first' };
+      if (!state.connection)
+        return {
+          ...state,
+          notice: loose ? 'Choose a source port first' : 'Choose an output port first',
+        };
       return updateEditor(
         state,
         {
@@ -2369,7 +2556,8 @@ export function updateEditor(
         : committed;
     }
     case 'UndoPressed': {
-      const graph = state.past.at(-1);
+      const connection = travelConnectionHistory(state, 'undo');
+      const graph = connection?.graph ?? state.past.at(-1);
       if (!graph) return state;
       return {
         ...cancelFit(state),
@@ -2378,6 +2566,7 @@ export function updateEditor(
         revision: state.revision + 1,
         past: state.past.slice(0, -1),
         future: [state.graph, ...state.future],
+        ...(connection ?? {}),
         routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],
@@ -2387,7 +2576,8 @@ export function updateEditor(
       };
     }
     case 'RedoPressed': {
-      const graph = state.future[0];
+      const connection = travelConnectionHistory(state, 'redo');
+      const graph = connection?.graph ?? state.future[0];
       if (!graph) return state;
       return {
         ...cancelFit(state),
@@ -2396,6 +2586,7 @@ export function updateEditor(
         revision: state.revision + 1,
         past: history(state, state.graph),
         future: state.future.slice(1),
+        ...(connection ?? {}),
         routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],

@@ -1,0 +1,34 @@
+{
+  "result": "passed",
+  "baseline": "f90520139985b42e7259793815cbc023097d9abf",
+  "measuredParent": "f90520139985b42e7259793815cbc023097d9abf",
+  "oldBundleSha256": "d6a0b6b928a847fb61c4e4328740c9a4a2cfbdb0d17c656c18c3e579d3010c8f",
+  "looseWireSha256": "c3fc3a82784888610f7211faaba5b10e9b1b2d4ea94962f57271e1f1b14d7fa4",
+  "results": [
+    {
+      "runtime": "node",
+      "result": "passed",
+      "checks": [
+        "literal v1 remains readable",
+        "v2 strict rejects in old graph codec",
+        "v2 loose rejects in old snapshot codec",
+        "loose payload cannot enter old editor",
+        "explicit downgrade remains readable",
+        "legacy editing and one Undo unchanged"
+      ]
+    },
+    {
+      "runtime": "bun",
+      "result": "passed",
+      "checks": [
+        "literal v1 remains readable",
+        "v2 strict rejects in old graph codec",
+        "v2 loose rejects in old snapshot codec",
+        "loose payload cannot enter old editor",
+        "explicit downgrade remains readable",
+        "legacy editing and one Undo unchanged"
+      ]
+    }
+  ],
+  "limitation": "Pinned pre-mode code and local Node/Bun only; no universal older-artifact or model/edition/adapter v2 support is claimed."
+}

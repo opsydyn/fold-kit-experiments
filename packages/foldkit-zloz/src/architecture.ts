@@ -22,17 +22,35 @@ export type DddNodeArchitecture = Readonly<
           | 'aggregate'
           | 'domain-event'
           | 'domain-service'
-          | 'repository';
+          | 'repository'
+          | 'read-model';
       }
     | { role: 'bounded-context'; subdomain?: 'core' | 'supporting' | 'generic' }
   )
 >;
-/** Workshop process notes; descriptions and relationships are authored, not executable rules. */
-export type EventStormingNodeArchitecture = Readonly<{
+/** Authored workshop participants; external is relative to the workshop's modelled control. */
+export type EventStormingParticipantArchitecture = Readonly<{
   family: 'event-storming';
-  role: 'command' | 'domain-event' | 'policy' | 'actor';
+  role: 'command' | 'domain-event' | 'policy' | 'actor' | 'external-system';
   description?: string;
 }>;
+/** Portless discussion annotation. Resolution is authored workshop status, not a correctness claim. */
+export type EventStormingHotspotArchitecture = Readonly<{
+  family: 'event-storming';
+  role: 'hotspot';
+  status: 'open' | 'resolved';
+  description?: string;
+}>;
+/** Portless group frame. Membership organizes a workshop without inferring ownership or causality. */
+export type EventStormingLaneArchitecture = Readonly<{
+  family: 'event-storming';
+  role: 'lane';
+  description?: string;
+}>;
+export type EventStormingNodeArchitecture =
+  | EventStormingParticipantArchitecture
+  | EventStormingHotspotArchitecture
+  | EventStormingLaneArchitecture;
 export type ZlozNodeArchitecture =
   | C4NodeArchitecture
   | DddNodeArchitecture
@@ -49,13 +67,28 @@ export type ArchitectureNodePreset = Readonly<{
 }>;
 
 const presets: readonly ArchitectureNodePreset[] = [
-  ...(['command', 'domain-event', 'policy', 'actor'] as const).map((role) => ({
+  ...(['command', 'domain-event', 'policy', 'actor', 'external-system'] as const).map((role) => ({
     architecture: { family: 'event-storming' as const, role },
-    label: { command: 'Command', 'domain-event': 'Domain Event', policy: 'Policy', actor: 'Actor' }[
-      role
-    ],
+    label: {
+      command: 'Command',
+      'domain-event': 'Domain Event',
+      policy: 'Policy',
+      actor: 'Actor',
+      'external-system': 'External System',
+    }[role],
     shape: 'rectangle' as const,
   })),
+  {
+    architecture: { family: 'event-storming', role: 'hotspot', status: 'open' },
+    label: 'Hotspot',
+    shape: 'rectangle',
+  },
+  {
+    architecture: { family: 'event-storming', role: 'lane' },
+    label: 'Lane',
+    shape: 'rectangle',
+    kind: 'group',
+  },
   { architecture: { family: 'c4', role: 'person' }, label: 'Person', shape: 'rounded-rectangle' },
   {
     architecture: { family: 'c4', role: 'software-system' },
@@ -101,6 +134,11 @@ const presets: readonly ArchitectureNodePreset[] = [
     label: 'Bounded Context',
     shape: 'rounded-rectangle',
   },
+  {
+    architecture: { family: 'ddd', role: 'read-model' },
+    label: 'Read Model',
+    shape: 'rounded-rectangle',
+  },
 ];
 /** Headless catalogue; presets do not imply that a bundled renderer implements their artwork. */
 export const architectureNodePresets: readonly ArchitectureNodePreset[] = Object.freeze(
@@ -118,6 +156,7 @@ type UnknownNodeDescriptor = Readonly<{
   technology?: unknown;
   subdomain?: unknown;
   shape?: unknown;
+  status?: unknown;
 }>;
 function record(value: unknown): value is UnknownNodeDescriptor {
   return (
@@ -152,7 +191,11 @@ export function isNodeArchitecture(value: unknown): value is ZlozNodeArchitectur
       architectureNodePresets.some(
         ({ architecture }) =>
           architecture.family === 'event-storming' && architecture.role === value.role,
-      ) && fields(value, ['family', 'role', 'description'])
+      ) &&
+      (value.role === 'hotspot'
+        ? (value.status === 'open' || value.status === 'resolved') &&
+          fields(value, ['family', 'role', 'description', 'status'])
+        : fields(value, ['family', 'role', 'description']))
     );
   if (value.family !== 'ddd') return false;
   const context = value.role === 'bounded-context';
@@ -184,11 +227,24 @@ export function validNodeArchitectureFields(value: object & { kind?: unknown }):
   if ('architecture' in value) {
     if (!isNodeArchitecture(value.architecture)) return false;
     const { family, role } = value.architecture;
+    if (family === 'event-storming') {
+      if (role === 'lane' && value.kind !== 'group') return false;
+      if (
+        role === 'hotspot' &&
+        (value.kind === 'group' ||
+          !('ports' in value) ||
+          !Array.isArray(value.ports) ||
+          value.ports.length !== 0)
+      )
+        return false;
+    }
     if (value.kind === 'group') {
       if (
         family === 'c4'
           ? role !== 'software-system' && role !== 'container'
-          : role !== 'aggregate' && role !== 'bounded-context'
+          : family === 'event-storming'
+            ? role !== 'lane'
+            : role !== 'aggregate' && role !== 'bounded-context'
       )
         return false;
     } else if (family === 'ddd' && role === 'aggregate') return false;
@@ -207,9 +263,26 @@ export type EventStormingEdgeArchitecture = Readonly<
     | { role: 'custom'; name: string }
   )
 >;
-export type ZlozEdgeArchitecture = EventStormingEdgeArchitecture;
+/** DDD diagram annotations; upstream/downstream describes influence, not technical data flow. */
+export type DddEdgeArchitecture = Readonly<
+  { family: 'ddd'; description?: string } & (
+    | { scope: 'tactical'; role: 'references' | 'contains' | 'emits' | 'persists' | 'uses' }
+    | { scope: 'tactical'; role: 'feeds' }
+    | { scope: 'strategic'; role: 'partnership' | 'shared-kernel' }
+    | {
+        scope: 'strategic';
+        role: 'upstream-downstream' | 'customer-supplier';
+        upstream?: readonly ('open-host-service' | 'published-language')[];
+        downstream?: 'conformist' | 'anti-corruption-layer';
+      }
+    | { scope: 'tactical' | 'strategic'; role: 'custom'; name: string }
+  )
+>;
+export type ZlozEdgeArchitecture = EventStormingEdgeArchitecture | DddEdgeArchitecture;
 /** Strict reserved descriptor syntax. Compatibility remains an opt-in modelling convention. */
-export function isEdgeArchitecture(value: unknown): value is ZlozEdgeArchitecture {
+export function isEventStormingEdgeArchitecture(
+  value: unknown,
+): value is EventStormingEdgeArchitecture {
   if (
     typeof value !== 'object' ||
     value === null ||
@@ -232,5 +305,85 @@ export function isEdgeArchitecture(value: unknown): value is ZlozEdgeArchitectur
       ? 'name' in value && typeof value.name === 'string' && value.name.trim().length > 0
       : typeof value.role === 'string' &&
         ['issues', 'handles', 'emits', 'produces', 'activates', 'triggers'].includes(value.role))
+  );
+}
+
+/** Strict DDD descriptor syntax; role compatibility belongs to the opt-in resolver. */
+export function isDddEdgeArchitecture(value: unknown): value is DddEdgeArchitecture {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) ||
+    !('family' in value) ||
+    value.family !== 'ddd' ||
+    !('scope' in value) ||
+    (value.scope !== 'tactical' && value.scope !== 'strategic') ||
+    !('role' in value)
+  )
+    return false;
+  if ('description' in value && typeof value.description !== 'string') return false;
+  const directional =
+    value.scope === 'strategic' &&
+    (value.role === 'upstream-downstream' || value.role === 'customer-supplier');
+  const custom = value.role === 'custom';
+  const allowed = custom
+    ? ['family', 'scope', 'role', 'description', 'name']
+    : directional
+      ? ['family', 'scope', 'role', 'description', 'upstream', 'downstream']
+      : ['family', 'scope', 'role', 'description'];
+  if (Object.keys(value).some((key) => !allowed.includes(key))) return false;
+  if (custom)
+    return 'name' in value && typeof value.name === 'string' && value.name.trim().length > 0;
+  if (value.scope === 'tactical')
+    return (
+      typeof value.role === 'string' &&
+      ['references', 'contains', 'emits', 'persists', 'uses', 'feeds'].includes(value.role)
+    );
+  if (!directional) return value.role === 'partnership' || value.role === 'shared-kernel';
+  return (
+    (!('upstream' in value) ||
+      (Array.isArray(value.upstream) &&
+        value.upstream.length > 0 &&
+        value.upstream.length <= 2 &&
+        new Set(value.upstream).size === value.upstream.length &&
+        value.upstream.every(
+          (role) => role === 'open-host-service' || role === 'published-language',
+        ))) &&
+    (!('downstream' in value) ||
+      value.downstream === 'conformist' ||
+      value.downstream === 'anti-corruption-layer')
+  );
+}
+export function isEdgeArchitecture(value: unknown): value is ZlozEdgeArchitecture {
+  return isEventStormingEdgeArchitecture(value) || isDddEdgeArchitecture(value);
+}
+/** Detached at the edit boundary; descriptors cannot alias a caller's mutable role list. @internal */
+export function copyEdgeArchitecture(value: DddEdgeArchitecture): DddEdgeArchitecture;
+export function copyEdgeArchitecture(value: ZlozEdgeArchitecture): ZlozEdgeArchitecture;
+export function copyEdgeArchitecture(value: ZlozEdgeArchitecture): ZlozEdgeArchitecture {
+  return value.family === 'ddd' &&
+    value.scope === 'strategic' &&
+    (value.role === 'upstream-downstream' || value.role === 'customer-supplier') &&
+    Array.isArray(value.upstream)
+    ? { ...value, upstream: [...value.upstream] }
+    : { ...value };
+}
+/** Value equality independent of object key order; authored role-list order is preserved. @internal */
+export function sameEdgeArchitecture(
+  left: ZlozEdgeArchitecture | undefined,
+  right: ZlozEdgeArchitecture | undefined,
+): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return (
+    Object.keys(left).length === Object.keys(right).length &&
+    Object.entries(left).every(([key, value]) =>
+      Object.entries(right).some(
+        ([otherKey, other]) =>
+          key === otherKey &&
+          (Array.isArray(value) && Array.isArray(other)
+            ? value.length === other.length && value.every((item, index) => item === other[index])
+            : value === other),
+      ),
+    )
   );
 }

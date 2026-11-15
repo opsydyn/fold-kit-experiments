@@ -9,6 +9,7 @@ import {
   portBoundaryPosition,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
+import ELK from 'elkjs/lib/elk.bundled.js';
 
 import { createElkLayout } from '../src/index';
 
@@ -223,4 +224,204 @@ test('custom anchors retain their boundary hints for every side under real ELK',
     expect(route.points.at(-2)?.x).toBeCloseTo(portBoundaryPosition(target, 'in').x, 8);
     expect(route.points.at(-2)?.y).toBeCloseTo(portBoundaryPosition(target, 'in').y, 8);
   }
+});
+
+test('configured spacing and direction apply inside a compound boundary', async () => {
+  const spacing = 160;
+  const before = createEditor({
+    nodes: [
+      {
+        id: 'boundary',
+        kind: 'group',
+        label: 'Boundary',
+        position: { x: 0, y: 0 },
+        size: { width: 600, height: 400 },
+        ports: [],
+      },
+      ...graph.nodes.map((n) => ({ ...n, parentId: 'boundary' })),
+    ],
+    edges: graph.edges,
+  });
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const request = layoutRequest(before, `nested-${direction}`);
+    const result = await createElkLayout({ direction, spacing })(request);
+    const a = result.positions.find((p) => p.id === 'root'),
+      b = result.positions.find((p) => p.id === 'n:0');
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    if (!a || !b) return;
+    const source = before.graph.nodes.find((n) => n.id === 'root');
+    expect(source).toBeDefined();
+    if (!source) return;
+    const gap =
+      direction === 'RIGHT' ? b.x - a.x - source.size.width : b.y - a.y - source.size.height;
+    expect(gap).toBeGreaterThanOrEqual(spacing);
+  }
+});
+
+test('real ELK reserves explicit label envelopes in compound layouts and returns world-centered boxes', async () => {
+  const before = createEditor(
+    {
+      nodes: [
+        {
+          id: 'boundary',
+          kind: 'group',
+          label: 'Boundary',
+          position: { x: 75, y: 100 },
+          size: { width: 600, height: 400 },
+          ports: [],
+        },
+        ...graph.nodes.map((n) => ({ ...n, parentId: 'boundary' })),
+      ],
+      edges: graph.edges,
+    },
+    { readOnly: true },
+  );
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    const request = layoutRequest(before, `labels-${direction}`, {
+      edgeLabels: graph.edges.map((e) => ({ id: e.id, size: { width: 280, height: 60 } })),
+    });
+    const result = await createElkLayout({ direction, spacing: 96 })(request);
+    const route = result.routes[0];
+    expect(route?.label?.size).toEqual({ width: 280, height: 60 });
+    if (!route?.label) throw new Error('Missing requested label');
+    const box = route.label;
+    for (const node of graph.nodes) {
+      const pos = result.positions.find((p) => p.id === node.id);
+      if (!pos) throw new Error('Missing positioned node');
+      const overlaps =
+        box.position.x + box.size.width / 2 > pos.x &&
+        box.position.x - box.size.width / 2 < pos.x + node.size.width &&
+        box.position.y + box.size.height / 2 > pos.y &&
+        box.position.y - box.size.height / 2 < pos.y + node.size.height;
+      expect(overlaps).toBe(false);
+    }
+  }
+});
+
+test('caller engines cannot omit or falsify requested label boxes', async () => {
+  const request = layoutRequest(createEditor(graph), 'label-failure', {
+    edgeLabels: [{ id: 'e:0', size: { width: 176, height: 36 } }],
+  });
+  for (const labels of [
+    [],
+    [{ id: 'l:0', x: NaN, y: 0, width: 176, height: 36 }],
+    [{ id: 'l:0', x: 0, y: 0, width: 175, height: 36 }],
+  ]) {
+    const layout = createElkLayout({
+      elk: {
+        layout: async (input) => {
+          const result = await new ELK().layout(input);
+          for (const edge of result.edges ?? []) edge.labels = labels;
+          return result;
+        },
+      },
+    });
+    await expect(layout(request)).rejects.toThrow('label box');
+  }
+});
+
+test('real ELK reserves nested and empty group headings, including widths larger than child content, in both directions', async () => {
+  const group = {
+    kind: 'group' as const,
+    label: 'Boundary',
+    position: { x: 0, y: 0 },
+    size: { width: 300, height: 300 },
+    ports: [],
+  };
+  const state = createEditor({
+    nodes: [
+      { ...group, id: 'outer' },
+      { ...group, id: 'inner', parentId: 'outer' },
+      { ...group, id: 'empty', parentId: 'outer' },
+      ...graph.nodes.map((n) => ({ ...n, parentId: 'inner' })),
+      { ...nodeB, id: 'outside' },
+    ],
+    edges: [
+      ...graph.edges,
+      {
+        id: 'cross-boundary',
+        source: { node: nodeA.id, port: 'p:0:0' },
+        target: { node: 'outside', port: 'in' },
+      },
+    ],
+  });
+  const headers = [
+    {
+      id: 'outer',
+      size: { width: 1200, height: 140 },
+      padding: { top: 20, right: 40, bottom: 24, left: 32 },
+      gap: 28,
+    },
+    {
+      id: 'inner',
+      size: { width: 800, height: 96 },
+      padding: { top: 8, right: 20, bottom: 24, left: 16 },
+      gap: 12,
+    },
+    {
+      id: 'empty',
+      size: { width: 600, height: 80 },
+      padding: { top: 12, right: 12, bottom: 12, left: 12 },
+      gap: 10,
+    },
+  ];
+  for (const direction of ['RIGHT', 'DOWN'] as const) {
+    for (const profile of ['wide', 'tall'] as const) {
+      const requestedHeaders =
+        profile === 'wide'
+          ? headers
+          : headers.map((header) => ({
+              ...header,
+              size: { width: header.size.height, height: header.size.width },
+            }));
+      const request = layoutRequest(state, `headers:${direction}:${profile}`, {
+        groupHeaders: requestedHeaders,
+      });
+      const result = await createElkLayout({ direction, spacing: 64 })(request);
+      const applied = applyLayout(state, request, result);
+      for (const hint of requestedHeaders) {
+        const parent = applied.graph.nodes.find((n) => n.id === hint.id);
+        if (!parent) throw new Error('Missing group');
+        expect(parent.size.width).toBeGreaterThanOrEqual(
+          hint.padding.left + hint.size.width + hint.padding.right,
+        );
+        expect(parent.size.height).toBeGreaterThanOrEqual(
+          hint.padding.top + hint.size.height + hint.gap + hint.padding.bottom,
+        );
+        for (const child of applied.graph.nodes.filter((n) => n.parentId === hint.id)) {
+          expect(child.position.y - parent.position.y).toBeGreaterThanOrEqual(
+            hint.padding.top + hint.size.height + hint.gap,
+          );
+          expect(child.position.x - parent.position.x).toBeGreaterThanOrEqual(hint.padding.left);
+        }
+      }
+      expect(applied.graph.edges).toBe(state.graph.edges);
+      expect(applied.past).toHaveLength(1);
+    }
+  }
+});
+
+test('ELK accepts explicit loose requests without rewriting ordered port identity', async () => {
+  const loose = {
+    ...graph,
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      ports: node.ports.map((port) => ({ ...port, kind: 'input' as const })),
+    })),
+  };
+  const request = {
+    requestId: 'loose-elk',
+    revision: 0,
+    graph: loose,
+    connectionMode: 'loose' as const,
+  };
+  const before = JSON.stringify(request);
+  const result = await createElkLayout()(request);
+  expect(result.routes.map((route) => route.id)).toEqual(loose.edges.map((edge) => edge.id));
+  expect(result.positions.map((position) => position.id).sort()).toEqual(
+    loose.nodes.map((node) => node.id).sort(),
+  );
+  expect(JSON.stringify(request)).toBe(before);
+  await expect(createElkLayout()({ ...request, connectionMode: 'strict' })).rejects.toThrow();
 });

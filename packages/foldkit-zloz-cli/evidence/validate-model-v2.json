@@ -1,0 +1,15 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "validate",
+  "status": "valid",
+  "summary": { "nodes": 2, "edges": 1 },
+  "diagnostics": [],
+  "connectionMode": "strict",
+  "documentVersion": 2,
+  "model": {
+    "id": "orders",
+    "name": "Orders",
+    "editions": 1,
+    "origin": { "modelId": "parent", "editionId": "seed" }
+  }
+}

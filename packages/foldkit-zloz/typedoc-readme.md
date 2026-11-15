@@ -32,6 +32,16 @@ bounds; minimal mode retains semantic meaning. DDD artwork, semantic edge
 descriptors and atomic pattern builders remain follow-ups. See ADR 0006 and the
 package README for the renderer contract.
 
+## Read models and declared consumption
+
+DDD `read-model` nodes and tactical `feeds` edges model an explicit source-to-read-model
+dependency. {@link Core.resolveDeclaredConsumption | resolveDeclaredConsumption} accepts the strict two-ID
+{@link Core.ZlozDeclaredConsumption | ZlozDeclaredConsumption}, with syntax guarded by {@link Core.isDeclaredConsumption | isDeclaredConsumption}.
+It returns a frozen logical relationship/source role or rejection; it never invents
+ports, event filters, runtime delivery or permission to edit. Existing DDD controls,
+policies, renderer and v1 snapshots compose the same descriptors.
+See ADR 0065 and the package README for compatibility and authoring boundaries.
+
 ## Port anchor contracts
 
 Keyboard point selection uses `PortAnchorTargetStepped` and the pure
@@ -448,3 +458,65 @@ artwork/labels with explicit immutable arguments. The workbench Orbit example
 keeps drag/resize/collapse controls, frames and native/custom sockets outside the
 slot. Automatic retention still excludes whole custom-shell contexts. Reuse the
 same body constructor across cached/live modes to preserve element identity.
+
+PNG export has a browser-free plan/review lifecycle in core, composable native
+controls under `/foldkit`, and optional real encoding/download IO under `/browser`.
+Review fidelity findings and rasterization loss before rendering. Preview and
+download use identical PNG bytes; stale source/settings and live protection block
+publication. See the package README and ADR 0063 for resource limits and ownership.
+
+## Read-only DDD relationship audit
+
+{@link Core.auditDddRelationships | auditDddRelationships} produces a detached
+{@link Core.ZlozDddRelationshipAudit | ZlozDddRelationshipAudit} using the existing
+{@link Core.ZlozDddRelationshipOptions | DDD convention options}. Every authored
+edge is represented in UTF-16 ID order as typed-compatible, blocked or unrelated.
+No DDD meaning is inferred from untyped or other-family edges. Compatible means
+zero blocked DDD edges under the catalogue, not full typing or universal correctness.
+Graph structure and convention errors reject separately from semantic findings.
+Source/Undo and wire formats are unchanged. The optional Effect CLI now exposes
+`zloz ddd audit` with structured reports, DDD rule files and explicit 0/1/2 exits.
+{@link Core.compareModelDddRelationships | compareModelDddRelationships} compares
+owned baseline/target editions or the current graph under one catalogue. Findings
+match edge ID and code; no-new-findings does not imply compatibility.
+{@link Core.resolveDddAuditControls | resolveDddAuditControls} and
+{@link Core.resolveDddAuditRequest | resolveDddAuditRequest} expose standalone and
+comparison review, live protection and fresh node/edge navigation. The optional
+{@link FoldKit.zlozDddAuditControls | zlozDddAuditControls} composes native or custom
+views with omit/replace hooks and count visibility. Workbench and Effect CLI
+`ddd compare` demonstrate the same package contracts. Source/Undo are preserved;
+causal commands and packets keep their EventStorming scope.
+
+## EventStorming workshop semantics
+
+{@link Core.EventStormingNodeArchitecture | EventStormingNodeArchitecture} now
+separates causal external-system participants, portless hotspots with required
+authored open/resolved status, and portless organizational lane groups.
+{@link Core.resolveEventStormingNodeSemantics | resolveEventStormingNodeSemantics}
+returns participant/annotation/frame meaning without inferring DDD/C4 ownership.
+Existing membership, world geometry, strict codecs, history and Undo apply.
+
+{@link Core.eventStormingWorkshopRelationshipRules | eventStormingWorkshopRelationshipRules}
+is the opt-in causal catalogue for external systems. The original catalogue remains
+unchanged for portable builtin-packet compatibility; hotspots/lanes are not causal
+roles. DDD preview leaves these roles unmapped until explicit retention/mapping and
+loss acceptance. Native artwork is now available through
+{@link FoldKit.zlozEventStormingNode | zlozEventStormingNode} and
+{@link FoldKit.zlozEventStormingGroup | zlozEventStormingGroup}. Portable SVG still
+requires a host adapter or explicit fidelity fallback. See the README and
+ADR 0081 for exact role/kind/port, status, conversion and compatibility boundaries.
+
+## Workshop editing and presentation
+
+{@link Core.createEventStormingWorkshopPattern | createEventStormingWorkshopPattern}
+provides an illustrative native starter. Use
+{@link Core.resolveEventStormingWorkshopControls | resolveEventStormingWorkshopControls}
+and {@link Core.resolveEventStormingWorkshopRequest | resolveEventStormingWorkshopRequest}
+for fresh selected-node role/status edits with live protection and ordinary Undo.
+{@link FoldKit.zlozEventStormingWorkshopControls | zlozEventStormingWorkshopControls}
+composes explicit native status buttons, role selectors and visible reasons, with
+replace/omit hooks. {@link FoldKit.zlozWorkshopStatusButton | zlozWorkshopStatusButton}
+and {@link FoldKit.zlozWorkshopSelect | zlozWorkshopSelect} support custom layouts.
+Native node/lane content, semantic descriptions, header geometry, body caching and
+scoped light/dark tokens remain independent of diagnostics. See the README and
+ADR 0082 for exact freshness, selection, policy and portable-export limits.

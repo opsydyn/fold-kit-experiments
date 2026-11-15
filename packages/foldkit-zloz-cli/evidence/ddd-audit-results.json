@@ -1,0 +1,101 @@
+{
+  "checks": "real Node/Bun 0/1/2, exact core report, custom file, one JSON record, stdout/stderr isolation and unchanged inputs",
+  "transcript": [
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "compatible-empty",
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"builtin\",\"input\":null},\"data\":{\"status\":\"compatible\",\"summary\":{\"edges\":0,\"typed\":0,\"unrelated\":0,\"blocked\":0},\"entries\":[]},\"diagnostics\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "incompatible",
+      "exit": 1,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"builtin\",\"input\":null},\"data\":{\"status\":\"incompatible\",\"summary\":{\"edges\":11,\"typed\":4,\"unrelated\":2,\"blocked\":5},\"entries\":[{\"edgeId\":\"A-emits\",\"edgeLabel\":\"Placed event\",\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Emits.\"},{\"edgeId\":\"b-strategic\",\"edgeLabel\":null,\"source\":{\"node\":\"left\",\"port\":\"out\"},\"target\":{\"node\":\"right\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"upstream-downstream\",\"upstream\":[\"open-host-service\",\"published-language\"],\"downstream\":\"anti-corruption-layer\",\"description\":\"Explicit influence\"},\"relationshipKey\":\"strategic:upstream-downstream\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Upstream → downstream.\"},{\"edgeId\":\"c-side-absent\",\"edgeLabel\":null,\"source\":{\"node\":\"right\",\"port\":\"out\"},\"target\":{\"node\":\"left\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"customer-supplier\"},\"relationshipKey\":\"strategic:customer-supplier\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Supplier → customer.\"},{\"edgeId\":\"d-role\",\"edgeLabel\":null,\"source\":{\"node\":\"repo\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"blocked\",\"code\":\"incompatible-roles\",\"message\":\"This convention does not allow tactical:emits from repository to domain-event.\"},{\"edgeId\":\"e-custom\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"custom\",\"name\":\"enriches\"},\"relationshipKey\":\"tactical:custom:enriches\",\"status\":\"blocked\",\"code\":\"unknown-relationship\",\"message\":\"This DDD relationship is outside the current convention.\"},{\"edgeId\":\"f-self\",\"edgeLabel\":null,\"source\":{\"node\":\"left\",\"port\":\"out\"},\"target\":{\"node\":\"left\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"partnership\"},\"relationshipKey\":\"strategic:partnership\",\"status\":\"blocked\",\"code\":\"same-context\",\"message\":\"A strategic relationship requires two distinct bounded contexts.\"},{\"edgeId\":\"g-foreign-participant\",\"edgeLabel\":null,\"source\":{\"node\":\"workshop\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"blocked\",\"code\":\"unsupported-role\",\"message\":\"Both participants require explicit DDD node roles.\"},{\"edgeId\":\"i-causal\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"status\":\"unrelated\",\"code\":\"unrelated\",\"architecture\":null,\"relationshipKey\":null,\"message\":\"This connection carries another architecture family, outside the DDD audit.\"},{\"edgeId\":\"j-bad-feed\",\"edgeLabel\":null,\"source\":{\"node\":\"repo\",\"port\":\"out\"},\"target\":{\"node\":\"read\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"feeds\"},\"relationshipKey\":\"tactical:feeds\",\"status\":\"blocked\",\"code\":\"incompatible-roles\",\"message\":\"This convention does not allow tactical:feeds from repository to read-model.\"},{\"edgeId\":\"z-feeds\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"read\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"feeds\"},\"relationshipKey\":\"tactical:feeds\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Declared consumption.\"},{\"edgeId\":\"á-untyped\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"status\":\"unrelated\",\"code\":\"unrelated\",\"architecture\":null,\"relationshipKey\":null,\"message\":\"This untyped connection has no declared DDD meaning.\"}]},\"diagnostics\":[{\"code\":\"ddd-relationship-incompatible-roles\",\"message\":\"This convention does not allow tactical:emits from repository to domain-event.\",\"subject\":\"d-role\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-unknown-relationship\",\"message\":\"This DDD relationship is outside the current convention.\",\"subject\":\"e-custom\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-same-context\",\"message\":\"A strategic relationship requires two distinct bounded contexts.\",\"subject\":\"f-self\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-unsupported-role\",\"message\":\"Both participants require explicit DDD node roles.\",\"subject\":\"g-foreign-participant\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-incompatible-roles\",\"message\":\"This convention does not allow tactical:feeds from repository to read-model.\",\"subject\":\"j-bad-feed\",\"severity\":\"error\",\"dimension\":\"semantics\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "custom-compatible",
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"file\",\"input\":\"/var/folders/wv/3m5dhh6x5pv9w0fbfzymldnw0000gn/T/zloz-ddd-audit-evidence-0XYA3e/ddd-rules.json\"},\"data\":{\"status\":\"compatible\",\"summary\":{\"edges\":1,\"typed\":1,\"unrelated\":0,\"blocked\":0},\"entries\":[{\"edgeId\":\"e-custom\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"custom\",\"name\":\"enriches\"},\"relationshipKey\":\"tactical:custom:enriches\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Enriches.\"}]},\"diagnostics\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "invalid-document",
+      "exit": 2,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-json\",\"message\":\"Input must be valid JSON.\",\"dimension\":\"syntax\",\"subject\":\"-\",\"severity\":\"error\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "invalid-rules-source",
+      "exit": 2,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-rules\",\"message\":\"DDD rules must be a JSON file; stdin is reserved for model input.\",\"dimension\":\"semantics\",\"subject\":\"-\",\"severity\":\"error\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "node",
+      "version": "v24.15.0",
+      "name": "invalid-invocation",
+      "exit": 2,
+      "stdout": "",
+      "stderr": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"invocation\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-arguments\",\"message\":\"\\nERROR\\n  Unrecognized flag: --family in command zloz ddd audit\",\"severity\":\"error\",\"dimension\":\"syntax\",\"subject\":null}]}\n"
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "compatible-empty",
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"builtin\",\"input\":null},\"data\":{\"status\":\"compatible\",\"summary\":{\"edges\":0,\"typed\":0,\"unrelated\":0,\"blocked\":0},\"entries\":[]},\"diagnostics\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "incompatible",
+      "exit": 1,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"builtin\",\"input\":null},\"data\":{\"status\":\"incompatible\",\"summary\":{\"edges\":11,\"typed\":4,\"unrelated\":2,\"blocked\":5},\"entries\":[{\"edgeId\":\"A-emits\",\"edgeLabel\":\"Placed event\",\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Emits.\"},{\"edgeId\":\"b-strategic\",\"edgeLabel\":null,\"source\":{\"node\":\"left\",\"port\":\"out\"},\"target\":{\"node\":\"right\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"upstream-downstream\",\"upstream\":[\"open-host-service\",\"published-language\"],\"downstream\":\"anti-corruption-layer\",\"description\":\"Explicit influence\"},\"relationshipKey\":\"strategic:upstream-downstream\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Upstream → downstream.\"},{\"edgeId\":\"c-side-absent\",\"edgeLabel\":null,\"source\":{\"node\":\"right\",\"port\":\"out\"},\"target\":{\"node\":\"left\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"customer-supplier\"},\"relationshipKey\":\"strategic:customer-supplier\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Supplier → customer.\"},{\"edgeId\":\"d-role\",\"edgeLabel\":null,\"source\":{\"node\":\"repo\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"blocked\",\"code\":\"incompatible-roles\",\"message\":\"This convention does not allow tactical:emits from repository to domain-event.\"},{\"edgeId\":\"e-custom\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"custom\",\"name\":\"enriches\"},\"relationshipKey\":\"tactical:custom:enriches\",\"status\":\"blocked\",\"code\":\"unknown-relationship\",\"message\":\"This DDD relationship is outside the current convention.\"},{\"edgeId\":\"f-self\",\"edgeLabel\":null,\"source\":{\"node\":\"left\",\"port\":\"out\"},\"target\":{\"node\":\"left\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"strategic\",\"role\":\"partnership\"},\"relationshipKey\":\"strategic:partnership\",\"status\":\"blocked\",\"code\":\"same-context\",\"message\":\"A strategic relationship requires two distinct bounded contexts.\"},{\"edgeId\":\"g-foreign-participant\",\"edgeLabel\":null,\"source\":{\"node\":\"workshop\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"emits\"},\"relationshipKey\":\"tactical:emits\",\"status\":\"blocked\",\"code\":\"unsupported-role\",\"message\":\"Both participants require explicit DDD node roles.\"},{\"edgeId\":\"i-causal\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"status\":\"unrelated\",\"code\":\"unrelated\",\"architecture\":null,\"relationshipKey\":null,\"message\":\"This connection carries another architecture family, outside the DDD audit.\"},{\"edgeId\":\"j-bad-feed\",\"edgeLabel\":null,\"source\":{\"node\":\"repo\",\"port\":\"out\"},\"target\":{\"node\":\"read\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"feeds\"},\"relationshipKey\":\"tactical:feeds\",\"status\":\"blocked\",\"code\":\"incompatible-roles\",\"message\":\"This convention does not allow tactical:feeds from repository to read-model.\"},{\"edgeId\":\"z-feeds\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"read\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"feeds\"},\"relationshipKey\":\"tactical:feeds\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Declared consumption.\"},{\"edgeId\":\"á-untyped\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"status\":\"unrelated\",\"code\":\"unrelated\",\"architecture\":null,\"relationshipKey\":null,\"message\":\"This untyped connection has no declared DDD meaning.\"}]},\"diagnostics\":[{\"code\":\"ddd-relationship-incompatible-roles\",\"message\":\"This convention does not allow tactical:emits from repository to domain-event.\",\"subject\":\"d-role\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-unknown-relationship\",\"message\":\"This DDD relationship is outside the current convention.\",\"subject\":\"e-custom\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-same-context\",\"message\":\"A strategic relationship requires two distinct bounded contexts.\",\"subject\":\"f-self\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-unsupported-role\",\"message\":\"Both participants require explicit DDD node roles.\",\"subject\":\"g-foreign-participant\",\"severity\":\"error\",\"dimension\":\"semantics\"},{\"code\":\"ddd-relationship-incompatible-roles\",\"message\":\"This convention does not allow tactical:feeds from repository to read-model.\",\"subject\":\"j-bad-feed\",\"severity\":\"error\",\"dimension\":\"semantics\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "custom-compatible",
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"audited\",\"scope\":\"current-graph\",\"modelId\":null,\"conventions\":{\"source\":\"file\",\"input\":\"/var/folders/wv/3m5dhh6x5pv9w0fbfzymldnw0000gn/T/zloz-ddd-audit-evidence-0XYA3e/ddd-rules.json\"},\"data\":{\"status\":\"compatible\",\"summary\":{\"edges\":1,\"typed\":1,\"unrelated\":0,\"blocked\":0},\"entries\":[{\"edgeId\":\"e-custom\",\"edgeLabel\":null,\"source\":{\"node\":\"root\",\"port\":\"out\"},\"target\":{\"node\":\"event\",\"port\":\"in\"},\"architecture\":{\"family\":\"ddd\",\"scope\":\"tactical\",\"role\":\"custom\",\"name\":\"enriches\"},\"relationshipKey\":\"tactical:custom:enriches\",\"status\":\"typed\",\"code\":\"compatible\",\"message\":\"Typed DDD relationship: Enriches.\"}]},\"diagnostics\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "invalid-document",
+      "exit": 2,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-json\",\"message\":\"Input must be valid JSON.\",\"dimension\":\"syntax\",\"subject\":\"-\",\"severity\":\"error\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "invalid-rules-source",
+      "exit": 2,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"ddd-audit\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-rules\",\"message\":\"DDD rules must be a JSON file; stdin is reserved for model input.\",\"dimension\":\"semantics\",\"subject\":\"-\",\"severity\":\"error\"}]}\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "bun",
+      "version": "1.4.4",
+      "name": "invalid-invocation",
+      "exit": 2,
+      "stdout": "",
+      "stderr": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"invocation\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-arguments\",\"message\":\"\\nERROR\\n  Unrecognized flag: --family in command zloz ddd audit\",\"severity\":\"error\",\"dimension\":\"syntax\",\"subject\":null}]}\n"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "lane",
+        "kind": "group",
+        "label": "Payments workshop",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "width": 900,
+          "height": 500
+        },
+        "ports": [],
+        "architecture": {
+          "family": "event-storming",
+          "role": "lane",
+          "description": "Organize discovery; not a bounded context"
+        }
+      },
+      {
+        "id": "system",
+        "label": "Payment provider",
+        "position": {
+          "x": 30,
+          "y": 80
+        },
+        "size": {
+          "width": 180,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "architecture": {
+          "family": "event-storming",
+          "role": "external-system"
+        },
+        "parentId": "lane"
+      },
+      {
+        "id": "command",
+        "label": "Request payment",
+        "position": {
+          "x": 300,
+          "y": 80
+        },
+        "size": {
+          "width": 180,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "architecture": {
+          "family": "event-storming",
+          "role": "command"
+        },
+        "parentId": "lane"
+      },
+      {
+        "id": "event",
+        "label": "Payment accepted",
+        "position": {
+          "x": 560,
+          "y": 80
+        },
+        "size": {
+          "width": 180,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "architecture": {
+          "family": "event-storming",
+          "role": "domain-event"
+        },
+        "parentId": "lane"
+      },
+      {
+        "id": "hotspot",
+        "label": "What if the provider times out?",
+        "position": {
+          "x": 300,
+          "y": 280
+        },
+        "size": {
+          "width": 180,
+          "height": 100
+        },
+        "ports": [],
+        "architecture": {
+          "family": "event-storming",
+          "role": "hotspot",
+          "status": "open",
+          "description": "Clarify retry ownership"
+        },
+        "parentId": "lane"
+      },
+      {
+        "id": "actor",
+        "label": "Customer",
+        "position": {
+          "x": 30,
+          "y": 280
+        },
+        "size": {
+          "width": 180,
+          "height": 100
+        },
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "side": "left",
+            "offset": 0.5
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "side": "right",
+            "offset": 0.5
+          }
+        ],
+        "architecture": {
+          "family": "event-storming",
+          "role": "actor"
+        },
+        "parentId": "lane"
+      }
+    ],
+    "edges": [
+      {
+        "id": "system-issues",
+        "source": {
+          "node": "system",
+          "port": "out"
+        },
+        "target": {
+          "node": "command",
+          "port": "in"
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "issues"
+        }
+      },
+      {
+        "id": "system-handles",
+        "source": {
+          "node": "command",
+          "port": "out"
+        },
+        "target": {
+          "node": "system",
+          "port": "in"
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "handles"
+        }
+      },
+      {
+        "id": "system-emits",
+        "source": {
+          "node": "system",
+          "port": "out"
+        },
+        "target": {
+          "node": "event",
+          "port": "in"
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "emits"
+        }
+      },
+      {
+        "id": "command-produces",
+        "source": {
+          "node": "command",
+          "port": "out"
+        },
+        "target": {
+          "node": "event",
+          "port": "in"
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "produces"
+        }
+      },
+      {
+        "id": "actor-issues",
+        "source": {
+          "node": "actor",
+          "port": "out"
+        },
+        "target": {
+          "node": "command",
+          "port": "in"
+        },
+        "architecture": {
+          "family": "event-storming",
+          "role": "issues"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "format": "foldkit-zloz-patch-receipt",
+  "version": 1,
+  "patch": {
+    "format": "foldkit-zloz-patch",
+    "id": "workbench-patch-1",
+    "operations": [
+      {
+        "id": "clarify-label",
+        "node": {
+          "id": "source",
+          "label": "Draft · reviewed",
+          "ports": [
+            {
+              "id": "out",
+              "kind": "output",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 40,
+            "y": 70
+          },
+          "size": {
+            "height": 140,
+            "width": 180
+          }
+        },
+        "type": "node.replace"
+      }
+    ],
+    "provenance": {
+      "actor": {
+        "id": "workbench-reviewer",
+        "kind": "human"
+      },
+      "reason": "Clarify a node label after explicit review.",
+      "references": []
+    },
+    "source": {
+      "graph": {
+        "edges": [
+          {
+            "data": {
+              "deletionProtected": true
+            },
+            "id": "draft-review",
+            "source": {
+              "node": "source",
+              "port": "out"
+            },
+            "target": {
+              "node": "review",
+              "port": "in"
+            }
+          }
+        ],
+        "nodes": [
+          {
+            "id": "source",
+            "label": "Draft",
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 40,
+              "y": 70
+            },
+            "size": {
+              "height": 140,
+              "width": 180
+            }
+          },
+          {
+            "id": "review",
+            "label": "Review",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "left"
+              },
+              {
+                "id": "out",
+                "kind": "output",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 360,
+              "y": 150
+            },
+            "size": {
+              "height": 140,
+              "width": 180
+            }
+          },
+          {
+            "id": "publish",
+            "label": "Publish",
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "left"
+              }
+            ],
+            "position": {
+              "x": 640,
+              "y": 70
+            },
+            "size": {
+              "height": 140,
+              "width": 180
+            }
+          }
+        ]
+      },
+      "modelId": "root:51233ed1-992a-4207-a722-21f605a28f53",
+      "revision": 3,
+      "sessionId": "root:51233ed1-992a-4207-a722-21f605a28f53/0"
+    },
+    "version": 1
+  },
+  "graph": {
+    "edges": [
+      {
+        "data": {
+          "deletionProtected": true
+        },
+        "id": "draft-review",
+        "source": {
+          "node": "source",
+          "port": "out"
+        },
+        "target": {
+          "node": "review",
+          "port": "in"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "source",
+        "label": "Draft · reviewed",
+        "ports": [
+          {
+            "id": "out",
+            "kind": "output",
+            "offset": 0.5,
+            "side": "right"
+          }
+        ],
+        "position": {
+          "x": 40,
+          "y": 70
+        },
+        "size": {
+          "height": 140,
+          "width": 180
+        }
+      },
+      {
+        "id": "review",
+        "label": "Review",
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "offset": 0.5,
+            "side": "left"
+          },
+          {
+            "id": "out",
+            "kind": "output",
+            "offset": 0.5,
+            "side": "right"
+          }
+        ],
+        "position": {
+          "x": 360,
+          "y": 150
+        },
+        "size": {
+          "height": 140,
+          "width": 180
+        }
+      },
+      {
+        "id": "publish",
+        "label": "Publish",
+        "ports": [
+          {
+            "id": "in",
+            "kind": "input",
+            "offset": 0.5,
+            "side": "left"
+          }
+        ],
+        "position": {
+          "x": 640,
+          "y": 70
+        },
+        "size": {
+          "height": 140,
+          "width": 180
+        }
+      }
+    ]
+  },
+  "revision": 4,
+  "reviewed": true,
+  "lossesAccepted": true
+}

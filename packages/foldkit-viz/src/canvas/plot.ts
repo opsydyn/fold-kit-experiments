@@ -66,6 +66,8 @@ export type PaintPlotOptions = Readonly<{
   makePath?: (d: string) => PlotPath;
   /** Fills the plot area after clearing it. Default: left clear. */
   background?: string;
+  /** Paint dense dot marks. False leaves them to a GPU layer above (webgl/points). Default true. */
+  points?: boolean;
 }>;
 
 export const defaultCanvasColors: PlotCanvasColors = {
@@ -81,6 +83,7 @@ type Settings = Readonly<{
   font: string;
   labelSize: number;
   makePath: (d: string) => PlotPath;
+  points: boolean;
 }>;
 
 const paintOf = (paint: string, settings: Settings): string =>
@@ -285,7 +288,7 @@ function paintGraphic(ctx: PlotCanvasContext, g: Graphic, settings: Settings): v
       ctx.fillText(g.text, g.x, g.y);
       break;
     case 'points':
-      paintPoints(ctx, g, settings);
+      if (settings.points) paintPoints(ctx, g, settings);
       break;
   }
   ctx.globalAlpha = 1;
@@ -306,6 +309,7 @@ export function paintPlot(
     font: options.fontFamily ?? 'system-ui, sans-serif',
     labelSize: options.labelSize ?? 11,
     makePath: options.makePath ?? platformPath,
+    points: options.points ?? true,
   };
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.clearRect(0, 0, geometry.width, geometry.height);

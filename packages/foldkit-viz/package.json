@@ -202,6 +202,9 @@
       "canvas/image": [
         "./dist/canvas/image.d.mts"
       ],
+      "webgl/points": [
+        "./dist/webgl/points.d.mts"
+      ],
       "svg/plot": [
         "./dist/svg/plot.d.mts"
       ],
@@ -445,6 +448,10 @@
     "./canvas/image": {
       "types": "./dist/canvas/image.d.mts",
       "import": "./dist/canvas/image.mjs"
+    },
+    "./webgl/points": {
+      "types": "./dist/webgl/points.d.mts",
+      "import": "./dist/webgl/points.mjs"
     },
     "./svg/plot": {
       "types": "./dist/svg/plot.d.mts",

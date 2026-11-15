@@ -42,6 +42,13 @@ export type PlotCanvasOptions<M> = Readonly<{
   onMount: MountAction<M>;
   /** Changes whenever the geometry does, so a new canvas mounts and repaints. */
   key: string;
+  /**
+   * A second canvas above the first for dense points drawn on the GPU
+   * (webgl/points): its Mount makes the layer, and the base canvas is painted
+   * with `points: false`. Key it by what changes the points' positions, not
+   * by a highlight, so brushing repaints it in place.
+   */
+  pointsLayer?: Readonly<{ key: string; onMount: MountAction<M> }>;
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
@@ -85,6 +92,26 @@ export function plotCanvas<M>(
             ],
             [],
           ),
+          ...(options.pointsLayer === undefined
+            ? []
+            : [
+                h.canvas(
+                  [
+                    h.Key(options.pointsLayer.key),
+                    h.Class('plot-points'),
+                    h.AriaHidden(true),
+                    h.Style({
+                      position: 'absolute',
+                      inset: '0',
+                      width: '100%',
+                      height: '100%',
+                      'pointer-events': 'none',
+                    }),
+                    h.OnMount(options.pointsLayer.onMount),
+                  ],
+                  [],
+                ),
+              ]),
           h.svg(
             [
               h.Class('plot-canvas-overlay'),

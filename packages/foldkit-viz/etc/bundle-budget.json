@@ -59,5 +59,6 @@
   "./shape/symbol": 1024,
   "./simulation": 3584,
   "./stateflow": 4096,
-  "./svg/plot": 7680
+  "./svg/plot": 7680,
+  "./webgl/points": 3072
 }

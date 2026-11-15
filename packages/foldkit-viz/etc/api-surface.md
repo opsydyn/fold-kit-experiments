@@ -1449,6 +1449,7 @@ type PaintPlotOptions = Readonly<{
   labelSize?: number;
   makePath?: (d: string) => PlotPath;
   background?: string;
+  points?: boolean;
 }>;
 type PlotCanvasColors = Readonly<{
   current: string;
@@ -2135,6 +2136,10 @@ function plotCanvas<M>(h: HtmlBuilder<M>, geometry: PlotGeometry, options: PlotC
 type PlotCanvasOptions<M> = Readonly<{
   onMount: MountAction<M>;
   key: string;
+  pointsLayer?: Readonly<{
+    key: string;
+    onMount: MountAction<M>;
+  }>;
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
@@ -3909,4 +3914,94 @@ type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> & Readonly<{
   background?: boolean;
 }>;
 type PlotTheme = ThemeName | PlotPalette;
+```
+
+## ./webgl/points
+
+```ts
+interface GlBuffer {}
+interface GlProgram {}
+interface GlShader {}
+interface GlTexture {}
+interface GlUniformLocation {}
+function parseColour(colour: string): readonly [number, number, number, number];
+type PointsGl = Readonly<{
+  ARRAY_BUFFER: number;
+  STATIC_DRAW: number;
+  DYNAMIC_DRAW: number;
+  FLOAT: number;
+  UNSIGNED_BYTE: number;
+  UNSIGNED_SHORT: number;
+  POINTS: number;
+  VERTEX_SHADER: number;
+  FRAGMENT_SHADER: number;
+  COMPILE_STATUS: number;
+  LINK_STATUS: number;
+  BLEND: number;
+  SCISSOR_TEST: number;
+  ONE: number;
+  ONE_MINUS_SRC_ALPHA: number;
+  COLOR_BUFFER_BIT: number;
+  TEXTURE_2D: number;
+  TEXTURE0: number;
+  RGBA: number;
+  NEAREST: number;
+  CLAMP_TO_EDGE: number;
+  TEXTURE_MIN_FILTER: number;
+  TEXTURE_MAG_FILTER: number;
+  TEXTURE_WRAP_S: number;
+  TEXTURE_WRAP_T: number;
+}> & {
+  createShader(type: number): GlShader | null;
+  shaderSource(shader: GlShader, source: string): void;
+  compileShader(shader: GlShader): void;
+  getShaderParameter(shader: GlShader, name: number): boolean;
+  getShaderInfoLog(shader: GlShader): string | null;
+  deleteShader(shader: GlShader | null): void;
+  createProgram(): GlProgram | null;
+  attachShader(program: GlProgram, shader: GlShader): void;
+  linkProgram(program: GlProgram): void;
+  getProgramParameter(program: GlProgram, name: number): boolean;
+  getProgramInfoLog(program: GlProgram): string | null;
+  useProgram(program: GlProgram | null): void;
+  deleteProgram(program: GlProgram | null): void;
+  createBuffer(): GlBuffer | null;
+  bindBuffer(target: number, buffer: GlBuffer | null): void;
+  bufferData(target: number, data: Float32Array | Uint16Array | Uint8Array, usage: number): void;
+  bufferSubData(target: number, offset: number, data: Uint8Array): void;
+  deleteBuffer(buffer: GlBuffer | null): void;
+  getAttribLocation(program: GlProgram, name: string): number;
+  enableVertexAttribArray(index: number): void;
+  disableVertexAttribArray(index: number): void;
+  vertexAttribPointer(index: number, size: number, type: number, normalized: boolean, stride: number, offset: number): void;
+  vertexAttrib1f(index: number, value: number): void;
+  getUniformLocation(program: GlProgram, name: string): GlUniformLocation | null;
+  uniform1f(location: GlUniformLocation | null, x: number): void;
+  uniform1i(location: GlUniformLocation | null, x: number): void;
+  uniform2f(location: GlUniformLocation | null, x: number, y: number): void;
+  createTexture(): GlTexture | null;
+  bindTexture(target: number, texture: GlTexture | null): void;
+  activeTexture(unit: number): void;
+  texParameteri(target: number, name: number, value: number): void;
+  texImage2D(target: number, level: number, internalFormat: number, width: number, height: number, border: number, format: number, type: number, pixels: Uint8Array | null): void;
+  deleteTexture(texture: GlTexture | null): void;
+  viewport(x: number, y: number, width: number, height: number): void;
+  clearColor(r: number, g: number, b: number, a: number): void;
+  clear(mask: number): void;
+  enable(capability: number): void;
+  disable(capability: number): void;
+  blendFunc(source: number, destination: number): void;
+  scissor(x: number, y: number, width: number, height: number): void;
+  drawArrays(mode: number, first: number, count: number): void;
+};
+function pointsLayer(gl: PointsGl, geometry: PlotGeometry, options?: PointsLayerOptions): PointsLayer;
+type PointsLayer = Readonly<{
+  highlight: (geometry: PlotGeometry) => void;
+  draw: () => void;
+  dispose: () => void;
+}>;
+type PointsLayerOptions = Readonly<{
+  pixelRatio?: number;
+  current?: string;
+}>;
 ```

@@ -17,6 +17,7 @@ export default defineConfig({
     'interaction/keyboard': 'src/interaction/keyboard.ts',
     'canvas/plot': 'src/canvas/plot.ts',
     'canvas/image': 'src/canvas/image.ts',
+    'webgl/points': 'src/webgl/points.ts',
     'svg/plot': 'src/svg/plot.ts',
     jupyter: 'src/svg/jupyter.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',

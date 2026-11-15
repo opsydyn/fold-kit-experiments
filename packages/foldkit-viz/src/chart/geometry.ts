@@ -1,8 +1,15 @@
 import { bin } from '../math/bin.js';
 import { line } from '../shape/line.js';
 import type { CurveType } from '../shape/line.js';
-import { axisTicks, chartLayout, finiteCoordinate, resolveDomain } from './layout.js';
-import type { AxisTick, CartesianConfig, CartesianLayout, ChartFrame, Domain } from './layout.js';
+import { acceptsValue, axisTicks, chartLayout, finiteCoordinate, resolveDomain } from './layout.js';
+import type {
+  AxisScale,
+  AxisTick,
+  CartesianConfig,
+  CartesianLayout,
+  ChartFrame,
+  Domain,
+} from './layout.js';
 
 export type DatumAccessors<T> = Readonly<{
   x: (datum: T, index: number) => number;
@@ -40,12 +47,17 @@ type Sample<T> = Readonly<{
   defined: boolean;
 }>;
 
+const LINEAR: AxisScale = { type: 'linear' };
+
 function samples<T>(
   data: ReadonlyArray<T>,
   accessors: DatumAccessors<T>,
+  config: Pick<CartesianConfig, 'xScale' | 'yScale'>,
   defined?: (datum: T, index: number) => boolean,
 ): ReadonlyArray<Sample<T>> {
   const keys = new Set<string>();
+  const xScale = config.xScale ?? LINEAR,
+    yScale = config.yScale ?? LINEAR;
   return data.map((datum, index) => {
     const key = accessors.datumKey(datum, index);
     if (keys.has(key)) throw new RangeError(`Duplicate datum key: ${key}`);
@@ -58,25 +70,33 @@ function samples<T>(
       seriesKey: accessors.seriesKey(datum, index),
       x,
       y,
-      defined: Number.isFinite(x) && Number.isFinite(y) && (defined?.(datum, index) ?? true),
+      // A value the axis cannot place, such as zero on a log axis, is omitted
+      // exactly like a non-finite one.
+      defined:
+        acceptsValue(xScale, x) && acceptsValue(yScale, y) && (defined?.(datum, index) ?? true),
     };
   });
 }
 
 function project<T>(data: ReadonlyArray<Sample<T>>, config: CartesianConfig): ScatterGeometry<T> {
   const finite = data.filter((d) => d.defined);
+  const xScale = config.xScale ?? LINEAR,
+    yScale = config.yScale ?? LINEAR;
   const layout = chartLayout(
     config.frame,
     resolveDomain(
       finite.map((d) => d.x),
       config.xDomain,
       config.includeZero?.x,
+      xScale,
     ),
     resolveDomain(
       finite.map((d) => d.y),
       config.yDomain,
       config.includeZero?.y,
+      yScale,
     ),
+    { x: xScale, y: yScale },
   );
   return {
     layout,
@@ -87,8 +107,8 @@ function project<T>(data: ReadonlyArray<Sample<T>>, config: CartesianConfig): Sc
       x: finiteCoordinate(layout.x(d.x)),
       y: finiteCoordinate(layout.y(d.y)),
     })),
-    xTicks: axisTicks(layout.xDomain, layout.x, config.xTickCount),
-    yTicks: axisTicks(layout.yDomain, layout.y, config.yTickCount),
+    xTicks: axisTicks(layout.xDomain, layout.x, config.xTickCount, xScale),
+    yTicks: axisTicks(layout.yDomain, layout.y, config.yTickCount, yScale),
   };
 }
 
@@ -97,7 +117,7 @@ export function scatterGeometry<T>(
   accessors: DatumAccessors<T>,
   config: CartesianConfig,
 ): ScatterGeometry<T> {
-  return project(samples(data, accessors), config);
+  return project(samples(data, accessors, config), config);
 }
 
 export function lineGeometry<T>(
@@ -105,7 +125,7 @@ export function lineGeometry<T>(
   accessors: DatumAccessors<T>,
   config: LineGeometryConfig<T>,
 ): LineGeometry<T> {
-  const raw = samples(data, accessors, config.defined);
+  const raw = samples(data, accessors, config, config.defined);
   const geometry = project(raw, config);
   const byKey = new Map(geometry.points.map((point) => [point.key, point]));
   const groups = new Map<string, Array<Sample<T>>>();

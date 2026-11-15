@@ -176,6 +176,33 @@
       ],
       "foldkit/orbit": [
         "./dist/foldkit/orbit.d.mts"
+      ],
+      "math/regression": [
+        "./dist/math/regression.d.mts"
+      ],
+      "chart/cells": [
+        "./dist/chart/cells.d.mts"
+      ],
+      "math/bin2d": [
+        "./dist/math/bin2d.d.mts"
+      ],
+      "math/downsample": [
+        "./dist/math/downsample.d.mts"
+      ],
+      "plot": [
+        "./dist/plot.d.mts"
+      ],
+      "foldkit/plot": [
+        "./dist/foldkit/plot.d.mts"
+      ],
+      "canvas/plot": [
+        "./dist/canvas/plot.d.mts"
+      ],
+      "interaction/keyboard": [
+        "./dist/interaction/keyboard.d.mts"
+      ],
+      "foldkit/keyboard": [
+        "./dist/foldkit/keyboard.d.mts"
       ]
     }
   },
@@ -375,6 +402,42 @@
     "./foldkit/orbit": {
       "types": "./dist/foldkit/orbit.d.mts",
       "import": "./dist/foldkit/orbit.mjs"
+    },
+    "./math/regression": {
+      "types": "./dist/math/regression.d.mts",
+      "import": "./dist/math/regression.mjs"
+    },
+    "./chart/cells": {
+      "types": "./dist/chart/cells.d.mts",
+      "import": "./dist/chart/cells.mjs"
+    },
+    "./math/bin2d": {
+      "types": "./dist/math/bin2d.d.mts",
+      "import": "./dist/math/bin2d.mjs"
+    },
+    "./math/downsample": {
+      "types": "./dist/math/downsample.d.mts",
+      "import": "./dist/math/downsample.mjs"
+    },
+    "./plot": {
+      "types": "./dist/plot.d.mts",
+      "import": "./dist/plot.mjs"
+    },
+    "./foldkit/plot": {
+      "types": "./dist/foldkit/plot.d.mts",
+      "import": "./dist/foldkit/plot.mjs"
+    },
+    "./canvas/plot": {
+      "types": "./dist/canvas/plot.d.mts",
+      "import": "./dist/canvas/plot.mjs"
+    },
+    "./interaction/keyboard": {
+      "types": "./dist/interaction/keyboard.d.mts",
+      "import": "./dist/interaction/keyboard.mjs"
+    },
+    "./foldkit/keyboard": {
+      "types": "./dist/foldkit/keyboard.d.mts",
+      "import": "./dist/foldkit/keyboard.mjs"
     }
   },
   "publishConfig": {
@@ -383,10 +446,16 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun run test:unit && bun run test:package",
+    "test:unit": "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'",
+    "test:package": "bun test ./test/package-import-smoke.test.ts",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "api:report": "bun ../../tools/api-surface.ts",
+    "api:check": "bun ../../tools/api-surface.ts --check",
+    "size:check": "bun ../../tools/bundle-budget.ts",
+    "size:write": "bun ../../tools/bundle-budget.ts --write"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

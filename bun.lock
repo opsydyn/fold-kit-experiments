@@ -8,6 +8,7 @@
         "@effect/language-service": "catalog:",
         "@foldkit/devtools-mcp": "catalog:",
         "@foldkit/oxlint-plugin": "catalog:",
+        "@moonrepo/cli": "2.5.4",
         "@opsydyn/oxlint-effect": "catalog:",
         "@oxlint/plugins": "1.79.0",
         "@typescript-eslint/utils": "^8.63.0",
@@ -222,7 +223,7 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.9.3",
+      "version": "0.13.0",
       "dependencies": {
         "@foldkit/vite-plugin": "^0.29.0",
       },
@@ -390,7 +391,7 @@
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
@@ -1006,6 +1007,22 @@
     "@microsoft/tsdoc-config": ["@microsoft/tsdoc-config@0.18.3", "", { "dependencies": { "@microsoft/tsdoc": "0.17.1", "ajv": "~8.18.0", "jju": "~1.4.0", "resolve": "~1.22.2" } }, "sha512-0I0rGXo1eJziw3EEErkDS9p/0RzBcyOiV+zbSDqOZTeURmhtut+WIvpih0LM5g+ZpZ9SyFxDfkhAcl/r8e2zGw=="],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.29.0", "", { "dependencies": { "@hono/node-server": "^1.19.9", "ajv": "^8.17.1", "ajv-formats": "^3.0.1", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.0", "express": "^5.2.1", "express-rate-limit": "^8.2.1", "hono": "^4.11.4", "jose": "^6.1.3", "json-schema-typed": "^8.0.2", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.25 || ^4.0", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@cfworker/json-schema": "^4.1.1" }, "optionalPeers": ["@cfworker/json-schema"] }, "sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ=="],
+
+    "@moonrepo/cli": ["@moonrepo/cli@2.5.4", "", { "dependencies": { "detect-libc": "^2.1.2" }, "optionalDependencies": { "@moonrepo/core-linux-arm64-gnu": "2.5.4", "@moonrepo/core-linux-arm64-musl": "2.5.4", "@moonrepo/core-linux-x64-gnu": "2.5.4", "@moonrepo/core-linux-x64-musl": "2.5.4", "@moonrepo/core-macos-arm64": "2.5.4", "@moonrepo/core-macos-x64": "2.5.4", "@moonrepo/core-windows-x64-msvc": "2.5.4" }, "bin": { "moon": "moon.js", "moonx": "moonx.js" } }, "sha512-iWIT0nJoMqqlicVpgCnyBInnS3zxzASYBc0uFX9r9RpKm8rlqUDDodV94+UrXd5GtHpKSIfKW1Aj+oFIDXAeLw=="],
+
+    "@moonrepo/core-linux-arm64-gnu": ["@moonrepo/core-linux-arm64-gnu@2.5.4", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-oh5xfEhPA6fjN/N5WaSWyE/9dCDJf7fQXhBMFnCoi9XaE7TDrygiIXcHRkJ71Rr0oHVH9RA/cs8P7q7C4OPnYA=="],
+
+    "@moonrepo/core-linux-arm64-musl": ["@moonrepo/core-linux-arm64-musl@2.5.4", "", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-KEaadA6ZWXhEO0iE5jdLjtkq1bjUj1s0ZbkqVeVY2shQkh04DE2W82AkuyEga7AHZwJRbTlHfEzk9L2cGvHdBg=="],
+
+    "@moonrepo/core-linux-x64-gnu": ["@moonrepo/core-linux-x64-gnu@2.5.4", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-rq8G+vK/7MLaWHfSOwkW2CI3vOyeKvUIH64VAq/FySzQKn3MB8hl07it4CS8MLZ4alvdWfIO4QE9B7+CBWS+Kg=="],
+
+    "@moonrepo/core-linux-x64-musl": ["@moonrepo/core-linux-x64-musl@2.5.4", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-gk5C4wyvOR/r92Rxv/8UgJ4uSaqZt3Tk7bQ9sVQAGzcF82TG+JgwXxHkscvsU6p76UbVyCV4ZgFrG9OsflfndQ=="],
+
+    "@moonrepo/core-macos-arm64": ["@moonrepo/core-macos-arm64@2.5.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-7/5bbEoth9ZFeZpoq3Hr+L46Q5oTrPNbTYR4Bb4/ERjabF69W9o5XM5eLi3JITazmevmVmBAkImcOwMVliAVVw=="],
+
+    "@moonrepo/core-macos-x64": ["@moonrepo/core-macos-x64@2.5.4", "", { "os": "darwin", "cpu": "x64" }, "sha512-FyWP8DJTyf3WUjWiybF4V6ZImrTf6DbIY3eVmqxAt1ISAmfUcHPhiHwR/hCpp78rIcq9YTbDHQe3meZzX6bjbg=="],
+
+    "@moonrepo/core-windows-x64-msvc": ["@moonrepo/core-windows-x64-msvc@2.5.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+VJO6YlQwNQlJMfdZqa1kaYGjQw7/ksq6dbz0yA18buH7UwLoipEUqjbOJQGPh/Wn9hzL6rtIjKXITqMcSK3aQ=="],
 
     "@nanostores/persistent": ["@nanostores/persistent@1.3.4", "", { "peerDependencies": { "nanostores": "^0.9.0 || ^0.10.0 || ^0.11.0 || ^1.0.0" } }, "sha512-fZ42MOredSkqt450XrPxmQ94pSRPTas/rBUVCvEEMCR+rIp8bdo/xoaFFcG2cwpqAzA164PdD6p3D+MXLJYumw=="],
 

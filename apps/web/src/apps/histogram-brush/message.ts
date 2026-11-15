@@ -1,20 +1,15 @@
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import type { Message as HistogramMessage } from '../../ui/histogram-chart';
-import type { Message as ScatterMessage } from '../../ui/scatter-chart';
+/** Whether a pointer event landed on the histogram, by its wrapper's data-brush attribute. */
+export const Surface = Schema.Literals(['histogram', 'outside']);
+export type Surface = typeof Surface.Type;
 
 export const Message = defineMessageUnion({
-  ReceivedHistogramMessage: { message: Schema.Unknown },
-  ReceivedScatterMessage: { message: Schema.Unknown },
+  /** A pointer position, already in histogram plot pixels. */
+  MovedPointer: { surface: Surface, x: Schema.Number },
+  PressedPointer: { surface: Surface, x: Schema.Number },
+  ReleasedPointer: {},
+  ClearedBrush: {},
 });
-export type ReceivedHistogramMessage = Omit<
-  typeof Message.ReceivedHistogramMessage.Type,
-  'message'
-> & {
-  readonly message: HistogramMessage;
-};
-export type ReceivedScatterMessage = Omit<typeof Message.ReceivedScatterMessage.Type, 'message'> & {
-  readonly message: ScatterMessage;
-};
 export type Message = typeof Message.Type;

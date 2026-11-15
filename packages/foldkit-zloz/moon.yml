@@ -1,0 +1,18 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    script: 'tsdown'
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc --noEmit'
+  test:
+    script: "bun test ./test --path-ignore-patterns='**/package.test.ts'"
+  integration:
+    script: 'bun test ./test/package.test.ts'
+    deps: ['build']
+    # Rebuilds and packs packages itself, so it runs after the parallel checks,
+    # one at a time, and its inputs cover everything it rebuilds.
+    inputs: ['/packages/foldkit-zloz*/**/*', '/tools/pack-zloz.ts']
+    options:
+      mutex: 'rebuilds-packages'

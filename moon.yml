@@ -1,0 +1,56 @@
+# The repository root as a moon project: the checks that cover every file,
+# and the git hooks. Package checks live in each package's moon.yml, and the
+# CI jobs are root package.json scripts (`ci:*`) that run tasks across projects.
+
+tasks:
+  # `bun run check`, split so each part caches on its own inputs. The
+  # effect-three packages' stricter lint is their own `lint` task.
+  # A root-level project's default inputs leave out the repository's files, so
+  # the repo-wide checks name them all; .moon/workspace.yml ignores what git does.
+  lint:
+    description: oxlint over the repository
+    script: oxlint .
+    inputs: ['/**/*']
+    env:
+      NODE_OPTIONS: --experimental-strip-types
+  format:
+    description: oxfmt --check over the repository
+    script: oxfmt --check .
+    inputs: ['/**/*']
+  catalog:
+    description: shared dependency versions come from the root catalogs
+    script: bun tools/check-catalog.ts
+    inputs: ['/**/package.json', '/tools/check-catalog.ts']
+  skills:
+    description: skills name the versions the workspace uses
+    script: bun tools/check-skills.ts
+    inputs: ['/skills/**/*', '/**/package.json', '/tools/check-skills.ts']
+  test:
+    description: the root tool and workflow tests
+    script: >-
+      bun test ./.github/scripts/format-release-changelogs.test.js
+      ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts
+      ./tools/ci-parity.test.ts
+    inputs:
+      - '/.github/**/*'
+      - '/tools/**/*'
+      - '/.moon/*.yml'
+      - '/.moon/tasks/**/*'
+      - '/**/moon.yml'
+      - '/**/package.json'
+      - '/release-please-config.json'
+      - '/.release-please-manifest.json'
+
+  # Git hooks: never cached, since each reads the working tree or a fresh checkout.
+  pre-commit:
+    description: format and lint the staged files, in seconds
+    script: bun tools/pre-commit.ts
+    options:
+      cache: false
+  pre-push:
+    description: >-
+      the CI check job on exactly HEAD: here and cached when this checkout
+      matches HEAD, otherwise in a fresh checkout from an empty cache
+    script: bun tools/ci-local.ts ci:check
+    options:
+      cache: false

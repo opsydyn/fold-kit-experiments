@@ -69,7 +69,10 @@
     "test:unit": "bun test test/unit",
     "test:integration": "bun test test/integration",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
-    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix ."
+    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
+    "api:report": "bun ../../tools/api-surface.ts",
+    "api:check": "bun ../../tools/api-surface.ts --check",
+    "compat:astro": "bun ../../tools/astro-compat.ts"
   },
   "dependencies": {
     "@foldkit/vite-plugin": "^0.29.0"

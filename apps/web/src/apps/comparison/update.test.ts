@@ -1,8 +1,7 @@
 import { Option, Schema } from 'effect';
 import { assert, describe, expect, it } from 'vitest';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { points } from './data';
 import { Message } from './message';
@@ -11,9 +10,9 @@ import { Settings } from './settings';
 import { update } from './update';
 
 const inspectPoint = (id: number, index = 0) =>
-  Message.GotScatterMessage({ id, message: Scatter.Message.HoveredPoint({ index }) });
+  Message.GotScatterMessage({ id, message: PlotPanel.Message.HoveredTarget({ index }) });
 const inspectBin = (id: number, index = 0) =>
-  Message.GotHistogramMessage({ id, message: Histogram.Message.HoveredBin({ index }) });
+  Message.GotHistogramMessage({ id, message: PlotPanel.Message.HoveredTarget({ index }) });
 
 describe('comparison collection', () => {
   it('initialises the two default panels against the same illustrative dataset', () => {
@@ -28,9 +27,9 @@ describe('comparison collection', () => {
     expect(new Set(points.map(({ id }) => id)).size).toBe(30);
     const [scatter, histogram] = model.panels;
     assert(scatter?._tag === 'Scatter' && histogram?._tag === 'Histogram');
-    expect(scatter.chart.points).toBe(points);
-    expect(histogram.chart.totalCount).toBe(30);
-    expect(scatter.chart.points[0]).toEqual({ id: 'salary-1', x: 1, y: 55000, label: '1yr' });
+    expect(scatter.chart.spec.data).toBe(points);
+    expect(histogram.chart.spec.data).toBe(points);
+    expect(scatter.chart.spec.data?.[0]).toEqual({ id: 'salary-1', x: 1, y: 55000, label: '1yr' });
   });
 
   it('initialises captured order, linking mode and counter', () => {
@@ -173,7 +172,7 @@ describe('parent-owned linking', () => {
     const linked = model.linking;
     model = update(
       model,
-      Message.GotScatterMessage({ id: 1, message: Scatter.Message.BlurredPoint() }),
+      Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
     ).model;
     expect(model.linking).toBe(linked);
     expect(model.linking).toEqual({
@@ -193,7 +192,7 @@ describe('parent-owned linking', () => {
     expect(result.linking).toEqual({ _tag: 'Linked', inspection: Option.none() });
     expect(result.panels[0]).toBe(sibling);
     assert(sibling?._tag === 'Scatter');
-    expect(sibling.chart.activeIndex).toEqual(Option.some(1));
+    expect(sibling.chart.active).toEqual(Option.some(1));
     expect(update(model, Message.ClickedRemovePanel({ id: 1 })).model.linking).toBe(model.linking);
   });
 
@@ -201,7 +200,10 @@ describe('parent-owned linking', () => {
     const base = init().model;
     const histogram = base.panels[1];
     assert(histogram?._tag === 'Histogram');
-    const inspected = update(base, inspectBin(2, histogram.chart.bins.length - 1)).model;
+    const inspected = update(
+      base,
+      inspectBin(2, PlotPanel.targetsOf(histogram.chart).length - 1),
+    ).model;
     expect(inspected.linking).toEqual({
       _tag: 'Linked',
       inspection: Option.some({
@@ -211,13 +213,15 @@ describe('parent-owned linking', () => {
     });
     const cleared = update(
       inspected,
-      Message.GotHistogramMessage({ id: 2, message: Histogram.Message.BlurredBin() }),
+      Message.GotHistogramMessage({ id: 2, message: PlotPanel.Message.BlurredTarget() }),
     ).model;
     expect(cleared.linking).toEqual({ _tag: 'Linked', inspection: Option.none() });
     const scatter = update(base, inspectPoint(1)).model;
     expect(
-      update(scatter, Message.GotScatterMessage({ id: 1, message: Scatter.Message.BlurredPoint() }))
-        .model.linking,
+      update(
+        scatter,
+        Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
+      ).model.linking,
     ).toEqual({ _tag: 'Linked', inspection: Option.none() });
   });
 
@@ -250,8 +254,14 @@ describe('parent-owned linking', () => {
     const scatter = model.panels[2];
     const histogram = model.panels[3];
     assert(scatter?._tag === 'Scatter' && histogram?._tag === 'Histogram');
-    expect(scatter.chart.activeIndex).toEqual(Option.none());
-    expect(histogram.chart.activeBin).toEqual(Option.none());
-    expect(matchingBinIndices(points, keys, histogram.chart.bins)).toEqual([0]);
+    expect(scatter.chart.active).toEqual(Option.none());
+    expect(histogram.chart.active).toEqual(Option.none());
+    expect(
+      matchingBinIndices(
+        points,
+        keys,
+        PlotPanel.targetsOf(histogram.chart).map(({ domain: [x0, x1] }) => ({ x0, x1 })),
+      ),
+    ).toEqual([0]);
   });
 });

@@ -1,0 +1,13 @@
+# The JavaScript toolchain reads each package.json, so moon's project graph is
+# the workspace's own: a project depends on the workspace packages it lists.
+# Everything that would write files or install on moon's behalf is off; the
+# tasks are defined in moon.yml files, not inferred from scripts.
+javascript:
+  packageManager: bun
+  inferTasksFromScripts: false
+  syncProjectWorkspaceDependencies: false
+  syncPackageManagerField: false
+  dedupeOnLockfileChange: false
+
+# Bun as installed (package.json pins its version for CI); moon installs nothing.
+bun: {}

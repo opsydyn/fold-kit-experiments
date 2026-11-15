@@ -3,8 +3,7 @@
 import { Match, Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { FocusComparisonTarget, RestoreComparisonFocus } from './command';
 import { clearInspection, comparisonFolds } from './fold';
 import { Message } from './message';
@@ -12,7 +11,7 @@ import { Linking, initPanel } from './model';
 import type { Model } from './model';
 import type { Settings } from './settings';
 
-const folds = comparisonFolds({ scatter: Scatter.update, histogram: Histogram.update });
+const folds = comparisonFolds({ scatter: PlotPanel.update, histogram: PlotPanel.update });
 
 function add(model: Model, kind: Settings['panels'][number]['kind']): Return<Model, Message> {
   if (model.panels.length >= 4) return { model };
@@ -91,12 +90,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedMovePanel: ({ id, direction }) => move(model, id, direction),
     ChangedLinkInspections: ({ enabled }) => changeLinking(model, enabled),
     GotScatterMessage: ({ id, message: child }) => {
-      // SAFETY: GotScatterMessage carries the scatter child's Message.
-      return folds.scatter(model, id, child as Scatter.Message);
+      // SAFETY: GotScatterMessage carries the scatter panel's Message.
+      return folds.scatter(model, id, child as PlotPanel.Message);
     },
     GotHistogramMessage: ({ id, message: child }) => {
-      // SAFETY: GotHistogramMessage carries the histogram child's Message.
-      return folds.histogram(model, id, child as Histogram.Message);
+      // SAFETY: GotHistogramMessage carries the histogram panel's Message.
+      return folds.histogram(model, id, child as PlotPanel.Message);
     },
   });
 }

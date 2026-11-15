@@ -1,0 +1,14 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    # No build of its own: dependents compile its source. This task builds what
+    # it imports, so `^:build` reaches those packages through it. It records its
+    # hash as an output because moon leaves a dependency without outputs out of
+    # its dependents' hashes, which would hide changes here from them.
+    script: 'mkdir -p dist && echo "$MOON_TASK_HASH" > dist/moon-pass-through'
+    deps: ['^:build']
+    outputs: ['dist/moon-pass-through']
+  typecheck:
+    script: 'tsc --noEmit'
+    deps: ['^:build']

@@ -2,21 +2,23 @@ import { Match, Option, Predicate } from 'effect';
 import { foldChildAt } from 'foldkit/update';
 import type { Return, Step } from 'foldkit/update';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import type { Inspection } from '../../ui/shared/inspection';
 import { Message } from './message';
 import { Linking } from './model';
 import type { Model, Panel } from './model';
 
 type ChartUpdaters = Readonly<{
-  scatter: typeof Scatter.update;
-  histogram: typeof Histogram.update;
+  scatter: typeof PlotPanel.update;
+  histogram: typeof PlotPanel.update;
 }>;
 type ComparisonFolds = Readonly<{
-  scatter: (model: Model, id: number, message: Scatter.Message) => Return<Model, Message>;
-  histogram: (model: Model, id: number, message: Histogram.Message) => Return<Model, Message>;
+  scatter: (model: Model, id: number, message: PlotPanel.Message) => Return<Model, Message>;
+  histogram: (model: Model, id: number, message: PlotPanel.Message) => Return<Model, Message>;
 }>;
+
+/** Out-messages a panel kind does not link, such as a scatter's ranges, change nothing. */
+const unchanged: Step<Model, Message> = (model) => ({ model });
 
 const inspected =
   (sourceId: number, value: Inspection): Step<Model, Message> =>
@@ -47,14 +49,14 @@ export function clearInspection(model: Model, sourceId: number): Return<Model, M
   );
 }
 
-function writeScatter(panel: Panel, id: number, chart: Scatter.Model): Panel {
+function writeScatter(panel: Panel, id: number, chart: PlotPanel.Model): Panel {
   return Match.value(panel).pipe(
     Match.when({ _tag: 'Scatter', id }, (current) => ({ ...current, chart })),
     Match.orElse((current) => current),
   );
 }
 
-function writeHistogram(panel: Panel, id: number, chart: Histogram.Model): Panel {
+function writeHistogram(panel: Panel, id: number, chart: PlotPanel.Model): Panel {
   return Match.value(panel).pipe(
     Match.when({ _tag: 'Histogram', id }, (current) => ({ ...current, chart })),
     Match.orElse((current) => current),
@@ -73,16 +75,19 @@ export function comparisonFolds(updaters: ChartUpdaters): ComparisonFolds {
         ),
         (panel) => panel.chart,
       ),
-    writeAt: (model: Model, id: number, chart: Scatter.Model): Model => ({
+    writeAt: (model: Model, id: number, chart: PlotPanel.Model): Model => ({
       ...model,
       panels: model.panels.map((panel) => writeScatter(panel, id, chart)),
     }),
-    toParentMessage: (id: number, message: Scatter.Message) =>
+    toParentMessage: (id: number, message: PlotPanel.Message) =>
       Message.GotScatterMessage({ id, message }),
-    foldOutMessage: (id: number) => (event: Scatter.OutMessage) =>
-      Scatter.OutMessage.match<Step<Model, Message>>(event, {
+    foldOutMessage: (id: number) => (event: PlotPanel.OutMessage) =>
+      PlotPanel.OutMessage.match<Step<Model, Message>>(event, {
         InspectedPoint: ({ key }) => inspected(id, { _tag: 'Point', key }),
+        InspectedRange: () => unchanged,
         ClearedInspection: () => (model) => clearInspection(model, id),
+        SelectedRange: () => unchanged,
+        ClearedSelection: () => unchanged,
       }),
   });
   const histogram = foldChildAt({
@@ -96,17 +101,20 @@ export function comparisonFolds(updaters: ChartUpdaters): ComparisonFolds {
         ),
         (panel) => panel.chart,
       ),
-    writeAt: (model: Model, id: number, chart: Histogram.Model): Model => ({
+    writeAt: (model: Model, id: number, chart: PlotPanel.Model): Model => ({
       ...model,
       panels: model.panels.map((panel) => writeHistogram(panel, id, chart)),
     }),
-    toParentMessage: (id: number, message: Histogram.Message) =>
+    toParentMessage: (id: number, message: PlotPanel.Message) =>
       Message.GotHistogramMessage({ id, message }),
-    foldOutMessage: (id: number) => (event: Histogram.OutMessage) =>
-      Histogram.OutMessage.match<Step<Model, Message>>(event, {
+    foldOutMessage: (id: number) => (event: PlotPanel.OutMessage) =>
+      PlotPanel.OutMessage.match<Step<Model, Message>>(event, {
+        InspectedPoint: () => unchanged,
         InspectedRange: ({ domain: [lower, upper], includeEnd }) =>
           inspected(id, { _tag: 'Range', lower, upper, includeEnd }),
         ClearedInspection: () => (model) => clearInspection(model, id),
+        SelectedRange: () => unchanged,
+        ClearedSelection: () => unchanged,
       }),
   });
   return { scatter, histogram };

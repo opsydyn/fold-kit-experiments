@@ -1,0 +1,5 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  typecheck:
+    script: 'tsc --noEmit'

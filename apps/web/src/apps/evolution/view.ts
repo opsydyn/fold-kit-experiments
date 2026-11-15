@@ -1,5 +1,4 @@
 import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
-import type { AxisTick } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
 import type { ChartTheme, SeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
 import {
@@ -10,7 +9,6 @@ import {
   lineSeries,
   pointSeries,
 } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import { timeTicks } from '@opsydyn/foldkit-viz/math/time';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
@@ -61,19 +59,16 @@ const chart = (model: Model, h: HtmlBuilder<Message>): Html => {
     {
       frame: FRAME,
       xDomain: [first, last],
+      // A UTC time axis: ticks on UTC boundaries, labelled the same on the
+      // server and in every browser.
+      xScale: { type: 'time' },
+      xTickCount: 5,
       includeZero: { x: false, y: true },
       yTickCount: 4,
       curve: model.curve,
     },
   );
-  // Times are plotted as epoch milliseconds, so the x ticks come from the time
-  // scale's calendar-aware steps rather than the linear default.
-  const xTicks: ReadonlyArray<AxisTick> = timeTicks([new Date(first), new Date(last)], 5).map(
-    (date) => ({
-      value: date.getTime(),
-      position: geometry.layout.x(date.getTime()),
-    }),
-  );
+  const xTicks = geometry.xTicks;
   const yTicks = geometry.yTicks.filter((tick) => Number.isInteger(tick.value));
   // Draw the highlighted series last, so it sits above the others.
   const ordered = [...geometry.series].sort(
@@ -100,7 +95,6 @@ const chart = (model: Model, h: HtmlBuilder<Message>): Html => {
         orientation: 'bottom',
         ticks: xTicks,
         label: 'Time (UTC)',
-        format: clock,
         theme,
       }),
       axis(h, {

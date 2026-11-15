@@ -1,0 +1,12 @@
+# Inherited by every project.
+#
+# A task's inputs default to every file in its project that git sees. These
+# are added to all of them: a lockfile or catalog change can change any result.
+implicitInputs:
+  - '/bun.lock'
+  - '/package.json'
+
+taskOptions:
+  # Every task runs in CI whatever changed; moon's default runs only tasks it
+  # finds affected. Locally the cache decides what runs again.
+  runInCI: always

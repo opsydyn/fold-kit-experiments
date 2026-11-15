@@ -8,7 +8,8 @@ export type AxisOptions = Readonly<{
   orientation: 'bottom' | 'left';
   ticks: ReadonlyArray<AxisTick>;
   label: string;
-  format: (value: number) => string;
+  /** Overrides the scale's default tick labels. */
+  format?: (value: number) => string;
   theme: ChartTheme;
 }>;
 export type GridOptions = Readonly<{
@@ -74,7 +75,7 @@ export function axis<M>(h: HtmlBuilder<M>, options: AxisOptions): Html {
             h.Y(String(bottom ? plot.bottom + options.theme.labelSize + 8 : t.position + 4)),
             h.TextAnchor(bottom ? 'middle' : 'end'),
           ],
-          [options.format(t.value)],
+          [options.format === undefined ? (t.label ?? String(t.value)) : options.format(t.value)],
         ),
       ),
       h.text(

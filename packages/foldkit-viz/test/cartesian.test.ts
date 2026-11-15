@@ -58,7 +58,7 @@ describe('Cartesian geometry', () => {
     });
     expect(chart.points.map((p) => [p.x, p.y])).toEqual([[100, 50]]);
     expect(chart.series[0]?.path).not.toMatch(/NaN|Infinity/);
-    expect(chart.xTicks).toEqual([{ value: 5, position: 100 }]);
+    expect(chart.xTicks).toEqual([{ value: 5, position: 100, label: '5' }]);
   });
   it('returns finite default axes and no marks for empty data', () => {
     const chart = lineGeometry([], accessors, { frame });

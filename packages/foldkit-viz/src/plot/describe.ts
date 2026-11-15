@@ -43,7 +43,7 @@ const plural = (count: number, [one, many]: readonly [string, string]): string =
   `${count.toLocaleString('en-US')} ${count === 1 ? one : many}`;
 
 /** A readable number: whole numbers grouped, others to four significant figures. */
-const readable = (value: number | string): string =>
+export const readable = (value: number | string): string =>
   isNumber(value)
     ? Number.isInteger(value)
       ? value.toLocaleString('en-US')

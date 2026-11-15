@@ -1,7 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { MountAction } from 'foldkit/mount';
 
-import { describePlot } from '../plot/describe.js';
+import { describePlot, readable } from '../plot/describe.js';
 import type { PlotTable } from '../plot/describe.js';
 import { angularLabel, radialLabel, spokeOf } from '../plot/polar.js';
 import type {
@@ -413,7 +413,8 @@ function legend<M>(h: HtmlBuilder<M>, l: Legend, palette: PlotPalette): Html {
         ),
       ],
     );
-  const [lo, hi] = l.domain;
+  // The ends as people read them: 4.885, not 4.884665112696734.
+  const [lo, hi] = l.domain.map(readable);
   return h.ul(
     [
       h.Class('plot-legend'),
@@ -422,7 +423,7 @@ function legend<M>(h: HtmlBuilder<M>, l: Legend, palette: PlotPalette): Html {
     ],
     [
       ...title,
-      h.li([], [String(lo)]),
+      h.li([], [lo ?? '']),
       h.li(
         [h.AriaHidden(true)],
         [
@@ -440,7 +441,7 @@ function legend<M>(h: HtmlBuilder<M>, l: Legend, palette: PlotPalette): Html {
           ),
         ],
       ),
-      h.li([], [String(hi)]),
+      h.li([], [hi ?? '']),
     ],
   );
 }

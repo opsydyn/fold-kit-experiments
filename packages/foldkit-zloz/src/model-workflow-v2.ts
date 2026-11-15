@@ -21,7 +21,10 @@ export function createModelEditorV2(
   options: EditorOptions = {},
 ): EditorState {
   const checked = captureModelDocumentV2(document);
-  return createEditorFromConnectionDocument(checked.snapshot, options);
+  return {
+    ...createEditorFromConnectionDocument(checked.snapshot, options),
+    connectionHistory: { past: [], future: [] },
+  };
 }
 
 /** The checkpoint owns graph/mode/camera. Only navigation preferences and surface size come from present. */

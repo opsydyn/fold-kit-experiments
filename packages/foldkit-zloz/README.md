@@ -6114,3 +6114,87 @@ See [ADR 0101](../../docs/adr/0101-append-v2-editions-with-explicit-identity-con
 and [qualification](evidence/edition-append-v2.md). V2 merge, restore/playback and
 CLI/workbench adoption remain separate; C1 stays partial. No npm publishing or
 deployment.
+
+### Complete v2 history workflow
+
+Use v2 archive merge, model initialization, restore and playback together. The
+core owns the transactions; hosts own preview binding, persistence and UI state.
+
+```ts
+import {
+  mergeEditionsV2,
+  createModelEditorV2,
+  resolveEditionRestoreV2,
+  restoreEditionV2,
+  createEditionPlaybackV2,
+  updateEditionPlaybackV2,
+  reviewEditionPlaybackV2,
+} from '@opsydyn/foldkit-zloz';
+
+const merged = mergeEditionsV2(model.editions, importedEditions);
+const working = createModelEditorV2(model);
+const options = {
+  expectedRevision: working.revision,
+  policy: {
+    canRestoreEdition: (edition, current) =>
+      mayRestore(current.connectionMode, edition.snapshot.connectionMode) ? null : 'Protected',
+  },
+};
+const preview = resolveEditionRestoreV2(working, checkpoint, options);
+// On confirmation, use the pinned checkpoint and re-resolve against current state/policies.
+const result = restoreEditionV2(working, checkpoint, options);
+
+const playback = createEditionPlaybackV2(model.editions); // paused; reduced motion defaults true
+const next = updateEditionPlaybackV2(playback, { type: 'NextClicked' });
+const historical = reviewEditionPlaybackV2(next, working); // read-only, checkpoint-owned mode
+```
+
+`mergeEditionsV2` validates both whole collections, preserves mixed modes and is
+idempotent for identical IDs/data. Conflicts return `blocked` with immutable pins
+and no archive; no partial additions or overwrite. Success returns `merged` or
+`unchanged` with a detached frozen archive. Malformed collections throw through
+the existing core error contract, including duplicates within either collection.
+
+`createModelEditorV2` now initializes full graph+mode `connectionHistory` frames.
+These frames own Undo/Redo; `past`/`future` remain synchronized graph projections
+for native controls. Do not independently patch the projections. Commits, native
+gestures, measurement, limits and redo invalidation preserve checkpoint modes.
+Legacy editors and standalone connection-document initialization retain fixed-mode
+graph history. This runtime history is never serialized into canonical documents.
+
+Restore requires a mode-aware v2 model session, matching `expectedRevision`, idle
+editable state, no active label draft/host `busyReason`, and enabled Undo for a real
+change. Whole-transaction and granular policies run fresh against detached data.
+Callbacks can veto mode changes through the whole `canRestoreEdition` hook; blank
+reasons receive a readable fallback. A thrown policy failure returns no target.
+Mode-only restores record one step; exact graph+mode repeats do not. Undo/Redo
+restore graph and mode together. Working camera, archive and origin stay unchanged.
+An incompatible cross-mode clipboard paste reports a reason and preserves the
+clipboard/Redo instead of coercing port kinds or throwing.
+
+`createEditionPlaybackV2` pins validated editions and reuses the existing timing
+controller. Apply events through `updateEditionPlaybackV2`, then materialize an
+independent review with `reviewEditionPlaybackV2`. Empty collections return no
+review. Keep timer lifetime, stale run tokens, page visibility and user inspection
+in host subscriptions; playback never edits the working session. Reduced-motion
+changes pause automatic play while manual stepping and rewind remain available.
+
+For baseline rendering, pass `displaySide: 'baseline'` to
+`resolveHistoryComparisonPresentationV2`. Ghosts use the other checkpoint's geometry
+and point toward the displayed side without reversing chronological change meaning.
+Semantic mode/status remains baseline→selected. Default selected-side rendering is
+unchanged; custom mark hooks retain chronological change records.
+
+The mounted `/history/` workbench composes capture/merge/model/archive I/O,
+comparison/ghosts/navigation, guarded restore and mixed-mode playback in the shared
+sidebar shell. File I/O is bounded to 5 MiB/fatal UTF-8; queued callbacks are scoped
+and downloads release their URLs. Opening a model starts fresh history and retains
+one previous working session for explicit return. Existing architecture/connection
+workspaces remain independent.
+
+[ADR 0102](../../docs/adr/0102-complete-v2-history-workflows.md) and
+[qualification](evidence/history-workflow-v2.md) define the complete boundary.
+Existing v1 codecs reject v2 envelopes/explicit snapshots. Mermaid, patches,
+receipts, review packets and CLI have separate versioned adoption gates; this batch
+does not silently upgrade or unwrap their documents. No npm publishing/deployment
+or full C1/C2–C4/Q/R completion is implied.

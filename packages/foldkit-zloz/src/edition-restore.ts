@@ -77,9 +77,16 @@ function policyReason(
   edition: ZlozEdition,
   policy: ZlozEditionRestorePolicy,
 ): string | null {
-  const after = edition.snapshot.graph;
   const bulk = policy.canRestoreEdition?.(edition, before) ?? null;
   if (bulk !== null) return bulk.trim() || 'Edition restore is protected.';
+  return restoreGraphPolicyReason(before, edition.snapshot.graph, policy);
+}
+/** Internal granular graph policy shared by versioned restore boundaries. */
+export function restoreGraphPolicyReason(
+  before: ZlozGraph,
+  after: ZlozGraph,
+  policy: EditorPolicy,
+): string | null {
   const deleted = {
     nodes: before.nodes.filter((node) => !after.nodes.some((item) => item.id === node.id)),
     edges: before.edges.filter((edge) => !after.edges.some((item) => item.id === edge.id)),

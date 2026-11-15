@@ -229,3 +229,33 @@ test('names render as escaped text; camera-only differences do not claim graph c
   expect(result.context.comparison.semanticChanged).toBe(false);
   expect(result.context.comparison.layoutChanged).toBe(false);
 });
+
+test('baseline display draws the compared selected geometry and reverses movement without reversing semantic status', async () => {
+  const result = await render(moved, { displaySide: 'baseline' });
+  expect(
+    result.document.querySelector('[data-zloz-history-node="changed"]')?.getAttribute('transform'),
+  ).toBe('translate(80 60)');
+  expect(result.document.body.textContent).toContain('Compared: A');
+  expect(result.context.comparison.baseline.id).toBe(before.id);
+  expect(result.context.comparison.selected.id).toBe(moved.id);
+  expect(result.context.displaySide).toBe('baseline');
+});
+
+test('baseline ghosts retain chronological added/removed meaning while using the other side geometry', async () => {
+  const selected = {
+    ...moved,
+    snapshot: {
+      ...moved.snapshot,
+      graph: {
+        ...moved.snapshot.graph,
+        nodes: [
+          ...moved.snapshot.graph.nodes,
+          { ...moved.snapshot.graph.nodes[0]!, id: 'c', ports: [] },
+        ],
+      },
+    },
+  };
+  const result = await render(selected, { displaySide: 'baseline' });
+  expect(result.document.querySelectorAll('[data-zloz-history-node="added"]')).toHaveLength(1);
+  expect(result.document.querySelectorAll('[data-zloz-history-node="removed"]')).toHaveLength(0);
+});

@@ -76,8 +76,11 @@ export function zlozHistoryGhostsV2<M>(
   context: ZlozHistoryPresentationContextV2,
   options: ZlozHistoryGhostOptionsV2<M> = {},
 ): Html | null {
-  return renderHistoryGraphGhosts(h, context.comparison, {
-    ...options,
-    ...context.effectiveGhosts,
-  });
+  return renderHistoryGraphGhosts(
+    h,
+    context.comparison,
+    { ...options, ...context.effectiveGhosts },
+    context.displaySide === 'baseline' ? 'Compared' : 'Previous',
+    context.displaySide,
+  );
 }

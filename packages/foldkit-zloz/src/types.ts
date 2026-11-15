@@ -285,6 +285,15 @@ export type ZlozVisibility = Readonly<{
 }>;
 
 /** Host-owned editor Model. Retain the complete state returned by updateEditor; save v2 mode with captureConnectionDocument(state). */
+export type ZlozConnectionHistoryFrame = Readonly<{
+  graph: ZlozGraph;
+  connectionMode: ZlozConnectionMode;
+}>;
+export type ZlozConnectionHistory = Readonly<{
+  past: readonly ZlozConnectionHistoryFrame[];
+  future: readonly ZlozConnectionHistoryFrame[];
+}>;
+
 export type EditorState = Readonly<{
   context: EditorContext | null;
   connectionsExpanded: boolean;
@@ -323,8 +332,11 @@ export type EditorState = Readonly<{
   /** Omitted means corners first. Captured at the start of each anchor drag. */
   portAnchorSnapPriority?: PortAnchorSnapPriority | undefined;
   gesture: Gesture;
+  /** In v2 model sessions these are compatibility projections of connectionHistory frames. */
   past: readonly ZlozGraph[];
   future: readonly ZlozGraph[];
+  /** Owns graph+mode Undo in v2 model sessions; never patch its graph projections independently. */
+  connectionHistory?: ZlozConnectionHistory;
   historyLimit: number;
   readOnly: boolean;
   snapToGrid: boolean;

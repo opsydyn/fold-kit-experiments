@@ -11,7 +11,12 @@ import {
   serializeConnectionDocument,
   type ZlozConnectionDocument,
 } from './connection-document';
-import type { ZlozConnectionMode } from './connection-mode';
+import {
+  appendConnectionHistory,
+  measureConnectionHistory,
+  travelConnectionHistory,
+} from './connection-history';
+import { resolveConnectionPortPair, type ZlozConnectionMode } from './connection-mode';
 import { connectionReason, portKind, proposedEdge } from './connection-validation';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeWaypointEdit } from './edge-waypoint-edit';
@@ -412,16 +417,24 @@ function retainedCollapsedGroups(state: EditorState, graph: ZlozGraph) {
 
 /** Shared transaction boundary; document publications invalidate cached routes. */
 export function commitGraph(state: EditorState, graph: ZlozGraph): EditorState {
-  validateGraphForConnectionMode(graph, state.connectionMode ?? 'strict');
+  return commitConnectionGraph(state, graph, state.connectionMode ?? 'strict');
+}
+/** Internal v2 restore publication; callers own freshness and policy checks. */
+export function commitConnectionGraph(
+  state: EditorState,
+  graph: ZlozGraph,
+  connectionMode: ZlozConnectionMode,
+): EditorState {
+  validateGraphForConnectionMode(graph, connectionMode);
   return {
     ...cancelFit(state),
     graph,
+    connectionMode,
     context: null,
     revision: state.revision + 1,
     collapsedGroups: retainedCollapsedGroups(state, graph),
     edgeLabelDraft: null,
-    past: history(state, state.graph),
-    future: [],
+    ...appendConnectionHistory(state, state.graph),
     routes: [],
     gesture: { type: 'idle' },
     connection: null,
@@ -455,6 +468,17 @@ function insertFragment(
   canSelectNode: EditorPolicy['canSelectNode'],
 ): EditorState {
   if (fragment.nodes.length === 0) return state;
+  const incompatible = fragment.edges
+    .map((edge) =>
+      resolveConnectionPortPair({
+        mode: state.connectionMode ?? 'strict',
+        sourceKind: portKind(fragment, edge.source),
+        targetKind: portKind(fragment, edge.target),
+      }),
+    )
+    .find((decision) => decision.type === 'incompatible');
+  if (incompatible?.type === 'incompatible')
+    return { ...state, notice: `Clipboard cannot be pasted in this mode. ${incompatible.reason}` };
   const taken = new Set([...state.graph.nodes, ...state.graph.edges].map((item) => item.id));
   let sequence = 1;
   const nextId = () => {
@@ -1660,8 +1684,7 @@ export function updateEditor(
         return {
           ...state,
           gesture: { type: 'idle' },
-          past: history(state, gesture.before),
-          future: [],
+          ...appendConnectionHistory(state, gesture.before),
           notice: 'Port positioned',
         };
       }
@@ -1728,8 +1751,7 @@ export function updateEditor(
       return {
         ...state,
         gesture: { type: 'idle' },
-        past: history(state, gesture.before),
-        future: [],
+        ...appendConnectionHistory(state, gesture.before),
         notice: gesture.type === 'node-resize' ? 'Node resized' : 'Nodes moved',
       };
     }
@@ -1775,8 +1797,7 @@ export function updateEditor(
       return {
         ...cancelFit(state),
         graph: measure(state.graph),
-        past: state.past.map(measure),
-        future: state.future.map(measure),
+        ...measureConnectionHistory(state, measure),
         gesture,
         revision: state.revision + 1,
         routes: [],
@@ -2535,7 +2556,8 @@ export function updateEditor(
         : committed;
     }
     case 'UndoPressed': {
-      const graph = state.past.at(-1);
+      const connection = travelConnectionHistory(state, 'undo');
+      const graph = connection?.graph ?? state.past.at(-1);
       if (!graph) return state;
       return {
         ...cancelFit(state),
@@ -2544,6 +2566,7 @@ export function updateEditor(
         revision: state.revision + 1,
         past: state.past.slice(0, -1),
         future: [state.graph, ...state.future],
+        ...(connection ?? {}),
         routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],
@@ -2553,7 +2576,8 @@ export function updateEditor(
       };
     }
     case 'RedoPressed': {
-      const graph = state.future[0];
+      const connection = travelConnectionHistory(state, 'redo');
+      const graph = connection?.graph ?? state.future[0];
       if (!graph) return state;
       return {
         ...cancelFit(state),
@@ -2562,6 +2586,7 @@ export function updateEditor(
         revision: state.revision + 1,
         past: history(state, state.graph),
         future: state.future.slice(1),
+        ...(connection ?? {}),
         routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],

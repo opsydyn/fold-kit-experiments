@@ -6,6 +6,8 @@ import type { ZlozEditionV2 } from './model-document-v2';
 export type ZlozHistoryPresentationOptionsV2 = Readonly<{
   /** All layers default to visible; compose saved preferences from comparison controls. */
   ghosts?: Partial<ZlozHistoryGhostVisibility>;
+  /** The displayed checkpoint; ghosts show the other side without reversing semantic status. */
+  displaySide?: 'baseline' | 'selected';
   /** Hides ghosts without rewriting preferences or suppressing checkpoint meaning. */
   minimalMode?: boolean;
   formatMode?: (change: ZlozHistoryModeChangeV2, defaultText: string) => string;
@@ -13,6 +15,7 @@ export type ZlozHistoryPresentationOptionsV2 = Readonly<{
 }>;
 export type ZlozHistoryPresentationContextV2 = Readonly<{
   comparison: ZlozHistoryComparisonV2;
+  displaySide: 'baseline' | 'selected';
   ghosts: ZlozHistoryGhostVisibility;
   effectiveGhosts: ZlozHistoryGhostVisibility;
   summaryText: string;
@@ -50,6 +53,7 @@ export function resolveHistoryComparisonPresentationV2(
   });
   return Object.freeze({
     comparison,
+    displaySide: options.displaySide ?? 'selected',
     ghosts,
     effectiveGhosts: Object.freeze({ ...ghosts, enabled: ghosts.enabled && !options.minimalMode }),
     summaryText: options.formatSummary?.(comparison, summary).trim() || summary,

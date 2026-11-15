@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Complete v2 history workflows: atomic/idempotent merge, guarded graph+mode restore with one Undo, full-mode history frames in v2 model sessions, pinned mixed-mode playback and side-aware ghosts. Retain incompatible cross-mode clipboard data with visible paste rejection. Legacy graph-only sessions and wire formats remain unchanged.
+
 - Add mode-preserving v2 edition append with full archive validation, frozen output and explicit duplicate/conflict results carrying read-only comparison pins. Fix shared JSON equality for reordered distinct Unicode keys with equal locale collation.
 
 - Add v2 mode-aware change navigation with scoped cursors, chosen-side focus, live protection reasons and native/custom controls; mode inspection emits no camera or editing event.

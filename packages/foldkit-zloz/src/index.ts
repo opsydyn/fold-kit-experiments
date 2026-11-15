@@ -773,3 +773,21 @@ export type {
 
 export { appendEditionV2 } from './edition-append-v2';
 export type { ZlozEditionAppendResultV2 } from './edition-append-v2';
+
+export {
+  mergeEditionsV2,
+  resolveEditionRestoreV2,
+  restoreEditionV2,
+  createEditionPlaybackV2,
+  updateEditionPlaybackV2,
+  reviewEditionPlaybackV2,
+} from './history-workflow-v2';
+export type {
+  ZlozEditionMergeResultV2,
+  ZlozEditionRestorePolicyV2,
+  ZlozEditionRestoreOptionsV2,
+  ZlozEditionRestoreDecisionV2,
+  ZlozEditionRestoreResultV2,
+  ZlozEditionPlaybackV2,
+} from './history-workflow-v2';
+export type { ZlozConnectionHistoryFrame, ZlozConnectionHistory } from './types';

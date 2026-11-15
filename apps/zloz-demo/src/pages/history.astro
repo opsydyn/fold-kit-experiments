@@ -15,4 +15,24 @@ import WorkbenchShell from '../layouts/WorkbenchShell.astro';
 .history-workbench .history-changes button { text-align: left; width: 100%; }
 .history-workbench details { margin-block: 12px; }
 .history-workbench summary { cursor: pointer; color: var(--accent); }
+.native-authoring-panel { display: grid; gap: 12px; min-width: 0; overflow-wrap: anywhere; }
+.native-authoring-panel h2 { font-size: 18px; line-height: 1.3; }
+.native-authoring-panel h3 { font-size: 15px; }
+.native-authoring-panel label { display: grid; gap: 6px; margin-block: 12px; line-height: 1.5; }
+.native-authoring-panel label:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; }
+.native-authoring-panel input[type='checkbox'] { flex: 0 0 auto; margin-top: 5px; }
+.native-authoring-panel textarea, .native-authoring-panel select, .native-authoring-panel input[type='file'] {
+  box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+  border: 1px solid var(--rule); border-radius: 8px; padding: 8px;
+  background: var(--paper); color: var(--ink); font: inherit;
+}
+.native-authoring-panel textarea { min-height: 160px; resize: vertical; font-family: monospace; font-size: 12px; line-height: 1.5; }
+.native-authoring-panel pre { font-size: 12px; line-height: 1.6; max-height: 340px; overflow: auto; padding: 10px; background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; }
+.native-authoring-panel button { max-width: 100%; text-align: left; }
+.native-authoring-panel :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  body:has(.history-workbench) { grid-template-rows: auto minmax(0, 1fr); }
+  body:has(.history-workbench) > header { display: grid; padding: 8px 10px; gap: 8px; }
+  body:has(.history-workbench) > header nav { justify-content: flex-start; gap: 6px 12px; font-size: 12px; }
+}
 </style>

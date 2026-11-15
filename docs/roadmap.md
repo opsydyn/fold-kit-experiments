@@ -1517,3 +1517,25 @@ No npm publishing, deployment or PR.
 visible audit/patch/loss review, guarded Apply/Undo, receipt and packet download,
 and read-only reopening using these package APIs. Capture mounted light/dark
 and file-flow evidence.
+
+**Mounted native v2 authoring/review — implemented locally (2026-11-15), unreleased:**
+The `/history/` workspace now composes package-owned live DDD/workshop audit
+comparisons, strict v2 proposal review, visible authored losses, independent review
+and loss acknowledgement, protected atomic Apply/one Undo and retained receipt
+download. Portable review builds a baseline-to-working v2 packet, requires exact
+projection-loss acceptance and reopens downloaded packets or patch/C4/DDD v2
+receipts as detached Before/After canvases with history ghosts. Working mode,
+archives and Undo stay independent. UTF-8 I/O and generated downloads share a
+1 MiB limit; read tokens, source revision and canvas epochs reject stale work.
+See [host follow-through](adr/0104-adopt-native-v2-authoring-and-review.md#approved-mounted-adoption-follow-through--2026-11-15)
+and [mounted qualification](../apps/zloz-demo/evidence/native-authoring-workbench.md).
+This closes the preceding mounted audit/patch/portable-review recommendation.
+Existing architecture conversion authoring remains on its documented legacy host
+path; this slice adds native conversion-receipt inspection, not replacement C4/DDD
+Apply controls. Wider C1, C2–C4/Q/R remain open. No npm publishing or deployment.
+
+**Recommended next:** resolve C2's group contract before adding interaction:
+explicitly decide the retained coordinate/parent model and define opt-in drawable
+group endpoints (or approve an item-specific deferral), with geometry, policies,
+serialization and Undo acceptance criteria. Existing world-coordinate groups and
+portless frames remain the baseline until that decision is approved.

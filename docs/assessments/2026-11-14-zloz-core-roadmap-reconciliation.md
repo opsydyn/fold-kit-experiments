@@ -56,9 +56,15 @@ Navigation follow-up (2026-11-15): [ADR 0100](../adr/0100-navigate-v2-changes-wi
 and [qualification](../../packages/foldkit-zloz/evidence/history-navigation-v2.md)
 record scoped v2 mode/graph entries, side-preserving direct/step navigation,
 visible absent-side/protection reasons and optional native/custom controls.
-Independent reviews retain their modes and working history. V2 edition append
-with mode retention and explicit identity-conflict handling is next; merge,
+Independent reviews retain their modes and working history. V2 edition append is recorded below; merge,
 restore/playback, adapter adoption and wider C/Q/R gates remain open. C1 is partial.
+
+Append follow-up (2026-11-15): [ADR 0101](../adr/0101-append-v2-editions-with-explicit-identity-conflicts.md)
+and [qualification](../../packages/foldkit-zloz/evidence/edition-append-v2.md)
+record validated immutable mode-preserving append with duplicate/conflict reasons
+and read-only pins, without overwriting existing identities. Atomic v2 merge with
+idempotent identical imports and explicit conflicts is next; restore/playback,
+adapter adoption and wider C/Q/R gates remain open. C1 stays partial.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

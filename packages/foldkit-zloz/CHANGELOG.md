@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add mode-preserving v2 edition append with full archive validation, frozen output and explicit duplicate/conflict results carrying read-only comparison pins. Fix shared JSON equality for reordered distinct Unicode keys with equal locale collation.
+
 - Add v2 mode-aware change navigation with scoped cursors, chosen-side focus, live protection reasons and native/custom controls; mode inspection emits no camera or editing event.
 
 - Add validated v2 comparison presentation with composable mode/status text and shared inert ghosts; preserve per-layer preferences through minimal mode.

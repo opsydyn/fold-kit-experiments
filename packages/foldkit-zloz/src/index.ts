@@ -770,3 +770,6 @@ export type {
   ZlozHistoryChangeFocusTargetV2,
   ZlozHistoryChangeFocusDecisionV2,
 } from './history-change-navigator-v2';
+
+export { appendEditionV2 } from './edition-append-v2';
+export type { ZlozEditionAppendResultV2 } from './edition-append-v2';

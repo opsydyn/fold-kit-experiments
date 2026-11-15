@@ -1182,5 +1182,17 @@ a side-target mutation and static light/dark evidence qualify the boundary. See
 V2 append/merge, restore/playback, CLI/workbench adoption and wider C/Q/R gates
 remain open; C1 stays partial. No npm publishing or deployment.
 
-**Recommended next:** v2 edition append with mode retention and explicit
-identity-conflict handling before restore/playback adoption.
+**C1 v2 edition append — implemented locally (2026-11-15), unreleased:**
+`appendEditionV2` validates/detaches the whole archive and candidate, preserves
+checkpoint modes/cameras/data and returns a frozen ordered appended archive only
+for a fresh ID. Reused IDs block with explicit duplicate/conflict codes and frozen
+existing/proposed pins for comparison, never a replacement archive. Current model,
+origin and working/review histories remain independent. See
+[ADR 0101](adr/0101-append-v2-editions-with-explicit-identity-conflicts.md) and
+[qualification](../packages/foldkit-zloz/evidence/edition-append-v2.md).
+This headless slice adds no UI or persistence authority. V2 merge, restore/playback,
+CLI/workbench and wider C/Q/R gates remain open; C1 stays partial. No npm publishing
+or deployment.
+
+**Recommended next:** atomic v2 edition merge with idempotent identical imports
+and explicit identity conflicts before restore/playback adoption.

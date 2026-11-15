@@ -6063,3 +6063,54 @@ See [ADR 0100](../../docs/adr/0100-navigate-v2-changes-with-explicit-mode-inspec
 [static light/dark evidence](evidence/history-navigation-v2.png).
 V2 append/merge, restore/playback and CLI/workbench adoption remain separate;
 C1 stays partial. No npm publishing or deployment.
+
+### V2 edition append and identity conflicts
+
+Append a caller-supplied checkpoint without borrowing mode from the current model.
+The complete archive and candidate are validated, detached and deeply frozen.
+
+```ts
+import { appendEditionV2, captureModelDocumentV2, compareEditionsV2 } from '@opsydyn/foldkit-zloz';
+
+const result = appendEditionV2(model.editions, proposedEdition);
+if (result.type === 'appended') {
+  const updated = captureModelDocumentV2({ ...model, editions: result.editions });
+  // The host decides when/how to store updated; current snapshot and origin retain their modes.
+} else if (result.code === 'edition-conflict') {
+  const review = compareEditionsV2(result.existing, result.proposed);
+  // Review only: no existing edition is replaced and no editor mode changes.
+} else {
+  // duplicate-edition: the ID already names the same checkpoint; append remains blocked.
+}
+```
+
+`ZlozEditionAppendResultV2` returns either the appended archive or a blocked result
+with a readable reason and immutable existing/proposed pins. A blocked result has
+no `editions` field. Reused IDs always block, including identical duplicates,
+matching the existing append rule. `duplicate-edition` means the whole checkpoint
+value matches; `edition-conflict` means the same ID names different data. Nothing
+is silently renamed, overwritten or treated as an import merge.
+
+Object-key order does not affect equality. Name, explicit mode, camera, payloads,
+geometry and authored array order do. Consequently a mode-only change is a
+conflict even if both graphs satisfy strict rules. Name/camera-only conflicts may
+have no graph/mode deltas in `compareEditionsV2`; inspect the returned pins for those
+fields. Node/edge ordering remains authored data and is not sorted for append.
+
+Every existing entry and the proposed checkpoint must be valid v2 data; malformed
+input or duplicate IDs already present in the archive throw the existing validation
+error before returning a result. V1-shaped records require explicit upgrade.
+Success preserves archive order and appends exactly one checkpoint. IDs/names stay
+verbatim; clocks, timestamps and replacement identities are host-owned. Original
+arrays and nested data remain unfrozen and untouched.
+
+The helper owns an archive list, not a containing model or editor. Hosts own model
+binding, wider identity allocation, application permissions and persistence. Use
+`captureModelDocumentV2` to validate a containing model when composing success.
+Current/origin snapshots, working Undo and independent read-only review history
+are unaffected. No restore/Apply or external write authority is implied.
+
+See [ADR 0101](../../docs/adr/0101-append-v2-editions-with-explicit-identity-conflicts.md)
+and [qualification](evidence/edition-append-v2.md). V2 merge, restore/playback and
+CLI/workbench adoption remain separate; C1 stays partial. No npm publishing or
+deployment.

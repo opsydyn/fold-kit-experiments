@@ -166,7 +166,7 @@ export function updateHistoryReview(
 function canonical<T>(value: T): string {
   return JSON.stringify(value, (_key, item: JsonValue) =>
     record(item)
-      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
       : item,
   );
 }

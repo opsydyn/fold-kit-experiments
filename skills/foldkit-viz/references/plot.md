@@ -1,8 +1,8 @@
 # The plot grammar
 
-`@opsydyn/foldkit-viz/plot` is newer than `0.17.0`. Before using anything here,
-confirm the installed package's export map has `./plot`. Where it does not, use
-the geometry layers in [chart composition](charts.md).
+`@opsydyn/foldkit-viz/plot` is new in `0.18.0`. On an older installed version,
+whose export map has no `./plot`, use the geometry layers in
+[chart composition](charts.md).
 
 ## When to use it
 

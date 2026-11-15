@@ -233,8 +233,13 @@ charts in all three apps.
     both use that protocol. Checked by unit tests, XML validation and rendered
     images; not yet run in a live kernel. Static output only: widget support is
     undocumented for both kernels.
-  - **Then Python:** a widget (anywidget) that renders a JSON spec, which a Python
-    program writes and checks against the published schema.
+  - **Then Python — done on the same branch (unreleased, not on PyPI).**
+    `packages/foldkit-viz-py` is a Python package whose `Plot` anywidget checks a
+    spec against the published schema (naming the spec path, and for a bad mark
+    the branch of the mark it names) and draws it with foldkit-viz's own
+    `plotHtml`, bundled from `js/widget.ts`. Assigning `spec` redraws; a
+    data-dependent error shows in place and in `Plot.error`. Run live in
+    JupyterLab 4: drawing, redraws, both errors and the dark theme.
 - Three-dimensional surfaces and scatter through effect-three.
 
 The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime

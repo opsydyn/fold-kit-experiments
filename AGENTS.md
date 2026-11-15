@@ -13,8 +13,14 @@ Bun workspace monorepo. Five active workspaces:
 | `@opsydyn/web`              | `apps/web/`                  | Chart demos and reference workbenches   |
 | `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared FoldKit example          |
 | `@opsydyn/promo`            | `apps/promo/`                | Static Astro promo site for Foldkit Viz |
+| `@opsydyn/foldkit-viz-py`   | `packages/foldkit-viz-py/`   | Python anywidget for plot specs (uv)    |
 
 **Stack:** FoldKit 0.169.0 · Effect 4.0.0 · Astro 7.4.0 · TypeScript · bun · oxlint · oxfmt
+
+**Python:** `packages/foldkit-viz-py` is a Python package as well as a workspace.
+Its `test` script runs pytest through `uv run --frozen`, so `ci:check` and the
+pre-push hook need [uv](https://docs.astral.sh/uv/) installed; uv installs the
+locked environment itself.
 
 **Dependencies:** shared versions are declared once, in the root `package.json`
 catalogs. Private workspaces use `"catalog:"` (or `"catalog:strict"` for the

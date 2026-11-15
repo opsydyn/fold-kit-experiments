@@ -23,7 +23,9 @@ returns markup strings with no framework: `plotSvg` a standalone SVG file in
 concrete colours (no legend, which is HTML), and `plotHtml` the same figure
 `plotChart` renders. In a Deno or Bun Jupyter kernel, make
 `displayPlot(spec)` from `jupyter` a cell's value; `plotMimeBundle` builds the
-same bundle from geometry. Don't hand-write SVG for a chart the grammar draws.
+same bundle from geometry. From Python, the repository's `foldkit_viz.Plot`
+anywidget (not on PyPI yet) checks a spec against the schema and draws it the
+same way. Don't hand-write SVG for a chart the grammar draws.
 
 ## Spec rules
 

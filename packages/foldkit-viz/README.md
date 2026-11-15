@@ -672,6 +672,11 @@ table; `plotMimeBundle(geometry, options)` builds the bundle from geometry, such
 as for `Deno.jupyter.display(bundle, { raw: true })`. Output is static: neither
 kernel documents widget support.
 
+From Python, the repository's `foldkit-viz` Python package (not yet on PyPI)
+draws a spec as an [anywidget](https://anywidget.dev): `Plot(spec)` checks it
+against the published schema and redraws when `plot.spec` changes. See
+[its README](https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz-py).
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

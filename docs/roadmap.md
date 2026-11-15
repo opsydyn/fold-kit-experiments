@@ -698,11 +698,20 @@ Met, 2026-11-14: linked charts, request diagnostics and comparison compose indep
 **Outcome:** both packages are dependable for external consumers.
 
 - [x] Add package export and packed-consumer tests to CI through `bun run test`.
-- [ ] Add API reports or generated type-surface checks for public exports.
-- [ ] Add compatibility coverage for the supported Astro range.
-- [ ] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route `Transition`.
+- [x] Add API reports or generated type-surface checks for public exports. `tools/api-surface.ts` writes
+      `etc/api-surface.md` for every entry point (58 in Viz, 4 in Astro); CI fails when the surface changes
+      without the report (`bun run api:check`).
+- [x] Add compatibility coverage for the supported Astro range. `tools/astro-compat.ts` packs the
+      integration and builds a fixture site on each major; Astro 5.18, 6.4 and 7.4 pass in the `astro-compat`
+      CI job. Astro 4 fails, as expected below the `>=5.0.0` peer: FoldKit's Vite plugin needs the Vite
+      environment API.
+- [x] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route
+      `Transition`: [FoldKit 0.170 and Effect 4.1](migrations/foldkit-0.170.md).
 - [x] Track package changelogs and versioning independently with release-please (`astro-foldkit` versus `foldkit-viz`).
-- [ ] Add performance checks for bundle size and large chart datasets.
+- [x] Add performance checks for bundle size and large chart datasets. `tools/bundle-budget.ts` holds each
+      Viz entry point to a gzipped budget in CI (`bun run size:check`); `test/performance.test.ts` times a
+      million-row compile, index, 1,000 queries, highlight and bin against budgets about ten times a
+      laptop's times.
 
 ## Deliberate Non-Goals
 

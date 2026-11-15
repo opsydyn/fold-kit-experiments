@@ -42,8 +42,12 @@ const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
   encoding: 'utf8',
 }).stdout.trim();
 const checkout = mkdtempSync(join(tmpdir(), 'ci-local-'));
-// As in the workflow: moon compares against HEAD, since CI's shallow checkout has no main.
-const env = { ...process.env, CI: 'true', MOON_BASE: 'HEAD' };
+// moon exports MOON_WORKSPACE_ROOT and the rest to its tasks, so when this runs as
+// a moon task (the pre-push hook), a moon started in the fresh checkout would
+// inherit them and run its tasks back in this checkout. Drop them, then set what
+// the workflow sets: moon compares against HEAD, as CI's shallow checkout has no main.
+const inherited = Object.entries(process.env).filter(([name]) => !name.startsWith('MOON_'));
+const env = { ...Object.fromEntries(inherited), CI: 'true', MOON_BASE: 'HEAD' };
 const run = (label: string, command: string, args: ReadonlyArray<string>, cwd: string): boolean => {
   const start = performance.now();
   console.log(`\nci-local ▸ ${label}`);

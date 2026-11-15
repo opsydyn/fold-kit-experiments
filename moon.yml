@@ -6,6 +6,7 @@
 #   bun moon run root:<task>       any one step
 #
 # Nothing is cached: the checks are cheap to trust and costly to trust wrongly.
+# So no task declares inputs, which also stops moon hashing the whole tree.
 # Every task runs in CI whatever changed (moon's default runs only tasks it
 # finds affected), and CI sets MOON_BASE=HEAD because a pull request's shallow
 # checkout has no main branch for moon to compare against.
@@ -22,27 +23,34 @@ tasks:
   # The CI `check` job's steps, in its order.
   lint:
     description: oxlint, the effect-three package lint, oxfmt, the catalog and the skills
+    inputs: []
     script: bun run check
   typecheck:
     description: every workspace's typecheck, one after another
+    inputs: []
     script: bun typecheck
   test:
     description: the root tool tests and every workspace's tests
+    inputs: []
     script: bun run test
   build:
     description: the integration and the sites
+    inputs: []
     script: bun run build
   api-reports:
     description: public API reports match the built type declarations
+    inputs: []
     script: >-
       bun run --filter @opsydyn/foldkit-viz build &&
       bun run --filter @opsydyn/foldkit-viz api:check &&
       bun run --filter @opsydyn/astro-foldkit api:check
   size-budgets:
     description: each Viz entry point is within its gzipped budget
+    inputs: []
     script: bun run --filter @opsydyn/foldkit-viz size:check
   check:
     description: the CI `check` job
+    inputs: []
     command: noop
     deps: [lint, typecheck, test, build, api-reports, size-budgets]
     options:
@@ -51,11 +59,13 @@ tasks:
   # The other CI jobs, which need browsers or several Astro installs.
   astro-compat:
     description: the CI `astro-compat` job, building a site with each supported Astro major
+    inputs: []
     script: >-
       bun run --filter @opsydyn/astro-foldkit build &&
       bun run --filter @opsydyn/astro-foldkit compat:astro 5 6 7
   effect-three:
     description: the CI `effect-three` job; needs Playwright's Chromium
+    inputs: []
     script: >-
       bun run --filter @opsydyn/effect-three pack:check &&
       bun run --filter @opsydyn/effect-three-foldkit pack:check &&
@@ -68,6 +78,7 @@ tasks:
       bun run --filter @opsydyn/effect-three-foldkit test:e2e
   foldkit-zloz:
     description: the CI `foldkit-zloz` job; needs Playwright's Chromium
+    inputs: []
     script: >-
       bun run --filter @opsydyn/foldkit-zloz test &&
       bun run --filter @opsydyn/foldkit-zloz-elk test &&
@@ -79,9 +90,11 @@ tasks:
   # Git hooks.
   pre-commit:
     description: format and lint the staged files, in seconds
+    inputs: []
     script: bun tools/pre-commit.ts
   pre-push:
     description: >-
       the checks that need no browser and no test run, in a fresh checkout of HEAD,
       so a missing build or a stale file cannot hide a failure CI would see
+    inputs: []
     script: bun tools/ci-local.ts lint typecheck api-reports size-budgets

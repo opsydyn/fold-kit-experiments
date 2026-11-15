@@ -17,6 +17,7 @@ interface Workflow {
   readonly jobs: Readonly<Record<string, { readonly steps: ReadonlyArray<Step> }>>;
 }
 interface MoonTask {
+  readonly inputs?: ReadonlyArray<string>;
   readonly script?: string;
   readonly command?: string;
   readonly deps?: ReadonlyArray<string>;
@@ -69,6 +70,11 @@ describe('CI runs moon tasks', () => {
     expect(ci.env?.MOON_BASE).toBe('HEAD');
     expect(moon.taskOptions?.runInCI).toBe('always');
     expect(moon.taskOptions?.cache).toBe(false);
+  });
+
+  test('no task declares inputs, so moon does not hash the whole tree for an uncached run', () => {
+    const declaring = Object.entries(moon.tasks).filter(([, task]) => task.inputs?.length !== 0);
+    expect(declaring.map(([name]) => name)).toEqual([]);
   });
 });
 

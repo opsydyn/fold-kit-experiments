@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 
+import type { ThemeName } from '@opsydyn/foldkit-viz/chart/theme';
 import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
 
 import widget from '../js/widget.js';
-import type { WidgetModel } from '../js/widget.js';
+import type { WidgetModel, WidgetTraits } from '../js/widget.js';
 
 const spec: PlotSpec = {
   width: 360,
@@ -19,9 +20,9 @@ const spec: PlotSpec = {
 };
 
 /** The slice of anywidget's model the widget uses, recording what it saves. */
-function fakeModel(initial: PlotSpec) {
-  let current = { spec: initial, error: '' };
-  const listeners = new Set<() => void>();
+function fakeModel(initial: PlotSpec, theme: ThemeName | null = null) {
+  let current: WidgetTraits = { spec: initial, error: '', theme };
+  const listeners = new Map<string, Set<() => void>>();
   const saved: Array<string> = [];
   const model: WidgetModel = {
     get: (name) => current[name],
@@ -31,14 +32,26 @@ function fakeModel(initial: PlotSpec) {
     save_changes: () => {
       saved.push(current.error);
     },
-    on: (_event, callback) => listeners.add(callback),
-    off: (_event, callback) => listeners.delete(callback),
+    on: (event, callback) => {
+      listeners.set(event, (listeners.get(event) ?? new Set()).add(callback));
+    },
+    off: (event, callback) => {
+      listeners.get(event)?.delete(callback);
+    },
+  };
+  const fire = (event: string) => {
+    for (const listener of listeners.get(event) ?? []) listener();
   };
   const change = (next: PlotSpec) => {
     current = { ...current, spec: next };
-    for (const listener of listeners) listener();
+    fire('change:spec');
   };
-  return { model, change, saved, listeners };
+  const retheme = (next: ThemeName | null) => {
+    current = { ...current, theme: next };
+    fire('change:theme');
+  };
+  const listening = () => [...listeners.values()].reduce((sum, set) => sum + set.size, 0);
+  return { model, change, retheme, saved, listening };
 }
 
 describe('the anywidget module', () => {
@@ -52,13 +65,26 @@ describe('the anywidget module', () => {
   });
 
   it('redraws when Python changes the spec, and stops when the view goes', () => {
-    const { model, change, listeners } = fakeModel(spec);
+    const { model, change, listening } = fakeModel(spec);
     const el = { innerHTML: '' };
     const cleanup = widget.render({ model, el });
     change({ ...spec, title: 'Updated' });
     expect(el.innerHTML).toContain('<title>Updated</title>');
     cleanup();
-    expect(listeners.size).toBe(0);
+    expect(listening()).toBe(0);
+  });
+
+  it('draws in a named theme, on its own background, and redraws when the theme changes', () => {
+    const { model, retheme } = fakeModel(spec, 'dark');
+    const el = { innerHTML: '' };
+    widget.render({ model, el });
+    expect(el.innerHTML).toBe(
+      plotHtml(compilePlot(spec), { summary: true, table: plotTable(spec), theme: 'dark' }),
+    );
+    retheme(null);
+    expect(el.innerHTML).toBe(
+      plotHtml(compilePlot(spec), { summary: true, table: plotTable(spec) }),
+    );
   });
 
   it('shows a compile error in place and reports it to Python', () => {

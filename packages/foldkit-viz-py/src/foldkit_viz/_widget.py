@@ -10,6 +10,9 @@ from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError, best_match
 
 _STATIC = Path(__file__).parent / "static"
+
+#: The themes foldkit-viz names in chart/theme's ``chartThemes``.
+THEMES = ("light", "dark", "high-contrast-light", "high-contrast-dark")
 _VALIDATOR = Draft7Validator(json.loads((_STATIC / "plot-spec.schema.json").read_text()))
 
 
@@ -76,17 +79,20 @@ class Plot(anywidget.AnyWidget):
     >>> Plot({"width": 480, "height": 300, "data": rows,
     ...       "marks": [{"mark": "dot", "x": "a", "y": "b"}]})
 
-    Assigning ``spec`` redraws the chart. The chart carries a plain-language
-    summary and a data table for screen readers, and follows the notebook's
-    light or dark theme.
+    Assigning ``spec`` or ``theme`` redraws the chart. The chart carries a
+    plain-language summary and a data table for screen readers. With no
+    ``theme`` it follows the notebook's light or dark theme; a named theme
+    (one of ``THEMES``) paints its own background, as in
+    ``Plot(spec, theme="high-contrast-dark")``.
     """
 
     _esm = _STATIC / "widget.js"
     spec = traitlets.Dict().tag(sync=True)
+    theme = traitlets.Enum(THEMES, default_value=None, allow_none=True, help="A theme name, or None to follow the notebook.").tag(sync=True)
     error = traitlets.Unicode("", read_only=True, help="foldkit-viz's error drawing the spec, or ''.").tag(sync=True)
 
-    def __init__(self, spec: dict[str, Any], **kwargs: Any) -> None:
-        super().__init__(spec=spec, **kwargs)
+    def __init__(self, spec: dict[str, Any], theme: str | None = None, **kwargs: Any) -> None:
+        super().__init__(spec=spec, theme=theme, **kwargs)
 
     @traitlets.validate("spec")
     def _check_spec(self, proposal: dict[str, Any]) -> dict[str, Any]:

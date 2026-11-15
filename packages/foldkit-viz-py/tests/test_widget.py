@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from foldkit_viz import Plot, PlotSpecError, validate
+import re
+
+import traitlets
+
+from foldkit_viz import THEMES, Plot, PlotSpecError, validate
 
 SPEC = {
     "width": 360,
@@ -68,3 +72,23 @@ def test_the_bundled_schema_is_the_published_one():
     bundled = Path(__file__).parents[1] / "src/foldkit_viz/static/plot-spec.schema.json"
     published = Path(__file__).parents[2] / "foldkit-viz/schema/plot-spec.schema.json"
     assert json.loads(bundled.read_text()) == json.loads(published.read_text())
+
+
+def test_the_widget_takes_a_named_theme_and_follows_the_notebook_without_one():
+    assert Plot(SPEC).theme is None
+    plot = Plot(SPEC, theme="high-contrast-dark")
+    assert plot.theme == "high-contrast-dark"
+    plot.theme = None
+    assert "theme" in plot.keys
+
+
+def test_an_unknown_theme_is_refused():
+    with pytest.raises(traitlets.TraitError):
+        Plot(SPEC, theme="sepia")
+
+
+def test_the_theme_names_are_foldkit_vizs():
+    source = (Path(__file__).parents[2] / "foldkit-viz/src/chart/theme.ts").read_text()
+    union = re.search(r"export type ThemeName = ([^;]+);", source)
+    assert union is not None
+    assert tuple(re.findall(r"'([a-z-]+)'", union.group(1))) == THEMES

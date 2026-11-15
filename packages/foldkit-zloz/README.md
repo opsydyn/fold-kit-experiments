@@ -5996,3 +5996,70 @@ See [ADR 0099](../../docs/adr/0099-present-v2-comparisons-with-mode-feedback-and
 [static light/dark fixture](evidence/history-presentation-v2.png).
 V2 change navigation, workbench/CLI adoption, append and restore/playback remain
 separate; C1 stays partial. No npm publication or deployment.
+
+### V2 change navigation and mode inspection
+
+Keep the host's comparison side authoritative across direct focus and
+Previous/Next. Mode changes have their own entry and never borrow a node ID.
+
+```ts
+import {
+  resolveHistoryChangeNavigatorV2,
+  resolveHistoryChangeFocusV2,
+  resolveHistoryChangeStepV2,
+} from '@opsydyn/foldkit-zloz';
+import { zlozHistoryChangeNavigatorV2 } from '@opsydyn/foldkit-zloz/foldkit';
+
+const navigation = resolveHistoryChangeNavigatorV2(comparison, chosenSide, options);
+const controls = zlozHistoryChangeNavigatorV2(h, navigation, {
+  onFilter: (kind) => Message.ClickedHistoryFilter({ kind }),
+  onFocus: (request) => Message.ClickedHistoryChange({ request }),
+});
+
+// Inside the host update, re-resolve against current comparison, side and options.
+const decision = resolveHistoryChangeFocusV2(comparison, chosenSide, request, options);
+const next = resolveHistoryChangeStepV2(comparison, chosenSide, cursor, 'next', options);
+```
+
+Consume comparisons from `compareEditionsV2` or the presentation context. The host
+owns side, cursor and filter state. A ready decision includes an entry and target:
+
+- `target.type === 'mode'`: inspect its checkpoint ID/side/connection mode. There
+  is no editor event, geometry or mode-changing operation.
+- `target.type === 'graph'`: dispatch its reveal event only to the corresponding
+  checkpoint's read-only review through `updateHistoryReviewV2`. Reveal preserves
+  selection and authored graph data; working history stays independent.
+
+Save `decision.entry.request` as the cursor only for a ready result. Requests and
+cursors contain both edition IDs and a discriminated identity: mode has no `id`,
+node/edge have their own namespaces. Next starts at the first visible change when
+there is no cursor; Previous needs a current change. Neither wraps or skips an
+unavailable candidate. The current chosen side is always used, including after a
+host side switch; stale scopes or hidden/missing cursors are ignored.
+
+Mode transitions are first and counted under the `changed` filter. A mode-only
+comparison has one entry, with semantic change and no layout change. Unchanged
+mode creates no entry. An added/removed entity absent from the chosen side remains
+visible with a reason and blocks focus. It does not silently navigate elsewhere.
+Global `blockedReason`, per-entry `focusReason(item, side)`, filters and membership
+are checked on every focus/step request; blank vetoes receive a readable fallback.
+Exceptions propagate without returning a target. `labelChange` and `filterLabels`
+customize language while retaining identity. Context, entries, requests and filters
+are frozen; caller-owned preferences and comparator pins are untouched.
+
+`ZlozHistoryChangeNavigatorViewOptionsV2` supports attributes, accessible names,
+ordered filter controls, `renderFilter`, `renderEntry`, `renderStatus`,
+`renderReason` and `renderLayout`. Undefined keeps defaults; null omits a part.
+Compose `zlozHistoryChangeButtonV2` inside custom entries to keep native availability
+and request behavior. Custom entries own list semantics. Status/counts can be
+replaced or omitted without changing filters, live reasons or core navigation.
+
+These functions consume typed validated projections rather than decode wire data.
+Edition IDs scope requests; hosts own immutable identity and correct review binding.
+No restore/Apply authority, working editor change, automatic side switch, timer or
+Undo entry is produced. V1 navigation retains its existing behavior.
+See [ADR 0100](../../docs/adr/0100-navigate-v2-changes-with-explicit-mode-inspection.md),
+[qualification](evidence/history-navigation-v2.md) and
+[static light/dark evidence](evidence/history-navigation-v2.png).
+V2 append/merge, restore/playback and CLI/workbench adoption remain separate;
+C1 stays partial. No npm publishing or deployment.

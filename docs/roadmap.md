@@ -1170,5 +1170,17 @@ This is not mounted workbench/CLI adoption or restore/playback. Those boundaries
 v2 change navigation/append and wider C/Q/R gates stay open; C1 remains partial.
 No npm publication or deployment.
 
-**Recommended next:** v2 change navigation with an explicit mode-change entry
-and side-preserving focus before cross-mode restore/playback adoption.
+**C1 v2 change navigation — implemented locally (2026-11-15), unreleased:**
+Package resolvers and optional native/custom FoldKit controls include an explicit
+mode-change entity without a fake graph ID or reveal event. Direct focus and
+Previous/Next preserve the host's chosen side, freshly check scope/filters/reasons
+and block absent-side items without fallback or skipping. Independent read-only
+reviews retain checkpoint modes and working history. Tests, installed consumers,
+a side-target mutation and static light/dark evidence qualify the boundary. See
+[ADR 0100](adr/0100-navigate-v2-changes-with-explicit-mode-inspection.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-navigation-v2.md).
+V2 append/merge, restore/playback, CLI/workbench adoption and wider C/Q/R gates
+remain open; C1 stays partial. No npm publishing or deployment.
+
+**Recommended next:** v2 edition append with mode retention and explicit
+identity-conflict handling before restore/playback adoption.

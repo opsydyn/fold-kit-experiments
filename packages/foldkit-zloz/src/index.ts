@@ -753,3 +753,20 @@ export type {
   ZlozHistoryPresentationOptionsV2,
   ZlozHistoryPresentationContextV2,
 } from './history-presentation-v2';
+
+export {
+  resolveHistoryChangeNavigatorV2,
+  resolveHistoryChangeFocusV2,
+  resolveHistoryChangeStepV2,
+} from './history-change-navigator-v2';
+export type {
+  ZlozHistoryComparisonSideV2,
+  ZlozHistoryChangeItemV2,
+  ZlozHistoryChangeFocusRequestV2,
+  ZlozHistoryChangeCursorV2,
+  ZlozHistoryChangeEntryV2,
+  ZlozHistoryChangeNavigatorOptionsV2,
+  ZlozHistoryChangeNavigatorContextV2,
+  ZlozHistoryChangeFocusTargetV2,
+  ZlozHistoryChangeFocusDecisionV2,
+} from './history-change-navigator-v2';

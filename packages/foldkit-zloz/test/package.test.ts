@@ -371,12 +371,28 @@ import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
-import { parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryComparisonPresentationV2, zlozHistoryGhostsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryGhostOptionsV2, type ZlozHistoryPresentationPartsV2 } from '@opsydyn/foldkit-zloz/foldkit';
+import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
+import { zlozHistoryChangeNavigatorV2, zlozHistoryChangeButtonV2, type ZlozHistoryChangeNavigatorViewOptionsV2, zlozHistoryComparisonPresentationV2, zlozHistoryGhostsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryGhostOptionsV2, type ZlozHistoryPresentationPartsV2 } from '@opsydyn/foldkit-zloz/foldkit';
 const presentationModelV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(modelModesWire))});
 const presentationBeforeV2=presentationModelV2.editions[0]!;
 const presentationOptionsV2:ZlozHistoryPresentationOptionsV2={minimalMode:true,ghosts:{enabled:true},formatMode:(_change,text)=>text};
 const presentationV2:ZlozHistoryPresentationContextV2=resolveHistoryComparisonPresentationV2(presentationBeforeV2,{...presentationBeforeV2,snapshot:{...presentationBeforeV2.snapshot,connectionMode:'strict'}},presentationOptionsV2);
+const navigationOptionsV2:ZlozHistoryChangeNavigatorOptionsV2={focusReason:(_item,side)=>side==='baseline'?null:'Selected inspection protected'};
+const navigationV2:ZlozHistoryChangeNavigatorContextV2=resolveHistoryChangeNavigatorV2(presentationV2.comparison,'baseline',navigationOptionsV2);
+const navigationCursorV2:ZlozHistoryChangeCursorV2=navigationV2.entries[0]!.request;
+const navigationFocusV2=resolveHistoryChangeFocusV2(presentationV2.comparison,'baseline',navigationCursorV2,navigationOptionsV2);
+if(navigationFocusV2.type!=='ready'||navigationFocusV2.target.type!=='mode'||navigationFocusV2.target.side!=='baseline'||navigationFocusV2.target.connectionMode!=='loose'||'event' in navigationFocusV2.target||resolveHistoryChangeFocusV2(presentationV2.comparison,'selected',navigationCursorV2,navigationOptionsV2).type!=='blocked'||resolveHistoryChangeStepV2(presentationV2.comparison,'baseline',null,'next',navigationOptionsV2).type!=='ready')throw new Error('V2 navigation lost mode inspection, chosen side or live veto');
+// @ts-expect-error Mode entries do not have an authored graph ID.
+const impossibleModeRequestV2:ZlozHistoryChangeFocusRequestV2={baselineId:'a',selectedId:'b',entity:'mode',id:'invented'};void impossibleModeRequestV2;
+// @ts-expect-error Mode targets cannot issue editor reveal events.
+const impossibleModeTargetV2:ZlozHistoryChangeFocusTargetV2={type:'mode',side:'baseline',editionId:'a',connectionMode:'loose',event:{type:'NodeRevealRequested',id:'invented'}};void impossibleModeTargetV2;
+if(navigationV2.entries[0]?.entity==='mode') {
+// @ts-expect-error A mode transition is always a changed entry, never added or removed.
+const impossibleModeEntryV2:ZlozHistoryChangeEntryV2={...navigationV2.entries[0],kind:'added'};void impossibleModeEntryV2;
+}
+const navigationViewV2:ZlozHistoryChangeNavigatorViewOptionsV2<EditorEvent>={renderEntry:(entry,h,onFocus)=>h.li([], [zlozHistoryChangeButtonV2(h,entry,onFocus,[],['Packed change '+entry.label])])};
+const navigationOutputV2=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:navigationV2}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed v2 changes',body:zlozHistoryChangeNavigatorV2(h,context,{onFocus:():EditorEvent=>({type:'SelectionCleared'}),onFilter:():EditorEvent=>({type:'SelectionCleared'})},navigationViewV2)})},{flags:{},isHydratable:false}));
+if(!navigationOutputV2.html.includes('data-zloz-history-change-v2="mode"')||!navigationOutputV2.html.includes('Packed change Connection mode'))throw new Error('Missing packed v2 change controls');
 const presentationViewV2:ZlozHistoryPresentationViewOptionsV2<EditorEvent>={renderMode:(context,h)=>h.strong([], [context.modeText]),renderLayout:(parts:ZlozHistoryPresentationPartsV2)=>[...(parts.summary?[parts.summary]:[]),...(parts.mode?[parts.mode]:[])]};
 const presentationGhostsV2:ZlozHistoryGhostOptionsV2<EditorEvent>={renderNode:()=>null};
 // @ts-expect-error Visibility belongs to the resolved context, not the drawing override.

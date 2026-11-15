@@ -49,9 +49,16 @@ Presentation follow-up (2026-11-15): [ADR 0099](../adr/0099-present-v2-compariso
 and [qualification](../../packages/foldkit-zloz/evidence/history-presentation-v2.md)
 record validated v2 context, composable mode/status text and shared inert ghosts
 with retained minimal-mode preferences. Static light/dark fixture evidence is
-separate from mounted workbench/CLI adoption. V2 change navigation with an explicit
-mode entry and side-preserving focus is next; append, restore/playback, adapter
+separate from mounted workbench/CLI adoption. V2 change navigation is recorded below; append, restore/playback, adapter
 adoption and wider C/Q/R gates remain open. C1 stays partial.
+
+Navigation follow-up (2026-11-15): [ADR 0100](../adr/0100-navigate-v2-changes-with-explicit-mode-inspection.md)
+and [qualification](../../packages/foldkit-zloz/evidence/history-navigation-v2.md)
+record scoped v2 mode/graph entries, side-preserving direct/step navigation,
+visible absent-side/protection reasons and optional native/custom controls.
+Independent reviews retain their modes and working history. V2 edition append
+with mode retention and explicit identity-conflict handling is next; merge,
+restore/playback, adapter adoption and wider C/Q/R gates remain open. C1 is partial.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

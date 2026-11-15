@@ -3088,3 +3088,13 @@ export type {
   ZlozHistoryPresentationViewOptionsV2,
   ZlozHistoryGhostOptionsV2,
 } from './history-presentation-v2-view';
+
+export {
+  zlozHistoryChangeNavigatorV2,
+  zlozHistoryChangeButtonV2,
+} from './history-change-navigator-v2-view';
+export type {
+  ZlozHistoryChangeNavigatorHandlersV2,
+  ZlozHistoryChangeNavigatorPartsV2,
+  ZlozHistoryChangeNavigatorViewOptionsV2,
+} from './history-change-navigator-v2-view';

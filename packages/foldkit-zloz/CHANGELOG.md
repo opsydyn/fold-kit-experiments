@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add v2 mode-aware change navigation with scoped cursors, chosen-side focus, live protection reasons and native/custom controls; mode inspection emits no camera or editing event.
+
 - Add validated v2 comparison presentation with composable mode/status text and shared inert ghosts; preserve per-layer preferences through minimal mode.
 
 - Add immutable v2 edition comparison with explicit mode-only semantic changes, shared graph deltas and legacy rejection of explicit v2/loose comparison inputs.

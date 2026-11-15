@@ -1539,3 +1539,27 @@ explicitly decide the retained coordinate/parent model and define opt-in drawabl
 group endpoints (or approve an item-specific deferral), with geometry, policies,
 serialization and Undo acceptance criteria. Existing world-coordinate groups and
 portless frames remain the baseline until that decision is approved.
+
+**C2 group contract — defined, runtime implementation outstanding (2026-11-15):**
+[ADR 0105](adr/0105-define-group-endpoints-and-coordinate-compatibility.md) and its
+[decision challenge](assessments/2026-11-15-zloz-c2-group-contract-decision.md)
+record the inspected baseline and recommended contract: retain world coordinates
+and explicit group parents, add opt-in authored group ports through a future v3
+envelope, preserve strict/loose eligibility and old readers, and keep collapsed
+proxies distinct from authored endpoints. Ported lane/hotspot semantics remain
+invalid. The contract specifies geometry, collapse visibility, live vetoes,
+destructive operations, downgrade refusal and one-Undo acceptance.
+
+This is a definition, not a shipped v3 API or C2 closure. World coordinates and
+explicit parenthood are proposed intentional differences; arbitrary ordinary-node
+parents and nonrectangular group geometry remain item-specific scope decisions,
+not silently accepted deferrals. No public types, graph validators, editors,
+readers, versions or interactions change in this slice.
+
+**Recommended next:** implement the standalone headless v3 group-document contract
+only: strict bounded decoding, capability-aware graph validation, explicit
+v1/v2 upgrade, refusal to downgrade ported groups and literal old-reader fixtures.
+Review/approve the proposed envelope before implementation. Editor/gesture,
+history, layout, export and CLI adoption follow separate compatibility gates;
+no adapter is implicitly qualified by a new document decoder. C1/C3–C4/Q/R remain
+open. No npm publishing or deployment.

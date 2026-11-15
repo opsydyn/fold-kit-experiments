@@ -1,6 +1,6 @@
 ---
 name: foldkit-viz
-description: Use when building or reviewing charts with @opsydyn/foldkit-viz, choosing geometry and scales, using its optional FoldKit rendering adapters, or implementing chart selection, responsive measurement, themes and accessibility. Astro is not required.
+description: Use when building or reviewing charts with @opsydyn/foldkit-viz, choosing geometry and scales, writing declarative plot specs, using its optional FoldKit rendering adapters, plotting column or Arrow data, or implementing chart selection, responsive measurement, themes and accessibility. Astro is not required.
 ---
 
 # FoldKit Viz
@@ -27,7 +27,11 @@ Every subpath in the repository's export map is published in `0.17.0`, including
 `chart/segments`, `chart/intervalBand`, `chart/errorBars`, `shape/globe`, `stateflow`,
 and `chart/orbit` with `foldkit/orbit`, which are new in `0.17.0`. Repository
 main can still move ahead of the published version: check an older installed tarball's
-export map before importing a newer subpath. Word-cloud collision bounds are
+export map before importing a newer subpath. Repository main is ahead now: the plot
+grammar (`./plot`, `./foldkit/plot`, `./canvas/plot`), the keyboard helpers
+(`./interaction/keyboard`, `./foldkit/keyboard`), column tables and Arrow data, and
+the published `./plot-spec.schema.json` are newer than `0.17.0`. Use them only when the
+installed export map has them; see [the plot grammar](references/plot.md). Word-cloud collision bounds are
 conservative measured rectangles, not pixel-mask D3 parity. Supplied interval geometry
 does not infer confidence or statistical significance.
 
@@ -42,6 +46,10 @@ does not infer confidence or statistical significance.
 | FoldKit SVG frame, axes, marks, legend, table | `/foldkit/cartesian` with the parent's `HtmlBuilder`                |
 | State-machine graph layout                    | `/stateflow` (`layoutStateFlow`)                                    |
 | Modules orbiting a core (ball of mud)         | `/chart/orbit`, rendered by `/foldkit/orbit` (`0.17.0`+)       |
+| A standard chart as a JSON spec (newer)       | `/plot` (`compilePlot`), rendered by `/foldkit/plot` or `/canvas/plot` |
+| Column, Arrow or million-row data (newer)     | `/plot` (`columnTable`, `fromArrow`, `dense` dot marks)             |
+| Keyboard paths through chart targets (newer)  | `/interaction/keyboard`, `/foldkit/keyboard`                        |
+| Checking specs another program writes (newer) | `/plot-spec.schema.json`, a JSON Schema for `PlotSpec`              |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.
@@ -77,5 +85,7 @@ When changing package geometry, compare the relevant upstream D3 source and
 edge-case tests; D3 is a reference, not a required runtime dependency. For a
 consumer task, use existing public primitives rather than reimplementing math.
 
-Consult `astro-foldkit` only when embedding into Astro. AG-UI transport, agent
-tools and a declarative chart schema are separate application concerns.
+Consult `astro-foldkit` only when embedding into Astro. AG-UI transport and agent
+tools are separate application concerns. For a declarative chart, use the plot
+grammar's JSON spec and its published schema where the installed version has them,
+rather than inventing a chart format.

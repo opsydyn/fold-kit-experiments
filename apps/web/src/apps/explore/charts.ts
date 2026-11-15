@@ -8,7 +8,7 @@ export const HISTOGRAM = { width: 720, height: 180 } as const;
 
 type Range = readonly [number, number];
 
-const scatterSpec = (domain: Range | null): PlotSpec => {
+export const scatterSpec = (domain: Range | null): PlotSpec => {
   const dots = {
     mark: 'dot' as const,
     x: 'latency',
@@ -34,7 +34,7 @@ const scatterSpec = (domain: Range | null): PlotSpec => {
   };
 };
 
-const histogramSpec = (brushed: Range | null): PlotSpec => {
+export const histogramSpec = (brushed: Range | null): PlotSpec => {
   const bars = {
     mark: 'bar' as const,
     x: 'label',

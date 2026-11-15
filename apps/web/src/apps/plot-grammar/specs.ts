@@ -1,5 +1,6 @@
 import { randomLcg, randomNormal } from '@opsydyn/foldkit-viz/math/random';
-import type { PlotSpec, Row } from '@opsydyn/foldkit-viz/plot';
+import { rowsOf } from '@opsydyn/foldkit-viz/plot';
+import type { PlotData, PlotSpec, Row } from '@opsydyn/foldkit-viz/plot';
 
 /**
  * Example charts written as plain JSON specs (ADR 0037). Each one could have
@@ -191,10 +192,12 @@ export const examples: ReadonlyArray<Example> = [
 ];
 
 /** Long data arrays shown as their first two rows and a count. */
-const summarise = (rows: ReadonlyArray<Row>): ReadonlyArray<Row | string> =>
-  rows.length > 3
+const summarise = (data: PlotData): ReadonlyArray<Row | string> => {
+  const rows = rowsOf(data);
+  return rows.length > 3
     ? [...rows.slice(0, 2), `… ${(rows.length - 2).toLocaleString('en-US')} more rows`]
     : rows;
+};
 
 /** The spec as JSON for display, with long data arrays summarised. */
 export const displaySpec = (spec: PlotSpec): string => {

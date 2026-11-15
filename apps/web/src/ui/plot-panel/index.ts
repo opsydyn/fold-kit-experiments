@@ -3,7 +3,13 @@ import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
 import type { PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
 import { targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import type { ChartCommand } from '@opsydyn/foldkit-viz/interaction/keyboard';
-import { compilePlot, invertAxis, plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import {
+  compilePlot,
+  invertAxis,
+  plotTable,
+  pointerToPlot,
+  rowsOf,
+} from '@opsydyn/foldkit-viz/plot';
 import type {
   Channel,
   Graphic,
@@ -190,9 +196,9 @@ function compile(spec: PlotSpec, markIndex: number): Compiled {
 export const targetsOf = (model: Model): ReadonlyArray<Target> =>
   compile(model.spec, model.mark).targets;
 
-/** The rows a mark draws: its own, or the plot's. */
-const rowsOf = (spec: PlotSpec, mark: MarkSpec | undefined): ReadonlyArray<Row> =>
-  mark?.data ?? spec.data ?? [];
+/** The rows a mark draws, its own or the plot's, as row objects. */
+const markRows = (spec: PlotSpec, mark: MarkSpec | undefined): ReadonlyArray<Row> =>
+  rowsOf(mark?.data ?? spec.data ?? []);
 
 /** A field-name channel, as opposed to a constant. */
 const isFieldName = (channel: Channel | undefined): channel is string =>
@@ -207,7 +213,7 @@ const fieldValue = (row: Row | undefined, channel: Channel | undefined): number 
 /** The row a dot was drawn from: by its key field, or by its position. */
 function rowOf(spec: PlotSpec, markIndex: number, key: string): Row | undefined {
   const mark = markOf(spec, markIndex);
-  const rows = rowsOf(spec, mark);
+  const rows = markRows(spec, mark);
   const keyField = mark?.key;
   if (keyField !== undefined) return rows.find((row) => String(row[keyField]) === key);
   const position = Number(key.split(':')[1]);

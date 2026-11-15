@@ -7,6 +7,25 @@ import type { SymbolType } from '../shape/symbol.js';
 
 export type Value = number | string | boolean | null;
 export type Row = Readonly<Record<string, Value>>;
+/** One field's values, as a plain array or a typed array of numbers. */
+export type Column =
+  | ReadonlyArray<Value>
+  | Float64Array
+  | Float32Array
+  | Int32Array
+  | Int16Array
+  | Int8Array
+  | Uint32Array
+  | Uint16Array
+  | Uint8Array
+  | Uint8ClampedArray;
+/**
+ * Data as named columns of equal length, as Polars, DuckDB and Arrow hold it.
+ * Build one with `columnTable`, or from an Arrow table with `fromArrow`.
+ */
+export type ColumnTable = Readonly<{ length: number; columns: Readonly<Record<string, Column>> }>;
+/** A plot's or a mark's data: row objects, or a column table. */
+export type PlotData = ReadonlyArray<Row> | ColumnTable;
 /** A field name, or a constant. */
 export type Channel = string | Readonly<{ value: Value }>;
 
@@ -27,10 +46,34 @@ export type PositionScaleSpec = Readonly<{
   axis?: boolean;
 }>;
 
+/** A colour scheme from math/schemes, by name. */
+export type SchemeName =
+  | 'tableau10'
+  | 'category10'
+  | 'dark2'
+  | 'set1'
+  | 'blues'
+  | 'greens'
+  | 'reds'
+  | 'oranges'
+  | 'purples'
+  | 'rdBu'
+  | 'spectral'
+  | 'rdYlGn'
+  | 'brBG'
+  | 'wong'
+  | 'ibmCarbon'
+  | 'tolMuted'
+  | 'viridis'
+  | 'magma'
+  | 'inferno'
+  | 'plasma'
+  | 'cividis';
+
 export type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  /** Any scheme in math/schemes. Defaults: tableau10, viridis, rdBu. */
-  scheme?: string;
+  /** A scheme from math/schemes. Defaults: tableau10, viridis, rdBu. */
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   /** Categorical only: explicit colours, in domain order, instead of a scheme. */
   range?: ReadonlyArray<string>;
@@ -105,7 +148,7 @@ export type Highlight = Readonly<{
 }>;
 
 type CommonMark = Readonly<{
-  data?: ReadonlyArray<Row>;
+  data?: PlotData;
   /** Dims rows that do not match. Applies to dot, bar, cell, link and text marks. */
   highlight?: Highlight;
   /** Field giving each row a stable identity. Default: the row's position. */
@@ -435,13 +478,18 @@ export type MarkSpec =
 export type MarkType = MarkSpec['mark'];
 
 export type PlotSpec = Readonly<{
+  /**
+   * The JSON Schema this spec follows, for editors and validators: the package's
+   * plot-spec.schema.json. compilePlot ignores it.
+   */
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;
   title?: string;
   description?: string;
-  /** Rows for every mark without its own `data`. */
-  data?: ReadonlyArray<Row>;
+  /** Data for every mark without its own `data`: rows, or a column table. */
+  data?: PlotData;
   x?: PositionScaleSpec;
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;

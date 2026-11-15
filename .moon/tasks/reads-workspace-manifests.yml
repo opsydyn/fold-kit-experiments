@@ -1,0 +1,5 @@
+# Projects whose checks walk every workspace's manifest hash them all.
+inheritedBy:
+  tags: ['reads-workspace-manifests']
+implicitInputs:
+  - '/**/package.json'

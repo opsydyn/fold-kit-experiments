@@ -1,0 +1,5 @@
+# Projects that read the web app's sources (promo's maintained examples) hash them.
+inheritedBy:
+  tags: ['reads-web-sources']
+implicitInputs:
+  - '/apps/web/src/**/*'

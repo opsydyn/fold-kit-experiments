@@ -239,6 +239,13 @@ it('does not install FoldKit or Effect when npm consumers only need the pure pac
     );
     expect(existsSync(path.join(consumerDir, 'node_modules', 'foldkit'))).toBe(false);
     expect(existsSync(path.join(consumerDir, 'node_modules', 'effect'))).toBe(false);
+    // The plot spec schema ships with the package, at its published subpath.
+    const { stdout: schemaTitle } = await execFileAsync(
+      'node',
+      ['-e', "console.log(require('@opsydyn/foldkit-viz/plot-spec.schema.json').title)"],
+      { cwd: consumerDir, maxBuffer },
+    );
+    expect(schemaTitle.trim()).toBe('foldkit-viz plot spec');
   } finally {
     await fixture.cleanup();
   }

@@ -26,7 +26,7 @@ export function snapToBins(lo: number, hi: number): Range | null {
   return first === undefined || last === undefined ? null : [first[0], last[1]];
 }
 
-const histogramSpec = (brushed: Range | null): PlotSpec => {
+export const histogramSpec = (brushed: Range | null): PlotSpec => {
   const bars = {
     mark: 'rect' as const,
     x: 'ms',
@@ -51,7 +51,7 @@ const histogramSpec = (brushed: Range | null): PlotSpec => {
   };
 };
 
-const scatterSpec = (brushed: Range | null): PlotSpec => {
+export const scatterSpec = (brushed: Range | null): PlotSpec => {
   const dots = {
     mark: 'dot' as const,
     x: 'ms',

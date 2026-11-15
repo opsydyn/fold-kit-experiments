@@ -20,6 +20,12 @@ hasher:
   # only that form); tools/ci-parity.test.ts keeps the two
   # in step. Otherwise a task's own cache, dev-server state or test artifacts
   # would change its hash on every run.
+  #
+  # The one exception is .worktrees/. moon matches these patterns against
+  # absolute paths, so in a checkout that itself lives in a .worktrees folder,
+  # **/.worktrees/** ignores every file and every task hashes nothing. Left out,
+  # a checkout holding worktrees hashes their files into the repo-wide checks,
+  # which can only rerun those checks, never hide a change.
   walkStrategy: vcs
   ignorePatterns:
     - '**/dist/**'
@@ -27,7 +33,6 @@ hasher:
     - '**/storybook-static/**'
     - '**/.wrangler/**'
     - '**/.alchemy/**'
-    - '**/.worktrees/**'
     - '**/packages/astro-foldkit/artifacts/**'
     - '**/apps/web/test-results/**'
     - '**/apps/web/playwright-report/**'

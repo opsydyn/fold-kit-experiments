@@ -45,9 +45,8 @@ tasks:
       cache: false
   pre-push:
     description: >-
-      the CI check job in a fresh checkout of HEAD, reusing the shared cache, so
-      only what changed runs and a stale build or untracked file cannot hide a
-      failure CI would see
+      the CI check job on exactly HEAD: here and cached when this checkout
+      matches HEAD, otherwise in a fresh checkout from an empty cache
     script: bun tools/ci-local.ts ci:check
     options:
       cache: false

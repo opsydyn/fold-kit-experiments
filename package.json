@@ -96,7 +96,7 @@
     "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e",
     "ci:foldkit-zloz": "moon run web:e2e-zloz",
     "ci:astro-compat": "moon run astro-foldkit:compat",
-    "ci:clean": "bun tools/ci-local.ts"
+    "ci:clean": "bun tools/ci-local.ts --fresh"
   },
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",

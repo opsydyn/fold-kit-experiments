@@ -1,30 +1,29 @@
-// Runs root package scripts the way CI does: in a fresh checkout of HEAD, after a
-// frozen install, with CI set, one after another, stopping at the first failure.
+// Runs root package scripts the way CI does, on exactly the commit at HEAD:
+// after a frozen install, with CI set, one after another, stopping at the first
+// failure.
 //
-// A checkout that has been worked in hides failures CI would see: a built
-// dist/ that a typecheck quietly reads, an untracked file a test imports, a
-// lockfile that no longer matches. This checks the commit, not the folder.
-// Uncommitted changes are not included, which is also what a push sends.
+// When this checkout matches HEAD (nothing uncommitted, nothing untracked), the
+// scripts run here, so moon's cache keeps the run to what changed: builds in
+// dist/ are moon outputs, rebuilt or restored to match the sources. Otherwise,
+// or with --fresh, they run in a fresh checkout of HEAD with an empty moon
+// cache, as in CI, so nothing in this folder can hide a failure.
 //
-// The fresh checkout uses this checkout's moon cache (.moon/cache, linked), so
-// only tasks whose inputs differ from an earlier run here run again, and cached
-// builds are restored into it. Pass --no-cache to run everything from an empty
-// cache, as CI does. (moon 2.5's sharedWorktreeCache does not share between
-// `git worktree add` checkouts, hence the link.)
+// A fresh checkout gets its own cache because moon's cache also holds the
+// project graph with absolute paths, so sharing one between checkouts breaks.
 //
-//   bun tools/ci-local.ts [--no-cache] [script...]   (default: ci:check)
+//   bun tools/ci-local.ts [--fresh] [script...]   (default: ci:check)
 //
 // It also warns when the local Bun or Node.js differs from the versions CI uses.
 
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const args = process.argv.slice(2);
-const noCache = args.includes('--no-cache');
-// `bun run ci:clean -- --no-cache` passes the `--` through.
-const named = args.filter((arg) => arg !== '--no-cache' && arg !== '--');
+const fresh = args.includes('--fresh');
+// `bun run ci:clean -- <script>` passes the `--` through.
+const named = args.filter((arg) => arg !== '--fresh' && arg !== '--');
 const scripts = named.length > 0 ? named : ['ci:check'];
 const repo = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).stdout.trim();
 
@@ -41,51 +40,39 @@ if (ciBun !== undefined && Bun.version !== ciBun)
 if (ciNode !== undefined && process.versions.node.split('.')[0] !== ciNode)
   console.warn(`ci-local: Node.js ${process.versions.node} here, ${ciNode} in CI.`);
 
-const dirty = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], {
-  cwd: repo,
-  encoding: 'utf8',
-}).stdout.trim();
-if (dirty !== '') console.warn('ci-local: uncommitted changes are not included; checking HEAD.');
+const git = (gitArgs: ReadonlyArray<string>): string =>
+  spawnSync('git', gitArgs, { cwd: repo, encoding: 'utf8' }).stdout.trim();
+const head = git(['rev-parse', '--short', 'HEAD']);
+// Untracked files count: moon hashes them and tools read them, but CI never sees them.
+const differences = git(['status', '--porcelain']);
+const inPlace = !fresh && differences === '';
+if (!fresh && !inPlace)
+  console.warn(
+    'ci-local: this checkout differs from HEAD (uncommitted or untracked files), so checking ' +
+      'a fresh checkout from an empty cache, which takes longer. Commit or stash to run cached.',
+  );
 
-const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
-  cwd: repo,
-  encoding: 'utf8',
-}).stdout.trim();
-const checkout = mkdtempSync(join(tmpdir(), 'ci-local-'));
 // moon exports MOON_WORKSPACE_ROOT and the rest to its tasks, so when this runs as
-// a moon task (the pre-push hook), a moon started in the fresh checkout would
-// inherit them and run its tasks back in this checkout. Drop them, then set what
-// the workflow sets: moon compares against HEAD, as CI's shallow checkout has no main.
+// a moon task (the pre-push hook), a moon it starts would inherit them and run
+// against the wrong checkout. Drop them, then set what the workflow sets: moon
+// compares against HEAD, as CI's shallow checkout has no main.
 const inherited = Object.entries(process.env).filter(([name]) => !name.startsWith('MOON_'));
-const env = {
-  ...Object.fromEntries(inherited),
-  CI: 'true',
-  MOON_BASE: 'HEAD',
-  MOON_CACHE: noCache ? 'off' : 'read-write',
-};
+const env = { ...Object.fromEntries(inherited), CI: 'true', MOON_BASE: 'HEAD' };
 
 /** Runs one command in a step, reporting how long it took. */
-const run = (label: string, command: string, args: ReadonlyArray<string>, cwd: string): boolean => {
+const run = (label: string, command: string, commandArgs: ReadonlyArray<string>, cwd: string) => {
   const start = performance.now();
   console.log(`\nci-local ▸ ${label}`);
-  const ok = spawnSync(command, args, { cwd, env, stdio: 'inherit' }).status === 0;
+  const ok = spawnSync(command, commandArgs, { cwd, env, stdio: 'inherit' }).status === 0;
   const seconds = ((performance.now() - start) / 1000).toFixed(0);
   console.log(`ci-local ${ok ? '✓' : '✗'} ${label} (${seconds} s)`);
   return ok;
 };
 
-/** Points the fresh checkout's moon cache at this checkout's. */
-const linkCache = (): boolean => {
-  const cache = join(repo, '.moon', 'cache');
-  mkdirSync(cache, { recursive: true });
-  mkdirSync(join(checkout, '.moon'), { recursive: true });
-  symlinkSync(cache, join(checkout, '.moon', 'cache'));
-  console.log(`\nci-local ✓ moon cache linked from ${cache}`);
-  return true;
-};
-
+const checkout = inPlace ? repo : mkdtempSync(join(tmpdir(), 'ci-local-'));
 /** spawnSync reports failures rather than throwing, so only an interrupt skips the cleanup. */
 const removeCheckout = (): void => {
+  if (inPlace) return;
   spawnSync('git', ['worktree', 'remove', '--force', checkout], { cwd: repo });
   rmSync(checkout, { recursive: true, force: true });
 };
@@ -95,12 +82,12 @@ process.once('SIGINT', () => {
 });
 
 type Step = readonly [label: string, perform: () => boolean];
+const checkOut: Step = [
+  `check out ${head}`,
+  () => run(`check out ${head}`, 'git', ['worktree', 'add', '--detach', checkout, 'HEAD'], repo),
+];
 const steps: ReadonlyArray<Step> = [
-  [
-    `check out ${head}`,
-    () => run(`check out ${head}`, 'git', ['worktree', 'add', '--detach', checkout, 'HEAD'], repo),
-  ],
-  ...(noCache ? [] : [['link the moon cache', linkCache] satisfies Step]),
+  ...(inPlace ? [] : [checkOut]),
   [
     'bun install --frozen-lockfile',
     () => run('bun install --frozen-lockfile', 'bun', ['install', '--frozen-lockfile'], checkout),
@@ -110,10 +97,9 @@ const steps: ReadonlyArray<Step> = [
 const failed = steps.find(([, perform]) => !perform())?.[0];
 removeCheckout();
 
+const where = inPlace ? `HEAD (${head}), here and cached` : `a fresh checkout of ${head}`;
 if (failed !== undefined) {
-  console.error(`\nci-local: ${failed} failed on ${head}, as it would in CI.`);
+  console.error(`\nci-local: ${failed} failed on ${where}, as it would in CI.`);
   process.exit(1);
 }
-console.log(
-  `\nci-local: ${scripts.join(', ')} passed on a fresh checkout of ${head}${noCache ? ', from an empty cache' : ''}.`,
-);
+console.log(`\nci-local: ${scripts.join(', ')} passed on ${where}.`);

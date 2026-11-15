@@ -221,7 +221,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun typecheck`           | Typecheck all workspaces                              |
 | `bun run check`           | oxlint + oxfmt format check                           |
 | `bun run ci:check`        | The CI `check` job, cached (see below)                |
-| `bun run ci:clean`        | The CI `check` job in a fresh checkout of HEAD        |
+| `bun run ci:clean`        | The CI `check` job as CI runs it, from scratch        |
 | `bun run hooks:install`   | Install the pre-commit and pre-push hooks             |
 
 ### CI and local checks
@@ -233,13 +233,12 @@ from the workspace graph, and caches every task by the hash of its inputs and
 its dependencies' outputs. A run repeats only what a change can affect, and
 restores cached builds into `dist/`.
 
-| Command                          | Runs                                                                        |
-| :------------------------------- | :-------------------------------------------------------------------------- |
-| `bun run ci:check`               | The CI `check` job: lint, typecheck, test, build, API reports, size budgets |
-| `bun run ci:clean`               | `ci:check` in a fresh checkout of HEAD, reusing this checkout's cache       |
-| `bun run ci:clean -- --no-cache` | The same from an empty cache, as CI runs it                                 |
-| `bun moon run web:typecheck`     | One task and what it depends on                                             |
-| `bun moon run :test`             | One task in every project                                                   |
+| Command                      | Runs                                                                        |
+| :--------------------------- | :-------------------------------------------------------------------------- |
+| `bun run ci:check`           | The CI `check` job: lint, typecheck, test, build, API reports, size budgets |
+| `bun run ci:clean`           | `ci:check` in a fresh checkout of HEAD from an empty cache, as in CI        |
+| `bun moon run web:typecheck` | One task and what it depends on                                             |
+| `bun moon run :test`         | One task in every project                                                   |
 
 `ci:check` runs in two phases. Everything runs in parallel first; then the tests
 that rebuild or pack packages themselves (each package's `integration` task, its
@@ -250,13 +249,15 @@ from an empty cache, about three minutes.
 `bun run hooks:install` installs two hooks, once per clone:
 
 - **pre-commit**: formats and lints the staged files, in seconds.
-- **pre-push**: `ci:clean`, so a build or untracked file left in your checkout
-  cannot hide a failure CI would see, while the shared cache keeps it to the
-  tasks your commits affect.
+- **pre-push**: `ci:check` on exactly HEAD. When your checkout matches HEAD it
+  runs there, cached, so only what your commits affect runs again. With
+  uncommitted or untracked files it checks a fresh checkout from an empty cache
+  instead, which takes a few minutes, so nothing outside the commit can hide a
+  failure CI would see.
 
 Skip either with `--no-verify`. The hooks apply to every worktree of the clone,
-and do nothing in a checkout without `moon.yml`. `ci:clean` warns when your Bun
-or Node.js differs from CI's.
+and do nothing in a checkout without `moon.yml`. Both warn when your Bun or
+Node.js differs from CI's.
 
 `tools/ci-parity.test.ts` keeps all of this in step: each CI job runs its
 `ci:<job>` script; each moon task equals its package script; moon builds what a

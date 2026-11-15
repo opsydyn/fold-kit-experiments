@@ -2,8 +2,8 @@
 import { themePreferenceStorageKey } from '../editor/theme';
 import '@fontsource-variable/inter/wght.css';
 import zlozMark from '../../../../docs/assets/zloz/final/mark.svg?raw';
-interface Props { title?: string; heading?: string; mainLabel?: string; connections?: boolean }
-const { title = 'Architecture workbench | Foldkit Zloz', heading = 'Architecture workbench', mainLabel = 'Workflow workbench', connections = false } = Astro.props;
+interface Props { title?: string; heading?: string; mainLabel?: string; connections?: boolean; history?: boolean }
+const { title = 'Architecture workbench | Foldkit Zloz', heading = 'Architecture workbench', mainLabel = 'Workflow workbench', connections = false, history = false } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
@@ -30,7 +30,7 @@ const { title = 'Architecture workbench | Foldkit Zloz', heading = 'Architecture
     </script>
   </head>
   <body>
-    <header><div class="zloz-brand"><span class="zloz-mark" aria-hidden="true" set:html={zlozMark} /><strong>Foldkit Zloz</strong><span class="workbench-title">{heading}</span></div><nav aria-label="Workbench navigation"><a href={connections ? "/" : "/connections/"}>{connections ? "Architecture workbench" : "Connection workbench"}</a><a href="https://opsydyn.github.io/fold-kit-experiments/zloz/api/">API contracts ↗</a></nav></header>
+    <header><div class="zloz-brand"><span class="zloz-mark" aria-hidden="true" set:html={zlozMark} /><strong>Foldkit Zloz</strong><span class="workbench-title">{heading}</span></div><nav aria-label="Workbench navigation"><a href={history ? "/connections/" : "/history/"}>{history ? "Connection workbench" : "History workbench"}</a><a href={connections || history ? "/" : "/connections/"}>{connections || history ? "Architecture workbench" : "Connection workbench"}</a><a href="https://opsydyn.github.io/fold-kit-experiments/zloz/api/">API contracts ↗</a></nav></header>
     <main aria-label={mainLabel}><slot /></main>
   </body>
 </html>

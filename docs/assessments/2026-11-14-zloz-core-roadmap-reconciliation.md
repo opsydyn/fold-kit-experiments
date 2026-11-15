@@ -62,9 +62,16 @@ restore/playback, adapter adoption and wider C/Q/R gates remain open. C1 is part
 Append follow-up (2026-11-15): [ADR 0101](../adr/0101-append-v2-editions-with-explicit-identity-conflicts.md)
 and [qualification](../../packages/foldkit-zloz/evidence/edition-append-v2.md)
 record validated immutable mode-preserving append with duplicate/conflict reasons
-and read-only pins, without overwriting existing identities. Atomic v2 merge with
-idempotent identical imports and explicit conflicts is next; restore/playback,
+and read-only pins, without overwriting existing identities. The history/workflow batch is recorded below; restore/playback,
 adapter adoption and wider C/Q/R gates remain open. C1 stays partial.
+
+History batch follow-up (2026-11-15): [ADR 0102](../adr/0102-complete-v2-history-workflows.md)
+and [qualification](../../packages/foldkit-zloz/evidence/history-workflow-v2.md)
+record atomic mixed-mode merge, guarded graph+mode restore/Undo, pinned playback,
+side-aware presentation and the mounted `/history/` workspace. The approved v2
+history/workflow batch is closed locally. Broader portable-adapter capability/
+format decisions are the next bounded batch; C1 portability and C2–C4/Q/R stay open.
+No npm publication/deployment or blanket parity claim.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

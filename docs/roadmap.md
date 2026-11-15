@@ -1194,5 +1194,28 @@ This headless slice adds no UI or persistence authority. V2 merge, restore/playb
 CLI/workbench and wider C/Q/R gates remain open; C1 stays partial. No npm publishing
 or deployment.
 
-**Recommended next:** atomic v2 edition merge with idempotent identical imports
-and explicit identity conflicts before restore/playback adoption.
+**C1 v2 history/workflow completion batch — implemented locally (2026-11-15), unreleased:**
+Atomic v2 merge validates both collections, skips identical imports and blocks all
+conflicting additions. V2 model sessions own graph+mode Undo frames with compatible
+graph projections; guarded restore rechecks revision, lifecycle and live policies,
+including mode-only transactions. Mixed-mode playback pins independent read-only
+reviews, with opt-in timing, pause/rewind and reduced-motion handling. Side-aware
+ghosts retain chronological meaning; incompatible clipboard paste after cross-mode
+Undo reports a reason without losing data or Redo.
+
+The mounted `/history/` workspace composes capture, bounded v2 model/archive I/O,
+comparison/ghosts/change navigation, playback and protected preview/restore in four
+sidebar sections. Epoch/run/import tokens reject stale work; previous working
+sessions retain their own history. Light/dark/minimal and real mounted file/playback
+flows are qualified. See [ADR 0102](adr/0102-complete-v2-history-workflows.md),
+[package qualification](../packages/foldkit-zloz/evidence/history-workflow-v2.md) and
+[mounted evidence](../apps/zloz-demo/evidence/history-workflow-v2.md).
+
+This closes the approved **v2 history/workflow batch**, not all C1 compatibility.
+Existing architecture/connection workspaces remain independent. V1 formats reject
+v2 input; broader patch/receipt/review-packet/Mermaid/CLI and layout adoption remains
+separate. C2–C4/Q/R are unchanged. No npm publishing or deployment.
+
+**Recommended next:** reconcile the remaining portable-adapter gaps into one
+bounded v2 compatibility batch, with explicit format/capability decisions before
+changing projection or Apply behavior.

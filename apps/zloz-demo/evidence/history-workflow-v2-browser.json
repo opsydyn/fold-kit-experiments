@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "provenance": "local production build, mounted Chromium",
+  "cases": [
+    "mode inspection without camera move",
+    "baseline/selected ghost geometry and chronological meaning",
+    "light/dark/minimal",
+    "protected preview and cross-mode Undo/Redo",
+    "capture/download/import/conflict/invalid UTF-8",
+    "previous working session history",
+    "play/pause/rewind/reduced motion"
+  ],
+  "pageErrors": []
+}

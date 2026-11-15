@@ -20,6 +20,7 @@ import c4ReceiptWire from '../../foldkit-zloz/test/fixtures/c4-conversion-v1.jso
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
+import modelV3Wire from '../../foldkit-zloz/test/fixtures/model-v3.json';
 import workshopWire from '../../foldkit-zloz/test/fixtures/workshop-v1.json';
 import { run, CliDiagnostic, inputByteLimit } from '../src/index';
 
@@ -1335,4 +1336,18 @@ test('native CLI packet creation enforces its own UTF-8 reopening limit before r
   );
   expect(result.code).toBe(1);
   expect(JSON.parse(result.text).diagnostics[0].code).toBe('packet-limit');
+});
+
+test('explicit v3 compatibility inspector retains all checkpoint capabilities and lists unsupported adapters without conversion', async () => {
+  const valid = await invoke(['compatibility', 'inspect-v3'], JSON.stringify(modelV3Wire));
+  expect(valid.code).toBe(0);
+  const report = JSON.parse(valid.text);
+  expect(report.operation).toBe('compatibility-inspect');
+  expect(report.data.version).toBe(3);
+  expect(report.data.downgrade.type).toBe('blocked');
+  expect(report.data.adapters.find((a: { adapter: string }) => a.adapter === 'svg').status).toBe(
+    'requires-version',
+  );
+  expect((await invoke(['compatibility', 'inspect-v3'], '{"version":3,"version":3}')).code).toBe(2);
+  expect((await invoke(['compatibility', 'inspect-v3'], empty)).code).toBe(2);
 });

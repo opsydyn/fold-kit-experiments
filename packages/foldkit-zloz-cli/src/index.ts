@@ -4,6 +4,8 @@
  */
 import {
   assessPortableCompatibilityV2,
+  assessPortableCompatibilityV3,
+  parseModelDocumentV3,
   parseModellingPatchV2,
   dryRunModellingPatchV2,
   auditConnectionDddRelationships,
@@ -654,8 +656,39 @@ const compatibilityInspect = Command.make('inspect', { input }, (config) =>
     'Read-only v2 model adapter capabilities and downgrade findings. No conversion or Apply.',
   ),
 );
+const compatibilityInspectV3 = Command.make('inspect-v3', { input }, (config) =>
+  Effect.gen(function* () {
+    const text = yield* readTextInput(config.input).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('compatibility-inspect', error)),
+    );
+    const decoding = Effect.try({
+      try: () => parseModelDocumentV3(text),
+      catch: (cause) =>
+        new CliInputError({
+          code: 'invalid-document',
+          message: String(cause),
+          dimension: 'semantics',
+          subject: config.input,
+        }),
+    }).pipe(
+      Effect.catchTag('CliInputError', (error) => rejectInput('compatibility-inspect', error)),
+    );
+    const model = yield* decoding;
+    yield* writeResponse({
+      protocol: cliProtocol,
+      operation: 'compatibility-inspect',
+      status: 'inspected',
+      data: assessPortableCompatibilityV3(model),
+      diagnostics: [],
+    });
+  }),
+).pipe(
+  Command.withDescription(
+    'Read-only canonical v3 capabilities, explicit adapter limits and downgrade findings. No conversion or Apply.',
+  ),
+);
 const compatibilityCommand = Command.make('compatibility').pipe(
-  Command.withSubcommands([compatibilityInspect]),
+  Command.withSubcommands([compatibilityInspect, compatibilityInspectV3]),
 );
 const direction = Flag.Literals('direction', ['LR', 'RL', 'TB', 'BT']).pipe(Flag.withDefault('LR'));
 const lossPolicy = Flag.Literals('loss-policy', ['reject', 'report']).pipe(

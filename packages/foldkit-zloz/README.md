@@ -6272,3 +6272,316 @@ The optional Mermaid package provides `createReviewPacketV2`,
 `parseReviewPacketV2` and `openReviewPacketV2` for selected-snapshot evidence and
 independent read-only review. Its v1 entries remain fixed at v1. Mounted workbench
 file/control adoption is a separate slice; these APIs are package-owned.
+
+### Standalone v3 group documents
+
+The v3 wire envelope makes world coordinates, connection mode and the group-port
+capability explicit. It is a standalone data contract, not an editor/model/archive
+version or an npm package version. Existing v1/v2 readers and editors keep their
+portless-group rules; no editor option silently widens them.
+
+```ts
+import {
+  captureGroupDocumentV3,
+  parseGroupDocumentV3,
+  serializeGroupDocumentV3,
+  upgradeGroupDocumentV3,
+  planGroupDocumentDowngradeV3,
+} from '@opsydyn/foldkit-zloz';
+
+const document = captureGroupDocumentV3({
+  version: 3,
+  coordinateSpace: 'world',
+  connectionMode: 'strict',
+  capabilities: { groupPorts: true },
+  graph: {
+    nodes: [
+      {
+        id: 'orders',
+        label: 'Orders boundary',
+        kind: 'group',
+        position: { x: 100, y: 80 },
+        size: { width: 400, height: 300 },
+        ports: [{ id: 'events', kind: 'output', side: 'right', offset: 0.5 }],
+      },
+    ],
+    edges: [],
+  },
+});
+const decoded = parseGroupDocumentV3(serializeGroupDocumentV3(document));
+const downgrade = planGroupDocumentDowngradeV3(document); // blocked, including unconnected ports
+const upgraded = upgradeGroupDocumentV3({ graph: { nodes: [], edges: [] } });
+// upgraded has strict mode and groupPorts: false; no source data is mutated.
+```
+
+`captureGroupDocumentV3` owns and freezes plain data without executing getters or
+`toJSON`; malformed construction throws `ZlozError`. `validateGroupDocumentV3`
+revalidates the full envelope. `parseGroupDocumentV3` returns `parsed` with a frozen
+value or `rejected` with `code`, `reason` and JSON Pointer `path`, never a partial
+value. Syntax/limits/malformed data are distinguished from unsupported versions,
+coordinates or capabilities. Invalid limit options throw rather than weakening
+validation. Limits can only tighten the defaults: 2,000,000 UTF-16 characters,
+depth 64 and 100,000 values. Hosts separately bound bytes and decode UTF-8.
+Serialization also checks the canonical output against reopening limits. Capture
+publishes native JSON number canonicalization (including negative zero to zero);
+nonfinite values are rejected before encoding.
+
+Only groups can parent children, with positions retained in world coordinates at
+every depth. Group ports require `capabilities.groupPorts: true`; lanes and
+hotspots remain portless. C4/DDD descriptors and ordered connection meaning are
+not inferred from ports. Unknown structural fields are rejected; use `data` for
+owned JSON extensions.
+
+`upgradeGroupDocumentV3` accepts only standalone v1 graph/snapshot envelopes,
+unversioned snapshots or v2 connection documents. It preserves coordinates,
+identity, camera and mode (strict for v1), enabling no group ports. It rejects
+model/archive envelopes and unknown structural fields instead of guessing or
+silently dropping them. A portless downgrade produces a detached reviewed v2
+`document`; removing an enabled future group-port capability is disclosed in
+`losses`. Ported groups produce findings and **no target**, without dropping ports
+or retargeting edges. Neither operation grants Apply authority.
+
+The structurally shared `ZlozGroupGraphV3` is meaningful under its full v3
+envelope; extracting just `graph` does not carry its capability into an old API.
+Explicit v3 editor initialization and document Undo are described below. Canonical
+model/edition history, patches/receipts, layouts, image export, Mermaid, CLI and
+native controls remain separate version-required adoption gates.
+See [qualification](evidence/group-document-v3.md) before assuming adapter support.
+
+### Explicit v3 editor sessions and document Undo
+
+`createGroupEditorV3` initializes a distinct headless session from the **complete**
+validated v3 document. It owns/freezes the input, preserves mode/capability/camera
+and starts at revision zero. The host supplies a unique `sessionId` for each new
+incarnation. Sessions are trusted runtime state, not a serialized archive. They
+have a single authored `document` and deliberately have no legacy `graph` root.
+
+```ts
+import {
+  createGroupEditorV3,
+  captureGroupEditorSourceV3,
+  applyGroupEditorTransactionV3,
+  updateGroupEditorV3,
+  resolveGroupEditorBoundaryV3,
+} from '@opsydyn/foldkit-zloz';
+
+// document is the v3 envelope from the preceding example.
+const editor = createGroupEditorV3(document, {
+  sessionId: 'host-allocated-incarnation',
+  historyLimit: 100,
+});
+const applied = applyGroupEditorTransactionV3(editor, {
+  source: captureGroupEditorSourceV3(editor),
+  document: { ...editor.document, viewport: { x: 40, y: 20, zoom: 1.25 } },
+});
+const undone = updateGroupEditorV3(applied.editor, {
+  type: 'UndoPressed',
+  source: captureGroupEditorSourceV3(applied.editor),
+});
+const clipboard = resolveGroupEditorBoundaryV3(undone.editor, 'clipboard');
+// blocked: version-required; keep the envelope or plan an explicit downgrade.
+```
+
+Apply takes an exact source token and a complete proposed document. It returns
+`applied`, `unchanged` or `blocked` with a `code` and visible `reason`; all outcomes
+carry `editor`. Publish only that returned session. A stale session/revision/full
+document, invalid target, active `activity`, read-only state, disabled history,
+exhausted revision or policy veto leaves the original session/history unchanged.
+No-op retains references and Redo. New changes clear Redo; history defaults to 100
+frames and may be bounded to 0–1000. Zero disables authored changes in this API.
+Constructor misuse throws `ZlozError`; unexpected host/policy exceptions propagate.
+
+Undo/Redo require fresh tokens and rerun live policies in the travel direction.
+Each frame retains its own full v3 document, including strict/loose mode,
+coordinate convention, group-port capability and optional viewport. Revision
+always increases, including travel. Permissions and lifecycle never rewind.
+Hosts update `readOnly` and the tagged `activity` (`idle` or `busy` with a reason)
+in their immutable model; documents and history remain package-owned values.
+
+The optional third argument is `ZlozGroupEditorPolicyV3`: existing granular
+`EditorPolicy` hooks plus `canCommitGroupDocumentV3(candidate)`. The latter receives
+frozen `source`, `target`, operation (`apply`/`undo`/`redo`), session and revision,
+and covers combined changes, labels/data, mode, capability and camera. Return a
+reason to veto, including during Undo. Port removal/deletion/reconnection checks
+cover the complete changed entities. A protected incident edge prevents removal;
+changing group/ordinary node kind cannot reuse shared port identities. The guard
+is symmetric so an accepted promotion has a reversible inverse. Explicit
+port/connection removal or replacement may be part of the same complete
+transaction, so Undo can reverse the introduction of a group boundary.
+
+This transaction does **not** infer a drag, group expansion, deletion or reparent
+plan: include every intended affected child/ancestor in the target, retaining
+world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
+`createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
+`resolveGroupEditorBoundaryV3` returns unchanged for the distinct native-controls,
+model and edition entries; unsupported clipboard, layout, SVG/PNG, Mermaid,
+patch and review-packet entries remain blocked.
+It is a compatibility decision, never adapter authority. Standalone document
+serialization works; no other adapter is qualified by extracting its bare graph.
+See [the editor qualification receipt](evidence/group-editor-v3.md) and
+[ADR 0106](../../docs/adr/0106-initialize-v3-editor-sessions-with-document-history.md).
+
+### Headless v3 group-port editing
+
+`planGroupPortEditV3` previews one group-port edit against the exact live v3 source.
+It returns `ready`, `unchanged` or `blocked` with a visible `code` and `reason`.
+Ready plans contain an owned `request`, a complete `transaction`, `before`/`after`
+port values and all `removedEdges`. Preview leaves editor, revision and Undo/Redo
+history untouched. These APIs are in the peer-free core entry.
+
+```ts
+import {
+  planGroupPortEditV3,
+  applyGroupPortEditV3,
+  captureGroupEditorSourceV3,
+  updateGroupEditorV3,
+  type ZlozGroupPortEditRequestV3,
+  type ZlozGroupEditorPolicyV3,
+} from '@opsydyn/foldkit-zloz';
+
+// editor is the explicitly initialized v3 session above.
+const policy: ZlozGroupEditorPolicyV3 = {
+  canEditPort: ({ port }) => (port.id === 'audit' ? 'This audit socket is protected.' : null),
+};
+const request: ZlozGroupPortEditRequestV3 = {
+  source: captureGroupEditorSourceV3(editor),
+  edit: { operation: 'remove', endpoint: { node: 'orders', port: 'events' } },
+};
+const preview = planGroupPortEditV3(editor, request, policy);
+if (preview.type === 'ready') {
+  // Show preview.before/after and every preview.removedEdges before user action.
+  // Apply takes intent, recomputing current protections; the target is not authority.
+  const result = applyGroupPortEditV3(editor, preview.request, policy);
+  const undone = updateGroupEditorV3(
+    result.editor,
+    {
+      type: 'UndoPressed',
+      source: captureGroupEditorSourceV3(result.editor),
+    },
+    policy,
+  );
+}
+```
+
+| Edit `operation` | Payload                              | Authored effect                                                                    |
+| ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| `add`            | `nodeId`, full identified `port`     | Appends the port; existing order is retained.                                      |
+| `label`          | `endpoint`, `label: string \| null`  | Sets the exact string, including empty; `null` removes the optional field.         |
+| `position`       | `endpoint`, `position: PortPosition` | Switches exclusive offset/anchor representation; keeps identity, kind and label.   |
+| `remove`         | `endpoint`                           | Removes the port and every attached source/target edge, including self-loops once. |
+
+An eligible existing group and explicit `capabilities.groupPorts: true` are
+required. Ordinary nodes, EventStorming lanes/hotspots, missing nodes/ports,
+duplicate port IDs and malformed edits report reasons without promoting nodes,
+enabling capability or dropping unrelated content. Edit objects are bounded,
+owned plain data: getters are rejected without evaluation, unknown fields are
+rejected and position geometry uses the existing finite `[0,1]` port contract.
+No snapping, direction/kind change or inferred endpoint creation is performed.
+
+Preview and Apply reuse the v3 kernel's exact source/session/revision/lifecycle,
+read-only, history and capacity checks. Existing granular port/edge policies and
+`canCommitGroupDocumentV3` receive frozen complete data. Protected incident edges
+veto the whole removal. Apply rebuilds from the request and reruns live checks;
+passing a cached document transaction as edit intent is rejected. It invokes the
+proposed-change policy once, with no hidden prospective editor/history allocation.
+Unexpected policy defects propagate without publishing state.
+
+A successful edit, including all attached-edge deletions, is one Undo unit.
+Undo/Redo rerun the current policies and retain full mode, capability, world
+coordinates, metadata and camera. No-op retains editor identity and Redo; a new
+actual edit clears Redo. Use the returned `editor` for every outcome.
+
+These are headless runtime plans, not a new wire artifact, native control,
+connection/reconnection planner or canonical model/adapter upgrade. Those adoption
+gates stay explicit. See [qualification](evidence/group-port-edit-v3.md) and
+[ADR 0107](../../docs/adr/0107-plan-v3-group-port-edits-through-live-transactions.md).
+
+### V3 connections, group operations and native workbench
+
+Use `planGroupConnectionV3` / `applyGroupConnectionV3` for explicit creation sets
+and reconnection. Every request pins `captureGroupEditorSourceV3(editor)` and
+preserves ordered endpoint identity. A protected or invalid member rejects a
+whole explicit connection set. Reconnection retains edge identity/metadata.
+`planGroupOperationV3` / `applyGroupOperationV3` implement move, resize, reparent,
+group, ungroup and delete with complete descendant/ancestor effects. Extents,
+resize limits and live policies are checked before one Undo publication. A ported
+group cannot be ungrouped implicitly: first handle its ports/connections explicitly.
+
+```ts
+import {
+  captureGroupEditorSourceV3,
+  planGroupConnectionV3,
+  applyGroupConnectionV3,
+} from '@opsydyn/foldkit-zloz';
+
+const request = {
+  source: captureGroupEditorSourceV3(editor),
+  edit: {
+    operation: 'create',
+    edges: [
+      {
+        id: 'orders-api',
+        source: { node: 'orders', port: 'api' },
+        target: { node: 'warehouse', port: 'input' },
+      },
+    ],
+  },
+} as const;
+const preview = planGroupConnectionV3(editor, request, livePolicy);
+// On explicit confirmation, rebuild against the current editor and policy.
+const result = applyGroupConnectionV3(editor, request, livePolicy);
+```
+
+`createGroupWorkbenchV3(document, { sessionId })` and
+`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose native/custom
+controls without creating a legacy editor. Keep the returned model in the host
+Foldkit Model. `zlozGroupWorkbenchV3`, `zlozGroupInspectorV3`,
+`zlozGroupActionV3` and `zlozGroupDragHandleV3` are optional `/foldkit` views.
+Use unique view IDs. Custom node content remains beside live ports; compose the
+drag-handle primitive and place custom interactive controls outside its button.
+Theme tokens and existing diagnostics/minimal settings apply. Policy reasons stay
+with protected controls; announcements remain accessible in minimal mode.
+Pointer/touch capture and cleanup use the existing scoped input resource.
+
+The v3 surface qualifies pointer node movement/connections, keyboard
+selection/nudging/connections, inspector resizing/group-port edits/reconnection,
+collapse and custom content/actions. Direct pointer resize/reconnection,
+port-anchor dragging, box selection, pinch and minimap remain outside this v3
+surface's qualified subset. `captureGroupWorkbenchDocumentV3` captures the live
+camera for save/checkpoint DTOs without mutating the editor. A host can publish
+that camera through the ordinary v3 transaction before capturing an edition.
+
+### Canonical v3 models and editions
+
+`captureModelDocumentV3`, `serializeModelDocumentV3` and `parseModelDocumentV3`
+validate a canonical `{id,name,snapshot,editions,origin}` body. The wire format is
+`foldkit-zloz-model`, version 3. Each current/edition/origin snapshot retains its
+own full v3 capability, mode and camera. `captureEditionV3`, `serializeEditionsV3`
+and `parseEditionsV3` own/freeze archive entries. Limits: 16,000,000 UTF-16 text
+characters, depth 80, 1,000,000 JSON values and 1,000 editions; each checkpoint
+also keeps the tighter standalone 2,000,000/depth-64/100,000-value limits.
+Unknown/duplicate fields, duplicate edition IDs, prototypes/accessors and invalid
+numbers reject. V1/v2 readers reject v3; `upgradeModelDocumentV3` is explicit.
+
+`createModelEditorV3` requires a fresh host session identity. `captureWorkingModelV3`
+builds a canonical DTO from the live editor. `createHistoryReviewV3` creates an
+independent read-only, history-disabled session. `compareEditionsV3` reports graph,
+mode-only and capability-only changes. `mergeEditionsV3` is additive/idempotent;
+conflicting IDs return no prospective archive. `forkModelDocumentV3` requires a
+new model ID and pins the exact immediate-parent edition. `restoreModelEditionV3`
+pins model identity, exact catalogue entry and source session/revision/document,
+reruns live policies and publishes one complete-document Undo unit.
+
+`planModelDocumentDowngradeV3` inspects every checkpoint; any authored group port
+blocks the entire downgrade and returns no target. Removing an unused enabled
+group-port capability is an explicit finding. Never extract a bare graph to
+bypass a version or capability boundary.
+
+`assessPortableCompatibilityV3` inventories checkpoints and independently reports
+entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
+prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
+V3 clipboard, layout, SVG/PNG, Mermaid, patches, conversion receipts, review
+packets and relationship audits remain version-required. Their v1/v2 APIs are
+unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
+Mermaid import, server PNG, broad performance and human device/screen-reader
+acceptance remain explicit release limits. See [batch qualification](evidence/v3-core-batch.md).

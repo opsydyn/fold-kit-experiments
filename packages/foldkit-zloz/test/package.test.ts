@@ -14,6 +14,8 @@ import connectionWire from './fixtures/connection-v2-loose.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
 import nativeDddWire from './fixtures/ddd-conversion-v2.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
+import groupV1Wire from './fixtures/group-document-v1-portless.json';
+import groupV3Wire from './fixtures/group-document-v3-ported.json';
 import nativeModelWire from './fixtures/model-native-v2.json';
 import modelModesWire from './fixtures/model-v2-modes.json';
 import nativePatchWire from './fixtures/modelling-patch-v2.json';
@@ -330,6 +332,77 @@ const roleEditor=updateEditor(controlEditor,roleResult.event,dddRelationshipPoli
 if(roleEditor.past.length!==1||resolveDddRelationshipControls(roleEditor,link.id).downstream?.value!=='conformist')throw new Error('Missing DDD Undo contract');
 console.log('headless-architecture-ok');
 `;
+    const groupConsumerSource = `
+import {planGroupPortEditV3,applyGroupPortEditV3,createGroupEditorV3,captureGroupEditorSourceV3,applyGroupEditorTransactionV3,updateGroupEditorV3,resolveGroupEditorBoundaryV3,updateEditor,captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
+import type {ZlozGroupPortEditV3,ZlozGroupPortEditRequestV3,ZlozGroupPortEditPlanV3,ZlozGroupPortEditResultV3,ZlozGroupEditorStateV3,ZlozGroupEditorPolicyV3,ZlozGroupEditorResultV3,ZlozGroupEditorSourceV3,ZlozGroupEditorTransactionV3,ZlozGroupEditorEventV3,ZlozGroupEditorBoundaryV3,ZlozGroupEditorOptionsV3,ZlozGroupEditorCommitV3,ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
+const doc:ZlozGroupDocumentV3=captureGroupDocumentV3(${JSON.stringify(groupV3Wire)});
+const caps:ZlozGroupCapabilitiesV3=doc.capabilities;
+validateGroupDocumentV3(doc);
+const parsed:ZlozGroupDocumentV3ParseResult=parseGroupDocumentV3(serializeGroupDocumentV3(doc));
+const blocked:ZlozGroupDocumentDowngradePlanV3=planGroupDocumentDowngradeV3(doc);
+if(parsed.status!=='parsed'||!caps.groupPorts||blocked.type!=='blocked'||'document' in blocked||portPosition(doc.graph.nodes[1]!,'out').x!==500||groupDocumentV3Limits.maxDepth!==64)throw new Error('Missing group v3 boundary');
+let rejected=false;
+try { createEditor(doc.graph); } catch { rejected=true; }
+if(!rejected)throw new Error('Widened legacy editor');
+const upgraded=upgradeGroupDocumentV3(${JSON.stringify(groupV1Wire)});
+const plan=planGroupDocumentDowngradeV3(upgraded);
+if(plan.type!=='reviewable'||parseConnectionDocument(JSON.stringify(plan.document)).connectionMode!=='strict')throw new Error('Missing explicit group upgrade/downgrade');
+// @ts-expect-error v3 document version is not a v2 envelope.
+const oldVersion:ZlozGroupDocumentV3={...doc,version:2};
+// @ts-expect-error capability is required in the public document contract.
+const missingCapability:ZlozGroupDocumentV3={version:3,coordinateSpace:'world',connectionMode:'strict',graph:doc.graph};
+const editorOptions:ZlozGroupEditorOptionsV3={sessionId:'installed-v3'};
+const session:ZlozGroupEditorStateV3=createGroupEditorV3(doc,editorOptions);
+const source:ZlozGroupEditorSourceV3=captureGroupEditorSourceV3(session);
+const transaction:ZlozGroupEditorTransactionV3={source,document:{...doc,viewport:{x:40,y:10,zoom:2}}};
+const checked:ZlozGroupEditorCommitV3[]=[];
+const policy:ZlozGroupEditorPolicyV3={canCommitGroupDocumentV3:change=>{checked.push(change);return null;}};
+const applied:ZlozGroupEditorResultV3=applyGroupEditorTransactionV3(session,transaction,policy);
+if(applied.type!=='applied'||applied.editor.history.past.length!==1||'graph' in applied.editor)throw new Error('Missing explicit v3 editor/transaction');
+const undoEvent:ZlozGroupEditorEventV3={type:'UndoPressed',source:captureGroupEditorSourceV3(applied.editor)};
+const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
+const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
+if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
+const boundary:ZlozGroupEditorBoundaryV3='clipboard';
+if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
+if(false){
+// @ts-expect-error legacy reducer cannot consume v3 sessions.
+updateEditor(session,{type:'UndoPressed'});
+// @ts-expect-error v3 creation does not accept a bare graph.
+createGroupEditorV3(doc.graph,editorOptions);
+// @ts-expect-error history events require exact source freshness.
+updateGroupEditorV3(session,{type:'UndoPressed'});
+}
+const portEdit:ZlozGroupPortEditV3={operation:'remove',endpoint:{node:'g',port:'out'}};
+const portRequest:ZlozGroupPortEditRequestV3={source:captureGroupEditorSourceV3(session),edit:portEdit};
+const portPlan:ZlozGroupPortEditPlanV3=planGroupPortEditV3(session,portRequest);
+if(portPlan.type!=='ready'||portPlan.removedEdges[0]?.id!=='boundary-link'||session.revision!==0)throw new Error('Missing headless group port preview');
+const portResult:ZlozGroupPortEditResultV3=applyGroupPortEditV3(session,portPlan.request);
+if(portResult.type!=='applied'||portResult.editor.history.past.length!==1||portResult.editor.document.graph.edges.length!==0||updateGroupEditorV3(portResult.editor,{type:'UndoPressed',source:captureGroupEditorSourceV3(portResult.editor)}).editor.document.graph.edges[0]?.id!=='boundary-link')throw new Error('Missing atomic group port removal/Undo');
+if(applyGroupPortEditV3(session,portPlan.request,{canDelete:()=> 'Protected edge.'}).type!=='blocked')throw new Error('Cached preview authorized protected removal');
+if(false){
+// @ts-expect-error a cached document transaction is not editable group-port intent.
+applyGroupPortEditV3(session,portPlan.transaction);
+// @ts-expect-error label removal is explicit null, not undefined.
+const invalidLabel:ZlozGroupPortEditV3={operation:'label',endpoint:{node:'g',port:'out'},label:undefined};
+}
+import {planGroupConnectionV3,applyGroupConnectionV3,planGroupOperationV3,applyGroupOperationV3,captureModelDocumentV3,serializeModelDocumentV3,parseModelDocumentV3,createModelEditorV3,createHistoryReviewV3,compareEditionsV3,mergeEditionsV3,forkModelDocumentV3,restoreModelEditionV3,assessPortableCompatibilityV3,createGroupWorkbenchV3,updateGroupWorkbenchV3,groupWorkbenchGraphV3} from '@opsydyn/foldkit-zloz';
+const v3Model=captureModelDocumentV3({id:'packed-v3',name:'Packed v3',snapshot:doc,editions:[{id:'first',name:'First',snapshot:doc}],origin:null});
+if(parseModelDocumentV3(serializeModelDocumentV3(v3Model)).snapshot.capabilities.groupPorts!==true||createHistoryReviewV3(v3Model.editions[0]!,'review-packed-v3').editor.readOnly!==true||assessPortableCompatibilityV3(v3Model).downgrade.type!=='blocked')throw new Error('V3 portable model/history/gates missing');
+const v3Editor=createModelEditorV3(v3Model,{sessionId:'workflow-packed-v3'});
+const v3Operation={source:captureGroupEditorSourceV3(v3Editor),operation:{operation:'move',nodeIds:['g','child'],delta:{x:20,y:10}}} as const;
+if(planGroupOperationV3(v3Editor,v3Operation).type!=='ready'||applyGroupOperationV3(v3Editor,v3Operation).editor.history.past.length!==1)throw new Error('V3 group operations missing');
+const v3Connection={source:captureGroupEditorSourceV3(v3Editor),edit:{operation:'reconnect',edgeId:'boundary-link',end:'target',endpoint:{node:'b',port:'in'}}} as const;
+if(planGroupConnectionV3(v3Editor,v3Connection).type!=='unchanged'||applyGroupConnectionV3(v3Editor,v3Connection).type!=='unchanged')throw new Error('V3 reconnection no-op missing');
+const nativeV3=createGroupWorkbenchV3(doc,{sessionId:'native-packed-v3'});
+const selectedV3=updateGroupWorkbenchV3(nativeV3,{type:'NodeSelected',id:'g',additive:false});
+if(groupWorkbenchGraphV3(selectedV3).nodes.length!==3||updateGroupWorkbenchV3(selectedV3,{type:'SelectionNudged',delta:{x:20,y:0}}).editor.history.past.length!==1)throw new Error('V3 native controller missing');
+const mergedV3=mergeEditionsV3(v3Model.editions,v3Model.editions);
+if(mergedV3.type!=='unchanged'||compareEditionsV3(v3Model.editions[0]!,v3Model.editions[0]!).semanticChanged||forkModelDocumentV3(v3Model,'first',{id:'forked-v3',name:'Fork'}).origin?.modelId!=='packed-v3'||restoreModelEditionV3(v3Model,v3Editor,{source:captureGroupEditorSourceV3(v3Editor),modelId:v3Model.id,edition:v3Model.editions[0]!}).type!=='unchanged')throw new Error('V3 model workflow missing');
+console.log('group-v3-ok');
+`;
+    const groupConsumer = path.join(directory, 'group-v3.mts');
+    await writeFile(groupConsumer, groupConsumerSource);
     const architectureConsumer = path.join(directory, 'architecture.mts');
     await writeFile(architectureConsumer, architectureSource);
     const rootTsc = path.join(root, 'packages/foldkit-zloz/node_modules/.bin/tsc');
@@ -348,6 +421,7 @@ console.log('headless-architecture-ok');
           '--moduleResolution',
           resolution,
           architectureConsumer,
+          groupConsumer,
         ],
         { ...options, cwd: directory },
       );
@@ -364,6 +438,7 @@ console.log('headless-architecture-ok');
         '--outDir',
         'pure-compiled',
         architectureConsumer,
+        groupConsumer,
       ],
       { ...options, cwd: directory },
     );
@@ -373,6 +448,11 @@ console.log('headless-architecture-ok');
         cwd: directory,
       });
       expect(result.stdout.trim()).toBe('headless-architecture-ok');
+      expect(
+        (
+          await exec(runtime, ['pure-compiled/group-v3.mjs'], { ...options, cwd: directory })
+        ).stdout.trim(),
+      ).toBe('group-v3-ok');
     }
     for (const unwanted of ['foldkit', 'effect', 'elkjs', 'react'])
       expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);
@@ -401,6 +481,12 @@ import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelations
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
+import {zlozGroupWorkbenchV3,zlozGroupInspectorV3,zlozGroupActionV3} from '@opsydyn/foldkit-zloz/foldkit';
+import {createGroupWorkbenchV3,captureGroupDocumentV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
+const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
+const packedNativeOutputV3=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedNativeV3}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Packed native v3',body:h.div([], [zlozGroupWorkbenchV3(h,model,{id:'packed-native-v3',onEvent:event=>event}),zlozGroupInspectorV3(h,model,{id:'packed-native-v3-inspector',onEvent:event=>event}),zlozGroupActionV3(h,'Custom fit',{type:'FitViewRequested'},null,event=>event)])})},{flags:{},isHydratable:false}));
+if(!packedNativeOutputV3.html.includes('data-flow-owner="g"')||!packedNativeOutputV3.html.includes('Custom fit'))throw new Error('Installed native v3 controls missing');
+
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';

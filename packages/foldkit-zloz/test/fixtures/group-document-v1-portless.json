@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "c",
+        "label": "Child",
+        "parentId": "g",
+        "position": { "x": 140, "y": 140 },
+        "size": { "width": 120, "height": 80 },
+        "ports": []
+      },
+      {
+        "id": "g",
+        "label": "Boundary",
+        "kind": "group",
+        "position": { "x": 100, "y": 80 },
+        "size": { "width": 400, "height": 300 },
+        "ports": []
+      }
+    ],
+    "edges": []
+  },
+  "viewport": { "x": 12, "y": -4, "zoom": 1.25 }
+}

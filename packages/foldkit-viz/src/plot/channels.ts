@@ -1,5 +1,7 @@
 import type { PlotBounds } from '../chart/layout.js';
 import type { SymbolType } from '../shape/symbol.js';
+import { columnOf, fillRows } from './columns.js';
+import type { Rows } from './columns.js';
 import type {
   Channel,
   Graphic,
@@ -33,16 +35,11 @@ export const isConstant = (channel: unknown): channel is Readonly<{ value: Value
 export const fieldOf = (channel: Channel | undefined): string | undefined =>
   isText(channel) ? channel : undefined;
 
-export function read(
-  rows: ReadonlyArray<Row>,
-  channel: Channel,
-  path: string,
-): ReadonlyArray<Value> {
-  if (isConstant(channel)) return rows.map(() => channel.value);
+/** A channel's value for every row: a field's column, or a constant repeated. */
+export function read(rows: Rows, channel: Channel, path: string): ReadonlyArray<Value> {
+  if (isConstant(channel)) return fillRows(rows, channel.value);
   if (!isText(channel) || channel === '') return fail(path, 'must be a field name or { value }');
-  if (rows.length > 0 && !rows.some((row) => Object.hasOwn(row, channel)))
-    fail(path, `field "${channel}" is missing from the data`);
-  return rows.map((row) => row[channel] ?? null);
+  return columnOf(rows, channel) ?? fail(path, `field "${channel}" is missing from the data`);
 }
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
@@ -151,21 +148,21 @@ export type Context = Readonly<{
 }>;
 
 export const paintOf = (
-  rows: ReadonlyArray<Row>,
+  rows: Rows,
   channel: Channel | undefined,
   path: string,
   context: Context,
   fallback: string,
 ): ReadonlyArray<string> => {
-  if (channel === undefined) return rows.map(() => fallback);
-  if (isConstant(channel)) return rows.map(() => String(channel.value ?? fallback));
+  if (channel === undefined) return fillRows(rows, fallback);
+  if (isConstant(channel)) return fillRows(rows, String(channel.value ?? fallback));
   const color = context.color;
   return read(rows, channel, path).map((v) => (color === null ? fallback : color.paint(v)));
 };
 
-export const titlesOf = (rows: ReadonlyArray<Row>, channel: Channel | undefined, path: string) =>
+export const titlesOf = (rows: Rows, channel: Channel | undefined, path: string) =>
   channel === undefined
-    ? rows.map(() => undefined)
+    ? fillRows(rows, undefined)
     : read(rows, channel, path).map((v) => (v === null ? undefined : String(v)));
 
 export const keysOf = (
@@ -215,11 +212,11 @@ export const DIMMED = 0.15;
  * not. Ranges compare numbers, or ISO dates as instants, inclusively.
  */
 export function highlightFactors(
-  rows: ReadonlyArray<Row>,
+  rows: Rows,
   highlight: Highlight | undefined,
   path: string,
 ): ReadonlyArray<number> {
-  if (highlight === undefined) return rows.map(() => 1);
+  if (highlight === undefined) return fillRows(rows, 1);
   const values = read(rows, highlight.field, `${path}.highlight.field`);
   const matches = highlightMatcher(highlight);
   return values.map((value) => (matches(value) ? 1 : DIMMED));

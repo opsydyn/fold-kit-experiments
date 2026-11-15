@@ -143,6 +143,7 @@ const SCRIPT_OF: ReadonlyMap<string, string> = new Map([
   ['lint', 'check'],
   ['api-check', 'api:check'],
   ['size-check', 'size:check'],
+  ['schema-check', 'schema:check'],
   ['pack-check', 'pack:check'],
   ['e2e', 'test:e2e'],
   ['e2e-zloz', 'test:e2e'],

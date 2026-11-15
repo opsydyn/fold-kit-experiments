@@ -1,3 +1,4 @@
+import { rowsOf } from '@opsydyn/foldkit-viz/plot';
 import { Option, Schema } from 'effect';
 import { assert, describe, expect, it } from 'vitest';
 
@@ -29,7 +30,12 @@ describe('comparison collection', () => {
     assert(scatter?._tag === 'Scatter' && histogram?._tag === 'Histogram');
     expect(scatter.chart.spec.data).toBe(points);
     expect(histogram.chart.spec.data).toBe(points);
-    expect(scatter.chart.spec.data?.[0]).toEqual({ id: 'salary-1', x: 1, y: 55000, label: '1yr' });
+    expect(rowsOf(scatter.chart.spec.data ?? [])[0]).toEqual({
+      id: 'salary-1',
+      x: 1,
+      y: 55000,
+      label: '1yr',
+    });
   });
 
   it('initialises captured order, linking mode and counter', () => {

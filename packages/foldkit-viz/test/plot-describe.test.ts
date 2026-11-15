@@ -106,6 +106,28 @@ describe('rendering', () => {
     expect(html).toContain('<th scope="row">Feb</th>');
   });
 
+  it("prints a continuous legend's ends as readable numbers", async () => {
+    const html = await renderChart<never>((h) =>
+      plotChart(
+        h,
+        compilePlot({
+          width: 300,
+          height: 200,
+          data: [
+            { x: 1, y: 1, v: 1234.5 },
+            { x: 2, y: 2, v: 4.884665112696734 },
+          ],
+          color: { label: 'shade' },
+          marks: [{ mark: 'dot', x: 'x', y: 'y', fill: 'v' }],
+        }),
+      ),
+    );
+    expect(html).toContain('>4.885<');
+    expect(html).toContain('>1,235<');
+    expect(html).toContain('shade: 4.885 to 1,235');
+    expect(html).not.toContain('4.8846651');
+  });
+
   it('leaves both out unless asked', async () => {
     const html = await renderChart<never>((h) => plotChart(h, compilePlot(sales)));
     expect(html).not.toContain('<desc>');

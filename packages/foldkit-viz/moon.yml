@@ -14,6 +14,10 @@ tasks:
   size-check:
     script: 'bun ../../tools/bundle-budget.ts'
     deps: ['build']
+  schema-check:
+    script: 'bun ../../tools/plot-schema.ts --check'
+    # The schema is generated from the spec types by a tool outside the package.
+    inputs: ['src/plot/types.ts', 'schema/**/*', 'tsconfig.json', '/tools/plot-schema.ts']
   integration:
     script: 'bun test ./test/package-import-smoke.test.ts'
     deps: ['build']

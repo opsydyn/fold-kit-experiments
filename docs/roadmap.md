@@ -1666,3 +1666,38 @@ No npm publication, deployment or mounted v3 controls are claimed.
 for authored group endpoints, preserving strict/loose eligibility, exact source,
 visible live port/edge vetoes and atomic Undo. Then qualify complete group movement/
 deletion plans and native controls against these package-owned contracts.
+
+**Scoped v3 core release batch (2026-11-15):**
+
+The latest user selection is **Finish v3 core and release with explicit remaining
+limits**; it supersedes the intervening full-roadmap batch interpretation.
+[ADR 0108](adr/0108-release-the-scoped-v3-core.md) and
+[the scope contract](specs/2026-11-15-zloz-scoped-v3-release.md) record that decision.
+
+The distinct v3 core now adds `planGroupConnectionV3`/`applyGroupConnectionV3`,
+`planGroupOperationV3`/`applyGroupOperationV3`, canonical model/edition codecs,
+read-only review/comparison/restore/merge/fork and a package-level
+`createGroupWorkbenchV3`/`updateGroupWorkbenchV3` controller with optional Foldkit
+surface/inspector/action/drag-handle primitives. The `/groups/` workbench exercises
+these contracts with live protection, light/dark/minimal presentation, complete
+Undo, checkpoint review and validated model save/reopen. No legacy editor is
+constructed from a ported graph.
+
+`assessPortableCompatibilityV3` inventories every checkpoint and lists native
+adapters independently. Private Effect CLI `compatibility inspect-v3` reports
+that inventory without conversion or Apply. Unsupported v3 clipboard, layout,
+SVG/PNG, Mermaid, patch, receipt, packet and relationship-audit entries remain
+explicitly version-required. Ported checkpoints block entire-model downgrade.
+
+C2 remains **partial**: world coordinates, explicit group parents and rectangular
+group envelopes are retained; arbitrary parents/shaped groups and the full v3
+native interaction catalogue are not claimed. C3/C4 and Q/R are not closed by
+these APIs. Rotation, lasso/freehand/eraser, dedicated multi-connect UI, production
+Mermaid import, server image creation, broader performance and human device/AT
+acceptance remain open. Atomic explicit connection sets are available headlessly.
+See [the batch evidence](../packages/foldkit-zloz/evidence/v3-core-batch.md) for
+observed qualification and separate delivery/release status.
+
+**Recommended next after release:** qualify native v3 ELK layout and SVG/PNG
+projection with group-port fidelity, then Mermaid/portable domain adapters. This
+makes authored ported-group models portable before adding more tools.

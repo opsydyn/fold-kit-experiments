@@ -1,5 +1,6 @@
 import type {
   ZlozPortableCompatibilityV2,
+  ZlozPortableCompatibilityV3,
   ZlozModellingPatchPreviewV2,
   ZlozRelationshipAuditComparisonV2,
   ZlozDddRelationshipAuditComparisonV2,
@@ -98,7 +99,7 @@ export type CliResponse =
       protocol: typeof cliProtocol;
       operation: 'compatibility-inspect';
       status: 'inspected';
-      data: ZlozPortableCompatibilityV2;
+      data: ZlozPortableCompatibilityV2 | ZlozPortableCompatibilityV3;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{

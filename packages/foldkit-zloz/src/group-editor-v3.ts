@@ -309,7 +309,11 @@ export function updateGroupEditorV3(
 ): ZlozGroupEditorResultV3 {
   assertSession(editor);
   if (event.type !== 'UndoPressed' && event.type !== 'RedoPressed')
-    return resolveGroupEditorBoundaryV3(editor, 'native-controls');
+    return blocked(
+      editor,
+      'version-required',
+      'Use the distinct v3 workbench controller or a versioned planner for native events.',
+    );
   const undo = event.type === 'UndoPressed';
   const frames = undo ? editor.history.past : editor.history.future;
   const target = prepare(editor, event.source, frames.at(-1) ?? editor.document);
@@ -335,12 +339,14 @@ export function updateGroupEditorV3(
     }),
   };
 }
-/** Compatibility decision only; no adapter is authorized by this query or by a bare graph. */
+/** Native v3 entry availability only; unchanged means use its distinct API, never pass a bare graph to a legacy entry. */
 export function resolveGroupEditorBoundaryV3(
   editor: ZlozGroupEditorStateV3,
   boundary: ZlozGroupEditorBoundaryV3,
 ): ZlozGroupEditorResultV3 {
   assertSession(editor);
+  if (boundary === 'native-controls' || boundary === 'model' || boundary === 'editions')
+    return { type: 'unchanged', editor };
   return blocked(
     editor,
     'version-required',

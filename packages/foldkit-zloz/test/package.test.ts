@@ -386,6 +386,19 @@ applyGroupPortEditV3(session,portPlan.transaction);
 // @ts-expect-error label removal is explicit null, not undefined.
 const invalidLabel:ZlozGroupPortEditV3={operation:'label',endpoint:{node:'g',port:'out'},label:undefined};
 }
+import {planGroupConnectionV3,applyGroupConnectionV3,planGroupOperationV3,applyGroupOperationV3,captureModelDocumentV3,serializeModelDocumentV3,parseModelDocumentV3,createModelEditorV3,createHistoryReviewV3,compareEditionsV3,mergeEditionsV3,forkModelDocumentV3,restoreModelEditionV3,assessPortableCompatibilityV3,createGroupWorkbenchV3,updateGroupWorkbenchV3,groupWorkbenchGraphV3} from '@opsydyn/foldkit-zloz';
+const v3Model=captureModelDocumentV3({id:'packed-v3',name:'Packed v3',snapshot:doc,editions:[{id:'first',name:'First',snapshot:doc}],origin:null});
+if(parseModelDocumentV3(serializeModelDocumentV3(v3Model)).snapshot.capabilities.groupPorts!==true||createHistoryReviewV3(v3Model.editions[0]!,'review-packed-v3').editor.readOnly!==true||assessPortableCompatibilityV3(v3Model).downgrade.type!=='blocked')throw new Error('V3 portable model/history/gates missing');
+const v3Editor=createModelEditorV3(v3Model,{sessionId:'workflow-packed-v3'});
+const v3Operation={source:captureGroupEditorSourceV3(v3Editor),operation:{operation:'move',nodeIds:['g','child'],delta:{x:20,y:10}}} as const;
+if(planGroupOperationV3(v3Editor,v3Operation).type!=='ready'||applyGroupOperationV3(v3Editor,v3Operation).editor.history.past.length!==1)throw new Error('V3 group operations missing');
+const v3Connection={source:captureGroupEditorSourceV3(v3Editor),edit:{operation:'reconnect',edgeId:'boundary-link',end:'target',endpoint:{node:'b',port:'in'}}} as const;
+if(planGroupConnectionV3(v3Editor,v3Connection).type!=='unchanged'||applyGroupConnectionV3(v3Editor,v3Connection).type!=='unchanged')throw new Error('V3 reconnection no-op missing');
+const nativeV3=createGroupWorkbenchV3(doc,{sessionId:'native-packed-v3'});
+const selectedV3=updateGroupWorkbenchV3(nativeV3,{type:'NodeSelected',id:'g',additive:false});
+if(groupWorkbenchGraphV3(selectedV3).nodes.length!==3||updateGroupWorkbenchV3(selectedV3,{type:'SelectionNudged',delta:{x:20,y:0}}).editor.history.past.length!==1)throw new Error('V3 native controller missing');
+const mergedV3=mergeEditionsV3(v3Model.editions,v3Model.editions);
+if(mergedV3.type!=='unchanged'||compareEditionsV3(v3Model.editions[0]!,v3Model.editions[0]!).semanticChanged||forkModelDocumentV3(v3Model,'first',{id:'forked-v3',name:'Fork'}).origin?.modelId!=='packed-v3'||restoreModelEditionV3(v3Model,v3Editor,{source:captureGroupEditorSourceV3(v3Editor),modelId:v3Model.id,edition:v3Model.editions[0]!}).type!=='unchanged')throw new Error('V3 model workflow missing');
 console.log('group-v3-ok');
 `;
     const groupConsumer = path.join(directory, 'group-v3.mts');
@@ -468,6 +481,12 @@ import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelations
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
+import {zlozGroupWorkbenchV3,zlozGroupInspectorV3,zlozGroupActionV3} from '@opsydyn/foldkit-zloz/foldkit';
+import {createGroupWorkbenchV3,captureGroupDocumentV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
+const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
+const packedNativeOutputV3=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedNativeV3}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Packed native v3',body:h.div([], [zlozGroupWorkbenchV3(h,model,{id:'packed-native-v3',onEvent:event=>event}),zlozGroupInspectorV3(h,model,{id:'packed-native-v3-inspector',onEvent:event=>event}),zlozGroupActionV3(h,'Custom fit',{type:'FitViewRequested'},null,event=>event)])})},{flags:{},isHydratable:false}));
+if(!packedNativeOutputV3.html.includes('data-flow-owner="g"')||!packedNativeOutputV3.html.includes('Custom fit'))throw new Error('Installed native v3 controls missing');
+
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';

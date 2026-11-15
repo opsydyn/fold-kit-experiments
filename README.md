@@ -6,7 +6,7 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 
 ## Packages
 
-The six packages below are the existing npm releases. The four effect-three packages are released together at one version. Zloz's release-candidate packages are listed separately and remain unpublished.
+The packages below are published on npm. The four effect-three packages are released together at one version. Zloz's four public packages and two private workspaces are listed separately below.
 
 | Package                                                           | npm                                                                                                                               | Description                                                                                    |
 | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
@@ -32,14 +32,17 @@ Nested frame identity and light/dark styling follow the Viz and Three family.
   `bun run dev:zloz-demo` (4327). The promo includes a native Foldkit Compose
   example with selection, connection creation and Undo/Redo; the workbench adds
   C4, groups, layouts, policy controls and Mermaid review in a persistent canvas.
+  The `/groups/` workbench demonstrates the distinct v3 group-port/model/history
+  APIs; its compatibility panel lists adapter and interaction limits.
 - **Read:** [API/type contracts](https://opsydyn.github.io/fold-kit-experiments/zloz/api/),
   [workbench guide](apps/zloz-demo/README.md),
   [promo guide](apps/zloz-promo/README.md) and [hosting](infra/zloz/README.md).
 
 The package family is `@opsydyn/foldkit-zloz*`. Preferred public types and views use
 `Zloz*` and `zloz*`; deprecated aliases preserve existing code.
-These five packages are **0.1.0 workspace/release candidates, not npm releases**.
-Website publication does not publish packages to npm.
+The four public Zloz packages are published on npm as a linked version family.
+The Effect CLI and Alchemy adapter remain **private workspace packages**.
+Website deployment and npm package publication are separate workflows.
 See [naming and compatibility](docs/zloz-migration.md) for retained saved-data and integration contracts.
 
 | Package                                                           | Responsibility                                                                                       |
@@ -52,7 +55,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 | [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private read-only Domain inspection and SDK-free portable projection; compatibility gates retained   |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
-losses; general Mermaid import and npm publication remain separate work. See the
+losses; general Mermaid import remains separate work. See the
 [release preparation guide](docs/releases/foldkit-zloz.md) for packed-consumer checks.
 The name comes from Polish **Złóż**: fold, assemble, put together; use **Zloz** externally.
 

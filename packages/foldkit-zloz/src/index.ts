@@ -902,3 +902,68 @@ export type {
   ZlozGroupPortEditPlanV3,
   ZlozGroupPortEditResultV3,
 } from './group-port-edit-v3';
+
+export { planGroupConnectionV3, applyGroupConnectionV3 } from './group-connection-v3';
+export type {
+  ZlozGroupConnectionEditV3,
+  ZlozGroupConnectionRequestV3,
+  ZlozGroupConnectionResultV3,
+  ZlozGroupConnectionPlanV3,
+} from './group-connection-v3';
+
+export { planGroupOperationV3, applyGroupOperationV3 } from './group-operations-v3';
+export type {
+  ZlozGroupOperationV3,
+  ZlozGroupOperationRequestV3,
+  ZlozGroupOperationResultV3,
+  ZlozGroupOperationPlanV3,
+} from './group-operations-v3';
+
+export {
+  captureModelDocumentV3,
+  captureEditionV3,
+  parseModelDocumentV3,
+  serializeModelDocumentV3,
+  parseEditionsV3,
+  serializeEditionsV3,
+  upgradeModelDocumentV3,
+  planModelDocumentDowngradeV3,
+  modelDocumentV3Limits,
+} from './model-document-v3';
+export type {
+  ZlozEditionV3,
+  ZlozModelOriginV3,
+  ZlozModelDocumentV3,
+  ZlozModelDowngradeFindingV3,
+  ZlozModelDowngradePlanV3,
+} from './model-document-v3';
+export {
+  createModelEditorV3,
+  createHistoryReviewV3,
+  captureWorkingModelV3,
+  compareEditionsV3,
+  mergeEditionsV3,
+  forkModelDocumentV3,
+  restoreModelEditionV3,
+} from './model-workflow-v3';
+export type {
+  ZlozHistoryReviewV3,
+  ZlozEditionMergeResultV3,
+  ZlozEditionRestoreRequestV3,
+} from './model-workflow-v3';
+
+export {
+  createGroupWorkbenchV3,
+  captureGroupWorkbenchDocumentV3,
+  updateGroupWorkbenchV3,
+  groupWorkbenchGraphV3,
+} from './group-workbench-v3';
+export type {
+  ZlozGroupWorkbenchV3,
+  ZlozGroupWorkbenchGestureV3,
+  ZlozGroupWorkbenchEventV3,
+  ZlozGroupWorkbenchOptionsV3,
+} from './group-workbench-v3';
+
+export { assessPortableCompatibilityV3 } from './portable-compatibility-v3';
+export type { ZlozPortableCompatibilityV3 } from './portable-compatibility-v3';

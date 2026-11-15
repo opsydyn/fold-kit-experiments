@@ -3098,3 +3098,11 @@ export type {
   ZlozHistoryChangeNavigatorPartsV2,
   ZlozHistoryChangeNavigatorViewOptionsV2,
 } from './history-change-navigator-v2-view';
+
+export {
+  zlozGroupWorkbenchV3,
+  zlozGroupInspectorV3,
+  zlozGroupActionV3,
+  zlozGroupDragHandleV3,
+} from './group-workbench-v3-view';
+export type { ZlozGroupWorkbenchViewOptionsV3 } from './group-workbench-v3-view';

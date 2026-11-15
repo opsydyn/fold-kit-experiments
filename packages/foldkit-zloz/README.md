@@ -6411,10 +6411,11 @@ transaction, so Undo can reverse the introduction of a group boundary.
 
 This transaction does **not** infer a drag, group expansion, deletion or reparent
 plan: include every intended affected child/ancestor in the target, retaining
-world coordinates. Later v3 controls must supply those complete plans. Legacy
+world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
 `createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
-`resolveGroupEditorBoundaryV3` discloses unsupported native controls, clipboard,
-canonical model/editions, layout, SVG/PNG, Mermaid, patches and review packets.
+`resolveGroupEditorBoundaryV3` returns unchanged for the distinct native-controls,
+model and edition entries; unsupported clipboard, layout, SVG/PNG, Mermaid,
+patch and review-packet entries remain blocked.
 It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
 See [the editor qualification receipt](evidence/group-editor-v3.md) and
@@ -6494,3 +6495,93 @@ These are headless runtime plans, not a new wire artifact, native control,
 connection/reconnection planner or canonical model/adapter upgrade. Those adoption
 gates stay explicit. See [qualification](evidence/group-port-edit-v3.md) and
 [ADR 0107](../../docs/adr/0107-plan-v3-group-port-edits-through-live-transactions.md).
+
+### V3 connections, group operations and native workbench
+
+Use `planGroupConnectionV3` / `applyGroupConnectionV3` for explicit creation sets
+and reconnection. Every request pins `captureGroupEditorSourceV3(editor)` and
+preserves ordered endpoint identity. A protected or invalid member rejects a
+whole explicit connection set. Reconnection retains edge identity/metadata.
+`planGroupOperationV3` / `applyGroupOperationV3` implement move, resize, reparent,
+group, ungroup and delete with complete descendant/ancestor effects. Extents,
+resize limits and live policies are checked before one Undo publication. A ported
+group cannot be ungrouped implicitly: first handle its ports/connections explicitly.
+
+```ts
+import {
+  captureGroupEditorSourceV3,
+  planGroupConnectionV3,
+  applyGroupConnectionV3,
+} from '@opsydyn/foldkit-zloz';
+
+const request = {
+  source: captureGroupEditorSourceV3(editor),
+  edit: {
+    operation: 'create',
+    edges: [
+      {
+        id: 'orders-api',
+        source: { node: 'orders', port: 'api' },
+        target: { node: 'warehouse', port: 'input' },
+      },
+    ],
+  },
+} as const;
+const preview = planGroupConnectionV3(editor, request, livePolicy);
+// On explicit confirmation, rebuild against the current editor and policy.
+const result = applyGroupConnectionV3(editor, request, livePolicy);
+```
+
+`createGroupWorkbenchV3(document, { sessionId })` and
+`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose native/custom
+controls without creating a legacy editor. Keep the returned model in the host
+Foldkit Model. `zlozGroupWorkbenchV3`, `zlozGroupInspectorV3`,
+`zlozGroupActionV3` and `zlozGroupDragHandleV3` are optional `/foldkit` views.
+Use unique view IDs. Custom node content remains beside live ports; compose the
+drag-handle primitive and place custom interactive controls outside its button.
+Theme tokens and existing diagnostics/minimal settings apply. Policy reasons stay
+with protected controls; announcements remain accessible in minimal mode.
+Pointer/touch capture and cleanup use the existing scoped input resource.
+
+The v3 surface qualifies pointer node movement/connections, keyboard
+selection/nudging/connections, inspector resizing/group-port edits/reconnection,
+collapse and custom content/actions. Direct pointer resize/reconnection,
+port-anchor dragging, box selection, pinch and minimap remain outside this v3
+surface's qualified subset. `captureGroupWorkbenchDocumentV3` captures the live
+camera for save/checkpoint DTOs without mutating the editor. A host can publish
+that camera through the ordinary v3 transaction before capturing an edition.
+
+### Canonical v3 models and editions
+
+`captureModelDocumentV3`, `serializeModelDocumentV3` and `parseModelDocumentV3`
+validate a canonical `{id,name,snapshot,editions,origin}` body. The wire format is
+`foldkit-zloz-model`, version 3. Each current/edition/origin snapshot retains its
+own full v3 capability, mode and camera. `captureEditionV3`, `serializeEditionsV3`
+and `parseEditionsV3` own/freeze archive entries. Limits: 16,000,000 UTF-16 text
+characters, depth 80, 1,000,000 JSON values and 1,000 editions; each checkpoint
+also keeps the tighter standalone 2,000,000/depth-64/100,000-value limits.
+Unknown/duplicate fields, duplicate edition IDs, prototypes/accessors and invalid
+numbers reject. V1/v2 readers reject v3; `upgradeModelDocumentV3` is explicit.
+
+`createModelEditorV3` requires a fresh host session identity. `captureWorkingModelV3`
+builds a canonical DTO from the live editor. `createHistoryReviewV3` creates an
+independent read-only, history-disabled session. `compareEditionsV3` reports graph,
+mode-only and capability-only changes. `mergeEditionsV3` is additive/idempotent;
+conflicting IDs return no prospective archive. `forkModelDocumentV3` requires a
+new model ID and pins the exact immediate-parent edition. `restoreModelEditionV3`
+pins model identity, exact catalogue entry and source session/revision/document,
+reruns live policies and publishes one complete-document Undo unit.
+
+`planModelDocumentDowngradeV3` inspects every checkpoint; any authored group port
+blocks the entire downgrade and returns no target. Removing an unused enabled
+group-port capability is an explicit finding. Never extract a bare graph to
+bypass a version or capability boundary.
+
+`assessPortableCompatibilityV3` inventories checkpoints and independently reports
+entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
+prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
+V3 clipboard, layout, SVG/PNG, Mermaid, patches, conversion receipts, review
+packets and relationship audits remain version-required. Their v1/v2 APIs are
+unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
+Mermaid import, server PNG, broad performance and human device/screen-reader
+acceptance remain explicit release limits. See [batch qualification](evidence/v3-core-batch.md).

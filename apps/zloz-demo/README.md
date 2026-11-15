@@ -733,3 +733,15 @@ model JSON exports the current document without it. See
 
 See [C4 portable receipt qualification](evidence/c4-receipt.md) for strict literal
 wire tests, validation/rejection cases, read-only navigation and light/dark evidence.
+
+## V3 group workbench
+
+Open `/groups/` for authored group ports and distinct v3 core controls. Select or
+drag a group, use arrow keys, activate source/target ports, edit group ports and
+resize/reconnect through the inspector. Try current protection reasons, Undo,
+light/dark/minimal presentation and collapse. Save checkpoints to review read-only
+editions or restore the complete document in one Undo step. Download the validated
+model and paste its JSON to reopen in a fresh session; the workbench input budget
+is 1 MiB UTF-8. Delayed open results cannot overwrite intervening graph edits.
+The compatibility panel lists v3 native and adapter limits independently; this
+page does not imply that existing v1/v2 exports or advanced tools accept v3.

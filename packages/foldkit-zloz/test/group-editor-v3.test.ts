@@ -368,10 +368,7 @@ test('whole-document live policy covers capability/mode/camera/data and applies 
 test('unsupported adapters and runtime native events report version-required without losing capability', () => {
   const editor = init();
   for (const operation of [
-    'native-controls',
     'clipboard',
-    'model',
-    'editions',
     'layout',
     'svg',
     'png',
@@ -387,7 +384,7 @@ test('unsupported adapters and runtime native events report version-required wit
   }
   expect(
     updateGroupEditorV3(editor, {
-      // @ts-expect-error native gesture/clipboard events have no v3 implementation yet.
+      // @ts-expect-error The session kernel accepts history events only; native events use the distinct workbench.
       type: 'CopyPressed',
       source: captureGroupEditorSourceV3(editor),
     }),

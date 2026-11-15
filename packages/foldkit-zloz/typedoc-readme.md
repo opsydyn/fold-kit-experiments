@@ -520,3 +520,22 @@ and {@link FoldKit.zlozWorkshopSelect | zlozWorkshopSelect} support custom layou
 Native node/lane content, semantic descriptions, header geometry, body caching and
 scoped light/dark tokens remain independent of diagnostics. See the README and
 ADR 0082 for exact freshness, selection, policy and portable-export limits.
+
+## V3 group-port authoring and canonical models
+
+Use {@link Core.createGroupEditorV3} and the source-bound
+{@link Core.planGroupConnectionV3} / {@link Core.planGroupOperationV3} planners
+for group endpoints and complete atomic Undo. The distinct
+{@link Core.createGroupWorkbenchV3} / {@link Core.updateGroupWorkbenchV3}
+controller composes with {@link FoldKit.zlozGroupWorkbenchV3},
+{@link FoldKit.zlozGroupInspectorV3}, {@link FoldKit.zlozGroupActionV3} and
+{@link FoldKit.zlozGroupDragHandleV3}. Custom content/controls, live policies,
+light/dark tokens and diagnostics remain composable.
+
+{@link Core.captureModelDocumentV3} and its strict codecs preserve independent
+checkpoint modes/capabilities/cameras. V3 history supports detached read-only
+review, comparison, restore, additive merge and provenance-preserving forks.
+{@link Core.assessPortableCompatibilityV3} independently reports adapter limits;
+ported checkpoints refuse whole-model downgrade. No bare-graph cast makes a
+legacy entry v3-compatible. See README and batch evidence for native interaction,
+portable adapter, advanced-tool and human acceptance limits.

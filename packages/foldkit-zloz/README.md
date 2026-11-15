@@ -5612,12 +5612,12 @@ would change. Review that loss before explicitly using `serializeSnapshot` on th
 prospective snapshot. No ports are fabricated or retyped.
 
 The standalone codec does **not** enable loose editing through legacy `createEditor`.
-Use the explicit headless initializer below. Native views, model/edition archives,
-patches, receipts, layout, Mermaid and CLI adoption remain separate. Existing
-`parseGraph`/`parseSnapshot` readers remain v1-only and reject v2. Other existing
-APIs retain strict semantics: do not unwrap v2 data into them expecting mode
-preservation. The headless editor adoption below adds explicit mode, live checks,
-source/history handling and one Undo; native controls and portable adoption follow.
+Use the explicit headless initializer below. Native interactions and canonical v2
+model/edition workflows now have dedicated APIs, as do native v2 patches, receipts,
+layout, Mermaid, audits and CLI paths described below. Existing
+`parseGraph`/`parseSnapshot` readers and v1 adapter entries remain strict and reject
+v2. Do not unwrap v2 data into legacy APIs expecting mode preservation. Broader
+mounted adoption and acceptance remain separately tracked.
 See [ADR 0092](../../docs/adr/0092-stage-explicit-v2-connection-documents.md) and
 [headless compatibility evidence](evidence/connection-v2.md). C1 remains partial;
 no npm publishing or deployment is part of this contract slice.
@@ -5677,9 +5677,11 @@ Reducer pointer intents also use this mode. The native/custom interaction follow
 qualification; broader accessibility and device acceptance remain open.
 
 Save with `captureConnectionDocument(editor)` to retain mode and camera. Public
-v1 graph/snapshot codecs, model/edition archives, patches/receipts, layout and
-Mermaid/CLI contracts have not adopted v2. Extracting a raw graph can lose mode when its edges fit strict rules;
-explicit downgrade review remains required. C1 remains partial.
+v1 graph/snapshot codecs and legacy adapter entries remain strict. Canonical v2
+models/editions and explicit native v2 audit, patch, receipt, layout and Mermaid/CLI
+entries preserve modes. Extracting a raw graph can lose authoring mode even when
+its edges fit strict rules; explicit downgrade review remains required when
+choosing v1 output. Wider C1 qualification remains partial.
 
 See [ADR 0093](../../docs/adr/0093-adopt-connection-mode-in-headless-editor.md) and
 [qualification](evidence/connection-editor.md).
@@ -6210,7 +6212,7 @@ layout engine supports every graph.
 ```ts
 const report = assessPortableCompatibilityV2(model);
 // layout: supported; mermaid: explicit v2 projection
-// patches, receipts, review packets and audits: versioned native adoption required
+// native v2 patches, conversion receipts, review packets and audits: supported
 ```
 
 `layoutRequest` carries the current mode; manually authored requests default to
@@ -6220,6 +6222,55 @@ Undo in v2 model sessions. No layout operation changes mode.
 
 The optional Mermaid package exposes `exportConnectionMermaid(document, options)`;
 keep its v2 protocol and mode with its identity map. V1 graph export stays strict.
-Patches, receipts, packets and audits keep their established v1 contracts. Never
-unwrap a loose graph or silently downgrade a model to reach those APIs. See
-[ADR 0103](../../docs/adr/0103-qualify-v2-portable-adapter-boundaries.md).
+Explicit v2 patches, receipts, packets and audits preserve native modes. Their v1
+entries retain strict contracts. Never unwrap a loose graph or silently downgrade
+a model to reach a legacy API. See
+[ADR 0104](../../docs/adr/0104-adopt-native-v2-authoring-and-review.md).
+
+### Native v2 authoring and evidence
+
+Use `auditConnectionDddRelationships` / `auditConnectionEventStormingRelationships`
+for explicit v2 snapshots, and `compareModelDddRelationshipsV2` /
+`compareModelEventStormingRelationshipsV2` for owned edition comparisons. Each
+comparison side includes its checkpoint mode. Domain findings still concern DDD
+or causal meaning; a mode-only change does not invent a relationship finding.
+
+`foldkit-zloz-patch` v2 pins required `source.connectionMode` alongside model ID,
+session, revision and graph. `parseModellingPatchV2` checks bounded raw text,
+duplicate keys, exact fields and graph validity. The six graph operations preserve
+mode and ordered port identity; they do not change connection mode.
+
+```ts
+const decoded = parseModellingPatchV2(proposalText);
+if (decoded.status === 'parsed') {
+  const review = resolveModellingPatchReviewV2(editor, identity, decoded.value);
+  // Present review.preview and its losses; bind affirmative host consent to review.key.
+}
+```
+
+`applyModellingPatchV2` rebuilds live source/policies and requires exact affirmative
+review/loss consent, an idle editable v2 model session and enabled Undo. Publish
+returned editor and receipt together. `serializeModellingPatchReceiptV2` /
+`parseModellingPatchReceiptV2` validate the v2 result snapshot, unchanged mode,
+next revision and recorded flags by recomputing the patch. This receipt covers the
+graph patch, not model archives or camera history. Reopening never grants consent.
+
+C4 and DDD have explicit `previewEventStorming*MappingV2`,
+`createEventStorming*ConversionPlanV2`, `resolveEventStorming*ConversionConsentV2`
+and `applyEventStorming*ConversionV2` entries. Their named v2 source/plan/policy/
+result aliases preserve complete canonical source and target models, including
+camera, archive and origin checkpoint modes. One Undo reverses the conversion.
+`serializeEventStormingC4ConversionV2` / `parseEventStormingC4ConversionV2` and the
+corresponding DDD functions use version-2 receipt envelopes and recompute complete
+targets before reopening. V1 readers reject v2; no port rewriting or silent model
+downgrade occurs.
+
+Native receipt text has 2,000,000-character, depth-64 and 100,000-value limits;
+object ownership also rejects accessors and non-JSON values. Creation/serialization
+check reopening budgets before returning portable success. Recorded actor IDs,
+acceptance and review keys prove neither authorship nor current authority.
+
+The optional Mermaid package provides `createReviewPacketV2`,
+`parseReviewPacketV2` and `openReviewPacketV2` for selected-snapshot evidence and
+independent read-only review. Its v1 entries remain fixed at v1. Mounted workbench
+file/control adoption is a separate slice; these APIs are package-owned.

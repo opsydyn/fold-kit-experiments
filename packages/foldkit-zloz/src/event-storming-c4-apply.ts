@@ -2,7 +2,10 @@ import { isNodeArchitecture } from './architecture';
 import { commitGraph } from './editor';
 import {
   resolveEventStormingC4ConversionConsent,
+  resolveEventStormingC4ConversionConsentV2,
+  type ZlozEventStormingC4ConversionConsentDecision,
   createEventStormingC4ConversionPlan,
+  createEventStormingC4ConversionPlanV2,
   type ZlozEventStormingC4ConversionPlan,
   type ZlozEventStormingC4ConversionOptions,
   type ZlozEventStormingC4LossConsent,
@@ -12,41 +15,63 @@ import { projectEventStormingC4Graph } from './event-storming-c4-projection';
 import { ZlozError } from './graph';
 import { historyValueEqual } from './history';
 import { captureModelDocument, parseModelDocument, type ZlozModelDocument } from './model-document';
+import {
+  captureModelDocumentV2,
+  parseModelDocumentV2,
+  type ZlozModelDocumentV2,
+} from './model-document-v2';
+import { ownedData } from './modelling-patch';
+import { readPortableEvidenceJson } from './parse-modelling-patch';
 import type { EditorPolicy, EditorState, ZlozNode, ZlozEdge, ZlozGraph } from './types';
 
-type ReviewablePlan = Extract<ZlozEventStormingC4ConversionPlan, { type: 'reviewable' }>;
+type ReviewablePlan<D extends ZlozModelDocument = ZlozModelDocument> = Extract<
+  ZlozEventStormingC4ConversionPlan<D>,
+  { type: 'reviewable' }
+>;
 /** Unsigned portable v1 conversion receipt. Source provenance is separate from edition-fork ancestry. */
-export type ZlozEventStormingC4Conversion = Readonly<{
+export type ZlozEventStormingC4Conversion<
+  D extends ZlozModelDocument = ZlozModelDocument,
+  V extends 1 | 2 = 1,
+> = Readonly<{
   format: 'foldkit-zloz-c4-conversion';
-  version: 1;
-  source: ZlozEventStormingC4Source;
+  version: V;
+  source: ZlozEventStormingC4Source<D>;
   options: ZlozEventStormingC4ConversionOptions;
   lossesAccepted: true;
-  document: ZlozModelDocument;
+  document: D;
 }>;
-export type ZlozEventStormingC4ApplyPolicy = EditorPolicy &
+export type ZlozEventStormingC4ApplyPolicy<D extends ZlozModelDocument = ZlozModelDocument> =
+  EditorPolicy &
+    Readonly<{
+      /** Veto node renaming separately from descriptor edits. Full proposed node, current graph. */
+      canChangeC4NodeLabel?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
+      /** Veto relationship renaming separately from clearing workshop semantics. */
+      canChangeC4EdgeLabel?: (edge: ZlozEdge, next: ZlozEdge, graph: ZlozGraph) => string | null;
+      /** Veto changed parent constraints or explicit containment, even with the same parent ID. */
+      canChangeC4Membership?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
+      /** Whole-transaction veto; inspect complete frozen source/target values before publication. */
+      canApplyEventStormingC4Conversion?: (
+        plan: Extract<ZlozEventStormingC4ConversionPlan<D>, { type: 'reviewable' }>,
+        target: D,
+      ) => string | null;
+    }>;
+export type ZlozEventStormingC4ApplyOptions<D extends ZlozModelDocument = ZlozModelDocument> =
   Readonly<{
-    /** Veto node renaming separately from descriptor edits. Full proposed node, current graph. */
-    canChangeC4NodeLabel?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
-    /** Veto relationship renaming separately from clearing workshop semantics. */
-    canChangeC4EdgeLabel?: (edge: ZlozEdge, next: ZlozEdge, graph: ZlozGraph) => string | null;
-    /** Veto changed parent constraints or explicit containment, even with the same parent ID. */
-    canChangeC4Membership?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
-    /** Whole-transaction veto; inspect complete frozen source/target values before publication. */
-    canApplyEventStormingC4Conversion?: (
-      plan: Extract<ZlozEventStormingC4ConversionPlan, { type: 'reviewable' }>,
-      target: ZlozModelDocument,
-    ) => string | null;
+    conversion?: ZlozEventStormingC4ConversionOptions;
+    consent: ZlozEventStormingC4LossConsent | null;
+    policy?: ZlozEventStormingC4ApplyPolicy<D>;
+    /** Current host-only busy condition (imports, layout, external drafts), not a cached permission. */
+    blockedReason?: string | null;
   }>;
-export type ZlozEventStormingC4ApplyOptions = Readonly<{
-  conversion?: ZlozEventStormingC4ConversionOptions;
-  consent: ZlozEventStormingC4LossConsent | null;
-  policy?: ZlozEventStormingC4ApplyPolicy;
-  /** Current host-only busy condition (imports, layout, external drafts), not a cached permission. */
-  blockedReason?: string | null;
-}>;
-export type ZlozEventStormingC4ApplyResult =
-  | Readonly<{ type: 'applied'; editor: EditorState; conversion: ZlozEventStormingC4Conversion }>
+export type ZlozEventStormingC4ApplyResult<
+  D extends ZlozModelDocument = ZlozModelDocument,
+  V extends 1 | 2 = 1,
+> =
+  | Readonly<{
+      type: 'applied';
+      editor: EditorState;
+      conversion: ZlozEventStormingC4Conversion<D, V>;
+    }>
   | Readonly<{ type: 'unchanged'; editor: EditorState }>
   | Readonly<{
       type: 'blocked';
@@ -61,9 +86,12 @@ export type ZlozEventStormingC4ApplyResult =
         | 'policy';
       reason: string;
     }>;
-function convertedDocument(plan: ReviewablePlan): ZlozModelDocument {
+function convertedDocument<D extends ZlozModelDocument>(
+  plan: ReviewablePlan<D>,
+  capture: (document: D) => D,
+): D {
   const source = plan.provenance.document;
-  return captureModelDocument({
+  return capture({
     ...source,
     snapshot: {
       ...source.snapshot,
@@ -71,10 +99,14 @@ function convertedDocument(plan: ReviewablePlan): ZlozModelDocument {
     },
   });
 }
-function receipt(plan: ReviewablePlan, document: ZlozModelDocument): ZlozEventStormingC4Conversion {
+function receipt<D extends ZlozModelDocument, V extends 1 | 2>(
+  plan: ReviewablePlan<D>,
+  document: D,
+  version: V,
+): ZlozEventStormingC4Conversion<D, V> {
   return Object.freeze({
     format: 'foldkit-zloz-c4-conversion',
-    version: 1,
+    version,
     source: plan.provenance,
     options: Object.freeze({ mappings: plan.mappings, memberships: plan.membershipChoices }),
     lossesAccepted: true,
@@ -90,22 +122,30 @@ const denial = (reason: string | null | undefined): string | null =>
  * Caller must publish the returned editor and retain the conversion receipt together, without an
  * intervening await. Storage, host scope authenticity and external busy conditions belong to host.
  */
-export function applyEventStormingC4Conversion(
+function applyConversion<D extends ZlozModelDocument, V extends 1 | 2>(
   editor: EditorState,
-  source: ZlozEventStormingC4Source,
-  options: ZlozEventStormingC4ApplyOptions,
-): ZlozEventStormingC4ApplyResult {
-  const review = resolveEventStormingC4ConversionConsent(
-    source,
-    options.conversion,
-    options.consent,
-  );
+  source: ZlozEventStormingC4Source<D>,
+  options: ZlozEventStormingC4ApplyOptions<D>,
+  resolve: (
+    source: ZlozEventStormingC4Source<D>,
+    choices?: ZlozEventStormingC4ConversionOptions,
+    consent?: ZlozEventStormingC4LossConsent | null,
+  ) => ZlozEventStormingC4ConversionConsentDecision<D>,
+  capture: (document: D) => D,
+  version: V,
+): ZlozEventStormingC4ApplyResult<D, V> {
+  const review = resolve(source, options.conversion, options.consent);
   const checked = review.plan.provenance;
   const block = (
-    code: Extract<ZlozEventStormingC4ApplyResult, { type: 'blocked' }>['code'],
+    code: Extract<ZlozEventStormingC4ApplyResult<D, V>, { type: 'blocked' }>['code'],
     reason: string,
-  ): ZlozEventStormingC4ApplyResult => ({ type: 'blocked', editor, code, reason });
+  ): ZlozEventStormingC4ApplyResult<D, V> => ({ type: 'blocked', editor, code, reason });
+  const checkpoint = checked.document.snapshot;
+  const mode = 'connectionMode' in checkpoint ? checkpoint.connectionMode : 'strict';
+  if (version === 2 && !editor.connectionHistory)
+    return block('source-changed', 'Initialize a v2 model session before conversion.');
   if (
+    mode !== (editor.connectionMode ?? 'strict') ||
     checked.revision !== editor.revision ||
     !historyValueEqual(checked.document.snapshot.graph, editor.graph) ||
     checked.document.snapshot.viewport === undefined ||
@@ -116,6 +156,8 @@ export function applyEventStormingC4Conversion(
       'The live graph, camera or revision differs from the source. Review the current model.',
     );
   if (editor.readOnly) return block('read-only', 'The working model is read-only.');
+  if (version === 2 && editor.revision >= Number.MAX_SAFE_INTEGER)
+    return block('source-changed', 'Editor revision counter is exhausted.');
   if (
     editor.gesture.type !== 'idle' ||
     editor.connection !== null ||
@@ -138,7 +180,7 @@ export function applyEventStormingC4Conversion(
     return block('undo-disabled', 'Enable graph Undo before converting.');
   if (review.type === 'consent-required') return block('consent-required', review.reason);
   const plan = review.plan,
-    target = convertedDocument(plan),
+    target = convertedDocument(plan, capture),
     policy = options.policy ?? {};
   const bulk = denial(policy.canApplyEventStormingC4Conversion?.(plan, target));
   if (bulk !== null) return block('policy', bulk);
@@ -172,7 +214,8 @@ export function applyEventStormingC4Conversion(
     const reason = denial(policy.canChangeC4Membership?.(node, next, before));
     if (reason !== null) return block('policy', reason);
   }
-  const conversion = receipt(plan, target);
+  const conversion = receipt(plan, target, version);
+  if (version === 2) readPortableEvidenceJson(JSON.stringify(conversion));
   return { type: 'applied', editor: commitGraph(editor, target.snapshot.graph), conversion };
 }
 
@@ -283,7 +326,16 @@ function receiptDocument(value: ReceiptFields): ZlozModelDocument {
     JSON.stringify({ format: 'foldkit-zloz-model', version: 1, document: value }),
   );
 }
-function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
+function captureReceiptFor<D extends ZlozModelDocument, V extends 1 | 2>(
+  value: ReceiptFields,
+  version: V,
+  decode: (value: ReceiptFields) => D,
+  capture: (document: D) => D,
+  create: (
+    source: ZlozEventStormingC4Source<D>,
+    options?: ZlozEventStormingC4ConversionOptions,
+  ) => ZlozEventStormingC4ConversionPlan<D>,
+): ZlozEventStormingC4Conversion<D, V> {
   if (
     !receiptRecord(value) ||
     !receiptFields(value, [
@@ -295,7 +347,7 @@ function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
       'document',
     ]) ||
     value.format !== 'foldkit-zloz-c4-conversion' ||
-    value.version !== 1 ||
+    value.version !== version ||
     value.lossesAccepted !== true ||
     !receiptRecord(value.source) ||
     !receiptFields(value.source, ['document', 'sessionId', 'revision']) ||
@@ -306,9 +358,9 @@ function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
     !receiptRecord(value.document)
   )
     return invalidReceipt();
-  const plan = createEventStormingC4ConversionPlan(
+  const plan = create(
     {
-      document: receiptDocument(value.source.document),
+      document: decode(value.source.document),
       sessionId: value.source.sessionId,
       revision: value.source.revision,
     },
@@ -316,9 +368,19 @@ function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
   );
   if (plan.type !== 'reviewable' || plan.provenance.document.snapshot.viewport === undefined)
     return invalidReceipt();
-  const target = convertedDocument(plan);
-  if (!historyValueEqual(receiptDocument(value.document), target)) return invalidReceipt();
-  return receipt(plan, target);
+  if (version === 2 && plan.provenance.revision >= Number.MAX_SAFE_INTEGER) return invalidReceipt();
+  const target = convertedDocument(plan, capture);
+  if (!historyValueEqual(decode(value.document), target)) return invalidReceipt();
+  return receipt(plan, target, version);
+}
+function captureReceipt(value: ReceiptFields): ZlozEventStormingC4Conversion {
+  return captureReceiptFor(
+    value,
+    1,
+    receiptDocument,
+    captureModelDocument,
+    createEventStormingC4ConversionPlan,
+  );
 }
 /** Validate before exporting the entire record; model-only JSON omits conversion receipts. */
 export function serializeEventStormingC4Conversion(
@@ -339,3 +401,65 @@ export function parseEventStormingC4Conversion(json: string): ZlozEventStormingC
   if (!receiptRecord(value)) return invalidReceipt();
   return captureReceipt(value);
 }
+
+export type ZlozEventStormingC4ConversionV2 = ZlozEventStormingC4Conversion<ZlozModelDocumentV2, 2>;
+export type ZlozEventStormingC4ApplyResultV2 = ZlozEventStormingC4ApplyResult<
+  ZlozModelDocumentV2,
+  2
+>;
+export type ZlozEventStormingC4ApplyOptionsV2 =
+  ZlozEventStormingC4ApplyOptions<ZlozModelDocumentV2>;
+export function applyEventStormingC4Conversion(
+  editor: EditorState,
+  source: ZlozEventStormingC4Source,
+  options: ZlozEventStormingC4ApplyOptions,
+): ZlozEventStormingC4ApplyResult {
+  return applyConversion(
+    editor,
+    source,
+    options,
+    resolveEventStormingC4ConversionConsent,
+    captureModelDocument,
+    1,
+  );
+}
+export function applyEventStormingC4ConversionV2(
+  editor: EditorState,
+  source: ZlozEventStormingC4Source<ZlozModelDocumentV2>,
+  options: ZlozEventStormingC4ApplyOptionsV2,
+): ZlozEventStormingC4ApplyResultV2 {
+  return applyConversion(
+    editor,
+    source,
+    options,
+    resolveEventStormingC4ConversionConsentV2,
+    captureModelDocumentV2,
+    2,
+  );
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Receipt decoding owns raw data and validates its full versioned schema before publication.
+function captureReceiptV2(input: unknown): ZlozEventStormingC4ConversionV2 {
+  const value = ownedData(input);
+  if (!receiptRecord(value)) return invalidReceipt();
+  return captureReceiptFor(
+    value,
+    2,
+    (document) =>
+      parseModelDocumentV2(JSON.stringify({ format: 'foldkit-zloz-model', version: 2, document })),
+    captureModelDocumentV2,
+    createEventStormingC4ConversionPlanV2,
+  );
+}
+export function serializeEventStormingC4ConversionV2(
+  conversion: ZlozEventStormingC4ConversionV2,
+): string {
+  const text = JSON.stringify(captureReceiptV2(conversion));
+  readPortableEvidenceJson(text);
+  return text;
+}
+/** Strict bounded v2 evidence reopening. Recomputes mapping and exact complete target; never applies. */
+export function parseEventStormingC4ConversionV2(text: string): ZlozEventStormingC4ConversionV2 {
+  return captureReceiptV2(readPortableEvidenceJson(text));
+}
+
+export type ZlozEventStormingC4ApplyPolicyV2 = ZlozEventStormingC4ApplyPolicy<ZlozModelDocumentV2>;

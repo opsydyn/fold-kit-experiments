@@ -72,27 +72,27 @@ export function assessPortableCompatibilityV2(
     },
     {
       adapter: 'modelling-patch',
-      status: 'requires-version',
+      status: 'supported',
       reason:
-        'The v1 patch source, validation and Apply contract require strict snapshots. A new patch wire version is required for native v2 authoring.',
+        'Native v2 patches pin source mode through strict decoding, dry-run and live atomic Apply. Explicit consent and live policies are still required; operations do not change mode.',
     },
     {
       adapter: 'conversion-receipt',
-      status: 'requires-version',
+      status: 'supported',
       reason:
-        'V1 conversion receipts embed strict before/after snapshots. Reopening evidence never authorizes a downgrade or new Apply.',
+        'Native v2 C4/DDD conversion receipts retain complete mode-aware source/target documents and recompute mappings on reopening. Recorded evidence never authorizes new Apply.',
     },
     {
       adapter: 'review-packet',
-      status: 'requires-version',
+      status: 'supported',
       reason:
-        'V1 packets embed strict selected snapshots and reproducible v1 projections/audits. Native v2 packets require a new wire version.',
+        'Native v2 review packets retain selected checkpoint modes, audit comparisons and v2 projections. Reopening recomputes evidence and creates independent read-only reviews.',
     },
     {
       adapter: 'relationship-audit',
-      status: 'requires-version',
+      status: 'supported',
       reason:
-        'Existing graph/model audit contracts validate strict graphs and v1 checkpoints. No implicit graph extraction or model downgrade is supported.',
+        'Explicit v2 connection audits and model comparisons validate each checkpoint in its own mode. Domain relationship rules remain independent from port kinds.',
     },
   ];
   return Object.freeze({

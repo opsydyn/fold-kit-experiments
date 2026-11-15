@@ -1,0 +1,121 @@
+{
+  "result": "passed",
+  "provenance": "local built Node CLI against synthetic v2 wire fixtures",
+  "parent": "e19efa78",
+  "cases": [
+    {
+      "arguments": [
+        "compatibility",
+        "inspect",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/model-native-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "inspected",
+      "artifact": "native-v2-compatibility.json"
+    },
+    {
+      "arguments": [
+        "ddd",
+        "audit",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/model-native-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "audited",
+      "artifact": "native-v2-ddd-audit.json"
+    },
+    {
+      "arguments": [
+        "relationships",
+        "compare",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/model-native-v2.json",
+        "--baseline",
+        "base"
+      ],
+      "exitCode": 1,
+      "status": "compared",
+      "artifact": "native-v2-causal-comparison.json"
+    },
+    {
+      "arguments": [
+        "patch",
+        "dry-run",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/modelling-patch-v2.json",
+        "--source",
+        "packages/foldkit-zloz/test/fixtures/model-native-v2.json",
+        "--session",
+        "native-v2-fixture",
+        "--revision",
+        "0"
+      ],
+      "exitCode": 0,
+      "status": "reviewed",
+      "artifact": "native-v2-patch-review.json"
+    },
+    {
+      "arguments": [
+        "review",
+        "packet",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/model-native-v2.json",
+        "--baseline",
+        "base",
+        "--loss-policy",
+        "report"
+      ],
+      "exitCode": 0,
+      "status": "created",
+      "artifact": "native-v2-review-packet.json"
+    },
+    {
+      "arguments": [
+        "review",
+        "inspect",
+        "-i",
+        "packages/foldkit-zloz-mermaid/test/fixtures/review-packet-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "inspected",
+      "artifact": "native-v2-review-inspection.json"
+    },
+    {
+      "arguments": [
+        "c4",
+        "receipt",
+        "inspect",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/c4-conversion-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "inspected",
+      "artifact": "native-v2-c4-receipt.json"
+    },
+    {
+      "arguments": [
+        "ddd",
+        "receipt",
+        "inspect",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/ddd-conversion-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "inspected",
+      "artifact": "native-v2-ddd-receipt.json"
+    },
+    {
+      "arguments": [
+        "patch",
+        "receipt",
+        "inspect",
+        "-i",
+        "packages/foldkit-zloz/test/fixtures/modelling-patch-receipt-v2.json"
+      ],
+      "exitCode": 0,
+      "status": "inspected",
+      "artifact": "native-v2-patch-receipt.json"
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add native v2 audits/comparisons, mode-pinned modelling patches with atomic Apply/receipts, and C4/DDD conversion plans/Apply/portable receipts. Preserve strict v1 wrappers and validate native evidence before reopening.
+
 - Add v2 portable capability review and mode-aware layout requests/Apply, preserving graph-and-mode Undo.
 
 - Complete v2 history workflows: atomic/idempotent merge, guarded graph+mode restore with one Undo, full-mode history frames in v2 model sessions, pinned mixed-mode playback and side-aware ghosts. Retain incompatible cross-mode clipboard data with visible paste rejection. Legacy graph-only sessions and wire formats remain unchanged.

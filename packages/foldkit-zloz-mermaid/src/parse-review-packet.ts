@@ -1,20 +1,27 @@
 import {
   parseSnapshot,
+  parseConnectionDocument,
+  type ZlozSnapshot,
   ZlozError,
-  type ZlozModelDocument,
   type ZlozRelationshipAuditSource,
   type JsonValue,
   type JsonObject,
 } from '@opsydyn/foldkit-zloz';
 
-import { createReviewPacket, isReviewPacketOptions, type ZlozReviewPacket } from './review-packet';
+import {
+  createReviewPacket,
+  isReviewPacketOptions,
+  type ZlozReviewPacketOptions,
+  type ZlozReviewPacket,
+} from './review-packet';
+import { createReviewPacketV2, type ZlozReviewPacketV2 } from './review-packet-v2';
 export type ZlozReviewPacketParseOptions = Readonly<{
   maxCharacters?: number;
   maxDepth?: number;
   maxValues?: number;
 }>;
-export type ZlozReviewPacketParseResult =
-  | Readonly<{ status: 'parsed'; value: ZlozReviewPacket }>
+export type ZlozReviewPacketParseResult<P = ZlozReviewPacket> =
+  | Readonly<{ status: 'parsed'; value: P }>
   | Readonly<{
       status: 'rejected';
       code:
@@ -119,7 +126,7 @@ function source(value: JsonValue | undefined): ZlozRelationshipAuditSource | nul
     return { kind: 'edition', id: value.id, name: value.name };
   return null;
 }
-function freeze(packet: ZlozReviewPacket): ZlozReviewPacket {
+function freeze<P extends object>(packet: P): P {
   const pending: object[] = [packet],
     seen = new Set<object>();
   while (pending.length) {
@@ -132,10 +139,18 @@ function freeze(packet: ZlozReviewPacket): ZlozReviewPacket {
   return packet;
 }
 /** Strict v1 data reopening. Recomputes audit/projections; grants no model import, execution or editing authority. */
-export function parseReviewPacket(
+type ReviewModel<S extends ZlozSnapshot> = Readonly<{
+  id: string;
+  name: string;
+  origin: null;
+  snapshot: S;
+  editions: readonly Readonly<{ id: string; name: string; snapshot: S }>[];
+}>;
+/** @internal Shared JSON budgets, also checked before publishing generated native packets. */
+export function decodeReviewJson(
   text: string,
   options: ZlozReviewPacketParseOptions = {},
-): ZlozReviewPacketParseResult {
+): Readonly<{ status: 'decoded'; value: JsonValue }> | Rejected {
   const maxCharacters = limit(options.maxCharacters, 2000000, 16000000, 'maxCharacters'),
     maxDepth = limit(options.maxDepth, 64, 128, 'maxDepth'),
     maxValues = limit(options.maxValues, 100000, 1000000, 'maxValues');
@@ -167,13 +182,29 @@ export function parseReviewPacket(
       for (const child of children) pending.push(child);
     }
   }
+  return { status: 'decoded', value };
+}
+function parsePacket<S extends ZlozSnapshot, P extends object>(
+  text: string,
+  options: ZlozReviewPacketParseOptions,
+  version: 1 | 2,
+  snapshot: (value: JsonObject) => S,
+  create: (
+    document: ReviewModel<S>,
+    selection: { baselineId: string; selectedId?: string },
+    options: ZlozReviewPacketOptions,
+  ) => Readonly<{ status: 'created'; value: P }> | Readonly<{ status: 'rejected' }>,
+): ZlozReviewPacketParseResult<P> {
+  const decoded = decodeReviewJson(text, options);
+  if (decoded.status === 'rejected') return decoded;
+  const value = decoded.value;
   if (!record(value)) return rejected('invalid-packet', 'Review packet must be an object.');
   if (value.format !== 'foldkit-zloz-review')
     return rejected('unsupported-format', 'Expected foldkit-zloz-review format.', '/format');
-  if (value.version !== 1)
+  if (value.version !== version)
     return rejected(
       'unsupported-version',
-      'Only review packet version 1 is supported.',
+      `Expected review packet version ${version}.`,
       '/version',
     );
   if (
@@ -244,8 +275,8 @@ export function parseReviewPacket(
   try {
     if (!record(value.baseline.snapshot) || !record(value.selected.snapshot))
       return rejected('invalid-packet', 'Snapshots must be objects.');
-    const before = parseSnapshot(JSON.stringify({ version: 1, ...value.baseline.snapshot })),
-      after = parseSnapshot(JSON.stringify({ version: 1, ...value.selected.snapshot }));
+    const before = snapshot(value.baseline.snapshot),
+      after = snapshot(value.selected.snapshot);
     if (
       selected.kind === 'edition' &&
       selected.id === baseline.id &&
@@ -257,7 +288,7 @@ export function parseReviewPacket(
         'One edition identity cannot name conflicting snapshots.',
         '/selected',
       );
-    const document: ZlozModelDocument = {
+    const document: ReviewModel<S> = {
       id: value.model.id,
       name: value.model.name,
       origin: null,
@@ -269,7 +300,7 @@ export function parseReviewPacket(
           : []),
       ],
     };
-    const result = createReviewPacket(
+    const result = create(
       document,
       selected.kind === 'edition'
         ? { baselineId: baseline.id, selectedId: selected.id }
@@ -294,4 +325,29 @@ export function parseReviewPacket(
     if (error instanceof ZlozError) return rejected('invalid-packet', error.message);
     throw error;
   }
+}
+
+export function parseReviewPacket(
+  text: string,
+  options: ZlozReviewPacketParseOptions = {},
+): ZlozReviewPacketParseResult {
+  return parsePacket(
+    text,
+    options,
+    1,
+    (value) => parseSnapshot(JSON.stringify({ version: 1, ...value })),
+    createReviewPacket,
+  );
+}
+export function parseReviewPacketV2(
+  text: string,
+  options: ZlozReviewPacketParseOptions = {},
+): ZlozReviewPacketParseResult<ZlozReviewPacketV2> {
+  return parsePacket(
+    text,
+    options,
+    2,
+    (value) => parseConnectionDocument(JSON.stringify(value)),
+    createReviewPacketV2,
+  );
 }

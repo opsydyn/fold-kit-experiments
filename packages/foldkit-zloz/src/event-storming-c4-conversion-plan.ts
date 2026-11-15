@@ -1,6 +1,7 @@
 import type { ZlozNodeArchitecture } from './architecture';
 import {
   previewEventStormingC4Mapping,
+  previewEventStormingC4MappingV2,
   type ZlozEventStormingC4Source,
   type ZlozEventStormingC4MappingOptions,
   type ZlozEventStormingC4Preview,
@@ -9,7 +10,9 @@ import {
   type ZlozEventStormingC4Disclosure,
 } from './event-storming-c4-preview';
 import { projectEventStormingC4Graph } from './event-storming-c4-projection';
-import { validateGraph, ZlozError } from './graph';
+import { validateGraphForConnectionMode, ZlozError } from './graph';
+import type { ZlozModelDocument } from './model-document';
+import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
 import type { ZlozNode } from './types';
 
 /** Root is diagram placement, not a claim about ownership outside the diagram. */
@@ -80,40 +83,43 @@ export type ZlozEventStormingC4ConversionChanges = Readonly<{
   edges: readonly Extract<ZlozEventStormingC4EdgePreview, { type: 'proposed' }>[];
   memberships: readonly Extract<ZlozEventStormingC4MembershipDecision, { type: 'resolved' }>[];
 }>;
-export type ZlozEventStormingC4ConversionPlan = Readonly<{
-  /** Exact-content identity, not a credential/hash. Contains source data: never log or put in the DOM. */
-  key: string;
-  provenance: ZlozEventStormingC4Source;
-  mappings: ZlozEventStormingC4Preview['choices'];
-  membershipChoices: readonly ZlozEventStormingC4MembershipChoice[];
-  preview: ZlozEventStormingC4Preview;
-  memberships: readonly ZlozEventStormingC4MembershipDecision[];
-  disclosures: readonly ZlozEventStormingC4ConversionDisclosure[];
-}> &
-  (
-    | Readonly<{ type: 'blocked'; blockers: readonly ZlozEventStormingC4ConversionBlocker[] }>
-    | Readonly<{ type: 'reviewable'; changes: ZlozEventStormingC4ConversionChanges }>
-    | Readonly<{ type: 'unchanged' }>
-  );
+export type ZlozEventStormingC4ConversionPlan<D extends ZlozModelDocument = ZlozModelDocument> =
+  Readonly<{
+    /** Exact-content identity, not a credential/hash. Contains source data: never log or put in the DOM. */
+    key: string;
+    provenance: ZlozEventStormingC4Source<D>;
+    mappings: ZlozEventStormingC4Preview['choices'];
+    membershipChoices: readonly ZlozEventStormingC4MembershipChoice[];
+    preview: ZlozEventStormingC4Preview<D>;
+    memberships: readonly ZlozEventStormingC4MembershipDecision[];
+    disclosures: readonly ZlozEventStormingC4ConversionDisclosure[];
+  }> &
+    (
+      | Readonly<{ type: 'blocked'; blockers: readonly ZlozEventStormingC4ConversionBlocker[] }>
+      | Readonly<{ type: 'reviewable'; changes: ZlozEventStormingC4ConversionChanges }>
+      | Readonly<{ type: 'unchanged' }>
+    );
 /** Host-recorded affirmative review of every loss in this exact plan; not human identity or Apply permission. */
 export type ZlozEventStormingC4LossConsent = Readonly<{ planKey: string; accepted: true }>;
-export type ZlozEventStormingC4ConversionConsentDecision =
+export type ZlozEventStormingC4ConversionConsentDecision<
+  D extends ZlozModelDocument = ZlozModelDocument,
+> =
   | Readonly<{
       type: 'blocked';
-      plan: Extract<ZlozEventStormingC4ConversionPlan, { type: 'blocked' }>;
+      plan: Extract<ZlozEventStormingC4ConversionPlan<D>, { type: 'blocked' }>;
     }>
   | Readonly<{
       type: 'unchanged';
-      plan: Extract<ZlozEventStormingC4ConversionPlan, { type: 'unchanged' }>;
+      plan: Extract<ZlozEventStormingC4ConversionPlan<D>, { type: 'unchanged' }>;
     }>
   | Readonly<{
       type: 'consent-required';
-      plan: Extract<ZlozEventStormingC4ConversionPlan, { type: 'reviewable' }>;
+      plan: Extract<ZlozEventStormingC4ConversionPlan<D>, { type: 'reviewable' }>;
       reason: string;
     }>
   | Readonly<{
       type: 'consented';
-      plan: Extract<ZlozEventStormingC4ConversionPlan, { type: 'reviewable' }>;
+      plan: Extract<ZlozEventStormingC4ConversionPlan<D>, { type: 'reviewable' }>;
     }>;
 
 type ConversionFields = Readonly<{
@@ -166,17 +172,21 @@ function different(
  * containment checks local role/kind/cycle compatibility, not pixel enclosure or global correctness.
  * Unresolved intent returns blockers without a partial change list. Input errors throw ZlozError.
  */
-export function createEventStormingC4ConversionPlan(
-  source: ZlozEventStormingC4Source,
-  options: ZlozEventStormingC4ConversionOptions = {},
-): ZlozEventStormingC4ConversionPlan {
+function createPlan<D extends ZlozModelDocument>(
+  source: ZlozEventStormingC4Source<D>,
+  options: ZlozEventStormingC4ConversionOptions,
+  previewMapping: (
+    source: ZlozEventStormingC4Source<D>,
+    options?: ZlozEventStormingC4MappingOptions,
+  ) => ZlozEventStormingC4Preview<D>,
+): ZlozEventStormingC4ConversionPlan<D> {
   if (
     !record(options) ||
     !fields(options, ['mappings', 'memberships']) ||
     (options.memberships !== undefined && !Array.isArray(options.memberships))
   )
     invalid('C4 conversion options require mappings and a membership choice array.');
-  const preview = previewEventStormingC4Mapping(source, options.mappings);
+  const preview = previewMapping(source, options.mappings);
   const graph = preview.provenance.document.snapshot.graph;
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
   const proposed = new Map(
@@ -408,7 +418,14 @@ export function createEventStormingC4ConversionPlan(
         different(decision.before, decision.after) || decision.placement.type === 'contained',
     ),
   };
-  validateGraph(projectEventStormingC4Graph(graph, changes));
+  const snapshot = provenance.document.snapshot;
+  validateGraphForConnectionMode(
+    projectEventStormingC4Graph(graph, changes),
+    'connectionMode' in snapshot &&
+      (snapshot.connectionMode === 'strict' || snapshot.connectionMode === 'loose')
+      ? snapshot.connectionMode
+      : 'strict',
+  );
   return freeze(
     changes.nodes.length || changes.edges.length || changes.memberships.length
       ? { ...base, type: 'reviewable', changes }
@@ -416,12 +433,10 @@ export function createEventStormingC4ConversionPlan(
   );
 }
 /** Rebuild the exact current plan before checking consent. Consent is review data, never Apply authority. Null revokes it. */
-export function resolveEventStormingC4ConversionConsent(
-  source: ZlozEventStormingC4Source,
-  options: ZlozEventStormingC4ConversionOptions = {},
-  consent: ZlozEventStormingC4LossConsent | null = null,
-): ZlozEventStormingC4ConversionConsentDecision {
-  const plan = createEventStormingC4ConversionPlan(source, options);
+function resolveConsent<D extends ZlozModelDocument>(
+  plan: ZlozEventStormingC4ConversionPlan<D>,
+  consent: ZlozEventStormingC4LossConsent | null,
+): ZlozEventStormingC4ConversionConsentDecision<D> {
   if (plan.type === 'blocked') return { type: 'blocked', plan };
   if (plan.type === 'unchanged') return { type: 'unchanged', plan };
   if (consent?.accepted !== true || consent.planKey !== plan.key)
@@ -433,3 +448,35 @@ export function resolveEventStormingC4ConversionConsent(
     };
   return { type: 'consented', plan };
 }
+
+export function createEventStormingC4ConversionPlan(
+  source: ZlozEventStormingC4Source,
+  options: ZlozEventStormingC4ConversionOptions = {},
+): ZlozEventStormingC4ConversionPlan {
+  return createPlan(source, options, previewEventStormingC4Mapping);
+}
+export function createEventStormingC4ConversionPlanV2(
+  source: ZlozEventStormingC4Source<ZlozModelDocumentV2>,
+  options: ZlozEventStormingC4ConversionOptions = {},
+): ZlozEventStormingC4ConversionPlan<ZlozModelDocumentV2> {
+  return createPlan(source, options, previewEventStormingC4MappingV2);
+}
+export function resolveEventStormingC4ConversionConsent(
+  source: ZlozEventStormingC4Source,
+  options: ZlozEventStormingC4ConversionOptions = {},
+  consent: ZlozEventStormingC4LossConsent | null = null,
+): ZlozEventStormingC4ConversionConsentDecision {
+  return resolveConsent(createEventStormingC4ConversionPlan(source, options), consent);
+}
+export function resolveEventStormingC4ConversionConsentV2(
+  source: ZlozEventStormingC4Source<ZlozModelDocumentV2>,
+  options: ZlozEventStormingC4ConversionOptions = {},
+  consent: ZlozEventStormingC4LossConsent | null = null,
+): ZlozEventStormingC4ConversionConsentDecision<ZlozModelDocumentV2> {
+  return resolveConsent(createEventStormingC4ConversionPlanV2(source, options), consent);
+}
+
+export type ZlozEventStormingC4ConversionPlanV2 =
+  ZlozEventStormingC4ConversionPlan<ZlozModelDocumentV2>;
+export type ZlozEventStormingC4ConversionConsentDecisionV2 =
+  ZlozEventStormingC4ConversionConsentDecision<ZlozModelDocumentV2>;

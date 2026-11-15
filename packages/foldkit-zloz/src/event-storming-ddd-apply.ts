@@ -2,7 +2,10 @@ import { isNodeArchitecture, isDddEdgeArchitecture, architectureNodePresets } fr
 import { commitGraph } from './editor';
 import {
   createEventStormingDddConversionPlan,
+  createEventStormingDddConversionPlanV2,
   resolveEventStormingDddConversionConsent,
+  resolveEventStormingDddConversionConsentV2,
+  type ZlozEventStormingDddConversionConsentDecision,
   type ZlozEventStormingDddConversionPlan,
   type ZlozEventStormingDddConversionSource,
   type ZlozEventStormingDddLossConsent,
@@ -11,35 +14,57 @@ import type { ZlozEventStormingDddMappingOptions } from './event-storming-ddd-pr
 import { ZlozError } from './graph';
 import { historyValueEqual } from './history';
 import { captureModelDocument, parseModelDocument, type ZlozModelDocument } from './model-document';
+import {
+  captureModelDocumentV2,
+  parseModelDocumentV2,
+  type ZlozModelDocumentV2,
+} from './model-document-v2';
+import { ownedData } from './modelling-patch';
+import { readPortableEvidenceJson } from './parse-modelling-patch';
 import type { EditorPolicy, EditorState, JsonValue } from './types';
 
-type ReviewablePlan = Extract<ZlozEventStormingDddConversionPlan, { type: 'reviewable' }>;
+type ReviewablePlan<D extends ZlozModelDocument = ZlozModelDocument> = Extract<
+  ZlozEventStormingDddConversionPlan<D>,
+  { type: 'reviewable' }
+>;
 /** Portable unsigned conversion receipt. Source provenance is separate from edition-fork ancestry. */
-export type ZlozEventStormingDddConversion = Readonly<{
+export type ZlozEventStormingDddConversion<
+  D extends ZlozModelDocument = ZlozModelDocument,
+  V extends 1 | 2 = 1,
+> = Readonly<{
   format: 'foldkit-zloz-ddd-conversion';
-  version: 1;
-  source: ZlozEventStormingDddConversionSource;
+  version: V;
+  source: ZlozEventStormingDddConversionSource<D>;
   mappings: ZlozEventStormingDddMappingOptions;
   lossesAccepted: true;
-  document: ZlozModelDocument;
+  document: D;
 }>;
-export type ZlozEventStormingDddApplyPolicy = EditorPolicy &
+export type ZlozEventStormingDddApplyPolicy<D extends ZlozModelDocument = ZlozModelDocument> =
+  EditorPolicy &
+    Readonly<{
+      /** Whole-transaction veto; inspect complete frozen source/target values before publication. */
+      canApplyEventStormingDddConversion?: (
+        plan: Extract<ZlozEventStormingDddConversionPlan<D>, { type: 'reviewable' }>,
+        target: D,
+      ) => string | null;
+    }>;
+export type ZlozEventStormingDddApplyOptions<D extends ZlozModelDocument = ZlozModelDocument> =
   Readonly<{
-    /** Whole-transaction veto; inspect complete frozen source/target values before publication. */
-    canApplyEventStormingDddConversion?: (
-      plan: Extract<ZlozEventStormingDddConversionPlan, { type: 'reviewable' }>,
-      target: ZlozModelDocument,
-    ) => string | null;
+    mappings?: ZlozEventStormingDddMappingOptions;
+    consent: ZlozEventStormingDddLossConsent | null;
+    policy?: ZlozEventStormingDddApplyPolicy<D>;
+    /** Current host-only busy condition (imports, layout, external drafts), not a cached permission. */
+    blockedReason?: string | null;
   }>;
-export type ZlozEventStormingDddApplyOptions = Readonly<{
-  mappings?: ZlozEventStormingDddMappingOptions;
-  consent: ZlozEventStormingDddLossConsent | null;
-  policy?: ZlozEventStormingDddApplyPolicy;
-  /** Current host-only busy condition (imports, layout, external drafts), not a cached permission. */
-  blockedReason?: string | null;
-}>;
-export type ZlozEventStormingDddApplyResult =
-  | Readonly<{ type: 'applied'; editor: EditorState; conversion: ZlozEventStormingDddConversion }>
+export type ZlozEventStormingDddApplyResult<
+  D extends ZlozModelDocument = ZlozModelDocument,
+  V extends 1 | 2 = 1,
+> =
+  | Readonly<{
+      type: 'applied';
+      editor: EditorState;
+      conversion: ZlozEventStormingDddConversion<D, V>;
+    }>
   | Readonly<{ type: 'unchanged'; editor: EditorState }>
   | Readonly<{
       type: 'blocked';
@@ -54,11 +79,14 @@ export type ZlozEventStormingDddApplyResult =
         | 'policy';
       reason: string;
     }>;
-function convertedDocument(plan: ReviewablePlan): ZlozModelDocument {
+function convertedDocument<D extends ZlozModelDocument>(
+  plan: ReviewablePlan<D>,
+  capture: (document: D) => D,
+): D {
   const source = plan.provenance.document;
   const nodes = new Map(plan.changes.nodes.map((change) => [change.nodeId, change.architecture]));
   const edges = new Map(plan.changes.edges.map((change) => [change.edgeId, change.architecture]));
-  return captureModelDocument({
+  return capture({
     ...source,
     snapshot: {
       ...source.snapshot,
@@ -73,13 +101,14 @@ function convertedDocument(plan: ReviewablePlan): ZlozModelDocument {
     },
   });
 }
-function receipt(
-  plan: ReviewablePlan,
-  document: ZlozModelDocument,
-): ZlozEventStormingDddConversion {
+function receipt<D extends ZlozModelDocument, V extends 1 | 2>(
+  plan: ReviewablePlan<D>,
+  document: D,
+  version: V,
+): ZlozEventStormingDddConversion<D, V> {
   return Object.freeze({
     format: 'foldkit-zloz-ddd-conversion',
-    version: 1,
+    version,
     source: plan.provenance,
     mappings: plan.mappings,
     lossesAccepted: true,
@@ -95,22 +124,30 @@ const denial = (reason: string | null | undefined): string | null =>
  * Caller must publish the returned editor and retain the conversion receipt together, without an
  * intervening await. Storage, host scope authenticity and external busy conditions belong to host.
  */
-export function applyEventStormingDddConversion(
+function applyConversion<D extends ZlozModelDocument, V extends 1 | 2>(
   editor: EditorState,
-  source: ZlozEventStormingDddConversionSource,
-  options: ZlozEventStormingDddApplyOptions,
-): ZlozEventStormingDddApplyResult {
-  const review = resolveEventStormingDddConversionConsent(
-    source,
-    options.mappings,
-    options.consent,
-  );
+  source: ZlozEventStormingDddConversionSource<D>,
+  options: ZlozEventStormingDddApplyOptions<D>,
+  resolve: (
+    source: ZlozEventStormingDddConversionSource<D>,
+    choices?: ZlozEventStormingDddMappingOptions,
+    consent?: ZlozEventStormingDddLossConsent | null,
+  ) => ZlozEventStormingDddConversionConsentDecision<D>,
+  capture: (document: D) => D,
+  version: V,
+): ZlozEventStormingDddApplyResult<D, V> {
+  const review = resolve(source, options.mappings, options.consent);
   const checked = review.plan.provenance;
   const block = (
-    code: Extract<ZlozEventStormingDddApplyResult, { type: 'blocked' }>['code'],
+    code: Extract<ZlozEventStormingDddApplyResult<D, V>, { type: 'blocked' }>['code'],
     reason: string,
-  ): ZlozEventStormingDddApplyResult => ({ type: 'blocked', editor, code, reason });
+  ): ZlozEventStormingDddApplyResult<D, V> => ({ type: 'blocked', editor, code, reason });
+  const checkpoint = checked.document.snapshot;
+  const mode = 'connectionMode' in checkpoint ? checkpoint.connectionMode : 'strict';
+  if (version === 2 && !editor.connectionHistory)
+    return block('source-changed', 'Initialize a v2 model session before conversion.');
   if (
+    mode !== (editor.connectionMode ?? 'strict') ||
     checked.revision !== editor.revision ||
     !historyValueEqual(checked.document.snapshot.graph, editor.graph) ||
     checked.document.snapshot.viewport === undefined ||
@@ -121,6 +158,8 @@ export function applyEventStormingDddConversion(
       'The live graph, camera or revision differs from the source. Review the current model.',
     );
   if (editor.readOnly) return block('read-only', 'The working model is read-only.');
+  if (version === 2 && editor.revision >= Number.MAX_SAFE_INTEGER)
+    return block('source-changed', 'Editor revision counter is exhausted.');
   if (
     editor.gesture.type !== 'idle' ||
     editor.connection !== null ||
@@ -143,7 +182,7 @@ export function applyEventStormingDddConversion(
     return block('undo-disabled', 'Enable graph Undo before converting.');
   if (review.type === 'consent-required') return block('consent-required', review.reason);
   const plan = review.plan,
-    target = convertedDocument(plan),
+    target = convertedDocument(plan, capture),
     policy = options.policy ?? {};
   const bulk = denial(policy.canApplyEventStormingDddConversion?.(plan, target));
   if (bulk !== null) return block('policy', bulk);
@@ -163,7 +202,8 @@ export function applyEventStormingDddConversion(
     const reason = denial(policy.canChangeEdgeArchitecture?.(edge, next, before));
     if (reason !== null) return block('policy', reason);
   }
-  const conversion = receipt(plan, target);
+  const conversion = receipt(plan, target, version);
+  if (version === 2) readPortableEvidenceJson(JSON.stringify(conversion));
   return { type: 'applied', editor: commitGraph(editor, target.snapshot.graph), conversion };
 }
 
@@ -242,12 +282,21 @@ function decodeDocument(value: JsonValue | undefined): ZlozModelDocument {
     JSON.stringify({ format: 'foldkit-zloz-model', version: 1, document: value }),
   );
 }
-function captureReceipt(value: Record<string, JsonValue>): ZlozEventStormingDddConversion {
+function captureReceiptFor<D extends ZlozModelDocument, V extends 1 | 2>(
+  value: JsonValue,
+  version: V,
+  decode: (value: JsonValue | undefined) => D,
+  capture: (document: D) => D,
+  create: (
+    source: ZlozEventStormingDddConversionSource<D>,
+    options?: ZlozEventStormingDddMappingOptions,
+  ) => ZlozEventStormingDddConversionPlan<D>,
+): ZlozEventStormingDddConversion<D, V> {
   if (
     !isRecord(value) ||
     !fields(value, ['format', 'version', 'source', 'mappings', 'lossesAccepted', 'document']) ||
     value.format !== 'foldkit-zloz-ddd-conversion' ||
-    value.version !== 1 ||
+    value.version !== version ||
     value.lossesAccepted !== true ||
     !isRecord(value.source) ||
     !fields(value.source, ['document', 'sessionId', 'revision']) ||
@@ -257,16 +306,26 @@ function captureReceipt(value: Record<string, JsonValue>): ZlozEventStormingDddC
   )
     return invalidReceipt();
   const source = {
-    document: decodeDocument(value.source.document),
+    document: decode(value.source.document),
     sessionId: value.source.sessionId,
     revision: value.source.revision,
   };
-  const plan = createEventStormingDddConversionPlan(source, value.mappings);
+  const plan = create(source, value.mappings);
   if (plan.type !== 'reviewable' || plan.provenance.document.snapshot.viewport === undefined)
     return invalidReceipt();
-  const target = convertedDocument(plan);
-  if (!historyValueEqual(decodeDocument(value.document), target)) return invalidReceipt();
-  return receipt(plan, target);
+  if (version === 2 && plan.provenance.revision >= Number.MAX_SAFE_INTEGER) return invalidReceipt();
+  const target = convertedDocument(plan, capture);
+  if (!historyValueEqual(decode(value.document), target)) return invalidReceipt();
+  return receipt(plan, target, version);
+}
+function captureReceipt(value: JsonValue): ZlozEventStormingDddConversion {
+  return captureReceiptFor(
+    value,
+    1,
+    decodeDocument,
+    captureModelDocument,
+    createEventStormingDddConversionPlan,
+  );
 }
 /** Export the entire receipt to retain before/after documents and the mapping contract. Model-only JSON omits conversion receipts. */
 export function serializeEventStormingDddConversion(
@@ -287,3 +346,68 @@ export function parseEventStormingDddConversion(json: string): ZlozEventStorming
   if (!isRecord(value)) return invalidReceipt();
   return captureReceipt(value);
 }
+
+export type ZlozEventStormingDddConversionV2 = ZlozEventStormingDddConversion<
+  ZlozModelDocumentV2,
+  2
+>;
+export type ZlozEventStormingDddApplyResultV2 = ZlozEventStormingDddApplyResult<
+  ZlozModelDocumentV2,
+  2
+>;
+export type ZlozEventStormingDddApplyOptionsV2 =
+  ZlozEventStormingDddApplyOptions<ZlozModelDocumentV2>;
+export function applyEventStormingDddConversion(
+  editor: EditorState,
+  source: ZlozEventStormingDddConversionSource,
+  options: ZlozEventStormingDddApplyOptions,
+): ZlozEventStormingDddApplyResult {
+  return applyConversion(
+    editor,
+    source,
+    options,
+    resolveEventStormingDddConversionConsent,
+    captureModelDocument,
+    1,
+  );
+}
+export function applyEventStormingDddConversionV2(
+  editor: EditorState,
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV2>,
+  options: ZlozEventStormingDddApplyOptionsV2,
+): ZlozEventStormingDddApplyResultV2 {
+  return applyConversion(
+    editor,
+    source,
+    options,
+    resolveEventStormingDddConversionConsentV2,
+    captureModelDocumentV2,
+    2,
+  );
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Receipt decoding owns raw data and validates its full versioned schema before publication.
+function captureReceiptV2(input: unknown): ZlozEventStormingDddConversionV2 {
+  const value = ownedData(input);
+  return captureReceiptFor(
+    value,
+    2,
+    (document) =>
+      parseModelDocumentV2(JSON.stringify({ format: 'foldkit-zloz-model', version: 2, document })),
+    captureModelDocumentV2,
+    createEventStormingDddConversionPlanV2,
+  );
+}
+export function serializeEventStormingDddConversionV2(
+  conversion: ZlozEventStormingDddConversionV2,
+): string {
+  const text = JSON.stringify(captureReceiptV2(conversion));
+  readPortableEvidenceJson(text);
+  return text;
+}
+/** Strict bounded v2 evidence reopening. Recomputes mapping and exact complete target; never applies. */
+export function parseEventStormingDddConversionV2(text: string): ZlozEventStormingDddConversionV2 {
+  return captureReceiptV2(readPortableEvidenceJson(text));
+}
+
+export type ZlozEventStormingDddApplyPolicyV2 =
+  ZlozEventStormingDddApplyPolicy<ZlozModelDocumentV2>;

@@ -1045,9 +1045,9 @@ test('C4 receipt inspection reports complete provenance, before/after changes an
 });
 test('C4 unsupported format/version exits 1 while invalid data and malformed invocation exit 2', async () => {
   for (const wire of [
-    { ...c4ReceiptWire, version: 2 },
+    { ...c4ReceiptWire, version: 99 },
     { ...c4ReceiptWire, format: 'foldkit-zloz-ddd-conversion' },
-    { format: 'foldkit-zloz-c4-conversion', version: 2, uninterpretable: null },
+    { format: 'foldkit-zloz-c4-conversion', version: 99, uninterpretable: null },
   ]) {
     const result = await invoke(['c4', 'receipt', 'inspect'], JSON.stringify(wire));
     expect(result.code).toBe(1);
@@ -1104,7 +1104,7 @@ test('C4 file inspection preserves bytes and reports missing/oversized input wit
   }
 });
 
-test('v2 validation, compatibility inspection and Mermaid retain mode while legacy operations reject explicitly', async () => {
+test('v2 validation, compatibility, Mermaid and native audits retain mode with explicit selector failures', async () => {
   const nodes = ['a', 'b'].map((id) => ({
     id,
     label: id,
@@ -1141,13 +1141,19 @@ test('v2 validation, compatibility inspection and Mermaid retain mode while lega
   for (const args of [
     ['ddd', 'audit'],
     ['relationships', 'audit'],
+  ]) {
+    const audited = await invoke(args, wire);
+    expect(audited.code).toBe(0);
+    expect(JSON.parse(audited.text).connectionMode).toBe('loose');
+  }
+  for (const args of [
     ['ddd', 'compare', '--baseline', 'base'],
     ['relationships', 'compare', '--baseline', 'base'],
     ['review', 'packet', '--baseline', 'base'],
   ]) {
-    const incompatible = await invoke(args, wire);
-    expect(incompatible.code).toBe(1);
-    expect(JSON.parse(incompatible.text).diagnostics[0].code).toBe('adapter-version-required');
+    const missing = await invoke(args, wire);
+    expect(missing.code).toBe(2);
+    expect(JSON.parse(missing.text).diagnostics[0].code).toBe('unknown-baseline');
   }
   expect((await invoke(['validate'], JSON.stringify(snapshot))).code).toBe(0);
   expect(
@@ -1160,7 +1166,7 @@ test('v2 validation, compatibility inspection and Mermaid retain mode while lega
   ).toBe(2);
 });
 
-test('patch source gating distinguishes valid v2 source from malformed data before reading a proposal', async () => {
+test('native patch dry run reads v2 sources and distinguishes malformed proposals from malformed source data', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'zloz-v2-patch-gate-'));
   // oxlint-disable-next-line linteffect/no-try-catch
   try {
@@ -1174,8 +1180,8 @@ test('patch source gating distinguishes valid v2 source from malformed data befo
       ['patch', 'dry-run', '--source', source, '--session', 'session', '--revision', '0'],
       '{invalid proposal never read',
     );
-    expect(result.code).toBe(1);
-    expect(JSON.parse(result.text).diagnostics[0].code).toBe('adapter-version-required');
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.text).diagnostics[0].code).toBe('invalid-json');
     expect(await readFile(source, 'utf8')).toBe(text);
     await writeFile(source, '{invalid source');
     const malformed = await invoke(
@@ -1187,4 +1193,146 @@ test('patch source gating distinguishes valid v2 source from malformed data befo
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('native v2 packet creation, comparison and versioned patch dry run retain checkpoint modes', async () => {
+  const modelText = await readFile(
+    new URL('../../foldkit-zloz/test/fixtures/model-native-v2.json', import.meta.url),
+    'utf8',
+  );
+  const packet = await invoke(
+    ['review', 'packet', '--baseline', 'base', '--loss-policy', 'report'],
+    modelText,
+  );
+  expect(packet.code).toBe(0);
+  const data = JSON.parse(packet.text).data;
+  expect(data.version).toBe(2);
+  expect(data.baseline.snapshot.connectionMode).toBe('strict');
+  expect(data.selected.snapshot.connectionMode).toBe('loose');
+  const inspected = await invoke(['review', 'inspect'], JSON.stringify(data));
+  expect(inspected.code).toBe(0);
+  expect(JSON.parse(inspected.text).data).toEqual(data);
+  const compared = await invoke(['relationships', 'compare', '--baseline', 'base'], modelText);
+  expect(compared.code).toBe(1);
+  expect(JSON.parse(compared.text).data.selected.connectionMode).toBe('loose');
+  expect(JSON.parse(compared.text).data.introduced[0].code).toBe('incompatible-roles');
+  const directory = await mkdtemp(join(tmpdir(), 'zloz-native-patch-'));
+  // oxlint-disable-next-line linteffect/no-try-catch
+  try {
+    const source = join(directory, 'source.json');
+    await writeFile(source, modelText);
+    const text = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/modelling-patch-v2.json', import.meta.url),
+      'utf8',
+    );
+    const args = [
+      'patch',
+      'dry-run',
+      '--source',
+      source,
+      '--session',
+      'native-v2-fixture',
+      '--revision',
+      '0',
+    ];
+    const reviewed = await invoke(args, text);
+    expect(reviewed.code).toBe(0);
+    expect(JSON.parse(reviewed.text).data.patch.source.connectionMode).toBe('loose');
+    expect(JSON.parse(reviewed.text).data.graph.edges[0].source.port).toBe('shared');
+    const mismatched = JSON.parse(text);
+    mismatched.source.connectionMode = 'strict';
+    expect((await invoke(args, JSON.stringify(mismatched))).code).toBe(2);
+    expect(await readFile(source, 'utf8')).toBe(modelText);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test('native receipt inspectors distinguish immutable evidence, unsupported versions and invalid records', async () => {
+  for (const [family, file] of [
+    ['c4', 'c4-conversion-v2'],
+    ['ddd', 'ddd-conversion-v2'],
+    ['patch', 'modelling-patch-receipt-v2'],
+  ] as const) {
+    const text = await readFile(
+      new URL(`../../foldkit-zloz/test/fixtures/${file}.json`, import.meta.url),
+      'utf8',
+    );
+    const result = await invoke([family, 'receipt', 'inspect'], text);
+    expect(result.code).toBe(0);
+    const data = JSON.parse(result.text).data;
+    expect(data.authority).toBe('read-only-evidence');
+    if (family !== 'c4') {
+      expect(data.review.kind).toBe(family);
+      expect(data.review.losses.length).toBeGreaterThan(0);
+    }
+    expect(family === 'c4' ? data.target.snapshot.connectionMode : data.receipt.version).toBe(
+      family === 'c4' ? 'loose' : 2,
+    );
+    const bad = JSON.parse(text);
+    bad.version = 99;
+    expect((await invoke([family, 'receipt', 'inspect'], JSON.stringify(bad))).code).toBe(1);
+    const forged = JSON.parse(text);
+    if (family === 'patch') forged.reviewed = false;
+    else forged.lossesAccepted = false;
+    expect((await invoke([family, 'receipt', 'inspect'], JSON.stringify(forged))).code).toBe(2);
+    expect(
+      (
+        await invoke(
+          [family, 'receipt', 'inspect'],
+          text.replace('"version": 2', '"version": 2,"version": 2'),
+        )
+      ).code,
+    ).toBe(2);
+  }
+  const deep =
+    '{"format":"foldkit-zloz-patch-receipt","version":2,"extra":' +
+    '['.repeat(500) +
+    '0' +
+    ']'.repeat(500) +
+    '}';
+  expect((await invoke(['patch', 'receipt', 'inspect'], deep)).code).toBe(2);
+});
+
+test('native CLI packet creation enforces its own UTF-8 reopening limit before reporting success', async () => {
+  const graph = {
+    nodes: [
+      {
+        id: 'a',
+        label: 'A',
+        position: { x: 0, y: 0 },
+        size: { width: 100, height: 80 },
+        ports: [{ id: 'p', kind: 'input', side: 'left', offset: 0.5 }],
+        data: { large: 'x'.repeat(940_000) },
+      },
+    ],
+    edges: Array.from({ length: 300 }, (_, i) => ({
+      id: 'e' + i,
+      source: { node: 'a', port: 'p' },
+      target: { node: 'a', port: 'p' },
+    })),
+  };
+  const text = JSON.stringify({
+    format: 'foldkit-zloz-model',
+    version: 2,
+    document: {
+      id: 'large',
+      name: 'Large',
+      origin: null,
+      snapshot: { version: 2, connectionMode: 'loose', graph },
+      editions: [
+        {
+          id: 'base',
+          name: 'Base',
+          snapshot: { version: 2, connectionMode: 'strict', graph: { nodes: [], edges: [] } },
+        },
+      ],
+    },
+  });
+  expect(new TextEncoder().encode(text).byteLength).toBeLessThan(inputByteLimit);
+  const result = await invoke(
+    ['review', 'packet', '--baseline', 'base', '--loss-policy', 'report'],
+    text,
+  );
+  expect(result.code).toBe(1);
+  expect(JSON.parse(result.text).diagnostics[0].code).toBe('packet-limit');
 });

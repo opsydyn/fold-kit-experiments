@@ -1,0 +1,293 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "patch-dry-run",
+  "status": "reviewed",
+  "data": {
+    "patch": {
+      "format": "foldkit-zloz-patch",
+      "id": "rename-native",
+      "operations": [
+        {
+          "id": "rename",
+          "node": {
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "a",
+            "label": "Orders modelled",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 20,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          "type": "node.replace"
+        }
+      ],
+      "provenance": {
+        "actor": {
+          "id": "synthetic-fixture",
+          "kind": "tool"
+        },
+        "reason": "Exercise native v2 preservation",
+        "references": []
+      },
+      "source": {
+        "connectionMode": "loose",
+        "graph": {
+          "edges": [
+            {
+              "data": {
+                "preserve": true
+              },
+              "id": "orders-billing",
+              "label": "Uses",
+              "source": {
+                "node": "a",
+                "port": "shared"
+              },
+              "target": {
+                "node": "b",
+                "port": "shared"
+              }
+            }
+          ],
+          "nodes": [
+            {
+              "architecture": {
+                "family": "event-storming",
+                "role": "domain-event"
+              },
+              "data": {
+                "owner": "commerce"
+              },
+              "id": "a",
+              "label": "Orders",
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "offset": 0.5,
+                  "side": "right"
+                }
+              ],
+              "position": {
+                "x": 20,
+                "y": 40
+              },
+              "size": {
+                "height": 100,
+                "width": 200
+              }
+            },
+            {
+              "architecture": {
+                "family": "event-storming",
+                "role": "domain-event"
+              },
+              "id": "b",
+              "label": "Billing",
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "offset": 0.5,
+                  "side": "left"
+                }
+              ],
+              "position": {
+                "x": 320,
+                "y": 40
+              },
+              "size": {
+                "height": 100,
+                "width": 200
+              }
+            }
+          ]
+        },
+        "modelId": "native-v2",
+        "revision": 0,
+        "sessionId": "native-v2-fixture"
+      },
+      "version": 2
+    },
+    "graph": {
+      "edges": [
+        {
+          "data": {
+            "preserve": true
+          },
+          "id": "orders-billing",
+          "label": "Uses",
+          "source": {
+            "node": "a",
+            "port": "shared"
+          },
+          "target": {
+            "node": "b",
+            "port": "shared"
+          }
+        }
+      ],
+      "nodes": [
+        {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "a",
+          "label": "Orders modelled",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        },
+        {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "id": "b",
+          "label": "Billing",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "left"
+            }
+          ],
+          "position": {
+            "x": 320,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        }
+      ]
+    },
+    "changes": [
+      {
+        "operationId": "rename",
+        "entity": "node",
+        "id": "a",
+        "before": {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "a",
+          "label": "Orders",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        },
+        "after": {
+          "architecture": {
+            "family": "event-storming",
+            "role": "domain-event"
+          },
+          "data": {
+            "owner": "commerce"
+          },
+          "id": "a",
+          "label": "Orders modelled",
+          "ports": [
+            {
+              "id": "shared",
+              "kind": "input",
+              "offset": 0.5,
+              "side": "right"
+            }
+          ],
+          "position": {
+            "x": 20,
+            "y": 40
+          },
+          "size": {
+            "height": 100,
+            "width": 200
+          }
+        }
+      }
+    ],
+    "losses": [
+      {
+        "operationId": "rename",
+        "entity": "node",
+        "id": "a",
+        "code": "fields-replaced",
+        "fields": ["label"]
+      }
+    ],
+    "type": "reviewable",
+    "findings": [
+      {
+        "code": "authored-data-loss",
+        "message": "Previously authored fields will be replaced or removed: label",
+        "path": "/operations/0",
+        "operationId": "rename",
+        "severity": "warning"
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "authored-data-loss",
+      "message": "Previously authored fields will be replaced or removed: label",
+      "path": "/operations/0",
+      "subject": "rename",
+      "dimension": "semantics",
+      "severity": "loss"
+    }
+  ]
+}

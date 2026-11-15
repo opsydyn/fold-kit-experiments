@@ -86,6 +86,22 @@ export function compareModelDddRelationships(
     };
   const before = auditDddRelationships(baseline.snapshot.graph, options);
   const after = auditDddRelationships((selected?.snapshot ?? model.snapshot).graph, options);
+  return compareDddRelationshipAudits(
+    model.id,
+    { kind: 'edition', id: baseline.id, name: baseline.name },
+    selected ? { kind: 'edition', id: selected.id, name: selected.name } : { kind: 'current' },
+    before,
+    after,
+  );
+}
+/** Internal domain delta over already validated checkpoints; contains no wire/mode inference. */
+export function compareDddRelationshipAudits(
+  modelId: string,
+  baselineSource: ZlozDddRelationshipAuditSource,
+  selectedSource: ZlozDddRelationshipAuditSource,
+  before: ZlozDddRelationshipAudit,
+  after: ZlozDddRelationshipAudit,
+): ZlozDddRelationshipAuditComparisonDecision {
   const previous = new Map(findings(before).map((entry) => [entry.edgeId, entry]));
   const current = new Map(findings(after).map((entry) => [entry.edgeId, entry]));
   const introduced = [...current.values()].filter(
@@ -102,16 +118,14 @@ export function compareModelDddRelationships(
   return {
     type: 'compared',
     comparison: {
-      modelId: model.id,
+      modelId,
       status: introduced.length ? 'regressed' : 'no-new-findings',
       baseline: {
-        source: { kind: 'edition', id: baseline.id, name: baseline.name },
+        source: baselineSource,
         audit: before,
       },
       selected: {
-        source: selected
-          ? { kind: 'edition', id: selected.id, name: selected.name }
-          : { kind: 'current' },
+        source: selectedSource,
         audit: after,
       },
       summary: {

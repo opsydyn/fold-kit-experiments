@@ -37,3 +37,6 @@ export type {
   ZlozReviewReaderRequest,
   ZlozReviewReaderUpdate,
 } from './review-reader';
+
+export * from './review-packet-v2';
+export { parseReviewPacketV2 } from './parse-review-packet';

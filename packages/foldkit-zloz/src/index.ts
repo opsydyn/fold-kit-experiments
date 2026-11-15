@@ -794,3 +794,64 @@ export type { ZlozConnectionHistoryFrame, ZlozConnectionHistory } from './types'
 
 export { assessPortableCompatibilityV2 } from './portable-compatibility-v2';
 export type { ZlozPortableCompatibilityV2 } from './portable-compatibility-v2';
+
+export { captureModellingPatchV2, dryRunModellingPatchV2 } from './modelling-patch';
+export type {
+  ZlozModellingPatchV2,
+  ZlozModellingPatchSourceV2,
+  ZlozModellingPatchPreviewV2,
+  ZlozModellingPatchOptionsV2,
+} from './modelling-patch';
+export { parseModellingPatchV2 } from './parse-modelling-patch';
+export * from './modelling-patch-v2-apply';
+
+export * from './audit-v2';
+
+export {
+  createEventStormingC4ConversionPlanV2,
+  resolveEventStormingC4ConversionConsentV2,
+} from './event-storming-c4-conversion-plan';
+export {
+  applyEventStormingC4ConversionV2,
+  parseEventStormingC4ConversionV2,
+  serializeEventStormingC4ConversionV2,
+} from './event-storming-c4-apply';
+export type {
+  ZlozEventStormingC4ConversionV2,
+  ZlozEventStormingC4ApplyOptionsV2,
+  ZlozEventStormingC4ApplyResultV2,
+} from './event-storming-c4-apply';
+export { previewEventStormingC4MappingV2 } from './event-storming-c4-preview';
+
+export {
+  createEventStormingDddConversionPlanV2,
+  resolveEventStormingDddConversionConsentV2,
+} from './event-storming-ddd-conversion-plan';
+export {
+  applyEventStormingDddConversionV2,
+  parseEventStormingDddConversionV2,
+  serializeEventStormingDddConversionV2,
+} from './event-storming-ddd-apply';
+export type {
+  ZlozEventStormingDddConversionV2,
+  ZlozEventStormingDddApplyOptionsV2,
+  ZlozEventStormingDddApplyResultV2,
+} from './event-storming-ddd-apply';
+export { previewEventStormingDddMappingV2 } from './event-storming-ddd-preview';
+export type {
+  ZlozEventStormingC4SourceV2,
+  ZlozEventStormingC4PreviewV2,
+} from './event-storming-c4-preview';
+
+export type {
+  ZlozEventStormingC4ConversionPlanV2,
+  ZlozEventStormingC4ConversionConsentDecisionV2,
+} from './event-storming-c4-conversion-plan';
+export type { ZlozEventStormingC4ApplyPolicyV2 } from './event-storming-c4-apply';
+
+export type {
+  ZlozEventStormingDddConversionPlanV2,
+  ZlozEventStormingDddConversionConsentDecisionV2,
+} from './event-storming-ddd-conversion-plan';
+export type { ZlozEventStormingDddApplyPolicyV2 } from './event-storming-ddd-apply';
+export type { ZlozEventStormingDddConversionSourceV2 } from './event-storming-ddd-conversion-plan';

@@ -1,0 +1,42 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "ddd-audit",
+  "status": "audited",
+  "scope": "current-graph",
+  "connectionMode": "loose",
+  "documentVersion": 2,
+  "modelId": "native-v2",
+  "conventions": {
+    "source": "builtin",
+    "input": null
+  },
+  "data": {
+    "status": "compatible",
+    "summary": {
+      "edges": 1,
+      "typed": 0,
+      "unrelated": 1,
+      "blocked": 0
+    },
+    "entries": [
+      {
+        "edgeId": "orders-billing",
+        "edgeLabel": "Uses",
+        "source": {
+          "node": "a",
+          "port": "shared"
+        },
+        "target": {
+          "node": "b",
+          "port": "shared"
+        },
+        "status": "unrelated",
+        "code": "unrelated",
+        "architecture": null,
+        "relationshipKey": null,
+        "message": "This untyped connection has no declared DDD meaning."
+      }
+    ]
+  },
+  "diagnostics": []
+}

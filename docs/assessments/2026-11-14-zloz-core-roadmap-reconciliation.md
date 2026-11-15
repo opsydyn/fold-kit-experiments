@@ -1,5 +1,14 @@
 # Zloz core roadmap and compatibility reconciliation
 
+Latest delivery follow-up (2026-11-15): the approved native v2 package/CLI authoring
+and review batch implements mode-aware audits/comparisons, patches with guarded
+Apply/receipts, C4/DDD conversion receipts and reproducible review packets with
+read-only reopening. V1 readers remain fixed. Mounted workbench file/control
+adoption and broader C/Q/R qualification remain open. See
+[ADR 0104](../adr/0104-adopt-native-v2-authoring-and-review.md) and
+[qualification](../../packages/foldkit-zloz/evidence/native-authoring-review-v2.md).
+Earlier follow-ups below retain their own completion boundaries.
+
 Delivery follow-up (2026-11-15): the approved v2 portable capability/decision batch
 adds whole-model capability inspection, mode-aware ELK/force requests, explicit
 v2 Mermaid projections and bounded CLI validation/inspection. Native v2

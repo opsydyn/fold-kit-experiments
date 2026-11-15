@@ -1,5 +1,8 @@
 import type {
   ZlozPortableCompatibilityV2,
+  ZlozModellingPatchPreviewV2,
+  ZlozRelationshipAuditComparisonV2,
+  ZlozDddRelationshipAuditComparisonV2,
   ZlozConnectionMode,
   ZlozDddRelationshipAudit,
   ZlozDddRelationshipAuditComparison,
@@ -7,6 +10,8 @@ import type {
   ZlozRelationshipAuditComparison,
   ZlozModellingPatchPreview,
   ZlozEventStormingC4Conversion,
+  ZlozEventStormingC4ConversionV2,
+  ZlozHistoryModeChangeV2,
   ZlozEventStormingC4ConversionDisclosure,
   ZlozHistoryComparison,
 } from '@opsydyn/foldkit-zloz';
@@ -14,13 +19,18 @@ import type {
   MermaidBundle,
   MermaidBundleV2,
   ZlozReviewPacket,
+  ZlozReviewPacketV2,
   ZlozReviewPacketDiagnostic,
   ZlozReviewPacketParseResult,
 } from '@opsydyn/foldkit-zloz-mermaid';
 import { Data, Runtime, Schema } from 'effect';
 
+import type { CliNativeReceiptInspection } from './native-receipts';
+
 export const cliProtocol = 'foldkit-zloz-cli/v1';
 export type CliOperation =
+  | 'ddd-receipt-inspect'
+  | 'patch-receipt-inspect'
   | 'compatibility-inspect'
   | 'validate'
   | 'c4-receipt-inspect'
@@ -72,7 +82,18 @@ export type CliC4ReceiptInspection = Readonly<{
   losses: readonly ZlozEventStormingC4ConversionDisclosure[];
   lossesAccepted: true;
 }>;
+export type CliC4ReceiptInspectionV2 = Omit<
+  CliC4ReceiptInspection,
+  'version' | 'provenance' | 'target' | 'changes'
+> &
+  Readonly<{
+    version: 2;
+    provenance: ZlozEventStormingC4ConversionV2['source'];
+    target: ZlozEventStormingC4ConversionV2['document'];
+    changes: CliC4ReceiptInspection['changes'] & Readonly<{ modeChange: ZlozHistoryModeChangeV2 }>;
+  }>;
 export type CliResponse =
+  | CliNativeReceiptInspection
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'compatibility-inspect';
@@ -85,7 +106,7 @@ export type CliResponse =
       operation: 'c4-receipt-inspect';
       status: 'inspected';
       scope: 'recorded-conversion';
-      data: CliC4ReceiptInspection;
+      data: CliC4ReceiptInspection | CliC4ReceiptInspectionV2;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -93,6 +114,8 @@ export type CliResponse =
       operation: 'ddd-audit';
       status: 'audited';
       scope: 'current-graph';
+      documentVersion?: 2;
+      connectionMode?: ZlozConnectionMode;
       modelId: string | null;
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
       data: ZlozDddRelationshipAudit;
@@ -104,7 +127,7 @@ export type CliResponse =
       status: 'compared';
       scope: 'model-editions';
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
-      data: ZlozDddRelationshipAuditComparison;
+      data: ZlozDddRelationshipAuditComparison | ZlozDddRelationshipAuditComparisonV2;
       /** Introduced findings only; persisting incompatibility remains in data. */
       diagnostics: readonly CliDiagnostic[];
     }>
@@ -112,7 +135,7 @@ export type CliResponse =
       protocol: typeof cliProtocol;
       operation: 'patch-dry-run';
       status: 'reviewed';
-      data: ZlozModellingPatchPreview;
+      data: ZlozModellingPatchPreview | ZlozModellingPatchPreviewV2;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -127,7 +150,7 @@ export type CliResponse =
       operation: 'review-inspect';
       status: 'inspected';
       scope: 'selected-snapshots';
-      data: ZlozReviewPacket;
+      data: ZlozReviewPacket | ZlozReviewPacketV2;
       diagnostics: readonly ZlozReviewPacketDiagnostic[];
     }>
   | Readonly<{
@@ -150,7 +173,7 @@ export type CliResponse =
       operation: 'review-packet';
       status: 'created';
       scope: 'selected-snapshots';
-      data: ZlozReviewPacket;
+      data: ZlozReviewPacket | ZlozReviewPacketV2;
       diagnostics: readonly ZlozReviewPacketDiagnostic[];
     }>
   | Readonly<{
@@ -165,6 +188,8 @@ export type CliResponse =
       operation: 'relationships-audit';
       status: 'audited';
       scope: 'current-graph';
+      documentVersion?: 2;
+      connectionMode?: ZlozConnectionMode;
       modelId: string | null;
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
       data: ZlozEventStormingRelationshipAudit;
@@ -176,7 +201,7 @@ export type CliResponse =
       status: 'compared';
       scope: 'model-editions';
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
-      data: ZlozRelationshipAuditComparison;
+      data: ZlozRelationshipAuditComparison | ZlozRelationshipAuditComparisonV2;
       /** Newly introduced findings only; persisting findings remain in data. */
       diagnostics: readonly CliDiagnostic[];
     }>
@@ -200,6 +225,7 @@ export class CliInputError extends Data.TaggedError('CliInputError')<{
     | 'model-required'
     | 'invalid-patch'
     | 'invalid-c4-receipt'
+    | 'invalid-receipt'
     | 'unknown-baseline'
     | 'unknown-edition'
     | Extract<ZlozReviewPacketParseResult, { status: 'rejected' }>['code'];
@@ -265,6 +291,16 @@ export class CliAdapterIncompatible extends Data.TaggedError('CliAdapterIncompat
     'This operation requires a v1 document. Native v2 support requires a versioned adapter contract; inspect compatibility before an explicit downgrade.';
   readonly dimension = 'semantics';
   readonly path = undefined;
+  readonly [Runtime.errorExitCode] = 1;
+  readonly [Runtime.errorReported] = false;
+}
+
+export class CliReceiptIncompatible extends Data.TaggedError('CliReceiptIncompatible')<{
+  readonly subject: string;
+}> {
+  readonly code = 'incompatible-receipt';
+  readonly message = 'This receipt format or version is unsupported by the selected inspector.';
+  readonly dimension = 'identity';
   readonly [Runtime.errorExitCode] = 1;
   readonly [Runtime.errorReported] = false;
 }

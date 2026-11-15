@@ -232,7 +232,65 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         'utf8',
       ),
     );
+    const nativeText = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/model-native-v2.json', import.meta.url),
+      'utf8',
+    );
+    const nativeSource = path.join(directory, 'native-v2.model.json');
+    await writeFile(nativeSource, nativeText);
+    const nativePatch = await readFile(
+      new URL('../../foldkit-zloz/test/fixtures/modelling-patch-v2.json', import.meta.url),
+      'utf8',
+    );
     for (const runtime of ['node', 'bun']) {
+      const nativePacket = await run(
+        [runtime, bin, 'review', 'packet', '--baseline', 'base', '--loss-policy', 'report'],
+        nativeText,
+      );
+      expect(nativePacket.code).toBe(0);
+      const nativePacketValue = JSON.parse(nativePacket.stdout).data;
+      expect(nativePacketValue.version).toBe(2);
+      expect(nativePacketValue.selected.snapshot.connectionMode).toBe('loose');
+      const nativePacketOpened = await run(
+        [runtime, bin, 'review', 'inspect'],
+        JSON.stringify(nativePacketValue),
+      );
+      expect(nativePacketOpened.code).toBe(0);
+      expect(JSON.parse(nativePacketOpened.stdout).data).toEqual(nativePacketValue);
+      const nativePreview = await run(
+        [
+          runtime,
+          bin,
+          'patch',
+          'dry-run',
+          '--source',
+          nativeSource,
+          '--session',
+          'native-v2-fixture',
+          '--revision',
+          '0',
+        ],
+        nativePatch,
+      );
+      expect(nativePreview.code).toBe(0);
+      expect(JSON.parse(nativePreview.stdout).data.patch.source.connectionMode).toBe('loose');
+      for (const [family, receiptFile] of [
+        ['c4', 'c4-conversion-v2'],
+        ['ddd', 'ddd-conversion-v2'],
+        ['patch', 'modelling-patch-receipt-v2'],
+      ] as const) {
+        const receiptText = await readFile(
+          new URL(`../../foldkit-zloz/test/fixtures/${receiptFile}.json`, import.meta.url),
+          'utf8',
+        );
+        const nativeReceipt = await run([runtime, bin, family, 'receipt', 'inspect'], receiptText);
+        expect(nativeReceipt.code).toBe(0);
+        expect(JSON.parse(nativeReceipt.stdout).data.authority).toBe('read-only-evidence');
+        if (family !== 'c4')
+          expect(JSON.parse(nativeReceipt.stdout).data.review.losses.length).toBeGreaterThan(0);
+        expect(nativeReceipt.stderr).toBe('');
+      }
+
       const v2Input = JSON.stringify({
         format: 'foldkit-zloz-model',
         version: 2,
@@ -262,8 +320,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].sourcePort).toBe('shared');
       expect(JSON.parse(v2Projection.stdout).data.identity.edges[0].targetPort).toBe('shared');
       const v2Audit = await run([runtime, bin, 'ddd', 'audit'], v2Input);
-      expect(v2Audit.code).toBe(1);
-      expect(JSON.parse(v2Audit.stdout).diagnostics[0].code).toBe('adapter-version-required');
+      expect(v2Audit.code).toBe(0);
+      expect(JSON.parse(v2Audit.stdout).connectionMode).toBe('loose');
 
       const c4Input = JSON.stringify(c4ReceiptWire);
       const c4Report = await run([runtime, bin, 'c4', 'receipt', 'inspect'], c4Input);
@@ -281,7 +339,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       });
       const c4Future = await run(
         [runtime, bin, 'c4', 'receipt', 'inspect'],
-        JSON.stringify({ ...c4ReceiptWire, version: 2 }),
+        JSON.stringify({ ...c4ReceiptWire, version: 99 }),
       );
       expect(c4Future.code).toBe(1);
       expect(c4Future.stderr).toBe('');

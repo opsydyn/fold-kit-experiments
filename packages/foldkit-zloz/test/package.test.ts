@@ -9,12 +9,15 @@ import { promisify } from 'node:util';
 
 import elkManifest from '../../foldkit-zloz-elk/package.json';
 import coreManifest from '../package.json';
+import nativeC4Wire from './fixtures/c4-conversion-v2.json';
 import connectionWire from './fixtures/connection-v2-loose.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
+import nativeDddWire from './fixtures/ddd-conversion-v2.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
+import nativeModelWire from './fixtures/model-native-v2.json';
 import modelModesWire from './fixtures/model-v2-modes.json';
+import nativePatchWire from './fixtures/modelling-patch-v2.json';
 import workshopWire from './fixtures/workshop-v1.json';
-
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const options = { cwd: root, maxBuffer: 5 * 1024 * 1024 };
@@ -104,8 +107,19 @@ const workflowMergeV2:ZlozEditionMergeResultV2=mergeEditionsV2(canonicalV2.editi
 if(workflowMergeV2.type!=='merged'||mergeEditionsV2(workflowMergeV2.editions,appendedEditionV2.editions).type!=='unchanged')throw new Error('V2 atomic/idempotent merge missing');
 const workflowRestoreV2=restoreEditionV2(canonicalSession,canonicalEdition,{expectedRevision:canonicalSession.revision});
 if(workflowRestoreV2.type!=='restored'||workflowRestoreV2.editor.connectionMode!=='loose'||workflowRestoreV2.editor.past.length!==1||updateEditor(workflowRestoreV2.editor,{type:'UndoPressed'}).connectionMode!=='strict'||updateEditor(updateEditor(workflowRestoreV2.editor,{type:'UndoPressed'}),{type:'RedoPressed'}).connectionMode!=='loose')throw new Error('V2 restore lost mode-aware Undo/Redo');
+import { parseModellingPatchV2, dryRunModellingPatchV2, resolveModellingPatchReviewV2, applyModellingPatchV2, parseModellingPatchReceiptV2, serializeModellingPatchReceiptV2, auditConnectionDddRelationships, compareModelEventStormingRelationshipsV2, parseEventStormingC4ConversionV2, parseEventStormingDddConversionV2 } from '@opsydyn/foldkit-zloz';
+const nativeModelV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(nativeModelWire))});
+const nativePatchDecoded=parseModellingPatchV2(${JSON.stringify(JSON.stringify(nativePatchWire))});
+if(nativePatchDecoded.status!=='parsed')throw new Error('Native patch decoder missing');
+const nativeEditorV2=createModelEditorV2(nativeModelV2),nativeIdentityV2={modelId:nativeModelV2.id,sessionId:'native-v2-fixture'};
+const nativeReviewV2=resolveModellingPatchReviewV2(nativeEditorV2,nativeIdentityV2,nativePatchDecoded.value);
+if(!nativeReviewV2.key)throw new Error('Native review failed');
+const nativeAppliedV2=applyModellingPatchV2(nativeEditorV2,nativeIdentityV2,nativePatchDecoded.value,{consent:{key:nativeReviewV2.key,reviewed:true,lossesAccepted:true}});
+if(nativeAppliedV2.type!=='applied'||parseModellingPatchReceiptV2(serializeModellingPatchReceiptV2(nativeAppliedV2.receipt)).snapshot.connectionMode!=='loose'||updateEditor(nativeAppliedV2.editor,{type:'UndoPressed'}).graph.nodes[0]?.label!==nativeEditorV2.graph.nodes[0]?.label)throw new Error('Native atomic patch/receipt/Undo failed');
+if(auditConnectionDddRelationships(nativeModelV2.snapshot).status!=='compatible'||compareModelEventStormingRelationshipsV2(nativeModelV2,{baselineId:'base'}).type!=='compared')throw new Error('Native audit contracts failed');
+if(parseEventStormingC4ConversionV2(${JSON.stringify(JSON.stringify(nativeC4Wire))}).document.snapshot.connectionMode!=='loose'||parseEventStormingDddConversionV2(${JSON.stringify(JSON.stringify(nativeDddWire))}).document.snapshot.connectionMode!=='loose')throw new Error('Native conversion receipts lost mode');
 const portableCapabilityV2:ZlozPortableCompatibilityV2=assessPortableCompatibilityV2(canonicalV2);
-if(portableCapabilityV2.scope!=='format-capability-only'||portableCapabilityV2.adapters.find(a=>a.adapter==='modelling-patch')?.status!=='requires-version')throw new Error('V2 adapter gates failed');
+if(portableCapabilityV2.scope!=='format-capability-only'||portableCapabilityV2.adapters.find(a=>a.adapter==='modelling-patch')?.status!=='supported')throw new Error('V2 adapter gates failed');
 const workflowPlaybackV2=createEditionPlaybackV2(workflowMergeV2.editions,{reducedMotion:false});
 const workflowNextV2=updateEditionPlaybackV2(workflowPlaybackV2,{type:'NextClicked'});
 if(reviewEditionPlaybackV2(workflowPlaybackV2,canonicalSession)?.editor.connectionMode!=='loose'||reviewEditionPlaybackV2(workflowNextV2,canonicalSession)?.editor.connectionMode!=='strict'||canonicalSession.past.length)throw new Error('V2 playback lost checkpoint mode or independent working history');

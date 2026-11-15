@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Adopt native v2 audits/comparisons, patch dry run and review packet creation/inspection. Add DDD and patch receipt inspectors, accept C4 v2 evidence, and enforce native packet reopening byte limits.
+
 - Add bounded v2 validation, compatibility inspection and explicit v2 Mermaid selection; distinguish valid-but-incompatible v1 adapters (exit 1) from invalid input (exit 2).
 
 - Add read-only C4 receipt inspection with full provenance, before/after changes, recorded losses and explicit incompatible/invalid exits.

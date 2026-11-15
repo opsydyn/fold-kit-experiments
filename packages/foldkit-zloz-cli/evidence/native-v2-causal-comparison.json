@@ -1,0 +1,103 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "relationships-compare",
+  "status": "compared",
+  "scope": "model-editions",
+  "conventions": {
+    "source": "builtin",
+    "input": null
+  },
+  "data": {
+    "modelId": "native-v2",
+    "status": "regressed",
+    "baseline": {
+      "source": {
+        "kind": "edition",
+        "id": "base",
+        "name": "Strict empty baseline"
+      },
+      "audit": {
+        "status": "compatible",
+        "summary": {
+          "edges": 0,
+          "typed": 0,
+          "inferred": 0,
+          "unrelated": 0,
+          "blocked": 0
+        },
+        "entries": []
+      },
+      "connectionMode": "strict"
+    },
+    "selected": {
+      "source": {
+        "kind": "current"
+      },
+      "audit": {
+        "status": "incompatible",
+        "summary": {
+          "edges": 1,
+          "typed": 0,
+          "inferred": 0,
+          "unrelated": 0,
+          "blocked": 1
+        },
+        "entries": [
+          {
+            "edgeId": "orders-billing",
+            "edgeLabel": "Uses",
+            "source": {
+              "node": "a",
+              "port": "shared"
+            },
+            "target": {
+              "node": "b",
+              "port": "shared"
+            },
+            "status": "blocked",
+            "code": "incompatible-roles",
+            "message": "This convention does not allow a causal relationship from domain-event to domain-event.",
+            "architecture": null,
+            "relationshipKey": null
+          }
+        ]
+      },
+      "connectionMode": "loose"
+    },
+    "summary": {
+      "introduced": 1,
+      "resolved": 0,
+      "persisting": 0
+    },
+    "introduced": [
+      {
+        "edgeId": "orders-billing",
+        "edgeLabel": "Uses",
+        "source": {
+          "node": "a",
+          "port": "shared"
+        },
+        "target": {
+          "node": "b",
+          "port": "shared"
+        },
+        "status": "blocked",
+        "code": "incompatible-roles",
+        "message": "This convention does not allow a causal relationship from domain-event to domain-event.",
+        "architecture": null,
+        "relationshipKey": null
+      }
+    ],
+    "resolved": [],
+    "persisting": []
+  },
+  "diagnostics": [
+    {
+      "code": "relationship-incompatible-roles",
+      "message": "This convention does not allow a causal relationship from domain-event to domain-event.",
+      "subject": "orders-billing",
+      "severity": "error",
+      "dimension": "semantics"
+    }
+  ]
+}

@@ -315,3 +315,36 @@ Keep canonical JSON as authority. No general import or model reconstruction is
 promised. The existing `exportMermaid(graph)` remains strict and its protocol and
 output are unchanged. V1 review packets/readers remain v1; they do not accept v2
 bundles or silently remove checkpoint modes.
+
+## Native v2 review packets
+
+```ts
+const result = createReviewPacketV2(
+  modelV2,
+  { baselineId: 'baseline' },
+  {
+    lossPolicy: 'report',
+  },
+);
+if (result.status === 'created') {
+  const text = JSON.stringify(result.value);
+  const opened = openReviewPacketV2(text, 'selected', workingEditor);
+  // opened.review.editor is independent and read-only when status is 'opened'.
+}
+```
+
+Version-2 packets retain baseline/selected connection documents, modes, data-only
+conventions, mode-aware audit comparisons and v2 Mermaid projections. The scope is
+selected snapshots, not a whole-model/ancestry archive. Role interpretation stays
+`zloz-event-storming/v1` because domain rules are independent from port kinds.
+
+`parseReviewPacketV2` shares strict bounded scanning and deterministic recomputation
+with the v1 decoder. Conflicting side identities, duplicate fields, altered modes,
+forged projections/audits or unknown fields reject. V1 readers stay fixed at v1.
+Creation checks default reopening budgets (2,000,000 characters, depth 64, 100,000
+JSON values) and reports `packet-limit` before claiming portable success.
+
+`openReviewPacketV2` revalidates text before initializing either side in its saved
+mode with zero Undo, leaving the working editor/history untouched. Packets and
+recorded findings never authorize editing, import or Apply. Native workbench file
+controls remain a separate adoption slice.

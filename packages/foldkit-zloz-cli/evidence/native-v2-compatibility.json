@@ -1,0 +1,65 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "compatibility-inspect",
+  "status": "inspected",
+  "data": {
+    "scope": "format-capability-only",
+    "modelId": "native-v2",
+    "checkpoints": [
+      {
+        "path": "/snapshot",
+        "connectionMode": "loose",
+        "strictIncompatibleEdges": ["orders-billing"]
+      },
+      {
+        "path": "/editions/0/snapshot",
+        "connectionMode": "strict",
+        "strictIncompatibleEdges": []
+      }
+    ],
+    "adapters": [
+      {
+        "adapter": "layout",
+        "status": "supported",
+        "reason": "Mode-aware layout requests preserve ordered ports and mode. Engine-specific eligibility, policies and freshness still apply."
+      },
+      {
+        "adapter": "mermaid",
+        "status": "projection",
+        "reason": "Use exportConnectionMermaid. The v2 bundle retains mode and ordered identity; source-only semantics and other omissions require explicit loss reporting."
+      },
+      {
+        "adapter": "modelling-patch",
+        "status": "supported",
+        "reason": "Native v2 patches pin source mode through strict decoding, dry-run and live atomic Apply. Explicit consent and live policies are still required; operations do not change mode."
+      },
+      {
+        "adapter": "conversion-receipt",
+        "status": "supported",
+        "reason": "Native v2 C4/DDD conversion receipts retain complete mode-aware source/target documents and recompute mappings on reopening. Recorded evidence never authorizes new Apply."
+      },
+      {
+        "adapter": "review-packet",
+        "status": "supported",
+        "reason": "Native v2 review packets retain selected checkpoint modes, audit comparisons and v2 projections. Reopening recomputes evidence and creates independent read-only reviews."
+      },
+      {
+        "adapter": "relationship-audit",
+        "status": "supported",
+        "reason": "Explicit v2 connection audits and model comparisons validate each checkpoint in its own mode. Domain relationship rules remain independent from port kinds."
+      }
+    ],
+    "downgrade": {
+      "type": "blocked",
+      "findings": [
+        {
+          "code": "loose-edges-unrepresentable",
+          "path": "/snapshot",
+          "edgeIds": ["orders-billing"],
+          "reason": "These ordered connections cannot be represented by v1 strict ports. No downgrade snapshot is available."
+        }
+      ]
+    }
+  },
+  "diagnostics": []
+}

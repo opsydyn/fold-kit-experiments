@@ -4,6 +4,14 @@
  */
 import {
   assessPortableCompatibilityV2,
+  parseModellingPatchV2,
+  dryRunModellingPatchV2,
+  auditConnectionDddRelationships,
+  auditConnectionEventStormingRelationships,
+  compareModelDddRelationshipsV2,
+  compareModelEventStormingRelationshipsV2,
+  type ZlozModelDocument,
+  type ZlozModelDocumentV2,
   parseModellingPatch,
   dryRunModellingPatch,
   auditDddRelationships,
@@ -19,6 +27,11 @@ import {
   exportMermaid,
   exportConnectionMermaid,
   createReviewPacket,
+  createReviewPacketV2,
+  parseReviewPacketV2,
+  type ZlozReviewPacketV2,
+  type ZlozReviewPacketResultV2,
+  type ZlozReviewPacketResult,
   parseReviewPacket,
   type ZlozReviewPacket,
   type ZlozReviewPacketParseResult,
@@ -29,17 +42,17 @@ import { Console, Effect, Match, Option, Result, Schema, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
-import { inspectC4Receipt } from './c4-receipt';
+import { inspectC4Receipt, inspectC4ReceiptV2 } from './c4-receipt';
 import { readDddRelationshipRules } from './ddd-relationship-rules';
 import {
-  readDocument,
+  inputByteLimit,
   readPortableDocument,
   readTextInput,
-  readJsonInput,
+  readReceiptInput,
   writeResponse,
-  type CliDocument,
   type CliPortableDocument,
 } from './io';
+import { inspectNativeReceipt } from './native-receipts';
 import {
   cliProtocol,
   CliInputError,
@@ -64,6 +77,7 @@ export {
   CliDiagnostic,
   CliInputError,
   CliAdapterIncompatible,
+  CliReceiptIncompatible,
   CliC4ReceiptIncompatible,
   CliOutputError,
   CliConversionRejected,
@@ -78,6 +92,7 @@ export type {
   CliResponse,
   CliReviewPacketSummary,
   CliC4ReceiptInspection,
+  CliC4ReceiptInspectionV2,
 } from './protocol';
 
 type Operation = Exclude<CliOperation, 'invocation'>;
@@ -104,15 +119,13 @@ function rejectInput<E extends CliInputError | CliC4ReceiptIncompatible | CliAda
   });
 }
 function readForOperation(operation: Operation, input: string) {
-  return readDocument(input).pipe(
-    Effect.catchTag(['CliInputError', 'CliAdapterIncompatible'], (error) =>
-      rejectInput(operation, error),
-    ),
+  return readPortableDocument(input).pipe(
+    Effect.catchTag(['CliInputError'], (error) => rejectInput(operation, error)),
   );
 }
-function requireModel(document: CliDocument, input: string, operation: Operation) {
+function requireModel(document: CliPortableDocument, input: string, operation: Operation) {
   const result = Match.value(document).pipe(
-    Match.when({ kind: 'model' }, ({ document }) => Result.succeed(document)),
+    Match.when(isModel, ({ document }) => Result.succeed(document)),
     Match.orElse(() =>
       Result.fail(
         new CliInputError({
@@ -151,14 +164,16 @@ const isModel = (
   value: CliPortableDocument,
 ): value is Extract<CliPortableDocument, { kind: 'model' | 'model-v2' }> =>
   value.kind === 'model' || value.kind === 'model-v2';
+const isCanonicalV2Model = (
+  model: ZlozModelDocument | ZlozModelDocumentV2,
+): model is ZlozModelDocumentV2 => 'connectionMode' in model.snapshot;
 const graphOf = (document: CliPortableDocument): ZlozGraph =>
   Match.value(document).pipe(
     Match.when(isModel, (value) => value.document.snapshot.graph),
     Match.orElse((value) => value.snapshot.graph),
   );
-const summarize = (document: CliPortableDocument): CliResponse => {
-  const graph = graphOf(document);
-  const versionFields = Match.value(document).pipe(
+const portableFields = (document: CliPortableDocument) =>
+  Match.value(document).pipe(
     Match.when({ kind: 'model-v2' }, ({ document }) => ({
       connectionMode: document.snapshot.connectionMode,
       documentVersion: 2 as const,
@@ -169,6 +184,9 @@ const summarize = (document: CliPortableDocument): CliResponse => {
     })),
     Match.orElse(() => ({})),
   );
+const summarize = (document: CliPortableDocument): CliResponse => {
+  const graph = graphOf(document);
+  const versionFields = portableFields(document);
   const response: Extract<CliResponse, { status: 'valid' }> = {
     protocol: cliProtocol,
     operation: 'validate' as const,
@@ -269,9 +287,17 @@ function executeAudit(input: string, rules: Option.Option<string>) {
     });
     const options = yield* readingRules;
     const document = yield* readForOperation('relationships-audit', input);
-    const data = auditEventStormingRelationships(graphOf(document), options);
+    const data = Match.value(document).pipe(
+      Match.when({ kind: 'model-v2' }, ({ document }) =>
+        auditConnectionEventStormingRelationships(document.snapshot, options),
+      ),
+      Match.when({ kind: 'connection-v2' }, ({ snapshot }) =>
+        auditConnectionEventStormingRelationships(snapshot, options),
+      ),
+      Match.orElse((value) => auditEventStormingRelationships(graphOf(value), options)),
+    );
     const modelId = Match.value(document).pipe(
-      Match.when({ kind: 'model' }, ({ document }) => document.id),
+      Match.when(isModel, ({ document }) => document.id),
       Match.orElse(() => null),
     );
     const conventions = Option.match(rules, {
@@ -283,6 +309,7 @@ function executeAudit(input: string, rules: Option.Option<string>) {
       operation: 'relationships-audit',
       status: 'audited',
       scope: 'current-graph',
+      ...portableFields(document),
       modelId,
       conventions,
       data,
@@ -319,9 +346,17 @@ function executeDddAudit(input: string, rules: Option.Option<string>) {
     });
     const options = yield* readingRules;
     const document = yield* readForOperation('ddd-audit', input);
-    const data = auditDddRelationships(graphOf(document), options);
+    const data = Match.value(document).pipe(
+      Match.when({ kind: 'model-v2' }, ({ document }) =>
+        auditConnectionDddRelationships(document.snapshot, options),
+      ),
+      Match.when({ kind: 'connection-v2' }, ({ snapshot }) =>
+        auditConnectionDddRelationships(snapshot, options),
+      ),
+      Match.orElse((value) => auditDddRelationships(graphOf(value), options)),
+    );
     const modelId = Match.value(document).pipe(
-      Match.when({ kind: 'model' }, ({ document }) => document.id),
+      Match.when(isModel, ({ document }) => document.id),
       Match.orElse(() => null),
     );
     const conventions = Option.match(rules, {
@@ -333,6 +368,7 @@ function executeDddAudit(input: string, rules: Option.Option<string>) {
       operation: 'ddd-audit',
       status: 'audited',
       scope: 'current-graph',
+      ...portableFields(document),
       modelId,
       conventions,
       data,
@@ -374,7 +410,9 @@ function executeComparison(
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
-    const result = compareModelEventStormingRelationships(model, selection, options);
+    const result = isCanonicalV2Model(model)
+      ? compareModelEventStormingRelationshipsV2(model, selection, options)
+      : compareModelEventStormingRelationships(model, selection, options);
     const comparisonResult = Match.value(result).pipe(
       Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
       Match.orElse((result) =>
@@ -442,7 +480,9 @@ function executeDddComparison(
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
-    const result = compareModelDddRelationships(model, selection, options);
+    const result = isCanonicalV2Model(model)
+      ? compareModelDddRelationshipsV2(model, selection, options)
+      : compareModelDddRelationships(model, selection, options);
     const comparisonResult = Match.value(result).pipe(
       Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
       Match.orElse((result) =>
@@ -489,6 +529,30 @@ function executeDddComparison(
   });
   return comparing.pipe(Effect.withSpan('zloz.cli.compareDddRelationships'));
 }
+function boundNativePacket(
+  result: ZlozReviewPacketResult | ZlozReviewPacketResultV2,
+): ZlozReviewPacketResult | ZlozReviewPacketResultV2 {
+  if (
+    result.status === 'created' &&
+    result.value.version === 2 &&
+    new TextEncoder().encode(JSON.stringify(result.value)).byteLength > inputByteLimit
+  )
+    return {
+      status: 'rejected',
+      reason: 'projection',
+      diagnostics: [
+        {
+          side: 'packet',
+          code: 'packet-limit',
+          severity: 'error',
+          dimension: 'syntax',
+          subject: null,
+          message: 'Generated v2 packet exceeds the CLI reopening byte limit.',
+        },
+      ],
+    };
+  return result;
+}
 function executeReviewPacket(
   input: string,
   baselineId: string,
@@ -509,11 +573,11 @@ function executeReviewPacket(
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
-    const result = createReviewPacket(model, selection, {
-      direction,
-      lossPolicy,
-      rules: options.rules,
-    });
+    const creationOptions = { direction, lossPolicy, rules: options.rules };
+    const created = isCanonicalV2Model(model)
+      ? createReviewPacketV2(model, selection, creationOptions)
+      : createReviewPacket(model, selection, creationOptions);
+    const result = boundNativePacket(created);
     const response = Match.value(result).pipe(
       Match.when(
         { status: 'created' },
@@ -661,9 +725,16 @@ const dddCompareCommand = Command.make('compare', { input, rules, baseline, edit
     'Compare DDD findings against an explicit baseline; exit 1 only for newly introduced findings.',
   ),
 );
+const dddReceiptCommand = Command.make('receipt').pipe(
+  Command.withSubcommands([
+    Command.make('inspect', { input }, (config) =>
+      inspectNativeReceipt('ddd-receipt-inspect', config.input),
+    ),
+  ]),
+);
 const dddCommand = Command.make('ddd').pipe(
   Command.withDescription('Read-only DDD convention tools; no inferred meaning or graph changes.'),
-  Command.withSubcommands([dddAuditCommand, dddCompareCommand]),
+  Command.withSubcommands([dddAuditCommand, dddCompareCommand, dddReceiptCommand]),
 );
 const packetCommand = Command.make(
   'packet',
@@ -704,7 +775,12 @@ function reviewInputError(
   });
 }
 function decodeReviewText(input: string, text: string) {
-  return Match.value(parseReviewPacket(text)).pipe(
+  const legacy = parseReviewPacket(text);
+  const decoded =
+    legacy.status === 'rejected' && legacy.code === 'unsupported-version'
+      ? parseReviewPacketV2(text)
+      : legacy;
+  return Match.value(decoded).pipe(
     Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
     Match.when({ status: 'rejected' }, (result) => Result.fail(reviewInputError(input, result))),
     Match.exhaustive,
@@ -716,7 +792,10 @@ function readReviewPacket(operation: ReviewReadOperation, input: string) {
     Effect.catchTag('CliInputError', (error) => rejectInput(operation, error)),
   );
 }
-function reviewReadResponse(operation: ReviewReadOperation, packet: ZlozReviewPacket): CliResponse {
+function reviewReadResponse(
+  operation: ReviewReadOperation,
+  packet: ZlozReviewPacket | ZlozReviewPacketV2,
+): CliResponse {
   return Match.value(operation).pipe(
     Match.when(
       'review-inspect',
@@ -782,7 +861,12 @@ const reviewCommand = Command.make('review').pipe(
   Command.withSubcommands([packetCommand, packetValidateCommand, packetInspectCommand]),
 );
 function decodePatchProposal(input: string, text: string) {
-  return Match.value(parseModellingPatch(text)).pipe(
+  const legacy = parseModellingPatch(text);
+  const decoded =
+    legacy.status === 'rejected' && legacy.code === 'unsupported-version'
+      ? parseModellingPatchV2(text)
+      : legacy;
+  return Match.value(decoded).pipe(
     Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
     Match.when({ status: 'rejected' }, (result) =>
       Result.fail(
@@ -835,7 +919,7 @@ const patchDryRunCommand = Command.make(
           }),
         );
       const source = yield* readForOperation('patch-dry-run', config.source);
-      if (source.kind !== 'model')
+      if (!isModel(source))
         return yield* rejectInput(
           'patch-dry-run',
           new CliInputError({
@@ -846,14 +930,30 @@ const patchDryRunCommand = Command.make(
           }),
         );
       const patch = yield* readPatchProposal(config.input);
-      const preview = dryRunModellingPatch(
-        {
-          modelId: source.document.id,
-          sessionId: config.session,
-          revision: config.revision,
-          graph: source.document.snapshot.graph,
-        },
-        patch,
+      const preview = Match.value(source).pipe(
+        Match.when({ kind: 'model-v2' }, ({ document }) =>
+          dryRunModellingPatchV2(
+            {
+              modelId: document.id,
+              sessionId: config.session,
+              revision: config.revision,
+              graph: document.snapshot.graph,
+              connectionMode: document.snapshot.connectionMode,
+            },
+            patch,
+          ),
+        ),
+        Match.orElse(({ document }) =>
+          dryRunModellingPatch(
+            {
+              modelId: document.id,
+              sessionId: config.session,
+              revision: config.revision,
+              graph: document.snapshot.graph,
+            },
+            patch,
+          ),
+        ),
       );
       const response: CliResponse = {
         protocol: cliProtocol,
@@ -883,31 +983,44 @@ const patchDryRunCommand = Command.make(
     'Strictly decode a patch and review against separate current source. No mutation or Apply.',
   ),
 );
-const patchCommand = Command.make('patch').pipe(Command.withSubcommands([patchDryRunCommand]));
+const patchReceiptCommand = Command.make('receipt').pipe(
+  Command.withSubcommands([
+    Command.make('inspect', { input }, (config) =>
+      inspectNativeReceipt('patch-receipt-inspect', config.input),
+    ),
+  ]),
+);
+const patchCommand = Command.make('patch').pipe(
+  Command.withSubcommands([patchDryRunCommand, patchReceiptCommand]),
+);
 const c4ReceiptEnvelope = Schema.Struct({ format: Schema.String, version: Schema.Number });
 function executeC4ReceiptInspection(input: string) {
   const inspecting = Effect.gen(function* () {
-    const { text, value } = yield* readJsonInput(input);
+    const { text, value } = yield* readReceiptInput(input);
     if (
       Schema.is(c4ReceiptEnvelope)(value) &&
-      (value.format !== 'foldkit-zloz-c4-conversion' || value.version !== 1)
+      (value.format !== 'foldkit-zloz-c4-conversion' ||
+        (value.version !== 1 && value.version !== 2))
     )
       return yield* Effect.fail(
         new CliC4ReceiptIncompatible({
           subject: input,
           message:
-            'Expected a foldkit-zloz-c4-conversion v1 receipt; this format or version is unsupported.',
+            'Expected a foldkit-zloz-c4-conversion v1 or v2 receipt; this format or version is unsupported.',
         }),
       );
     const response = yield* Effect.try({
-      try: () => inspectC4Receipt(text),
+      try: () =>
+        Schema.is(Schema.Struct({ version: Schema.Literal(2) }))(value)
+          ? inspectC4ReceiptV2(text)
+          : inspectC4Receipt(text),
       catch: () =>
         new CliInputError({
           code: 'invalid-c4-receipt',
           dimension: 'semantics',
           subject: input,
           message:
-            'C4 receipt validation failed. Source, choices, recorded acceptance and complete target must satisfy the v1 conversion contract.',
+            'C4 receipt validation failed. Source, choices, recorded acceptance and complete target must satisfy the declared conversion version.',
         }),
     });
     yield* writeResponse(response);
@@ -1018,3 +1131,5 @@ export const program = Effect.gen(function* () {
   const args = yield* stdio.args;
   yield* run(args);
 });
+
+export type { CliNativeReceiptInspection, CliNativeReceiptReview } from './native-receipts';

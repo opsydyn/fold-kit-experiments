@@ -1,6 +1,8 @@
 import { ZlozError } from './graph';
 import {
   captureModellingPatch,
+  captureModellingPatchV2,
+  type ZlozModellingPatchV2,
   modellingPatchLimits,
   PatchValidationError,
   type ZlozModellingPatch,
@@ -13,8 +15,8 @@ export type ZlozModellingPatchParseOptions = Readonly<{
   maxDepth?: number;
   maxValues?: number;
 }>;
-export type ZlozModellingPatchParseResult =
-  | Readonly<{ status: 'parsed'; value: ZlozModellingPatch }>
+export type ZlozModellingPatchParseResult<P = ZlozModellingPatch> =
+  | Readonly<{ status: 'parsed'; value: P }>
   | Readonly<{
       status: 'rejected';
       code:
@@ -54,7 +56,7 @@ const digit = (char: string | undefined) => char !== undefined && char >= '0' &&
 const pointer = (path: string, key: string) =>
   path + '/' + key.replaceAll('~', '~0').replaceAll('/', '~1');
 /** Bounded grammar/duplicate preflight. Native JSON.parse constructs the value only afterward. */
-function preflight(text: string, maxDepth: number, maxValues: number): void {
+export function preflightPortableJson(text: string, maxDepth: number, maxValues: number): void {
   let i = 0,
     values = 0;
   let nonfinite: string | null = null;
@@ -181,10 +183,13 @@ function preflight(text: string, maxDepth: number, maxValues: number): void {
     throw new PatchTextError('invalid-patch', 'Modelling patch numbers must be finite.', nonfinite);
 }
 /** Strict raw v1 proposal decoder. Does not dry-run, import, execute or grant Apply authority. */
-export function parseModellingPatch(
+function parsePatch<P>(
   text: string,
-  options: ZlozModellingPatchParseOptions = {},
-): ZlozModellingPatchParseResult {
+  options: ZlozModellingPatchParseOptions,
+  version: 1 | 2,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The injected version-specific capture validates the raw parsed proposal.
+  capture: (input: unknown) => P,
+): ZlozModellingPatchParseResult<P> {
   const maxCharacters = limit(
       options.maxCharacters,
       modellingPatchLimits.maxCharacters,
@@ -196,15 +201,15 @@ export function parseModellingPatch(
     return rejected('limit-exceeded', 'Modelling patch exceeds its text character budget.');
   // oxlint-disable-next-line linteffect/no-try-catch -- Dependency-free text boundary translates bounded scanner/native/domain rejections into data.
   try {
-    preflight(text, maxDepth, maxValues);
+    preflightPortableJson(text, maxDepth, maxValues);
     const value: JsonValue = JSON.parse(text);
     if (!record(value)) return rejected('invalid-patch', 'Modelling patch must be an object.');
     if (value.format !== 'foldkit-zloz-patch')
       return rejected('unsupported-format', 'Expected foldkit-zloz-patch format.', '/format');
-    if (value.version !== 1)
+    if (value.version !== version)
       return rejected(
         'unsupported-version',
-        'Only modelling-patch version 1 is supported.',
+        `Expected modelling-patch version ${version}.`,
         '/version',
       );
     if (
@@ -212,7 +217,7 @@ export function parseModellingPatch(
       value.operations.length > modellingPatchLimits.maxOperations
     )
       return rejected('limit-exceeded', 'Modelling patch exceeds 1000 operations.', '/operations');
-    return { status: 'parsed', value: captureModellingPatch(value) };
+    return { status: 'parsed', value: capture(value) };
   } catch (error) {
     if (error instanceof PatchTextError) return rejected(error.code, error.message, error.path);
     if (error instanceof SyntaxError)
@@ -223,6 +228,34 @@ export function parseModellingPatch(
         error.message,
         error instanceof PatchValidationError ? error.path : '',
       );
+    throw error;
+  }
+}
+
+export function parseModellingPatch(
+  text: string,
+  options: ZlozModellingPatchParseOptions = {},
+): ZlozModellingPatchParseResult {
+  return parsePatch(text, options, 1, captureModellingPatch);
+}
+export function parseModellingPatchV2(
+  text: string,
+  options: ZlozModellingPatchParseOptions = {},
+): ZlozModellingPatchParseResult<ZlozModellingPatchV2> {
+  return parsePatch(text, options, 2, captureModellingPatchV2);
+}
+
+/** @internal Shared bounded evidence JSON reader; receipt decoders retain their own strict schemas. */
+export function readPortableEvidenceJson(text: string): JsonValue {
+  if (text.length > modellingPatchLimits.maxCharacters)
+    throw new ZlozError('invalid-edit', 'Portable evidence exceeds its character budget.');
+  // oxlint-disable-next-line linteffect/no-try-catch -- Normalize scanner/native syntax errors at the evidence boundary.
+  try {
+    preflightPortableJson(text, modellingPatchLimits.maxDepth, modellingPatchLimits.maxValues);
+    return JSON.parse(text);
+  } catch (error) {
+    if (error instanceof PatchTextError || error instanceof SyntaxError)
+      throw new ZlozError('invalid-edit', error.message);
     throw error;
   }
 }

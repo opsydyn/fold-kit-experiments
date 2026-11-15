@@ -1,0 +1,515 @@
+{
+  "protocol": "foldkit-zloz-cli/v1",
+  "operation": "c4-receipt-inspect",
+  "status": "inspected",
+  "scope": "recorded-conversion",
+  "data": {
+    "format": "foldkit-zloz-c4-conversion",
+    "version": 2,
+    "authority": "read-only-evidence",
+    "provenance": {
+      "document": {
+        "editions": [
+          {
+            "id": "base",
+            "name": "Strict empty baseline",
+            "snapshot": {
+              "connectionMode": "strict",
+              "graph": {
+                "edges": [],
+                "nodes": [
+                  {
+                    "architecture": {
+                      "family": "event-storming",
+                      "role": "domain-event"
+                    },
+                    "data": {
+                      "owner": "commerce"
+                    },
+                    "id": "a",
+                    "label": "Orders",
+                    "ports": [
+                      {
+                        "id": "shared",
+                        "kind": "input",
+                        "offset": 0.5,
+                        "side": "right"
+                      }
+                    ],
+                    "position": {
+                      "x": 20,
+                      "y": 40
+                    },
+                    "size": {
+                      "height": 100,
+                      "width": 200
+                    }
+                  },
+                  {
+                    "architecture": {
+                      "family": "event-storming",
+                      "role": "domain-event"
+                    },
+                    "id": "b",
+                    "label": "Billing",
+                    "ports": [
+                      {
+                        "id": "shared",
+                        "kind": "input",
+                        "offset": 0.5,
+                        "side": "left"
+                      }
+                    ],
+                    "position": {
+                      "x": 320,
+                      "y": 40
+                    },
+                    "size": {
+                      "height": 100,
+                      "width": 200
+                    }
+                  }
+                ]
+              },
+              "version": 2
+            }
+          }
+        ],
+        "id": "native-v2",
+        "name": "Synthetic native v2 fixture",
+        "origin": null,
+        "snapshot": {
+          "connectionMode": "loose",
+          "graph": {
+            "edges": [
+              {
+                "data": {
+                  "preserve": true
+                },
+                "id": "orders-billing",
+                "label": "Uses",
+                "source": {
+                  "node": "a",
+                  "port": "shared"
+                },
+                "target": {
+                  "node": "b",
+                  "port": "shared"
+                }
+              }
+            ],
+            "nodes": [
+              {
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "domain-event"
+                },
+                "data": {
+                  "owner": "commerce"
+                },
+                "id": "a",
+                "label": "Orders",
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "offset": 0.5,
+                    "side": "right"
+                  }
+                ],
+                "position": {
+                  "x": 20,
+                  "y": 40
+                },
+                "size": {
+                  "height": 100,
+                  "width": 200
+                }
+              },
+              {
+                "architecture": {
+                  "family": "event-storming",
+                  "role": "domain-event"
+                },
+                "id": "b",
+                "label": "Billing",
+                "ports": [
+                  {
+                    "id": "shared",
+                    "kind": "input",
+                    "offset": 0.5,
+                    "side": "left"
+                  }
+                ],
+                "position": {
+                  "x": 320,
+                  "y": 40
+                },
+                "size": {
+                  "height": 100,
+                  "width": 200
+                }
+              }
+            ]
+          },
+          "version": 2,
+          "viewport": {
+            "x": 10,
+            "y": 30,
+            "zoom": 0.8
+          }
+        }
+      },
+      "sessionId": "native-v2-fixture",
+      "revision": 0
+    },
+    "target": {
+      "editions": [
+        {
+          "id": "base",
+          "name": "Strict empty baseline",
+          "snapshot": {
+            "connectionMode": "strict",
+            "graph": {
+              "edges": [],
+              "nodes": [
+                {
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  },
+                  "data": {
+                    "owner": "commerce"
+                  },
+                  "id": "a",
+                  "label": "Orders",
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "offset": 0.5,
+                      "side": "right"
+                    }
+                  ],
+                  "position": {
+                    "x": 20,
+                    "y": 40
+                  },
+                  "size": {
+                    "height": 100,
+                    "width": 200
+                  }
+                },
+                {
+                  "architecture": {
+                    "family": "event-storming",
+                    "role": "domain-event"
+                  },
+                  "id": "b",
+                  "label": "Billing",
+                  "ports": [
+                    {
+                      "id": "shared",
+                      "kind": "input",
+                      "offset": 0.5,
+                      "side": "left"
+                    }
+                  ],
+                  "position": {
+                    "x": 320,
+                    "y": 40
+                  },
+                  "size": {
+                    "height": 100,
+                    "width": 200
+                  }
+                }
+              ]
+            },
+            "version": 2
+          }
+        }
+      ],
+      "id": "native-v2",
+      "name": "Synthetic native v2 fixture",
+      "origin": null,
+      "snapshot": {
+        "connectionMode": "loose",
+        "graph": {
+          "nodes": [
+            {
+              "architecture": {
+                "family": "c4",
+                "role": "software-system"
+              },
+              "data": {
+                "owner": "commerce"
+              },
+              "id": "a",
+              "label": "Orders",
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "offset": 0.5,
+                  "side": "right"
+                }
+              ],
+              "position": {
+                "x": 20,
+                "y": 40
+              },
+              "size": {
+                "height": 100,
+                "width": 200
+              }
+            },
+            {
+              "architecture": {
+                "family": "c4",
+                "role": "software-system"
+              },
+              "id": "b",
+              "label": "Billing",
+              "ports": [
+                {
+                  "id": "shared",
+                  "kind": "input",
+                  "offset": 0.5,
+                  "side": "left"
+                }
+              ],
+              "position": {
+                "x": 320,
+                "y": 40
+              },
+              "size": {
+                "height": 100,
+                "width": 200
+              }
+            }
+          ],
+          "edges": [
+            {
+              "data": {
+                "preserve": true
+              },
+              "id": "orders-billing",
+              "label": "Uses",
+              "source": {
+                "node": "a",
+                "port": "shared"
+              },
+              "target": {
+                "node": "b",
+                "port": "shared"
+              }
+            }
+          ]
+        },
+        "version": 2,
+        "viewport": {
+          "x": 10,
+          "y": 30,
+          "zoom": 0.8
+        }
+      }
+    },
+    "choices": {
+      "mappings": {
+        "nodes": [
+          {
+            "nodeId": "a",
+            "architecture": {
+              "family": "c4",
+              "role": "software-system"
+            }
+          },
+          {
+            "nodeId": "b",
+            "architecture": {
+              "family": "c4",
+              "role": "software-system"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "edgeId": "orders-billing",
+            "relationship": {
+              "label": "Uses"
+            }
+          }
+        ]
+      },
+      "memberships": [
+        {
+          "nodeId": "a",
+          "placement": {
+            "type": "root"
+          }
+        },
+        {
+          "nodeId": "b",
+          "placement": {
+            "type": "root"
+          }
+        }
+      ]
+    },
+    "changes": {
+      "nodes": [
+        {
+          "id": "a",
+          "kind": "changed",
+          "before": {
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "a",
+            "label": "Orders",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 20,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          "after": {
+            "architecture": {
+              "family": "c4",
+              "role": "software-system"
+            },
+            "data": {
+              "owner": "commerce"
+            },
+            "id": "a",
+            "label": "Orders",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "right"
+              }
+            ],
+            "position": {
+              "x": 20,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          "semanticChanged": true,
+          "layoutChanged": false
+        },
+        {
+          "id": "b",
+          "kind": "changed",
+          "before": {
+            "architecture": {
+              "family": "event-storming",
+              "role": "domain-event"
+            },
+            "id": "b",
+            "label": "Billing",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "left"
+              }
+            ],
+            "position": {
+              "x": 320,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          "after": {
+            "architecture": {
+              "family": "c4",
+              "role": "software-system"
+            },
+            "id": "b",
+            "label": "Billing",
+            "ports": [
+              {
+                "id": "shared",
+                "kind": "input",
+                "offset": 0.5,
+                "side": "left"
+              }
+            ],
+            "position": {
+              "x": 320,
+              "y": 40
+            },
+            "size": {
+              "height": 100,
+              "width": 200
+            }
+          },
+          "semanticChanged": true,
+          "layoutChanged": false
+        }
+      ],
+      "edges": [],
+      "modeChange": {
+        "kind": "unchanged",
+        "mode": "loose"
+      }
+    },
+    "losses": [
+      {
+        "kind": "node",
+        "id": "a",
+        "code": "workshop-meaning-replaced",
+        "reason": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance."
+      },
+      {
+        "kind": "node",
+        "id": "b",
+        "code": "workshop-meaning-replaced",
+        "reason": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance."
+      }
+    ],
+    "lossesAccepted": true
+  },
+  "diagnostics": [
+    {
+      "code": "workshop-meaning-replaced",
+      "subject": "a",
+      "message": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    },
+    {
+      "code": "workshop-meaning-replaced",
+      "subject": "b",
+      "message": "C4 interpretation would replace the reserved workshop descriptor, not preserve equivalent meaning. Complete source meaning remains in preview provenance.",
+      "severity": "loss",
+      "dimension": "semantics"
+    }
+  ]
+}

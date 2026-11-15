@@ -1,3 +1,4 @@
+import type { ZlozConnectionMode } from './connection-mode';
 import { connectionReason } from './connection-validation';
 import { commitGraph } from './editor';
 import { historyValueEqual } from './history';
@@ -93,7 +94,11 @@ function portReasons(
   return null;
 }
 /** Internal policy inventory for a complete validated candidate; never mutates source or target. */
-function policyReason(candidate: ZlozModellingPatchCandidate, policy: EditorPolicy): string | null {
+export function patchPolicyReason(
+  candidate: ZlozModellingPatchCandidate<1 | 2>,
+  policy: EditorPolicy,
+  mode: ZlozConnectionMode = 'strict',
+): string | null {
   const source = candidate.patch.source.graph,
     target = candidate.graph;
   const removed = {
@@ -187,7 +192,7 @@ function policyReason(candidate: ZlozModellingPatchCandidate, policy: EditorPoli
               Object.freeze({ ...graph, edges: Object.freeze([...graph.edges]) }),
             ) ?? null,
         };
-        const reason = denial(connectionReason(remaining, after, checkedPolicy, replacement));
+        const reason = denial(connectionReason(remaining, after, checkedPolicy, replacement, mode));
         if (reason !== null) return reason;
       }
     }
@@ -236,7 +241,7 @@ export function resolveModellingPatchReview(
                 ? 'Enable Undo before applying a patch.'
                 : editor.revision >= Number.MAX_SAFE_INTEGER
                   ? 'Editor revision counter is exhausted.'
-                  : policyReason(preview, options.policy ?? {})));
+                  : patchPolicyReason(preview, options.policy ?? {})));
   return { preview, key, reason, acknowledged, canApply: reason === null && acknowledged };
 }
 export function resolveModellingPatchAcknowledgement(

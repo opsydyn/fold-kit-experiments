@@ -33,10 +33,10 @@ test('portable capability review checks every checkpoint and never supplies a si
   expect(report.adapters.map(({ adapter, status }) => [adapter, status])).toEqual([
     ['layout', 'supported'],
     ['mermaid', 'projection'],
-    ['modelling-patch', 'requires-version'],
-    ['conversion-receipt', 'requires-version'],
-    ['review-packet', 'requires-version'],
-    ['relationship-audit', 'requires-version'],
+    ['modelling-patch', 'supported'],
+    ['conversion-receipt', 'supported'],
+    ['review-packet', 'supported'],
+    ['relationship-audit', 'supported'],
   ]);
   expect(JSON.stringify(model)).toBe(before);
   expect(Object.isFrozen(report.checkpoints[1]?.strictIncompatibleEdges)).toBe(true);

@@ -1234,7 +1234,29 @@ V1 patches, conversion receipts, review packets and relationship audits remain
 version-required boundaries. Their native v2 formats are not shipped. C2–C4/Q/R
 stay open; no npm publishing or deployment.
 
-**Recommended next:** one native v2 authoring/review batch: mode-aware audits,
-patch dry-run/Apply, conversion receipts and portable review packets, with explicit
-wire versions and old-reader fixtures. This closes the coupled semantic and
-evidence paths together rather than unwrapping loose graphs into v1 contracts.
+**C1 native v2 authoring/review batch — implemented locally (2026-11-15), unreleased:**
+Mode-aware connection audits and model comparisons reuse domain rules and include
+checkpoint modes. V2 patches pin source mode/session/revision, preserve ordered
+ports and use live policy/consent checks for atomic Apply with one Undo. Strict
+v2 patch receipts recompute the result. C4/DDD native previews, plans, consent,
+Apply and v2 receipts retain complete source/target models, camera and all archive/
+origin modes, with bounded consistency validation before read-only reopening.
+V1 readers and default wrapper contracts remain fixed at v1.
+
+V2 review packets retain selected snapshots/modes, audit deltas and v2 Mermaid
+projections; strict reopening recomputes them and can create an independent
+read-only review. Generated evidence checks reopening budgets. Effect CLI selects
+native v2 audit/compare, patch dry-run and packet paths; C4/DDD v1/v2 and patch v2
+receipt inspectors return explicit read-only evidence and validation/incompatibility
+exits. Native packet creation respects the CLI's stricter byte limit.
+
+See [ADR 0104](adr/0104-adopt-native-v2-authoring-and-review.md) and
+[qualification](../packages/foldkit-zloz/evidence/native-authoring-review-v2.md).
+This closes the approved **native package/CLI authoring and review batch**. It does
+not migrate existing mounted workbench file/control flows or close all C1/C2–C4/Q/R.
+No npm publishing, deployment or PR.
+
+**Recommended next:** one mounted native v2 authoring/review workbench slice:
+visible audit/patch/loss review, guarded Apply/Undo, receipt and packet download,
+and read-only reopening using these package APIs. Capture mounted light/dark
+and file-flow evidence.

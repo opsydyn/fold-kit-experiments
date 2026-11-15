@@ -198,3 +198,24 @@ export function writeResponse(response: CliResponse) {
     return response;
   });
 }
+
+/** Bounded native JSON header classification; dedicated receipt decoders inspect raw text before recursive schemas. */
+export function readReceiptInput(input: string) {
+  return readTextInput(input).pipe(
+    Effect.flatMap((text) =>
+      Effect.try({
+        try: () => {
+          const value: unknown = JSON.parse(text);
+          return { text, value };
+        },
+        catch: () =>
+          new CliInputError({
+            code: 'invalid-json',
+            message: 'Input must be valid JSON.',
+            dimension: 'syntax',
+            subject: input,
+          }),
+      }),
+    ),
+  );
+}

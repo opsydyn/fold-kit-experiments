@@ -51,11 +51,10 @@ export type ZlozDddRelationshipAudit = Readonly<{
  * Validates the typed graph and convention catalogue; malformed syntax throws rather than becoming a finding.
  * Entries use UTF-16 edge-ID order, independent of locale and graph-array ordering.
  */
-export function auditDddRelationships(
+export function auditDddGraphRelationships(
   graph: ZlozGraph,
   options: ZlozDddRelationshipOptions = {},
 ): ZlozDddRelationshipAudit {
-  validateGraph(graph);
   checkedDddRelationshipRules(options);
   function entry(edge: ZlozEdge): ZlozDddRelationshipAuditEntry {
     const base = {
@@ -103,4 +102,13 @@ export function auditDddRelationships(
     { edges: entries.length, typed: 0, unrelated: 0, blocked: 0 },
   );
   return { status: summary.blocked === 0 ? 'compatible' : 'incompatible', summary, entries };
+}
+
+/** Legacy graph boundary stays strict. */
+export function auditDddRelationships(
+  graph: ZlozGraph,
+  options: ZlozDddRelationshipOptions = {},
+): ZlozDddRelationshipAudit {
+  validateGraph(graph);
+  return auditDddGraphRelationships(graph, options);
 }

@@ -29,6 +29,7 @@ export type ZlozReviewPacketDiagnostic = Readonly<{
   side: 'packet' | 'baseline' | 'selected';
   code:
     | MermaidDiagnostic['code']
+    | 'packet-limit'
     | 'invalid-options'
     | 'unknown-baseline'
     | 'unknown-edition'

@@ -24,7 +24,7 @@ zloz mermaid export --help
 Input defaults to stdin (`--input -`). Interactive stdin requires a file or pipe;
 the command does not wait indefinitely for a terminal to supply a document.
 Input must be UTF-8 and at most **1,048,576 bytes**. Validation and Mermaid export accept canonical v1/v2 snapshots and models;
-legacy audit/patch/packet operations require v1. C4 inspection uses
+audit, patch and packet commands select their explicit versioned contracts. C4 inspection uses
 the independent receipt contract described below. Graph example:
 
 ```json
@@ -358,7 +358,7 @@ cat proposal.patch.json | zloz patch dry-run --source current.model.json \
 explicit current `--session` / monotonic `--revision` form the source for dry run.
 The CLI never infers the current source from a proposal's unsigned claims. Both
 inputs use the existing 1 MiB byte-bound, fatal UTF-8 IO; proposal text goes directly
-to the strict v1 decoder before generic JSON parsing. No input file is changed.
+to the strict decoder for its declared v1/v2 version before generic domain parsing. No input file is changed.
 
 The additive protocol v1 operation `patch-dry-run` emits `status: reviewed` and the
 complete core preview in `data`, including target graph, source/provenance,
@@ -501,7 +501,7 @@ zloz c4 receipt inspect --input payments.c4-conversion.json
 cat payments.c4-conversion.json | zloz c4 receipt inspect
 ```
 
-This read-only command uses the strict core v1 receipt decoder. It emits one
+This read-only command selects the strict core v1 or v2 receipt decoder. It emits one
 `foldkit-zloz-cli/v1` JSON response with operation `c4-receipt-inspect`, status
 `inspected` and scope `recorded-conversion`. `data` contains:
 
@@ -548,9 +548,44 @@ plus downgrade findings. It performs no downgrade, graph write or Apply.
 
 V2 Mermaid output uses `foldkit-zloz-mermaid/v2`, with explicit bundle mode and
 ordered endpoint identity. Source-only loose authoring rules, camera and model
-metadata omissions require loss acceptance. V1 audit, patch and packet commands
-validate v2 input, then reject with `adapter-version-required` and **exit 1**;
-malformed input retains **exit 2**. Existing receipt/packet inspection keeps its
-independent strict v1 wire reader. New native v2 mutation/evidence wire formats are
-not shipped in this batch. `readPortableDocument` exposes discriminated v1/v2
+metadata omissions require loss acceptance. Audit, patch dry-run and packet commands now support native v2 through explicit
+versioned APIs. Invalid source/proposal versions, malformed data or inconsistent
+evidence cannot bypass validation; see the native contract below. `readPortableDocument` exposes discriminated v1/v2
 records for embeddings; `readDocument` and `readGraph` retain v1-only semantics.
+
+## Native v2 authoring and read-only evidence
+
+```sh
+zloz ddd audit -i model-v2.json
+zloz relationships compare -i model-v2.json --baseline baseline
+zloz patch dry-run -i patch-v2.json --source model-v2.json --session tab-1 --revision 0
+zloz review packet -i model-v2.json --baseline baseline --loss-policy report
+zloz review inspect -i review-packet-v2.json
+zloz c4 receipt inspect -i c4-conversion-v2.json
+zloz ddd receipt inspect -i ddd-conversion-v2.json
+zloz patch receipt inspect -i patch-receipt-v2.json
+```
+
+Model/standalone audits preserve v2 mode metadata; comparisons report both selected
+checkpoint modes. Audit incompatibility/regression remains exit 1, independently
+of structural loose-port eligibility. Patch proposals pin required source mode,
+identity, session and revision. Dry run uses the independently supplied source and
+never mutates it or performs Apply. Wrong source/proposal versions cannot silently
+become v1; the decoder/dry-run reports the rejection.
+
+Packet creation/inspection supports explicit v2 selected snapshots, audits and
+Mermaid projections. Extract `response.data` to save the packet itself; the CLI
+response envelope is not a packet. Native creation checks both package budgets and
+the CLI's 1 MiB UTF-8 reopening limit before reporting success (`packet-limit`).
+
+C4 and DDD receipt inspection accepts v1/v2; patch receipt inspection accepts v2.
+These commands validate complete recorded evidence and return
+`authority: read-only-evidence`. C4 adds explicit mode-change comparison; DDD/patch
+return the validated complete receipt, including provenance, choices/proposal and
+target, plus `data.review` with structured changes and loss findings. No receipt authorizes a new Apply. Unsupported receipt format/version is
+exit 1; malformed/inconsistent/duplicate/deep data is exit 2. Input streams remain
+bounded UTF-8. Dedicated receipt decoders inspect raw text before recursive domain
+schemas. No write, network or Apply command is added.
+
+The `readDocument`/`readGraph` embedding APIs remain v1-only and report an explicit
+incompatibility for v2; use `readPortableDocument` for discriminated v1/v2 records.

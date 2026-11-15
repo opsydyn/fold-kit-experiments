@@ -9,12 +9,18 @@ import {
   type ZlozEdgeArchitecture,
 } from './architecture';
 import {
+  parseConnectionDocument,
+  serializeConnectionDocument,
+  type ZlozConnectionDocument,
+} from './connection-document';
+import type { ZlozConnectionMode } from './connection-mode';
+import {
   checkedDddRelationshipRules,
   resolveDddRelationship,
   type ZlozDddRelationshipDecision,
   type ZlozDddRelationshipOptions,
 } from './ddd-relationships';
-import { validateGraph, ZlozError } from './graph';
+import { validateGraphForConnectionMode, ZlozError } from './graph';
 import type { ZlozGraph } from './types';
 
 /** Explicit workshop choices, not editor events or permission to convert. Null retains source meaning. */
@@ -85,11 +91,12 @@ function described<T extends DddNodeArchitecture | DddEdgeArchitecture>(
  * are returned. Recompute after source/choices/conventions change. Future conversion must recheck
  * source identity, freshness, policies, lifecycle and atomic Undo independently.
  */
-export function previewEventStormingDddMapping(
+function previewDdd(
   graph: ZlozGraph,
-  options: ZlozEventStormingDddMappingOptions = {},
+  options: ZlozEventStormingDddMappingOptions,
+  mode: ZlozConnectionMode,
 ): ZlozEventStormingDddPreview {
-  validateGraph(graph);
+  validateGraphForConnectionMode(graph, mode);
   checkedDddRelationshipRules(options.relationships ?? {});
   const notes = graph.nodes.filter((node) => node.architecture?.family === 'event-storming');
   const noteIds = new Set(notes.map((node) => node.id));
@@ -294,4 +301,18 @@ export function previewEventStormingDddMapping(
       })),
   ];
   return { nodes, edges, disclosures };
+}
+
+export function previewEventStormingDddMapping(
+  graph: ZlozGraph,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddPreview {
+  return previewDdd(graph, options, 'strict');
+}
+export function previewEventStormingDddMappingV2(
+  document: ZlozConnectionDocument,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddPreview {
+  const checked = parseConnectionDocument(serializeConnectionDocument(document));
+  return previewDdd(checked.graph, options, checked.connectionMode);
 }

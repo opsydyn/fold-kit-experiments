@@ -8,10 +8,11 @@ import {
 } from './architecture';
 import { ZlozError } from './graph';
 import { captureModelDocument, type ZlozModelDocument } from './model-document';
+import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
 
 /** Host-owned live scope, captured for review; neither identity nor revision grants edit authority. */
-export type ZlozEventStormingC4Source = Readonly<{
-  document: ZlozModelDocument;
+export type ZlozEventStormingC4Source<D extends ZlozModelDocument = ZlozModelDocument> = Readonly<{
+  document: D;
   sessionId: string;
   revision: number;
 }>;
@@ -74,9 +75,9 @@ export type ZlozEventStormingC4Disclosure = Readonly<{
     | 'description-replaced';
   reason: string;
 }>;
-export type ZlozEventStormingC4Preview = Readonly<{
+export type ZlozEventStormingC4Preview<D extends ZlozModelDocument = ZlozModelDocument> = Readonly<{
   /** Detached complete document, camera, editions and fork ancestry, plus live host scope. */
-  provenance: ZlozEventStormingC4Source;
+  provenance: ZlozEventStormingC4Source<D>;
   /** Detached explicit inputs, including retention choices; no conventions are silently applied. */
   choices: Readonly<{
     nodes: readonly ZlozEventStormingC4NodeChoice[];
@@ -135,10 +136,11 @@ function described(
  * membership and direction are not changed; workshop lanes never infer runtime ownership. A future
  * conversion plan must separately validate containment, exact losses, live policies and atomic Undo.
  */
-export function previewEventStormingC4Mapping(
-  source: ZlozEventStormingC4Source,
-  options: ZlozEventStormingC4MappingOptions = {},
-): ZlozEventStormingC4Preview {
+function previewC4<D extends ZlozModelDocument>(
+  source: ZlozEventStormingC4Source<D>,
+  options: ZlozEventStormingC4MappingOptions,
+  capture: (document: D) => D,
+): ZlozEventStormingC4Preview<D> {
   if (
     !record(source) ||
     !text(source.sessionId) ||
@@ -149,7 +151,7 @@ export function previewEventStormingC4Mapping(
       'C4 previews require a nonempty source session ID and nonnegative safe integer revision.',
     );
   const provenance = {
-    document: captureModelDocument(source.document),
+    document: capture(source.document),
     sessionId: source.sessionId,
     revision: source.revision,
   };
@@ -429,4 +431,19 @@ export function previewEventStormingC4Mapping(
     edges,
     disclosures,
   });
+}
+
+export function previewEventStormingC4Mapping(
+  source: ZlozEventStormingC4Source,
+  options: ZlozEventStormingC4MappingOptions = {},
+): ZlozEventStormingC4Preview {
+  return previewC4(source, options, captureModelDocument);
+}
+export type ZlozEventStormingC4SourceV2 = ZlozEventStormingC4Source<ZlozModelDocumentV2>;
+export type ZlozEventStormingC4PreviewV2 = ZlozEventStormingC4Preview<ZlozModelDocumentV2>;
+export function previewEventStormingC4MappingV2(
+  source: ZlozEventStormingC4SourceV2,
+  options: ZlozEventStormingC4MappingOptions = {},
+): ZlozEventStormingC4PreviewV2 {
+  return previewC4(source, options, captureModelDocumentV2);
 }

@@ -2,6 +2,7 @@ import { copyEdgeArchitecture, type DddEdgeArchitecture } from './architecture';
 import { checkedDddRelationshipRules } from './ddd-relationships';
 import {
   previewEventStormingDddMapping,
+  previewEventStormingDddMappingV2,
   type ZlozEventStormingDddMappingOptions,
   type ZlozEventStormingDddNodePreview,
   type ZlozEventStormingDddEdgePreview,
@@ -9,13 +10,15 @@ import {
 } from './event-storming-ddd-preview';
 import { ZlozError } from './graph';
 import { captureModelDocument, type ZlozModelDocument } from './model-document';
+import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
 
 /** Host-owned live scope; a new source session must not reuse an earlier session ID. */
-export type ZlozEventStormingDddConversionSource = Readonly<{
-  document: ZlozModelDocument;
-  sessionId: string;
-  revision: number;
-}>;
+export type ZlozEventStormingDddConversionSource<D extends ZlozModelDocument = ZlozModelDocument> =
+  Readonly<{
+    document: D;
+    sessionId: string;
+    revision: number;
+  }>;
 export type ZlozEventStormingDddConversionBlocker = Readonly<{ id: string; reason: string }> &
   (
     | Readonly<{ kind: 'node'; decision: 'ambiguous' | 'unmapped' }>
@@ -26,39 +29,42 @@ export type ZlozEventStormingDddConversionChanges = Readonly<{
   nodes: readonly Extract<ZlozEventStormingDddNodePreview, { type: 'proposed' }>[];
   edges: readonly Extract<ZlozEventStormingDddEdgePreview, { type: 'proposed' }>[];
 }>;
-export type ZlozEventStormingDddConversionPlan = Readonly<{
-  /** Exact-content review identity, not a hash or credential. Contains source data; do not log or put in the DOM. */
-  key: string;
-  /** Detached complete source, including camera, editions and fork ancestry. Not a new model origin. */
-  provenance: ZlozEventStormingDddConversionSource;
-  /** Detached explicit choices plus the effective DDD catalogue, including defaults. */
-  mappings: ZlozEventStormingDddMappingOptions;
-  preview: ZlozEventStormingDddPreview;
-}> &
-  (
-    | Readonly<{ type: 'blocked'; blockers: readonly ZlozEventStormingDddConversionBlocker[] }>
-    | Readonly<{ type: 'reviewable'; changes: ZlozEventStormingDddConversionChanges }>
-    | Readonly<{ type: 'unchanged' }>
-  );
+export type ZlozEventStormingDddConversionPlan<D extends ZlozModelDocument = ZlozModelDocument> =
+  Readonly<{
+    /** Exact-content review identity, not a hash or credential. Contains source data; do not log or put in the DOM. */
+    key: string;
+    /** Detached complete source, including camera, editions and fork ancestry. Not a new model origin. */
+    provenance: ZlozEventStormingDddConversionSource<D>;
+    /** Detached explicit choices plus the effective DDD catalogue, including defaults. */
+    mappings: ZlozEventStormingDddMappingOptions;
+    preview: ZlozEventStormingDddPreview;
+  }> &
+    (
+      | Readonly<{ type: 'blocked'; blockers: readonly ZlozEventStormingDddConversionBlocker[] }>
+      | Readonly<{ type: 'reviewable'; changes: ZlozEventStormingDddConversionChanges }>
+      | Readonly<{ type: 'unchanged' }>
+    );
 /** Host-recorded affirmative acceptance of every prospective loss in this exact plan. Not proof of a human actor or edit permission. */
 export type ZlozEventStormingDddLossConsent = Readonly<{ planKey: string; accepted: true }>;
-export type ZlozEventStormingDddConversionConsentDecision =
+export type ZlozEventStormingDddConversionConsentDecision<
+  D extends ZlozModelDocument = ZlozModelDocument,
+> =
   | Readonly<{
       type: 'blocked';
-      plan: Extract<ZlozEventStormingDddConversionPlan, { type: 'blocked' }>;
+      plan: Extract<ZlozEventStormingDddConversionPlan<D>, { type: 'blocked' }>;
     }>
   | Readonly<{
       type: 'unchanged';
-      plan: Extract<ZlozEventStormingDddConversionPlan, { type: 'unchanged' }>;
+      plan: Extract<ZlozEventStormingDddConversionPlan<D>, { type: 'unchanged' }>;
     }>
   | Readonly<{
       type: 'consent-required';
-      plan: Extract<ZlozEventStormingDddConversionPlan, { type: 'reviewable' }>;
+      plan: Extract<ZlozEventStormingDddConversionPlan<D>, { type: 'reviewable' }>;
       reason: string;
     }>
   | Readonly<{
       type: 'consented';
-      plan: Extract<ZlozEventStormingDddConversionPlan, { type: 'reviewable' }>;
+      plan: Extract<ZlozEventStormingDddConversionPlan<D>, { type: 'reviewable' }>;
     }>;
 
 function copyDddArchitecture(value: DddEdgeArchitecture): DddEdgeArchitecture {
@@ -96,21 +102,26 @@ function freeze<T>(value: T): T {
  * unresolved intent returns blockers with no partial change list. Retention must be explicit for
  * ambiguous/unmapped workshop meaning. Retained causal links make no compatibility claim.
  */
-export function createEventStormingDddConversionPlan(
-  source: ZlozEventStormingDddConversionSource,
-  options: ZlozEventStormingDddMappingOptions = {},
-): ZlozEventStormingDddConversionPlan {
+function createPlan<D extends ZlozModelDocument>(
+  source: ZlozEventStormingDddConversionSource<D>,
+  options: ZlozEventStormingDddMappingOptions,
+  capture: (document: D) => D,
+  previewMapping: (
+    document: D,
+    options: ZlozEventStormingDddMappingOptions,
+  ) => ZlozEventStormingDddPreview,
+): ZlozEventStormingDddConversionPlan<D> {
   if (!hasConversionScope(source))
     throw new ZlozError(
       'invalid-edit',
       'Conversion plans require a nonempty source session ID and nonnegative safe integer revision.',
     );
   const provenance = {
-    document: captureModelDocument(source.document),
+    document: capture(source.document),
     sessionId: source.sessionId,
     revision: source.revision,
   };
-  const preview = previewEventStormingDddMapping(provenance.document.snapshot.graph, options);
+  const preview = previewMapping(provenance.document, options);
   // Preview validates choices before any copying. Only data belonging to the published catalogue contract is retained.
   const mappings: ZlozEventStormingDddMappingOptions = {
     nodes: (options.nodes ?? []).map((choice) => ({
@@ -160,12 +171,10 @@ export function createEventStormingDddConversionPlan(
  * must independently recheck live model/session/revision, policy, lifecycle, consent and provenance.
  * Null revokes consent. No state, graph, Undo, document or edition is written here.
  */
-export function resolveEventStormingDddConversionConsent(
-  source: ZlozEventStormingDddConversionSource,
-  options: ZlozEventStormingDddMappingOptions = {},
-  consent: ZlozEventStormingDddLossConsent | null = null,
-): ZlozEventStormingDddConversionConsentDecision {
-  const plan = createEventStormingDddConversionPlan(source, options);
+function resolveConsent<D extends ZlozModelDocument>(
+  plan: ZlozEventStormingDddConversionPlan<D>,
+  consent: ZlozEventStormingDddLossConsent | null,
+): ZlozEventStormingDddConversionConsentDecision<D> {
   if (plan.type === 'blocked') return { type: 'blocked', plan };
   if (plan.type === 'unchanged') return { type: 'unchanged', plan };
   if (consent?.accepted !== true || consent.planKey !== plan.key)
@@ -177,3 +186,41 @@ export function resolveEventStormingDddConversionConsent(
     };
   return { type: 'consented', plan };
 }
+
+export function createEventStormingDddConversionPlan(
+  source: ZlozEventStormingDddConversionSource,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddConversionPlan {
+  return createPlan(source, options, captureModelDocument, (document, choices) =>
+    previewEventStormingDddMapping(document.snapshot.graph, choices),
+  );
+}
+export function createEventStormingDddConversionPlanV2(
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV2>,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddConversionPlan<ZlozModelDocumentV2> {
+  return createPlan(source, options, captureModelDocumentV2, (document, choices) =>
+    previewEventStormingDddMappingV2(document.snapshot, choices),
+  );
+}
+export function resolveEventStormingDddConversionConsent(
+  source: ZlozEventStormingDddConversionSource,
+  options: ZlozEventStormingDddMappingOptions = {},
+  consent: ZlozEventStormingDddLossConsent | null = null,
+): ZlozEventStormingDddConversionConsentDecision {
+  return resolveConsent(createEventStormingDddConversionPlan(source, options), consent);
+}
+export function resolveEventStormingDddConversionConsentV2(
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV2>,
+  options: ZlozEventStormingDddMappingOptions = {},
+  consent: ZlozEventStormingDddLossConsent | null = null,
+): ZlozEventStormingDddConversionConsentDecision<ZlozModelDocumentV2> {
+  return resolveConsent(createEventStormingDddConversionPlanV2(source, options), consent);
+}
+
+export type ZlozEventStormingDddConversionPlanV2 =
+  ZlozEventStormingDddConversionPlan<ZlozModelDocumentV2>;
+export type ZlozEventStormingDddConversionConsentDecisionV2 =
+  ZlozEventStormingDddConversionConsentDecision<ZlozModelDocumentV2>;
+export type ZlozEventStormingDddConversionSourceV2 =
+  ZlozEventStormingDddConversionSource<ZlozModelDocumentV2>;

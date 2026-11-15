@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add native v2 review packet creation, strict recomputing decoding and independent read-only side opening, with explicit reopening budgets and unchanged v1 readers.
+
 - Add explicit v2 connection-document export with retained mode, ordered identity and source-only loss reporting; legacy graph export stays strict.
 
 - Add a pure guarded review-packet reader and composable Foldkit opening/comparison controls.

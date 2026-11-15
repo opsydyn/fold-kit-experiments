@@ -2,12 +2,16 @@
 
 ## Status and authority
 
-Contract definition completed for the approved C2 planning slice, 2026-11-15,
-against `03284a8d` in the isolated worktree. The choices below are the recommended
-implementation contract, not shipped API behavior or a declaration of C2 parity.
-Implementation, the proposed new wire generation and acceptance of the intentional
-React Flow differences need the next explicit approval. No runtime, reader,
-public export, package version, publication or deployment changes in this slice.
+Accepted for the subsequently approved standalone headless v3 implementation,
+2026-11-15. The definition baseline is `03284a8d`; implementation starts at
+`d72518c6`. The user approved the recommended data/validation/upgrade/refused-
+downgrade slice before code. Public standalone APIs and qualification are recorded
+in [the implementation receipt](../../packages/foldkit-zloz/evidence/group-document-v3.md).
+
+This acceptance does not ship a v3 editor, canonical model/archive, port gesture or
+adapter. Item-specific ordinary-parent/shaped-group dispositions and full C2
+closure remain separate. No package version change, publishing or deployment is
+authorized by this slice.
 
 Follows [ADR 0005](0005-headless-flow-architecture-contract.md),
 [ADR 0103](0103-qualify-v2-portable-adapter-boundaries.md) and
@@ -139,7 +143,7 @@ because of collapse. Ambiguous hits need explicit choice/reveal, with protection
 reasons and keyboard access; DOM paint order is not permission. Expanding restores
 original anchors and descendant presentation without graph edits.
 
-## Decision 5: use an explicit future v3 envelope
+## Decision 5: use an explicit v3 envelope
 
 Do not widen `validateGraph`, v1 codecs, v2 connection/model/edition readers or
 `EditorOptions` in place. Current v2 readers allow only their declared document
@@ -149,13 +153,13 @@ invariant; hiding them in unknown fields risks silent loss in older readers.
 The proposed standalone construction target is conceptually:
 
 ```ts
-// Proposed contract only: these names are not exported APIs yet.
-type GroupDocumentV3 = Readonly<{
+// Standalone data API; editor/model/adapters do not adopt v3 implicitly.
+type ZlozGroupDocumentV3 = Readonly<{
   version: 3;
   coordinateSpace: 'world';
   connectionMode: 'strict' | 'loose';
   capabilities: Readonly<{ groupPorts: boolean }>;
-  graph: GroupGraphV3;
+  graph: ZlozGroupGraphV3;
   viewport?: Viewport;
 }>;
 ```
@@ -300,5 +304,23 @@ Stop before implementation if old readers can accept and lose the new meaning,
 if an ordinary editor can commit data its serializer rejects, if a proxy becomes
 an authored endpoint, if a migration rewrites positions/identity, or if an adapter
 needs unreported data loss. Broader ordinary-parent or shape support needs its own
-contract amendment. No visual evidence or runtime tests are claimed for this
-specification; implementation acceptance above remains outstanding.
+contract amendment. The standalone codec now has runtime and installed-consumer qualification in the
+linked receipt. No visual or interactive v3 delivery is claimed; the later editor
+and adapter acceptance above remains outstanding.
+
+## Standalone implementation follow-through
+
+The explicit public entries are `captureGroupDocumentV3`, `validateGroupDocumentV3`,
+`parseGroupDocumentV3`, `serializeGroupDocumentV3`, `upgradeGroupDocumentV3` and
+`planGroupDocumentDowngradeV3`. They preserve legacy constructors/serializers and
+return no v2 target for any ported group. Portless downgrade retains mode and
+camera while disclosing the removal of enabled future group-port authoring.
+
+Bounded owned-data traversal and JSON syntax/duplicate scanning are shared
+internally. The old patch wrappers retain their original defaults, messages and
+error classes; graph/editor validation always binds group ports false. Only a
+validated v3 envelope supplies capability to the private shared graph validator.
+No `EditorOptions` flag, domain inference, new dependency or runtime global is
+introduced. Literal unconnected ports, capability false, world geometry,
+legacy upgrade/downgrade, hostile input and packed Node/Bun/TypeScript consumers
+are qualified. The implementation does not authorize the later interactive plan.

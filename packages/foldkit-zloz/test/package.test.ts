@@ -14,6 +14,8 @@ import connectionWire from './fixtures/connection-v2-loose.json';
 import dddAuditWire from './fixtures/ddd-audit-v1.json';
 import nativeDddWire from './fixtures/ddd-conversion-v2.json';
 import dddReviewWire from './fixtures/ddd-review-model.json';
+import groupV1Wire from './fixtures/group-document-v1-portless.json';
+import groupV3Wire from './fixtures/group-document-v3-ported.json';
 import nativeModelWire from './fixtures/model-native-v2.json';
 import modelModesWire from './fixtures/model-v2-modes.json';
 import nativePatchWire from './fixtures/modelling-patch-v2.json';
@@ -330,6 +332,29 @@ const roleEditor=updateEditor(controlEditor,roleResult.event,dddRelationshipPoli
 if(roleEditor.past.length!==1||resolveDddRelationshipControls(roleEditor,link.id).downstream?.value!=='conformist')throw new Error('Missing DDD Undo contract');
 console.log('headless-architecture-ok');
 `;
+    const groupConsumerSource = `
+import {captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
+import type {ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
+const doc:ZlozGroupDocumentV3=captureGroupDocumentV3(${JSON.stringify(groupV3Wire)});
+const caps:ZlozGroupCapabilitiesV3=doc.capabilities;
+validateGroupDocumentV3(doc);
+const parsed:ZlozGroupDocumentV3ParseResult=parseGroupDocumentV3(serializeGroupDocumentV3(doc));
+const blocked:ZlozGroupDocumentDowngradePlanV3=planGroupDocumentDowngradeV3(doc);
+if(parsed.status!=='parsed'||!caps.groupPorts||blocked.type!=='blocked'||'document' in blocked||portPosition(doc.graph.nodes[1]!,'out').x!==500||groupDocumentV3Limits.maxDepth!==64)throw new Error('Missing group v3 boundary');
+let rejected=false;
+try { createEditor(doc.graph); } catch { rejected=true; }
+if(!rejected)throw new Error('Widened legacy editor');
+const upgraded=upgradeGroupDocumentV3(${JSON.stringify(groupV1Wire)});
+const plan=planGroupDocumentDowngradeV3(upgraded);
+if(plan.type!=='reviewable'||parseConnectionDocument(JSON.stringify(plan.document)).connectionMode!=='strict')throw new Error('Missing explicit group upgrade/downgrade');
+// @ts-expect-error v3 document version is not a v2 envelope.
+const oldVersion:ZlozGroupDocumentV3={...doc,version:2};
+// @ts-expect-error capability is required in the public document contract.
+const missingCapability:ZlozGroupDocumentV3={version:3,coordinateSpace:'world',connectionMode:'strict',graph:doc.graph};
+console.log('group-v3-ok');
+`;
+    const groupConsumer = path.join(directory, 'group-v3.mts');
+    await writeFile(groupConsumer, groupConsumerSource);
     const architectureConsumer = path.join(directory, 'architecture.mts');
     await writeFile(architectureConsumer, architectureSource);
     const rootTsc = path.join(root, 'packages/foldkit-zloz/node_modules/.bin/tsc');
@@ -348,6 +373,7 @@ console.log('headless-architecture-ok');
           '--moduleResolution',
           resolution,
           architectureConsumer,
+          groupConsumer,
         ],
         { ...options, cwd: directory },
       );
@@ -364,6 +390,7 @@ console.log('headless-architecture-ok');
         '--outDir',
         'pure-compiled',
         architectureConsumer,
+        groupConsumer,
       ],
       { ...options, cwd: directory },
     );
@@ -373,6 +400,11 @@ console.log('headless-architecture-ok');
         cwd: directory,
       });
       expect(result.stdout.trim()).toBe('headless-architecture-ok');
+      expect(
+        (
+          await exec(runtime, ['pure-compiled/group-v3.mjs'], { ...options, cwd: directory })
+        ).stdout.trim(),
+      ).toBe('group-v3-ok');
     }
     for (const unwanted of ['foldkit', 'effect', 'elkjs', 'react'])
       expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);

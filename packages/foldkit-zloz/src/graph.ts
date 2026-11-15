@@ -204,6 +204,21 @@ export function validateGraph(graph: ZlozGraph): void {
 }
 /** @internal Shared structural validation. The v2 document boundary and its editor session own nonlegacy modes. */
 export function validateGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConnectionMode): void {
+  validateGraphStructure(graph, mode, false);
+}
+/** @internal Only a validated explicit v3 document may opt into group ports. Legacy wrappers never call this entry. */
+export function validateGroupGraphV3(
+  graph: ZlozGraph,
+  mode: ZlozConnectionMode,
+  groupPorts: boolean,
+): void {
+  validateGraphStructure(graph, mode, groupPorts);
+}
+function validateGraphStructure(
+  graph: ZlozGraph,
+  mode: ZlozConnectionMode,
+  groupPorts: boolean,
+): void {
   if (mode !== 'strict' && mode !== 'loose')
     throw new ZlozError('invalid-graph', 'Unsupported connection mode');
   if (!isGraph(graph))
@@ -226,7 +241,12 @@ export function validateGraphForConnectionMode(graph: ZlozGraph, mode: ZlozConne
       `port on ${node.id}`,
     );
   for (const node of graph.nodes) {
-    if (node.kind === 'group' && node.ports.length > 0)
+    if (
+      node.kind === 'group' &&
+      node.ports.length > 0 &&
+      (!groupPorts ||
+        (node.architecture?.family === 'event-storming' && node.architecture.role === 'lane'))
+    )
       throw new ZlozError('invalid-graph', `Group ${node.id} cannot have ports`);
     if ((node.extent === 'parent' || node.expandParent) && node.parentId === undefined)
       throw new ZlozError(

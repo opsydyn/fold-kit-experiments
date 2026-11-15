@@ -6272,3 +6272,77 @@ The optional Mermaid package provides `createReviewPacketV2`,
 `parseReviewPacketV2` and `openReviewPacketV2` for selected-snapshot evidence and
 independent read-only review. Its v1 entries remain fixed at v1. Mounted workbench
 file/control adoption is a separate slice; these APIs are package-owned.
+
+### Standalone v3 group documents
+
+The v3 wire envelope makes world coordinates, connection mode and the group-port
+capability explicit. It is a standalone data contract, not an editor/model/archive
+version or an npm package version. Existing v1/v2 readers and editors keep their
+portless-group rules; no editor option silently widens them.
+
+```ts
+import {
+  captureGroupDocumentV3,
+  parseGroupDocumentV3,
+  serializeGroupDocumentV3,
+  upgradeGroupDocumentV3,
+  planGroupDocumentDowngradeV3,
+} from '@opsydyn/foldkit-zloz';
+
+const document = captureGroupDocumentV3({
+  version: 3,
+  coordinateSpace: 'world',
+  connectionMode: 'strict',
+  capabilities: { groupPorts: true },
+  graph: {
+    nodes: [
+      {
+        id: 'orders',
+        label: 'Orders boundary',
+        kind: 'group',
+        position: { x: 100, y: 80 },
+        size: { width: 400, height: 300 },
+        ports: [{ id: 'events', kind: 'output', side: 'right', offset: 0.5 }],
+      },
+    ],
+    edges: [],
+  },
+});
+const decoded = parseGroupDocumentV3(serializeGroupDocumentV3(document));
+const downgrade = planGroupDocumentDowngradeV3(document); // blocked, including unconnected ports
+const upgraded = upgradeGroupDocumentV3({ graph: { nodes: [], edges: [] } });
+// upgraded has strict mode and groupPorts: false; no source data is mutated.
+```
+
+`captureGroupDocumentV3` owns and freezes plain data without executing getters or
+`toJSON`; malformed construction throws `ZlozError`. `validateGroupDocumentV3`
+revalidates the full envelope. `parseGroupDocumentV3` returns `parsed` with a frozen
+value or `rejected` with `code`, `reason` and JSON Pointer `path`, never a partial
+value. Syntax/limits/malformed data are distinguished from unsupported versions,
+coordinates or capabilities. Invalid limit options throw rather than weakening
+validation. Limits can only tighten the defaults: 2,000,000 UTF-16 characters,
+depth 64 and 100,000 values. Hosts separately bound bytes and decode UTF-8.
+Serialization also checks the canonical output against reopening limits. Capture
+publishes native JSON number canonicalization (including negative zero to zero);
+nonfinite values are rejected before encoding.
+
+Only groups can parent children, with positions retained in world coordinates at
+every depth. Group ports require `capabilities.groupPorts: true`; lanes and
+hotspots remain portless. C4/DDD descriptors and ordered connection meaning are
+not inferred from ports. Unknown structural fields are rejected; use `data` for
+owned JSON extensions.
+
+`upgradeGroupDocumentV3` accepts only standalone v1 graph/snapshot envelopes,
+unversioned snapshots or v2 connection documents. It preserves coordinates,
+identity, camera and mode (strict for v1), enabling no group ports. It rejects
+model/archive envelopes and unknown structural fields instead of guessing or
+silently dropping them. A portless downgrade produces a detached reviewed v2
+`document`; removing an enabled future group-port capability is disclosed in
+`losses`. Ported groups produce findings and **no target**, without dropping ports
+or retargeting edges. Neither operation grants Apply authority.
+
+The structurally shared `ZlozGroupGraphV3` is meaningful under its full v3
+envelope; extracting just `graph` does not carry its capability into an old API.
+V3 editor/Undo, model/edition history, patches/receipts, layouts, image export,
+Mermaid, CLI and native controls remain separate version-required adoption gates.
+See [qualification](evidence/group-document-v3.md) before assuming adapter support.

@@ -855,3 +855,23 @@ export type {
 } from './event-storming-ddd-conversion-plan';
 export type { ZlozEventStormingDddApplyPolicyV2 } from './event-storming-ddd-apply';
 export type { ZlozEventStormingDddConversionSourceV2 } from './event-storming-ddd-conversion-plan';
+
+export {
+  captureGroupDocumentV3,
+  validateGroupDocumentV3,
+  parseGroupDocumentV3,
+  serializeGroupDocumentV3,
+  upgradeGroupDocumentV3,
+  planGroupDocumentDowngradeV3,
+  groupDocumentV3Limits,
+} from './group-document-v3';
+export type {
+  ZlozGroupGraphV3,
+  ZlozGroupCapabilitiesV3,
+  ZlozGroupDocumentV3,
+  ZlozGroupDocumentV3Options,
+  ZlozGroupDocumentV3Failure,
+  ZlozGroupDocumentV3ParseResult,
+  ZlozGroupDowngradeFindingV3,
+  ZlozGroupDocumentDowngradePlanV3,
+} from './group-document-v3';

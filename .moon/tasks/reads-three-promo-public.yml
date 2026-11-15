@@ -1,0 +1,5 @@
+# Projects that import files from three-promo's public/ folder hash them.
+inheritedBy:
+  tags: ['reads-three-promo-public']
+implicitInputs:
+  - '/apps/three-promo/public/**/*'

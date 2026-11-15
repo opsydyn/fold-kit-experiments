@@ -1,0 +1,5 @@
+# Projects that build from the repository's docs/ folder hash it.
+inheritedBy:
+  tags: ['reads-docs']
+implicitInputs:
+  - '/docs/**/*'

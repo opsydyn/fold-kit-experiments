@@ -1,0 +1,5 @@
+# Projects that import brand marks and logos from docs/assets/ hash them.
+inheritedBy:
+  tags: ['reads-docs-assets']
+implicitInputs:
+  - '/docs/assets/**/*'

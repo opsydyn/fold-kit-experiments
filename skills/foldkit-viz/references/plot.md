@@ -19,9 +19,14 @@ the geometry layers in [chart composition](charts.md).
 `foldkit/plot` (`plotChart`, `plotCanvas`) renders in a FoldKit view, and
 `canvas/plot` (`paintCanvas`) paints on a canvas with no FoldKit at all.
 Where the installed export map has them (newer than `0.18.0`), `svg/plot`
-returns markup strings with no framework: `plotSvg` a standalone SVG file in
-concrete colours (no legend, which is HTML), and `plotHtml` the same figure
-`plotChart` renders. In a Deno or Bun Jupyter kernel, make
+returns markup strings with no framework: `plotSvg` a standalone SVG file with
+its legends, in the `light` theme unless given another, and `plotHtml` the same
+figure `plotChart` renders. `canvas/image` paints that picture on a canvas and
+`plotPng` encodes it through a canvas the caller supplies (foldkit-viz bundles no
+rasteriser). A `theme` is a `ThemeName` (`light`, `dark`, `high-contrast-light`,
+`high-contrast-dark`) or a palette; choose a high-contrast theme where readers
+need AAA text contrast, and never invent theme colours without checking them
+with `contrastRatio`. In a Deno or Bun Jupyter kernel, make
 `displayPlot(spec)` from `jupyter` a cell's value; `plotMimeBundle` builds the
 same bundle from geometry. From Python, the repository's `foldkit_viz.Plot`
 anywidget (not on PyPI yet) checks a spec against the schema and draws it the

@@ -76,7 +76,8 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/hierarchy`             | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
 | `@opsydyn/foldkit-viz/simulation`            | Barnes-Hut force simulation (N-body)                                                                                                                                  |
 | `@opsydyn/foldkit-viz/stateflow`             | Framework-free Stateflow graph records and deterministic layout                                                                                                       |
-| `@opsydyn/foldkit-viz/svg/plot`              | `plotSvg`, `plotHtml`, `svgPalette` — compiled plots as SVG or HTML strings                                                                                           |
+| `@opsydyn/foldkit-viz/svg/plot`              | `plotSvg`, `plotHtml`, `paletteOf` — compiled plots as SVG or HTML strings, in a theme                                                                                |
+| `@opsydyn/foldkit-viz/canvas/image`          | `paintImage`, `imageSize`, `plotPng` — compiled plots as images on a canvas you supply                                                                                |
 | `@opsydyn/foldkit-viz/jupyter`               | `displayPlot`, `plotMimeBundle` — inline plots in Deno and Bun Jupyter kernels                                                                                        |
 
 ---
@@ -629,29 +630,46 @@ Two changes need code changes in some callers:
   unaffected at compile time, and `compilePlot` still rejects an unknown
   scheme at run time.
 
-## SVG export and Jupyter notebooks (unreleased)
+## SVG and PNG export, themes and Jupyter notebooks (unreleased)
 
-Any compiled plot renders to a string, with no FoldKit, Effect or DOM: for a
-file, a server response, an image pipeline or a notebook.
+Any compiled plot renders to a string or an image, with no FoldKit, Effect or
+DOM: for a file, a server response, an image pipeline or a notebook.
 
 ```ts
 import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
 import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
+import { plotPng } from '@opsydyn/foldkit-viz/canvas/image';
 
 const geometry = compilePlot(spec);
-await Bun.write('chart.svg', plotSvg(geometry));
+await Bun.write('chart.svg', plotSvg(geometry, { theme: 'dark' }));
 const fragment = plotHtml(geometry, { table: plotTable(spec), summary: true });
+// In a browser or worker:
+const png = await plotPng(geometry, new OffscreenCanvas(1, 1), { pixelRatio: 2 });
 ```
 
-- `plotSvg(geometry, options)` is a standalone SVG document at the compiled
-  size, with its namespace, font and accessible title and description. It draws
-  in `svgPalette`, concrete colours, because image renderers and file viewers
-  have no page colour to inherit and most cannot resolve `color-mix`. Pass
-  `palette: currentColorPalette` to follow the host's text colour instead.
-  Legends are HTML beside the SVG, so they are in `plotHtml` only.
+- `plotSvg(geometry, options)` is a standalone SVG document: the plot, its
+  accessible title and description, and its legends drawn below it (the
+  document grows to fit them), over the theme's background. It draws in the
+  `light` theme by default, concrete colours, because image renderers and file
+  viewers have no page colour to inherit. `legend: false` and `background: false`
+  leave those out.
 - `plotHtml(geometry, options)` is the whole figure (the SVG, the data table and
-  the legends) in the page's colour, the same markup `foldkit/plot`'s `plotChart`
-  renders. Both come from one renderer, and a test holds them byte for byte equal.
+  HTML legends) in the page's colour, the same markup `foldkit/plot`'s `plotChart`
+  renders. Both come from one renderer, and a test holds them byte for byte
+  equal. Given a `theme`, the figure paints its own background and text colour.
+- `canvas/image` paints the same picture as `plotSvg` on any 2D canvas context:
+  `paintImage(ctx, geometry, options)`, sized by `imageSize(geometry, options)`.
+  `plotPng(geometry, canvas, options)` sizes a canvas for the pixel ratio, paints
+  it and returns PNG bytes through the canvas's own encoder, such as a browser's
+  `OffscreenCanvas`. foldkit-viz bundles no rasteriser: in Bun, Node or Deno,
+  call `paintImage` on a canvas library's context and use its encoder. Images
+  over 16,384 pixels a side or 16.7 million pixels are refused before painting.
+
+**Themes.** A `theme` is a name or any palette. `chart/theme` names four in
+`chartThemes`: `light`, `dark`, and `high-contrast-light` and `high-contrast-dark`,
+which hold text at WCAG AAA (7:1) and axes at 4.5:1, with larger labels and
+heavier marks. A test holds every theme to AA. `contrastRatio(a, b)` in
+`math/color` measures any pair of colours.
 
 To write TypeScript in Jupyter, install Deno's kernel with `deno jupyter --install`
 (or the community Bun kernel, `jupyter-bun`) and make a plot the cell's value. The
@@ -666,8 +684,9 @@ displayPlot({ width: 520, height: 300, data, marks: [{ mark: 'dot', x: 'a', y: '
 Both kernels call a value's `Symbol.for('Jupyter.display')` method (exported as
 `jupyterDisplay`) and show the richest type in the bundle it returns:
 `text/html` (the figure, following the notebook's light or dark theme), then
-`image/svg+xml` (the chart in concrete colours, for exports), then `text/plain`
-(the title and `describePlot` summary). `displayPlot` compiles the spec at once,
+`image/svg+xml` (the chart and its legends in concrete colours, for exports),
+then `text/plain` (the title and `describePlot` summary). A `theme` option themes
+both pictures. `displayPlot` compiles the spec at once,
 so a spec error is raised in the cell, and turns on the summary and the data
 table; `plotMimeBundle(geometry, options)` builds the bundle from geometry, such
 as for `Deno.jupyter.display(bundle, { raw: true })`. Output is static: neither
@@ -675,7 +694,8 @@ kernel documents widget support.
 
 From Python, the repository's `foldkit-viz` Python package (not yet on PyPI)
 draws a spec as an [anywidget](https://anywidget.dev): `Plot(spec)` checks it
-against the published schema and redraws when `plot.spec` changes. See
+against the published schema and redraws when `plot.spec` or `plot.theme`
+changes. See
 [its README](https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz-py).
 
 ## Parent-owned interaction state

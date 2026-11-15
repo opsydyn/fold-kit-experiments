@@ -219,7 +219,15 @@ charts in all three apps.
   that repaints only the brushed points.
 - DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
   and Arrow data" below.
-- PNG export, and themes beyond light and dark. SVG export is done (below).
+- PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `canvas/image` paints a compiled plot, legends and
+  background included, on any 2D context, and `plotPng` encodes it through a
+  canvas the caller supplies, with no new dependency; checked as real PNGs from
+  Chromium's OffscreenCanvas. Standalone SVGs draw their legends too. Themes:
+  `high-contrast-light` and `high-contrast-dark` (WCAG AAA text), all four named
+  in `chartThemes` and chosen by `theme` in `plotSvg`, `plotHtml`, Jupyter and
+  the Python widget, with a test holding every theme to AA and `contrastRatio`
+  public. The light theme's axis colour moved to 3.1:1 to meet WCAG 1.4.11.
 - Jupyter support, in two steps:
   - **TypeScript kernels first — done on the `feat/viz-svg-jupyter` branch
     (unreleased).** `svg/plot` renders any compiled plot as a string with no

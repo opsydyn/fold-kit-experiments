@@ -24,6 +24,9 @@ Plot({
 - The chart is drawn by foldkit-viz itself, so it matches the same spec drawn
   anywhere else. It follows the notebook's light or dark theme and carries a
   plain-language summary and a data table for screen readers.
+- `Plot(spec, theme="high-contrast-dark")` draws in a named theme (one of
+  `THEMES`) on its own background; the default, `None`, follows the notebook's
+  light or dark theme. Assign `plot.theme` to change it.
 - Assign `plot.spec` to redraw. What depends on the data, such as a field that
   is not in it, shows in place of the chart and in `plot.error`.
 

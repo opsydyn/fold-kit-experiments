@@ -3078,3 +3078,13 @@ export {
   zlozWorkshopStatusButton,
 } from './workshop-controls-view';
 export type { ZlozWorkshopParts, ZlozWorkshopViewOptions } from './workshop-controls-view';
+
+export {
+  zlozHistoryComparisonPresentationV2,
+  zlozHistoryGhostsV2,
+} from './history-presentation-v2-view';
+export type {
+  ZlozHistoryPresentationPartsV2,
+  ZlozHistoryPresentationViewOptionsV2,
+  ZlozHistoryGhostOptionsV2,
+} from './history-presentation-v2-view';

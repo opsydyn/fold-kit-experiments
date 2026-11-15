@@ -1157,5 +1157,18 @@ See [ADR 0098](adr/0098-compare-v2-editions-with-explicit-mode-changes.md) and
 Presentation/ghosts, append, restore/playback and CLI/workbench adoption remain
 open; C1 and wider C/Q/R gates stay partial. No npm publication or deployment.
 
-**Recommended next:** package-level v2 comparison presentation with explicit mode
-feedback and history ghosts, before cross-mode restore/playback adoption.
+**C1 v2 comparison presentation — implemented locally (2026-11-15), unreleased:**
+`resolveHistoryComparisonPresentationV2` validates chosen checkpoints and returns
+immutable comparison/text/visibility context. Optional FoldKit status parts expose
+mode changes even without graph deltas; the v2 ghost wrapper reuses existing inert
+geometry under the world transform. Saved per-layer choices survive minimal mode;
+text, layout and marks are composable. Public tests, packed consumers and a static
+light/dark Chromium fixture qualify this package boundary. See
+[ADR 0099](adr/0099-present-v2-comparisons-with-mode-feedback-and-ghosts.md) and
+[qualification](../packages/foldkit-zloz/evidence/history-presentation-v2.md).
+This is not mounted workbench/CLI adoption or restore/playback. Those boundaries,
+v2 change navigation/append and wider C/Q/R gates stay open; C1 remains partial.
+No npm publication or deployment.
+
+**Recommended next:** v2 change navigation with an explicit mode-change entry
+and side-preserving focus before cross-mode restore/playback adoption.

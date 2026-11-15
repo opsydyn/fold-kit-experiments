@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>V2 comparison package fixture</title
+  ><style>
+    body {
+      margin: 0;
+      background: #f6f5f2;
+      color: #172126;
+      font: 15px/1.5 system-ui;
+    }
+    main {
+      max-width: 1160px;
+      margin: 28px auto;
+    }
+    h1 {
+      font-size: 26px;
+      margin: 0;
+    }
+    h2 {
+      font-size: 19px;
+      margin: 0 0 12px;
+    }
+    p {
+      margin: 8px 0 14px;
+    }
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    section {
+      padding: 20px;
+      border: 1px solid #cbd0d4;
+      border-radius: 12px;
+      background: white;
+    }
+    [role='status'] {
+      display: grid;
+      gap: 4px;
+    }
+    [data-zloz-history-mode] {
+      font-weight: 650;
+    }
+    .dark {
+      background: #192126;
+      color: #e7edf2;
+      border-color: #39434c;
+    }
+    .dark p {
+      color: #b8c5cc;
+    }
+  </style>
+  <main>
+    <h1>Checkpoint meaning, visible at a glance</h1>
+    <p>Static package-rendered fixture · mode-only comparison and retained ghost preferences</p>
+    <section>
+      <div role="status" aria-live="polite" aria-label="History comparison">
+        <span data-zloz-history-summary=""
+          >Strict edition compared with First. No node or edge changes.</span
+        >
+        <span data-zloz-history-mode="changed">Connection mode changed from loose to strict.</span>
+      </div>
+    </section>
+    <div class="panels">
+      <section class="light">
+        <h2>Light · comparison ghosts</h2>
+        <div role="status" aria-live="polite" aria-label="History comparison">
+          <span data-zloz-history-summary=""
+            >Revised layout compared with First. Graph layout changed.</span
+          >
+          <span data-zloz-history-mode="changed"
+            >Connection mode changed from loose to strict.</span
+          >
+        </div>
+        <p>Dashed outlines show previous geometry. Connectors show movement.</p>
+        <div
+          data-flow-minimal="true"
+          class="foldkit-zloz foldkit-flow"
+          id="comparison-light"
+          style="
+            color: var(--flow-node-color, inherit);
+            color-scheme: light;
+            --zloz-event-storming-external-system: #0e7490;
+            --zloz-event-storming-hotspot-open: #be123c;
+            --zloz-event-storming-hotspot-resolved: #047857;
+            --zloz-event-storming-lane: #64748b;
+            --flow-event-storming-command: #2563eb;
+            --flow-event-storming-event: #c2410c;
+            --flow-event-storming-policy: #7e22ce;
+            --flow-event-storming-actor: #a16207;
+            --flow-background: #eef2f6;
+            --flow-canvas-border: #94a3b8;
+            --flow-grid-line: #94a3b855;
+            --flow-grid-dot: #94a3b855;
+            --flow-node-background: #ffffff;
+            --flow-node-color: #172033;
+            --flow-node-border: #64748b;
+            --flow-node-radius: 8px;
+            --flow-group-background: rgb(100 116 139 / 0.08);
+            --flow-input-port: #0f766e;
+            --flow-output-port: #2563eb;
+            --flow-port-border: #ffffff;
+            --flow-control-color: #ffffff;
+            --flow-edge: #64748b;
+            --flow-edge-width: 3;
+            --flow-selection: #2563eb;
+            --flow-selection-background: rgb(37 99 235 / 0.12);
+            --flow-valid-target: #0f766e;
+            --flow-invalid-target: #dc2626;
+            --flow-alignment-guide: #7c3aed;
+            --flow-resize-background: #334155;
+            --flow-resize-readout-background: #ffffff;
+            --flow-resize-readout-color: #172033;
+          "
+        >
+          <p
+            data-flow-help=""
+            id="comparison-light-help"
+            style="
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            "
+          >
+            Drag a node title to move it. Drag the background to pan, or Shift-drag to select nodes.
+            Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to
+            an input, or activate the two ports in order with Enter or Space. Select an edge and
+            drag an available endpoint handle to reconnect. Escape cancels.
+          </p>
+          <div
+            data-flow-surface="comparison-light"
+            data-flow-readonly="true"
+            data-flow-connection-mode="strict"
+            data-flow-grid-snap="false"
+            data-flow-grid-spacing="20"
+            data-flow-auto-pan="false"
+            data-flow-connection-drop-radius="0"
+            data-flow-reconnection-drop-radius="0"
+            data-flow-pinch-zoom="false"
+            data-flow-wheel-navigation="zoom"
+            data-flow-double-click-zoom=""
+            data-flow-space-to-pan="false"
+            data-flow-middle-button-pan="false"
+            data-flow-anchor-keyboard-targets="false"
+            data-flow-port-anchor-snap-bypass=""
+            data-flow-fit-animation=""
+            data-flow-selection-mode="false"
+            data-flow-zoom-area-mode="false"
+            data-flow-context-actions="false"
+            role="group"
+            aria-label="light comparison preview"
+            aria-describedby="comparison-light-help"
+            id="comparison-light-surface"
+            tabindex="0"
+            style="
+              position: relative;
+              overflow: hidden;
+              height: 330px;
+              width: 100%;
+              touch-action: none;
+              cursor: inherit;
+              background-color: var(--flow-background, #eef2f6);
+              border: 1px solid var(--flow-canvas-border, #94a3b8);
+              border-radius: 10px;
+            "
+          >
+            <div
+              data-flow-background="dots"
+              aria-hidden="true"
+              style="
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background-image: radial-gradient(
+                  circle,
+                  var(--flow-grid-dot, var(--flow-grid-line, #94a3b855)) 0.9px,
+                  transparent 0.9px
+                );
+                background-size: 18px 18px;
+                background-position: 11px 41px;
+                background-origin: padding-box;
+              "
+            ></div>
+            <div
+              style="
+                position: absolute;
+                inset: 0;
+                transform: translate(20px, 50px) scale(0.9);
+                transform-origin: 0 0;
+                pointer-events: none;
+              "
+            >
+              <svg
+                width="100%"
+                height="100%"
+                aria-hidden="true"
+                style="position: absolute; overflow: visible; pointer-events: none"
+              >
+                <defs>
+                  <marker
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                    id="comparison-light-arrow"
+                  >
+                    <path d="M0,0 L10,5 L0,10 Z" fill="var(--flow-edge, #64748b)"></path>
+                  </marker>
+                </defs>
+                <g>
+                  <g style="pointer-events: none">
+                    <path
+                      d="M260,210 L300,50"
+                      fill="none"
+                      stroke="var(--flow-edge, #64748b)"
+                      stroke-width="var(--flow-edge-width, 3)"
+                      stroke-dasharray="none"
+                      marker-end="url(#comparison-light-arrow)"
+                    ></path>
+                  </g>
+                  <path
+                    data-flow-edge="e"
+                    d="M260,210 L300,50"
+                    fill="none"
+                    stroke="transparent"
+                    stroke-width="12"
+                    style="pointer-events: stroke; cursor: pointer"
+                  ></path>
+                </g>
+              </svg>
+              <div
+                data-flow-node="a"
+                data-flow-x="60"
+                data-flow-y="160"
+                style="
+                  position: absolute;
+                  left: 60px;
+                  top: 160px;
+                  width: 200px;
+                  box-sizing: border-box;
+                  border: 0;
+                  padding: 0;
+                  margin: 0;
+                  pointer-events: auto;
+                "
+              >
+                <div
+                  style="
+                    min-height: 64px;
+                    border: 2px solid var(--flow-node-border, #64748b);
+                    outline: none;
+                    outline-offset: 2px;
+                    border-radius: var(--flow-node-radius, 8px);
+                    background: var(--flow-node-background, #fff);
+                    color: var(--flow-node-color, #172033);
+                    padding: 12px;
+                    pointer-events: auto;
+                    position: static;
+                    width: 100%;
+                    box-sizing: border-box;
+                  "
+                >
+                  <button
+                    data-flow-handle="a"
+                    aria-label="Select A"
+                    aria-pressed="false"
+                    aria-describedby="comparison-light-help"
+                    type="button"
+                    style="
+                      display: block;
+                      width: 100%;
+                      min-height: 32px;
+                      text-align: left;
+                      cursor: pointer;
+                      font-weight: 600;
+                      color: inherit;
+                      background: transparent;
+                      border: none;
+                      pointer-events: auto;
+                    "
+                  >
+                    A</button
+                  ><button
+                    data-flow-port="out"
+                    data-flow-port-kind="output"
+                    data-flow-connection-end="source"
+                    data-flow-owner="a"
+                    aria-label="Connect from A: out"
+                    aria-pressed="false"
+                    type="button"
+                    disabled=""
+                    style="
+                      position: absolute;
+                      z-index: 1;
+                      width: 24px;
+                      height: 24px;
+                      padding: 0;
+                      border-radius: 50%;
+                      border: 2px solid var(--flow-port-border, #fff);
+                      box-shadow: none;
+                      background: var(--flow-output-port, #2563eb);
+                      color: var(--flow-control-color, #fff);
+                      cursor: crosshair;
+                      left: 100%;
+                      top: 50%;
+                      transform: translate(-50%, -50%);
+                      right: auto;
+                      bottom: auto;
+                      pointer-events: auto;
+                    "
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div
+                data-flow-node="b"
+                data-flow-x="300"
+                data-flow-y="0"
+                style="
+                  position: absolute;
+                  left: 300px;
+                  top: 0px;
+                  width: 200px;
+                  box-sizing: border-box;
+                  border: 0;
+                  padding: 0;
+                  margin: 0;
+                  pointer-events: auto;
+                "
+              >
+                <div
+                  style="
+                    min-height: 64px;
+                    border: 2px solid var(--flow-node-border, #64748b);
+                    outline: none;
+                    outline-offset: 2px;
+                    border-radius: var(--flow-node-radius, 8px);
+                    background: var(--flow-node-background, #fff);
+                    color: var(--flow-node-color, #172033);
+                    padding: 12px;
+                    pointer-events: auto;
+                    position: static;
+                    width: 100%;
+                    box-sizing: border-box;
+                  "
+                >
+                  <button
+                    data-flow-handle="b"
+                    aria-label="Select B"
+                    aria-pressed="false"
+                    aria-describedby="comparison-light-help"
+                    type="button"
+                    style="
+                      display: block;
+                      width: 100%;
+                      min-height: 32px;
+                      text-align: left;
+                      cursor: pointer;
+                      font-weight: 600;
+                      color: inherit;
+                      background: transparent;
+                      border: none;
+                      pointer-events: auto;
+                    "
+                  >
+                    B</button
+                  ><button
+                    data-flow-port="in"
+                    data-flow-port-kind="input"
+                    data-flow-connection-end="target"
+                    data-flow-owner="b"
+                    aria-label="Connect to B: in"
+                    aria-pressed="false"
+                    type="button"
+                    disabled=""
+                    style="
+                      position: absolute;
+                      z-index: 1;
+                      width: 24px;
+                      height: 24px;
+                      padding: 0;
+                      border-radius: 50%;
+                      border: 2px solid var(--flow-port-border, #fff);
+                      box-shadow: none;
+                      background: var(--flow-input-port, #0f766e);
+                      color: var(--flow-control-color, #fff);
+                      cursor: crosshair;
+                      left: 0%;
+                      top: 50%;
+                      transform: translate(-50%, -50%);
+                      right: auto;
+                      bottom: auto;
+                      pointer-events: auto;
+                    "
+                  >
+                    −
+                  </button>
+                </div>
+              </div>
+              <div
+                data-flow-world-overlay=""
+                style="position: absolute; inset: 0; pointer-events: none"
+              >
+                <svg
+                  data-zloz-history-ghosts=""
+                  aria-hidden="true"
+                  style="
+                    position: absolute;
+                    inset: 0;
+                    width: 1px;
+                    height: 1px;
+                    overflow: visible;
+                    pointer-events: none;
+                  "
+                >
+                  <path
+                    data-zloz-history-edge="changed"
+                    data-zloz-history-id="e"
+                    d="M200,50 L300,50"
+                    fill="none"
+                    stroke="var(--flow-selection, #2563eb)"
+                    stroke-width="2"
+                    stroke-dasharray="5 5"
+                    opacity="0.6"
+                  ></path>
+                  <g
+                    data-zloz-history-node="changed"
+                    data-zloz-history-id="a"
+                    transform="translate(0 0)"
+                  >
+                    <path
+                      d="M0,0 H200 V100 H0 Z"
+                      fill="var(--flow-node-background, #fff)"
+                      fill-opacity="0.2"
+                      stroke="var(--flow-selection, #2563eb)"
+                      stroke-width="2"
+                      stroke-dasharray="8 5"
+                    ></path>
+                    <text
+                      x="4"
+                      y="-8"
+                      fill="var(--flow-selection, #2563eb)"
+                      style="font-size: 12px"
+                    >
+                      Previous: A
+                    </text>
+                  </g>
+                  <g data-zloz-history-movement="a">
+                    <path
+                      d="M100,100 L160,160"
+                      fill="none"
+                      stroke="var(--flow-selection, #2563eb)"
+                      stroke-width="2"
+                      stroke-dasharray="4 4"
+                    ></path>
+                    <path
+                      d="M160,160 L156.46446609406726,150.8076118445749 L150.8076118445749,156.46446609406726 Z"
+                      fill="var(--flow-selection, #2563eb)"
+                    ></path>
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            data-flow-status=""
+            role="status"
+            aria-live="polite"
+            style="
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            "
+          >
+            2 nodes, 1 connections
+          </div>
+          <div>
+            <button
+              data-flow-connections-toggle=""
+              aria-expanded="false"
+              type="button"
+              style="min-height: 36px; padding: 6px 10px"
+            >
+              Connections
+            </button>
+          </div>
+        </div>
+      </section>
+      <section class="dark">
+        <h2>Dark · minimal mode</h2>
+        <div role="status" aria-live="polite" aria-label="History comparison">
+          <span data-zloz-history-summary=""
+            >Revised layout compared with First. Graph layout changed.</span
+          >
+          <span data-zloz-history-mode="changed"
+            >Connection mode changed from loose to strict.</span
+          >
+        </div>
+        <p>Ghosts hidden; layer preferences retained.</p>
+        <div
+          data-flow-minimal="true"
+          class="foldkit-zloz foldkit-flow"
+          id="comparison-dark"
+          style="
+            color: var(--flow-node-color, inherit);
+            color-scheme: dark;
+            --zloz-event-storming-external-system: #67e8f9;
+            --zloz-event-storming-hotspot-open: #fda4af;
+            --zloz-event-storming-hotspot-resolved: #6ee7b7;
+            --zloz-event-storming-lane: #94a3b8;
+            --flow-event-storming-command: #93c5fd;
+            --flow-event-storming-event: #fdba74;
+            --flow-event-storming-policy: #d8b4fe;
+            --flow-event-storming-actor: #fde047;
+            --flow-background: #111827;
+            --flow-canvas-border: #596780;
+            --flow-grid-line: #94a3b84d;
+            --flow-grid-dot: #94a3b86b;
+            --flow-node-background: #202b3e;
+            --flow-node-color: #edf2fa;
+            --flow-node-border: #7889a3;
+            --flow-node-radius: 8px;
+            --flow-group-background: rgb(148 163 184 / 0.1);
+            --flow-input-port: #7bd8c9;
+            --flow-output-port: #98beff;
+            --flow-port-border: #1a2638;
+            --flow-control-color: #101a2b;
+            --flow-edge: #a6b7ce;
+            --flow-edge-width: 3;
+            --flow-selection: #98beff;
+            --flow-selection-background: rgb(152 190 255 / 0.16);
+            --flow-valid-target: #7bd8c9;
+            --flow-invalid-target: #ff9ca5;
+            --flow-alignment-guide: #c4a1ff;
+            --flow-resize-background: #a6b7ce;
+            --flow-resize-readout-background: #202b3e;
+            --flow-resize-readout-color: #edf2fa;
+          "
+        >
+          <p
+            data-flow-help=""
+            id="comparison-dark-help"
+            style="
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            "
+          >
+            Drag a node title to move it. Drag the background to pan, or Shift-drag to select nodes.
+            Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to
+            an input, or activate the two ports in order with Enter or Space. Select an edge and
+            drag an available endpoint handle to reconnect. Escape cancels.
+          </p>
+          <div
+            data-flow-surface="comparison-dark"
+            data-flow-readonly="true"
+            data-flow-connection-mode="strict"
+            data-flow-grid-snap="false"
+            data-flow-grid-spacing="20"
+            data-flow-auto-pan="false"
+            data-flow-connection-drop-radius="0"
+            data-flow-reconnection-drop-radius="0"
+            data-flow-pinch-zoom="false"
+            data-flow-wheel-navigation="zoom"
+            data-flow-double-click-zoom=""
+            data-flow-space-to-pan="false"
+            data-flow-middle-button-pan="false"
+            data-flow-anchor-keyboard-targets="false"
+            data-flow-port-anchor-snap-bypass=""
+            data-flow-fit-animation=""
+            data-flow-selection-mode="false"
+            data-flow-zoom-area-mode="false"
+            data-flow-context-actions="false"
+            role="group"
+            aria-label="dark comparison preview"
+            aria-describedby="comparison-dark-help"
+            id="comparison-dark-surface"
+            tabindex="0"
+            style="
+              position: relative;
+              overflow: hidden;
+              height: 330px;
+              width: 100%;
+              touch-action: none;
+              cursor: inherit;
+              background-color: var(--flow-background, #eef2f6);
+              border: 1px solid var(--flow-canvas-border, #94a3b8);
+              border-radius: 10px;
+            "
+          >
+            <div
+              data-flow-background="dots"
+              aria-hidden="true"
+              style="
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background-image: radial-gradient(
+                  circle,
+                  var(--flow-grid-dot, var(--flow-grid-line, #94a3b855)) 0.9px,
+                  transparent 0.9px
+                );
+                background-size: 18px 18px;
+                background-position: 11px 41px;
+                background-origin: padding-box;
+              "
+            ></div>
+            <div
+              style="
+                position: absolute;
+                inset: 0;
+                transform: translate(20px, 50px) scale(0.9);
+                transform-origin: 0 0;
+                pointer-events: none;
+              "
+            >
+              <svg
+                width="100%"
+                height="100%"
+                aria-hidden="true"
+                style="position: absolute; overflow: visible; pointer-events: none"
+              >
+                <defs>
+                  <marker
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                    id="comparison-dark-arrow"
+                  >
+                    <path d="M0,0 L10,5 L0,10 Z" fill="var(--flow-edge, #64748b)"></path>
+                  </marker>
+                </defs>
+                <g>
+                  <g style="pointer-events: none">
+                    <path
+                      d="M260,210 L300,50"
+                      fill="none"
+                      stroke="var(--flow-edge, #64748b)"
+                      stroke-width="var(--flow-edge-width, 3)"
+                      stroke-dasharray="none"
+                      marker-end="url(#comparison-dark-arrow)"
+                    ></path>
+                  </g>
+                  <path
+                    data-flow-edge="e"
+                    d="M260,210 L300,50"
+                    fill="none"
+                    stroke="transparent"
+                    stroke-width="12"
+                    style="pointer-events: stroke; cursor: pointer"
+                  ></path>
+                </g>
+              </svg>
+              <div
+                data-flow-node="a"
+                data-flow-x="60"
+                data-flow-y="160"
+                style="
+                  position: absolute;
+                  left: 60px;
+                  top: 160px;
+                  width: 200px;
+                  box-sizing: border-box;
+                  border: 0;
+                  padding: 0;
+                  margin: 0;
+                  pointer-events: auto;
+                "
+              >
+                <div
+                  style="
+                    min-height: 64px;
+                    border: 2px solid var(--flow-node-border, #64748b);
+                    outline: none;
+                    outline-offset: 2px;
+                    border-radius: var(--flow-node-radius, 8px);
+                    background: var(--flow-node-background, #fff);
+                    color: var(--flow-node-color, #172033);
+                    padding: 12px;
+                    pointer-events: auto;
+                    position: static;
+                    width: 100%;
+                    box-sizing: border-box;
+                  "
+                >
+                  <button
+                    data-flow-handle="a"
+                    aria-label="Select A"
+                    aria-pressed="false"
+                    aria-describedby="comparison-dark-help"
+                    type="button"
+                    style="
+                      display: block;
+                      width: 100%;
+                      min-height: 32px;
+                      text-align: left;
+                      cursor: pointer;
+                      font-weight: 600;
+                      color: inherit;
+                      background: transparent;
+                      border: none;
+                      pointer-events: auto;
+                    "
+                  >
+                    A</button
+                  ><button
+                    data-flow-port="out"
+                    data-flow-port-kind="output"
+                    data-flow-connection-end="source"
+                    data-flow-owner="a"
+                    aria-label="Connect from A: out"
+                    aria-pressed="false"
+                    type="button"
+                    disabled=""
+                    style="
+                      position: absolute;
+                      z-index: 1;
+                      width: 24px;
+                      height: 24px;
+                      padding: 0;
+                      border-radius: 50%;
+                      border: 2px solid var(--flow-port-border, #fff);
+                      box-shadow: none;
+                      background: var(--flow-output-port, #2563eb);
+                      color: var(--flow-control-color, #fff);
+                      cursor: crosshair;
+                      left: 100%;
+                      top: 50%;
+                      transform: translate(-50%, -50%);
+                      right: auto;
+                      bottom: auto;
+                      pointer-events: auto;
+                    "
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div
+                data-flow-node="b"
+                data-flow-x="300"
+                data-flow-y="0"
+                style="
+                  position: absolute;
+                  left: 300px;
+                  top: 0px;
+                  width: 200px;
+                  box-sizing: border-box;
+                  border: 0;
+                  padding: 0;
+                  margin: 0;
+                  pointer-events: auto;
+                "
+              >
+                <div
+                  style="
+                    min-height: 64px;
+                    border: 2px solid var(--flow-node-border, #64748b);
+                    outline: none;
+                    outline-offset: 2px;
+                    border-radius: var(--flow-node-radius, 8px);
+                    background: var(--flow-node-background, #fff);
+                    color: var(--flow-node-color, #172033);
+                    padding: 12px;
+                    pointer-events: auto;
+                    position: static;
+                    width: 100%;
+                    box-sizing: border-box;
+                  "
+                >
+                  <button
+                    data-flow-handle="b"
+                    aria-label="Select B"
+                    aria-pressed="false"
+                    aria-describedby="comparison-dark-help"
+                    type="button"
+                    style="
+                      display: block;
+                      width: 100%;
+                      min-height: 32px;
+                      text-align: left;
+                      cursor: pointer;
+                      font-weight: 600;
+                      color: inherit;
+                      background: transparent;
+                      border: none;
+                      pointer-events: auto;
+                    "
+                  >
+                    B</button
+                  ><button
+                    data-flow-port="in"
+                    data-flow-port-kind="input"
+                    data-flow-connection-end="target"
+                    data-flow-owner="b"
+                    aria-label="Connect to B: in"
+                    aria-pressed="false"
+                    type="button"
+                    disabled=""
+                    style="
+                      position: absolute;
+                      z-index: 1;
+                      width: 24px;
+                      height: 24px;
+                      padding: 0;
+                      border-radius: 50%;
+                      border: 2px solid var(--flow-port-border, #fff);
+                      box-shadow: none;
+                      background: var(--flow-input-port, #0f766e);
+                      color: var(--flow-control-color, #fff);
+                      cursor: crosshair;
+                      left: 0%;
+                      top: 50%;
+                      transform: translate(-50%, -50%);
+                      right: auto;
+                      bottom: auto;
+                      pointer-events: auto;
+                    "
+                  >
+                    −
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            data-flow-status=""
+            role="status"
+            aria-live="polite"
+            style="
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            "
+          >
+            2 nodes, 1 connections
+          </div>
+          <div>
+            <button
+              data-flow-connections-toggle=""
+              aria-expanded="false"
+              type="button"
+              style="min-height: 36px; padding: 6px 10px"
+            >
+              Connections
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</html>

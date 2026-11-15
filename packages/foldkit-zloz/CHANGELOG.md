@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add validated v2 comparison presentation with composable mode/status text and shared inert ghosts; preserve per-layer preferences through minimal mode.
+
 - Add immutable v2 edition comparison with explicit mode-only semantic changes, shared graph deltas and legacy rejection of explicit v2/loose comparison inputs.
 
 - Add v2 edition-owned forking with fresh policy checks, immutable immediate-parent provenance and checkpoint mode/camera retention; compose with v2 initialization for independent target history.

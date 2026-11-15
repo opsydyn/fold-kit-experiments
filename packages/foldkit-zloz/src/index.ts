@@ -747,3 +747,9 @@ export type { ZlozEditionForkPolicyV2, ZlozEditionForkResultV2 } from './edition
 
 export { compareEditionsV2 } from './history-comparison-v2';
 export type { ZlozHistoryComparisonV2, ZlozHistoryModeChangeV2 } from './history-comparison-v2';
+
+export { resolveHistoryComparisonPresentationV2 } from './history-presentation-v2';
+export type {
+  ZlozHistoryPresentationOptionsV2,
+  ZlozHistoryPresentationContextV2,
+} from './history-presentation-v2';

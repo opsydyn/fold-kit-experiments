@@ -5,7 +5,7 @@ import { edgePath } from './geometry';
 import type { ZlozHistoryChange, ZlozHistoryComparison } from './history';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Canonical node outline geometry is a domain concept.
 import { nodeShapeGeometry, nodeShapeBoundaryPoint } from './node-shape';
-import type { ZlozEdge, ZlozNode } from './types';
+import type { ZlozEdge, ZlozGraph, ZlozNode } from './types';
 
 export type ZlozHistoryGhostOptions<M> = Readonly<{
   enabled?: boolean;
@@ -33,6 +33,20 @@ function stroke(kind: string): string {
 export function zlozHistoryGhosts<M>(
   h: HtmlBuilder<M>,
   comparison: ZlozHistoryComparison,
+  options: ZlozHistoryGhostOptions<M> = {},
+): Html | null {
+  return renderHistoryGraphGhosts(h, comparison, options);
+}
+
+type HistoryGhostComparison = Pick<ZlozHistoryComparison, 'nodes' | 'edges'> &
+  Readonly<{
+    baseline: Readonly<{ snapshot: Readonly<{ graph: ZlozGraph }> }>;
+    selected: Readonly<{ snapshot: Readonly<{ graph: ZlozGraph }> }>;
+  }>;
+/** Internal graph-only drawing shared by explicit versioned presentation adapters. */
+export function renderHistoryGraphGhosts<M>(
+  h: HtmlBuilder<M>,
+  comparison: HistoryGhostComparison,
   options: ZlozHistoryGhostOptions<M> = {},
 ): Html | null {
   if (options.enabled === false) return null;

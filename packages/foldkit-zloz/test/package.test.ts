@@ -371,6 +371,19 @@ import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import { parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
+import { zlozHistoryComparisonPresentationV2, zlozHistoryGhostsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryGhostOptionsV2, type ZlozHistoryPresentationPartsV2 } from '@opsydyn/foldkit-zloz/foldkit';
+const presentationModelV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(modelModesWire))});
+const presentationBeforeV2=presentationModelV2.editions[0]!;
+const presentationOptionsV2:ZlozHistoryPresentationOptionsV2={minimalMode:true,ghosts:{enabled:true},formatMode:(_change,text)=>text};
+const presentationV2:ZlozHistoryPresentationContextV2=resolveHistoryComparisonPresentationV2(presentationBeforeV2,{...presentationBeforeV2,snapshot:{...presentationBeforeV2.snapshot,connectionMode:'strict'}},presentationOptionsV2);
+const presentationViewV2:ZlozHistoryPresentationViewOptionsV2<EditorEvent>={renderMode:(context,h)=>h.strong([], [context.modeText]),renderLayout:(parts:ZlozHistoryPresentationPartsV2)=>[...(parts.summary?[parts.summary]:[]),...(parts.mode?[parts.mode]:[])]};
+const presentationGhostsV2:ZlozHistoryGhostOptionsV2<EditorEvent>={renderNode:()=>null};
+// @ts-expect-error Visibility belongs to the resolved context, not the drawing override.
+const impossibleGhostsV2:ZlozHistoryGhostOptionsV2<EditorEvent>={enabled:true};void impossibleGhostsV2;
+const presentationOutputV2=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:presentationV2}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed v2 comparison',body:h.div([], [zlozHistoryComparisonPresentationV2(h,context,presentationViewV2),zlozHistoryGhostsV2(h,context,presentationGhostsV2)??h.span([],[])])})},{flags:{},isHydratable:false}));
+if(!presentationOutputV2.html.includes('Connection mode changed from loose to strict.')||!presentationOutputV2.html.includes('role="status"')||presentationOutputV2.html.includes('data-zloz-history-ghosts=')||!presentationV2.ghosts.enabled||presentationV2.effectiveGhosts.enabled)throw new Error('Packed v2 presentation lost mode text, customization or minimal visibility');
+
 if(typeof zlozModellingPatchReview!=='function')throw new Error('Packed patch controls missing');
 const externalEdge:ZlozEdge={id:'external-edge',source:{node:'a',port:'out'},target:{node:'b',port:'in'},label:'External relation'};
 const graph: ZlozGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',anchor:{x:0.75,y:0.25}}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',anchor:{x:0.25,y:0.75}}]}],edges:[externalEdge]};

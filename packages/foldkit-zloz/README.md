@@ -5938,3 +5938,61 @@ See [ADR 0098](../../docs/adr/0098-compare-v2-editions-with-explicit-mode-change
 and [qualification](evidence/history-comparison-v2.md). V2 presentation/ghosts,
 append, restore/playback and CLI/workbench adoption remain separate; C1 stays
 partial. No npm publication or deployment.
+
+### V2 comparison status and ghosts
+
+Compose the headless presentation with optional FoldKit parts. The resolver
+validates both chosen checkpoints; it owns no editor, selection or lifecycle.
+
+```ts
+import { resolveHistoryComparisonPresentationV2 } from '@opsydyn/foldkit-zloz';
+import {
+  zlozHistoryComparisonPresentationV2,
+  zlozHistoryGhostsV2,
+  zlozView,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const context = resolveHistoryComparisonPresentationV2(baseline, selected, {
+  ghosts: savedGhostPreferences, // existing comparison controls' visibility type
+  minimalMode,
+  formatMode: (_change, text) => text, // replace for host language
+});
+
+const status = zlozHistoryComparisonPresentationV2(h, context, {
+  renderMode: (current, builder) => builder.strong([], [current.modeText]),
+});
+const canvas = zlozView(h, review.editor, {
+  id: 'edition-preview',
+  label: 'Edition preview',
+  onEvent,
+  renderWorldOverlay: (_overlay, builder) => zlozHistoryGhostsV2(builder, context),
+});
+```
+
+Render `status` alongside `canvas`; use a read-only review of `selected` for its
+current geometry. Ghost geometry is in world coordinates. Hosts own selection,
+preferences, layout and session mode. The presentation resolver does not update
+an editor or record Undo. A mode-only transition reports the mode change and
+“No node or edge changes,” with no invented ghost marks. Camera and checkpoint
+metadata remain excluded from graph meaning/layout flags.
+
+`ZlozHistoryPresentationOptionsV2` supports independent `enabled`, `nodes`, `edges`
+and `movements` preferences, defaulting to true when explicitly composed. Minimal
+mode masks effective master visibility without rewriting those choices or hiding
+mode text. Pass the existing comparison controls' `state.ghosts` to reuse their
+requests and fresh restriction checks; no second preference reducer is needed.
+`formatMode` and `formatSummary` customize language; blank results use defaults.
+
+`ZlozHistoryPresentationViewOptionsV2` exposes attributes, an accessible label,
+`renderSummary`, `renderMode` and `renderLayout`. Undefined uses the default part;
+null omits it. The default is an unstyled polite live status. Custom hosts must
+retain accessible comparison meaning. `ZlozHistoryGhostOptionsV2` provides inert
+`renderNode`, `renderEdge` and `renderMovement` hooks, with the same undefined/null
+convention. Its visibility comes from the context, not drawing overrides. Default
+SVG is aria-hidden and pointer-inert; custom marks must also remain inert.
+
+See [ADR 0099](../../docs/adr/0099-present-v2-comparisons-with-mode-feedback-and-ghosts.md),
+[qualification](evidence/history-presentation-v2.md) and the
+[static light/dark fixture](evidence/history-presentation-v2.png).
+V2 change navigation, workbench/CLI adoption, append and restore/playback remain
+separate; C1 stays partial. No npm publication or deployment.

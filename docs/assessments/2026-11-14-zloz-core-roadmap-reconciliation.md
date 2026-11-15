@@ -42,9 +42,16 @@ C1 and remaining workflow/adapter/C/Q/R gates remain partial.
 Comparison follow-up (2026-11-15): [ADR 0098](../adr/0098-compare-v2-editions-with-explicit-mode-changes.md)
 and [qualification](../../packages/foldkit-zloz/evidence/history-comparison-v2.md)
 record immutable v2 comparisons with explicit mode-only meaning, shared graph
-deltas and legacy boundary rejection. Package-level v2 comparison presentation
-with mode feedback/ghosts is next. Append, restore/playback, adapter adoption and
+deltas and legacy boundary rejection. Package-level v2 presentation is recorded below. Append, restore/playback, adapter adoption and
 broader C/Q/R gates remain open; C1 stays partial.
+
+Presentation follow-up (2026-11-15): [ADR 0099](../adr/0099-present-v2-comparisons-with-mode-feedback-and-ghosts.md)
+and [qualification](../../packages/foldkit-zloz/evidence/history-presentation-v2.md)
+record validated v2 context, composable mode/status text and shared inert ghosts
+with retained minimal-mode preferences. Static light/dark fixture evidence is
+separate from mounted workbench/CLI adoption. V2 change navigation with an explicit
+mode entry and side-preserving focus is next; append, restore/playback, adapter
+adoption and wider C/Q/R gates remain open. C1 stays partial.
 
 - result: complete
 - claim: the remaining roadmap is reconciled against package APIs and bounded evidence at `7fa7b3d9`; opt-in loose connection semantics is the recommended next core feature, not implemented by this assessment.

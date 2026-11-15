@@ -364,11 +364,16 @@ type CloudWord<T> = Readonly<{
 function colorScale(config: ColorScaleConfig): (value: number) => string;
 type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  scheme?: string;
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   range?: ReadonlyArray<string>;
   legend?: boolean;
   label?: string;
+}>;
+type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+type ColumnTable = Readonly<{
+  length: number;
+  columns: Readonly<Record<string, Column>>;
 }>;
 function compilePlot(spec: PlotSpec): PlotGeometry;
 type ConfidenceInterval = Readonly<{
@@ -932,6 +937,7 @@ type PlotBounds = Readonly<{
   width: number;
   height: number;
 }>;
+type PlotData = ReadonlyArray<Row> | ColumnTable;
 type PlotGeometry = Readonly<{
   width: number;
   height: number;
@@ -942,12 +948,13 @@ type PlotGeometry = Readonly<{
   clip: boolean;
 }>;
 type PlotSpec = Readonly<{
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;
   title?: string;
   description?: string;
-  data?: ReadonlyArray<Row>;
+  data?: PlotData;
   x?: PositionScaleSpec;
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;
@@ -1142,6 +1149,7 @@ type ScatterGeometry<T> = Readonly<{
   xTicks: ReadonlyArray<AxisTick>;
   yTicks: ReadonlyArray<AxisTick>;
 }>;
+type SchemeName = 'tableau10' | 'category10' | 'dark2' | 'set1' | 'blues' | 'greens' | 'reds' | 'oranges' | 'purples' | 'rdBu' | 'spectral' | 'rdYlGn' | 'brBG' | 'wong' | 'ibmCarbon' | 'tolMuted' | 'viridis' | 'magma' | 'inferno' | 'plasma' | 'cividis';
 type SegmentAccessors<T> = Readonly<{
   x: (datum: T, index: number) => number;
   defined: (datum: T, index: number) => boolean;
@@ -2752,6 +2760,17 @@ type AreaMark = CommonMark & Readonly<{
   transform?: WindowTransform | ReadonlyArray<WindowTransform>;
   stack?: Stack;
 }>;
+interface ArrowTable {
+  readonly numRows: number;
+  readonly schema: {
+    readonly fields: ReadonlyArray<{
+      readonly name: string;
+    }>;
+  };
+  getChild(name: string): {
+    toArray(): ArrayLike<unknown>;
+  } | null;
+}
 type BarMark = CommonMark & Readonly<{
   mark: 'bar';
   x: Channel;
@@ -2807,11 +2826,17 @@ type ClientRect = Readonly<{
 }>;
 type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  scheme?: string;
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   range?: ReadonlyArray<string>;
   legend?: boolean;
   label?: string;
+}>;
+type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+function columnTable(columns: Readonly<Record<string, Column>>): ColumnTable;
+type ColumnTable = Readonly<{
+  length: number;
+  columns: Readonly<Record<string, Column>>;
 }>;
 function compilePlot(spec: PlotSpec): PlotGeometry;
 type DensityMark = CommonMark & Readonly<{
@@ -2859,6 +2884,7 @@ type ForceMark = CommonMark & Readonly<{
   distance?: number;
   strength?: number;
 }>;
+function fromArrow(table: ArrowTable): ColumnTable;
 type GeoMark = CommonMark & Readonly<{
   mark: 'geo';
   features: GeoObject;
@@ -2930,7 +2956,7 @@ type Highlight = Readonly<{
   range?: readonly [number, number] | readonly [string, string];
   values?: ReadonlyArray<Value>;
 }>;
-function highlightPoints(geometry: PlotGeometry, markIndex: number, data: ReadonlyArray<Row>, highlight: Highlight | undefined): PlotGeometry;
+function highlightPoints(geometry: PlotGeometry, markIndex: number, data: PlotData, highlight: Highlight | undefined): PlotGeometry;
 function indexPlot(geometry: PlotGeometry): PlotIndex;
 function invertAxis(axis: PlotAxis, pixel: number): number | string | undefined;
 function invertPlot(geometry: PlotGeometry, x: number, y: number): PlotLocation | undefined;
@@ -3012,6 +3038,7 @@ type PlotAxis = Readonly<{
   exponent?: number;
   constant?: number;
 }>;
+type PlotData = ReadonlyArray<Row> | ColumnTable;
 type PlotGeometry = Readonly<{
   width: number;
   height: number;
@@ -3040,12 +3067,13 @@ type PlotLocation = Readonly<{
   y: number | string | undefined;
 }>;
 type PlotSpec = Readonly<{
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;
   title?: string;
   description?: string;
-  data?: ReadonlyArray<Row>;
+  data?: PlotData;
   x?: PositionScaleSpec;
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;
@@ -3137,6 +3165,7 @@ type RegressionTransform = Readonly<{
   level?: number;
 }>;
 type Row = Readonly<Record<string, Value>>;
+function rowsOf(rows: PlotData): ReadonlyArray<Row>;
 type RuleMark = CommonMark & Readonly<{
   mark: 'rule';
   x?: Channel;
@@ -3152,6 +3181,7 @@ type SankeyMark = CommonMark & Readonly<{
   nodePadding?: number;
   labels?: boolean;
 }>;
+type SchemeName = 'tableau10' | 'category10' | 'dark2' | 'set1' | 'blues' | 'greens' | 'reds' | 'oranges' | 'purples' | 'rdBu' | 'spectral' | 'rdYlGn' | 'brBG' | 'wong' | 'ibmCarbon' | 'tolMuted' | 'viridis' | 'magma' | 'inferno' | 'plasma' | 'cividis';
 type SizeScaleSpec = Readonly<{
   range?: readonly [number, number];
 }>;

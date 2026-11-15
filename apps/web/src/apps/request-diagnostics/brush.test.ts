@@ -1,3 +1,4 @@
+import { rowsOf } from '@opsydyn/foldkit-viz/plot';
 import { Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +24,7 @@ const released = brush(moved.model, PlotPanel.Message.ReleasedPointer());
 
 const xs = (points: ReadonlyArray<{ readonly x: number }>) => points.map(({ x }) => x);
 const scatterXs = (model: Model) =>
-  xs((model.scatter.spec.data ?? []).map((row) => ({ x: Number(row.x) })));
+  xs(rowsOf(model.scatter.spec.data ?? []).map((row) => ({ x: Number(row.x) })));
 
 // These tests catch a histogram brush that no longer reaches the machine, or a selection that
 // filters the wrong points or leaves the scatter showing every point.

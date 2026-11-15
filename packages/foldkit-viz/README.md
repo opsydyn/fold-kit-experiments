@@ -567,6 +567,66 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
 - **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
   and a test enforces it.
 
+## Column data and other languages (unreleased)
+
+A spec's `data` can be a column table instead of rows: named columns of equal
+length, plain arrays or typed arrays. Data from Polars, DuckDB or Arrow plots
+without becoming a row object per row. A dense dot mark reads its columns
+directly and builds no rows at all.
+
+```ts
+import { columnTable, compilePlot, fromArrow } from '@opsydyn/foldkit-viz/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 420,
+  data: columnTable({ latency, payload }), // Float64Arrays, or plain arrays
+  marks: [{ mark: 'dot', x: 'latency', y: 'payload', dense: true }],
+});
+
+// Any Arrow table (flechette or apache-arrow), with no dependency on either.
+compilePlot({ ...spec, data: fromArrow(tableFromIPC(bytes)) });
+```
+
+- **Tables are immutable**, like rows: to plot changed data, make a new table.
+  `columnTable` wraps existing arrays without copying them.
+- **`rowsOf(data)`** returns rows for code that looks one up, whichever form
+  the data takes.
+- **A million-row Polars frame** plots as a dense scatter in 86 ms through
+  Arrow, against 248 ms through row objects.
+
+Specs are plain JSON, so programs in other languages can write them. The
+package publishes a JSON Schema for `PlotSpec`, generated from its types, at
+`@opsydyn/foldkit-viz/plot-spec.schema.json`. Validate a spec before plotting
+it with any JSON Schema validator: `jsonschema` in Python, or the
+`jsonschema` crate in Rust. In JSON, a column table's columns are arrays. A
+`"$schema"` key is allowed, for editors, and `compilePlot` ignores it.
+
+- **Checked by the schema:** marks, channel types, transforms, scales, and
+  `color.scheme`, which must be one of the 21 schemes `math/schemes` exports
+  (`tableau10`, `viridis`, `rdBu` and the rest; the `SchemeName` type). An
+  unknown key anywhere is rejected, including a misspelt top-level key that
+  `compilePlot` would ignore.
+- **Not checked by the schema:** what depends on the data, such as whether a
+  field a channel names exists in the rows. `compilePlot` reports those, by
+  spec path.
+
+The repository's [Polars summary app](https://github.com/opsydyn/fold-kit-experiments/tree/main/apps/polars-summary)
+is a worked example: a Bun server that bins a million rows in Polars on each
+request and sends a spec of the summary.
+
+### Upgrading
+
+Two changes need code changes in some callers:
+
+- **`spec.data` and `mark.data` are `PlotData`:** rows or a column table. Code
+  that reads them as rows (to look a row up, say) should call `rowsOf(data)`,
+  which returns rows either way. Code that only writes specs is unaffected.
+- **`color.scheme` is a `SchemeName`**, not any string. A scheme held in a
+  plain `string` must be narrowed to `SchemeName`. A spec parsed from JSON is
+  unaffected at compile time, and `compilePlot` still rejects an unknown
+  scheme at run time.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

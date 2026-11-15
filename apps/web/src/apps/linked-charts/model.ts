@@ -41,7 +41,7 @@ export const POINTS: ReadonlyArray<KeyedPoint> = [
 ];
 
 /** Salary against experience, one dot per person, keyed by id for linking. */
-const scatterSpec: PlotSpec = {
+export const scatterSpec: PlotSpec = {
   width: 380,
   height: 260,
   data: POINTS,
@@ -61,7 +61,7 @@ const scatterSpec: PlotSpec = {
 };
 
 /** The same salaries binned, so a bar's range links to the points inside it. */
-const histogramSpec: PlotSpec = {
+export const histogramSpec: PlotSpec = {
   width: 360,
   height: 260,
   data: POINTS,

@@ -10,7 +10,7 @@ import type { Model } from './model';
 import * as styles from '../zoomable-line/zoomable-line.css';
 
 /** The world choropleth, zoomed about the model's centre and clipped to its panel. */
-const zoomedSpec = (model: Model): PlotSpec => ({
+export const zoomedSpec = (model: Model): PlotSpec => ({
   ...worldSpec,
   clip: true,
   projection: { type: 'naturalEarth1', zoom: model.zoom, center: model.center },

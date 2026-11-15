@@ -1,0 +1,23 @@
+{
+  "name": "@opsydyn/polars-summary",
+  "private": true,
+  "description": "A server route that summarises a million-row Polars frame and plots only the summary, beside /explore's million points in the browser.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/server.ts",
+    "start": "bun src/server.ts",
+    "test": "bun test ./test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opsydyn/foldkit-viz": "workspace:*",
+    "effect": "catalog:",
+    "foldkit": "catalog:",
+    "nodejs-polars": "0.26.1"
+  },
+  "devDependencies": {
+    "ajv": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

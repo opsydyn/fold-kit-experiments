@@ -38,6 +38,8 @@ import type {
   PositionScale,
   SymbolScale,
 } from './channels.js';
+import { fillRows, isColumnTable, rowsOf } from './columns.js';
+import type { Rows } from './columns.js';
 import {
   fitProjection,
   geoGraphics,
@@ -82,6 +84,8 @@ import type {
   MarkType,
   PlotAxis,
   PlotGeometry,
+  DotMark,
+  PlotData,
   PlotSpec,
   PlotTick,
   PositionScaleSpec,
@@ -257,13 +261,10 @@ const FACET_GAP_X = 24;
 const FACET_GAP_Y = 44;
 const FACET_HEADER = 30;
 
-function uniqueValues(
-  rowSets: ReadonlyArray<ReadonlyArray<Row>>,
-  field: string,
-): ReadonlyArray<string> {
+function uniqueValues(rowSets: ReadonlyArray<Rows>, field: string): ReadonlyArray<string> {
   const values: string[] = [];
   for (const rows of rowSets)
-    for (const row of rows)
+    for (const row of rowsOf(rows))
       if (Object.hasOwn(row, field)) {
         const value = String(row[field]);
         if (!values.includes(value)) values.push(value);
@@ -271,10 +272,7 @@ function uniqueValues(
   return values;
 }
 
-function facetCells(
-  spec: PlotSpec,
-  rowSets: ReadonlyArray<ReadonlyArray<Row>>,
-): ReadonlyArray<FacetCell> {
+function facetCells(spec: PlotSpec, rowSets: ReadonlyArray<Rows>): ReadonlyArray<FacetCell> {
   const margins = { ...DEFAULT_MARGINS, ...spec.margins };
   const inner = {
     left: margins.left,
@@ -313,7 +311,9 @@ function facetCells(
 }
 
 /** Each facet row's index in the full rows; facet rows keep their order. */
-function originOf(rows: ReadonlyArray<Row>, facetRows: ReadonlyArray<Row>): ReadonlyArray<number> {
+function originOf(data: Rows, facet: Rows): ReadonlyArray<number> {
+  const rows = rowsOf(data),
+    facetRows = rowsOf(facet);
   const origin: number[] = [];
   let next = 0;
   for (let i = 0; i < rows.length && next < facetRows.length; i += 1)
@@ -324,10 +324,14 @@ function originOf(rows: ReadonlyArray<Row>, facetRows: ReadonlyArray<Row>): Read
   return origin;
 }
 
-const inFacet = (rows: ReadonlyArray<Row>, field: string | undefined, value: string | undefined) =>
-  field === undefined || value === undefined || !rows.some((row) => Object.hasOwn(row, field))
-    ? rows
-    : rows.filter((row) => String(row[field]) === value);
+/** A facet's rows; without a facet field, the data as given, so columns stay columns. */
+function inFacet(data: Rows, field: string | undefined, value: string | undefined): Rows {
+  if (field === undefined || value === undefined) return data;
+  const rows = rowsOf(data);
+  return rows.some((row) => Object.hasOwn(row, field))
+    ? rows.filter((row) => String(row[field]) === value)
+    : data;
+}
 
 // ── Transforms ────────────────────────────────────────────────────────────────
 
@@ -341,9 +345,9 @@ type Prepared = Readonly<{
   index: number;
   path: string;
   /** Rows as given, for type inference. */
-  source: ReadonlyArray<Row>;
+  source: Rows;
   /** Rows after any transform; `channels` name the fields a transform wrote. */
-  rows: ReadonlyArray<Row>;
+  rows: Rows;
   /** Channels a transform rewrote, read in place of the mark's own. */
   channels: Overrides;
   /** True when a transform replaced the rows, so colour reads them, not the source. */
@@ -459,7 +463,7 @@ function applyTransform(
 function derive(p: Prepared, spec: PlotSpec): Prepared {
   const { mark } = p;
   if (mark.mark === 'rect' && mark.transform !== undefined) {
-    const binned = binRows(mark, p.rows, p.path);
+    const binned = binRows(mark, rowsOf(p.rows), p.path);
     return {
       ...p,
       rows: binned.rows,
@@ -475,7 +479,7 @@ function derive(p: Prepared, spec: PlotSpec): Prepared {
     if (category === undefined || value === undefined) return p;
     const stacked = stackRows(
       mark,
-      p.rows,
+      rowsOf(p.rows),
       p.path,
       category,
       value,
@@ -492,7 +496,7 @@ function derive(p: Prepared, spec: PlotSpec): Prepared {
     };
   }
   if (mark.mark === 'density' && isOneDimensional(mark)) {
-    const curve = densityRows(mark, p.rows, p.path);
+    const curve = densityRows(mark, rowsOf(p.rows), p.path);
     return {
       ...p,
       rows: curve.rows,
@@ -1001,13 +1005,55 @@ function packPoints(
   return dimmed === undefined ? packed : { ...packed, dimmed: dimmed.subarray(0, count) };
 }
 
+/**
+ * A dense dot mark packed into typed arrays. It reads its channels through the
+ * column-aware readers and never builds rows, so a column table stays columns.
+ * Dense marks carry no per-row keys or titles.
+ */
+function denseDots(p: Prepared, mark: DotMark, context: Context): Graphic {
+  const { rows, path, index } = p;
+  const x = requireScale(context.x, path, 'x'),
+    y = requireScale(context.y, path, 'y');
+  const xs = read(rows, channel(p, 'x') ?? mark.x, `${path}.x`),
+    ys = read(rows, channel(p, 'y') ?? mark.y, `${path}.y`);
+  const fills = paintOf(
+    rows,
+    mark.fill,
+    `${path}.fill`,
+    context,
+    mark.stroke === undefined ? 'currentColor' : 'none',
+  );
+  // Packed points draw no stroke; a stroke field is still checked against the data.
+  if (mark.stroke !== undefined) paintOf(rows, mark.stroke, `${path}.stroke`, context, 'none');
+  const radii =
+    mark.r === undefined
+      ? fillRows(rows, 3)
+      : read(rows, mark.r, `${path}.r`).map((v) =>
+          isConstant(mark.r) ? numeric(v) : context.size(v),
+        );
+  return packPoints(
+    `${index}:points`,
+    xs,
+    ys,
+    x,
+    y,
+    fills,
+    radii,
+    mark.r === undefined || isConstant(mark.r),
+    mark.opacity ?? 1,
+    mark.highlight === undefined ? undefined : highlightFactors(rows, mark.highlight, path),
+    p.origin,
+  );
+}
+
 function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
-  const { mark, rows, path, index } = p;
+  const { mark, path, index } = p;
+  if (mark.mark === 'dot' && mark.dense === true) return [denseDots(p, mark, context)];
+  // Every other mark works on row objects; a column table builds them once.
+  const rows = rowsOf(p.rows);
   const opacity = mark.opacity ?? 1;
-  // Dense marks carry no per-row keys or titles, so they skip building them.
-  const dense = mark.mark === 'dot' && mark.dense === true;
-  const keys = dense ? [] : keysOf(rows, mark, index);
-  const titles = dense ? [] : titlesOf(rows, mark.title, `${path}.title`);
+  const keys = keysOf(rows, mark, index);
+  const titles = titlesOf(rows, mark.title, `${path}.title`);
   const dims = highlightFactors(rows, mark.highlight, path);
   switch (mark.mark) {
     case 'dot': {
@@ -1029,22 +1075,6 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
           : read(rows, mark.r, `${path}.r`).map((v) =>
               isConstant(mark.r) ? numeric(v) : context.size(v),
             );
-      if (mark.dense === true)
-        return [
-          packPoints(
-            `${index}:points`,
-            xs,
-            ys,
-            x,
-            y,
-            fills,
-            radii,
-            mark.r === undefined || isConstant(mark.r),
-            opacity,
-            mark.highlight === undefined ? undefined : dims,
-            p.origin,
-          ),
-        ];
       // validateMark has checked that a constant symbol names a known symbol.
       const glyphs =
         mark.symbol === undefined
@@ -1398,12 +1428,9 @@ function validateSpec(spec: PlotSpec): void {
   spec.marks.forEach((mark, i) => validateMark(mark, `marks[${i}]`));
 }
 
-function markRows(spec: PlotSpec, mark: MarkSpec, path: string): ReadonlyArray<Row> {
+function markRows(spec: PlotSpec, mark: MarkSpec, path: string): Rows {
   if (mark.mark === 'geo') return geoRows(mark);
-  if (mark.data !== undefined) {
-    if (!Array.isArray(mark.data)) fail(`${path}.data`, 'must be an array of rows');
-    return mark.data;
-  }
+  if (mark.data !== undefined) return dataOf(mark.data, `${path}.data`);
   // A mark of constants alone, such as a reference rule, draws once even when
   // the plot has data for its other marks.
   const usesFields =
@@ -1411,10 +1438,15 @@ function markRows(spec: PlotSpec, mark: MarkSpec, path: string): ReadonlyArray<R
     MARKS[mark.mark].channels.some((name) => fieldOf(channelOf(mark, name)) !== undefined) ||
     mark.highlight !== undefined;
   if (!usesFields) return [{}];
-  const rows = spec.data;
-  if (rows === undefined) return fail(`${path}.data`, 'no data: give the mark or the plot rows');
-  if (!Array.isArray(rows)) fail('data', 'must be an array of rows');
-  return rows;
+  if (spec.data === undefined)
+    return fail(`${path}.data`, 'no data: give the mark or the plot rows');
+  return dataOf(spec.data, 'data');
+}
+
+/** Data as given: an array of rows, or a column table. */
+function dataOf(data: PlotData, path: string): Rows {
+  if (Array.isArray(data) || isColumnTable(data)) return data;
+  return fail(path, 'must be an array of rows or a column table');
 }
 
 export function compilePlot(spec: PlotSpec): PlotGeometry {
@@ -1454,7 +1486,7 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
         const result = applyTransform(
           mark,
           step,
-          state.rows,
+          rowsOf(state.rows),
           `${path}.transform${many ? `[${i}]` : ''}`,
           cell.bounds.width,
           channel(state, 'x'),
@@ -1495,13 +1527,13 @@ export function compilePlot(spec: PlotSpec): PlotGeometry {
       if (PANEL_MARKS.has(mark.mark)) return markGraphics(p, context);
       if (project !== null) {
         if (mark.mark === 'geo')
-          return geoGraphics(mark, p.rows, p.path, p.index, context, project);
+          return geoGraphics(mark, rowsOf(p.rows), p.path, p.index, context, project);
         if (mark.mark === 'graticule')
           return graticuleGraphics(mark, p.path, p.index, context, project);
-        return projectedGraphics(mark, p.rows, p.path, p.index, context, project, reader);
+        return projectedGraphics(mark, rowsOf(p.rows), p.path, p.index, context, project, reader);
       }
       if (frame !== null)
-        return polarGraphics(mark, p.rows, p.path, p.index, context, frame, reader);
+        return polarGraphics(mark, rowsOf(p.rows), p.path, p.index, context, frame, reader);
       return markGraphics(p, context);
     };
     const marks: ReadonlyArray<MarkGeometry> = (perFacet[f] ?? []).map((p) => ({

@@ -42,6 +42,16 @@ describe('linear axes, the default', () => {
     const negative = axisTicks([-1000, 0], linear({ domain: [-1000, 0], range: [0, 100] }), 2);
     expect(negative.map((t) => t.label)).toEqual(['-1,000', '-500', '0']);
   });
+
+  it('switches to exponent notation for steps too fine for fixed decimals', () => {
+    const nano = axisTicks([0, 5e-9], (v) => v * 1e9, 5);
+    expect(nano.map((t) => t.label)).toEqual(['0', '1e-9', '2e-9', '3e-9', '4e-9', '5e-9']);
+    // Fixed decimals for a step this small would ask for more digits than exist.
+    const tiny = axisTicks([0, 4e-306], (v) => v * 1e306, 4);
+    expect(tiny.map((t) => t.label)).toEqual(['0', '1e-306', '2e-306', '3e-306', '4e-306']);
+    const offset = axisTicks([1.0000001, 1.0000005], (v) => v, 4);
+    expect(new Set(offset.map((t) => t.label)).size).toBe(offset.length);
+  });
 });
 
 describe('log axes', () => {

@@ -186,10 +186,33 @@ export function chartLayout(
   };
 }
 
-/** Fixed decimals from the tick step, grouped the same way on every machine. */
+/** Beyond this many decimals, labels switch to exponent notation, such as "2e-9". */
+const MAX_FIXED_DECIMALS = 6;
+
+/**
+ * Fixed decimals from the tick step, grouped the same way on every machine.
+ * A finer step gives exponent labels, with enough significant digits that
+ * neighbouring ticks stay distinct.
+ */
 function linearLabels(values: ReadonlyArray<number>): ReadonlyArray<string> {
   const step = values.length > 1 ? Math.abs((values[1] ?? 0) - (values[0] ?? 0)) : 0;
   const decimals = step > 0 ? Math.max(0, -Math.floor(Math.log10(step) + 1e-12)) : 0;
+  if (decimals > MAX_FIXED_DECIMALS) {
+    const largest = Math.max(...values.map(Math.abs));
+    const digits = Math.min(
+      20,
+      Math.max(0, Math.floor(Math.log10(largest) + 1e-12) - Math.floor(Math.log10(step) + 1e-12)),
+    );
+    // toExponential writes "2e-9"; any trailing zeros it pads with are dropped.
+    return values.map((value) =>
+      value === 0
+        ? '0'
+        : value
+            .toExponential(digits)
+            .replace(/\.?0+e/, 'e')
+            .replace('e+', 'e'),
+    );
+  }
   return values.map((value) => {
     const text = value.toLocaleString('en-US', {
       minimumFractionDigits: decimals,

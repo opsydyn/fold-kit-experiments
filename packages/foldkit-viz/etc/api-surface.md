@@ -2903,6 +2903,9 @@ function translateMatrix(translateX: number, translateY: number): TransformMatri
 
 ```ts
 function angularLabel(geometry: PolarGeometry, angle: number): AngularLabel;
+function appendPoints(geometry: PlotGeometry, spec: PlotSpec, chunk: PlotData, options: Readonly<{
+  rowOffset: number;
+}>): PlotGeometry;
 type ArcDiagramMark = CommonMark & Readonly<{
   mark: 'arc-diagram';
   source: Channel;
@@ -3008,6 +3011,11 @@ type ColorScaleSpec = Readonly<{
   label?: string;
 }>;
 type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+function columnStore(): ColumnStore;
+type ColumnStore = Readonly<{
+  append: (chunk: PlotData) => ColumnTable;
+  table: () => ColumnTable;
+}>;
 function columnTable(columns: Readonly<Record<string, Column>>): ColumnTable;
 type ColumnTable = Readonly<{
   length: number;
@@ -3039,6 +3047,11 @@ type DownsampleTransform = Readonly<{
   type: 'downsample';
   method: 'm4' | 'lttb';
 }>;
+function duckdbColumns(names: ReadonlyArray<string>, columns: ReadonlyArray<ReadonlyArray<unknown>>): ColumnTable;
+interface DuckDBReader {
+  columnNames(): ReadonlyArray<string>;
+  getColumnsJS(): ReadonlyArray<ReadonlyArray<unknown>>;
+}
 type FacetGeometry = Readonly<{
   key: string;
   label: string;
@@ -3060,6 +3073,7 @@ type ForceMark = CommonMark & Readonly<{
   strength?: number;
 }>;
 function fromArrow(table: ArrowTable): ColumnTable;
+const fromDuckDB: (reader: DuckDBReader) => ColumnTable;
 type GeoMark = CommonMark & Readonly<{
   mark: 'geo';
   features: GeoObject;

@@ -138,3 +138,64 @@ export function fromArrow(table: ArrowTable): ColumnTable {
   );
   return { length: table.numRows, columns };
 }
+
+// ── DuckDB ────────────────────────────────────────────────────────────────────
+
+/**
+ * A DuckDB result read into memory, as @duckdb/node-api's DuckDBResultReader
+ * presents one (from runAndReadAll), typed structurally so foldkit-viz does not
+ * depend on DuckDB.
+ */
+export interface DuckDBReader {
+  columnNames(): ReadonlyArray<string>;
+  getColumnsJS(): ReadonlyArray<ReadonlyArray<unknown>>;
+}
+
+/** A value DuckDB's JS conversion gives for a numeric, temporal or 64-bit column. */
+const isNumberLike = (value: unknown): value is number | bigint | Date | null =>
+  value === null || typeof value === 'number' || isBigInt(value) || value instanceof Date;
+
+/** A numeric column as a Float64Array: nulls become NaN, dates epoch milliseconds. */
+function numericColumn(values: ReadonlyArray<number | bigint | Date | null>): Float64Array {
+  const column = new Float64Array(values.length);
+  for (let i = 0; i < values.length; i += 1) {
+    const value = values[i] ?? null;
+    column[i] =
+      value === null ? Number.NaN : value instanceof Date ? value.getTime() : Number(value);
+  }
+  return column;
+}
+
+const isNumberLikeColumn = (
+  values: ReadonlyArray<unknown>,
+): values is ReadonlyArray<number | bigint | Date | null> =>
+  values.some((value) => value !== null) && values.every(isNumberLike);
+
+/**
+ * A column table from DuckDB columns already converted to JS values: a whole
+ * result's `reader.getColumnsJS()`, or one streamed chunk's
+ * `chunk.convertColumns(JSDuckDBValueConverter)`. Numeric, temporal and
+ * 64-bit columns become Float64Arrays (nulls NaN, dates epoch milliseconds, as
+ * fromArrow gives); any other column keeps JSON values.
+ */
+export function duckdbColumns(
+  names: ReadonlyArray<string>,
+  columns: ReadonlyArray<ReadonlyArray<unknown>>,
+): ColumnTable {
+  if (names.length !== columns.length)
+    fail(
+      `${names.length} column name${names.length === 1 ? '' : 's'} for ${columns.length} columns`,
+    );
+  return columnTable(
+    Object.fromEntries(
+      names.map((name, i) => {
+        const values = columns[i] ?? [];
+        return [name, isNumberLikeColumn(values) ? numericColumn(values) : valuesOf(values)];
+      }),
+    ),
+  );
+}
+
+/** A column table over a DuckDB result read into memory, such as `await connection.runAndReadAll(sql)`. */
+export const fromDuckDB = (reader: DuckDBReader): ColumnTable =>
+  duckdbColumns(reader.columnNames(), reader.getColumnsJS());

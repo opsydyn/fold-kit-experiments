@@ -311,6 +311,16 @@ describe('project tasks are their package scripts', () => {
     expect(missing).toEqual([]);
   });
 
+  test('every root task names its inputs, which a root-level project does not default', () => {
+    expect(
+      Object.entries(rootTasks)
+        .filter(([, task]) => task.options?.cache !== false && !task.inputs?.length)
+        .map(([name]) => name),
+    ).toEqual([]);
+    expect(rootTasks.lint?.inputs).toEqual(['/**/*']);
+    expect(rootTasks.format?.inputs).toEqual(['/**/*']);
+  });
+
   test('the tests that rebuild packages run one at a time, invalidated by what they rebuild', () => {
     const integration = tasks.filter(({ task }) => task === 'integration');
     expect(integration.length).toBeGreaterThan(0);

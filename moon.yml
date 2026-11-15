@@ -5,14 +5,18 @@
 tasks:
   # `bun run check`, split so each part caches on its own inputs. The
   # effect-three packages' stricter lint is their own `lint` task.
+  # A root-level project's default inputs leave out the repository's files, so
+  # the repo-wide checks name them all; .moon/workspace.yml ignores what git does.
   lint:
     description: oxlint over the repository
     script: oxlint .
+    inputs: ['/**/*']
     env:
       NODE_OPTIONS: --experimental-strip-types
   format:
     description: oxfmt --check over the repository
     script: oxfmt --check .
+    inputs: ['/**/*']
   catalog:
     description: shared dependency versions come from the root catalogs
     script: bun tools/check-catalog.ts

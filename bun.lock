@@ -31,6 +31,20 @@
         "typescript": "catalog:",
       },
     },
+    "apps/polars-summary": {
+      "name": "@opsydyn/polars-summary",
+      "dependencies": {
+        "@opsydyn/foldkit-viz": "workspace:*",
+        "effect": "catalog:",
+        "foldkit": "catalog:",
+        "nodejs-polars": "0.26.1",
+      },
+      "devDependencies": {
+        "ajv": "catalog:",
+        "bun-types": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "apps/promo": {
       "name": "@opsydyn/promo",
       "dependencies": {
@@ -1100,6 +1114,8 @@
     "@opsydyn/foldkit-zloz-mermaid": ["@opsydyn/foldkit-zloz-mermaid@workspace:packages/foldkit-zloz-mermaid"],
 
     "@opsydyn/oxlint-effect": ["@opsydyn/oxlint-effect@2.0.1", "", { "dependencies": { "@oxlint/plugins": "^1.71.0" } }, "sha512-vY8DwhMSbNvtFiD5b6ekcXNHzLdCS+6rYLM70ajteJoStX0mdb+bf9M6OPyG5tkbYG7Oao5f+pIHxIHTd/rPGg=="],
+
+    "@opsydyn/polars-summary": ["@opsydyn/polars-summary@workspace:apps/polars-summary"],
 
     "@opsydyn/promo": ["@opsydyn/promo@workspace:apps/promo"],
 
@@ -2384,6 +2400,24 @@
     "node-mock-http": ["node-mock-http@1.0.4", "", {}, "sha512-8DY+kFsDkNXy1sJglUfuODx1/opAGJGyrTuFqEoN90oRc2Vk0ZbD4K2qmKXBBEhZQzdKHIVfEJpDU8Ak2NJEvQ=="],
 
     "node-releases": ["node-releases@2.0.44", "", {}, "sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ=="],
+
+    "nodejs-polars": ["nodejs-polars@0.26.1", "", { "optionalDependencies": { "nodejs-polars-android-arm64": "0.26.1", "nodejs-polars-darwin-arm64": "0.26.1", "nodejs-polars-darwin-x64": "0.26.1", "nodejs-polars-linux-arm64-gnu": "0.26.1", "nodejs-polars-linux-arm64-musl": "0.26.1", "nodejs-polars-linux-x64-gnu": "0.26.1", "nodejs-polars-linux-x64-musl": "0.26.1", "nodejs-polars-win32-x64-msvc": "0.26.1" } }, "sha512-nOWRNrwPAle1KP2w+fj9v1UDUZWbPU37uuImF3mntQyLgUvJ6BTj7+gdR3smKHwtm0t2xY5fbFUoRpj3FobZqQ=="],
+
+    "nodejs-polars-android-arm64": ["nodejs-polars-android-arm64@0.26.1", "", { "os": "android", "cpu": "arm64" }, "sha512-rFSbON3sy09hRrS826Bg3V54o58qvtNo7KBNLHTu19TkQ3UKJjJfO7NNCff0osBancuHi+yS44y1tahoowTSvw=="],
+
+    "nodejs-polars-darwin-arm64": ["nodejs-polars-darwin-arm64@0.26.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-TtuxTOXfItPPIdKSGrxDXuIcQJVR1wD9vdfTRst9vxRkc0nRHo7FSdfS11d/xymzSJzXZlUonK+ah7wQSZY28w=="],
+
+    "nodejs-polars-darwin-x64": ["nodejs-polars-darwin-x64@0.26.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-MlV2k4yPlZM+2ZlJRkFAWy3eyzaNlrnugl57HL13WstEuRN2cNCJ9/upoFazpfwnVTClumeTveC2vxjzao4nWw=="],
+
+    "nodejs-polars-linux-arm64-gnu": ["nodejs-polars-linux-arm64-gnu@0.26.1", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-IT0CyvGO4D3YSVvWaXN8AWJbgzqpCnLvr5bjxsdk3S76mSPyGTLHOdNSwNkiMq0XJB4dlEuLYoYWgTf9d42PDQ=="],
+
+    "nodejs-polars-linux-arm64-musl": ["nodejs-polars-linux-arm64-musl@0.26.1", "", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-JX/TOPadyaN8rfuOoLGksUD3MaerHWuCf3P5nJ+zLQi8UmjxxVa5dxN6OaQvYrx4zULnluLAq9VB2EXou6vwDA=="],
+
+    "nodejs-polars-linux-x64-gnu": ["nodejs-polars-linux-x64-gnu@0.26.1", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-0spW4yns62Xw+D77QPChBoT1ib7jUqrJRkfaNICG1Y8WJ3maVJ4xjf3KT3u+9zNimb/sJcPGdWSr2gEypAnJtg=="],
+
+    "nodejs-polars-linux-x64-musl": ["nodejs-polars-linux-x64-musl@0.26.1", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-J/xyWpp+9sQaSvj6Q5khg0GrgrlGzjjYunRagnKvSUbFuGehQFOwHugYydrL5wkOp3Xbh88q6rWiT8KcPmAu3g=="],
+
+    "nodejs-polars-win32-x64-msvc": ["nodejs-polars-win32-x64-msvc@0.26.1", "", { "os": "win32", "cpu": "x64" }, "sha512-OjG0nbObvrft2sVN+nLhqjEM9K+/PBRYhQsauloPFc8gXhqBjE8K2NwIzlTPHNq5PMs+nGMqalkRUrM2B2Obkg=="],
 
     "normalize-path": ["normalize-path@3.0.0", "", {}, "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
 

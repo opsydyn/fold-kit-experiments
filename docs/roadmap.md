@@ -258,9 +258,12 @@ per-row reads are the cost.
       in CI when the types change without it. The web app's 64 example specs
       (the gallery, the plot grammar page and the interactive apps' builders)
       all validate and round-trip as JSON.
-- [ ] An example of the summary pattern: a server route that aggregates a large
+- [x] An example of the summary pattern: a server route that aggregates a large
       Polars frame and plots the result, beside `/explore`'s client-side million
-      points.
+      points. [`apps/polars-summary`](../apps/polars-summary/README.md), a Bun
+      server (not deployed: Polars is a native add-on, and the web app runs on
+      Cloudflare Workers) bins a million requests per request in about 10 ms and
+      renders a histogram and a density grid on the server.
 - [ ] Later, once the columnar input exists: translate bin, stack and density
       into Polars or DuckDB queries, as VegaFusion does for Vega.
 

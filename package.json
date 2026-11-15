@@ -89,6 +89,7 @@
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
     "dev:zloz-demo": "bun run --filter @opsydyn/zloz-demo dev",
+    "dev:polars-summary": "bun run --filter @opsydyn/polars-summary dev",
     "dev:zloz-promo": "bun run --filter @opsydyn/zloz-promo dev",
     "dev:tech-radar": "bun run --filter @opsydyn/tech-radar dev",
     "dev:docs": "bun run --filter @opsydyn/docs dev",

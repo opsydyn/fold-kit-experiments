@@ -15,6 +15,7 @@
     "packages/*/etc/*.api.md",
     "packages/*/etc/api-surface.md",
     "packages/foldkit-viz/schema/plot-spec.schema.json",
+    "packages/foldkit-viz-py/src/foldkit_viz/static/**",
     "apps/*/public/models/*.typeface.json"
   ]
 }

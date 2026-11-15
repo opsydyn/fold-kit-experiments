@@ -407,7 +407,7 @@
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.17.0",
+      "version": "0.18.0",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "ajv": "8.20.0",
@@ -429,9 +429,19 @@
         "foldkit",
       ],
     },
+    "packages/foldkit-viz-py": {
+      "name": "@opsydyn/foldkit-viz-py",
+      "dependencies": {
+        "@opsydyn/foldkit-viz": "workspace:*",
+      },
+      "devDependencies": {
+        "bun-types": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/foldkit-zloz": {
       "name": "@opsydyn/foldkit-zloz",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@types/node": "^22.0.0",
@@ -470,7 +480,7 @@
       },
       "peerDependencies": {
         "@alchemy.run/domain": "2.0.0-beta.85",
-        "@opsydyn/foldkit-zloz": "0.3.0",
+        "@opsydyn/foldkit-zloz": "workspace:*",
         "alchemy": "2.0.0-beta.85",
         "effect": "^4.1.0",
       },
@@ -503,7 +513,7 @@
     },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "elkjs": "0.12.1",
       },
@@ -517,12 +527,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.3.0",
+        "@opsydyn/foldkit-zloz": "0.4.0",
       },
     },
     "packages/foldkit-zloz-force": {
       "name": "@opsydyn/foldkit-zloz-force",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
@@ -536,12 +546,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.3.0",
+        "@opsydyn/foldkit-zloz": "0.4.0",
       },
     },
     "packages/foldkit-zloz-mermaid": {
       "name": "@opsydyn/foldkit-zloz-mermaid",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -555,7 +565,7 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.3.0",
+        "@opsydyn/foldkit-zloz": "0.4.0",
         "foldkit": "0.170.0",
       },
       "optionalPeers": [
@@ -1100,6 +1110,8 @@
     "@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@workspace:packages/effect-three-troika"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
+
+    "@opsydyn/foldkit-viz-py": ["@opsydyn/foldkit-viz-py@workspace:packages/foldkit-viz-py"],
 
     "@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@workspace:packages/foldkit-zloz"],
 

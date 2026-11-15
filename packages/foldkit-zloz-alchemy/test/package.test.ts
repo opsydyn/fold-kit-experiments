@@ -50,6 +50,10 @@ test('packed portable entry has no SDK/Effect runtime or type imports; SDK entry
     expect(manifest.private).toBe(true);
     const core = path.join(dir, `opsydyn-foldkit-zloz-${coreManifest.version}.tgz`),
       adapter = path.join(dir, 'opsydyn-foldkit-zloz-alchemy-0.0.0.tgz');
+    const packedManifest = JSON.parse(
+      (await exec('tar', ['-xOf', adapter, 'package/package.json'])).stdout,
+    );
+    expect(packedManifest.peerDependencies['@opsydyn/foldkit-zloz']).toBe(coreManifest.version);
     await writeFile(
       path.join(dir, 'package.json'),
       JSON.stringify({ private: true, type: 'module' }),

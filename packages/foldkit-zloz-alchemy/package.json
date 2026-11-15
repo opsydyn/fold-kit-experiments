@@ -46,7 +46,7 @@
   },
   "peerDependencies": {
     "@alchemy.run/domain": "2.0.0-beta.85",
-    "@opsydyn/foldkit-zloz": "0.3.0",
+    "@opsydyn/foldkit-zloz": "workspace:*",
     "alchemy": "2.0.0-beta.85",
     "effect": "^4.1.0"
   },

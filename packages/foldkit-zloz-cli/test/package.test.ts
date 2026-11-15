@@ -30,7 +30,7 @@ const empty = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
 const graph =
   '{"version":1,"graph":{"nodes":[{"id":"orders","label":"Orders","position":{"x":0,"y":0},"size":{"width":200,"height":100},"ports":[]}],"edges":[]}}';
 
-test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O contracts', async () => {
+async function qualifyInstalledRuntime(selectedRuntime: 'node' | 'bun') {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-cli-consumer-'));
   // Native package/process fixtures must be removed even when a command fails.
   // oxlint-disable-next-line linteffect/no-try-catch
@@ -38,10 +38,14 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await exec('bun', ['run', '--filter', manifest.name, 'pack:check'], {
       cwd: root,
       maxBuffer: 5 * 1024 * 1024,
+      timeout: 60_000,
+      killSignal: 'SIGKILL',
     });
     for (const name of ['foldkit-zloz', 'foldkit-zloz-mermaid'])
       await exec('bun', ['pm', 'pack', '--destination', directory], {
         cwd: path.join(root, 'packages', name),
+        timeout: 30_000,
+        killSignal: 'SIGKILL',
       });
     await writeFile(
       path.join(directory, 'package.json'),
@@ -58,6 +62,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
     await exec('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund'], {
       cwd: directory,
       maxBuffer: 5 * 1024 * 1024,
+      timeout: 60_000,
+      killSignal: 'SIGKILL',
     });
     for (const dependency of [
       'foldkit',
@@ -77,6 +83,8 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
         stdout: 'pipe',
         stderr: 'pipe',
         env: { ...process.env, NO_COLOR: '1' },
+        timeout: 15_000,
+        killSignal: 'SIGKILL',
       });
       child.stdin.write(input);
       child.stdin.end();
@@ -242,7 +250,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       new URL('../../foldkit-zloz/test/fixtures/modelling-patch-v2.json', import.meta.url),
       'utf8',
     );
-    for (const runtime of ['node', 'bun']) {
+    async function verifyRuntime(runtime: 'node' | 'bun') {
       const nativePacket = await run(
         [runtime, bin, 'review', 'packet', '--baseline', 'base', '--loss-policy', 'report'],
         nativeText,
@@ -715,6 +723,7 @@ test('qualified tarballs install a real zloz binary with Node/Bun exit and I/O c
       expect(missing.code).toBe(2);
       expect(JSON.parse(missing.stdout).diagnostics[0].code).toBe('input-unavailable');
     }
+    await verifyRuntime(selectedRuntime);
     expect(await readFile(modelFile, 'utf8')).toBe(graph);
     expect(await readFile(portableFile, 'utf8')).toBe(modelText);
     expect(await readFile(comparisonFile, 'utf8')).toBe(comparisonText);
@@ -762,7 +771,7 @@ const result: CliResponse = { protocol: cliProtocol, operation: 'validate', stat
           mode,
           'consumer.ts',
         ],
-        { cwd: directory },
+        { cwd: directory, timeout: 30_000, killSignal: 'SIGKILL' },
       );
     await writeFile(
       path.join(directory, 'signal.mjs'),
@@ -776,6 +785,8 @@ NodeRuntime.runMain(main.pipe(Effect.provide(NodeServices.layer)),{disableErrorR
       stdin: 'pipe',
       stdout: 'pipe',
       stderr: 'pipe',
+      timeout: 10_000,
+      killSignal: 'SIGKILL',
     });
     const reader = child.stderr.getReader();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -801,4 +812,12 @@ NodeRuntime.runMain(main.pipe(Effect.provide(NodeServices.layer)),{disableErrorR
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-}, 60_000);
+}
+
+// Each runtime gets its own cold package fixture and budget. Keep these serial:
+// pack:check rebuilds shared workspace outputs, even when Bun uses --concurrent.
+test.serial.each(['node', 'bun'] as const)(
+  'qualified tarballs preserve %s exit, I/O and consumer type contracts',
+  qualifyInstalledRuntime,
+  120_000,
+);

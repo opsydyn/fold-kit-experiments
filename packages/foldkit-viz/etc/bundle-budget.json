@@ -1,5 +1,6 @@
 {
   ".": 73728,
+  "./canvas/image": 5120,
   "./canvas/plot": 2560,
   "./chart/bars": 5632,
   "./chart/cartesian": 9216,

@@ -11,7 +11,8 @@ import type {
  * Paints compiled plot geometry (ADR 0037) on a 2D canvas context: grid,
  * axes, facet headings and every mark, with packed points drawn in one pass
  * per colour. Framework-free and listener-free: call it when the canvas
- * mounts or the geometry changes. Legends stay HTML; see foldkit/plot.
+ * mounts or the geometry changes. On a page, legends stay HTML (foldkit/plot);
+ * canvas/image paints a whole image, legends and background included.
  */
 
 /** A path built from SVG path data; Path2D in a browser. Opaque to the painter. */
@@ -63,6 +64,8 @@ export type PaintPlotOptions = Readonly<{
   labelSize?: number;
   /** Builds a path from SVG path data. Default: the platform's Path2D. */
   makePath?: (d: string) => PlotPath;
+  /** Fills the plot area after clearing it. Default: left clear. */
+  background?: string;
 }>;
 
 export const defaultCanvasColors: PlotCanvasColors = {
@@ -297,6 +300,12 @@ export function paintPlot(
   };
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.clearRect(0, 0, geometry.width, geometry.height);
+  if (options.background !== undefined) {
+    ctx.beginPath();
+    ctx.rect(0, 0, geometry.width, geometry.height);
+    ctx.fillStyle = options.background;
+    ctx.fill();
+  }
   for (const facet of geometry.facets) {
     if (facet.label !== '') {
       ctx.font = `600 ${settings.labelSize + 1}px ${settings.font}`;

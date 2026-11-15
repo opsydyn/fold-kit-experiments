@@ -1408,6 +1408,34 @@ function zip<A, B>(a: ReadonlyArray<A>, b: ReadonlyArray<B>): ReadonlyArray<read
 function zoomDomain(domain: ContinuousDomain, factor: number, anchor: number, bounds: ContinuousDomain, minSpan: number): ContinuousDomain;
 ```
 
+## ./canvas/image
+
+```ts
+type ImageOptions = Readonly<{
+  theme?: PlotTheme;
+  legend?: boolean;
+  background?: boolean;
+}>;
+function imageSize(geometry: PlotGeometry, options?: ImageOptions): ImageSize;
+type ImageSize = Readonly<{
+  width: number;
+  height: number;
+}>;
+function paintImage(ctx: PlotCanvasContext, geometry: PlotGeometry, options?: PaintImageOptions): void;
+type PaintImageOptions = ImageOptions & Readonly<{
+  pixelRatio?: number;
+  makePath?: (d: string) => PlotPath;
+}>;
+function plotPng(geometry: PlotGeometry, canvas: PngCanvas, options?: PaintImageOptions): Promise<Uint8Array>;
+type PngCanvas = PlotCanvasElement & Readonly<{
+  convertToBlob: (options: Readonly<{
+    type: 'image/png';
+  }>) => Promise<Readonly<{
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  }>>;
+}>;
+```
+
 ## ./canvas/plot
 
 ```ts
@@ -1420,6 +1448,7 @@ type PaintPlotOptions = Readonly<{
   fontFamily?: string;
   labelSize?: number;
   makePath?: (d: string) => PlotPath;
+  background?: string;
 }>;
 type PlotCanvasColors = Readonly<{
   current: string;

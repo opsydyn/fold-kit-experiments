@@ -346,28 +346,18 @@ test('normalization is isolated from publication and uses only trusted workflow 
 test('root tests include the hook while strict checks and workspace tests stay intact', async () => {
   const manifest = await Bun.file(join(root, 'package.json')).json();
   expect(manifest.scripts.test).toBe(
-    "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts && bun run --sequential --filter '*' test",
+    "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts ./tools/ci-parity.test.ts && bun run --sequential --filter '*' test",
   );
   // The effect-three packages add their stricter package-local lint between the two, and
   // the catalog and skill checks follow the formatter.
   expect(manifest.scripts.check).toBe(
     'NODE_OPTIONS="--experimental-strip-types" oxlint . && bun run --filter \'@opsydyn/effect-three*\' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts',
   );
-  // After the build, the job checks the public API reports and Viz's size budgets.
+  // The job's checks are the moon task root:check; tools/ci-parity.test.ts pins its steps.
   const ci = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/ci.yml')).text());
   expect(ci.jobs.check.steps.filter((step) => step.run).map((step) => step.run)).toEqual([
     'bun install --frozen-lockfile',
-    'bun run check',
-    'bun typecheck',
-    'bun run test',
-    'bun run build',
-    [
-      'bun run --filter @opsydyn/foldkit-viz build',
-      'bun run --filter @opsydyn/foldkit-viz api:check',
-      'bun run --filter @opsydyn/astro-foldkit api:check',
-      '',
-    ].join('\n'),
-    'bun run --filter @opsydyn/foldkit-viz size:check',
+    'bun moon run root:check',
   ]);
 });
 

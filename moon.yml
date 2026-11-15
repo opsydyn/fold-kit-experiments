@@ -1,0 +1,87 @@
+# The workspace's checks, one definition each. The CI workflow runs these tasks
+# by name, so a check passes locally exactly when its CI step would.
+#
+#   bun moon run root:check        the CI `check` job, in this checkout
+#   bun run ci:clean               the same, in a fresh checkout of HEAD
+#   bun moon run root:<task>       any one step
+#
+# Nothing is cached: the checks are cheap to trust and costly to trust wrongly.
+# Every task runs in CI whatever changed (moon's default runs only tasks it
+# finds affected), and CI sets MOON_BASE=HEAD because a pull request's shallow
+# checkout has no main branch for moon to compare against.
+
+language: typescript
+
+taskOptions:
+  cache: false
+  runInCI: always
+  outputStyle: stream
+  runFromWorkspaceRoot: true
+
+tasks:
+  # The CI `check` job's steps, in its order.
+  lint:
+    description: oxlint, the effect-three package lint, oxfmt, the catalog and the skills
+    script: bun run check
+  typecheck:
+    description: every workspace's typecheck, one after another
+    script: bun typecheck
+  test:
+    description: the root tool tests and every workspace's tests
+    script: bun run test
+  build:
+    description: the integration and the sites
+    script: bun run build
+  api-reports:
+    description: public API reports match the built type declarations
+    script: >-
+      bun run --filter @opsydyn/foldkit-viz build &&
+      bun run --filter @opsydyn/foldkit-viz api:check &&
+      bun run --filter @opsydyn/astro-foldkit api:check
+  size-budgets:
+    description: each Viz entry point is within its gzipped budget
+    script: bun run --filter @opsydyn/foldkit-viz size:check
+  check:
+    description: the CI `check` job
+    command: noop
+    deps: [lint, typecheck, test, build, api-reports, size-budgets]
+    options:
+      runDepsInParallel: false
+
+  # The other CI jobs, which need browsers or several Astro installs.
+  astro-compat:
+    description: the CI `astro-compat` job, building a site with each supported Astro major
+    script: >-
+      bun run --filter @opsydyn/astro-foldkit build &&
+      bun run --filter @opsydyn/astro-foldkit compat:astro 5 6 7
+  effect-three:
+    description: the CI `effect-three` job; needs Playwright's Chromium
+    script: >-
+      bun run --filter @opsydyn/effect-three pack:check &&
+      bun run --filter @opsydyn/effect-three-foldkit pack:check &&
+      bun run --filter @opsydyn/effect-three-rapier pack:check &&
+      bun run --filter @opsydyn/effect-three-troika pack:check &&
+      bun run --filter @opsydyn/effect-three api:check &&
+      bun run --filter @opsydyn/effect-three-foldkit api:check &&
+      bun run --filter @opsydyn/effect-three-rapier api:check &&
+      bun run --filter @opsydyn/effect-three-troika api:check &&
+      bun run --filter @opsydyn/effect-three-foldkit test:e2e
+  foldkit-zloz:
+    description: the CI `foldkit-zloz` job; needs Playwright's Chromium
+    script: >-
+      bun run --filter @opsydyn/foldkit-zloz test &&
+      bun run --filter @opsydyn/foldkit-zloz-elk test &&
+      bun run --filter @opsydyn/foldkit-zloz-force test &&
+      bun run --filter @opsydyn/foldkit-zloz-mermaid test &&
+      bun run --filter @opsydyn/foldkit-zloz-cli test &&
+      bun run --filter @opsydyn/web test:e2e e2e/zloz.spec.ts
+
+  # Git hooks.
+  pre-commit:
+    description: format and lint the staged files, in seconds
+    script: bun tools/pre-commit.ts
+  pre-push:
+    description: >-
+      the checks that need no browser and no test run, in a fresh checkout of HEAD,
+      so a missing build or a stale file cannot hide a failure CI would see
+    script: bun tools/ci-local.ts lint typecheck api-reports size-budgets

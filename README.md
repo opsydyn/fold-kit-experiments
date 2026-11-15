@@ -220,6 +220,29 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run test`            | Run all workspace test scripts sequentially           |
 | `bun typecheck`           | Typecheck all workspaces                              |
 | `bun run check`           | oxlint + oxfmt format check                           |
+| `bun run ci:check`        | The CI `check` job, in this checkout                  |
+| `bun run ci:clean`        | The CI `check` job, in a fresh checkout of HEAD       |
+| `bun run hooks:install`   | Install the pre-commit and pre-push hooks             |
+
+### CI and local checks
+
+CI runs moon tasks from [`moon.yml`](moon.yml), and so do the git hooks and the
+`ci:*` scripts, so each check has one definition. `bun moon run root:<task>` runs
+one step: `lint`, `typecheck`, `test`, `build`, `api-reports`, `size-budgets`, or
+a whole job: `check`, `astro-compat`, `effect-three`, `foldkit-zloz`.
+`tools/ci-parity.test.ts` fails if a CI step stops being one of these tasks.
+
+`bun run hooks:install` installs two hooks, once per clone:
+
+- **pre-commit**: formats and lints the staged files, in seconds.
+- **pre-push**: lint, typecheck, API reports and size budgets, in a fresh checkout
+  of HEAD after a frozen install, about three minutes. A build or untracked file
+  left in your checkout cannot hide a failure CI would see.
+
+Skip either with `--no-verify`. The hooks apply to every worktree of the clone,
+and do nothing in a checkout without `moon.yml`. `bun run ci:clean [task...]`
+runs any tasks the way pre-push does; with no task it runs the whole `check` job,
+tests included. It warns when your Bun or Node.js differs from CI's.
 
 Use `bun run test` at the root: bare `bun test` bypasses the workspace script
 and can traverse vendored reference repositories. To work within a single

@@ -1,0 +1,21 @@
+# moon runs the workspace's checks, in CI and locally, from the tasks in
+# /moon.yml. The repository is one moon project, so every check has a single
+# definition that the CI workflow, the git hooks and `bun run ci:*` all call.
+projects:
+  root: '.'
+
+vcs:
+  client: git
+  defaultBranch: main
+  provider: github
+  # Hooks are installed on purpose with `bun run hooks:install`, never as a side
+  # effect of another moon command. moon points git's shared core.hooksPath at
+  # one checkout's .moon/hooks, which every worktree of the repository then uses.
+  sync: false
+  hooks:
+    # Each hook skips a checkout without moon.yml, such as a worktree on a branch
+    # from before moon, so installing the hooks never blocks older branches.
+    pre-commit:
+      - '[ ! -f moon.yml ] || bun moon run root:pre-commit'
+    pre-push:
+      - '[ ! -f moon.yml ] || bun moon run root:pre-push'

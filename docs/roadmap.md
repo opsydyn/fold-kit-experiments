@@ -223,8 +223,15 @@ charts in all three apps.
   tasks). Measuring it found canvas/plot silently drawing nothing for a colour
   group over about 180,000 circles in Chromium; it now fills in chunks. The
   remaining cost is restyling row objects, which columnar data would cut.
-- DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
-  and Arrow data" below.
+- DuckDB column input and streaming appends — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `fromDuckDB` and `duckdbColumns` read `@duckdb/node-api`
+  results and streamed chunks as column tables, with no DuckDB dependency in
+  foldkit-viz (a dev dependency for tests): a million rows plot in 126 ms
+  against 285 ms through row objects. `columnStore` grows a table chunk by
+  chunk, and `appendPoints` adds a chunk's dense points without recompiling
+  the rest when the spec fixes every domain: 20 streamed batches cost 120 ms of
+  plotting against 678 ms recompiling each. Next: pushing bin, stack and
+  density into DuckDB or Polars as SQL.
 - PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`
   branch (unreleased). `canvas/image` paints a compiled plot, legends and
   background included, on any 2D context, and `plotPng` encodes it through a

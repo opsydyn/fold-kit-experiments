@@ -653,6 +653,59 @@ The repository's [Polars summary app](https://github.com/opsydyn/fold-kit-experi
 is a worked example: a Bun server that bins a million rows in Polars on each
 request and sends a spec of the summary.
 
+### DuckDB and streaming data (unreleased)
+
+`fromDuckDB` reads a DuckDB result (`@duckdb/node-api`'s reader) as a column
+table, and `duckdbColumns` does the same for one streamed chunk. Numeric,
+temporal and 64-bit columns become `Float64Array`s (nulls `NaN`, dates epoch
+milliseconds, as `fromArrow` gives). foldkit-viz does not depend on DuckDB.
+
+```ts
+import { DuckDBInstance, JSDuckDBValueConverter } from '@duckdb/node-api';
+import {
+  appendPoints,
+  columnStore,
+  compilePlot,
+  duckdbColumns,
+  fromDuckDB,
+} from '@opsydyn/foldkit-viz/plot';
+
+const connection = await (await DuckDBInstance.create(':memory:')).connect();
+
+// A whole result.
+const table = fromDuckDB(await connection.runAndReadAll('select * from requests'));
+
+// A result streamed in, plotted as it grows: compiled on the first chunk, appended after.
+const result = await connection.stream('select latency, payload, kind from requests');
+const store = columnStore();
+let geometry: PlotGeometry | undefined;
+for (
+  let chunk = await result.fetchChunk();
+  chunk !== null && chunk.rowCount > 0;
+  chunk = await result.fetchChunk()
+) {
+  const rows = duckdbColumns(result.columnNames(), chunk.convertColumns(JSDuckDBValueConverter));
+  const rowOffset = store.table().length;
+  const all = store.append(rows);
+  geometry =
+    geometry === undefined
+      ? compilePlot({ ...spec, data: all })
+      : appendPoints(geometry, spec, rows, { rowOffset });
+}
+```
+
+- `columnStore()` grows a column table chunk by chunk in buffers that double, so
+  an append copies only the chunk; each table it returns is a view of the rows
+  so far.
+- `appendPoints` compiles only the chunk and adds its points to dense dot marks.
+  It needs a spec nothing new can change: fixed `x` and `y` domains, a fixed
+  `color` domain for a colour field, no size field, no facets and only dense dot
+  marks. Anything else is refused, to recompile.
+- Measured with a million DuckDB rows: through columns a dense scatter takes
+  126 ms against 285 ms through row objects. Streamed in 20 batches, appending
+  spends 120 ms plotting in all (6 ms for the last batch) against 678 ms
+  recompiling every batch (57 ms for the last).
+
 ### Upgrading
 
 Two changes need code changes in some callers:

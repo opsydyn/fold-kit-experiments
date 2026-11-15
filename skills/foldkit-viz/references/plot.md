@@ -36,6 +36,11 @@ mark that must restyle within a frame (live brushing), draw the points with
 the canvas's lifetime, and on each brush call `highlight` with the
 `highlightPoints` result, then `draw`; do not remount the canvas per brush.
 
+For DuckDB, plot `fromDuckDB(reader)` rather than row objects; for a result
+streamed in, convert each chunk with `duckdbColumns`, grow a `columnStore`, and
+add points with `appendPoints` when the spec fixes every domain a chunk could
+move (otherwise recompile; `appendPoints` refuses rather than guess).
+
 ## Spec rules
 
 - **Plain JSON, no functions.** A channel is a field name or `{ value }`. A spec

@@ -567,6 +567,41 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
 - **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
   and a test enforces it.
 
+## Column data and other languages (unreleased)
+
+A spec's `data` can be a column table instead of rows: named columns of equal
+length, plain arrays or typed arrays. Data from Polars, DuckDB or Arrow plots
+without becoming a row object per row. A dense dot mark reads its columns
+directly and builds no rows at all.
+
+```ts
+import { columnTable, compilePlot, fromArrow } from '@opsydyn/foldkit-viz/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 420,
+  data: columnTable({ latency, payload }), // Float64Arrays, or plain arrays
+  marks: [{ mark: 'dot', x: 'latency', y: 'payload', dense: true }],
+});
+
+// Any Arrow table (flechette or apache-arrow), with no dependency on either.
+compilePlot({ ...spec, data: fromArrow(tableFromIPC(bytes)) });
+```
+
+- **Tables are immutable**, like rows: to plot changed data, make a new table.
+  `columnTable` wraps existing arrays without copying them.
+- **`rowsOf(data)`** returns rows for code that looks one up, whichever form
+  the data takes.
+- **A million-row Polars frame** plots as a dense scatter in 86 ms through
+  Arrow, against 248 ms through row objects.
+
+Specs are plain JSON, so programs in other languages can write them. The
+package publishes a JSON Schema for `PlotSpec`, generated from its types, at
+`@opsydyn/foldkit-viz/plot-spec.schema.json`. Validate a spec before plotting
+it with any JSON Schema validator: `jsonschema` in Python, or the
+`jsonschema` crate in Rust. In JSON, a column table's columns are arrays. A
+`"$schema"` key is allowed, for editors, and `compilePlot` ignores it.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture

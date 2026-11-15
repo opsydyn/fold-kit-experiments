@@ -454,6 +454,11 @@ export type MarkSpec =
 export type MarkType = MarkSpec['mark'];
 
 export type PlotSpec = Readonly<{
+  /**
+   * The JSON Schema this spec follows, for editors and validators: the package's
+   * plot-spec.schema.json. compilePlot ignores it.
+   */
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;

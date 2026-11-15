@@ -56,6 +56,7 @@
     "@storybook/html": "^10.4.6",
     "@storybook/html-vite": "^10.4.6",
     "@vanilla-extract/vite-plugin": "catalog:",
+    "ajv": "catalog:",
     "happy-dom": "catalog:",
     "storybook": "^10.4.6",
     "typescript": "catalog:",

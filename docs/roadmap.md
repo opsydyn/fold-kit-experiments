@@ -250,9 +250,14 @@ per-row reads are the cost.
 - [x] An Arrow adapter typed structurally (`numRows`, `getChild(name).toArray()`),
       so flechette and apache-arrow tables plot without foldkit-viz depending on
       either: `fromArrow`, which turns 64-bit integers and dates into JSON numbers.
-- [ ] A JSON Schema for `PlotSpec`, generated from the types and published with
+- [x] A JSON Schema for `PlotSpec`, generated from the types and published with
       the package, with every example spec in the repo checked against it, so
       Rust (`serde`) and Python programs can emit checked specs.
+      `tools/plot-schema.ts` writes `schema/plot-spec.schema.json`, published as
+      `@opsydyn/foldkit-viz/plot-spec.schema.json`; the `schema-check` task fails
+      in CI when the types change without it. The web app's 64 example specs
+      (the gallery, the plot grammar page and the interactive apps' builders)
+      all validate and round-trip as JSON.
 - [ ] An example of the summary pattern: a server route that aggregates a large
       Polars frame and plots the result, beside `/explore`'s client-side million
       points.

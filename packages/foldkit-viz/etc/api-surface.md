@@ -948,6 +948,7 @@ type PlotGeometry = Readonly<{
   clip: boolean;
 }>;
 type PlotSpec = Readonly<{
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;
@@ -3065,6 +3066,7 @@ type PlotLocation = Readonly<{
   y: number | string | undefined;
 }>;
 type PlotSpec = Readonly<{
+  $schema?: string;
   width: number;
   height: number;
   margins?: Partial<ChartMargins>;

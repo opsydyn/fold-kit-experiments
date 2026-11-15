@@ -6,10 +6,9 @@
 
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.3.0...foldkit-zloz-force-v0.4.0) (2026-11-15)
 
-
 ### Features
 
-* **zloz:** qualify v2 portable adapter boundaries ([e19efa7](https://github.com/opsydyn/fold-kit-experiments/commit/e19efa782bcd22424d62ea545fafa8770120a49c))
+- **zloz:** qualify v2 portable adapter boundaries ([e19efa7](https://github.com/opsydyn/fold-kit-experiments/commit/e19efa782bcd22424d62ea545fafa8770120a49c))
 
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.2.0...foldkit-zloz-force-v0.3.0) (2026-11-10)
 

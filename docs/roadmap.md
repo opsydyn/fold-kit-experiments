@@ -241,13 +241,15 @@ with no library changes. A million rows reach JavaScript as Arrow in 9 ms
 against 246 ms as row objects, and once data is columnar the grammar's own
 per-row reads are the cost.
 
-- [ ] Columnar data input: `data` accepts a column table (names to typed or plain
+- [x] Columnar data input: `data` accepts a column table (names to typed or plain
       arrays, and a length) as well as rows. `read` gets a column path, and dense
       marks read typed columns directly. Transforms that write new rows keep
-      writing rows.
-- [ ] An Arrow adapter typed structurally (`numRows`, `getChild(name).toArray()`),
+      writing rows. [Design and results](superpowers/specs/2026-11-15-columnar-data-design.md):
+      a million-row Polars frame plots as a dense scatter in 86 ms through Arrow
+      columns, against 248 ms through row objects.
+- [x] An Arrow adapter typed structurally (`numRows`, `getChild(name).toArray()`),
       so flechette and apache-arrow tables plot without foldkit-viz depending on
-      either.
+      either: `fromArrow`, which turns 64-bit integers and dates into JSON numbers.
 - [ ] A JSON Schema for `PlotSpec`, generated from the types and published with
       the package, with every example spec in the repo checked against it, so
       Rust (`serde`) and Python programs can emit checked specs.

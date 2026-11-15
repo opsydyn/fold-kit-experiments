@@ -370,6 +370,11 @@ type ColorScaleSpec = Readonly<{
   legend?: boolean;
   label?: string;
 }>;
+type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+type ColumnTable = Readonly<{
+  length: number;
+  columns: Readonly<Record<string, Column>>;
+}>;
 function compilePlot(spec: PlotSpec): PlotGeometry;
 type ConfidenceInterval = Readonly<{
   fit: number;
@@ -932,6 +937,7 @@ type PlotBounds = Readonly<{
   width: number;
   height: number;
 }>;
+type PlotData = ReadonlyArray<Row> | ColumnTable;
 type PlotGeometry = Readonly<{
   width: number;
   height: number;
@@ -947,7 +953,7 @@ type PlotSpec = Readonly<{
   margins?: Partial<ChartMargins>;
   title?: string;
   description?: string;
-  data?: ReadonlyArray<Row>;
+  data?: PlotData;
   x?: PositionScaleSpec;
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;
@@ -2752,6 +2758,17 @@ type AreaMark = CommonMark & Readonly<{
   transform?: WindowTransform | ReadonlyArray<WindowTransform>;
   stack?: Stack;
 }>;
+interface ArrowTable {
+  readonly numRows: number;
+  readonly schema: {
+    readonly fields: ReadonlyArray<{
+      readonly name: string;
+    }>;
+  };
+  getChild(name: string): {
+    toArray(): ArrayLike<unknown>;
+  } | null;
+}
 type BarMark = CommonMark & Readonly<{
   mark: 'bar';
   x: Channel;
@@ -2813,6 +2830,12 @@ type ColorScaleSpec = Readonly<{
   legend?: boolean;
   label?: string;
 }>;
+type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+function columnTable(columns: Readonly<Record<string, Column>>): ColumnTable;
+type ColumnTable = Readonly<{
+  length: number;
+  columns: Readonly<Record<string, Column>>;
+}>;
 function compilePlot(spec: PlotSpec): PlotGeometry;
 type DensityMark = CommonMark & Readonly<{
   mark: 'density';
@@ -2859,6 +2882,7 @@ type ForceMark = CommonMark & Readonly<{
   distance?: number;
   strength?: number;
 }>;
+function fromArrow(table: ArrowTable): ColumnTable;
 type GeoMark = CommonMark & Readonly<{
   mark: 'geo';
   features: GeoObject;
@@ -2930,7 +2954,7 @@ type Highlight = Readonly<{
   range?: readonly [number, number] | readonly [string, string];
   values?: ReadonlyArray<Value>;
 }>;
-function highlightPoints(geometry: PlotGeometry, markIndex: number, data: ReadonlyArray<Row>, highlight: Highlight | undefined): PlotGeometry;
+function highlightPoints(geometry: PlotGeometry, markIndex: number, data: PlotData, highlight: Highlight | undefined): PlotGeometry;
 function indexPlot(geometry: PlotGeometry): PlotIndex;
 function invertAxis(axis: PlotAxis, pixel: number): number | string | undefined;
 function invertPlot(geometry: PlotGeometry, x: number, y: number): PlotLocation | undefined;
@@ -3012,6 +3036,7 @@ type PlotAxis = Readonly<{
   exponent?: number;
   constant?: number;
 }>;
+type PlotData = ReadonlyArray<Row> | ColumnTable;
 type PlotGeometry = Readonly<{
   width: number;
   height: number;
@@ -3045,7 +3070,7 @@ type PlotSpec = Readonly<{
   margins?: Partial<ChartMargins>;
   title?: string;
   description?: string;
-  data?: ReadonlyArray<Row>;
+  data?: PlotData;
   x?: PositionScaleSpec;
   y?: PositionScaleSpec;
   color?: ColorScaleSpec;
@@ -3137,6 +3162,7 @@ type RegressionTransform = Readonly<{
   level?: number;
 }>;
 type Row = Readonly<Record<string, Value>>;
+function rowsOf(rows: PlotData): ReadonlyArray<Row>;
 type RuleMark = CommonMark & Readonly<{
   mark: 'rule';
   x?: Channel;

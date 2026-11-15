@@ -1,5 +1,15 @@
 import { fail, highlightMatcher } from './channels.js';
-import type { FacetGeometry, Graphic, Highlight, PlotAxis, PlotGeometry, Row } from './types.js';
+import { isColumnTable } from './columns.js';
+import type {
+  FacetGeometry,
+  Graphic,
+  Highlight,
+  PlotAxis,
+  PlotData,
+  PlotGeometry,
+  Row,
+  Value,
+} from './types.js';
 
 /**
  * Pure helpers for interaction with compiled plots. They install no listeners
@@ -259,19 +269,21 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
 export function highlightPoints(
   geometry: PlotGeometry,
   markIndex: number,
-  data: ReadonlyArray<Row>,
+  data: PlotData,
   highlight: Highlight | undefined,
 ): PlotGeometry {
   const path = `marks[${markIndex}]`;
-  if (
-    highlight !== undefined &&
-    data.length > 0 &&
-    !data.some((row) => Object.hasOwn(row, highlight.field))
-  )
-    fail(`${path}.highlight.field`, `field "${highlight.field}" is missing from the data`);
-  // Match only the packed points' own rows: no data-sized arrays are built.
-  const matches = highlight === undefined ? undefined : highlightMatcher(highlight);
   const field = highlight?.field ?? '';
+  const missing = isColumnTable(data)
+    ? data.length > 0 && data.columns[field] === undefined
+    : data.length > 0 && !data.some((row) => Object.hasOwn(row, field));
+  if (highlight !== undefined && missing)
+    fail(`${path}.highlight.field`, `field "${highlight.field}" is missing from the data`);
+  // Match only the packed points' own rows: no data-sized arrays or row objects are built.
+  const matches = highlight === undefined ? undefined : highlightMatcher(highlight);
+  const column = isColumnTable(data) ? data.columns[field] : undefined;
+  const valueAt = (row: number): Value =>
+    isColumnTable(data) ? (column?.[row] ?? null) : (data[row]?.[field] ?? null);
   let restyled = 0;
   const restyle = (g: Graphic): Graphic => {
     if (g.kind !== 'points') return g;
@@ -281,8 +293,7 @@ export function highlightPoints(
       return dimmed === undefined ? g : plain;
     }
     const dimmed = new Uint8Array(g.count);
-    for (let i = 0; i < g.count; i += 1)
-      dimmed[i] = matches(data[g.rows[i] ?? 0]?.[field] ?? null) ? 0 : 1;
+    for (let i = 0; i < g.count; i += 1) dimmed[i] = matches(valueAt(g.rows[i] ?? 0)) ? 0 : 1;
     return { ...g, dimmed };
   };
   const facets = geometry.facets.map((facet) => ({

@@ -1,4 +1,6 @@
 export { compilePlot } from './compile.js';
+export { columnTable, fromArrow, rowsOf } from './columns.js';
+export type { ArrowTable } from './columns.js';
 export { describePlot, plotTable } from './describe.js';
 export type { PlotTable } from './describe.js';
 export { angularLabel, spokeOf } from './polar.js';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { compilePlot, highlightPoints, indexPlot } from '../src/plot';
+import { columnTable, compilePlot, highlightPoints, indexPlot } from '../src/plot';
 import type { PlotGeometry, PlotSpec } from '../src/plot';
 
 /**
@@ -51,6 +51,17 @@ describe('a million rows', () => {
   it('compiles a dense scatter within 1.5 s', () => {
     expect(packedCount(compiled.result)).toBe(ROWS);
     expect(compiled.ms).toBeLessThan(1500);
+  });
+
+  it('compiles the same scatter from a column table within 1.5 s, building no rows', () => {
+    const xs = Float64Array.from(rows, (row) => row.x);
+    const ys = Float64Array.from(rows, (row) => row.y);
+    // A fresh table each run, so every run pays for reading the typed columns.
+    const fromColumns = bestOf(() =>
+      compilePlot({ ...dense, data: columnTable({ x: xs, y: ys }) }),
+    );
+    expect(packedCount(fromColumns.result)).toBe(ROWS);
+    expect(fromColumns.ms).toBeLessThan(1500);
   });
 
   it('indexes it within 300 ms, and answers 1,000 queries within 300 ms', () => {

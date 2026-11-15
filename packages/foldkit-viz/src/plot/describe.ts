@@ -1,5 +1,6 @@
 import { channelOf, fieldOf, isNumber } from './channels.js';
 import type { ChannelName } from './channels.js';
+import { rowsOf as tableRows } from './columns.js';
 import { geoRows } from './geo.js';
 import type {
   Legend,
@@ -149,7 +150,7 @@ const cell = (value: Value | undefined): string =>
   value === null || value === undefined ? '' : isNumber(value) ? readable(value) : String(value);
 
 const rowsOf = (spec: PlotSpec, mark: MarkSpec): ReadonlyArray<Row> =>
-  mark.mark === 'geo' ? geoRows(mark) : (mark.data ?? spec.data ?? []);
+  mark.mark === 'geo' ? geoRows(mark) : tableRows(mark.data ?? spec.data ?? []);
 
 /**
  * The data a spec plots, as a table: the first mark that reads fields, with a

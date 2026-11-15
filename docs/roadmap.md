@@ -17,7 +17,8 @@ Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
 `@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
 `0.17.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
 notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
-[0.169 notes](releases/foldkit-0.169.md).
+[0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
+covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`.
 
 ## Viz: data-science release track — 2026-11-13
 

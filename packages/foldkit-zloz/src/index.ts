@@ -894,3 +894,11 @@ export type {
   ZlozGroupEditorResultV3,
   ZlozGroupEditorBoundaryV3,
 } from './group-editor-v3';
+
+export { planGroupPortEditV3, applyGroupPortEditV3 } from './group-port-edit-v3';
+export type {
+  ZlozGroupPortEditV3,
+  ZlozGroupPortEditRequestV3,
+  ZlozGroupPortEditPlanV3,
+  ZlozGroupPortEditResultV3,
+} from './group-port-edit-v3';

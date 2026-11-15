@@ -61,7 +61,8 @@ function isJson(value: unknown, ancestors: ReadonlySet<object> = new Set()): val
     return false;
   return Object.values(value).every((item) => isJson(item, next));
 }
-function isPort(value: unknown): value is Port {
+/** @internal Structural port guard only; group capability belongs to the full document validator. */
+export function isPort(value: unknown): value is Port {
   return (
     typeof value === 'object' &&
     value !== null &&

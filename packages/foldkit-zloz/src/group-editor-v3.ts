@@ -91,7 +91,12 @@ const blocked = (
   editor: ZlozGroupEditorStateV3,
   code: Extract<ZlozGroupEditorResultV3, { type: 'blocked' }>['code'],
   reason: string,
-): ZlozGroupEditorResultV3 => ({ type: 'blocked', editor, code, reason });
+): Extract<ZlozGroupEditorResultV3, { type: 'blocked' }> => ({
+  type: 'blocked',
+  editor,
+  code,
+  reason,
+});
 const denial = (reason: string | null | undefined) =>
   reason == null ? null : reason.trim() || 'The document change is protected.';
 function assertSession(editor: ZlozGroupEditorStateV3): void {
@@ -165,7 +170,7 @@ export function captureGroupEditorSourceV3(
 function freshness(
   editor: ZlozGroupEditorStateV3,
   source: ZlozGroupEditorSourceV3,
-): ZlozGroupEditorResultV3 | null {
+): Extract<ZlozGroupEditorResultV3, { type: 'blocked' }> | null {
   assertSession(editor);
   // Source tokens are data, not authority. Inspect descriptors before any property access.
   const fields = Object.getOwnPropertyDescriptors(source);
@@ -206,7 +211,7 @@ function prepare(
   editor: ZlozGroupEditorStateV3,
   source: ZlozGroupEditorSourceV3,
   document: ZlozGroupDocumentV3,
-): ZlozGroupEditorResultV3 | ZlozGroupDocumentV3 {
+): Extract<ZlozGroupEditorResultV3, { type: 'blocked' }> | ZlozGroupDocumentV3 {
   // oxlint-disable-next-line linteffect/no-try-catch -- Peer-free core translates only known document/source validation failures into blocked transactions; policy and implementation exceptions propagate.
   try {
     const reason = freshness(editor, source);
@@ -256,17 +261,31 @@ function policyReason(
     )
   );
 }
+/** @internal Nonpublishing review shared by v3 planners and Apply; never confers cached authority. */
+export function reviewGroupEditorTransactionV3(
+  editor: ZlozGroupEditorStateV3,
+  transaction: ZlozGroupEditorTransactionV3,
+  policy: ZlozGroupEditorPolicyV3 = {},
+):
+  | Extract<ZlozGroupEditorResultV3, { type: 'blocked' }>
+  | Readonly<{ type: 'unchanged'; editor: ZlozGroupEditorStateV3 }>
+  | Readonly<{ type: 'ready'; document: ZlozGroupDocumentV3 }> {
+  const target = prepare(editor, transaction.source, transaction.document);
+  if ('type' in target) return target;
+  if (historyValueEqual(editor.document, target)) return { type: 'unchanged', editor };
+  const reason = policyReason(editor, target, 'apply', policy);
+  if (reason !== null) return blocked(editor, 'protected', reason);
+  return { type: 'ready', document: target };
+}
 /** One synchronous publication and one full-document Undo unit, after all live checks. */
 export function applyGroupEditorTransactionV3(
   editor: ZlozGroupEditorStateV3,
   transaction: ZlozGroupEditorTransactionV3,
   policy: ZlozGroupEditorPolicyV3 = {},
 ): ZlozGroupEditorResultV3 {
-  const target = prepare(editor, transaction.source, transaction.document);
-  if ('type' in target) return target;
-  if (historyValueEqual(editor.document, target)) return { type: 'unchanged', editor };
-  const reason = policyReason(editor, target, 'apply', policy);
-  if (reason !== null) return blocked(editor, 'protected', reason);
+  const review = reviewGroupEditorTransactionV3(editor, transaction, policy);
+  if (review.type !== 'ready') return review;
+  const target = review.document;
   return {
     type: 'applied',
     editor: Object.freeze({

@@ -6419,3 +6419,78 @@ It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
 See [the editor qualification receipt](evidence/group-editor-v3.md) and
 [ADR 0106](../../docs/adr/0106-initialize-v3-editor-sessions-with-document-history.md).
+
+### Headless v3 group-port editing
+
+`planGroupPortEditV3` previews one group-port edit against the exact live v3 source.
+It returns `ready`, `unchanged` or `blocked` with a visible `code` and `reason`.
+Ready plans contain an owned `request`, a complete `transaction`, `before`/`after`
+port values and all `removedEdges`. Preview leaves editor, revision and Undo/Redo
+history untouched. These APIs are in the peer-free core entry.
+
+```ts
+import {
+  planGroupPortEditV3,
+  applyGroupPortEditV3,
+  captureGroupEditorSourceV3,
+  updateGroupEditorV3,
+  type ZlozGroupPortEditRequestV3,
+  type ZlozGroupEditorPolicyV3,
+} from '@opsydyn/foldkit-zloz';
+
+// editor is the explicitly initialized v3 session above.
+const policy: ZlozGroupEditorPolicyV3 = {
+  canEditPort: ({ port }) => (port.id === 'audit' ? 'This audit socket is protected.' : null),
+};
+const request: ZlozGroupPortEditRequestV3 = {
+  source: captureGroupEditorSourceV3(editor),
+  edit: { operation: 'remove', endpoint: { node: 'orders', port: 'events' } },
+};
+const preview = planGroupPortEditV3(editor, request, policy);
+if (preview.type === 'ready') {
+  // Show preview.before/after and every preview.removedEdges before user action.
+  // Apply takes intent, recomputing current protections; the target is not authority.
+  const result = applyGroupPortEditV3(editor, preview.request, policy);
+  const undone = updateGroupEditorV3(
+    result.editor,
+    {
+      type: 'UndoPressed',
+      source: captureGroupEditorSourceV3(result.editor),
+    },
+    policy,
+  );
+}
+```
+
+| Edit `operation` | Payload                              | Authored effect                                                                    |
+| ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------- |
+| `add`            | `nodeId`, full identified `port`     | Appends the port; existing order is retained.                                      |
+| `label`          | `endpoint`, `label: string \| null`  | Sets the exact string, including empty; `null` removes the optional field.         |
+| `position`       | `endpoint`, `position: PortPosition` | Switches exclusive offset/anchor representation; keeps identity, kind and label.   |
+| `remove`         | `endpoint`                           | Removes the port and every attached source/target edge, including self-loops once. |
+
+An eligible existing group and explicit `capabilities.groupPorts: true` are
+required. Ordinary nodes, EventStorming lanes/hotspots, missing nodes/ports,
+duplicate port IDs and malformed edits report reasons without promoting nodes,
+enabling capability or dropping unrelated content. Edit objects are bounded,
+owned plain data: getters are rejected without evaluation, unknown fields are
+rejected and position geometry uses the existing finite `[0,1]` port contract.
+No snapping, direction/kind change or inferred endpoint creation is performed.
+
+Preview and Apply reuse the v3 kernel's exact source/session/revision/lifecycle,
+read-only, history and capacity checks. Existing granular port/edge policies and
+`canCommitGroupDocumentV3` receive frozen complete data. Protected incident edges
+veto the whole removal. Apply rebuilds from the request and reruns live checks;
+passing a cached document transaction as edit intent is rejected. It invokes the
+proposed-change policy once, with no hidden prospective editor/history allocation.
+Unexpected policy defects propagate without publishing state.
+
+A successful edit, including all attached-edge deletions, is one Undo unit.
+Undo/Redo rerun the current policies and retain full mode, capability, world
+coordinates, metadata and camera. No-op retains editor identity and Redo; a new
+actual edit clears Redo. Use the returned `editor` for every outcome.
+
+These are headless runtime plans, not a new wire artifact, native control,
+connection/reconnection planner or canonical model/adapter upgrade. Those adoption
+gates stay explicit. See [qualification](evidence/group-port-edit-v3.md) and
+[ADR 0107](../../docs/adr/0107-plan-v3-group-port-edits-through-live-transactions.md).

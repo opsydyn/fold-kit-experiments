@@ -333,8 +333,8 @@ if(roleEditor.past.length!==1||resolveDddRelationshipControls(roleEditor,link.id
 console.log('headless-architecture-ok');
 `;
     const groupConsumerSource = `
-import {createGroupEditorV3,captureGroupEditorSourceV3,applyGroupEditorTransactionV3,updateGroupEditorV3,resolveGroupEditorBoundaryV3,updateEditor,captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
-import type {ZlozGroupEditorStateV3,ZlozGroupEditorPolicyV3,ZlozGroupEditorResultV3,ZlozGroupEditorSourceV3,ZlozGroupEditorTransactionV3,ZlozGroupEditorEventV3,ZlozGroupEditorBoundaryV3,ZlozGroupEditorOptionsV3,ZlozGroupEditorCommitV3,ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
+import {planGroupPortEditV3,applyGroupPortEditV3,createGroupEditorV3,captureGroupEditorSourceV3,applyGroupEditorTransactionV3,updateGroupEditorV3,resolveGroupEditorBoundaryV3,updateEditor,captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
+import type {ZlozGroupPortEditV3,ZlozGroupPortEditRequestV3,ZlozGroupPortEditPlanV3,ZlozGroupPortEditResultV3,ZlozGroupEditorStateV3,ZlozGroupEditorPolicyV3,ZlozGroupEditorResultV3,ZlozGroupEditorSourceV3,ZlozGroupEditorTransactionV3,ZlozGroupEditorEventV3,ZlozGroupEditorBoundaryV3,ZlozGroupEditorOptionsV3,ZlozGroupEditorCommitV3,ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
 const doc:ZlozGroupDocumentV3=captureGroupDocumentV3(${JSON.stringify(groupV3Wire)});
 const caps:ZlozGroupCapabilitiesV3=doc.capabilities;
 validateGroupDocumentV3(doc);
@@ -372,6 +372,19 @@ updateEditor(session,{type:'UndoPressed'});
 createGroupEditorV3(doc.graph,editorOptions);
 // @ts-expect-error history events require exact source freshness.
 updateGroupEditorV3(session,{type:'UndoPressed'});
+}
+const portEdit:ZlozGroupPortEditV3={operation:'remove',endpoint:{node:'g',port:'out'}};
+const portRequest:ZlozGroupPortEditRequestV3={source:captureGroupEditorSourceV3(session),edit:portEdit};
+const portPlan:ZlozGroupPortEditPlanV3=planGroupPortEditV3(session,portRequest);
+if(portPlan.type!=='ready'||portPlan.removedEdges[0]?.id!=='boundary-link'||session.revision!==0)throw new Error('Missing headless group port preview');
+const portResult:ZlozGroupPortEditResultV3=applyGroupPortEditV3(session,portPlan.request);
+if(portResult.type!=='applied'||portResult.editor.history.past.length!==1||portResult.editor.document.graph.edges.length!==0||updateGroupEditorV3(portResult.editor,{type:'UndoPressed',source:captureGroupEditorSourceV3(portResult.editor)}).editor.document.graph.edges[0]?.id!=='boundary-link')throw new Error('Missing atomic group port removal/Undo');
+if(applyGroupPortEditV3(session,portPlan.request,{canDelete:()=> 'Protected edge.'}).type!=='blocked')throw new Error('Cached preview authorized protected removal');
+if(false){
+// @ts-expect-error a cached document transaction is not editable group-port intent.
+applyGroupPortEditV3(session,portPlan.transaction);
+// @ts-expect-error label removal is explicit null, not undefined.
+const invalidLabel:ZlozGroupPortEditV3={operation:'label',endpoint:{node:'g',port:'out'},label:undefined};
 }
 console.log('group-v3-ok');
 `;

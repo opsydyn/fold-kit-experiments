@@ -1614,3 +1614,28 @@ anchor movement and removal, producing complete transaction targets with inciden
 edge handling and visible live-policy reasons. Then qualify connection/reconnection
 and complete group movement/deletion plans before native controls. Keep canonical
 archive/adapter adoption behind their separate compatibility gates.
+
+**C2 headless v3 group-port edit planners — implemented locally, unreleased (2026-11-15):**
+Core now exposes `planGroupPortEditV3` and `applyGroupPortEditV3` for explicit add,
+label, position and removal requests. Preview owns the request, supplies complete
+before/after and incident-edge effects, and reports current protection reasons
+without allocating a prospective editor/history. Apply rebuilds from intent,
+rechecks exact source/lifecycle/capability and current granular/whole-operation
+policies, then publishes through the existing v3 transaction kernel. Removal
+includes incoming/outgoing connections and self-loops once; a protected incident
+edge vetoes the whole operation. One accepted edit is one full-document Undo unit.
+No-op retains Redo and state identity. Disabled capability, ineligible workshop
+nodes, stale requests, malformed data and missing/duplicate identities stay blocked.
+No implicit snapping, port-kind change or legacy reducer widening is introduced.
+
+[ADR 0107](adr/0107-plan-v3-group-port-edits-through-live-transactions.md) and
+[qualification](../packages/foldkit-zloz/evidence/group-port-edit-v3.md) record the
+package, installed consumer and repository evidence. This closes the preceding
+port-edit recommendation, not C2 or native interaction parity. Canonical v3
+model/archive/edition and adapter adoption remain open. C1/C3–C4/Q/R are unchanged.
+No npm publication, deployment or mounted v3 controls are claimed.
+
+**Recommended next:** add headless v3 connection creation/reconnection planners
+for authored group endpoints, preserving strict/loose eligibility, exact source,
+visible live port/edge vetoes and atomic Undo. Then qualify complete group movement/
+deletion plans and native controls against these package-owned contracts.

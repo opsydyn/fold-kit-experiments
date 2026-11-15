@@ -230,9 +230,11 @@ charts in all three apps.
     `Symbol.for('Jupyter.display')` method returns a bundle of `text/html` (the
     figure, in the notebook's theme), `image/svg+xml` and `text/plain` (the
     summary). Deno's kernel and the community Bun kernel (`jupyter-bun`, 0.1.0)
-    both use that protocol. Checked by unit tests, XML validation and rendered
-    images; not yet run in a live kernel. Static output only: widget support is
-    undocumented for both kernels.
+    both use that protocol. Run live in Deno 2.9.8's kernel under JupyterLab 4
+    (`packages/foldkit-viz/examples/deno-jupyter.ipynb`): rows, typed-array
+    columns, polar charts, `plotMimeBundle` and spec errors, light and dark; the
+    Bun kernel is untried. Static output only: widget support is undocumented
+    for both kernels.
   - **Then Python — done on the same branch (unreleased, not on PyPI).**
     `packages/foldkit-viz-py` is a Python package whose `Plot` anywidget checks a
     spec against the published schema (naming the spec path, and for a bad mark

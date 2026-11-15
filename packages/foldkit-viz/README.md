@@ -653,8 +653,9 @@ const fragment = plotHtml(geometry, { table: plotTable(spec), summary: true });
   the legends) in the page's colour, the same markup `foldkit/plot`'s `plotChart`
   renders. Both come from one renderer, and a test holds them byte for byte equal.
 
-In a Jupyter notebook run by Deno's kernel (`deno jupyter`) or the community Bun
-kernel (`jupyter-bun`), make a plot the cell's value:
+To write TypeScript in Jupyter, install Deno's kernel with `deno jupyter --install`
+(or the community Bun kernel, `jupyter-bun`) and make a plot the cell's value. The
+[example notebook](https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz/examples/deno-jupyter.ipynb) runs in Deno 2.9's kernel:
 
 ```ts
 import { displayPlot } from 'npm:@opsydyn/foldkit-viz/jupyter';

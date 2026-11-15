@@ -92,88 +92,78 @@ function stepYear(d: Date, step: number): Date {
   return new Date(d.getFullYear() + step, 0, 1);
 }
 
-function generateTicks(start: Date, stop: Date, unit: TimeUnit, step: number): Date[] {
+type Calendar = Readonly<
+  Record<
+    TimeUnit,
+    Readonly<{
+      floor: (d: Date, step: number) => Date;
+      step: (d: Date, step: number) => Date;
+    }>
+  >
+>;
+
+const LOCAL = {
+  second: { floor: floorSecond, step: stepSecond },
+  minute: { floor: floorMinute, step: stepMinute },
+  hour: { floor: floorHour, step: stepHour },
+  day: { floor: floorDay, step: stepDay },
+  week: { floor: floorWeek, step: stepWeek },
+  month: { floor: floorMonth, step: stepMonth },
+  year: { floor: floorYear, step: stepYear },
+} satisfies Calendar;
+
+// ── Floor helpers (UTC) ───────────────────────────────────────────────────────
+// Seconds, minutes and hours floor on the epoch, which is already UTC.
+
+const UTC = {
+  second: LOCAL.second,
+  minute: LOCAL.minute,
+  hour: LOCAL.hour,
+  day: {
+    floor: (d, step) =>
+      new Date(
+        Date.UTC(
+          d.getUTCFullYear(),
+          d.getUTCMonth(),
+          Math.floor(d.getUTCDate() / step) * step || 1,
+        ),
+      ),
+    step: (d, step) =>
+      new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + step)),
+  },
+  week: {
+    floor: (d) =>
+      new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - d.getUTCDay())),
+    step: (d, step) =>
+      new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 7 * step)),
+  },
+  month: {
+    floor: (d, step) =>
+      new Date(Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth() / step) * step, 1)),
+    step: (d, step) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + step, 1)),
+  },
+  year: {
+    floor: (d) => new Date(Date.UTC(d.getUTCFullYear(), 0, 1)),
+    step: (d, step) => new Date(Date.UTC(d.getUTCFullYear() + step, 0, 1)),
+  },
+} satisfies Calendar;
+
+function generateTicks(
+  start: Date,
+  stop: Date,
+  unit: TimeUnit,
+  step: number,
+  calendar: Calendar = LOCAL,
+): Date[] {
+  const { floor, step: advance } = calendar[unit];
   const ticks: Date[] = [];
-  let cur: Date;
-
-  switch (unit) {
-    case 'second':
-      cur = floorSecond(start, step);
-      break;
-    case 'minute':
-      cur = floorMinute(start, step);
-      break;
-    case 'hour':
-      cur = floorHour(start, step);
-      break;
-    case 'day':
-      cur = floorDay(start, step);
-      break;
-    case 'week':
-      cur = floorWeek(start);
-      break;
-    case 'month':
-      cur = floorMonth(start, step);
-      break;
-    case 'year':
-      cur = floorYear(start);
-      break;
-  }
-
+  let cur = floor(start, step);
   // advance to >= start
-  while (+cur < +start) {
-    switch (unit) {
-      case 'second':
-        cur = stepSecond(cur, step);
-        break;
-      case 'minute':
-        cur = stepMinute(cur, step);
-        break;
-      case 'hour':
-        cur = stepHour(cur, step);
-        break;
-      case 'day':
-        cur = stepDay(cur, step);
-        break;
-      case 'week':
-        cur = stepWeek(cur, step);
-        break;
-      case 'month':
-        cur = stepMonth(cur, step);
-        break;
-      case 'year':
-        cur = stepYear(cur, step);
-        break;
-    }
-  }
-
+  while (+cur < +start) cur = advance(cur, step);
   while (+cur <= +stop) {
     ticks.push(new Date(+cur));
-    switch (unit) {
-      case 'second':
-        cur = stepSecond(cur, step);
-        break;
-      case 'minute':
-        cur = stepMinute(cur, step);
-        break;
-      case 'hour':
-        cur = stepHour(cur, step);
-        break;
-      case 'day':
-        cur = stepDay(cur, step);
-        break;
-      case 'week':
-        cur = stepWeek(cur, step);
-        break;
-      case 'month':
-        cur = stepMonth(cur, step);
-        break;
-      case 'year':
-        cur = stepYear(cur, step);
-        break;
-    }
+    cur = advance(cur, step);
   }
-
   return ticks;
 }
 
@@ -200,11 +190,8 @@ export function scaleTime(config: TimeScaleConfig): (date: Date) => number {
 
 // ── Public: timeTicks ─────────────────────────────────────────────────────────
 
-export function timeTicks(domain: readonly [Date, Date], count = 10): ReadonlyArray<Date> {
-  const [start, stop] = domain;
-  const span = Math.abs(+stop - +start);
+function tickInterval(span: number, count: number): TickInterval {
   const target = span / count;
-
   // Find the tick interval whose duration is closest to target
   // SAFETY: The chart algorithm establishes this representation before the assertion.
   let best: TickInterval = TICK_INTERVALS[TICK_INTERVALS.length - 1] as TickInterval;
@@ -218,8 +205,20 @@ export function timeTicks(domain: readonly [Date, Date], count = 10): ReadonlyAr
       break;
     }
   }
+  return best;
+}
 
+export function timeTicks(domain: readonly [Date, Date], count = 10): ReadonlyArray<Date> {
+  const [start, stop] = domain;
+  const best = tickInterval(Math.abs(+stop - +start), count);
   return generateTicks(start, stop, best[0], best[1]);
+}
+
+/** As `timeTicks`, on UTC calendar boundaries, so every machine produces the same ticks. */
+export function utcTicks(domain: readonly [Date, Date], count = 10): ReadonlyArray<Date> {
+  const [start, stop] = domain;
+  const best = tickInterval(Math.abs(+stop - +start), count);
+  return generateTicks(start, stop, best[0], best[1], UTC);
 }
 
 // ── Public: timeTickFormat ────────────────────────────────────────────────────
@@ -243,14 +242,17 @@ function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-export function timeTickFormat(date: Date): string {
-  const ms = date.getMilliseconds();
-  const s = date.getSeconds();
-  const m = date.getMinutes();
-  const h = date.getHours();
-  const D = date.getDate();
-  const M = date.getMonth();
+type DateParts = Readonly<{
+  ms: number;
+  s: number;
+  m: number;
+  h: number;
+  D: number;
+  M: number;
+  Y: number;
+}>;
 
+function tickLabel({ ms, s, m, h, D, M, Y }: DateParts): string {
   if (ms !== 0) return `.${String(ms).padStart(3, '0')}`;
   if (s !== 0) return `:${pad2(s)}`;
   if (m !== 0 || h !== 0) return `${pad2(h)}:${pad2(m)}`;
@@ -259,7 +261,32 @@ export function timeTickFormat(date: Date): string {
     // SAFETY: Date.getMonth() returns an index in the twelve-entry month table.
     return MONTHS_SHORT[M] as string;
   }
-  return String(date.getFullYear());
+  return String(Y);
+}
+
+export function timeTickFormat(date: Date): string {
+  return tickLabel({
+    ms: date.getMilliseconds(),
+    s: date.getSeconds(),
+    m: date.getMinutes(),
+    h: date.getHours(),
+    D: date.getDate(),
+    M: date.getMonth(),
+    Y: date.getFullYear(),
+  });
+}
+
+/** As `timeTickFormat`, read in UTC, so a server and a browser in other zones agree. */
+export function utcTickFormat(date: Date): string {
+  return tickLabel({
+    ms: date.getUTCMilliseconds(),
+    s: date.getUTCSeconds(),
+    m: date.getUTCMinutes(),
+    h: date.getUTCHours(),
+    D: date.getUTCDate(),
+    M: date.getUTCMonth(),
+    Y: date.getUTCFullYear(),
+  });
 }
 
 // ── Public: timeNice ──────────────────────────────────────────────────────────

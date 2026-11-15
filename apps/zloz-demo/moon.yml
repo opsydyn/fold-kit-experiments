@@ -1,0 +1,13 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    script: 'astro build'
+    deps: ['typecheck', '^:build']
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'astro check'
+    deps: ['^:build']
+  test:
+    script: 'tsc --noEmit -p tsconfig.test.json && bun test ./test'
+    deps: ['^:build']

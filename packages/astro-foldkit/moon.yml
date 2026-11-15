@@ -1,0 +1,26 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    script: 'tsdown'
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc --noEmit'
+  test:
+    script: 'bun test test/unit'
+  api-check:
+    script: 'bun ../../tools/api-surface.ts --check'
+    deps: ['build']
+  integration:
+    script: 'bun test test/integration'
+    deps: ['build']
+    # Rebuilds and packs packages itself, so it runs after the parallel checks,
+    # one at a time, and its inputs cover everything it rebuilds.
+    inputs: ['/packages/**/*', '/apps/web/**/*']
+    options:
+      mutex: 'rebuilds-packages'
+  compat:
+    script: 'bun ../../tools/astro-compat.ts 5 6 7'
+    deps: ['build']
+    options:
+      cache: false

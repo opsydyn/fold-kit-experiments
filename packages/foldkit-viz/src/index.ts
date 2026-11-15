@@ -6,6 +6,7 @@ export * from './layout/text';
 // Pure chart geometry; the optional FoldKit adapter is not re-exported.
 export * from './chart/cartesian';
 export * from './chart/bars';
+export * from './chart/cells';
 export * from './chart/theme';
 // interaction/selection
 export type { Selection, SelectionAxis } from './interaction/selection';
@@ -114,12 +115,47 @@ export {
   viridis,
   wong,
 } from './math/schemes';
-export type { BoxStats } from './math/stats';
+export type {
+  BoxStats,
+  EcdfStep,
+  MovingWindowOptions,
+  QuantilePair,
+  WindowReducer,
+} from './math/stats';
 // math/stats
-export { boxStats, kde, quantile, silvermanBandwidth } from './math/stats';
+export {
+  boxStats,
+  ecdf,
+  kde,
+  movingWindow,
+  normalQuantile,
+  qqNormal,
+  quantile,
+  silvermanBandwidth,
+  studentTQuantile,
+} from './math/stats';
+
+// math/regression
+export { linearRegression, loess, polynomialRegression } from './math/regression';
+export type {
+  ConfidenceInterval,
+  LoessOptions,
+  RegressionAccessors,
+  RegressionFit,
+  SmoothedPoint,
+} from './math/regression';
 
 // math/time
-export { scaleTime, timeFormat, timeNice, timeParse, timeTickFormat, timeTicks } from './math/time';
+export {
+  scaleTime,
+  timeFormat,
+  timeNice,
+  timeParse,
+  timeTickFormat,
+  timeTicks,
+  utcTickFormat,
+  utcTicks,
+} from './math/time';
 export type { EaseFn, Tween } from './math/tween';
 // math/tween
 export {
@@ -207,3 +243,24 @@ export type {
 
 export { errorBarGeometry } from './chart/errorBars.js';
 export type { ErrorBarAccessors, ErrorBarSegment, ErrorBarMark } from './chart/errorBars.js';
+
+export { orbitGeometry } from './chart/orbit.js';
+export type {
+  OrbitAccessors,
+  OrbitConfig,
+  OrbitGeometry,
+  OrbitHaloArc,
+  OrbitNode,
+} from './chart/orbit.js';
+
+// math/bin2d
+export { hexagonPath, hexbin, rectBins } from './math/bin2d.js';
+export type { Bin2dAccessors, HexBin, RectBin, RectBinsConfig } from './math/bin2d.js';
+
+// math/downsample
+export { lttb, m4 } from './math/downsample.js';
+export type { DownsampleAccessors } from './math/downsample.js';
+
+// plot: the declarative grammar of marks (ADR 0037)
+export { compilePlot, indexPlot, invertAxis, invertPlot, pointerToPlot } from './plot/index.js';
+export type * from './plot/types.js';

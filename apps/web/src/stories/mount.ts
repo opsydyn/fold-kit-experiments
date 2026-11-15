@@ -13,7 +13,7 @@ type RuntimeHandle = Pick<EmbedHandle, 'dispose'>;
 type FoldkitProgram = MakeRuntimeReturn<any>;
 interface MountProps {}
 
-export function mountFoldkitProgram(
+function mountFoldkitProgram(
   createProgram: (container: HTMLElement) => FoldkitProgram,
   hostStyle = 'display:block;width:100%;',
 ): HTMLElement {

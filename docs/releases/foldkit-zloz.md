@@ -1,7 +1,9 @@
 # Foldkit Zloz npm publication
 
-The Zloz packages are local 0.1.0 release candidates. Record registry
-publication separately from local package qualification.
+The four Zloz packages were initially published at 0.3.0. See the
+[ADR 0036 execution record](../adr/0036-publish-the-zloz-package-family-to-npm.md#execution-record)
+for verified registry versions. Keep registry publication evidence separate from
+local package qualification for subsequent releases.
 
 The [historical qualification receipt](foldkit-flow-qualification.md) records
 the original artifacts. It does not qualify the renamed tarballs; rerun the
@@ -82,7 +84,8 @@ bundling require their own qualification. No performance capacity claim is made.
 The default ELK fallback leaves standalone Bun 1.4.4 processes alive after layout;
 use Node for CLI layout jobs. See the adapter README for the observed upstream cause.
 
-The Mermaid candidate is locally qualified with its own packed-consumer test and
+The Mermaid package is qualified with its own packed-consumer test and
 workbench evidence. It participates in the same four-package qualification and linked release
 metadata. This configuration does not authorize running publication.
-No registry publication is implied by its local 0.1.0 package metadata.
+The CLI remains a private workspace package. Its local tarballs are installation
+and type-contract fixtures, not npm publication candidates.

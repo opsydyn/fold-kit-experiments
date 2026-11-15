@@ -79,7 +79,7 @@ path. Application Commands, request flags and data loading remain app-owned.
 
 ---
 
-## Grouped and stacked bars (unreleased)
+## Grouped and stacked bars
 
 `chart/bars` exports pure `barGeometry` and its accessor/configuration types.
 It supports grouped or stacked series in either orientation, preserves each
@@ -106,7 +106,41 @@ The optional `foldkit/paint` subpath provides `dotPattern`, `hatchPattern`,
 `linearGradient` and `radialGradient`. Compose them inside your builder's SVG
 `defs`; supply IDs unique across the whole document. They accept CSS colours and
 variables, own no state, and are not exported from the framework-free root.
-These additions are available in the workspace pending the next package release.
+Both ship in the published package.
+
+## Orbit charts (0.17.0+)
+
+`chart/orbit` exports pure `orbitGeometry`: items on one ring around a core,
+with a halo of category arcs between them. It suits "big ball of mud" views of
+a system, where each module orbits the core, its area shows its risk, and the
+halo shows how the modules integrate. Nodes run clockwise from twelve o'clock in
+data order. Node area grows linearly with value between the radius bounds, and
+neighbours never overlap: on a crowded ring both bounds shrink, and an orbit too
+small to fit its nodes is rejected. `coreScale` lets the caller grow the core
+with a metric of its own. Keys must be unique and values finite and
+non-negative. Halo angles follow `shape/arc`, so each arc passes straight to it.
+
+```ts
+import { orbitGeometry } from '@opsydyn/foldkit-viz/chart/orbit';
+
+const geometry = orbitGeometry(
+  [{ id: 'billing', risk: 7.4, integration: 'intrusive' }],
+  { key: (d) => d.id, value: (d) => d.risk, halo: (d) => d.integration },
+  { size: 300, valueDomain: [1, 10], coreScale: 0.8 },
+);
+// geometry.nodes holds x/y (relative to geometry.centre), radius and the datum;
+// geometry.halo.arcs holds one arc per category with its count.
+```
+
+The optional `foldkit/orbit` subpath renders the geometry with the parent's
+builder through `orbitChart`. Without `onSelect` it is an image whose nodes name
+themselves in native tooltips, so it reads completely as static HTML. With
+`onSelect` each node is a focusable button that selects on click, Enter or
+Space, and `onInspect` reports hover and focus. A `pulse` ring is classed
+`chart-orbit-pulse` for the host's CSS to animate; respect
+`prefers-reduced-motion` when it does. Pair it with `dataTable` from
+`foldkit/cartesian` for a non-visual reading. The web app's `/complexity-field`
+page composes both into a complete card.
 
 ## Composable Cartesian charts
 
@@ -239,6 +273,299 @@ are rejected too. Requested histogram thresholds that cannot be represented
 distinctly inside a non-degenerate domain also throw. Tick positions preserve
 full numeric precision; format their labels separately. See [D3 source provenance](D3-PROVENANCE.md) for the precise
 primitive contracts.
+
+## Axis scales (unreleased)
+
+`scatterGeometry` and `lineGeometry` take `xScale` and `yScale`: linear (the
+default), `log` with an optional `base`, `symlog` with an optional `constant`,
+`pow` with an `exponent`, or `time`. Ticks follow the scale and carry a default
+`label`, which the `axis` helper draws when you pass no `format`.
+
+```ts
+const geometry = lineGeometry(rows, accessors, {
+  frame,
+  xScale: { type: 'time' }, // x values are epoch milliseconds
+  yScale: { type: 'log' },
+});
+// geometry.yTicks: [{ value: 1, position, label: '1' }, { value: 10, ..., label: '10' }, ...]
+```
+
+- Time axes default to UTC, so a server and a browser in another zone render
+  the same ticks and labels. Pass `{ type: 'time', zone: 'local' }` for the
+  viewer's zone. `utcTicks` and `utcTickFormat` join `timeTicks` and
+  `timeTickFormat` in `math/time`.
+- A log axis omits zero and negative values, as every axis omits non-finite
+  ones, and breaks lines there. Explicit log domains must be positive, and
+  `includeZero` is rejected.
+- Linear labels use as many decimals as the tick step needs, grouped the same
+  way on every machine; log labels mark powers of the base in SI notation.
+- Histograms stay linear; categorical axes remain in `chart/bars`.
+
+## Statistics, binning and downsampling (unreleased)
+
+Pure functions for the overlays and density views data-science charts need.
+All skip non-finite values; the web app's `/data-science` page uses each one.
+
+```ts
+import {
+  linearRegression,
+  loess,
+  polynomialRegression,
+} from '@opsydyn/foldkit-viz/math/regression';
+import { ecdf, movingWindow, qqNormal } from '@opsydyn/foldkit-viz/math/stats';
+import { hexbin, rectBins } from '@opsydyn/foldkit-viz/math/bin2d';
+import { cellGeometry } from '@opsydyn/foldkit-viz/chart/cells';
+import { lttb, m4 } from '@opsydyn/foldkit-viz/math/downsample';
+
+const fit = linearRegression(rows, { x: (r) => r.dose, y: (r) => r.response });
+fit.interval(5); // { fit, lower, upper }: the 95% confidence interval for the mean at x = 5
+const curve = loess(rows, { x: (r) => r.dose, y: (r) => r.response }, { bandwidth: 0.4 });
+const drawn = m4(series, { x: (p) => p.t, y: (p) => p.v }, { width: 800 }); // one column per pixel
+```
+
+- `math/regression`: `polynomialRegression` of any degree and `linearRegression`,
+  with R squared, `predict` and confidence intervals from Student's t, fitted on
+  centred x so epoch-millisecond x stays accurate; `loess` with robustness
+  iterations.
+- `math/stats` adds `ecdf`, `qqNormal`, `movingWindow` (mean, median, sum, min,
+  max; trailing or centred), `normalQuantile` and `studentTQuantile`.
+- `math/bin2d`: `rectBins` for 2D histograms in data units; `hexbin` and
+  `hexagonPath` for hexagonal density in pixel space, after d3-hexbin.
+- `chart/cells`: `cellGeometry` lays out heatmaps, calendar heatmaps and
+  correlation matrices; `foldkit/cartesian` adds `cellSeries` and `hexSeries`.
+- `math/downsample`: `lttb` keeps the shape at a target point count; `m4` keeps
+  each pixel column's first, last, lowest and highest point, so the drawn line
+  matches the full one. Both return original rows in order and handle a
+  million points in under 50 ms.
+
+## Plot grammar (unreleased)
+
+A chart as plain data: marks whose channels name fields in the rows, with scales,
+axes and legends inferred ([ADR 0037](../../docs/adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md)).
+The spec holds no functions, so a server, a notebook or a language model can write
+it, and it renders the same everywhere.
+
+```ts
+import { compilePlot } from '@opsydyn/foldkit-viz/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 300,
+  data: penguins,
+  facet: { x: 'species' },
+  marks: [
+    { mark: 'dot', x: 'mass', y: 'flipper', fill: 'sex', title: 'id' },
+    { mark: 'line', x: 'mass', y: 'flipper', transform: { type: 'regression' } },
+  ],
+});
+// In a FoldKit view: plotChart(h, geometry)
+```
+
+- Marks: `dot`, `line`, `area`, `bar` (with `y0` or `x0` for interval bars),
+  `rule`, `text`, `cell`, `link`, `box` and `violin` on the x and y axes, and
+  `treemap`, `sunburst`, `sankey` and `parallel`, which fill their panel. A
+  channel is a field name or `{ value }`.
+- Scales are inferred from every mark's values: numbers give linear axes, strings
+  band axes, ISO dates UTC time axes, and colour is categorical or sequential.
+  Override any part, including log, symlog and power axes, any scheme, or
+  explicit categorical colours with `color.range`. Crowded band labels thin out.
+- `facet` splits every mark's rows into panels on shared scales.
+- Line transforms: `regression` (with its confidence band), `loess`, `window` and
+  `downsample`, alone or chained in order; area takes `window`.
+- Errors name the spec path, such as `marks[0].x: field "dosage" is missing from
+the data`.
+- `compilePlot` is pure and framework-free; `foldkit/plot` renders the result as
+  an accessible SVG with a legend. The web app's `/plot-grammar` page shows each
+  chart beside its spec, and ships no JavaScript.
+
+## Scale and interaction for plots (unreleased)
+
+A million points stay interactive. Mark a dot layer `dense` and it compiles to
+one packed graphic of typed arrays instead of a circle per row; paint it on a
+canvas and draw hover feedback in an SVG overlay above it.
+
+```ts
+import { compilePlot, indexPlot, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { paintCanvas } from '@opsydyn/foldkit-viz/canvas/plot';
+import { plotCanvas } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+const geometry = compilePlot({
+  width: 720,
+  height: 420,
+  data: requests,
+  x: { type: 'log' },
+  marks: [
+    {
+      mark: 'dot',
+      x: 'latency',
+      y: 'payload',
+      dense: true,
+      highlight: { field: 'latency', range: brushed },
+    },
+  ],
+});
+const index = indexPlot(geometry);
+
+// On pointer move, in update: the nearest row within 12 plot pixels.
+const hit = index.nearest(x, y, 12);
+
+// In the view: a canvas the parent's Mount paints with paintCanvas,
+// under an overlay that moves without recompiling.
+plotCanvas(h, geometry, {
+  key,
+  onMount: PaintScatter({ key }),
+  overlay: { crosshair: { x, y }, ring: { x, y, r: 5 } },
+});
+```
+
+- `canvas/plot`: `paintPlot(ctx, geometry, options)` paints any compiled
+  geometry, axes and text included, clipped to each facet's plot area;
+  `paintCanvas(canvas, geometry, options)` sizes the canvas for the device pixel
+  ratio first. It needs no DOM types and has no FoldKit dependency.
+- `indexPlot(geometry)` builds a 16-pixel grid over dots, packed points and bar
+  centres; `nearest(x, y, radius)` returns the facet, mark, row and position.
+- `pointerToPlot(client, rect, geometry)` turns a pointer's client position into
+  plot pixels; `invertPlot` and `invertAxis` turn plot pixels into data values.
+- `highlight: { field, range }` or `{ field, values }` dims non-matching rows. A
+  linked brush is one chart's selection written into another chart's spec.
+- `plotChart` and `plotCanvas` take an `overlay` of crosshair, hover ring and
+  brush, drawn without recompiling.
+- Zoom by writing a narrower domain into the spec, for example with `zoomDomain`
+  from `interaction/viewport` anchored at `invertAxis` of the pointer.
+
+The library still installs no listeners: the parent streams pointer events and
+keeps hover, brush and domain in its Model. The web app's `/explore` page links a
+million-point scatter to a latency histogram this way.
+
+## More marks and transforms (unreleased)
+
+The grammar covers the common data-science charts on x and y axes. Every chart
+demo in the web app's gallery that sits on axes is now a spec.
+
+```ts
+// A histogram from raw rows, one series per tier on shared bins.
+{ mark: 'rect', x: 'latency', fill: 'tier', inset: 1, transform: { type: 'bin', thresholds: 20 } }
+
+// A two-dimensional histogram; binned rows carry count for colour.
+{ mark: 'rect', x: 'latency', y: 'payload', fill: 'count', transform: { type: 'bin' } }
+
+// Stacked, diverging and grouped bars, and streamgraphs.
+{ mark: 'bar', x: 'month', y: 'units', fill: 'region', stack: 'zero' }
+{ mark: 'bar', x: 'month', y: 'units', fill: 'region', group: true }
+{ mark: 'area', x: 'date', y: 'downloads', fill: 'framework', stack: { offset: 'center' } }
+
+// Kernel density: a curve per series, or contour lines over a scatter.
+{ mark: 'density', x: 'salary', fill: 'level' }
+{ mark: 'density', x: 'x', y: 'y', bandwidth: 40, thresholds: 6 }
+
+// Symbols, merged with the colour legend when one field drives both.
+{ mark: 'dot', x: 'hp', y: 'mpg', fill: 'origin', symbol: 'origin' }
+```
+
+- **`rect`**:
+  - Spans `x1` to `x2` and `y1` to `y2` on continuous axes.
+  - A missing start begins at the baseline.
+  - `inset` leaves a gap between neighbours.
+- **`bin`**:
+  - Thresholds are a count or explicit breaks; `reduce` is `count` or
+    `proportion`.
+  - Binned rows name their fields plainly (`x1`, `x2`, `count`, `proportion`),
+    so titles and highlights can use them.
+- **`stack`** on bars and areas:
+  - Offsets are `zero`, `normalize`, `center` and `wiggle`; orders follow d3.
+  - `zero` stacks negative values down from zero, so Likert charts need
+    nothing more.
+  - `z` names the series when colour should encode something else.
+- **`group: true`** places a bar's series side by side within each band.
+- **`density`**:
+  - A one-dimensional curve per series, with `bandwidth` in data units.
+  - Two-dimensional contour lines computed in plot pixels, with `bandwidth` in
+    pixels.
+- **`symbol`** on dots maps a field onto the d3 symbol set, or takes a
+  constant such as `{ value: 'square' }`.
+- **`clip: true`** on a spec clips marks to the plot area, for zoomed domains.
+- **`axis: false`** on an axis blanks its labels and grid, for tile maps and
+  calendars.
+- **Constant marks**, such as `{ mark: 'rule', y: { value: 0 } }`, draw once.
+- **`highlightPoints(geometry, markIndex, data, highlight)`** restyles a dense
+  mark for a new highlight without recompiling, keeping its hover index valid.
+
+## Polar charts, maps, networks and trees (unreleased)
+
+```ts
+// A radar: polar coordinates close a line over categories into a ring.
+{ coordinates: 'polar', marks: [{ mark: 'line', x: 'quality', y: 'score', stroke: 'language' }] }
+
+// A wind rose: bars become wedges; stacked bars stack outwards.
+{ coordinates: 'polar', polar: { inner: 0.1 }, marks: [{ mark: 'bar', x: 'direction', y: 'frequency' }] }
+
+// Pie, donut and gauge.
+{ mark: 'arc', value: 'share', fill: 'team', inner: 0.6, labels: true, text: { value: '100%' } }
+{ mark: 'arc', value: 'amount', fill: 'part', inner: 0.7, start: -120, end: 120 }
+
+// A choropleth: rows are the features' properties.
+{ projection: { type: 'naturalEarth1' }, marks: [{ mark: 'geo', features: countries, fill: 'internet' }] }
+
+// Trees, packing, chords, arc diagrams, force layouts and Voronoi cells.
+{ mark: 'tree', path: 'path', layout: 'cluster', radial: true }
+{ mark: 'pack', path: 'path', value: 'usage', fill: 'family' }
+{ mark: 'chord', source: 'from', target: 'to', value: 'billions' }
+{ mark: 'arc-diagram', source: 'from', target: 'to', value: 'weight' }
+{ mark: 'force', source: 'from', target: 'to' }
+{ mark: 'voronoi', x: 'x', y: 'y', fill: 'y' }
+```
+
+- **Polar coordinates:**
+  - `coordinates: 'polar'` maps x to angle and y to radius.
+  - Bars, lines, areas, dots, text and rules can be drawn in polar coordinates.
+  - Facets carry a `polar` frame of rings and spokes, which both renderers draw.
+- **`arc`** fills its panel: one slice per row over a sweep from `start` to
+  `end` degrees, with an optional centre `text` and share `labels`.
+- **Maps:**
+  - A plot-level `projection` (equirectangular, mercator, naturalEarth1,
+    orthographic or albers) is fitted to the geo marks.
+  - `zoom` and `center` zoom the map.
+  - The `geo` mark draws GeoJSON, and `graticule` draws lines of latitude and
+    longitude.
+  - Dots and text are placed by longitude and latitude.
+- **Networks and trees:** `tree`, `pack`, `chord`, `arc-diagram` and `force`
+  fill their panel and run their layouts at compile time. The force layout is
+  seeded, so it is the same every time.
+- **`voronoi`** draws each point's cell, clipped to the plot area.
+
+## Keyboard and accessibility (unreleased)
+
+```ts
+import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
+import { chartKeyDown, chartKeyDownFocus } from '@opsydyn/foldkit-viz/foldkit/keyboard';
+import { compilePlot, describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+
+// A chart's targets step with the keys a listbox uses.
+h.OnKeyDownPreventDefault(chartKeyDown((command) => PressedChartKey({ command })));
+// In update: const next = targetAfter(count, current, command);
+
+// Every chart can describe itself and carry its data as a hidden table.
+plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
+```
+
+- **`chartCommandOf(key, modifiers)`** maps keys to commands:
+  - arrows step by one, and Page Up and Page Down by a page;
+  - Home and End jump to the ends;
+  - Escape clears, and Enter and Space select;
+  - keys held with Ctrl, Alt or Meta are left to the browser.
+- **`targetAfter(count, current, command)`** applies a command to a target
+  index.
+- **`chartKeyDown` and `chartKeyDownFocus`** wrap the two for FoldKit's
+  `OnKeyDownPreventDefault` and `OnKeyDownFocus`. The latter moves roving focus
+  to the target's element.
+- **`describePlot(geometry)`** summarises a plot in plain language: what it
+  draws and how many, what the axes cover, and what colour shows.
+- **`plotTable(spec)`** lists the data a spec plots, field by field, capped at
+  200 rows with the total noted.
+- **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
+  and a test enforces it.
 
 ## Parent-owned interaction state
 
@@ -451,9 +778,9 @@ bun test       # run this package's tests from packages/foldkit-viz
 
 MIT — Alan P Currie
 
-## Bars, word cloud, text and paint (unreleased workspace API)
+## Bars, word cloud, text and paint
 
-These additions are available in the workspace and have not been published to npm.
+These subpaths ship in the published package.
 
 ```ts
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
@@ -570,12 +897,12 @@ adapter owns no input state. Existing frames without this option render unchange
 
 `intervalBandGeometry` (`chart/intervalBand`) projects one ordered run of finite lower/upper bounds through a shared Cartesian layout. Bounds must be ordered and keys unique/non-empty. Signed/equal bounds are valid; empty/singleton runs return no area path, retaining singleton endpoints. Compose each disconnected run separately and clip to the plot. These pure root/subpath exports do not infer confidence, quality or statistics, and require no Foldkit/Effect peers.
 
-## Orthographic sphere (workspace-only)
+## Orthographic sphere
 
 The additive `@opsydyn/foldkit-viz/shape/globe` entry exports `GlobeView`,
 `GlobePoint`, `projectGlobePoint`, `clipGlobeLine` and `GLOBE_EPSILON`.
 These functions are pure and require neither FoldKit, Effect nor D3 at runtime.
-This workspace addition is not established as available in the published 0.11.0.
+Published from 0.13.0.
 
 Supply longitude/latitude in degrees, a view centre, positive radius and screen
 translation. East is screen-right, north screen-up; `facing` is independent of

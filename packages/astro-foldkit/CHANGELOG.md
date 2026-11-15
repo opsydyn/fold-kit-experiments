@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.13.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.12.0...astro-foldkit-v0.13.0) (2026-11-13)
+
+### Features
+
+- **astro-foldkit:** preload the chunk chain of islands that boot at load ([6d7eaef](https://github.com/opsydyn/fold-kit-experiments/commit/6d7eaefadfac9c05347184ee954d4cacdb3ea04c))
+
+## [0.12.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.11.0...astro-foldkit-v0.12.0) (2026-11-12)
+
+### Features
+
+- **astro-foldkit:** add a client:interaction directive that replays early input ([9e2afa8](https://github.com/opsydyn/fold-kit-experiments/commit/9e2afa848cefa0accb1cc58767b1389c652239df))
+- **astro-foldkit:** add a client:interaction directive that replays early input ([0ddee8a](https://github.com/opsydyn/fold-kit-experiments/commit/0ddee8a79f8b84ea4fdfb097524faa873830da2f))
+
+### Bug Fixes
+
+- **astro-foldkit:** pre-bundle island dependencies before the first request ([13c8a73](https://github.com/opsydyn/fold-kit-experiments/commit/13c8a73c46b4458d4513a10e26fc4780e05e2838))
+- **astro-foldkit:** pre-bundle island dependencies before the first request ([a5b52c1](https://github.com/opsydyn/fold-kit-experiments/commit/a5b52c18e2207af6d71e2e4c58032ec720b2172e))
+
+## [0.11.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.10.0...astro-foldkit-v0.11.0) (2026-11-12)
+
+### Features
+
+- **astro-foldkit:** warn about islands that fail silently ([232e940](https://github.com/opsydyn/fold-kit-experiments/commit/232e94023d5181e049d6d964a93220d364d06fff))
+
+## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.3...astro-foldkit-v0.10.0) (2026-11-11)
+
+### Features
+
+- **astro-foldkit:** let an island pre-render its first paint ([ae06ae9](https://github.com/opsydyn/fold-kit-experiments/commit/ae06ae9df22a8cbf094cfe3a9a28ef48da5cf51d))
+
 ## [0.9.3](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.2...astro-foldkit-v0.9.3) (2026-10-29)
 
 ### Bug Fixes

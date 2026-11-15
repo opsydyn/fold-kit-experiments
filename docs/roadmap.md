@@ -13,11 +13,257 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.167.x` to `0.169.x`, stable Effect
-`4.0.0`, and the `@foldkit/vite-plugin` `0.28.x` line. See the
-[migration guide](migrations/foldkit-0.167.md) and the [0.169 notes](releases/foldkit-0.169.md). Astro integration `0.8.0` and
-Viz `0.11.0` are published; registry and hosted deployment verification is
-recorded in the [release notes](releases/foldkit-0.167.md).
+Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
+`@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
+`0.17.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
+notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
+[0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
+covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`.
+
+## Viz: data-science release track — 2026-11-13
+
+**Goal:** make foldkit-viz the first choice for data-science and engineering charts on
+the web, with a clear reason to pick it over Plotly, Vega-Lite and Observable Plot.
+
+**Where it stands.** The primitives are close to D3: scales, curves, shapes, map
+projections, hierarchy layouts, force simulation, Voronoi, contours, KDE, binning
+and colour schemes. The chart layer on top is thin:
+
+- The Cartesian layer draws linear axes only; log, symlog and time axes are not
+  possible, and time ticks and labels use local time only.
+- About eight chart geometries ship: line, scatter, histogram, bars, error bars,
+  interval band, segments and orbit. Around 45 full charts exist only as `apps/web`
+  demos.
+- There is no grammar of marks, channels and facets, which is what makes Plotly
+  Express, Vega-Lite and Observable Plot fast to use.
+- Regression, ECDF, QQ and hexbin are missing, and nothing renders beyond SVG,
+  which struggles past about 10,000 marks.
+- Interaction primitives (brush, zoom, selection, nearest-by-x) exist but are not
+  composed into linked views.
+
+**Where we can win:** server-rendered charts that ship no JavaScript until they are
+interactive; accessibility by default; typed, pure, testable geometry; and a planned
+JSON-serialisable spec that suits generated charts and other languages.
+
+**Release status:** 0.18.0 to 0.22.0 are complete on the `feat/viz-roadmap-scales`
+branch and not yet released. 0.21.0 meets two of its three exit criteria; see below.
+
+### 0.18.0 — Foundations (next release)
+
+- [x] Scale-generic Cartesian layer: x and y take linear, log, symlog, power or time
+      scales, and ticks and default labels follow the scale. Time axes default to UTC so
+      server and browser agree. Existing configurations are unchanged.
+      [Design](superpowers/specs/2026-11-13-scale-generic-cartesian-design.md).
+- [x] Statistical transforms: least-squares linear and polynomial fits with
+      confidence bands, LOESS, ECDF, QQ quantiles and moving windows.
+- [x] Two-dimensional binning, rectangular and hexagonal, feeding a cell geometry.
+- [x] Cell geometry (`chart/cells`) for the heatmap, calendar-heatmap and
+      correlation-matrix shapes. Moving those demos onto it did not happen in 0.19.0
+      and carries to 0.21.0.
+- [x] Downsampling for long series: LTTB and min-max (M4).
+
+**Exit criteria:** the web app shows a log-scaled time series, a regression with its
+confidence band and a 100,000-point series downsampled to the plot width, each
+server-rendered with axes from the chart layer.
+Met by the web app's `/data-science` page, which adds a hexagonal density view.
+
+### 0.19.0 — Grammar of marks (design first)
+
+- [x] Specification and ADR: marks (dot, line, area, bar, rule, text, cell), channels
+      (x, y, fill, stroke, r, title), scales and legends inferred from channels, facets
+      for small multiples, and layered marks on shared scales. Box, density and link
+      marks and a symbol channel move to the promotions below. Box and link shipped
+      there; the density mark and the symbol channel did not, and carry to 0.21.0.
+- [x] A declarative, JSON-serialisable spec rendered through the same pure geometry,
+      server-rendered by default. [ADR 0037](adr/0037-a-declarative-grammar-of-marks-for-foldkit-viz.md);
+      `compilePlot` and `foldkit/plot`, shown on the web app's `/plot-grammar` page.
+- [x] Promote box and violin, candlestick, parallel coordinates, treemap and
+      sunburst, and sankey from the demos as marks: `box`, `violin`, `link` with
+      interval bars, `parallel`, `treemap`, `sunburst` and `sankey`.
+
+**Exit criteria:** each promoted demo is re-expressed as a spec, and its web-app page
+is rebuilt from the library.
+Met: the seven demos on the web app's `/charts` page are now plot specs, pre-rendered
+with no JavaScript, and their bespoke chart modules are removed. Their hover
+highlights became native tooltips; interaction in the spec is 0.20.0 work.
+
+### 0.20.0 — Scale and interaction
+
+- [x] Optional canvas painting for dot, line and cell marks from the same geometry,
+      as an adapter beside the FoldKit one; the geometry stays renderer-agnostic.
+      `dense` dot marks compile to packed typed arrays; `canvas/plot` paints any
+      geometry, and `plotCanvas` puts the canvas under an SVG overlay.
+- [x] Hit-testing, two-dimensional nearest hover and a crosshair. `indexPlot` uses
+      a uniform 16-pixel grid built by counting sort rather than a quadtree: it
+      builds in linear time over typed arrays and answers a query from nearby cells.
+- [x] Linked brushing across views through a mark's `highlight`, which dims rows
+      outside a range or set of values. This closes the linked-view item of the
+      Viz interaction layer below.
+- [x] Zoom and pan bound to the chart scales: `invertPlot` and `invertAxis` map
+      pixels back to data, and a zoomed domain is written back into the spec.
+
+**Exit criteria:** a one-million-point scatter linked to a histogram, hovering within
+one frame.
+Met by the web app's `/explore` page. Measured in headless Chromium against the dev
+server on 2026-11-13: compiling the dense scatter takes 173–200 ms, indexing it about
+40 ms, and a nearest query about 0.008 ms. Hover from pointer move to painted overlay
+has a median of 2–4 ms and a 95th percentile of 16 ms, at the edge of one frame;
+a production build should have more headroom. Moving the brush recompiled the
+scatter: 500–570 ms from pointer release to painted canvas. (An earlier figure of
+680 ms included a fixed wait in the measuring script.) 0.21.0 makes it incremental.
+
+### 0.21.0 — Cartesian coverage
+
+At the start of this release, seven of the web app's chart demos shipped from the
+library; about 40 chart modules still lived in `apps/web/src/ui`, built on the library's primitives but not exported.
+This release moves every chart on x and y axes into the grammar.
+
+- [x] Carried from 0.19.0: a symbol channel on dot marks, drawn with `shape/symbol`
+      and shown in the legend; and a `density` mark, a one-dimensional kernel density
+      drawn as an area and outline, with a two-dimensional form drawn as contour lines
+      computed in plot pixels.
+- [x] Stacking and grouping: `stack` on bar and area marks, with zero, normalised,
+      diverging and wiggle offsets (the last for streamgraphs), and `group` on bar
+      marks for side-by-side series, reusing `shape/stack` and the chart layer's
+      grouped bars.
+- [x] A `bin` transform on a new `rect` mark: histograms from raw rows by threshold
+      count or explicit thresholds, and two-dimensional rectangular histograms, so a
+      histogram needs no pre-binned data. Hexagonal binning stays in `chart/cells`:
+      hexagons tile only in pixel space, which the grammar reaches after scales.
+- [x] Highlight without recompiling: `highlightPoints` restyles a dense mark's
+      compiled geometry and keeps its hover index valid, and the canvas painter draws
+      tiny points as squares. The `/explore` brush fell from 500–570 ms to 84–107 ms,
+      not to one frame; see the exit criteria.
+- [x] Promote the demos the grammar expresses today: area, bar, bubble, bullet,
+      bump, calendar heatmap, correlation matrix, curve comparison, diverging bar,
+      heatmap, line, log scatter, scatter, threshold bar, tile-grid map, timeline,
+      waterfall and zoomable line. The three cell demos close the 0.18.0 cell item.
+- [x] Promote the demos that need the features above: diverging stacked bar,
+      streamgraph, histogram, histogram brush, symbol scatter and density contour.
+
+**Exit criteria:** those 24 demos are plot specs, rendered on the server, and their
+modules in `apps/web/src/ui` are removed. The interactive ones (histogram brush and
+zoomable line) keep their interaction through overlays and the 0.20.0 helpers, not
+bespoke modules. The `/explore` brush highlights within one frame.
+
+Two of three met. All 24 demos are specs, and 22 `ui` modules are removed;
+`histogram-chart` and `scatter-chart` stay because the linked-charts,
+request-diagnostics and comparison reference apps use them. Zoomable line and
+histogram brush are small apps over specs. Small additions the demos needed:
+`clip`, `axis: false`, and constant marks such as reference rules drawing once.
+
+Not met: the `/explore` brush takes 84–107 ms from pointer release to painted
+canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms is the
+canvas rasterising a million squares. One frame needs GPU drawing or a separate
+highlight layer, which moves to Later.
+
+### 0.22.0 — Beyond Cartesian
+
+[Design](superpowers/specs/2026-11-14-plot-beyond-cartesian-design.md).
+
+- [x] Polar coordinates: a plot-level `coordinates: 'polar'` maps x to angle and y
+      to radius, so bars become radial bars and wind roses, and a line or area over
+      categories closes into a radar. Sectors centre on their category. An `arc`
+      mark gives pie, donut and gauge: slices in row order over a sweep from `start`
+      to `end`, rather than a separate pie transform.
+- [x] A `geo` mark over GeoJSON features through a plot-level projection, fill from
+      a feature property for choropleths, and a `graticule` mark. Dots and text
+      place longitude and latitude through the projection. Zoom is the projection's
+      `zoom` and `center`, not the 0.20.0 domain helpers, which suit axes.
+- [x] Network and tree marks: `tree` (tidy or cluster, left to right or radial),
+      `pack`, `chord`, `arc-diagram` and `force`. The force layout runs a seeded
+      simulation to a fixed count at compile time, so the output stays static
+      geometry.
+- [x] A `voronoi` mark for cells around points. Building it found that the
+      Delaunay port's orientation test had the wrong sign, so triangulations were
+      not Delaunay and Voronoi cells missed their sites; that is fixed, with a
+      regression test.
+- [x] Promote radar, wind rose, donut, gauge, choropleth, zoomable choropleth, map
+      projections, chord, arc diagram, force graph, packed circles, tidy tree, radial
+      tree and Voronoi.
+
+**Exit criteria:** every chart demo is a library spec except the three that
+showcase primitives rather than charts (easing curves, colour spaces and
+phyllotaxis), and `apps/web/src/ui` holds no chart modules.
+Met, with the exception 0.21.0 recorded: `histogram-chart` and `scatter-chart`
+remained for the linked-charts, request-diagnostics and comparison reference apps.
+They are now removed too; see "Reference apps on plot panels" below.
+Also fixed along the way: world maps no longer draw a stripe where a country
+crosses the antimeridian.
+
+### Reference apps on plot panels
+
+[Design](superpowers/specs/2026-11-14-plot-panel-design.md).
+
+- [x] `ui/plot-panel` in the web app: one interactive child over any plot spec.
+      Hovering a dot reports the point, hovering a bar reports its exact bin
+      range, arrow keys step through targets, and a drag on a continuous x axis
+      selects a range. Parents pass `highlight` and `emphasis` back as view props.
+      It is focusable, announces the active target and lists every target in a
+      hidden table. Its pointer facts reach the dispatcher synchronously, so they
+      keep their order with key presses and leaves.
+- [x] Linked charts, request diagnostics and comparison compose plot panels,
+      keeping their parent-owned inspection, brushing and machine states.
+- [x] `ui/histogram-chart`, `ui/scatter-chart` and the shared helpers only they
+      used are removed.
+
+**Exit criteria:** every chart in the web app comes from the grammar.
+Met: `apps/web/src/ui` holds the plot panel, the carousel, and the three demos
+that show primitives rather than charts (easing curves, colour spaces and
+phyllotaxis). Checked in Chromium on 2026-11-14: hovering and brushing link the
+charts in all three apps.
+
+### Later — Reach
+
+- One-frame repainting of a million points: WebGL points, or a highlight layer
+  that repaints only the brushed points.
+- DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
+  and Arrow data" below.
+- SVG and PNG export, and themes beyond light and dark.
+- A Jupyter widget that renders the JSON spec.
+- Three-dimensional surfaces and scatter through effect-three.
+
+The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
+and no dependency on `foldkit/http`.
+
+## Viz: Polars and Arrow data — 2026-11-14
+
+**Status:** standalone piece of work, separate from the release track above.
+[Assessment](superpowers/specs/2026-11-14-polars-assessment.md), with a measured
+spike.
+
+**Outcome:** data held in Polars (Rust, Python or Bun) or any Arrow source plots
+through the grammar at scale, without becoming a million row objects, and programs
+in other languages can write checked plot specs.
+
+**Where it stands:** Polars already plots on the server through `nodejs-polars`
+with no library changes. A million rows reach JavaScript as Arrow in 9 ms
+against 246 ms as row objects, and once data is columnar the grammar's own
+per-row reads are the cost.
+
+- [ ] Columnar data input: `data` accepts a column table (names to typed or plain
+      arrays, and a length) as well as rows. `read` gets a column path, and dense
+      marks read typed columns directly. Transforms that write new rows keep
+      writing rows.
+- [ ] An Arrow adapter typed structurally (`numRows`, `getChild(name).toArray()`),
+      so flechette and apache-arrow tables plot without foldkit-viz depending on
+      either.
+- [ ] A JSON Schema for `PlotSpec`, generated from the types and published with
+      the package, with every example spec in the repo checked against it, so
+      Rust (`serde`) and Python programs can emit checked specs.
+- [ ] An example of the summary pattern: a server route that aggregates a large
+      Polars frame and plots the result, beside `/explore`'s client-side million
+      points.
+- [ ] Later, once the columnar input exists: translate bin, stack and density
+      into Polars or DuckDB queries, as VegaFusion does for Vega.
+
+**Exit criteria:** a million-row Arrow table from Polars compiles to a dense
+scatter faster than the same data as row objects, measured and recorded; a Rust
+or Python program's spec is validated by the published schema; and the summary
+example runs in the web app.
+
+**Not planned:** Polars in the browser, whose WASM build is an alpha, and any
+dependency on Polars or Arrow inside foldkit-viz.
 
 ## Zloz: brand and product direction — 2026-11-08
 
@@ -555,13 +801,14 @@ FoldKit 0.136.x.
 **Outcome:** chart consumers can compose selection and navigation interactions without rewriting event plumbing for every chart.
 
 - [x] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
-- [ ] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows.
-- [ ] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency.
-- [ ] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`.
-- [ ] Add accessible data summaries or table projections for chart views.
-- [ ] Add property and interaction tests for domain conversion, clearing, clamping, and linked updates.
+- [x] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows. Plot specs link through `highlight` (foldkit-viz 0.20.0, `/explore`).
+- [x] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency. Enforced by `test/framework-boundary.test.ts`: only `src/foldkit` may import FoldKit or Effect, and no module touches the DOM.
+- [x] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`. `interaction/keyboard` maps keys to chart commands (arrows, Page Up and Down, Home, End, Escape, Enter and Space, with modified keys left to the browser); `foldkit/keyboard` gives handlers for `OnKeyDownPreventDefault` and `OnKeyDownFocus`, the latter with roving focus. The plot panel uses them.
+- [x] Add accessible data summaries or table projections for chart views. `describePlot` summarises compiled geometry and `plotTable` projects a spec's data; `plotChart` and `plotCanvas` take both as options, and every gallery chart and plot panel uses them.
+- [x] Add property and interaction tests for domain conversion, clearing, clamping, and linked updates. fast-check properties cover every axis type's round trip, pointer conversion, zoom and pan bounds, selection clamping and clearing, and `highlightPoints`; a seeded sequence test covers linked charts.
 
 **Exit criteria:** two charts can share a typed selection model while each remains independently reusable and testable.
+Met, 2026-11-14: linked charts, request diagnostics and comparison compose independent plot panels through typed out-messages and a parent-owned inspection or selection, and each panel is tested alone.
 
 ## Next: Reference Data Explorer
 
@@ -581,11 +828,20 @@ FoldKit 0.136.x.
 **Outcome:** both packages are dependable for external consumers.
 
 - [x] Add package export and packed-consumer tests to CI through `bun run test`.
-- [ ] Add API reports or generated type-surface checks for public exports.
-- [ ] Add compatibility coverage for the supported Astro range.
-- [ ] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route `Transition`.
+- [x] Add API reports or generated type-surface checks for public exports. `tools/api-surface.ts` writes
+      `etc/api-surface.md` for every entry point (58 in Viz, 4 in Astro); CI fails when the surface changes
+      without the report (`bun run api:check`).
+- [x] Add compatibility coverage for the supported Astro range. `tools/astro-compat.ts` packs the
+      integration and builds a fixture site on each major; Astro 5.18, 6.4 and 7.4 pass in the `astro-compat`
+      CI job. Astro 4 fails, as expected below the `>=5.0.0` peer: FoldKit's Vite plugin needs the Vite
+      environment API.
+- [x] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route
+      `Transition`: [FoldKit 0.170 and Effect 4.1](migrations/foldkit-0.170.md).
 - [x] Track package changelogs and versioning independently with release-please (`astro-foldkit` versus `foldkit-viz`).
-- [ ] Add performance checks for bundle size and large chart datasets.
+- [x] Add performance checks for bundle size and large chart datasets. `tools/bundle-budget.ts` holds each
+      Viz entry point to a gzipped budget in CI (`bun run size:check`); `test/performance.test.ts` times a
+      million-row compile, index, 1,000 queries, highlight and bin against budgets about ten times a
+      laptop's times.
 
 ## Deliberate Non-Goals
 

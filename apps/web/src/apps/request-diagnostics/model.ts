@@ -1,8 +1,7 @@
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { NavigationValue } from './navigation';
 
 export const Point = Schema.Struct({
@@ -53,8 +52,8 @@ export const samplePoints: ReadonlyArray<Point> = [
 
 export type Model = Readonly<{
   explorer: ExplorerState;
-  histogram: Histogram.Model;
-  scatter: Scatter.Model;
+  histogram: PlotPanel.Model;
+  scatter: PlotPanel.Model;
   lastTransition: string;
   navigation: NavigationValue;
   route: import('./navigation').DiagnosticsRoute;
@@ -69,38 +68,54 @@ export const Model = Schema.Struct({
   route: Schema.Unknown,
 });
 
-const makeHistogram = (points: ReadonlyArray<Point>): Histogram.Model =>
-  Histogram.init({
-    data: points.map(({ x }) => ({ value: x })),
-    binCount: 10,
-    color: '#38bdf8',
-    xLabel: 'Response time (ms)',
-    dims: { width: 480, height: 265 },
-    enableBrush: true,
+/** Latency binned into a histogram the pointer can brush to filter the scatter. */
+export const histogramFor = (points: ReadonlyArray<Point>): PlotPanel.Model =>
+  PlotPanel.init({
+    spec: {
+      width: 480,
+      height: 265,
+      data: points,
+      x: { label: 'Response time (ms)' },
+      y: { label: 'Requests' },
+      marks: [
+        {
+          mark: 'rect',
+          x: 'x',
+          fill: { value: '#38bdf8' },
+          inset: 1,
+          title: 'count',
+          transform: { type: 'bin', thresholds: 10 },
+        },
+      ],
+    },
+    brush: true,
   }).model;
 
-const makeScatter = (points: ReadonlyArray<Point>): Scatter.Model =>
-  Scatter.init({
-    points,
-    config: {
-      color: '#38bdf8',
-      activeColor: '#f97316',
-      xLabel: 'Response time (ms)',
-      yLabel: 'Error rate (%)',
+/** Error rate against latency, one dot per request. */
+const scatterFor = (points: ReadonlyArray<Point>): PlotPanel.Model =>
+  PlotPanel.init({
+    spec: {
+      width: 380,
+      height: 265,
+      data: points,
+      x: { label: 'Response time (ms)' },
+      y: { label: 'Error rate (%)' },
+      marks: [
+        { mark: 'dot', x: 'x', y: 'y', r: { value: 5 }, fill: { value: '#38bdf8' }, title: 'x' },
+      ],
     },
-    dims: { width: 380, height: 265 },
   }).model;
 
 export const initModel: Model = {
   explorer: ExplorerState.Loading(),
-  histogram: makeHistogram(samplePoints),
-  scatter: makeScatter(samplePoints),
+  histogram: histogramFor(samplePoints),
+  scatter: scatterFor(samplePoints),
   lastTransition: 'Loading -> waiting for metrics',
   navigation: { phase: 'coldLoad', path: '/', previousPath: null },
   route: { _tag: 'Index' },
 };
 
 export const chartsFor = (points: ReadonlyArray<Point>): Pick<Model, 'histogram' | 'scatter'> => ({
-  histogram: makeHistogram(points),
-  scatter: makeScatter(points),
+  histogram: histogramFor(points),
+  scatter: scatterFor(points),
 });

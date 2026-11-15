@@ -1,0 +1,10 @@
+---
+import ComplexityField from '../apps/complexity-field/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Complexity Field — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Complexity Field</h1>
+  <ComplexityField client:visible noMeta />
+</Layout>

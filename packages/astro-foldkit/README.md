@@ -1,13 +1,13 @@
 # @opsydyn/astro-foldkit
 
 Astro integration and renderer for [FoldKit](https://foldkit.dev), with
-client-only islands and an opt-in server-rendered page path.
+islands that can pre-render, and an opt-in server-rendered page path.
 
-FoldKit is an Elm Architecture runtime built on [Effect](https://effect.website). This package registers FoldKit as an Astro renderer so you can drop any FoldKit app into a `.astro` page as a component and hydrate it with `client:load`.
+FoldKit is an Elm Architecture runtime built on [Effect](https://effect.website). This package registers FoldKit as an Astro renderer so you can drop any FoldKit app into a `.astro` page as a component, and choose per island whether and when it ships JavaScript.
 
 There are two deliberately separate entry paths:
 
-- `lazyApp` / `defineApp` keeps the existing client-only island contract. Astro receives a deterministic mount shell and FoldKit starts in the browser.
+- `lazyApp` / `defineApp` registers an island. By default Astro receives a deterministic empty mount shell and FoldKit starts in the browser. With `{ prerender: true }` the island's first render is in the HTML, so it can ship with no directive and no JavaScript, or hydrate later with `client:visible` or this package's `client:interaction`. See [Choosing when JavaScript runs](#choosing-when-javascript-runs).
 - `definePage` opts one FoldKit application into SSG or request SSR. The server emits FoldKit HTML and public Flags, and `client:load` hydrates that exact DOM.
 
 ## Installation
@@ -26,8 +26,9 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` targets FoldKit `0.167.x` to `0.169.x`, stable Effect
-`4.0.0`, and the matching `@foldkit/vite-plugin` `0.28.x` line.
+`@opsydyn/astro-foldkit` targets FoldKit `0.170.x`, Effect `4.1.x`, and the
+matching `@foldkit/vite-plugin` `0.29.x` line. An application on an older FoldKit
+needs an older release of this integration.
 Applications can define interruptible work with
 `Command.define(name, { interrupt: true, ... })` inside their own update loop;
 this integration continues to own Astro rendering, hydration, and lifecycle
@@ -59,8 +60,9 @@ in public HTML, so it must not contain secrets. Do not reuse it across deploymen
 with different rendering inputs. Blank `server.buildId` options are rejected, and FoldKit
 fails closed when neither a compiled identity nor an explicit override is available.
 
-See the [0.167 migration guide](../../docs/migrations/foldkit-0.167.md) for the
-subscription API changes and package compatibility checks.
+See the [FoldKit 0.170 release notes](../../docs/releases/foldkit-0.170.md) for
+the move to Effect 4.1, and the [0.167 migration guide](../../docs/migrations/foldkit-0.167.md)
+for the earlier subscription API changes.
 
 ## Defining an app
 
@@ -115,10 +117,157 @@ particular on any page carrying more than one island. Drop it only when this
 island is meant to own the page title. See [`noMeta`](#nometa).
 
 For `lazyApp` / `defineApp`, the server renderer emits a deterministic
-`<div data-foldkit-island="true"></div>` mount shell. It does not load or
-execute the FoldKit application during SSR; the application is loaded and
-embedded only by the client renderer. Astro still owns the outer island
-serialisation and client directive behavior.
+`<div data-foldkit-island="true"></div>` mount shell. Unless the island opts
+into [pre-rendering](#pre-rendered-islands-opt-in), it does not load or execute
+the FoldKit application during SSR; the application is loaded and embedded only
+by the client renderer. Astro still owns the outer island serialisation and
+client directive behavior.
+
+In development the integration also adds every module that imports
+`define-app` or `define-page` to Vite's dependency scan, so an island's
+dependencies are bundled when the dev server starts rather than on the first
+request that loads it.
+
+### Pre-rendered islands (opt-in)
+
+An island can put its first paint in the HTML:
+
+```ts
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+
+export default lazyApp<Props>(() => import('./main'), { prerender: true });
+```
+
+The server then loads the module and runs `init` and `view` over the props
+Astro already serialises, filling the same mount shell instead of leaving it
+empty. The markup is static. Nothing hydrates it, and the client replaces it on
+boot exactly as it replaces an empty mount; because both sides run the same
+pure `init` and `view` over the same props, the replacement is the same markup.
+
+It carries no hydration stamp and no Flags payload, so any number of
+pre-rendered islands may share one document — unlike a `definePage` owner, of
+which a document may hold one. No build identity is involved, and no Astro
+request context is read.
+
+Two consequences are worth knowing:
+
+- `init` and `view` run on the server. An island whose `init` touches a
+  browser-only resource must leave this off. Opting in and failing fails the
+  render rather than quietly falling back to the empty mount, because an author
+  who asked for markup should be told they did not get it.
+- `client:visible` only works for an island that opts in. Astro's directive
+  observes an island's children, because `astro-island` is `display: contents`;
+  an empty mount measures 0x0 and never intersects, so the island silently
+  never hydrates. A pre-rendered island has size, and the directive works.
+
+### Choosing when JavaScript runs
+
+Pre-rendering separates two decisions that used to be one: whether an island
+appears in the HTML, and whether it ships JavaScript. Make them per island.
+
+| Island needs                | Write                                             | JavaScript at load           |
+| --------------------------- | ------------------------------------------------- | ---------------------------- |
+| To be read, never touched   | `prerender: true`, **no directive**               | none for this island         |
+| Interaction, below the fold | `prerender: true`, `client:visible`               | none until it is scrolled to |
+| Interaction, by a few       | `prerender: true`, `client:interaction`           | none until it is touched     |
+| Interaction, immediately    | `prerender: true`, `client:load` or `client:idle` | the runtime, at load         |
+| A browser-only `init`       | no `prerender`, `client:load` or `client:idle`    | the runtime, at load         |
+
+An island with no directive is Astro's ordinary static component: Astro emits
+no `<astro-island>` element and no script, so a pre-rendered FoldKit chart with
+no directive is complete HTML and nothing else. Most charts in a report are
+never interacted with, and this is how they should ship.
+
+One thing decides how much any of this saves: **the FoldKit runtime is shared,
+so one island that hydrates at load pays for all of it.** Making three of four
+islands static saves their own chunks and serialised props, not the runtime the
+fourth still needs. The large win comes when _nothing_ on the page hydrates at
+load. The pattern that gets there is to pre-render everything, leave the
+readable islands without a directive, and give the one interactive island
+`client:visible` if it sits below the fold.
+
+Measured on a report page with three charts and a data grid over 7,729 rows:
+
+| Configuration                                                 | JavaScript at load   | After scrolling to the grid |
+| ------------------------------------------------------------- | -------------------- | --------------------------- |
+| Four islands, `client:load`                                   | 377 KB, 17 requests  | —                           |
+| Three charts static, grid `client:load`                       | 351 KB, 8 requests   | —                           |
+| Everything pre-rendered, charts static, grid `client:visible` | **0 KB, 0 requests** | 351 KB, 8 requests          |
+
+In the last configuration the whole report, the grid's first page included,
+renders before any JavaScript runs. A chart that loses its hover readout by
+going static can keep the information as a native SVG `<title>` on each mark,
+which the browser shows as a tooltip and which costs no runtime.
+
+#### Module preloads for islands that boot at load
+
+An island's JavaScript arrives as a chain: Astro's bootstrap fetches the
+renderer and the component module, the component's `load` imports the
+application, and each chunk reveals its own imports only once it arrives.
+Astro emits no preload hints for island chunks, so every link costs a round
+trip.
+
+For each pre-rendered page, the build adds a `<link rel="modulepreload">` at
+the end of `<head>` for every chunk a `client:load` or `client:only` FoldKit
+island needs to boot, so the browser fetches the chain in parallel. The links
+follow the stylesheets, so they do not compete with render-blocking CSS. What
+the application imports lazily stays lazy, and islands that defer their
+download (`client:visible`, `client:idle`, `client:interaction`,
+`client:media`) are left alone, as are other renderers' islands. Nothing needs
+configuring.
+
+On a server-rendered report page whose owner hydrates with `client:load`, at
+150 ms per request, this cut the time to hydration from 1,140 ms to 510 ms, five
+sequential round trips down to two, with first paint unchanged.
+
+Pages rendered on request are not on disk at build time and keep the chain.
+
+#### `client:interaction`
+
+The integration adds a `client:interaction` directive. It hydrates a
+pre-rendered island on the reader's first pointer press, focus or key press
+inside it, and replays what they did before it booted:
+
+```astro
+<Counter client:interaction />
+<Counter client:interaction={{ hover: true }} />
+```
+
+FoldKit renders an island fresh rather than adopting the pre-rendered markup,
+so without help the click that started the download would be lost, and text
+typed into the static markup would disappear in the swap. The directive records
+clicks, field edits and focus inside the island, in order, and replays them
+onto the matching elements of the first client render: a field edit arrives as
+`input` and `change` events, a click as a click, and focus and the caret are
+restored. Elements are matched by position, which holds because server and
+client run the same pure `init` and `view`. A step whose element has changed,
+or is now disabled, is skipped. A run of edits to one field replays as its
+final value. With `{ hover: true }` a mouse pointer over the island also starts
+the download, which usually finishes before the click.
+
+The pre-rendered markup never reacts, so replay is faithful only up to the
+first point where the application would have changed the DOM. Typing into a
+field, pressing a button that clears it, then typing again replays the button
+press correctly but leaves the field holding everything typed.
+
+Choose it over `client:visible` only when most readers who see the island never
+use it, and its controls work in the pre-rendered markup. Every interaction
+waits for the download first. On the report page above, under Slow 4G and a
+4× CPU slowdown on a phone viewport, the grid's search was usable 1.65 s after
+the tap with `client:interaction`, against immediately with `client:visible`,
+which had already spent 172 KB while the reader scrolled. That grid also keeps
+its controls disabled until its rows arrive, so the reader's first tap does
+nothing but start the download: `client:visible` is the better choice there.
+
+The renderer warns at build and dev time about the arrangements that misbehave
+without an error, each once per component:
+
+- an island with **no directive and no `prerender`** renders an empty mount and
+  ships nothing, so it never displays anything;
+- an island with **`client:visible` and no `prerender`** never intersects, for
+  the reason above, so it never hydrates;
+- an island with **`client:interaction` and no `prerender`** has no markup to
+  interact with, so it hydrates at once, as `client:load` would.
 
 FoldKit replaces the inner mount, not the outer `<astro-island>`. The outer
 element remains Astro's lifecycle owner, including for empty `client:only`
@@ -425,7 +574,9 @@ Schema/value. `defineApp` keeps the existing props-based `init` contract.
 | `@opsydyn/astro-foldkit/define-page` | `definePage`, `PageConfig`, and page Flags context types  |
 | `@opsydyn/astro-foldkit/server`      | Server-only `resolvePageDocument` metadata resolver       |
 
-The root entry point also exports the `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types.
+The root entry point also exports the `InteractionOptions`, `NavigationConfig`,
+`NavigationEvent`, and `NavigationPhase` types, and declares the
+`client:interaction` directive on Astro's `AstroClientDirectives`.
 
 ## Embedding
 
@@ -562,7 +713,8 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.167.0 < 0.170.0` |
+| `effect`  | `~4.1.0`              |
+| `foldkit` | `≥ 0.170.0 < 0.171.0` |
 
 ## Stateflow Observatory example
 

@@ -28,7 +28,9 @@
   "scripts": {
     "build": "bun run --filter @opsydyn/foldkit-zloz build && tsdown",
     "typecheck": "bun run --filter @opsydyn/foldkit-zloz build && tsc --noEmit",
-    "test": "bun run build && bun test ./test",
+    "test": "bun run test:unit && bun run test:package",
+    "test:unit": "bun run build && bun test ./test --path-ignore-patterns='**/package.test.ts'",
+    "test:package": "bun test ./test/package.test.ts",
     "pack:check": "bun run build && publint && bun pm pack --destination dist/pack"
   },
   "devDependencies": {

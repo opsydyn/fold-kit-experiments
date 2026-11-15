@@ -35,6 +35,24 @@ export type AppConfig<
   readonly view: Runtime.ApplicationConfig<Model, Message>['view'];
 };
 
+export type DefineAppOptions = {
+  /**
+   * Render this island's markup on the server for first paint.
+   *
+   * The markup is static: nothing hydrates it, and the client replaces it when
+   * the island boots, exactly as it replaces the empty mount today. It carries
+   * no hydration stamp and no Flags payload, so any number of pre-rendered
+   * islands may share a document — unlike a `definePage` owner, of which a
+   * document may hold one.
+   *
+   * `init` and `view` therefore run on the server. An island whose `init`
+   * touches a browser-only resource must leave this off; opting in and failing
+   * fails the render rather than quietly serving the empty mount, because an
+   * author who asked for markup should be told they did not get it.
+   */
+  readonly prerender?: boolean;
+};
+
 export type FoldkitApp<
   Props extends object = EmptyProps,
   Config extends AppConfigContract<Props> = AppConfigContract<Props>,
@@ -42,6 +60,7 @@ export type FoldkitApp<
   (props?: Props): void;
   readonly __foldkit: true;
   readonly load: () => Promise<Config>;
+  readonly prerender?: boolean;
 };
 
 export type PageParams = Readonly<Record<string, string | undefined>>;

@@ -1,0 +1,10 @@
+---
+import Evolution from '../apps/evolution/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Diagram Evolution — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Diagram Evolution</h1>
+  <Evolution client:visible noMeta />
+</Layout>

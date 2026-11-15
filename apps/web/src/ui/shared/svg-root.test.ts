@@ -5,8 +5,7 @@ import { expect, it, onTestFinished, vi } from 'vitest';
 
 import { initModel } from '../../apps/request-diagnostics/model';
 import { view as diagnosticsView } from '../../apps/request-diagnostics/view';
-import * as Histogram from '../histogram-chart';
-import * as Scatter from '../scatter-chart';
+import * as PlotPanel from '../plot-panel';
 
 async function focusScene<Model, Message extends { _tag: string }>(
   model: Model,
@@ -32,9 +31,9 @@ async function focusScene<Model, Message extends { _tag: string }>(
     handle.dispose();
     host.remove();
   });
-  await vi.waitFor(() => expect(host.querySelectorAll('svg')).toHaveLength(count));
+  await vi.waitFor(() => expect(host.querySelectorAll('.plot-panel')).toHaveLength(count));
   expect(host.querySelector('.comparison')).toBeNull();
-  const charts = host.querySelectorAll<SVGElement>('svg[tabindex="0"]');
+  const charts = host.querySelectorAll<HTMLElement>('.plot-panel[tabindex="0"]');
   expect(charts).toHaveLength(count);
   for (const chart of charts) {
     chart.focus();
@@ -44,23 +43,23 @@ async function focusScene<Model, Message extends { _tag: string }>(
   }
 }
 
-it('does not suppress native histogram focus outside comparison', async () => {
-  await focusScene<Histogram.Model, Histogram.Message>(
-    Histogram.init({ data: [] }).model,
-    (model, h) => ({
-      title: 'Histogram',
-      body: Histogram.view({ model, toParentMessage: (message) => message }, h),
-    }),
-    1,
-  );
-});
-
-it('does not suppress native scatter focus outside comparison', async () => {
-  await focusScene<Scatter.Model, Scatter.Message>(
-    Scatter.init({ points: [] }).model,
-    (model, h) => ({
-      title: 'Scatter',
-      body: Scatter.view({ model, toParentMessage: (message) => message }, h),
+it('does not suppress native plot panel focus outside comparison', async () => {
+  const model = PlotPanel.init({
+    spec: {
+      width: 300,
+      height: 200,
+      data: [{ x: 1, y: 2 }],
+      marks: [{ mark: 'dot', x: 'x', y: 'y' }],
+    },
+  }).model;
+  await focusScene<PlotPanel.Model, PlotPanel.Message>(
+    model,
+    (current, h) => ({
+      title: 'Plot panel',
+      body: PlotPanel.view(
+        { model: current, toParentMessage: (message) => message, ariaLabel: 'Points' },
+        h,
+      ),
     }),
     1,
   );

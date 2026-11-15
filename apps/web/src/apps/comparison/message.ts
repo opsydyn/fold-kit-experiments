@@ -1,8 +1,7 @@
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import type * as Histogram from '../../ui/histogram-chart';
-import type * as Scatter from '../../ui/scatter-chart';
+import type * as PlotPanel from '../../ui/plot-panel';
 
 export const Message = defineMessageUnion({
   CompletedFocusComparisonTarget: {},
@@ -18,9 +17,9 @@ export const Message = defineMessageUnion({
   GotHistogramMessage: { id: Schema.Number, message: Schema.Unknown },
 });
 export type GotScatterMessage = Omit<typeof Message.GotScatterMessage.Type, 'message'> & {
-  readonly message: Scatter.Message;
+  readonly message: PlotPanel.Message;
 };
 export type GotHistogramMessage = Omit<typeof Message.GotHistogramMessage.Type, 'message'> & {
-  readonly message: Histogram.Message;
+  readonly message: PlotPanel.Message;
 };
 export type Message = typeof Message.Type;

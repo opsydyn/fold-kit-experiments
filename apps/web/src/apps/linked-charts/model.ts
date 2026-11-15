@@ -1,13 +1,13 @@
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { Option, Schema } from 'effect';
 import { foldChildInits } from 'foldkit/update';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import type { Inspection, KeyedPoint } from '../../ui/shared/inspection';
 import { Message } from './message';
 
 // 30 salary vs experience data points
-const POINTS: ReadonlyArray<KeyedPoint> = [
+export const POINTS: ReadonlyArray<KeyedPoint> = [
   { id: 'salary-1', x: 1, y: 55000, label: '1yr' },
   { id: 'salary-2', x: 2, y: 62000, label: '2yr' },
   { id: 'salary-3', x: 2, y: 58000, label: '2yr' },
@@ -40,37 +40,61 @@ const POINTS: ReadonlyArray<KeyedPoint> = [
   { id: 'salary-30', x: 20, y: 175000, label: '20yr' },
 ];
 
+/** Salary against experience, one dot per person, keyed by id for linking. */
+const scatterSpec: PlotSpec = {
+  width: 380,
+  height: 260,
+  data: POINTS,
+  x: { label: 'Years experience' },
+  y: { label: 'Salary ($)' },
+  marks: [
+    {
+      mark: 'dot',
+      x: 'x',
+      y: 'y',
+      key: 'id',
+      r: { value: 5 },
+      fill: { value: '#6366f1' },
+      title: 'label',
+    },
+  ],
+};
+
+/** The same salaries binned, so a bar's range links to the points inside it. */
+const histogramSpec: PlotSpec = {
+  width: 360,
+  height: 260,
+  data: POINTS,
+  x: { label: 'Salary ($)' },
+  y: { label: 'People' },
+  marks: [
+    {
+      mark: 'rect',
+      x: 'y',
+      fill: { value: '#6366f1' },
+      inset: 1,
+      title: 'count',
+      transform: { type: 'bin', thresholds: 8 },
+    },
+  ],
+};
+
 export const Model = Schema.Struct({
   scatter: Schema.Unknown,
   histogram: Schema.Unknown,
   inspection: Schema.Unknown,
 });
 export type Model = Omit<typeof Model.Type, 'scatter' | 'histogram' | 'inspection'> & {
-  readonly scatter: Scatter.Model;
-  readonly histogram: Histogram.Model;
+  readonly scatter: PlotPanel.Model;
+  readonly histogram: PlotPanel.Model;
   readonly inspection: Option.Option<Inspection>;
 };
 
 export const initChartModels = () =>
   foldChildInits(
     {
-      scatter: Scatter.init({
-        points: POINTS,
-        config: {
-          color: '#6366f1',
-          activeColor: '#4338ca',
-          xLabel: 'Years experience',
-          yLabel: 'Salary ($)',
-        },
-        dims: { width: 380, height: 260 },
-      }),
-      histogram: Histogram.init({
-        data: POINTS.map((p) => ({ value: p.y })),
-        binCount: 8,
-        color: '#6366f1',
-        xLabel: 'Salary ($)',
-        dims: { width: 360, height: 260 },
-      }),
+      scatter: PlotPanel.init({ spec: scatterSpec }),
+      histogram: PlotPanel.init({ spec: histogramSpec }),
     },
     {
       toParentModel: ({ scatter, histogram }): Model => ({

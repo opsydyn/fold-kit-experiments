@@ -1,0 +1,83 @@
+# moon runs the workspace's checks, in CI and locally. Each workspace package
+# is a moon project whose tasks run that package's scripts without their
+# dependency builds: moon builds dependencies first, once, from its graph
+# (`deps: ['^:build']`), and caches every task by the hash of its inputs. The
+# repository root is one more project, for the repo-wide lint and format checks.
+#
+#   bun run ci:check        the CI `check` job, cached, in this checkout
+#   bun run ci:clean        the same in a fresh checkout of HEAD (pre-push)
+#   bun moon run web:build  one task and whatever it depends on
+#
+# tools/ci-parity.test.ts keeps each task equal to its package script.
+projects:
+  globs: ['packages/*', 'apps/*', 'infra/*']
+  sources:
+    root: '.'
+
+hasher:
+  # Hash what git sees. Explicit input globs do not consult git, so every path
+  # .gitignore ignores is listed here too, each with a leading **/ (moon matches
+  # only that form); tools/ci-parity.test.ts keeps the two
+  # in step. Otherwise a task's own cache, dev-server state or test artifacts
+  # would change its hash on every run.
+  walkStrategy: vcs
+  ignorePatterns:
+    - '**/dist/**'
+    - '**/coverage/**'
+    - '**/storybook-static/**'
+    - '**/.wrangler/**'
+    - '**/.alchemy/**'
+    - '**/.worktrees/**'
+    - '**/packages/astro-foldkit/artifacts/**'
+    - '**/apps/web/test-results/**'
+    - '**/apps/web/playwright-report/**'
+    - '**/.astro/**'
+    - '**/node_modules/**'
+    - '**/npm-debug.log*'
+    - '**/yarn-debug.log*'
+    - '**/yarn-error.log*'
+    - '**/pnpm-debug.log*'
+    - '**/.env'
+    - '**/.env.production'
+    - '**/.DS_Store'
+    - '**/.idea/**'
+    - '**/foldkit-main/**'
+    - '**/effect-smol-main/**'
+    - '**/astro-astro-7.0.0-alpha.1/**'
+    - '**/astro--astrojs-react-5.0.5/**'
+    - '**/d3-main/**'
+    - '**/react-three-fiber-main/**'
+    - '**/drei-main/**'
+    - '**/react-three-rapier-main/**'
+    - '**/react-three-xr-main/**'
+    - '**/three-effect-main/**'
+    - '**/packages/foldkit-zloz/docs/**'
+    - '**/.moon/cache/**'
+    - '**/.moon/docker/**'
+    - '**/.moon/hooks/**'
+    - '**/apps/tech-radar/public/preview/**'
+    - '**/packages/effect-three-foldkit/e2e/**/dist*/**'
+    - '**/packages/effect-three-foldkit/e2e/goldens/__diff__/**'
+
+pipeline:
+  # Installs stay explicit (`bun install`, frozen in CI), and moon never
+  # rewrites a manifest or tsconfig on its own.
+  installDependencies: false
+  syncProjects: false
+  syncWorkspace: false
+
+vcs:
+  client: git
+  defaultBranch: main
+  provider: github
+  # Hooks are installed on purpose with `bun run hooks:install`, never as a side
+  # effect of another moon command. moon points git's shared core.hooksPath at
+  # one checkout's .moon/hooks, which every worktree of the repository then uses.
+  sync: false
+  hooks:
+    # Each hook skips a checkout without moon.yml, such as a worktree on a branch
+    # from before moon, so installing the hooks never blocks older branches.
+    pre-commit:
+      - '[ ! -f moon.yml ] || bun moon run root:pre-commit'
+    pre-push:
+      - '[ ! -f moon.yml ] || bun moon run root:pre-push'

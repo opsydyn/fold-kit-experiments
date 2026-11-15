@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.17.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.16.0...foldkit-viz-v0.17.0) (2026-11-13)
+
+### Features
+
+- **foldkit-viz:** orbit charts for modules around a core ([8d63c19](https://github.com/opsydyn/fold-kit-experiments/commit/8d63c196f4d76ccb974b27d7f017cfbcec728488))
+- **foldkit-viz:** orbit charts for modules around a core ([0bb7c4e](https://github.com/opsydyn/fold-kit-experiments/commit/0bb7c4ed9a0140b4a0303364c67b70dc5308f15b))
+
 ## [0.16.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.15.0...foldkit-viz-v0.16.0) (2026-11-09)
 
 ### Features

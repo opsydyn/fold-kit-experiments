@@ -7,8 +7,8 @@ import { assert, expect, it, onTestFinished, vi } from 'vitest';
 
 import { Workbench } from '../../stories/comparison.stories';
 import type { FoldkitAppConfig } from '../../stories/mount';
+import { linkedDots } from '../../ui/plot-panel/highlights.test-helper';
 import * as config from './main';
-import { observeWidths } from './observe-widths.test-helper';
 
 function required<T>(value: T | null | undefined): T {
   assert(value !== null && value !== undefined);
@@ -36,7 +36,6 @@ it('initialises deterministic settings instead of interpreting Astro props as se
 });
 
 it('hosts keyed inspection, caps additions, preserves order and stops updates on disposal', async () => {
-  const observations = observeWidths();
   const host = document.createElement('div');
   const container = document.createElement('div');
   container.id = 'comparison-host-test';
@@ -70,11 +69,12 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
   expect(names(host)).toHaveLength(4);
 
   const histogram = required(
-    host.querySelector('svg[aria-label="Histogram 2: salary distribution"]'),
+    host.querySelector('.plot-panel[aria-label="Histogram 2: salary distribution"]'),
   );
   histogram.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
   await vi.waitFor(() => expect(host.textContent).toContain('2 matching points'));
-  expect(host.querySelectorAll('circle[data-linked-highlight]')).toHaveLength(4);
+  // Two matching points in each of the two scatters.
+  expect(linkedDots(host)).toHaveLength(4);
   const move = button('Move Histogram 2 earlier');
   move.focus();
   move.click();
@@ -87,7 +87,7 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
   button('Remove Histogram 2').click();
   await vi.waitFor(() => expect(names(host)).toEqual(['Scatter 1', 'Scatter 3', 'Histogram 4']));
   expect(host.textContent).toContain('0 matching points');
-  expect(host.querySelectorAll('circle[data-linked-highlight]')).toHaveLength(0);
+  expect(linkedDots(host)).toHaveLength(0);
   for (const name of ['Scatter 1', 'Scatter 3', 'Histogram 4']) {
     button(`Remove ${name}`).click();
     await vi.waitFor(() => expect(names(host)).not.toContain(name));
@@ -97,21 +97,17 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
   await vi.waitFor(() => expect(names(host)).toEqual(['Scatter 5']));
   await vi.waitFor(() => expect(document.activeElement?.id).toBe('comparison-panel-5'));
 
-  const chart = required(host.querySelector('svg'));
-  const overlay = required(chart.querySelector('rect[fill="transparent"]'));
-  const removed = vi.spyOn(overlay, 'removeEventListener');
-  await vi.waitFor(() => expect(observations).toHaveLength(5));
+  const chart = required(host.querySelector('.plot-panel'));
+  const removed = vi.spyOn(chart, 'removeEventListener');
   handle.dispose();
-  await vi.waitFor(() => {
-    for (const observation of observations) expect(observation.disconnect).toHaveBeenCalledTimes(1);
-    expect(removed.mock.calls.some(([type]) => type === 'pointermove')).toBe(true);
-  });
+  await vi.waitFor(() =>
+    expect(removed.mock.calls.some(([type]) => type === 'pointermove')).toBe(true),
+  );
   const calls = update.mock.calls.length;
   const disposedHtml = host.innerHTML;
   addScatter.click();
   chart.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  overlay.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 100 }));
-  for (const observation of observations) observation.notify(640);
+  chart.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 100 }));
   window.dispatchEvent(new Event('resize'));
   // Cross one event-loop task after exercising disposed targets; cleanup was already observed.
   await new Promise((resolve) => setTimeout(resolve, 0));

@@ -10,7 +10,7 @@ import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import * as Comparison from '../../web/src/apps/comparison/main';
-import * as Scatter from '../../web/src/ui/scatter-chart';
+import * as PlotPanel from '../../web/src/ui/plot-panel';
 import { init, Message, update, view } from '../src/examples/comparison/main';
 import { captureSettings } from '../src/examples/comparison/project';
 import { settingsSource } from '../src/examples/comparison/project';
@@ -159,7 +159,7 @@ test('wrapper forwards delayed panel-keyed child Commands without recreating rem
   const Probe = Command.define('Probe', {
     messages: [Comparison.Message.GotScatterMessage],
     execute: Effect.succeed(
-      Comparison.Message.GotScatterMessage({ id: 1, message: Scatter.Message.BlurredPoint() }),
+      Comparison.Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
     ),
   });
   const original = Comparison.update;
@@ -172,7 +172,7 @@ test('wrapper forwards delayed panel-keyed child Commands without recreating rem
     child(
       Comparison.Message.GotScatterMessage({
         id: 1,
-        message: Scatter.Message.HoveredPoint({ index: 0 }),
+        message: PlotPanel.Message.HoveredTarget({ index: 0 }),
       }),
     ),
   );
@@ -184,7 +184,9 @@ test('wrapper forwards delayed panel-keyed child Commands without recreating rem
   ).model;
   const completion = await Effect.runPromise(independentCommand(result.commands?.[0]).effect);
   expect(completion).toEqual(
-    child(Comparison.Message.GotScatterMessage({ id: 1, message: Scatter.Message.BlurredPoint() })),
+    child(
+      Comparison.Message.GotScatterMessage({ id: 1, message: PlotPanel.Message.BlurredTarget() }),
+    ),
   );
   const late = update(removed, completion);
   expect(late.model.workbench).toBe(removed.workbench);

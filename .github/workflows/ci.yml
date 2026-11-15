@@ -14,6 +14,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Each job runs its root `ci:<job>` script, a moon run that the git hooks and
+# local runs use too (tools/ci-parity.test.ts keeps them in step). CI starts
+# with an empty moon cache, so it runs every task. A pull request's shallow
+# checkout has no main branch, so moon compares against HEAD.
+env:
+  MOON_BASE: HEAD
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -35,17 +42,31 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Oxlint and Oxfmt
-        run: bun run check
+      - name: Lint, typecheck, test, build, API reports, size budgets, then integration tests
+        run: bun run ci:check
 
-      - name: Typecheck workspace
-        run: bun typecheck
+  astro-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Test workspace
-        run: bun run test
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
 
-      - name: Build workspace
-        run: bun run build
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build a site with each supported Astro major
+        run: bun run ci:astro-compat
 
   effect-three:
     runs-on: ubuntu-latest
@@ -67,26 +88,12 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build and check packages (publint, attw)
-        run: |
-          bun run --filter @opsydyn/effect-three pack:check
-          bun run --filter @opsydyn/effect-three-foldkit pack:check
-          bun run --filter @opsydyn/effect-three-rapier pack:check
-          bun run --filter @opsydyn/effect-three-troika pack:check
-
-      - name: Public API reports are up to date
-        run: |
-          bun run --filter @opsydyn/effect-three api:check
-          bun run --filter @opsydyn/effect-three-foldkit api:check
-          bun run --filter @opsydyn/effect-three-rapier api:check
-          bun run --filter @opsydyn/effect-three-troika api:check
-
       - name: Install Playwright Chromium (headless shell)
         working-directory: packages/effect-three-foldkit
         run: bunx playwright install --with-deps --only-shell chromium
 
-      - name: Browser and visual tests
-        run: bun run --filter @opsydyn/effect-three-foldkit test:e2e
+      - name: Package checks, browser and visual tests
+        run: bun run ci:effect-three
 
       - name: Upload golden diffs
         if: failure()
@@ -112,21 +119,11 @@ jobs:
           package-manager-cache: false
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
-      - name: Check package tarballs and clean npm consumer
-        run: bun run --filter @opsydyn/foldkit-zloz test
-      - name: Check real ELK layout
-        run: bun run --filter @opsydyn/foldkit-zloz-elk test
-      - name: Check force adapter and packed consumer
-        run: bun run --filter @opsydyn/foldkit-zloz-force test
-      - name: Check Mermaid exporter and packed consumer
-        run: bun run --filter @opsydyn/foldkit-zloz-mermaid test
-      - name: Check standalone Effect CLI and packed executable
-        run: bun run --filter @opsydyn/foldkit-zloz-cli test
       - name: Install browser
         working-directory: apps/web
         run: bunx --no-install playwright install --with-deps chromium
       - name: Browser editing journey
-        run: bun run --filter @opsydyn/web test:e2e e2e/zloz.spec.ts
+        run: bun run ci:foldkit-zloz
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

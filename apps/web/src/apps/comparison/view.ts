@@ -1,8 +1,7 @@
 import { Match, Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { points } from './data';
 import { Message } from './message';
@@ -15,9 +14,10 @@ function panelView(
   panel: Panel,
   index: number,
   count: number,
-  keys: ReadonlyArray<string>,
+  linked: Option.Option<ReadonlyArray<string>>,
   h: HtmlBuilder<Message>,
 ): Html {
+  const keys = Option.getOrElse(linked, () => []);
   const name = `${panel._tag} ${panel.id}`;
   const headingId = `comparison-panel-${panel.id}`;
   const iconButton = (label: string, symbol: string, message: Message, disabled = false) =>
@@ -34,23 +34,28 @@ function panelView(
       [h.span([h.Attribute('aria-hidden', 'true')], [symbol])],
     );
   const chart = Match.value(panel).pipe(
-    Match.when({ _tag: 'Scatter' }, ({ id, chart }) =>
-      Scatter.view(
-        {
-          model: chart,
-          ariaLabel: `${name}: experience and salary`,
-          highlightedKeys: keys,
-          toParentMessage: (message) => Message.GotScatterMessage({ id, message }),
-        },
+    Match.when({ _tag: 'Scatter' }, ({ id, chart }) => {
+      const config = {
+        model: chart,
+        ariaLabel: `${name}: experience and salary`,
+        toParentMessage: (message: PlotPanel.Message) => Message.GotScatterMessage({ id, message }),
+      };
+      // A linked inspection keeps its matching points bright and dims the rest.
+      return PlotPanel.view(
+        Option.isSome(linked) ? { ...config, highlight: { field: 'id', values: keys } } : config,
         h,
-      ),
-    ),
+      );
+    }),
     Match.when({ _tag: 'Histogram' }, ({ id, chart }) =>
-      Histogram.view(
+      PlotPanel.view(
         {
           model: chart,
           ariaLabel: `${name}: salary distribution`,
-          highlightedBins: matchingBinIndices(points, keys, chart.bins),
+          emphasis: matchingBinIndices(
+            points,
+            keys,
+            PlotPanel.targetsOf(chart).map(({ domain: [x0, x1] }) => ({ x0, x1 })),
+          ),
           toParentMessage: (message) => Message.GotHistogramMessage({ id, message }),
         },
         h,
@@ -100,10 +105,8 @@ export function body(model: Model, h: HtmlBuilder<Message>): Html {
     Independent: () => Option.none(),
     Linked: ({ inspection }) => inspection,
   });
-  const keys = Option.match(inspection, {
-    onNone: () => [],
-    onSome: ({ value }) => matchingKeys(points, value),
-  });
+  const linkedKeys = Option.map(inspection, ({ value }) => matchingKeys(points, value));
+  const keys = Option.getOrElse(linkedKeys, () => []);
   const cannotAdd = model.panels.length >= 4 || !Number.isSafeInteger(model.nextPanelId + 1);
   return h.div(
     [h.Class('comparison')],
@@ -152,7 +155,9 @@ export function body(model: Model, h: HtmlBuilder<Message>): Html {
       ),
       h.div(
         [h.Class('comparison-panels')],
-        model.panels.map((panel, index) => panelView(panel, index, model.panels.length, keys, h)),
+        model.panels.map((panel, index) =>
+          panelView(panel, index, model.panels.length, linkedKeys, h),
+        ),
       ),
       ...(model.panels.length === 0 ? [h.p([], ['No panels'])] : []),
     ],

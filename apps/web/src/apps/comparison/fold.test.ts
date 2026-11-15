@@ -2,46 +2,42 @@ import { Effect, Option } from 'effect';
 import { Command } from 'foldkit';
 import { afterEach, expect, it, vi } from 'vitest';
 
-import * as Histogram from '../../ui/histogram-chart';
-import * as Scatter from '../../ui/scatter-chart';
+import * as PlotPanel from '../../ui/plot-panel';
 import { comparisonFolds } from './fold';
 import { Message } from './message';
 import { init } from './model';
 import { update } from './update';
 
+/** A Command a panel might return, to check the parent keeps routing its completion. */
 const ProbeInspection = Command.define('ProbeInspection', {
-  messages: [Scatter.Message.BlurredPoint],
-  execute: Effect.succeed(Scatter.Message.BlurredPoint()),
-});
-const ProbeRangeInspection = Command.define('ProbeRangeInspection', {
-  messages: [Histogram.Message.BlurredBin],
-  execute: Effect.succeed(Histogram.Message.BlurredBin()),
+  messages: [PlotPanel.Message.BlurredTarget],
+  execute: Effect.succeed(PlotPanel.Message.BlurredTarget()),
 });
 
 afterEach(() => vi.restoreAllMocks());
 
 it('never invokes child updaters for missing or wrong-kind IDs', () => {
-  const scatter = vi.fn(Scatter.update);
-  const histogram = vi.fn(Histogram.update);
+  const scatter = vi.fn(PlotPanel.update);
+  const histogram = vi.fn(PlotPanel.update);
   const folds = comparisonFolds({ scatter, histogram });
   const model = init().model;
   for (const id of [2, 99])
-    expect(folds.scatter(model, id, Scatter.Message.BlurredPoint())).toEqual({ model });
+    expect(folds.scatter(model, id, PlotPanel.Message.BlurredTarget())).toEqual({ model });
   for (const id of [1, 99])
-    expect(folds.histogram(model, id, Histogram.Message.BlurredBin())).toEqual({ model });
+    expect(folds.histogram(model, id, PlotPanel.Message.BlurredTarget())).toEqual({ model });
   expect(scatter).not.toHaveBeenCalled();
   expect(histogram).not.toHaveBeenCalled();
 });
 
 it('consumes scatter inspection once and keeps Command routing stable after reorder and removal', async () => {
-  const scatter = vi.fn<typeof Scatter.update>((model, message) => ({
-    ...Scatter.update(model, message),
+  const scatter = vi.fn<typeof PlotPanel.update>((model, message) => ({
+    ...PlotPanel.update(model, message),
     commands: [ProbeInspection()],
   }));
-  const histogram = vi.fn(Histogram.update);
+  const histogram = vi.fn(PlotPanel.update);
   const folds = comparisonFolds({ scatter, histogram });
   const base = init().model;
-  const result = folds.scatter(base, 1, Scatter.Message.HoveredPoint({ index: 0 }));
+  const result = folds.scatter(base, 1, PlotPanel.Message.HoveredTarget({ index: 0 }));
   expect(scatter).toHaveBeenCalledTimes(1);
   expect(histogram).not.toHaveBeenCalled();
   expect(result.model.panels[1]).toBe(base.panels[1]);
@@ -57,7 +53,7 @@ it('consumes scatter inspection once and keeps Command routing stable after reor
   expect(completion).toEqual({
     _tag: 'GotScatterMessage',
     id: 1,
-    message: { _tag: 'BlurredPoint' },
+    message: { _tag: 'BlurredTarget' },
   });
   expect(update(moved, completion).model.linking).toEqual({
     _tag: 'Linked',
@@ -70,14 +66,14 @@ it('consumes scatter inspection once and keeps Command routing stable after reor
 });
 
 it('consumes histogram inspection once and preserves its keyed Command completion', async () => {
-  const scatter = vi.fn(Scatter.update);
-  const histogram = vi.fn<typeof Histogram.update>((model, message) => ({
-    ...Histogram.update(model, message),
-    commands: [ProbeRangeInspection()],
+  const scatter = vi.fn(PlotPanel.update);
+  const histogram = vi.fn<typeof PlotPanel.update>((model, message) => ({
+    ...PlotPanel.update(model, message),
+    commands: [ProbeInspection()],
   }));
   const folds = comparisonFolds({ scatter, histogram });
   const base = init().model;
-  const result = folds.histogram(base, 2, Histogram.Message.HoveredBin({ index: 0 }));
+  const result = folds.histogram(base, 2, PlotPanel.Message.HoveredTarget({ index: 0 }));
   expect(histogram).toHaveBeenCalledTimes(1);
   expect(scatter).not.toHaveBeenCalled();
   expect(result.model.panels[0]).toBe(base.panels[0]);
@@ -100,7 +96,7 @@ it('consumes histogram inspection once and preserves its keyed Command completio
   expect(completion).toEqual({
     _tag: 'GotHistogramMessage',
     id: 2,
-    message: { _tag: 'BlurredBin' },
+    message: { _tag: 'BlurredTarget' },
   });
   const removed = update(moved, Message.ClickedRemovePanel({ id: 2 })).model;
   expect(update(removed, completion).model).toBe(removed);
@@ -108,15 +104,10 @@ it('consumes histogram inspection once and preserves its keyed Command completio
 });
 
 it('lifts both initial and dynamically added child Commands with their allocated IDs', async () => {
-  const scatterInit = Scatter.init;
-  const histogramInit = Histogram.init;
-  vi.spyOn(Scatter, 'init').mockImplementation((config) => ({
-    ...scatterInit(config),
+  const panelInit = PlotPanel.init;
+  vi.spyOn(PlotPanel, 'init').mockImplementation((config) => ({
+    ...panelInit(config),
     commands: [ProbeInspection()],
-  }));
-  vi.spyOn(Histogram, 'init').mockImplementation((config) => ({
-    ...histogramInit(config),
-    commands: [ProbeRangeInspection()],
   }));
   const initial = init();
   expect(initial.commands).toHaveLength(2);
@@ -124,8 +115,8 @@ it('lifts both initial and dynamically added child Commands with their allocated
     (initial.commands ?? []).map((command) => Effect.runPromise(command.effect)),
   );
   expect(completions).toEqual([
-    { _tag: 'GotScatterMessage', id: 1, message: { _tag: 'BlurredPoint' } },
-    { _tag: 'GotHistogramMessage', id: 2, message: { _tag: 'BlurredBin' } },
+    { _tag: 'GotScatterMessage', id: 1, message: { _tag: 'BlurredTarget' } },
+    { _tag: 'GotHistogramMessage', id: 2, message: { _tag: 'BlurredTarget' } },
   ]);
   for (const kind of ['scatter', 'histogram'] as const) {
     const added = update(initial.model, Message.ClickedAddPanel({ kind }));
@@ -139,8 +130,8 @@ it('lifts both initial and dynamically added child Commands with their allocated
     );
     expect(completion).toEqual(
       kind === 'scatter'
-        ? { _tag: 'GotScatterMessage', id: 3, message: { _tag: 'BlurredPoint' } }
-        : { _tag: 'GotHistogramMessage', id: 3, message: { _tag: 'BlurredBin' } },
+        ? { _tag: 'GotScatterMessage', id: 3, message: { _tag: 'BlurredTarget' } }
+        : { _tag: 'GotHistogramMessage', id: 3, message: { _tag: 'BlurredTarget' } },
     );
   }
 });

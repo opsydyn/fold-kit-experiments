@@ -1,6 +1,7 @@
 import { Option } from 'effect';
 import { expect, it } from 'vitest';
 
+import { linkedDots } from '../../ui/plot-panel/highlights.test-helper';
 import { renderChart } from '../../ui/shared/render-chart.test-helper';
 import type { Message } from './message';
 import { Linking, init } from './model';
@@ -19,7 +20,7 @@ it('renders every linked match, a separate local tooltip and both data alternati
     ...initial,
     panels: initial.panels.map((panel) =>
       panel._tag === 'Scatter'
-        ? { ...panel, chart: { ...panel.chart, activeIndex: Option.some(29) } }
+        ? { ...panel, chart: { ...panel.chart, active: Option.some(29) } }
         : panel,
     ),
     linking: Linking.Linked({
@@ -30,9 +31,11 @@ it('renders every linked match, a separate local tooltip and both data alternati
     }),
   };
   const node = await rendered(model);
-  expect(node.querySelectorAll('circle[data-linked-highlight]')).toHaveLength(3);
+  expect(linkedDots(node)).toHaveLength(3);
   expect(node.textContent).toContain('3 matching points');
-  expect(node.textContent).toContain('20yr (20, 175000)');
+  // The local inspection is announced and ringed, separately from the linked overlay.
+  expect(node.querySelector('.plot-panel [aria-live="polite"]')?.textContent).toBe('20yr');
+  expect(node.querySelectorAll('.plot-overlay circle')).toHaveLength(1);
   expect(node.querySelectorAll('table')).toHaveLength(2);
   const empty = await rendered({
     ...model,
@@ -43,7 +46,7 @@ it('renders every linked match, a separate local tooltip and both data alternati
       }),
     }),
   });
-  expect(empty.querySelectorAll('[data-linked-highlight]')).toHaveLength(0);
+  expect(linkedDots(empty)).toHaveLength(0);
   expect(empty.textContent).toContain('0 matching points');
 });
 

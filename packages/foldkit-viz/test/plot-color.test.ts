@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 
 import { colorScale, interpolateRgbBasis } from '../src/math/color';
+import * as schemes from '../src/math/schemes';
 import { tableau10, viridis, wong } from '../src/math/schemes';
 import { compilePlot } from '../src/plot';
-import type { Graphic, PlotSpec } from '../src/plot';
+import type { Graphic, PlotSpec, SchemeName } from '../src/plot';
 
 const base = {
   width: 300,
@@ -68,10 +69,9 @@ describe('categorical colour', () => {
     ]);
   });
 
-  it('rejects an unknown scheme', () => {
-    expect(() => compilePlot({ ...spec, color: { scheme: 'rainbow' } })).toThrow(
-      'color.scheme: unknown scheme "rainbow"',
-    );
+  it('rejects an unknown scheme, which a spec from outside TypeScript can still name', () => {
+    const fromJson = JSON.parse(JSON.stringify({ ...spec, color: { scheme: 'rainbow' } }));
+    expect(() => compilePlot(fromJson)).toThrow('color.scheme: unknown scheme "rainbow"');
   });
 });
 
@@ -117,5 +117,41 @@ describe('size', () => {
       marks: [{ mark: 'dot', x: 'x', y: 'y', r: 'size' }],
     }).map((g) => (g.kind === 'circle' ? g.r : NaN));
     expect(radii).toEqual([4, 8, 0]);
+  });
+});
+
+describe('scheme names', () => {
+  it('name every scheme math/schemes exports, and no other', () => {
+    const names = [
+      'tableau10',
+      'category10',
+      'dark2',
+      'set1',
+      'blues',
+      'greens',
+      'reds',
+      'oranges',
+      'purples',
+      'rdBu',
+      'spectral',
+      'rdYlGn',
+      'brBG',
+      'wong',
+      'ibmCarbon',
+      'tolMuted',
+      'viridis',
+      'magma',
+      'inferno',
+      'plasma',
+      'cividis',
+    ] as const satisfies ReadonlyArray<SchemeName>;
+    // Fails to compile if SchemeName gains a name this list lacks.
+    const exhaustive: Exclude<SchemeName, (typeof names)[number]> extends never ? true : false =
+      true;
+    expect(exhaustive).toBe(true);
+    const exported = Object.entries(schemes)
+      .filter(([, value]) => Array.isArray(value))
+      .map(([name]) => name);
+    expect(exported.sort()).toEqual([...names].sort());
   });
 });

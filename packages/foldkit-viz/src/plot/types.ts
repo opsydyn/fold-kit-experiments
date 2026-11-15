@@ -46,10 +46,34 @@ export type PositionScaleSpec = Readonly<{
   axis?: boolean;
 }>;
 
+/** A colour scheme from math/schemes, by name. */
+export type SchemeName =
+  | 'tableau10'
+  | 'category10'
+  | 'dark2'
+  | 'set1'
+  | 'blues'
+  | 'greens'
+  | 'reds'
+  | 'oranges'
+  | 'purples'
+  | 'rdBu'
+  | 'spectral'
+  | 'rdYlGn'
+  | 'brBG'
+  | 'wong'
+  | 'ibmCarbon'
+  | 'tolMuted'
+  | 'viridis'
+  | 'magma'
+  | 'inferno'
+  | 'plasma'
+  | 'cividis';
+
 export type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  /** Any scheme in math/schemes. Defaults: tableau10, viridis, rdBu. */
-  scheme?: string;
+  /** A scheme from math/schemes. Defaults: tableau10, viridis, rdBu. */
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   /** Categorical only: explicit colours, in domain order, instead of a scheme. */
   range?: ReadonlyArray<string>;

@@ -364,7 +364,7 @@ type CloudWord<T> = Readonly<{
 function colorScale(config: ColorScaleConfig): (value: number) => string;
 type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  scheme?: string;
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   range?: ReadonlyArray<string>;
   legend?: boolean;
@@ -1149,6 +1149,7 @@ type ScatterGeometry<T> = Readonly<{
   xTicks: ReadonlyArray<AxisTick>;
   yTicks: ReadonlyArray<AxisTick>;
 }>;
+type SchemeName = 'tableau10' | 'category10' | 'dark2' | 'set1' | 'blues' | 'greens' | 'reds' | 'oranges' | 'purples' | 'rdBu' | 'spectral' | 'rdYlGn' | 'brBG' | 'wong' | 'ibmCarbon' | 'tolMuted' | 'viridis' | 'magma' | 'inferno' | 'plasma' | 'cividis';
 type SegmentAccessors<T> = Readonly<{
   x: (datum: T, index: number) => number;
   defined: (datum: T, index: number) => boolean;
@@ -2825,7 +2826,7 @@ type ClientRect = Readonly<{
 }>;
 type ColorScaleSpec = Readonly<{
   type?: 'categorical' | 'sequential' | 'diverging';
-  scheme?: string;
+  scheme?: SchemeName;
   domain?: readonly [number, number] | ReadonlyArray<string>;
   range?: ReadonlyArray<string>;
   legend?: boolean;
@@ -3180,6 +3181,7 @@ type SankeyMark = CommonMark & Readonly<{
   nodePadding?: number;
   labels?: boolean;
 }>;
+type SchemeName = 'tableau10' | 'category10' | 'dark2' | 'set1' | 'blues' | 'greens' | 'reds' | 'oranges' | 'purples' | 'rdBu' | 'spectral' | 'rdYlGn' | 'brBG' | 'wong' | 'ibmCarbon' | 'tolMuted' | 'viridis' | 'magma' | 'inferno' | 'plasma' | 'cividis';
 type SizeScaleSpec = Readonly<{
   range?: readonly [number, number];
 }>;

@@ -59,7 +59,7 @@ describe('the plot spec schema', () => {
       data: [{ t: '2026-01-01', v: 3, g: 'a' }],
       facet: { x: 'g' },
       x: { type: 'time' },
-      color: { scheme: 'Tableau10' },
+      color: { scheme: 'tableau10' },
       marks: [
         { mark: 'line', x: 't', y: 'v', stroke: 'g', transform: { type: 'loess', bandwidth: 0.4 } },
         { mark: 'rule', y: { value: 0 } },
@@ -85,6 +85,7 @@ describe('the plot spec schema', () => {
       errorsOf(JSON.stringify({ ...bars, marks: [{ mark: 'bar', x: 'month', y: 4 }] })),
     ).not.toEqual([]);
     expect(errorsOf(JSON.stringify({ ...bars, width: '400' }))).not.toEqual([]);
+    expect(errorsOf(JSON.stringify({ ...bars, color: { scheme: 'Tableau10' } }))).not.toEqual([]);
   });
 
   it('catches a misspelt top-level key, which compilePlot would ignore', () => {

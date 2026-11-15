@@ -255,8 +255,8 @@
           ]
         },
         "scheme": {
-          "type": "string",
-          "description": "Any scheme in math/schemes. Defaults: tableau10, viridis, rdBu."
+          "$ref": "#/definitions/SchemeName",
+          "description": "A scheme from math/schemes. Defaults: tableau10, viridis, rdBu."
         },
         "domain": {
           "anyOf": [
@@ -291,6 +291,33 @@
         }
       },
       "additionalProperties": false
+    },
+    "SchemeName": {
+      "type": "string",
+      "enum": [
+        "tableau10",
+        "category10",
+        "dark2",
+        "set1",
+        "blues",
+        "greens",
+        "reds",
+        "oranges",
+        "purples",
+        "rdBu",
+        "spectral",
+        "rdYlGn",
+        "brBG",
+        "wong",
+        "ibmCarbon",
+        "tolMuted",
+        "viridis",
+        "magma",
+        "inferno",
+        "plasma",
+        "cividis"
+      ],
+      "description": "A colour scheme from math/schemes, by name."
     },
     "SizeScaleSpec": {
       "type": "object",

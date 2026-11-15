@@ -353,6 +353,7 @@ test('root tests include the hook while strict checks and workspace tests stay i
   expect(manifest.scripts.check).toBe(
     'NODE_OPTIONS="--experimental-strip-types" oxlint . && bun run --filter \'@opsydyn/effect-three*\' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts',
   );
+  // After the build, the job checks the public API reports and Viz's size budgets.
   const ci = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/ci.yml')).text());
   expect(ci.jobs.check.steps.filter((step) => step.run).map((step) => step.run)).toEqual([
     'bun install --frozen-lockfile',
@@ -360,6 +361,13 @@ test('root tests include the hook while strict checks and workspace tests stay i
     'bun typecheck',
     'bun run test',
     'bun run build',
+    [
+      'bun run --filter @opsydyn/foldkit-viz build',
+      'bun run --filter @opsydyn/foldkit-viz api:check',
+      'bun run --filter @opsydyn/astro-foldkit api:check',
+      '',
+    ].join('\n'),
+    'bun run --filter @opsydyn/foldkit-viz size:check',
   ]);
 });
 

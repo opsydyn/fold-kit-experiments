@@ -11,7 +11,7 @@ import { strFromU8, unzipSync } from 'fflate';
 import { Message, update } from '../../web/src/apps/comparison/main';
 import { init } from '../../web/src/apps/comparison/model';
 import { Settings } from '../../web/src/apps/comparison/settings';
-import * as Scatter from '../../web/src/ui/scatter-chart';
+import * as PlotPanel from '../../web/src/ui/plot-panel';
 import { captureSettings, projectFiles, projectZip } from '../src/examples/comparison/project';
 import { collectComparisonSources } from '../src/lib/comparison-sources';
 import { buildExampleTemplate } from '../src/lib/example-project';
@@ -107,12 +107,12 @@ test('snapshot ZIP round-trips [2,3,1], linking off and counter 4 without transi
     init(settings).model,
     Message.GotScatterMessage({
       id: 3,
-      message: Scatter.Message.RecordedChartWidth({ width: 700 }),
+      message: PlotPanel.Message.MovedPointer({ x: 300, y: 200 }),
     }),
   ).model;
   const inspected = update(
     resized,
-    Message.GotScatterMessage({ id: 3, message: Scatter.Message.HoveredPoint({ index: 2 }) }),
+    Message.GotScatterMessage({ id: 3, message: PlotPanel.Message.HoveredTarget({ index: 2 }) }),
   ).model;
   const captured = captureSettings(inspected);
   expect(captured).toEqual(settings);

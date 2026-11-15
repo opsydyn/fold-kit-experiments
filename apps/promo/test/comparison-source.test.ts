@@ -69,8 +69,7 @@ test('collector includes unchanged transitive maintained sources and CSS, not lo
     'web/src/apps/comparison/settings.ts',
     'web/src/apps/comparison/initial-settings.ts',
     'web/src/apps/comparison/comparison.css',
-    'web/src/ui/scatter-chart/index.ts',
-    'web/src/ui/histogram-chart/index.ts',
+    'web/src/ui/plot-panel/index.ts',
     'web/src/ui/shared/inspection.ts',
   ]) {
     expect(names).toContain(name);

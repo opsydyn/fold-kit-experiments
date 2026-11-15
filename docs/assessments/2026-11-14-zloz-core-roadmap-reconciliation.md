@@ -1,5 +1,10 @@
 # Zloz core roadmap and compatibility reconciliation
 
+Main-integration follow-up (2026-11-15): the CLI manifest now has `private: true`
+and no public publish configuration, as supplied by the latest main. This closes
+the local R1 manifest-guard gap; the R1 paragraph below preserves its dated source
+baseline. Local tarball qualification is still distinct from registry publication.
+
 Latest delivery follow-up (2026-11-15): the approved native v2 package/CLI authoring
 and review batch implements mode-aware audits/comparisons, patches with guarded
 Apply/receipts, C4/DDD conversion receipts and reproducible review packets with

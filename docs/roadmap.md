@@ -386,8 +386,9 @@ using the existing `overview` preference and diagnostics/Minimal mode behavior.
 Package manifests identify 0.3.0; branch implementation, registry publication and
 hosted deployment are separate states. This reconciliation checks no current
 PR/CI/registry state and authorizes no npm publication or deployment. CLI publication
-remains deferred: its requested `private: true` manifest guard is still absent (R1),
-even though the publish workflow excludes CLI from its choice allowlist.
+remains deferred. The latest main integration supplies the requested `private: true`
+CLI manifest guard and removes public publish configuration, closing the local R1
+manifest gap. Local packing remains consumer qualification, not publication.
 
 The [November 14 roadmap/compatibility reconciliation](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
 is the current inventory and next-feature recommendation. It supersedes the dated
@@ -396,7 +397,7 @@ and [November 12 completion audit](assessments/2026-11-12-zloz-core-completion-a
 which retain their original source/evidence baselines. E1–E3/P1–P2 and the approved
 D1a workshop, D1b C4 mapping/Apply/portable-receipt/CLI and D2 authored-DDD-audit
 chains are locally implemented within documented limits. C1–C4 scope decisions,
-Q1–Q4 qualification and R1 release guard remain distinct open gates. The approved
+Q1–Q4 qualification remains open; release qualification is separate from the now-present R1 manifest guard. The approved
 C1 headless v2 contract is now recorded below; editor and portable adoption remain
 open, and the linked assessment retains its dated source baseline.
 
@@ -1312,7 +1313,7 @@ npm publishing or deployment. See
 
 **Roadmap reconciliation — completed locally (2026-11-14):**
 [The refreshed assessment](assessments/2026-11-14-zloz-core-roadmap-reconciliation.md)
-closes the stale approved-domain implementation inventory, retains C1–C4/Q1–Q4/R1
+closes the stale approved-domain implementation inventory, retains C1–C4/Q1–Q4
 scope/qualification gates and corrects the batch-transaction gap: modelling patches
 already support atomic multi-operation edits. No runtime or manifest change,
 new scope exclusion, publishing or deployment is authorized.

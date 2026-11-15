@@ -38,7 +38,8 @@ export const lightTheme: ChartTheme = {
   text: '#172033',
   mutedText: '#566176',
   grid: '#e1e6ef',
-  axis: '#8a96ab',
+  // 3.1:1 on white, the WCAG 1.4.11 minimum for graphics a reader needs.
+  axis: '#8793a8',
   focus: '#2563eb',
   selection: '#172033',
   tooltipBackground: '#172033',

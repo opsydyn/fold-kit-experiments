@@ -43,6 +43,33 @@ describe('canvas painter', () => {
     expect(squares).toHaveLength(1_000);
   });
 
+  it('fills a large colour group in paths of at most 100,000 points, which Chromium draws', () => {
+    // Chromium 156 silently draws nothing for one path of more than about
+    // 180,000 circles or 453,000 squares.
+    const many = Array.from({ length: 250_000 }, (_, i) => ({ x: i % 500, y: (i * 7) % 300 }));
+    const geometry = compilePlot({
+      width: 400,
+      height: 300,
+      data: many,
+      marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
+    });
+    const { ctx, calls } = recorder();
+    paintPlot(ctx, geometry, { makePath: fakePath });
+    const marks = calls.slice(calls.findIndex(([n]) => n === 'arc'));
+    const fills = marks.filter(([n]) => n === 'fill');
+    expect(fills).toHaveLength(3);
+    let since = 0;
+    let most = 0;
+    for (const [name] of marks) {
+      if (name === 'arc') since += 1;
+      if (name === 'fill') {
+        most = Math.max(most, since);
+        since = 0;
+      }
+    }
+    expect(most).toBe(100_000);
+  });
+
   it('paints highlighted points after dimmed ones, so they sit on top', () => {
     const geometry = compilePlot({
       width: 400,

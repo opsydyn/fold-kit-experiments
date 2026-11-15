@@ -171,6 +171,9 @@ function paintAxis(
   );
 }
 
+/** The most points one path holds; see paintPoints. */
+const PATH_CHUNK = 100_000;
+
 function paintPoints(
   ctx: PlotCanvasContext,
   g: Extract<Graphic, { kind: 'points' }>,
@@ -203,6 +206,12 @@ function paintPoints(
     ctx.globalAlpha = g.opacity * (dimmed ? 0.15 : 1);
     ctx.beginPath();
     for (let k = from; k < to; k += 1) {
+      // Chromium silently draws nothing for one path of more than about
+      // 180,000 circles, so a large group is filled a chunk at a time.
+      if (k > from && (k - from) % PATH_CHUNK === 0) {
+        ctx.fill();
+        ctx.beginPath();
+      }
       const i = order[k] ?? 0;
       const r = g.radius instanceof Float64Array ? (g.radius[i] ?? 0) : g.radius;
       const x = g.xs[i] ?? 0,

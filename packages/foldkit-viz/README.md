@@ -76,6 +76,8 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/hierarchy`             | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
 | `@opsydyn/foldkit-viz/simulation`            | Barnes-Hut force simulation (N-body)                                                                                                                                  |
 | `@opsydyn/foldkit-viz/stateflow`             | Framework-free Stateflow graph records and deterministic layout                                                                                                       |
+| `@opsydyn/foldkit-viz/svg/plot`              | `plotSvg`, `plotHtml`, `svgPalette` — compiled plots as SVG or HTML strings                                                                                           |
+| `@opsydyn/foldkit-viz/jupyter`               | `displayPlot`, `plotMimeBundle` — inline plots in Deno and Bun Jupyter kernels                                                                                        |
 
 ---
 
@@ -626,6 +628,49 @@ Two changes need code changes in some callers:
   plain `string` must be narrowed to `SchemeName`. A spec parsed from JSON is
   unaffected at compile time, and `compilePlot` still rejects an unknown
   scheme at run time.
+
+## SVG export and Jupyter notebooks (unreleased)
+
+Any compiled plot renders to a string, with no FoldKit, Effect or DOM: for a
+file, a server response, an image pipeline or a notebook.
+
+```ts
+import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
+
+const geometry = compilePlot(spec);
+await Bun.write('chart.svg', plotSvg(geometry));
+const fragment = plotHtml(geometry, { table: plotTable(spec), summary: true });
+```
+
+- `plotSvg(geometry, options)` is a standalone SVG document at the compiled
+  size, with its namespace, font and accessible title and description. It draws
+  in `svgPalette`, concrete colours, because image renderers and file viewers
+  have no page colour to inherit and most cannot resolve `color-mix`. Pass
+  `palette: currentColorPalette` to follow the host's text colour instead.
+  Legends are HTML beside the SVG, so they are in `plotHtml` only.
+- `plotHtml(geometry, options)` is the whole figure (the SVG, the data table and
+  the legends) in the page's colour, the same markup `foldkit/plot`'s `plotChart`
+  renders. Both come from one renderer, and a test holds them byte for byte equal.
+
+In a Jupyter notebook run by Deno's kernel (`deno jupyter`) or the community Bun
+kernel (`jupyter-bun`), make a plot the cell's value:
+
+```ts
+import { displayPlot } from 'npm:@opsydyn/foldkit-viz/jupyter';
+
+displayPlot({ width: 520, height: 300, data, marks: [{ mark: 'dot', x: 'a', y: 'b' }] });
+```
+
+Both kernels call a value's `Symbol.for('Jupyter.display')` method (exported as
+`jupyterDisplay`) and show the richest type in the bundle it returns:
+`text/html` (the figure, following the notebook's light or dark theme), then
+`image/svg+xml` (the chart in concrete colours, for exports), then `text/plain`
+(the title and `describePlot` summary). `displayPlot` compiles the spec at once,
+so a spec error is raised in the cell, and turns on the summary and the data
+table; `plotMimeBundle(geometry, options)` builds the bundle from geometry, such
+as for `Deno.jupyter.display(bundle, { raw: true })`. Output is static: neither
+kernel documents widget support.
 
 ## Parent-owned interaction state
 

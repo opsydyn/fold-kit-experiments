@@ -50,6 +50,8 @@ does not infer confidence or statistical significance.
 | Column, Arrow or million-row data (newer)     | `/plot` (`columnTable`, `fromArrow`, `dense` dot marks)             |
 | Keyboard paths through chart targets (newer)  | `/interaction/keyboard`, `/foldkit/keyboard`                        |
 | Checking specs another program writes (newer) | `/plot-spec.schema.json`, a JSON Schema for `PlotSpec`              |
+| A plot as an SVG file or HTML string (unreleased) | `/svg/plot` (`plotSvg`, `plotHtml`), no FoldKit needed            |
+| Inline plots in Deno or Bun Jupyter kernels (unreleased) | `/jupyter` (`displayPlot`, `plotMimeBundle`)                   |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

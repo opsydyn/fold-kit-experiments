@@ -219,15 +219,20 @@ charts in all three apps.
   that repaints only the brushed points.
 - DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
   and Arrow data" below.
-- SVG and PNG export, and themes beyond light and dark.
+- PNG export, and themes beyond light and dark. SVG export is done (below).
 - Jupyter support, in two steps:
-  - **TypeScript kernels first.** Deno's kernel (`deno jupyter`) shows any cell
-    value with a `Symbol.for('Jupyter.display')` method returning a MIME bundle,
-    and imports npm packages. The community Bun kernel (`jupyter-bun`, 0.1.0)
-    uses the same protocol. A framework-free `plotSvg(geometry)` (the SVG export
-    above) and a helper returning that display bundle (SVG, the text summary and
-    the data table) would work in both, depending on neither. Static output only:
-    widget support is undocumented for both kernels.
+  - **TypeScript kernels first — done on the `feat/viz-svg-jupyter` branch
+    (unreleased).** `svg/plot` renders any compiled plot as a string with no
+    framework: `plotSvg` a standalone SVG document in concrete colours, and
+    `plotHtml` the whole figure, byte for byte what `foldkit/plot`'s `plotChart`
+    renders, since both now draw through one builder-generic renderer
+    (`plot/render`). `jupyter` exports `displayPlot(spec)`, whose
+    `Symbol.for('Jupyter.display')` method returns a bundle of `text/html` (the
+    figure, in the notebook's theme), `image/svg+xml` and `text/plain` (the
+    summary). Deno's kernel and the community Bun kernel (`jupyter-bun`, 0.1.0)
+    both use that protocol. Checked by unit tests, XML validation and rendered
+    images; not yet run in a live kernel. Static output only: widget support is
+    undocumented for both kernels.
   - **Then Python:** a widget (anywidget) that renders a JSON spec, which a Python
     program writes and checks against the published schema.
 - Three-dimensional surfaces and scatter through effect-three.

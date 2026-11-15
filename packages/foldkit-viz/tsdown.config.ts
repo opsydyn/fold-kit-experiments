@@ -16,6 +16,8 @@ export default defineConfig({
     'foldkit/keyboard': 'src/foldkit/keyboard.ts',
     'interaction/keyboard': 'src/interaction/keyboard.ts',
     'canvas/plot': 'src/canvas/plot.ts',
+    'svg/plot': 'src/svg/plot.ts',
+    jupyter: 'src/svg/jupyter.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
     'chart/cells': 'src/chart/cells.ts',

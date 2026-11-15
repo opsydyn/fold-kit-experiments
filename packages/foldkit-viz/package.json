@@ -199,6 +199,12 @@
       "canvas/plot": [
         "./dist/canvas/plot.d.mts"
       ],
+      "svg/plot": [
+        "./dist/svg/plot.d.mts"
+      ],
+      "jupyter": [
+        "./dist/jupyter.d.mts"
+      ],
       "interaction/keyboard": [
         "./dist/interaction/keyboard.d.mts"
       ],
@@ -432,6 +438,14 @@
     "./canvas/plot": {
       "types": "./dist/canvas/plot.d.mts",
       "import": "./dist/canvas/plot.mjs"
+    },
+    "./svg/plot": {
+      "types": "./dist/svg/plot.d.mts",
+      "import": "./dist/svg/plot.mjs"
+    },
+    "./jupyter": {
+      "types": "./dist/jupyter.d.mts",
+      "import": "./dist/jupyter.mjs"
     },
     "./interaction/keyboard": {
       "types": "./dist/interaction/keyboard.d.mts",

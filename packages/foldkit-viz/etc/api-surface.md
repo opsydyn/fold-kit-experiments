@@ -2201,6 +2201,22 @@ function panDomain(domain: ContinuousDomain, delta: number, bounds: ContinuousDo
 function zoomDomain(domain: ContinuousDomain, factor: number, anchor: number, bounds: ContinuousDomain, minSpan: number): ContinuousDomain;
 ```
 
+## ./jupyter
+
+```ts
+function displayPlot(spec: PlotSpec, options?: PlotChartOptions): JupyterDisplayable;
+const jupyterDisplay: unique symbol;
+type JupyterDisplayable = Readonly<{
+  [jupyterDisplay]: () => PlotMimeBundle;
+}>;
+function plotMimeBundle(geometry: PlotGeometry, options?: PlotChartOptions): PlotMimeBundle;
+type PlotMimeBundle = Readonly<{
+  'text/html': string;
+  'image/svg+xml': string;
+  'text/plain': string;
+}>;
+```
+
 ## ./layout/text
 
 ```ts
@@ -3691,4 +3707,44 @@ type StateFlowNode = Readonly<{
   visitCount: number;
 }>;
 type StateFlowNodeRole = 'initial' | 'normal' | 'active' | 'error' | 'transient';
+```
+
+## ./svg/plot
+
+```ts
+const currentColorPalette: PlotPalette;
+type PlotChartOptions = Readonly<{
+  palette?: PlotPalette;
+  legend?: boolean;
+  overlay?: PlotOverlay;
+}> & AccessibleOptions;
+function plotHtml(geometry: PlotGeometry, options?: PlotChartOptions): string;
+type PlotOverlay = Readonly<{
+  crosshair?: Readonly<{
+    x: number;
+    y: number;
+  }>;
+  ring?: Readonly<{
+    x: number;
+    y: number;
+    r: number;
+  }>;
+  brush?: Readonly<{
+    x0: number;
+    x1: number;
+    facet?: string;
+  }>;
+  color?: string;
+}>;
+type PlotPalette = Readonly<{
+  text: string;
+  mutedText: string;
+  grid: string;
+  axis: string;
+  fontFamily: string;
+  labelSize: number;
+}>;
+function plotSvg(geometry: PlotGeometry, options?: PlotSvgOptions): string;
+type PlotSvgOptions = Omit<PlotChartOptions, 'legend' | 'table'>;
+const svgPalette: PlotPalette;
 ```

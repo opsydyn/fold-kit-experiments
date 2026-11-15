@@ -1,8 +1,12 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, expect, setDefaultTimeout, test } from 'bun:test';
 import { chmod, mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Each test runs the real script, which runs oxfmt and git: under 1 s alone, but
+// past the 5 s default when the whole check job runs in parallel.
+setDefaultTimeout(30_000);
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const script = join(root, '.github/scripts/format-release-changelogs.sh');

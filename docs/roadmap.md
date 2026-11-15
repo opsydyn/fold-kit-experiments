@@ -215,8 +215,14 @@ charts in all three apps.
 
 ### Later — Reach
 
-- One-frame repainting of a million points: WebGL points, or a highlight layer
-  that repaints only the brushed points.
+- One-frame repainting of a million points — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `webgl/points` draws dense dot marks on the GPU and a
+  highlight uploads one byte per point: a brush costs 13 ms in Chromium (8 ms
+  restyling, under 5 on the GPU) against 62 ms repainting a canvas, and
+  `/explore` now highlights live while dragging (median frame 20 ms, no long
+  tasks). Measuring it found canvas/plot silently drawing nothing for a colour
+  group over about 180,000 circles in Chromium; it now fills in chunks. The
+  remaining cost is restyling row objects, which columnar data would cut.
 - DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
   and Arrow data" below.
 - PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`

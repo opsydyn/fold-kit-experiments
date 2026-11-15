@@ -78,6 +78,7 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/stateflow`             | Framework-free Stateflow graph records and deterministic layout                                                                                                       |
 | `@opsydyn/foldkit-viz/svg/plot`              | `plotSvg`, `plotHtml`, `paletteOf` — compiled plots as SVG or HTML strings, in a theme                                                                                |
 | `@opsydyn/foldkit-viz/canvas/image`          | `paintImage`, `imageSize`, `plotPng` — compiled plots as images on a canvas you supply                                                                                |
+| `@opsydyn/foldkit-viz/webgl/points`          | `pointsLayer` — dense dot marks drawn and highlighted on the GPU                                                                                                      |
 | `@opsydyn/foldkit-viz/jupyter`               | `displayPlot`, `plotMimeBundle` — inline plots in Deno and Bun Jupyter kernels                                                                                        |
 
 ---
@@ -440,6 +441,40 @@ plotCanvas(h, geometry, {
 The library still installs no listeners: the parent streams pointer events and
 keeps hover, brush and domain in its Model. The web app's `/explore` page links a
 million-point scatter to a latency histogram this way.
+
+### Points on the GPU (unreleased)
+
+`webgl/points` draws dense dot marks with WebGL, for brushing a million points
+within a frame. A layer uploads each packed graphic's positions, radii, colour
+indices and palette once; a highlight uploads one byte per point and redraws.
+
+```ts
+import { paintCanvas } from '@opsydyn/foldkit-viz/canvas/plot';
+import { highlightPoints } from '@opsydyn/foldkit-viz/plot';
+import { pointsLayer } from '@opsydyn/foldkit-viz/webgl/points';
+
+// Grid, axes and other marks on a 2D canvas; the points on a WebGL canvas above.
+paintCanvas(base, geometry, { pixelRatio, points: false });
+const layer = pointsLayer(gpu.getContext('webgl')!, geometry, { pixelRatio });
+layer.draw();
+
+// On each brush move: restyle, upload the dimmed flags, redraw.
+layer.highlight(highlightPoints(geometry, 0, data, { field: 'latency', range }));
+layer.draw();
+```
+
+- In Chromium, brushing `/explore`'s million points costs 13 ms (median: 8 ms
+  restyling, under 5 ms on the GPU) against 62 ms repainting a canvas, so the
+  page now highlights live as the brush moves.
+- `plotCanvas` takes a `pointsLayer` canvas to stack between its canvas and the
+  overlay; key it by what moves the points, not by the highlight. Make the
+  layer in that canvas's Mount and release it with `dispose` when it unmounts.
+- Every point blends over those beneath, as sparse dots do, so overlaps shade
+  by density. canvas/plot and SVG fill each colour group in a few paths, where
+  overlaps stack less.
+- The context type is structural (`PointsGl`), so foldkit-viz needs no DOM
+  types. Colours must be hex, `rgb()` or `rgba()`; pass `current` for points
+  painted `currentColor`.
 
 ## More marks and transforms (unreleased)
 

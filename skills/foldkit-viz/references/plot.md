@@ -30,7 +30,11 @@ with `contrastRatio`. In a Deno or Bun Jupyter kernel, make
 `displayPlot(spec)` from `jupyter` a cell's value; `plotMimeBundle` builds the
 same bundle from geometry. From Python, the repository's `foldkit_viz.Plot`
 anywidget (not on PyPI yet) checks a spec against the schema and draws it the
-same way. Don't hand-write SVG for a chart the grammar draws.
+same way. Don't hand-write SVG for a chart the grammar draws. For a dense
+mark that must restyle within a frame (live brushing), draw the points with
+`webgl/points` above a canvas painted with `points: false`, keep the layer for
+the canvas's lifetime, and on each brush call `highlight` with the
+`highlightPoints` result, then `draw`; do not remount the canvas per brush.
 
 ## Spec rules
 

@@ -76,10 +76,9 @@
 
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.4.0...foldkit-zloz-v0.5.0) (2026-11-15)
 
-
 ### Features
 
-* **zloz:** add versioned group authoring and model workflows ([#144](https://github.com/opsydyn/fold-kit-experiments/issues/144)) ([a6c2f53](https://github.com/opsydyn/fold-kit-experiments/commit/a6c2f5344f1314e137f5d07ed03b0795e1103eb8))
+- **zloz:** add versioned group authoring and model workflows ([#144](https://github.com/opsydyn/fold-kit-experiments/issues/144)) ([a6c2f53](https://github.com/opsydyn/fold-kit-experiments/commit/a6c2f5344f1314e137f5d07ed03b0795e1103eb8))
 
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.3.0...foldkit-zloz-v0.4.0) (2026-11-15)
 

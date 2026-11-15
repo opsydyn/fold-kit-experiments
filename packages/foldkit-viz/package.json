@@ -451,7 +451,9 @@
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
     "docs": "typedoc",
     "api:report": "bun ../../tools/api-surface.ts",
-    "api:check": "bun ../../tools/api-surface.ts --check"
+    "api:check": "bun ../../tools/api-surface.ts --check",
+    "size:check": "bun ../../tools/bundle-budget.ts",
+    "size:write": "bun ../../tools/bundle-budget.ts --write"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

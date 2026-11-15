@@ -53,6 +53,9 @@ jobs:
           bun run --filter @opsydyn/foldkit-viz api:check
           bun run --filter @opsydyn/astro-foldkit api:check
 
+      - name: Viz entry points are within their size budgets
+        run: bun run --filter @opsydyn/foldkit-viz size:check
+
   astro-compat:
     runs-on: ubuntu-latest
     steps:

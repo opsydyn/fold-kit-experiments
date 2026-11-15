@@ -1586,3 +1586,31 @@ Preserve live policies, world coordinates and source freshness; legacy sessions
 must reject v3, and unsupported clipboard/history/adapter paths must report their
 boundary instead of erasing capability. Canonical archive adoption and mounted
 interactions follow their separately qualified contracts.
+
+**C2 explicit v3 editor/Undo — implemented locally, unreleased (2026-11-15):**
+Core now exposes `createGroupEditorV3`, exact `captureGroupEditorSourceV3`,
+`applyGroupEditorTransactionV3` and source-bound `updateGroupEditorV3` Undo/Redo.
+The distinct headless session holds a complete validated v3 document; it cannot
+be passed as a legacy `EditorState`. Full-document frames retain world coordinates,
+connection mode, group-port capability and camera. Revisions remain monotonic;
+branching clears Redo and no-op preserves it. Apply and travel recheck live source,
+lifecycle, read-only/history/revision guards, shared granular policies and a
+whole-document veto. Invalid capability/eligibility, stale sources, protected
+ports/descendants/incident edges and ported ungrouping cannot publish partial data.
+Unsupported native/clipboard/model/edition/layout/export/Mermaid/patch/packet
+paths return a version-required boundary decision. Standalone serialization remains
+explicit; adapters do not gain authority from a bare graph.
+
+[ADR 0106](adr/0106-initialize-v3-editor-sessions-with-document-history.md) and
+[qualification](../packages/foldkit-zloz/evidence/group-editor-v3.md) record the
+package tests, installed consumer contracts and local verification. This closes
+the preceding initialization/transaction/Undo recommendation, not C2. Complete
+group gesture plans, native controls, canonical v3 model/archive/editions and
+adapter adoption remain open. C1/C3–C4/Q/R are unchanged. No npm publication,
+deployment or mounted v3 UI is claimed.
+
+**Recommended next:** add headless v3 group-port edit planners for add, label,
+anchor movement and removal, producing complete transaction targets with incident
+edge handling and visible live-policy reasons. Then qualify connection/reconnection
+and complete group movement/deletion plans before native controls. Keep canonical
+archive/adapter adoption behind their separate compatibility gates.

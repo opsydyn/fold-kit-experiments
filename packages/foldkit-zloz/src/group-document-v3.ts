@@ -20,7 +20,7 @@ import type { JsonValue, JsonObject, ZlozGraph, Viewport } from './types';
 /** Headless v3 graph structure. Interpret only within an explicit group document capability. */
 export type ZlozGroupGraphV3 = ZlozGraph;
 export type ZlozGroupCapabilitiesV3 = Readonly<{ groupPorts: boolean }>;
-/** Standalone authored data only; no v3 editor, model, archive or Apply authority is implied. */
+/** Standalone authored data only; editor initialization is explicit and model/archive authority is never implied. */
 export type ZlozGroupDocumentV3 = Readonly<{
   version: 3;
   coordinateSpace: 'world';

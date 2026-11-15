@@ -333,8 +333,8 @@ if(roleEditor.past.length!==1||resolveDddRelationshipControls(roleEditor,link.id
 console.log('headless-architecture-ok');
 `;
     const groupConsumerSource = `
-import {captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
-import type {ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
+import {createGroupEditorV3,captureGroupEditorSourceV3,applyGroupEditorTransactionV3,updateGroupEditorV3,resolveGroupEditorBoundaryV3,updateEditor,captureGroupDocumentV3,validateGroupDocumentV3,parseGroupDocumentV3,serializeGroupDocumentV3,upgradeGroupDocumentV3,planGroupDocumentDowngradeV3,parseConnectionDocument,createEditor,portPosition,groupDocumentV3Limits} from '@opsydyn/foldkit-zloz';
+import type {ZlozGroupEditorStateV3,ZlozGroupEditorPolicyV3,ZlozGroupEditorResultV3,ZlozGroupEditorSourceV3,ZlozGroupEditorTransactionV3,ZlozGroupEditorEventV3,ZlozGroupEditorBoundaryV3,ZlozGroupEditorOptionsV3,ZlozGroupEditorCommitV3,ZlozGroupDocumentV3,ZlozGroupCapabilitiesV3,ZlozGroupDocumentV3ParseResult,ZlozGroupDocumentDowngradePlanV3} from '@opsydyn/foldkit-zloz';
 const doc:ZlozGroupDocumentV3=captureGroupDocumentV3(${JSON.stringify(groupV3Wire)});
 const caps:ZlozGroupCapabilitiesV3=doc.capabilities;
 validateGroupDocumentV3(doc);
@@ -351,6 +351,28 @@ if(plan.type!=='reviewable'||parseConnectionDocument(JSON.stringify(plan.documen
 const oldVersion:ZlozGroupDocumentV3={...doc,version:2};
 // @ts-expect-error capability is required in the public document contract.
 const missingCapability:ZlozGroupDocumentV3={version:3,coordinateSpace:'world',connectionMode:'strict',graph:doc.graph};
+const editorOptions:ZlozGroupEditorOptionsV3={sessionId:'installed-v3'};
+const session:ZlozGroupEditorStateV3=createGroupEditorV3(doc,editorOptions);
+const source:ZlozGroupEditorSourceV3=captureGroupEditorSourceV3(session);
+const transaction:ZlozGroupEditorTransactionV3={source,document:{...doc,viewport:{x:40,y:10,zoom:2}}};
+const checked:ZlozGroupEditorCommitV3[]=[];
+const policy:ZlozGroupEditorPolicyV3={canCommitGroupDocumentV3:change=>{checked.push(change);return null;}};
+const applied:ZlozGroupEditorResultV3=applyGroupEditorTransactionV3(session,transaction,policy);
+if(applied.type!=='applied'||applied.editor.history.past.length!==1||'graph' in applied.editor)throw new Error('Missing explicit v3 editor/transaction');
+const undoEvent:ZlozGroupEditorEventV3={type:'UndoPressed',source:captureGroupEditorSourceV3(applied.editor)};
+const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
+const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
+if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
+const boundary:ZlozGroupEditorBoundaryV3='clipboard';
+if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
+if(false){
+// @ts-expect-error legacy reducer cannot consume v3 sessions.
+updateEditor(session,{type:'UndoPressed'});
+// @ts-expect-error v3 creation does not accept a bare graph.
+createGroupEditorV3(doc.graph,editorOptions);
+// @ts-expect-error history events require exact source freshness.
+updateGroupEditorV3(session,{type:'UndoPressed'});
+}
 console.log('group-v3-ok');
 `;
     const groupConsumer = path.join(directory, 'group-v3.mts');

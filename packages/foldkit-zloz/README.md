@@ -6343,6 +6343,79 @@ or retargeting edges. Neither operation grants Apply authority.
 
 The structurally shared `ZlozGroupGraphV3` is meaningful under its full v3
 envelope; extracting just `graph` does not carry its capability into an old API.
-V3 editor/Undo, model/edition history, patches/receipts, layouts, image export,
-Mermaid, CLI and native controls remain separate version-required adoption gates.
+Explicit v3 editor initialization and document Undo are described below. Canonical
+model/edition history, patches/receipts, layouts, image export, Mermaid, CLI and
+native controls remain separate version-required adoption gates.
 See [qualification](evidence/group-document-v3.md) before assuming adapter support.
+
+### Explicit v3 editor sessions and document Undo
+
+`createGroupEditorV3` initializes a distinct headless session from the **complete**
+validated v3 document. It owns/freezes the input, preserves mode/capability/camera
+and starts at revision zero. The host supplies a unique `sessionId` for each new
+incarnation. Sessions are trusted runtime state, not a serialized archive. They
+have a single authored `document` and deliberately have no legacy `graph` root.
+
+```ts
+import {
+  createGroupEditorV3,
+  captureGroupEditorSourceV3,
+  applyGroupEditorTransactionV3,
+  updateGroupEditorV3,
+  resolveGroupEditorBoundaryV3,
+} from '@opsydyn/foldkit-zloz';
+
+// document is the v3 envelope from the preceding example.
+const editor = createGroupEditorV3(document, {
+  sessionId: 'host-allocated-incarnation',
+  historyLimit: 100,
+});
+const applied = applyGroupEditorTransactionV3(editor, {
+  source: captureGroupEditorSourceV3(editor),
+  document: { ...editor.document, viewport: { x: 40, y: 20, zoom: 1.25 } },
+});
+const undone = updateGroupEditorV3(applied.editor, {
+  type: 'UndoPressed',
+  source: captureGroupEditorSourceV3(applied.editor),
+});
+const clipboard = resolveGroupEditorBoundaryV3(undone.editor, 'clipboard');
+// blocked: version-required; keep the envelope or plan an explicit downgrade.
+```
+
+Apply takes an exact source token and a complete proposed document. It returns
+`applied`, `unchanged` or `blocked` with a `code` and visible `reason`; all outcomes
+carry `editor`. Publish only that returned session. A stale session/revision/full
+document, invalid target, active `activity`, read-only state, disabled history,
+exhausted revision or policy veto leaves the original session/history unchanged.
+No-op retains references and Redo. New changes clear Redo; history defaults to 100
+frames and may be bounded to 0–1000. Zero disables authored changes in this API.
+Constructor misuse throws `ZlozError`; unexpected host/policy exceptions propagate.
+
+Undo/Redo require fresh tokens and rerun live policies in the travel direction.
+Each frame retains its own full v3 document, including strict/loose mode,
+coordinate convention, group-port capability and optional viewport. Revision
+always increases, including travel. Permissions and lifecycle never rewind.
+Hosts update `readOnly` and the tagged `activity` (`idle` or `busy` with a reason)
+in their immutable model; documents and history remain package-owned values.
+
+The optional third argument is `ZlozGroupEditorPolicyV3`: existing granular
+`EditorPolicy` hooks plus `canCommitGroupDocumentV3(candidate)`. The latter receives
+frozen `source`, `target`, operation (`apply`/`undo`/`redo`), session and revision,
+and covers combined changes, labels/data, mode, capability and camera. Return a
+reason to veto, including during Undo. Port removal/deletion/reconnection checks
+cover the complete changed entities. A protected incident edge prevents removal;
+changing group/ordinary node kind cannot reuse shared port identities. The guard
+is symmetric so an accepted promotion has a reversible inverse. Explicit
+port/connection removal or replacement may be part of the same complete
+transaction, so Undo can reverse the introduction of a group boundary.
+
+This transaction does **not** infer a drag, group expansion, deletion or reparent
+plan: include every intended affected child/ancestor in the target, retaining
+world coordinates. Later v3 controls must supply those complete plans. Legacy
+`createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
+`resolveGroupEditorBoundaryV3` discloses unsupported native controls, clipboard,
+canonical model/editions, layout, SVG/PNG, Mermaid, patches and review packets.
+It is a compatibility decision, never adapter authority. Standalone document
+serialization works; no other adapter is qualified by extracting its bare graph.
+See [the editor qualification receipt](evidence/group-editor-v3.md) and
+[ADR 0106](../../docs/adr/0106-initialize-v3-editor-sessions-with-document-history.md).

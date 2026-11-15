@@ -875,3 +875,22 @@ export type {
   ZlozGroupDowngradeFindingV3,
   ZlozGroupDocumentDowngradePlanV3,
 } from './group-document-v3';
+
+export {
+  createGroupEditorV3,
+  captureGroupEditorSourceV3,
+  applyGroupEditorTransactionV3,
+  updateGroupEditorV3,
+  resolveGroupEditorBoundaryV3,
+} from './group-editor-v3';
+export type {
+  ZlozGroupEditorStateV3,
+  ZlozGroupEditorOptionsV3,
+  ZlozGroupEditorSourceV3,
+  ZlozGroupEditorTransactionV3,
+  ZlozGroupEditorEventV3,
+  ZlozGroupEditorCommitV3,
+  ZlozGroupEditorPolicyV3,
+  ZlozGroupEditorResultV3,
+  ZlozGroupEditorBoundaryV3,
+} from './group-editor-v3';

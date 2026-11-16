@@ -18,6 +18,7 @@ import { Group, type Object3D } from 'three';
 import type { PresentableRenderer } from './renderSettings.ts';
 import { floorFacing, type GlidePose, glideFrame, startGlider } from './xrGlide.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
+import { reportPoses } from './xrPoses.ts';
 import { type Follow, type LendGeometry, trackSpaces } from './xrSpaces.ts';
 import { type TeleportArc, trackTeleportArc } from './xrTeleport.ts';
 
@@ -152,6 +153,7 @@ export const present = async (
   // description wins again whenever it changes.
   let glider = startGlider({ origin: settings.origin, heading: settings.heading });
   let lastTime: number | undefined;
+  const poses = reportPoses(input);
   let base: XRReferenceSpace | null = null;
   const place = (pose: GlidePose): void => {
     if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(pose)));
@@ -182,6 +184,7 @@ export const present = async (
       arcTime = time;
       // After gliding, so the spaces are where the player now stands.
       spaces.frame(frame, xr.getReferenceSpace() ?? space);
+      poses(frame, xr.getReferenceSpace() ?? space, time, current.poses);
     }
     draw();
   }

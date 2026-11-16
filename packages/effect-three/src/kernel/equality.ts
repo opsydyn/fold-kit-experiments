@@ -752,6 +752,7 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
     a.planes === b.planes &&
     a.meshes === b.meshes &&
     a.domOverlay === b.domOverlay &&
+    Object.is(a.poses, b.poses) &&
     (a.teleportArc === b.teleportArc ||
       (a.teleportArc !== null &&
         b.teleportArc !== null &&

@@ -285,8 +285,14 @@ Effect owns every lifetime.
    world's latest stops, and a run starts from one by step. The tabletop with
    `?predict=1` runs its world to the turn it sends, shows its own throws at once, and
    rolls back a few steps when another's lands where its world has been; checked with
-   real Rapier worlds over a network two turns late. Next: XR co-presence, other
-   players' heads and hands as tracked spaces in a shared session.
+   real Rapier worlds over a network two turns late.
+   ✅ Then co-presence ([ADR-020](adr/020-co-presence.md), 2026-11-16): `xr({ poses })`
+   reports where the player's head and hands are as `XrPoses`, in the scene's space, and
+   `avatar(key, poses)` draws another player from what they sent, each part easing
+   between reports. Poses are latest-wins state, so they travel beside a lockstep
+   session on the same transport rather than through its turns. The XR room shows the
+   other players presenting it, between tabs or through the relay; checked in an
+   emulated Quest 3 and across browser contexts.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -418,8 +424,6 @@ snapshot, and a predicting peer rolls back for late inputs (2).
 
 Still open:
 
-- XR co-presence (2): other players' heads and hands as tracked spaces, over the
-  lockstep session and relay that already exist.
 - Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay. Until then they stay documented limits.
 

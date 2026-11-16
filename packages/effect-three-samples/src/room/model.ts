@@ -1,5 +1,7 @@
 import { glide, perspectiveCamera, SceneSchema, xr } from '@opsydyn/effect-three';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
+
+import { Other, Relay, reportSeconds } from './wire';
 
 /** Whether the browser can present a mode, and whether it is. */
 export const Support = Schema.Literals(['checking', 'unavailable', 'ready']);
@@ -34,6 +36,12 @@ export const Model = Schema.Struct({
   /** Where the player stands: gliding moves them, and the Model keeps where. */
   player: SceneSchema.Xr,
   camera: SceneSchema.Camera,
+  /** This player's name among the others, once it has one. */
+  self: Schema.Option(Schema.String),
+  /** The relay the page names, if any: without one, tabs of this browser share the room. */
+  relay: Schema.Option(Relay),
+  /** The other players presenting the room, where they last said they were. */
+  others: Schema.Array(Other),
 });
 export type Model = typeof Model.Type;
 
@@ -57,6 +65,17 @@ export const initialModel = (assetBase: string): Model => ({
   planes: [],
   meshes: [],
   // In front of the sofa, facing the room's back wall.
-  player: xr({ origin: [0, 0, 2.2], glide: glide(), hitTest: true, planes: true, meshes: true }),
+  // While presenting, where the head and hands are is reported for the others to see.
+  player: xr({
+    origin: [0, 0, 2.2],
+    glide: glide(),
+    hitTest: true,
+    planes: true,
+    meshes: true,
+    poses: reportSeconds,
+  }),
   camera: homeCamera,
+  self: Option.none(),
+  relay: Option.none(),
+  others: [],
 });

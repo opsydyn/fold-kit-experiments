@@ -1459,6 +1459,11 @@ export type Xr = {
    * go there reports `XrTeleported`, for the Model's `origin`. `null`: no arc.
    */
   readonly teleportArc: XrTeleportArc | null;
+  /**
+   * Seconds between reports of where the player's head and hands are (`XrPoses` events,
+   * in the scene's space), for showing the player to others (`avatar`); `null` for none.
+   */
+  readonly poses: number | null;
 };
 
 /** Which hand holds the teleport arc, what it may land on, and how it is drawn. */

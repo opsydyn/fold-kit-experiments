@@ -4,6 +4,7 @@ import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { PlantKind, Vec3 } from './model';
+import { Wire } from './wire';
 
 export const Mode = Schema.Literals(['immersive-vr', 'immersive-ar']);
 export type Mode = typeof Mode.Type;
@@ -31,6 +32,19 @@ export const Message = defineMessageUnion({
   Glided: { moved: SceneSchema.XrMovedDetail },
   /** The left hand's teleport arc let go over the floor: the player stands there. */
   Teleported: { teleported: SceneSchema.XrTeleportedDetail },
+  /** Where this player's head and hands are, every so often while presenting. */
+  ReportedPoses: { poses: SceneSchema.XrPosesDetail },
+  NamedPlayer: { peer: Schema.String, relay: Schema.Option(Schema.String) },
+  /** Another room page said where its player is, or that they left. */
+  HeardPresence: { wire: Wire, at: Schema.Number },
+  /** Time to let go of players unheard for too long. */
+  TickedPresence: { at: Schema.Number },
+  LeftPage: {},
+  CompletedSay: {},
+  ConnectedRelay: {},
+  FailedRelay: { reason: Schema.String },
+  LostRelay: {},
+  ReleasedRelay: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });

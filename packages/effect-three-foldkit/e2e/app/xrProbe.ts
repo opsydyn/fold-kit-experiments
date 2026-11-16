@@ -233,6 +233,14 @@ export const framesDrawn = (renderer: ThreeRenderer | undefined): number => {
 export const glideFromAddress = (search: string): XrGlide | null =>
   new URLSearchParams(search).has('glide') ? glide() : null;
 
+/** `?poses`: the head and hands reported every tenth of a second. */
+export const posesFromAddress = (search: string): number | null =>
+  new URLSearchParams(search).has('poses') ? 0.1 : null;
+
+/** A poses event's detail, as the page heard it. */
+export const posesOf = (event: Event): unknown =>
+  event instanceof CustomEvent ? event.detail : undefined;
+
 /** `?teleport`: a teleport arc on the left hand, and a floor node for it to land on. */
 export const teleportFromAddress = (
   search: string,

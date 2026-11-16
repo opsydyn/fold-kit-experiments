@@ -28,6 +28,8 @@ import {
   shimOffsetSpaces,
   spacesFromAddress,
   teleportFromAddress,
+  posesFromAddress,
+  posesOf,
 } from './xrProbe.ts';
 
 shimOffsetSpaces();
@@ -54,6 +56,7 @@ const described = scene({
     planes: spaces.planes,
     meshes: spaces.meshes,
     teleportArc: teleporting.arc,
+    poses: posesFromAddress(location.search),
   }),
   children: [
     ...spaces.children,
@@ -93,6 +96,8 @@ const watched = [
 const events: Array<string> = [];
 for (const type of watched)
   element.addEventListener(type, (event) => events.push(describeEvent(event)));
+const posesHeard: Array<unknown> = [];
+element.addEventListener('scene-xr-poses', (event) => posesHeard.push(posesOf(event)));
 let drags = 0;
 element.addEventListener('scene-drag', () => drags++);
 
@@ -145,6 +150,8 @@ Reflect.set(globalThis, '__xr', {
   /** Pinches (1) or opens (0) the right hand. */
   pinch: (value: number) => device.hands.right?.updatePinchValue(value),
   events: () => events,
+  /** Every poses event's detail, in order. */
+  poses: () => posesHeard,
   clearEvents: () => {
     events.length = 0;
   },

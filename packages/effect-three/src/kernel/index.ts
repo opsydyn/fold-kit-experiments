@@ -229,6 +229,7 @@ export type {
   ShadowedScene,
 } from './renderKit.ts';
 export { glided, type LocomotionOptions, locomote, teleport, teleported } from './xrLocomotion.ts';
+export { avatar, type AvatarOptions, type XrPoses } from './presence.ts';
 export { type ArcHit, arcAim, arcHit, arcPoints, easeAim, teleportOrigin } from './teleportArc.ts';
 export {
   createXrTracker,

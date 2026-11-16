@@ -1193,6 +1193,7 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   meshes: options.meshes ?? false,
   domOverlay: options.domOverlay ?? false,
   teleportArc: options.teleportArc ?? null,
+  poses: options.poses ?? null,
 });
 
 /**

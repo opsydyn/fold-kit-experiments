@@ -14,6 +14,7 @@
  */
 import type { Vec3 } from './description.ts';
 import type { Hit, Picker, Ray, SceneEvent } from './pointer.ts';
+import type { XrPoses } from './presence.ts';
 
 /** Which hand an input source is held in or is, as WebXR's `handedness`. */
 export type XrHand = 'left' | 'right' | 'none';
@@ -90,6 +91,8 @@ export type XrInput =
       readonly point: Vec3;
       readonly origin: Vec3;
     }
+  /** Where the player's head and hands are (`xr({ poses })`), in the scene's space. */
+  | ({ readonly _tag: 'Poses' } & XrPoses)
   /** The detected planes changed: all of them, as they are now. */
   | { readonly _tag: 'Planes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The detected meshes changed: all of them, as they are now. */
@@ -230,6 +233,8 @@ export const createXrTracker = (picker: Picker) => {
         return [
           { _tag: 'XrTeleported', hand: input.hand, point: input.point, origin: input.origin },
         ];
+      case 'Poses':
+        return [{ _tag: 'XrPoses', head: input.head, left: input.left, right: input.right }];
       case 'Planes':
         return [{ _tag: 'XrPlanes', planes: input.planes }];
       case 'Meshes':

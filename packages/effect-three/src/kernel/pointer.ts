@@ -15,6 +15,7 @@
 import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Gestures, Vec3 } from './description.ts';
+import type { XrPoses } from './presence.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 import type { XrButtonName, XrHand, XrMesh, XrPlane, XrStickDirection } from './xrInput.ts';
 
@@ -258,6 +259,11 @@ export type SceneEvent =
       readonly point: Vec3;
       readonly origin: Vec3;
     }
+  /**
+   * Where the player's head and hands are, in the scene's space, reported every
+   * `xr({ poses })` seconds while presenting: for showing the player to others (`avatar`).
+   */
+  | ({ readonly _tag: 'XrPoses' } & XrPoses)
   /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
   | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */

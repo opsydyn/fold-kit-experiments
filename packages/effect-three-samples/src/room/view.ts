@@ -53,7 +53,11 @@ const readout = (model: Model): string => {
     model.vr === 'ready' || model.ar === 'ready'
       ? ''
       : ' This browser has no headset to present to: the room works here as it is.';
-  return `${plants}. Click the floor to plant, a plant to take it away; drag to look around.${found}${xr}`;
+  const others =
+    model.others.length === 0
+      ? ''
+      : ` ${model.others.length} other ${model.others.length === 1 ? 'player is' : 'players are'} in the room.`;
+  return `${plants}. Click the floor to plant, a plant to take it away; drag to look around.${others}${found}${xr}`;
 };
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
@@ -75,6 +79,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           onXRMeshes: (detected) => Message.DetectedMeshes({ detected }),
           onXRMoved: (moved) => Message.Glided({ moved }),
           onXRTeleported: (arrived) => Message.Teleported({ teleported: arrived }),
+          onXRPoses: (poses) => Message.ReportedPoses({ poses }),
         },
         h,
       ),
@@ -94,7 +99,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           'the furniture goes and your room shows through: each plant you place is a WebXR anchor, ',
           'and the planes and meshes the device detects are drawn from Messages, each by a group ',
           'following its tracked space. On the page, click the floor to plant. In development an ',
-          'agent can arrange the room too: the Foldkit DevTools MCP server sends it PlacedPlant.',
+          'agent can arrange the room too: the Foldkit DevTools MCP server sends it PlacedPlant. ',
+          'Other pages presenting the room, in this browser or through a relay (?relay=ws://…), ',
+          'show as avatars where their players stand.',
         ],
       ),
     ],

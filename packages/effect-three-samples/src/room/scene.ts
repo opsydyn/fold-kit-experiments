@@ -10,6 +10,7 @@
  * - a tips label follows your left hand or controller (`jointSpace`, `controllerSpace`).
  */
 import {
+  avatar,
   basic,
   box,
   circle,
@@ -43,6 +44,7 @@ import {
 
 import { paintColour } from '../palette';
 import type { Model, Plant, PlantKind } from './model';
+import { type Other, reportSeconds } from './wire';
 
 const piece = (
   key: string,
@@ -294,6 +296,21 @@ const tips = (model: Model): ReadonlyArray<SceneNode> => {
   ];
 };
 
+const avatarColours = Object.values(paintColour);
+
+/** A colour for a player, the same on every page: from their name. */
+const colourOf = (peer: string): number =>
+  avatarColours[
+    [...peer].reduce((sum, char) => sum + char.charCodeAt(0), 0) % avatarColours.length
+  ] ?? paintColour.periwinkle;
+
+/** Another player, where they last said they were, easing between reports. */
+const otherNode = (other: Other): SceneNode =>
+  avatar(`avatar:${other.peer}`, other.poses, {
+    color: colourOf(other.peer),
+    seconds: reportSeconds,
+  });
+
 export const sceneFor = (model: Model) => {
   const inAr = model.session === 'immersive-ar';
   return scene({
@@ -337,6 +354,7 @@ export const sceneFor = (model: Model) => {
         }),
       ),
       ...tips(model),
+      ...model.others.map(otherNode),
     ],
   });
 };

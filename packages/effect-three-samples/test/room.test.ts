@@ -1,5 +1,7 @@
 import { expect, mock, test } from 'bun:test';
 
+import { Option } from 'effect';
+
 // The commands use the page's environment; the update logic under test never runs them.
 await mock.module('../src/labelledEnvironment', () => ({
   environment: {},
@@ -107,4 +109,76 @@ test('only modes the browser can present are offered', () => {
   const vr = step(start, Message.CheckedSupport({ mode: 'immersive-vr', supported: true }));
   const ar = step(vr, Message.CheckedSupport({ mode: 'immersive-ar', supported: false }));
   expect([ar.vr, ar.ar]).toEqual(['ready', 'unavailable']);
+});
+
+// SEEING THE OTHER PLAYERS
+
+const poses = {
+  head: { position: [0.5, 1.6, 1] as const, quaternion: [0, 0, 0, 1] as const },
+  left: null,
+  right: { position: [0.7, 1.1, 0.8] as const, quaternion: [0, 0, 0, 1] as const },
+};
+const named = step(start, Message.NamedPlayer({ peer: 'me', relay: Option.none() }));
+const said = (model: Model, message: typeof Message.Type) =>
+  (update(model, message).commands ?? []).map((command) => [command.name, command.args]);
+
+test('a page is named as it starts, and says where its player is once it has a name', () => {
+  expect(init().commands.map((command) => command.name)).toContain('NamePlayer');
+  // No name yet: nothing to say.
+  expect(said(start, Message.ReportedPoses({ poses }))).toEqual([]);
+  expect(said(named, Message.ReportedPoses({ poses }))).toEqual([
+    ['Say', { wire: { _tag: 'Pose', peer: 'me', poses }, via: 'tabs' }],
+  ]);
+  const relayed = step(start, Message.NamedPlayer({ peer: 'me', relay: Option.some('ws://x/r') }));
+  expect(relayed.relay).toEqual(Option.some({ url: 'ws://x/r', link: 'Connecting' }));
+  expect(said(relayed, Message.ReportedPoses({ poses }))[0]?.[1]).toMatchObject({ via: 'relay' });
+  expect(step(relayed, Message.ConnectedRelay()).relay).toEqual(
+    Option.some({ url: 'ws://x/r', link: 'Open' }),
+  );
+  expect(step(relayed, Message.LostRelay()).relay).toEqual(
+    Option.some({ url: 'ws://x/r', link: 'Lost' }),
+  );
+});
+
+test('the room reports poses while presenting, and says goodbye when the session ends', () => {
+  expect(start.player.poses).toBe(0.05);
+  const presenting = step(named, Message.ChangedSession({ mode: 'immersive-vr' }));
+  expect(said(presenting, Message.ChangedSession({ mode: null }))).toEqual([
+    ['Say', { wire: { _tag: 'Bye', peer: 'me' }, via: 'tabs' }],
+  ]);
+  expect(said(named, Message.LeftPage())).toEqual([
+    ['Say', { wire: { _tag: 'Bye', peer: 'me' }, via: 'tabs' }],
+  ]);
+});
+
+test('another player is drawn where they said they are, until they leave or go quiet', () => {
+  const pose = (peer: string, at: number) =>
+    Message.HeardPresence({ wire: { _tag: 'Pose', peer, poses }, at });
+  const withBob = step(step(named, pose('bob', 1000)), pose('ann', 1000));
+  expect(withBob.others.map((other) => other.peer)).toEqual(['bob', 'ann']);
+  expect(keys(withBob)).toContain('avatar:bob');
+  const bob = sceneFor(withBob).children.find((child) => child.key === 'avatar:bob');
+  expect(bob?._tag === 'Group' && bob.children.map((child) => child.key)).toEqual([
+    'avatar:bob-head',
+    'avatar:bob-right',
+  ]);
+  // A newer pose replaces the older one, in its place.
+  const moved = step(withBob, pose('bob', 1500));
+  expect(moved.others.map((other) => [other.peer, other.at])).toEqual([
+    ['bob', 1500],
+    ['ann', 1000],
+  ]);
+  // This page's own words are not another player.
+  expect(step(named, pose('me', 1000)).others).toEqual([]);
+  // Goodbye, or silence for over two seconds, and they are gone.
+  const left = step(moved, Message.HeardPresence({ wire: { _tag: 'Bye', peer: 'bob' }, at: 1600 }));
+  expect(left.others.map((other) => other.peer)).toEqual(['ann']);
+  expect(step(moved, Message.TickedPresence({ at: 2900 })).others.map((o) => o.peer)).toEqual([
+    'bob',
+    'ann',
+  ]);
+  expect(step(moved, Message.TickedPresence({ at: 3200 })).others.map((o) => o.peer)).toEqual([
+    'bob',
+  ]);
+  expect(step(moved, Message.TickedPresence({ at: 3200 })).others[0]?.at).toBe(1500);
 });

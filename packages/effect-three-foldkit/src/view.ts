@@ -75,6 +75,9 @@ export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
 export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
 export type XrTeleportedDetail = typeof SceneSchema.XrTeleportedDetail.Type;
 
+/** Detail of XR poses events: where the player's head and hands are, in the scene. */
+export type XrPosesDetail = typeof SceneSchema.XrPosesDetail.Type;
+
 /** Detail of XR planes events: every plane the session detected, as it is now. */
 export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 
@@ -193,6 +196,11 @@ export type ViewConfig<Message> = {
    */
   readonly onXRTeleported?: (detail: XrTeleportedDetail) => Message;
   /**
+   * With `xr({ poses })`, every so many seconds while presenting: where the player's head
+   * and hands are, in the scene's space, to send to other players (`avatar`).
+   */
+  readonly onXRPoses?: (detail: XrPosesDetail) => Message;
+  /**
    * With `xr({ planes: true })`, the detected planes changed (found, reshaped, lost, or
    * seen from where the player moved to): every plane, as it is now. Follow one with
    * `group({ follow: planeSpace(id) })`.
@@ -265,6 +273,7 @@ export const view = <Message>(
     Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
     Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
     Option.map(given(config.onXRTeleported), element.OnSceneXrTeleported),
+    Option.map(given(config.onXRPoses), element.OnSceneXrPoses),
     Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
     Option.map(given(config.onXRMeshes), element.OnSceneXrMeshes),
     Option.map(given(config.onAutoRotated), element.OnSceneAutoRotated),

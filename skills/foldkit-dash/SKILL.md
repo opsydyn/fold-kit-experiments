@@ -39,6 +39,9 @@ your own; delete what you do not use.
    categories in the order you claim, the ranges you expect. A chart can compile and
    still show the wrong thing. Check the numbers in your prose against the data too:
    `describe` rounds (see [marks and scales](references/marks.md#what-describe-says)).
+   It gives each axis's range and, for a colour, its groups, but not where a peak or a
+   dip falls or what each series' own range is: check a claim such as "every region dips
+   in July" against the data with a script, or make one chart per series.
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
 Exit codes: 0 done, 1 problems found (a build still writes its pages, each problem
@@ -115,6 +118,11 @@ chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
   (`await Bun.file('../export.csv').text()`). Read a database, an API or a CSV there,
   and keep the rows the page needs: summarise in the loader (totals, rankings), not in
   the chart. One loader per shape of data; several fences can share one.
+- A fence has no filter, so a chart of part of the data needs a loader that returns just
+  that part: one chart per region means a `data/<region>.json.ts` each. Put the shared
+  reading code in a module and import it (`import { loadRows } from '../lib/rows.ts'`):
+  imports resolve from the loader's file, any `.ts` beside it in `data/` is only a loader
+  if a fence names it, and `Bun.file` paths resolve from the project folder.
 - A loader's output is cached in `node_modules/.cache/foldkit-dash/` until the loader
   changes. `--fresh` runs every loader again: use it when the data behind a loader
   changed but the loader did not.

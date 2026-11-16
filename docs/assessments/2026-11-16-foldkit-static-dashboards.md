@@ -148,8 +148,21 @@ that passes `check` and whose `describe` output matches the prompt.
     without naming them. `describePlot` now names up to six, in order (foldkit-viz).
     Earlier, it had also counted a box as three (whisker, box, median); fixed.
   - A passing `check --json` listed no charts; every envelope now lists them.
-- **Not yet repeated** with those changes: a second fresh run stopped at a usage limit
-  before it began. Rerun it before calling stage 1 qualified.
+- **Repeated with those changes: passed.** A second fresh agent, asked for the same data
+  with "an overview page and a page for each region", wrote six pages (13 charts) and
+  seven loaders. `check` exited 0 first time, `describe` matched its prose, and `build`
+  exited 0 with six pages. It no longer had to guess the schema, the loader runtime or the
+  category order, and read `describe`'s category list to confirm a "largest first" claim.
+  It caught one wrong claim in its own first draft (every region dips in July; Scotland's
+  low is in early August) by checking the data, because `describe` gives only ranges.
+- **What the second run still had to guess**, now in the skill: how to show part of the
+  data on a page (a loader per part; a fence has no filter), whether a loader may import
+  shared code (it may), and what directory a loader runs from (the project's).
+- **Not solved, for stage 2 or 3:** `describe` reports one range per axis, not each
+  series' own, and not where a peak or trough falls, so a trend claim in prose cannot be
+  confirmed from its output alone. A per-series summary (high and low, with where) in
+  `describe` would close it. One loader per region is clumsy; a parameterised loader or a
+  filter on a fence is the likely answer. Neither is built.
 
 ## Risks
 

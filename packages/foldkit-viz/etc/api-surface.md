@@ -3995,7 +3995,7 @@ type PointsGl = Readonly<{
   createBuffer(): GlBuffer | null;
   bindBuffer(target: number, buffer: GlBuffer | null): void;
   bufferData(target: number, data: Float32Array | Uint16Array | Uint8Array, usage: number): void;
-  bufferSubData(target: number, offset: number, data: Uint8Array): void;
+  bufferSubData(target: number, offset: number, data: Float32Array | Uint16Array | Uint8Array): void;
   deleteBuffer(buffer: GlBuffer | null): void;
   getAttribLocation(program: GlProgram, name: string): number;
   enableVertexAttribArray(index: number): void;
@@ -4024,6 +4024,7 @@ type PointsGl = Readonly<{
 function pointsLayer(gl: PointsGl, geometry: PlotGeometry, options?: PointsLayerOptions): PointsLayer;
 type PointsLayer = Readonly<{
   highlight: (geometry: PlotGeometry) => void;
+  append: (geometry: PlotGeometry) => void;
   draw: () => void;
   dispose: () => void;
 }>;

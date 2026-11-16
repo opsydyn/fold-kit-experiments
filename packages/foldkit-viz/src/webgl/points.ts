@@ -67,7 +67,11 @@ export type PointsGl = Readonly<{
   createBuffer(): GlBuffer | null;
   bindBuffer(target: number, buffer: GlBuffer | null): void;
   bufferData(target: number, data: Float32Array | Uint16Array | Uint8Array, usage: number): void;
-  bufferSubData(target: number, offset: number, data: Uint8Array): void;
+  bufferSubData(
+    target: number,
+    offset: number,
+    data: Float32Array | Uint16Array | Uint8Array,
+  ): void;
   deleteBuffer(buffer: GlBuffer | null): void;
   getAttribLocation(program: GlProgram, name: string): number;
   enableVertexAttribArray(index: number): void;
@@ -124,6 +128,12 @@ export type PointsLayer = Readonly<{
    * geometry this layer was made with; no highlight clears them. Call draw after.
    */
   highlight: (geometry: PlotGeometry) => void;
+  /**
+   * Takes geometry grown by appendPoints from this layer's: uploads only the
+   * new points while the buffers have room, doubling them when they do not.
+   * The dimmed flags follow the geometry, which appendPoints leaves unhighlighted.
+   */
+  append: (geometry: PlotGeometry) => void;
   /** Clears the canvas and draws every point: dimmed ones first, highlighted on top. */
   draw: () => void;
   /** Releases the buffers, textures and program. */
@@ -222,15 +232,38 @@ function link(gl: PointsGl): GlProgram {
   return program;
 }
 
-type Uploaded = Readonly<{
+/** A graphic on the GPU: its buffers hold `capacity` points, of which `points.count` are drawn. */
+type Uploaded = {
   points: Points;
-  facet: FacetGeometry;
-  position: GlBuffer;
-  radius: GlBuffer | null;
-  paint: GlBuffer;
-  dimmed: GlBuffer;
-  palette: GlTexture;
-}>;
+  capacity: number;
+  readonly facet: FacetGeometry;
+  readonly position: GlBuffer;
+  readonly radius: GlBuffer | null;
+  readonly paint: GlBuffer;
+  readonly dimmed: GlBuffer;
+  readonly palette: GlTexture;
+};
+
+/** Points `from` to `to` as interleaved x, y floats, in an array room points long. */
+function positions(points: Points, from: number, to: number, room = to - from): Float32Array {
+  const xy = new Float32Array(room * 2);
+  for (let i = from; i < to; i += 1) {
+    xy[(i - from) * 2] = points.xs[i] ?? 0;
+    xy[(i - from) * 2 + 1] = points.ys[i] ?? 0;
+  }
+  return xy;
+}
+
+/** A typed array of `room` values starting with these. */
+function padded<A extends Float32Array | Uint16Array | Uint8Array>(
+  make: (room: number) => A,
+  values: ArrayLike<number>,
+  room: number,
+): A {
+  const out = make(room);
+  out.set(values);
+  return out;
+}
 
 const packedPoints = (geometry: PlotGeometry): ReadonlyArray<readonly [Points, FacetGeometry]> =>
   geometry.facets.flatMap((facet) =>
@@ -263,24 +296,11 @@ export function pointsLayer(
       );
     return options.current;
   };
-  const uploaded: ReadonlyArray<Uploaded> = packed.map(([points, facet]) => {
-    const xy = new Float32Array(points.count * 2);
-    for (let i = 0; i < points.count; i += 1) {
-      xy[i * 2] = points.xs[i] ?? 0;
-      xy[i * 2 + 1] = points.ys[i] ?? 0;
-    }
+  /** A graphic's colours, one texel each, read by colour index in the fragment shader. */
+  const uploadPalette = (texture: GlTexture, points: Points): void => {
     const swatches = new Uint8Array(points.palette.length * 4);
     points.palette.forEach((paint, i) => swatches.set(parseColour(colourOf(paint)), i * 4));
-    const palette = gl.createTexture();
-    if (palette === null) throw new RangeError('webgl/points: the context made no texture');
-    gl.bindTexture(gl.TEXTURE_2D, palette);
-    for (const [name, value] of [
-      [gl.TEXTURE_MIN_FILTER, gl.NEAREST],
-      [gl.TEXTURE_MAG_FILTER, gl.NEAREST],
-      [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],
-      [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
-    ] as const)
-      gl.texParameteri(gl.TEXTURE_2D, name, value);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
@@ -292,10 +312,44 @@ export function pointsLayer(
       gl.UNSIGNED_BYTE,
       swatches,
     );
+  };
+  const upload = (
+    target: GlBuffer,
+    data: Float32Array | Uint16Array | Uint8Array,
+    usage: number,
+  ) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, target);
+    gl.bufferData(gl.ARRAY_BUFFER, data, usage);
+  };
+  const uploadAt = (
+    target: GlBuffer,
+    offset: number,
+    data: Float32Array | Uint16Array | Uint8Array,
+  ) => {
+    gl.bindBuffer(gl.ARRAY_BUFFER, target);
+    gl.bufferSubData(gl.ARRAY_BUFFER, offset, data);
+  };
+  const samePalette = (a: Points, b: Points) =>
+    a.palette.length === b.palette.length &&
+    a.palette.every((colour, i) => colour === b.palette[i]);
+
+  const uploaded: Uploaded[] = packed.map(([points, facet]) => {
+    const palette = gl.createTexture();
+    if (palette === null) throw new RangeError('webgl/points: the context made no texture');
+    gl.bindTexture(gl.TEXTURE_2D, palette);
+    for (const [name, value] of [
+      [gl.TEXTURE_MIN_FILTER, gl.NEAREST],
+      [gl.TEXTURE_MAG_FILTER, gl.NEAREST],
+      [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE],
+      [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
+    ] as const)
+      gl.texParameteri(gl.TEXTURE_2D, name, value);
+    uploadPalette(palette, points);
     return {
       points,
       facet,
-      position: buffer(xy, gl.STATIC_DRAW),
+      capacity: points.count,
+      position: buffer(positions(points, 0, points.count), gl.STATIC_DRAW),
       radius:
         points.radius instanceof Float64Array
           ? buffer(Float32Array.from(points.radius), gl.STATIC_DRAW)
@@ -336,6 +390,67 @@ export function pointsLayer(
         if (target === undefined) return;
         gl.bindBuffer(gl.ARRAY_BUFFER, target.dimmed);
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, points.dimmed ?? new Uint8Array(points.count));
+      });
+    },
+    append: (grown) => {
+      const next = packedPoints(grown);
+      if (
+        next.length !== uploaded.length ||
+        next.some(([points], i) => points.key !== uploaded[i]?.points.key)
+      )
+        throw new RangeError('append: geometry has different points from the layer’s');
+      next.forEach(([points], i) => {
+        const layer = uploaded[i];
+        if (layer === undefined) return;
+        const before = layer.points;
+        if (points.count < before.count)
+          throw new RangeError('append: geometry has fewer points than the layer');
+        const perPoint = points.radius instanceof Float64Array;
+        if (perPoint !== before.radius instanceof Float64Array)
+          throw new RangeError(
+            'append: radius changed between one for all and one per point; make a new layer',
+          );
+        if (points.count > layer.capacity) {
+          // Outgrown: double, so a stream of appends re-uploads rarely.
+          const room = points.count * 2;
+          upload(layer.position, positions(points, 0, points.count, room), gl.DYNAMIC_DRAW);
+          upload(
+            layer.paint,
+            padded((n) => new Uint16Array(n), points.paint, room),
+            gl.DYNAMIC_DRAW,
+          );
+          if (layer.radius !== null && points.radius instanceof Float64Array)
+            upload(
+              layer.radius,
+              padded((n) => new Float32Array(n), points.radius, room),
+              gl.DYNAMIC_DRAW,
+            );
+          layer.capacity = room;
+        } else if (points.count > before.count) {
+          uploadAt(
+            layer.position,
+            before.count * 2 * 4,
+            positions(points, before.count, points.count),
+          );
+          uploadAt(
+            layer.paint,
+            before.count * 2,
+            points.paint.subarray(before.count, points.count),
+          );
+          if (layer.radius !== null && points.radius instanceof Float64Array)
+            uploadAt(
+              layer.radius,
+              before.count * 4,
+              Float32Array.from(points.radius.subarray(before.count, points.count)),
+            );
+        }
+        upload(
+          layer.dimmed,
+          padded((n) => new Uint8Array(n), points.dimmed ?? [], layer.capacity),
+          gl.DYNAMIC_DRAW,
+        );
+        if (!samePalette(before, points)) uploadPalette(layer.palette, points);
+        layer.points = points;
       });
     },
     draw: () => {

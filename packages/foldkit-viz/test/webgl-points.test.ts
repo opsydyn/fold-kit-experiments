@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 
 import { paintPlot } from '../src/canvas/plot.js';
-import { compilePlot, highlightPoints } from '../src/plot/index.js';
+import { appendPoints, columnTable, compilePlot, highlightPoints } from '../src/plot/index.js';
+import type { PlotSpec } from '../src/plot/index.js';
 import { parseColour, pointsLayer } from '../src/webgl/points.js';
 import type { PointsGl } from '../src/webgl/points.js';
 import { canvasCalls } from './canvas-recorder.js';
@@ -213,6 +214,78 @@ describe('pointsLayer', () => {
     const { gl } = fakeGl();
     const sparse = compilePlot({ ...spec, marks: [{ mark: 'dot', x: 'x', y: 'y' }] });
     expect(() => pointsLayer(gl, sparse)).toThrow('webgl/points draws dense dot marks only');
+  });
+});
+
+describe('pointsLayer.append', () => {
+  const fixed = {
+    width: 400,
+    height: 300,
+    x: { domain: [0, 1000] },
+    y: { domain: [0, 101] },
+    color: { domain: ['a', 'b', 'c'] },
+    marks: [{ mark: 'dot', x: 'x', y: 'y', fill: 'g', dense: true }],
+  } satisfies PlotSpec;
+  const chunk = (from: number, count: number, kinds: ReadonlyArray<string> = ['a', 'b']) =>
+    columnTable({
+      x: Float64Array.from({ length: count }, (_, i) => from + i),
+      y: Float64Array.from({ length: count }, (_, i) => ((from + i) * 37) % 101),
+      g: Array.from({ length: count }, (_, i) => kinds[(from + i) % kinds.length] ?? 'a'),
+    });
+  const subData = (calls: ReadonlyArray<readonly [string, ...unknown[]]>) =>
+    calls.flatMap(([name, , offset, data]) =>
+      name === 'bufferSubData' && (data instanceof Float32Array || data instanceof Uint16Array)
+        ? [[offset, data.length]]
+        : [],
+    );
+
+  it('uploads only the new points while the buffers have room', () => {
+    const first = compilePlot({ ...fixed, data: chunk(0, 100) });
+    const { gl, calls, named } = fakeGl();
+    const layer = pointsLayer(gl, first);
+    // The first append outgrows buffers made at their exact size, and doubles them.
+    const grown = appendPoints(first, fixed, chunk(100, 50), { rowOffset: 100 });
+    layer.append(grown);
+    calls.length = 0;
+    layer.append(appendPoints(grown, fixed, chunk(150, 50), { rowOffset: 150 }));
+    // Positions (two floats a point) and colour indices for points 150 to 199, at their offsets.
+    expect(subData(calls)).toEqual([
+      [150 * 2 * 4, 50 * 2],
+      [150 * 2, 50],
+    ]);
+    expect(named('bufferData')).toHaveLength(1); // the dimmed flags, reset in full
+    layer.draw();
+    expect(named('drawArrays').at(-1)).toEqual(['drawArrays', 0, 0, 200]);
+  });
+
+  it('grows its buffers, doubling, when an append outruns them', () => {
+    const first = compilePlot({ ...fixed, data: chunk(0, 100) });
+    const { gl, calls } = fakeGl();
+    const layer = pointsLayer(gl, first);
+    calls.length = 0;
+    layer.append(appendPoints(first, fixed, chunk(100, 300), { rowOffset: 100 }));
+    const sizes = calls.flatMap(([name, , data]) =>
+      name === 'bufferData' && data instanceof Float32Array ? [data.length] : [],
+    );
+    expect(sizes).toContain(800 * 2);
+  });
+
+  it('re-uploads the palette when a chunk brings a new colour', () => {
+    const first = compilePlot({ ...fixed, data: chunk(0, 10, ['a']) });
+    const { gl, calls } = fakeGl();
+    const layer = pointsLayer(gl, first);
+    calls.length = 0;
+    layer.append(appendPoints(first, fixed, chunk(10, 10, ['b', 'c']), { rowOffset: 10 }));
+    expect(calls.filter(([name]) => name === 'texImage2D').map((call) => call[4])).toEqual([3]);
+  });
+
+  it('refuses geometry that is not this layer grown', () => {
+    const first = compilePlot({ ...fixed, data: chunk(0, 100) });
+    const { gl } = fakeGl();
+    const layer = pointsLayer(gl, first);
+    expect(() => layer.append(compilePlot({ ...fixed, data: chunk(0, 50) }))).toThrow(
+      'append: geometry has fewer points than the layer',
+    );
   });
 });
 

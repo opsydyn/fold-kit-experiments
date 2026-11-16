@@ -4,7 +4,7 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Fourteen workspaces in active use:
+Bun workspace monorepo. Fifteen workspaces in active use:
 
 | Workspace                       | Path                             | Purpose                                                    |
 | ------------------------------- | -------------------------------- | ---------------------------------------------------------- |
@@ -22,6 +22,7 @@ Bun workspace monorepo. Fourteen workspaces in active use:
 | `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: the 3D radar, markdown content      |
 | `@opsydyn/tech-radar-infra`     | `infra/tech-radar/`              | Alchemy stack deploying the tech radar to Cloudflare       |
 | `@opsydyn/docs`                 | `apps/docs/`                     | `docs/` as a Starlight site (GitHub Pages `/docs/`)        |
+| `@opsydyn/foldkit-dash`         | `packages/foldkit-dash/`         | Agent-first static dashboards CLI (ADR 0109, private)      |
 
 The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
@@ -37,6 +38,7 @@ Combine them only for tasks that span those packages. Their examples pin the cat
 versions (`tools/check-skills.ts`, part of `bun run check`): upgrading FoldKit, Effect or
 Astro means re-qualifying them (`docs/examples/package-skills.md`).
 `skills/tech-radar/SKILL.md` covers the tech radar's content, editions and deploys.
+`skills/foldkit-dash/SKILL.md` covers static dashboards built with `foldkit-dash`.
 
 ```sh
 bun dev                               # demo app → localhost:4321

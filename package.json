@@ -99,7 +99,7 @@
     "scene-mcp": "bun packages/effect-three-samples/scripts/scene-mcp.ts",
     "hooks:install": "moon sync vcs-hooks",
     "ci:check": "moon run :lint root:format root:catalog root:skills :typecheck :test :build :api-check :size-check :schema-check && moon run :integration",
-    "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e",
+    "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e foldkit-dash:e2e",
     "ci:foldkit-zloz": "moon run web:e2e-zloz",
     "ci:astro-compat": "moon run astro-foldkit:compat",
     "ci:clean": "bun tools/ci-local.ts --fresh"

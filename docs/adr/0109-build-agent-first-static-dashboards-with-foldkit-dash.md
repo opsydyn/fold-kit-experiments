@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed**, 2026-11-16, for stage 1 of the
+**Accepted**, 2026-11-16, for stage 1 of the
 [static dashboards assessment](../assessments/2026-11-16-foldkit-static-dashboards.md).
 The [spike](../../experiments/foldkit-dash/README.md) is its evidence; stages 2 and 3
 need ADRs of their own.

@@ -410,6 +410,23 @@
         "three": ">=0.186.0 <0.187.0",
       },
     },
+    "packages/foldkit-dash": {
+      "name": "@opsydyn/foldkit-dash",
+      "version": "0.1.0",
+      "bin": {
+        "foldkit-dash": "./src/bin.ts",
+      },
+      "dependencies": {
+        "@effect/platform-bun": "catalog:",
+        "@opsydyn/foldkit-viz": "workspace:*",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "bun-types": "catalog:",
+        "playwright": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
       "version": "0.18.0",
@@ -1141,6 +1158,8 @@
     "@opsydyn/effect-three-samples": ["@opsydyn/effect-three-samples@workspace:packages/effect-three-samples"],
 
     "@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@workspace:packages/effect-three-troika"],
+
+    "@opsydyn/foldkit-dash": ["@opsydyn/foldkit-dash@workspace:packages/foldkit-dash"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 

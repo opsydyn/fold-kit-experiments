@@ -11,6 +11,8 @@ export default defineConfig({
     'chart/intervalBand': 'src/chart/intervalBand.ts',
     'chart/errorBars': 'src/chart/errorBars.ts',
     'chart/orbit': 'src/chart/orbit.ts',
+    'chart/space3d': 'src/chart/space3d.ts',
+    'effect-three/space3d': 'src/effect-three/space3d.ts',
     'foldkit/orbit': 'src/foldkit/orbit.ts',
     'foldkit/plot': 'src/foldkit/plot.ts',
     'foldkit/keyboard': 'src/foldkit/keyboard.ts',

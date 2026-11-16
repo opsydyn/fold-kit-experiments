@@ -1831,6 +1831,75 @@ type SegmentAccessors<T> = Readonly<{
 }>;
 ```
 
+## ./chart/space3d
+
+```ts
+type AxisName3 = 'x' | 'y' | 'z';
+type Domain3 = readonly [number, number];
+function rgbOf(colour: string): number;
+function scatter3d<D>(data: ReadonlyArray<D>, accessors: Scatter3dAccessors<D>, options?: Space3dOptions & Readonly<{
+  domains?: Partial<Record<AxisName3, Domain3>>;
+  palette?: ReadonlyArray<string>;
+}>): Scatter3d;
+type Scatter3d = Readonly<{
+  space: Space3d;
+  positions: ReadonlyArray<Vec3>;
+  colors: ReadonlyArray<number>;
+  rows: ReadonlyArray<number>;
+  legend: ReadonlyArray<Readonly<{
+    label: string;
+    color: number;
+  }>>;
+}>;
+type Scatter3dAccessors<D> = Readonly<{
+  x: (d: D) => number;
+  y: (d: D) => number;
+  z: (d: D) => number;
+  color?: (d: D) => string;
+}>;
+type Segment3 = readonly [Vec3, Vec3];
+function space3d(domains: Readonly<Record<AxisName3, Domain3>>, options?: Space3dOptions): Space3d;
+type Space3d = Readonly<{
+  half: number;
+  domains: Readonly<Record<AxisName3, Domain3>>;
+  place: (x: number, y: number, z: number) => Vec3;
+  box: ReadonlyArray<Segment3>;
+  grid: ReadonlyArray<Segment3>;
+  axes: readonly [Space3dAxis, Space3dAxis, Space3dAxis];
+}>;
+type Space3dAxis = Readonly<{
+  name: AxisName3;
+  label: string;
+  labelPosition: Vec3;
+  ticks: ReadonlyArray<Space3dTick>;
+}>;
+type Space3dOptions = Readonly<{
+  half?: number;
+  ticks?: number;
+  labels?: Partial<Record<AxisName3, string>>;
+}>;
+type Space3dTick = Readonly<{
+  value: number;
+  label: string;
+  position: Vec3;
+}>;
+function surface3d(grid: Surface3dGrid, options?: Space3dOptions & Readonly<{
+  scheme?: ReadonlyArray<string>;
+}>): Surface3d;
+type Surface3d = Readonly<{
+  space: Space3d;
+  points: ReadonlyArray<Vec3>;
+  colors: ReadonlyArray<number>;
+  range: Domain3;
+}>;
+type Surface3dGrid = Readonly<{
+  xs: ReadonlyArray<number>;
+  ys: ReadonlyArray<number>;
+  z: ReadonlyArray<ReadonlyArray<number>>;
+}>;
+type Vec3 = readonly [number, number, number];
+```
+
 ## ./chart/theme
 
 ```ts
@@ -1936,6 +2005,21 @@ function themeProperties(theme: ChartTheme): {
   '--chart-font-family': string;
   '--chart-label-size': string;
 };
+```
+
+## ./effect-three/space3d
+
+```ts
+function scatter3dScene(scatter: Scatter3d, options: Space3dSceneOptions & Readonly<{
+  pointSize?: number;
+}>): GroupNode;
+function space3dNodes(space: Space3d, options: Space3dSceneOptions): ReadonlyArray<SceneNode>;
+type Space3dSceneOptions = Readonly<{
+  key: string;
+  theme?: Pick<ChartTheme, 'text' | 'mutedText' | 'grid' | 'axis'>;
+  fontSize?: number;
+}>;
+function surface3dScene(surface: Surface3d, options: Space3dSceneOptions): GroupNode;
 ```
 
 ## ./foldkit/cartesian

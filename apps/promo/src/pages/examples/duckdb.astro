@@ -1,0 +1,50 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import SourceCode from '../../components/SourceCode.astro';
+import DuckDB from '../../examples/duckdb/app';
+import Layout from '../../layouts/Layout.astro';
+import { sitePath } from '../../lib/site-path';
+import '../../styles/web-islands.css';
+
+const files = import.meta.glob<string>(
+  '../../../../web/src/apps/duckdb/{engine,resource,command,model,message,update,view,main}.ts',
+  { query: '?raw', import: 'default', eager: true },
+);
+const order = ['engine.ts', 'resource.ts', 'command.ts', 'model.ts', 'message.ts', 'update.ts', 'view.ts', 'main.ts'];
+const sources = Object.entries(files)
+  .map(([path, content]) => ({ name: path.split('/').at(-1) ?? path, content }))
+  .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+
+const snippet = `import { compilePlot, fromArrow, pushdown } from '@opsydyn/foldkit-viz/plot';
+
+// A spec with no data: pushdown counts its bins in DuckDB.
+const spec = await pushdown(histogramSpec, {
+  from: 'requests',
+  query: async (sql) => fromArrow(await connection.query(sql)),
+});
+const geometry = compilePlot(spec); // the chart binning every row would draw`;
+---
+<Layout title="A million rows in DuckDB-Wasm — Foldkit Viz">
+  <section class="page-intro">
+    <a class="text-link" href={sitePath('/examples/')}>← All examples</a>
+    <p class="eyebrow">New in 0.19.0 / DuckDB in the browser</p>
+    <h1>Query a million rows in your browser</h1>
+    <p>The database does the counting; Foldkit Viz draws what comes back.</p>
+    <p class="small-note">Synthetic data, made by SQL.</p>
+  </section>
+  <DuckDB client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebAssembly to run DuckDB.</p></noscript>
+  <section class="duckdb-how" aria-labelledby="duckdb-how-heading">
+    <h2 id="duckdb-how-heading">Pushdown, as VegaFusion does for Vega</h2>
+    <p><code>pushdown(spec, &#123; from, query &#125;)</code> turns each binned rect mark into a <code>GROUP BY</code> on the same breakpoints local binning uses, and every other mark into a query for only the columns it reads. The same SQL runs in DuckDB in Bun, Node or the browser, and in Polars’ SQL context. Foldkit Viz has no DuckDB dependency: Arrow results go through <code>fromArrow</code>.</p>
+    <SourceCode code={snippet} lang="ts" sourceId="duckdb-snippet" />
+    <p class="small-note">Measured on a million rows in DuckDB: a histogram in 31 ms against 212 ms pulling every row, and a two-dimensional grid in 8 ms against 230 ms.</p>
+  </section>
+  <ExampleSource files={sources} />
+</Layout>
+<style>
+  .duckdb-how { margin: 48px 0 0; min-width: 0; }
+  .duckdb-how h2 { font-size: 24px; margin-bottom: 12px; }
+  .duckdb-how p { max-width: 70ch; margin-bottom: 16px; }
+  .duckdb-how :global(pre) { padding: 20px; overflow-x: auto; font-size: 12px; line-height: 1.7; margin-bottom: 16px; }
+</style>

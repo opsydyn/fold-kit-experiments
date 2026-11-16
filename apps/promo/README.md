@@ -28,6 +28,14 @@ The default port is **4322**. For the review server, run `bunx astro dev --host 
 - `/examples/datasets/`: retained-data KeyedQuery explorer and standalone project exports.
 - `/examples/signals/`: controlled Signal Desk with supplied uncertainty, captured baselines and independent event annotations.
 - `/examples/wordcloud/`: measured word layout with spiral, font, rotation and spacing controls.
+- `/examples/duckdb/`: a million rows in DuckDB-Wasm, with each chart's bins pushed into it as SQL. DuckDB-Wasm loads from jsDelivr on request.
+- `/examples/million-points/`: a million points drawn on the GPU, brushed live from a linked histogram.
+
+The DuckDB and million-point pages host the web app's own islands
+(`apps/web/src/apps/duckdb` and `explore`), as comparison does, so both sites run
+one source. They are styled with vanilla-extract, which this app's Vite config
+compiles.
+
 - `/docs/`: installation, quick start and architecture guidance.
 
 Chart datasets are illustrative. Geographic boundaries come from Natural

@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   releasePlan,
@@ -7,6 +12,7 @@ import {
   verifyPublished,
   registryRequest,
   waitForCI,
+  assertControllerSource,
 } from './zloz-release-train.mjs';
 
 test('release CI must succeed on the exact source; pending is polled and failures stop', async () => {
@@ -49,6 +55,171 @@ const sha = 'a'.repeat(40);
 const repository = 'https://github.com/opsydyn/fold-kit-experiments';
 const names = ['foldkit-zloz', 'foldkit-zloz-elk', 'foldkit-zloz-force', 'foldkit-zloz-mermaid'];
 const version = '0.6.1';
+
+test('stdin imports do not execute the native CLI or resolve stdin as a file', () => {
+  const module = new URL('./zloz-release-train.mjs', import.meta.url).href;
+  const result = spawnSync('node', ['--input-type=module', '-'], {
+    input: `await import(${JSON.stringify(module)}); console.log('imported');`,
+    encoding: 'utf8',
+  });
+  expect({ status: result.status, stdout: result.stdout, stderr: result.stderr }).toEqual({
+    status: 0,
+    stdout: 'imported\n',
+    stderr: '',
+  });
+});
+
+test('controller recovery preserves tagged package/build input identity and honest provenance', () => {
+  const controller = 'b'.repeat(40);
+  assertControllerSource(controller, sha, ['.github/workflows/zloz-release-train.yml']);
+  const recovered = releasePlan(
+    candidates(),
+    controller,
+    names.map(() => sha),
+    [true, true],
+    sha,
+  );
+  expect(recovered).toMatchObject({ sourceSha: controller, releaseSha: sha });
+  const candidate = candidates()[0];
+  expect(() =>
+    verifyPublished(candidate, metadata(candidate), bytes, attestations(candidate), controller),
+  ).toThrow();
+  for (const path of [
+    'packages/foldkit-zloz/README.md',
+    'packages/foldkit-zloz/src/index.ts',
+    'bun.lock',
+    'package.json',
+    'tools/pack-zloz.ts',
+    '.github/workflows/ci.yml',
+  ])
+    expect(() => assertControllerSource(controller, sha, [path])).toThrow('Controller differs');
+  expect(() =>
+    releasePlan(
+      candidates(),
+      controller,
+      names.map(() => controller),
+      [true, true],
+      sha,
+    ),
+  ).toThrow();
+});
+
+test('the actual qualification shell supplies every identity guard before packing', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const directory = mkdtempSync(join(tmpdir(), 'zloz-qualification-command-'));
+  const log = join(directory, 'calls');
+  const wrapper = join(directory, 'bun');
+  writeFileSync(
+    wrapper,
+    `#!/bin/bash
+set -eu
+if [ "$1" = tools/check-package-identity.ts ]; then
+  printf 'guard:%s\\n' "\${REQUESTED_PACKAGE-unset}" >> "$TRAIN_TEST_LOG"
+  exec "$TRAIN_TEST_BUN" "$@"
+fi
+if [ "$1" = run ] && [ "$2" = --filter ] && [ "$4" = pack:check ]; then
+  printf 'pack:%s\\n' "$3" >> "$TRAIN_TEST_LOG"
+  exit 0
+fi
+exit 99
+`,
+  );
+  chmodSync(wrapper, 0o755);
+  const workflow = Bun.YAML.parse(
+    readFileSync(join(root, '.github/workflows/zloz-release-train.yml'), 'utf8'),
+  );
+  const step = workflow.jobs.train.steps.find(
+    (entry) => entry.name === 'Qualify all candidate archives before publishing',
+  );
+  const env = {
+    ...process.env,
+    PATH: `${directory}:${process.env.PATH}`,
+    TRAIN_TEST_BUN: process.execPath,
+    TRAIN_TEST_LOG: log,
+  };
+  delete env.REQUESTED_PACKAGE;
+  const result = spawnSync('bash', ['-e', '-c', step.run], { cwd: root, env, encoding: 'utf8' });
+  const calls = readFileSync(log, 'utf8').trim().split('\n');
+  rmSync(directory, { recursive: true, force: true });
+  expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: '' });
+  expect(calls).toEqual(names.flatMap((name) => [`guard:${name}`, `pack:@opsydyn/${name}`]));
+}, 30_000);
+
+test('real preflight checks both CI sources and rejects modified tagged product files', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const directory = mkdtempSync(join(tmpdir(), 'zloz-controller-preflight-'));
+  const scriptDirectory = join(directory, '.github/scripts');
+  mkdirSync(scriptDirectory, { recursive: true });
+  writeFileSync(
+    join(scriptDirectory, 'zloz-release-train.mjs'),
+    readFileSync(join(root, '.github/scripts/zloz-release-train.mjs')),
+  );
+  const git = (...args) => {
+    const result = spawnSync('git', args, { cwd: directory, encoding: 'utf8' });
+    expect(result.status).toBe(0);
+    return result.stdout.trim();
+  };
+  for (const item of candidates()) {
+    const path = join(directory, 'packages', item.component);
+    mkdirSync(path, { recursive: true });
+    writeFileSync(join(path, 'package.json'), JSON.stringify(item.manifest));
+  }
+  for (const component of ['foldkit-zloz-cli', 'foldkit-zloz-alchemy']) {
+    const path = join(directory, 'packages', component);
+    mkdirSync(path, { recursive: true });
+    writeFileSync(join(path, 'package.json'), JSON.stringify({ private: true }));
+  }
+  git('init', '-q');
+  git('config', 'user.name', 'Train test');
+  git('config', 'user.email', 'train@example.invalid');
+  git('add', '.');
+  git('commit', '-qm', 'product');
+  const product = git('rev-parse', 'HEAD');
+  for (const name of names) git('tag', `${name}-v${version}`);
+  writeFileSync(join(scriptDirectory, 'zloz-release-train.test.js'), '// controller-only repair');
+  git('add', '.');
+  git('commit', '-qm', 'controller repair');
+  const controller = git('rev-parse', 'HEAD');
+  const gh = join(directory, 'gh');
+  writeFileSync(
+    gh,
+    `#!/usr/bin/env node
+import { appendFileSync } from 'node:fs';
+const sha = /head_sha=([a-f0-9]+)/.exec(process.argv.join(' '))[1];
+appendFileSync(process.env.TRAIN_TEST_LOG, sha+'\\n');
+console.log(JSON.stringify({workflow_runs:[{head_sha:sha,status:'completed',conclusion:'success',html_url:'https://github.com/fixture/'+sha}]}));
+`,
+  );
+  chmodSync(gh, 0o755);
+  const log = join(directory, 'ci-calls');
+  const env = {
+    ...process.env,
+    PATH: `${directory}:${process.env.PATH}`,
+    TRAIN_TEST_LOG: log,
+    GITHUB_REPOSITORY: 'opsydyn/fold-kit-experiments',
+    GITHUB_SHA: controller,
+    SOURCE_SHA: product,
+  };
+  const run = () =>
+    spawnSync('node', [join(scriptDirectory, 'zloz-release-train.mjs'), 'preflight'], {
+      cwd: directory,
+      env,
+      encoding: 'utf8',
+    });
+  const accepted = run();
+  expect({ status: accepted.status, stderr: accepted.stderr }).toEqual({ status: 0, stderr: '' });
+  expect(readFileSync(log, 'utf8').trim().split('\n')).toEqual([controller, product]);
+  writeFileSync(join(directory, 'packages/foldkit-zloz/README.md'), 'changed product');
+  git('add', 'packages/foldkit-zloz/README.md');
+  git('commit', '-qm', 'forbidden product change');
+  expect(git('diff', '--name-only', controller, 'HEAD')).toBe('packages/foldkit-zloz/README.md');
+  env.GITHUB_SHA = git('rev-parse', 'HEAD');
+  const rejected = run();
+  expect(rejected.status).not.toBe(0);
+  expect(rejected.stderr).toContain('Controller differs from tagged product/build inputs');
+  expect(readFileSync(log, 'utf8').trim().split('\n')).toEqual([controller, product]);
+  rmSync(directory, { recursive: true, force: true });
+}, 30_000);
 const bytes = Buffer.from('an independently checked candidate archive');
 const integrity = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 const candidates = () =>
@@ -377,6 +548,9 @@ test('workflow serializes all dispatch paths and removes single Zloz publication
   const steps = train.jobs.train.steps;
   expect(steps.find((step) => step.uses?.startsWith('actions/checkout@')).with['fetch-depth']).toBe(
     0,
+  );
+  expect(steps.find((step) => step.uses?.startsWith('actions/checkout@')).with.ref).toBe(
+    '${{ github.sha }}',
   );
   expect(
     steps.find((step) => step.name === 'Publish and verify in dependency order').env.SOURCE_SHA,

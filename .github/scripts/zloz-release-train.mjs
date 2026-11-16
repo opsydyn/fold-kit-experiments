@@ -2,9 +2,17 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const components = [
@@ -19,13 +27,14 @@ const exactVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const digest = (bytes) => `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
 
-export function releasePlan(candidates, sourceSha, tagShas, privateFlags) {
+export function releasePlan(candidates, sourceSha, tagShas, privateFlags, releaseSha = sourceSha) {
   assert.match(sourceSha, /^[a-f0-9]{40}$/, 'A full immutable source SHA is required');
+  assert.match(releaseSha, /^[a-f0-9]{40}$/, 'A full immutable product release SHA is required');
   assert.equal(candidates.length, 4, 'All four public packages are required');
   assert.deepEqual(
     tagShas,
-    components.map(() => sourceSha),
-    'All four release tags must resolve to source SHA',
+    components.map(() => releaseSha),
+    'All four release tags must resolve to product release SHA',
   );
   assert.deepEqual(privateFlags, [true, true], 'CLI and Alchemy must remain private');
   const ordered = components.map((component) => {
@@ -55,7 +64,26 @@ export function releasePlan(candidates, sourceSha, tagShas, privateFlags) {
       assert(!name.startsWith('@opsydyn/foldkit-flow'), 'Obsolete identities are forbidden');
     }
   }
-  return { sourceSha, version, candidates: ordered };
+  return { sourceSha, releaseSha, version, candidates: ordered };
+}
+
+/** A repaired controller can publish an existing tag only with identical product/build inputs. */
+export function assertControllerSource(sourceSha, releaseSha, changedPaths) {
+  assert.match(sourceSha, /^[a-f0-9]{40}$/);
+  assert.match(releaseSha, /^[a-f0-9]{40}$/);
+  const allowed = new Set([
+    '.github/scripts/zloz-release-train.mjs',
+    '.github/scripts/zloz-release-train.test.js',
+    '.github/scripts/zloz-registry-consumer.mjs',
+    '.github/workflows/zloz-release-train.yml',
+    'docs/adr/0115-serialize-zloz-publication-with-registry-verification.md',
+    'docs/releases/foldkit-zloz.md',
+  ]);
+  assert(
+    changedPaths.every((path) => allowed.has(path)),
+    'Controller differs from tagged product/build inputs',
+  );
+  if (sourceSha === releaseSha) assert.deepEqual(changedPaths, []);
 }
 
 /** Public registry reads only: no credentials, redirects or arbitrary artifact hosts. */
@@ -180,7 +208,7 @@ export async function runTrain(plan, io) {
     }
     const receipt = await io.verify(item, metadata);
     await io.audit(item); // npm validates registry signatures and Sigstore provenance.
-    await io.record({ ...receipt, signatureAudit: 'passed' });
+    await io.record({ ...receipt, releaseSha: plan.releaseSha, signatureAudit: 'passed' });
   }
 }
 
@@ -196,15 +224,14 @@ const json = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const versionUrl = (name, version) =>
   `${registry}/${encodeURIComponent(name).replace('%40', '@')}/${version}`;
 
-function checkSource(sourceSha) {
-  assert.match(sourceSha, /^[a-f0-9]{40}$/, 'Expected full SOURCE_SHA');
+function checkSource(releaseSha) {
+  assert.match(releaseSha, /^[a-f0-9]{40}$/, 'Expected full product release SOURCE_SHA');
+  const sourceSha = process.env.GITHUB_SHA;
+  assert.match(sourceSha, /^[a-f0-9]{40}$/, 'Expected full workflow source SHA');
   assert.equal(process.env.GITHUB_REPOSITORY, 'opsydyn/fold-kit-experiments');
-  assert.equal(
-    process.env.GITHUB_SHA,
-    sourceSha,
-    'Dispatch workflow at the exact release tag/SHA to bind npm provenance',
-  );
   assert.equal(command('git', ['rev-parse', 'HEAD']).trim(), sourceSha);
+  const differences = command('git', ['diff', '--name-only', releaseSha, sourceSha]).trim();
+  assertControllerSource(sourceSha, releaseSha, differences === '' ? [] : differences.split('\n'));
   const candidates = components.map((component) => {
     const manifest = json(join(root, 'packages', component, 'package.json'));
     const dependencies = Object.fromEntries(
@@ -228,6 +255,7 @@ function checkSource(sourceSha) {
     ['foldkit-zloz-cli', 'foldkit-zloz-alchemy'].map(
       (name) => json(join(root, 'packages', name, 'package.json')).private,
     ),
+    releaseSha,
   );
 }
 
@@ -273,10 +301,11 @@ async function verifyFromRegistry(candidate, metadata, sourceSha) {
 }
 
 async function main() {
-  const sourceSha = process.env.SOURCE_SHA;
-  const source = checkSource(sourceSha);
+  const source = checkSource(process.env.SOURCE_SHA);
+  const sourceSha = source.sourceSha;
   if (process.argv[2] === 'preflight') {
     await waitForCI(sourceSha);
+    if (source.releaseSha !== sourceSha) await waitForCI(source.releaseSha);
     return;
   }
   assert(process.env.NODE_AUTH_TOKEN, 'NPM_TOKEN is required');
@@ -297,8 +326,9 @@ async function main() {
   const plan = releasePlan(
     candidates,
     sourceSha,
-    components.map(() => sourceSha),
+    components.map(() => source.releaseSha),
     [true, true],
+    source.releaseSha,
   );
   writeFileSync(join(output, 'candidates.json'), `${JSON.stringify(plan, null, 2)}\n`);
   const consumer = mkdtempSync(join(tmpdir(), 'zloz-registry-consumer-'));
@@ -322,6 +352,7 @@ async function main() {
         {
           version: source.version,
           sourceSha,
+          releaseSha: source.releaseSha,
           status,
           error,
           receipts,
@@ -422,4 +453,9 @@ async function main() {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+if (
+  process.argv[1] &&
+  existsSync(process.argv[1]) &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
+)
+  await main();

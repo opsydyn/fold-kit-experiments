@@ -19,9 +19,13 @@ One global family concurrency group serializes runs without cancelling an active
 from the independent publisher. Keep existing npm credentials, Node 24, pinned
 Actions and npm provenance; no new dependency or credential configuration.
 
-Require a full source SHA equal to both checked-out HEAD and the workflow event
-SHA, all four component tags at that SHA, matching stable versions/exact core
-peers and private CLI/Alchemy. Wait for successful push CI on that exact source,
+Require a full immutable product release SHA, all four component tags at that SHA,
+matching stable versions/exact core peers and private CLI/Alchemy. Check out the
+workflow event SHA, which is the source recorded in npm provenance. Normally these
+SHAs are identical. Recovery may use repaired release automation only when every
+package and build input remains identical to the tagged product; the exact allowed
+control/documentation paths are enumerated in `assertControllerSource`. Wait for
+successful push CI on both identities when they differ,
 then qualify every archive through the existing build/Publint/ATTW checks before
 the first publication. Publish core, ELK, Force, Mermaid, in that order.
 
@@ -46,7 +50,10 @@ archives and incremental success/failure receipts as workflow artifacts.
 - A single serialized workflow reuses existing tooling and makes partial progress
   visible. It costs sequential runtime and cannot roll back an immutable upload.
 
-Recovery is a rerun at the same tag/SHA after inspecting the retained receipt.
+Recovery is a rerun at the same tag/SHA after inspecting the retained receipt, or
+a manual dispatch from trusted main with the original product SHA when release
+automation itself needs repair. Report both the product release SHA and actual
+publication source SHA; never pretend repaired controller source is the old tag.
 GitHub retains at most one pending run per concurrency group; a newer dispatch can
 replace an older pending run, which then needs manual recovery at its release tag.
 If rebuilt bytes differ, stop and inspect the retained candidate; never overwrite,
@@ -77,3 +84,22 @@ workflows. Two packs of the same candidate had identical SHA-512 bytes. The new
 registry consumer passed against installed 0.6.0; npm verified signatures and
 attestations for all six installed packages. These are local/pre-existing-registry
 observations, not evidence that 0.6.1 has been published.
+
+## First hosted execution and recovery correction
+
+Run 43932482750 validated the four immutable 0.6.1 tags at `b68c8f15`, waited for
+all four source CI jobs to pass, then stopped before packing or uploading: the
+qualification shell omitted `REQUESTED_PACKAGE` when invoking the existing
+single-package identity guard. No 0.6.1 npm upload occurred. The added regression
+executes that actual workflow shell against the real guard, substituting only the
+external package-build boundary; it reproduced the missing-input failure before
+the fix and verifies all four guard/pack pairs afterwards.
+
+Fix the invocation for each package. Because release tags already exist, retain
+them and distinguish the repaired workflow/source from the tagged product.
+Reject recovery if any path outside the six enumerated release-control/doc paths
+differs: package sources/manifests/READMEs, root manifests/lockfile, build tools,
+CI policy and all other inputs must remain identical. CI must pass on controller
+and product commits. Published provenance names the actual controller/source SHA;
+receipts retain the product SHA and independently compare downloaded package
+README bytes with that original tag. Do not disable or weaken identity checks.

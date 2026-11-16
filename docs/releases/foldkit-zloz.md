@@ -72,8 +72,13 @@ The independent **publish** workflow no longer accepts Zloz packages.
 
 For recovery, inspect the retained `verification.json` and candidate archives in
 the workflow artifacts. Dispatch **zloz-release-train** from the matching core
-release tag and supply its full 40-character commit as `source_sha`. All four tags
-must resolve to that SHA. Manual and automatic runs share one concurrency lock.
+release tag and supply its full 40-character product commit as `source_sha`. If the
+release automation itself needed repair, dispatch from trusted main with that same
+product commit. The controller must have identical package/build inputs, allowing
+only the six enumerated release-control/documentation paths to differ. CI must
+pass on both controller and product commits. All four tags stay at the product
+SHA; provenance records the actual publication source, and receipts retain both.
+Manual and automatic runs share one concurrency lock.
 Existing versions are verified and skipped; downstream publication stops at the
 first failed barrier. Only registry reads retry. Never blindly retry an uncertain
 upload, move tags, unpublish or accept a differing archive. A byte mismatch on

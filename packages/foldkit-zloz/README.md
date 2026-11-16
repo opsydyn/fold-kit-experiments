@@ -6838,3 +6838,44 @@ See the [adapter API and limits](../foldkit-zloz-mermaid/README.md#native-v3-gro
 Legacy exporters/CLI entries/readers stay version-fixed. Native packets, receipts,
 modelling patches and audits are separate adoption slices. The optional core
 Foldkit entry also exports `zlozThemeStyle` for shared token styling in adapters.
+
+### Native v3 authoring, auditing and portable evidence (unreleased)
+
+Use the explicit v3 entries for a document with authored group ports. V1/v2
+readers and writers retain their original version contracts.
+
+| Workflow                  | Public native v3 entries                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Modelling proposal        | `captureModellingPatchSourceV3`, `captureModellingPatchV3`, `parseModellingPatchV3`, `dryRunModellingPatchV3`     |
+| Reviewed atomic Apply     | `resolveModellingPatchReviewV3`, `applyModellingPatchV3`                                                          |
+| Portable patch receipt    | `serializeModellingPatchReceiptV3`, `parseModellingPatchReceiptV3`                                                |
+| DDD conversion            | `previewEventStormingDddMappingV3`, `createEventStormingDddConversionPlanV3`, `applyEventStormingDddConversionV3` |
+| C4 conversion             | `previewEventStormingC4MappingV3`, `createEventStormingC4ConversionPlanV3`, `applyEventStormingC4ConversionV3`    |
+| Conversion evidence       | `serializeEventStormingDddConversionV3` / `parseEventStormingDddConversionV3`, and the corresponding C4 entries   |
+| Full-document auditing    | `auditGroupDddRelationshipsV3`, `auditGroupEventStormingRelationshipsV3`                                          |
+| Chosen-baseline audits    | `compareModelDddRelationshipsV3`, `compareModelEventStormingRelationshipsV3`                                      |
+| Ordinary or group sockets | `planPortEditV3`, `applyPortEditV3`; group-only wrappers remain available                                         |
+
+Patch source identity includes model, session, revision, mode, capabilities,
+graph and optional camera. Apply binds consent to the exact reviewed source and
+output, rechecks current protections, retains provenance, and adds one complete
+Undo frame. Conversion receipts retain the canonical source/target models and
+all archived checkpoint modes/capabilities. Strict receipt decoders recompute the
+recorded target. Imported evidence grants no current edit permission or consent.
+
+The optional `/foldkit` `zlozGroupWorkbenchV3` view now offers `resize`,
+`portAnchors`, `reconnect`, `boxSelection` and `pinchZoom` options. Controls remain
+opt-in; custom `renderResize` and `renderPortAnchor` slots can replace or omit
+handles. Compose `zlozNativeResizeHandleV3` for eight-direction custom handles.
+Keyboard arrows resize or move anchors, the inspector offers keyboard
+reconnection, Shift-background dragging selects visible roots, and Escape
+cancels. Preview geometry never becomes authority; release rechecks live policy.
+Required protection reasons remain visible in minimal mode. Geometry input uses
+a stable pointer origin across surface reflow.
+
+`publishGroupWorkbenchResultV3` composes an already validated native Apply/Undo
+result into transient workbench presentation. It grants no transaction authority.
+
+See the [release qualification and human checklist](../../docs/releases/zloz-0.6.0-candidate.md)
+for the measured automated matrix and the remaining acceptance gates. This is not
+an unrestricted React Flow parity or accessibility-conformance claim.

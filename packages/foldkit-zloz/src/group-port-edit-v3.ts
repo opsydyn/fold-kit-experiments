@@ -134,6 +134,7 @@ function withLabel(port: Port, label: string | null): Port {
 function build(
   editor: ZlozGroupEditorStateV3,
   request: ZlozGroupPortEditRequestV3,
+  groupOnly = true,
 ): Extract<ZlozGroupPortEditPlanV3, { type: 'ready' | 'blocked' }> {
   const fresh = reviewGroupEditorTransactionV3(editor, {
     source: request.source,
@@ -157,13 +158,13 @@ function build(
         'ineligible-group',
         'EventStorming lanes and hotspots remain portless.',
       );
-    if (node.kind !== 'group')
+    if (groupOnly && node.kind !== 'group')
       return blocked(
         editor,
         'ineligible-group',
         'Choose a group; ordinary-node port editing uses its existing API.',
       );
-    if (!document.capabilities.groupPorts)
+    if (node.kind === 'group' && !document.capabilities.groupPorts)
       return blocked(
         editor,
         'capability-disabled',
@@ -245,6 +246,29 @@ export function applyGroupPortEditV3(
   policy: ZlozGroupEditorPolicyV3 = {},
 ): ZlozGroupPortEditResultV3 {
   const plan = build(editor, request);
+  return plan.type === 'blocked'
+    ? plan
+    : applyGroupEditorTransactionV3(editor, plan.transaction, policy);
+}
+
+/** Native node or group port editing, with complete document validation and live policy. */
+export function planPortEditV3(
+  editor: ZlozGroupEditorStateV3,
+  request: ZlozGroupPortEditRequestV3,
+  policy: ZlozGroupEditorPolicyV3 = {},
+): ZlozGroupPortEditPlanV3 {
+  const plan = build(editor, request, false);
+  if (plan.type === 'blocked') return plan;
+  const review = reviewGroupEditorTransactionV3(editor, plan.transaction, policy);
+  return review.type === 'ready' ? plan : review;
+}
+/** Rebuild the native port intent at publication; one complete-document Undo. */
+export function applyPortEditV3(
+  editor: ZlozGroupEditorStateV3,
+  request: ZlozGroupPortEditRequestV3,
+  policy: ZlozGroupEditorPolicyV3 = {},
+): ZlozGroupPortEditResultV3 {
+  const plan = build(editor, request, false);
   return plan.type === 'blocked'
     ? plan
     : applyGroupEditorTransactionV3(editor, plan.transaction, policy);

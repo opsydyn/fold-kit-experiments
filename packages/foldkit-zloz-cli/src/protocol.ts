@@ -1,4 +1,8 @@
 import type {
+  compareEditionsV3,
+  ZlozModellingPatchPreviewV3,
+  ZlozRelationshipAuditComparisonV3,
+  ZlozDddRelationshipAuditComparisonV3,
   ZlozPortableCompatibilityV2,
   ZlozPortableCompatibilityV3,
   ZlozModellingPatchPreviewV2,
@@ -12,12 +16,15 @@ import type {
   ZlozModellingPatchPreview,
   ZlozEventStormingC4Conversion,
   ZlozEventStormingC4ConversionV2,
+  ZlozEventStormingC4ConversionV3,
   ZlozHistoryModeChangeV2,
   ZlozEventStormingC4ConversionDisclosure,
   ZlozHistoryComparison,
 } from '@opsydyn/foldkit-zloz';
 import type {
   MermaidBundle,
+  MermaidBundleV3,
+  ZlozReviewPacketV3,
   MermaidBundleV2,
   ZlozReviewPacket,
   ZlozReviewPacketV2,
@@ -93,6 +100,19 @@ export type CliC4ReceiptInspectionV2 = Omit<
     target: ZlozEventStormingC4ConversionV2['document'];
     changes: CliC4ReceiptInspection['changes'] & Readonly<{ modeChange: ZlozHistoryModeChangeV2 }>;
   }>;
+export type CliC4ReceiptInspectionV3 = Omit<
+  CliC4ReceiptInspectionV2,
+  'version' | 'provenance' | 'target' | 'changes'
+> &
+  Readonly<{
+    changes: Pick<
+      ReturnType<typeof compareEditionsV3>,
+      'nodes' | 'edges' | 'modeChange' | 'capabilityChange'
+    >;
+    version: 3;
+    provenance: ZlozEventStormingC4ConversionV3['source'];
+    target: ZlozEventStormingC4ConversionV3['document'];
+  }>;
 export type CliResponse =
   | CliNativeReceiptInspection
   | Readonly<{
@@ -107,7 +127,7 @@ export type CliResponse =
       operation: 'c4-receipt-inspect';
       status: 'inspected';
       scope: 'recorded-conversion';
-      data: CliC4ReceiptInspection | CliC4ReceiptInspectionV2;
+      data: CliC4ReceiptInspection | CliC4ReceiptInspectionV2 | CliC4ReceiptInspectionV3;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -115,7 +135,7 @@ export type CliResponse =
       operation: 'ddd-audit';
       status: 'audited';
       scope: 'current-graph';
-      documentVersion?: 2;
+      documentVersion?: 2 | 3;
       connectionMode?: ZlozConnectionMode;
       modelId: string | null;
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
@@ -128,7 +148,10 @@ export type CliResponse =
       status: 'compared';
       scope: 'model-editions';
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
-      data: ZlozDddRelationshipAuditComparison | ZlozDddRelationshipAuditComparisonV2;
+      data:
+        | ZlozDddRelationshipAuditComparison
+        | ZlozDddRelationshipAuditComparisonV2
+        | ZlozDddRelationshipAuditComparisonV3;
       /** Introduced findings only; persisting incompatibility remains in data. */
       diagnostics: readonly CliDiagnostic[];
     }>
@@ -136,7 +159,7 @@ export type CliResponse =
       protocol: typeof cliProtocol;
       operation: 'patch-dry-run';
       status: 'reviewed';
-      data: ZlozModellingPatchPreview | ZlozModellingPatchPreviewV2;
+      data: ZlozModellingPatchPreview | ZlozModellingPatchPreviewV2 | ZlozModellingPatchPreviewV3;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -151,7 +174,7 @@ export type CliResponse =
       operation: 'review-inspect';
       status: 'inspected';
       scope: 'selected-snapshots';
-      data: ZlozReviewPacket | ZlozReviewPacketV2;
+      data: ZlozReviewPacket | ZlozReviewPacketV2 | ZlozReviewPacketV3;
       diagnostics: readonly ZlozReviewPacketDiagnostic[];
     }>
   | Readonly<{
@@ -159,7 +182,7 @@ export type CliResponse =
       operation: 'validate';
       status: 'valid';
       summary: Readonly<{ nodes: number; edges: number }>;
-      documentVersion?: 2;
+      documentVersion?: 2 | 3;
       connectionMode?: ZlozConnectionMode;
       model?: Readonly<{
         id: string;
@@ -174,14 +197,14 @@ export type CliResponse =
       operation: 'review-packet';
       status: 'created';
       scope: 'selected-snapshots';
-      data: ZlozReviewPacket | ZlozReviewPacketV2;
+      data: ZlozReviewPacket | ZlozReviewPacketV2 | ZlozReviewPacketV3;
       diagnostics: readonly ZlozReviewPacketDiagnostic[];
     }>
   | Readonly<{
       protocol: typeof cliProtocol;
       operation: 'mermaid-export';
       status: 'converted';
-      data: MermaidBundle | MermaidBundleV2;
+      data: MermaidBundle | MermaidBundleV2 | MermaidBundleV3;
       diagnostics: readonly CliDiagnostic[];
     }>
   | Readonly<{
@@ -189,7 +212,7 @@ export type CliResponse =
       operation: 'relationships-audit';
       status: 'audited';
       scope: 'current-graph';
-      documentVersion?: 2;
+      documentVersion?: 2 | 3;
       connectionMode?: ZlozConnectionMode;
       modelId: string | null;
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
@@ -202,7 +225,10 @@ export type CliResponse =
       status: 'compared';
       scope: 'model-editions';
       conventions: Readonly<{ source: 'builtin' | 'file'; input: string | null }>;
-      data: ZlozRelationshipAuditComparison | ZlozRelationshipAuditComparisonV2;
+      data:
+        | ZlozRelationshipAuditComparison
+        | ZlozRelationshipAuditComparisonV2
+        | ZlozRelationshipAuditComparisonV3;
       /** Newly introduced findings only; persisting findings remain in data. */
       diagnostics: readonly CliDiagnostic[];
     }>

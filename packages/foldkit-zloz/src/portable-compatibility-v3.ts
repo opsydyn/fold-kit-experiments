@@ -67,7 +67,7 @@ export function assessPortableCompatibilityV3(
       adapter: 'native-controls',
       status: 'supported',
       reason:
-        'Use the distinct v3 workbench/controller and live planners. Pointer node movement and connections, keyboard selection/nudging/connections, inspector resizing, collapse, group-port edits and reconnection are supported; this is a bounded native control set.',
+        'Use the distinct v3 workbench/controller and live planners. Pointer movement, resize, port-anchor editing and reconnection, keyboard alternatives, box selection and opt-in pinch use live source-bound planners; collapse and group-port inspector edits are supported.',
     },
     {
       adapter: 'model',
@@ -109,16 +109,32 @@ export function assessPortableCompatibilityV3(
       adapter: 'mermaid',
       status: 'supported',
       reason:
-        'Use the optional Mermaid package native v3 exporter and exact-output review controls. Full documents retain mode/capability in the native bundle, while group socket artwork and exact attachment are explicit losses. Legacy exporters and CLI entries remain version-fixed; no production import is implied.',
+        'Use the optional Mermaid package native v3 exporter and exact-output review controls. Full documents retain mode/capability in the native bundle, while group socket artwork and exact attachment are explicit losses. Legacy exporters remain version-fixed; the CLI selects the declared native exporter by envelope version. No production import is implied.',
     },
-    ...(
-      ['modelling-patch', 'conversion-receipt', 'review-packet', 'relationship-audit'] as const
-    ).map((adapter) => ({
-      adapter,
-      status: 'requires-version' as const,
+    {
+      adapter: 'modelling-patch',
+      status: 'supported',
       reason:
-        'This entry has no qualified native v3 adapter. Keep the full v3 document. Explicit downgrade review is required before using a v2 adapter; authored group ports block downgrade.',
-    })),
+        'Use capture/parse/dryRunModellingPatchV3 and the source-bound native review/Apply APIs. Exact consent, live protection, strict recomputed receipts and one complete-document Undo are retained.',
+    },
+    {
+      adapter: 'conversion-receipt',
+      status: 'supported',
+      reason:
+        'Use native v3 C4/DDD mapping, plans, exact loss consent and atomic Apply. Strict portable receipts preserve every checkpoint and are read-only evidence when reopened; they grant no live editing authority.',
+    },
+    {
+      adapter: 'review-packet',
+      status: 'supported',
+      reason:
+        'Use create/parse/openReviewPacketV3 in the optional Mermaid package. Native audit deltas and explicit group-port projection losses are recomputed before independent read-only reopening.',
+    },
+    {
+      adapter: 'relationship-audit',
+      status: 'supported',
+      reason:
+        'Use auditGroupDddRelationshipsV3/auditGroupEventStormingRelationshipsV3 and native edition comparisons. Full document validation retains capabilities and each checkpoint mode; the Effect CLI selects declared native codecs by version.',
+    },
   ];
   return Object.freeze({
     scope: 'format-capability-only',
@@ -130,8 +146,7 @@ export function assessPortableCompatibilityV3(
     limits: Object.freeze([
       'World coordinates, explicit group parents and rectangular group envelopes are intentional conventions.',
       'Rotation, lasso/freehand/eraser, dedicated multi-connect UI, production Mermaid import and server PNG remain outside this release. Atomic explicit connection sets are available headlessly.',
-      'Native resize/port editing and reconnection use the inspector/custom planners; direct pointer resize, port-anchor dragging, reconnection dragging, box selection and pinch are not qualified in the v3 surface.',
-      'V1/v2 editor/render/layout/export/CLI command entries remain version-fixed. Never pass a bare v3 graph to them to evade capability validation.',
+      'V1/v2 package editor/render/layout/export entries remain version-fixed. Never pass a bare v3 graph to them to evade capability validation.',
       'Screen-reader and physical-device human acceptance and broad performance qualification are not established by unit tests or browser emulation.',
     ]),
   });

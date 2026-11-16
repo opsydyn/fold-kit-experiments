@@ -1,0 +1,3 @@
+# Raw reporter bodies and failure traces remain local; commit the compact evidence and selected images.
+browser-artifacts/
+playwright-results.json

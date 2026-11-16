@@ -147,6 +147,7 @@ const SCRIPT_OF: ReadonlyMap<string, string> = new Map([
   ['pack-check', 'pack:check'],
   ['e2e', 'test:e2e'],
   ['e2e-zloz', 'test:e2e'],
+  ['e2e-zloz-native', 'test:zloz:release'],
   ['compat', 'compat:astro'],
 ]);
 /**

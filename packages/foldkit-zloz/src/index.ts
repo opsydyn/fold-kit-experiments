@@ -895,7 +895,12 @@ export type {
   ZlozGroupEditorBoundaryV3,
 } from './group-editor-v3';
 
-export { planGroupPortEditV3, applyGroupPortEditV3 } from './group-port-edit-v3';
+export {
+  planPortEditV3,
+  applyPortEditV3,
+  planGroupPortEditV3,
+  applyGroupPortEditV3,
+} from './group-port-edit-v3';
 export type {
   ZlozGroupPortEditV3,
   ZlozGroupPortEditRequestV3,
@@ -953,6 +958,8 @@ export type {
 } from './model-workflow-v3';
 
 export {
+  publishGroupWorkbenchResultV3,
+  groupWorkbenchBoxSelectionV3,
   createGroupWorkbenchV3,
   captureGroupWorkbenchDocumentV3,
   updateGroupWorkbenchV3,
@@ -1035,3 +1042,60 @@ export type {
 } from './group-clipboard-v3';
 
 export { groupWorkbenchPasteRequestV3 } from './group-workbench-v3';
+
+export { captureModellingPatchV3, dryRunModellingPatchV3 } from './modelling-patch';
+export type {
+  ZlozModellingPatchSourceV3,
+  ZlozModellingPatchV3,
+  ZlozModellingPatchPreviewV3,
+  ZlozModellingPatchOptionsV3,
+} from './modelling-patch';
+export { parseModellingPatchV3 } from './parse-modelling-patch';
+export * from './modelling-patch-v3-apply';
+export * from './audit-v3';
+export { previewEventStormingDddMappingV3 } from './event-storming-ddd-preview';
+export { previewEventStormingC4MappingV3 } from './event-storming-c4-preview';
+export type {
+  ZlozEventStormingC4SourceV3,
+  ZlozEventStormingC4PreviewV3,
+} from './event-storming-c4-preview';
+export {
+  createEventStormingDddConversionPlanV3,
+  resolveEventStormingDddConversionConsentV3,
+} from './event-storming-ddd-conversion-plan';
+export type {
+  ZlozEventStormingDddConversionSourceV3,
+  ZlozEventStormingDddConversionPlanV3,
+  ZlozEventStormingDddConversionConsentDecisionV3,
+} from './event-storming-ddd-conversion-plan';
+export {
+  createEventStormingC4ConversionPlanV3,
+  resolveEventStormingC4ConversionConsentV3,
+} from './event-storming-c4-conversion-plan';
+export type {
+  ZlozEventStormingC4ConversionSourceV3,
+  ZlozEventStormingC4ConversionPlanV3,
+  ZlozEventStormingC4ConversionConsentDecisionV3,
+} from './event-storming-c4-conversion-plan';
+export {
+  applyEventStormingDddConversionV3,
+  serializeEventStormingDddConversionV3,
+  parseEventStormingDddConversionV3,
+} from './event-storming-ddd-apply';
+export type {
+  ZlozEventStormingDddConversionV3,
+  ZlozEventStormingDddApplyOptionsV3,
+  ZlozEventStormingDddApplyPolicyV3,
+  ZlozEventStormingDddApplyResultV3,
+} from './event-storming-ddd-apply';
+export {
+  applyEventStormingC4ConversionV3,
+  serializeEventStormingC4ConversionV3,
+  parseEventStormingC4ConversionV3,
+} from './event-storming-c4-apply';
+export type {
+  ZlozEventStormingC4ConversionV3,
+  ZlozEventStormingC4ApplyOptionsV3,
+  ZlozEventStormingC4ApplyPolicyV3,
+  ZlozEventStormingC4ApplyResultV3,
+} from './event-storming-c4-apply';

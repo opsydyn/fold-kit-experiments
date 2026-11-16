@@ -5,6 +5,7 @@ import type {
   ZlozModellingPatchReview,
   ZlozModellingPatchReviewRequest,
 } from './modelling-patch-apply';
+import type { ZlozModellingPatchReviewV3 } from './modelling-patch-v3-apply';
 type Attributes<M> = Parameters<HtmlBuilder<M>['div']>[0];
 export type ZlozModellingPatchReviewParts = Readonly<{
   summary: Html | null;
@@ -14,11 +15,14 @@ export type ZlozModellingPatchReviewParts = Readonly<{
   apply: Html | null;
   status: Html;
 }>;
-export type ZlozModellingPatchReviewViewOptions<M> = Readonly<{
+export type ZlozModellingPatchReviewViewOptions<
+  M,
+  C extends ZlozModellingPatchReview | ZlozModellingPatchReviewV3 = ZlozModellingPatchReview,
+> = Readonly<{
   attributes?: Attributes<M>;
   showCounts?: boolean;
   instructions?: boolean;
-  renderSummary?: (context: ZlozModellingPatchReview, h: HtmlBuilder<M>) => Html | null | undefined;
+  renderSummary?: (context: C, h: HtmlBuilder<M>) => Html | null | undefined;
   renderFinding?: (
     finding: ZlozModellingPatchFinding,
     h: HtmlBuilder<M>,
@@ -26,9 +30,12 @@ export type ZlozModellingPatchReviewViewOptions<M> = Readonly<{
   renderChange?: (change: ZlozModellingPatchChange, h: HtmlBuilder<M>) => Html | null | undefined;
   renderLayout?: (parts: ZlozModellingPatchReviewParts, h: HtmlBuilder<M>) => readonly Html[];
 }>;
-export function zlozModellingPatchAcknowledgement<M>(
+export function zlozModellingPatchAcknowledgement<
+  M,
+  C extends ZlozModellingPatchReview | ZlozModellingPatchReviewV3 = ZlozModellingPatchReview,
+>(
   h: HtmlBuilder<M>,
-  context: ZlozModellingPatchReview,
+  context: C,
   onRequest: (request: ZlozModellingPatchReviewRequest) => M,
   attributes: Attributes<M> = [],
 ): Html {
@@ -46,9 +53,12 @@ export function zlozModellingPatchAcknowledgement<M>(
     ),
   ]);
 }
-export function zlozModellingPatchApply<M>(
+export function zlozModellingPatchApply<
+  M,
+  C extends ZlozModellingPatchReview | ZlozModellingPatchReviewV3 = ZlozModellingPatchReview,
+>(
   h: HtmlBuilder<M>,
-  context: ZlozModellingPatchReview,
+  context: C,
   onRequest: (request: ZlozModellingPatchReviewRequest) => M,
   attributes: Attributes<M> = [],
   children: Parameters<HtmlBuilder<M>['button']>[1] = ['Apply reviewed patch'],
@@ -64,11 +74,14 @@ export function zlozModellingPatchApply<M>(
   );
 }
 /** Native defaults and nullable render slots; all authority remains in live core Apply. */
-export function zlozModellingPatchReview<M>(
+export function zlozModellingPatchReview<
+  M,
+  C extends ZlozModellingPatchReview | ZlozModellingPatchReviewV3 = ZlozModellingPatchReview,
+>(
   h: HtmlBuilder<M>,
-  context: ZlozModellingPatchReview,
+  context: C,
   onRequest: (request: ZlozModellingPatchReviewRequest) => M,
-  options: ZlozModellingPatchReviewViewOptions<M> = {},
+  options: ZlozModellingPatchReviewViewOptions<M, C> = {},
 ): Html {
   const preview = context.preview,
     custom = options.renderSummary?.(context, h);

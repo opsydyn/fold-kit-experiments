@@ -1,4 +1,4 @@
-import { finitePoint, fitViewport, screenToWorld, zoomAt } from './geometry';
+import { portAnchor, finitePoint, fitViewport, screenToWorld, zoomAt } from './geometry';
 import {
   applyGroupPasteV3,
   copyGroupSelectionV3,
@@ -29,10 +29,32 @@ import {
   planGroupOperationV3,
   type ZlozGroupOperationV3,
 } from './group-operations-v3';
-import { applyGroupPortEditV3, type ZlozGroupPortEditV3 } from './group-port-edit-v3';
+import {
+  applyPortEditV3,
+  planPortEditV3,
+  applyGroupPortEditV3,
+  type ZlozGroupPortEditV3,
+} from './group-port-edit-v3';
 import { presentGroups } from './group-presentation';
 import { historyValueEqual } from './history';
-import type { EditorEvent, Endpoint, Point, Size, Viewport, ZlozGraph, EdgeRoute } from './types';
+import { resolvePortAnchorSnap, resolvePortAnchorSnapSettings } from './port-anchor-snap';
+import { resizeNodeGeometry } from './resize-geometry';
+import { resolveBoxSelection } from './selection-preview';
+import type {
+  EditorEvent,
+  Endpoint,
+  Point,
+  Size,
+  Viewport,
+  ZlozGraph,
+  EdgeRoute,
+  ResizeHandle,
+  PortPosition,
+  PortAnchorSnapSettings,
+  PortAnchorSnapResult,
+  PortAnchorSnapOverrides,
+  EdgeEnd,
+} from './types';
 
 export type ZlozGroupWorkbenchGestureV3 =
   | Readonly<{ type: 'idle' }>
@@ -43,6 +65,36 @@ export type ZlozGroupWorkbenchGestureV3 =
       nodeIds: readonly string[];
       origin: Point;
       delta: Point;
+    }>
+  | Readonly<{
+      type: 'resize';
+      source: ZlozGroupEditorSourceV3;
+      id: string;
+      handle: ResizeHandle;
+      pointer: number;
+      origin: Point;
+      delta: Point;
+    }>
+  | Readonly<{
+      type: 'anchor';
+      source: ZlozGroupEditorSourceV3;
+      endpoint: Endpoint;
+      pointer: number;
+      origin: Point;
+      position: PortPosition;
+      settings: PortAnchorSnapSettings;
+      snap: PortAnchorSnapResult | null;
+      bypassed: boolean;
+    }>
+  | Readonly<{ type: 'box-selection'; pointer: number; origin: Point; point: Point }>
+  | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
+  | Readonly<{
+      type: 'reconnect';
+      source: ZlozGroupEditorSourceV3;
+      pointer: number;
+      edgeId: string;
+      end: EdgeEnd;
+      target: Endpoint | null;
     }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; viewport: Viewport }>
   | Readonly<{
@@ -65,6 +117,8 @@ export type ZlozGroupWorkbenchV3 = Readonly<{
   gesture: ZlozGroupWorkbenchGestureV3;
   connectionSource: Endpoint | null;
   status: string;
+  /** Required protection feedback is independent of optional diagnostic status. */
+  statusRequired?: boolean;
   layout: Readonly<{ document: ZlozGroupDocumentV3; routes: readonly EdgeRoute[] }> | null;
 }>;
 export type ZlozGroupWorkbenchEventV3 =
@@ -75,7 +129,11 @@ export type ZlozGroupWorkbenchEventV3 =
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
   | Readonly<{ type: 'FitViewRequested' }>
   | Readonly<{ type: 'GroupPasteRequested'; request: ZlozGroupPasteRequestV3 }>;
-export type ZlozGroupWorkbenchOptionsV3 = Readonly<{ grid?: number; pasteOffset?: Point }>;
+export type ZlozGroupWorkbenchOptionsV3 = Readonly<{
+  grid?: number;
+  pasteOffset?: Point;
+  portAnchorSnap?: PortAnchorSnapOverrides;
+}>;
 export function createGroupWorkbenchV3(
   document: ZlozGroupDocumentV3,
   options: ZlozGroupEditorOptionsV3,
@@ -96,7 +154,8 @@ export function createGroupWorkbenchV3(
     status: 'Select a node or port. Arrow keys move the selection; Escape cancels.',
   };
 }
-function completed(
+/** Compose a trusted headless Apply/Undo result into transient presentation. This helper grants no edit authority; run the native planner/kernel first. */
+export function publishGroupWorkbenchResultV3(
   model: ZlozGroupWorkbenchV3,
   result: Readonly<{ type: string; editor: ZlozGroupEditorStateV3; reason?: string }>,
 ): ZlozGroupWorkbenchV3 {
@@ -109,6 +168,7 @@ function completed(
       ? model.viewport
       : (result.editor.document.viewport ?? { x: 20, y: 20, zoom: 1 }),
     gesture: { type: 'idle' },
+    statusRequired: result.reason != null,
     status:
       result.reason ??
       (result.type === 'applied' ? 'Change applied. Undo is available.' : 'No document change.'),
@@ -126,6 +186,8 @@ function sourceReason(
   endpoint: Endpoint,
   policy: ZlozGroupEditorPolicyV3,
 ): string | null {
+  if (model.editor.readOnly) return 'This diagram is read-only.';
+  if (model.editor.activity.type === 'busy') return model.editor.activity.reason;
   const graph = model.editor.document.graph,
     port = graph.nodes
       .find((node) => node.id === endpoint.node)
@@ -169,21 +231,67 @@ export function groupWorkbenchPasteRequestV3(
   }
   return groupPasteRequestV3(model.editor, model.clipboard, { offset });
 }
+/** Resolve resize geometry separately from native transaction authority. */
+function resizeOperation(
+  graph: ZlozGraph,
+  id: string,
+  delta: Point,
+  handle: ResizeHandle,
+): ZlozGroupOperationV3 {
+  const next = resizeNodeGeometry(graph, id, delta, handle, false, 1, [], false).nodes.find(
+    (n) => n.id === id,
+  );
+  if (!next) return { operation: 'resize', id, size: { width: 1, height: 1 } };
+  return { operation: 'resize', id, size: next.size, position: next.position };
+}
+function gesturePlan(model: ZlozGroupWorkbenchV3, policy: ZlozGroupEditorPolicyV3) {
+  const g = model.gesture;
+  if (g.type === 'anchor')
+    return planPortEditV3(
+      model.editor,
+      {
+        source: g.source,
+        edit: { operation: 'position', endpoint: g.endpoint, position: g.position },
+      },
+      policy,
+    );
+  if (g.type !== 'move' && g.type !== 'resize') return null;
+  return planGroupOperationV3(
+    model.editor,
+    {
+      source: g.source,
+      operation:
+        g.type === 'move'
+          ? { operation: 'move', nodeIds: g.nodeIds, delta: g.delta }
+          : resizeOperation(g.source.document.graph, g.id, g.delta, g.handle),
+    },
+    policy,
+  );
+}
 /** Recompute transient geometry through the same live planner used at release. No preview is authority. */
 export function groupWorkbenchGraphV3(
   model: ZlozGroupWorkbenchV3,
   policy: ZlozGroupEditorPolicyV3 = {},
 ): ZlozGraph {
-  if (model.gesture.type !== 'move') return model.editor.document.graph;
-  const plan = planGroupOperationV3(
-    model.editor,
+  const plan = gesturePlan(model, policy);
+  return plan?.type === 'ready' ? plan.transaction.document.graph : model.editor.document.graph;
+}
+/** Visible root selection shared by marquee feedback and release-time selection policy. */
+export function groupWorkbenchBoxSelectionV3(
+  model: ZlozGroupWorkbenchV3,
+  policy: ZlozGroupEditorPolicyV3 = {},
+) {
+  if (model.gesture.type !== 'box-selection') return null;
+  return resolveBoxSelection(
     {
-      source: model.gesture.source,
-      operation: { operation: 'move', nodeIds: model.gesture.nodeIds, delta: model.gesture.delta },
+      graph: model.editor.document.graph,
+      collapsedGroups: model.collapsedGroupIds,
+      boxSelectionMatch: 'full',
     },
-    policy,
+    model.gesture,
+    presentGroups(model.editor.document.graph, model.collapsedGroupIds).nodes,
+    policy.canSelectNode,
   );
-  return plan.type === 'ready' ? plan.transaction.document.graph : model.editor.document.graph;
 }
 /** Accepted routes are transient and valid only for this complete document and unprojected geometry. */
 export function groupWorkbenchRoutesV3(model: ZlozGroupWorkbenchV3): readonly EdgeRoute[] {
@@ -204,7 +312,7 @@ export function applyGroupWorkbenchLayoutV3(
   if (model.gesture.type !== 'idle')
     return { ...model, status: 'Finish or cancel the active gesture before applying layout.' };
   const applied = applyGroupLayoutV3(model.editor, active, result, policy),
-    next = completed(model, applied);
+    next = publishGroupWorkbenchResultV3(model, applied);
   return applied.type === 'blocked'
     ? next
     : {
@@ -227,7 +335,10 @@ export function updateGroupWorkbenchV3(
     graph = editor.document.graph;
   const source = () => captureGroupEditorSourceV3(editor);
   const operate = (operation: ZlozGroupOperationV3) =>
-    completed(model, applyGroupOperationV3(editor, { source: source(), operation }, policy));
+    publishGroupWorkbenchResultV3(
+      model,
+      applyGroupOperationV3(editor, { source: source(), operation }, policy),
+    );
   const grid = options.grid ?? 1;
   if (!Number.isFinite(grid) || grid <= 0)
     throw new RangeError('Grid must be positive and finite.');
@@ -243,6 +354,12 @@ export function updateGroupWorkbenchV3(
       'CopyPressed',
       'PastePressed',
       'GroupPasteRequested',
+      'GroupResizeNudged',
+      'NodeResizeNudged',
+      'PortAnchorNudged',
+      'SelectionNudged',
+      'PortActivated',
+      'GroupCollapseToggled',
     ].includes(event.type)
   )
     return { ...model, status: 'Finish or cancel the active gesture first.' };
@@ -270,7 +387,7 @@ export function updateGroupWorkbenchV3(
               options.pasteOffset ?? { x: grid * 2, y: grid * 2 },
             )!;
       const result = applyGroupPasteV3(editor, request, policy),
-        next = completed(model, result);
+        next = publishGroupWorkbenchResultV3(model, result);
       if (result.type !== 'applied') return next;
       const graph = result.editor.document.graph;
       return {
@@ -287,24 +404,25 @@ export function updateGroupWorkbenchV3(
     case 'GroupOperationRequested':
       return operate(event.operation);
     case 'GroupPortEditRequested':
-      return completed(
+      return publishGroupWorkbenchResultV3(
         model,
         applyGroupPortEditV3(editor, { source: source(), edit: event.edit }, policy),
       );
     case 'ConnectionEditRequested':
-      return completed(
+      return publishGroupWorkbenchResultV3(
         model,
         applyGroupConnectionV3(editor, { source: source(), edit: event.edit }, policy),
       );
     case 'UndoPressed':
     case 'RedoPressed':
-      return completed(
+      return publishGroupWorkbenchResultV3(
         model,
         updateGroupEditorV3(editor, { type: event.type, source: source() }, policy),
       );
     case 'GestureCancelled':
       return {
         ...model,
+        viewport: model.gesture.type === 'pinch' ? model.gesture.before : model.viewport,
         gesture: { type: 'idle' },
         connectionSource: null,
         status: 'Gesture cancelled. The document is unchanged.',
@@ -314,7 +432,11 @@ export function updateGroupWorkbenchV3(
       if (!node) return model;
       const reason = policy.canSelectNode?.(node, graph);
       if (reason != null)
-        return { ...model, status: reason.trim() || 'Node selection is protected.' };
+        return {
+          ...model,
+          statusRequired: true,
+          status: reason.trim() || 'Node selection is protected.',
+        };
       const selectedNodeIds = event.additive
         ? model.selectedNodeIds.includes(event.id)
           ? model.selectedNodeIds.filter((id) => id !== event.id)
@@ -327,7 +449,11 @@ export function updateGroupWorkbenchV3(
       if (!edge) return model;
       const reason = policy.canSelectEdge?.(edge, graph);
       return reason != null
-        ? { ...model, status: reason.trim() || 'Connection selection is protected.' }
+        ? {
+            ...model,
+            statusRequired: true,
+            status: reason.trim() || 'Connection selection is protected.',
+          }
         : { ...model, selectedEdgeId: event.id, selectedNodeIds: [] };
     }
     case 'SelectionCleared':
@@ -355,73 +481,274 @@ export function updateGroupWorkbenchV3(
       };
       return { ...selected, gesture };
     }
+    case 'NodeResizeStarted': {
+      if (model.gesture.type !== 'idle' || !graph.nodes.some((n) => n.id === event.id))
+        return model;
+      return {
+        ...model,
+        gesture: {
+          type: 'resize',
+          source: source(),
+          id: event.id,
+          handle: event.handle ?? event.corner ?? 'bottom-right',
+          pointer: event.pointer,
+          origin: screenToWorld(event.point, model.viewport),
+          delta: { x: 0, y: 0 },
+        },
+      };
+    }
+    case 'GroupResizeNudged':
+      return operate(
+        resizeOperation(
+          graph,
+          event.id,
+          event.delta,
+          event.handle ?? event.corner ?? 'bottom-right',
+        ),
+      );
+    case 'NodeResizeNudged':
+      return operate(resizeOperation(graph, event.id, { x: event.delta, y: 0 }, 'right'));
+    case 'PortAnchorDragStarted': {
+      if (model.gesture.type !== 'idle') return model;
+      const node = graph.nodes.find((n) => n.id === event.endpoint.node),
+        port = node?.ports.find((p) => p.id === event.endpoint.port);
+      if (!node || !port) return model;
+      const position = { side: port.side, anchor: portAnchor(port, node) };
+      const gesture: ZlozGroupWorkbenchGestureV3 = {
+        type: 'anchor',
+        snap: null,
+        source: source(),
+        endpoint: event.endpoint,
+        pointer: event.pointer,
+        origin: screenToWorld(event.point, model.viewport),
+        position,
+        settings: resolvePortAnchorSnapSettings(
+          options.portAnchorSnap ?? {},
+          policy.portAnchorSnap?.({ node, port }, graph),
+        ),
+        bypassed: event.snapBypassed ?? false,
+      };
+      const next = { ...model, gesture },
+        plan = gesturePlan(next, policy);
+      return plan?.type === 'blocked'
+        ? { ...model, statusRequired: true, status: plan.reason }
+        : next;
+    }
+    case 'PortAnchorNudged': {
+      const node = graph.nodes.find((n) => n.id === event.endpoint.node),
+        port = node?.ports.find((p) => p.id === event.endpoint.port);
+      if (!node || !port || model.gesture.type !== 'idle') return model;
+      finitePoint(event.delta);
+      const base = portAnchor(port, node),
+        anchor = {
+          x: Math.max(0, Math.min(1, base.x + event.delta.x)),
+          y: Math.max(0, Math.min(1, base.y + event.delta.y)),
+        };
+      return publishGroupWorkbenchResultV3(
+        model,
+        applyPortEditV3(
+          editor,
+          {
+            source: source(),
+            edit: {
+              operation: 'position',
+              endpoint: event.endpoint,
+              position: { side: port.side, anchor },
+            },
+          },
+          policy,
+        ),
+      );
+    }
+    case 'PortAnchorSnapBypassChanged':
+      return model.gesture.type === 'anchor' && model.gesture.pointer === event.pointer
+        ? { ...model, gesture: { ...model.gesture, bypassed: event.bypassed } }
+        : model;
+    case 'ReconnectionDragStarted':
+      return model.gesture.type !== 'idle' || !graph.edges.some((e) => e.id === event.id)
+        ? model
+        : {
+            ...model,
+            gesture: {
+              type: 'reconnect',
+              source: source(),
+              edgeId: event.id,
+              end: event.end,
+              pointer: event.pointer,
+              target: null,
+            },
+          };
+    case 'BoxSelectionStarted':
+      return model.gesture.type !== 'idle'
+        ? model
+        : {
+            ...model,
+            gesture: {
+              type: 'box-selection',
+              pointer: event.pointer,
+              origin: screenToWorld(event.point, model.viewport),
+              point: screenToWorld(event.point, model.viewport),
+            },
+          };
+    case 'PinchStarted':
+      finitePoint(event.center);
+      return !Number.isFinite(event.distance) || event.distance <= 0
+        ? model
+        : {
+            ...model,
+            connectionSource: null,
+            gesture: {
+              type: 'pinch',
+              center: event.center,
+              distance: event.distance,
+              before: model.viewport,
+            },
+          };
+    case 'PinchMoved': {
+      const g = model.gesture;
+      if (g.type !== 'pinch' || !Number.isFinite(event.distance) || event.distance <= 0)
+        return model;
+      finitePoint(event.center);
+      const camera = zoomAt(g.before, g.center, event.distance / g.distance);
+      return {
+        ...model,
+        viewport: {
+          ...camera,
+          x: camera.x + event.center.x - g.center.x,
+          y: camera.y + event.center.y - g.center.y,
+        },
+      };
+    }
+    case 'PinchEnded':
+      return model.gesture.type === 'pinch' ? { ...model, gesture: { type: 'idle' } } : model;
     case 'PointerMoved': {
-      const gesture = model.gesture;
-      if (gesture.type === 'idle' || gesture.pointer !== event.pointer) return model;
+      const g = model.gesture;
+      if (g.type === 'idle' || g.type === 'pinch' || g.pointer !== event.pointer) return model;
       finitePoint(event.point);
-      if (gesture.type === 'pan')
+      if (g.type === 'pan')
         return {
           ...model,
           viewport: {
-            ...gesture.viewport,
-            x: gesture.viewport.x + event.point.x - gesture.origin.x,
-            y: gesture.viewport.y + event.point.y - gesture.origin.y,
+            ...g.viewport,
+            x: g.viewport.x + event.point.x - g.origin.x,
+            y: g.viewport.y + event.point.y - g.origin.y,
           },
         };
-      if (gesture.type === 'connect')
-        return { ...model, gesture: { ...gesture, target: event.target ?? null } };
-      const world = screenToWorld(event.point, model.viewport),
-        delta = {
-          x: Math.round((world.x - gesture.origin.x) / grid) * grid,
-          y: Math.round((world.y - gesture.origin.y) / grid) * grid,
+      if (g.type === 'connect' || g.type === 'reconnect')
+        return { ...model, gesture: { ...g, target: event.target ?? null } };
+      const world = screenToWorld(event.point, model.viewport);
+      if (g.type === 'box-selection') return { ...model, gesture: { ...g, point: world } };
+      if (g.type === 'anchor') {
+        const node = g.source.document.graph.nodes.find((n) => n.id === g.endpoint.node),
+          port = node?.ports.find((p) => p.id === g.endpoint.port);
+        if (!node || !port) return model;
+        const base = portAnchor(port, node),
+          bypassed = event.portAnchorSnapBypassed ?? g.bypassed;
+        const snapped = resolvePortAnchorSnap(
+          {
+            x: base.x + (world.x - g.origin.x) / node.size.width,
+            y: base.y + (world.y - g.origin.y) / node.size.height,
+          },
+          {
+            ...g.settings,
+            size: node.size,
+            zoom: model.viewport.zoom,
+            preferredSide: port.side,
+            previousSide: g.snap?.side ?? null,
+            previousCorner: g.snap?.corner ?? null,
+            previousMidpoint: g.snap?.midpoint ?? null,
+            distance: bypassed ? 0 : g.settings.distance,
+            cornerDistance: bypassed ? 0 : g.settings.cornerDistance,
+            midpointDistance: bypassed ? 0 : g.settings.midpointDistance,
+          },
+        );
+        const next = {
+            ...model,
+            gesture: {
+              ...g,
+              bypassed,
+              snap: snapped,
+              position: { side: port.side, anchor: snapped.anchor },
+            },
+          },
+          plan = gesturePlan(next, policy);
+        return {
+          ...next,
+          statusRequired: plan?.type === 'blocked',
+          status:
+            plan?.type === 'blocked' ? plan.reason : 'Preview. Release to apply; Escape cancels.',
         };
-      const plan = planGroupOperationV3(
-        editor,
-        {
-          source: gesture.source,
-          operation: { operation: 'move', nodeIds: gesture.nodeIds, delta },
-        },
-        policy,
-      );
+      }
+      const delta = {
+        x: Math.round((world.x - g.origin.x) / grid) * grid,
+        y: Math.round((world.y - g.origin.y) / grid) * grid,
+      };
+      const next = { ...model, gesture: { ...g, delta } },
+        plan = gesturePlan(next, policy);
       return {
-        ...model,
-        gesture: { ...gesture, delta },
+        ...next,
+        statusRequired: plan?.type === 'blocked',
         status:
-          plan.type === 'blocked' ? plan.reason : 'Preview. Release to apply; Escape cancels.',
+          plan?.type === 'blocked' ? plan.reason : 'Preview. Release to apply; Escape cancels.',
       };
     }
     case 'PointerReleased': {
-      const gesture = model.gesture;
-      if (gesture.type === 'idle' || gesture.pointer !== event.pointer) return model;
-      if (gesture.type === 'pan') return { ...model, gesture: { type: 'idle' } };
-      if (gesture.type === 'move')
-        return completed(
+      const g = model.gesture;
+      if (g.type === 'idle' || g.type === 'pinch' || g.pointer !== event.pointer) return model;
+      if (g.type === 'pan') return { ...model, gesture: { type: 'idle' } };
+      if (g.type === 'box-selection')
+        return {
+          ...model,
+          selectedNodeIds: groupWorkbenchBoxSelectionV3(model, policy)?.previewNodeIds ?? [],
+          selectedEdgeId: null,
+          gesture: { type: 'idle' },
+        };
+      if (g.type === 'anchor')
+        return publishGroupWorkbenchResultV3(
           model,
-          applyGroupOperationV3(
+          applyPortEditV3(
             editor,
             {
-              source: gesture.source,
-              operation: { operation: 'move', nodeIds: gesture.nodeIds, delta: gesture.delta },
+              source: g.source,
+              edit: { operation: 'position', endpoint: g.endpoint, position: g.position },
             },
             policy,
           ),
         );
-      if (!gesture.target)
+      if (g.type === 'move' || g.type === 'resize')
+        return publishGroupWorkbenchResultV3(
+          model,
+          applyGroupOperationV3(
+            editor,
+            {
+              source: g.source,
+              operation:
+                g.type === 'move'
+                  ? { operation: 'move', nodeIds: g.nodeIds, delta: g.delta }
+                  : resizeOperation(g.source.document.graph, g.id, g.delta, g.handle),
+            },
+            policy,
+          ),
+        );
+      if (!g.target)
         return {
           ...model,
           gesture: { type: 'idle' },
           status: 'No connection target. The document is unchanged.',
         };
-      return completed(
+      return publishGroupWorkbenchResultV3(
         model,
         applyGroupConnectionV3(
           editor,
           {
-            source: gesture.source,
-            edit: {
-              operation: 'create',
-              edges: [{ id: edgeId(model), source: gesture.endpoint, target: gesture.target }],
-            },
+            source: g.source,
+            edit:
+              g.type === 'reconnect'
+                ? { operation: 'reconnect', edgeId: g.edgeId, end: g.end, endpoint: g.target }
+                : {
+                    operation: 'create',
+                    edges: [{ id: edgeId(model), source: g.endpoint, target: g.target }],
+                  },
           },
           policy,
         ),
@@ -429,7 +756,7 @@ export function updateGroupWorkbenchV3(
     }
     case 'ConnectionDragStarted': {
       const reason = sourceReason(model, event.endpoint, policy);
-      if (reason !== null) return { ...model, status: reason };
+      if (reason !== null) return { ...model, statusRequired: true, status: reason };
       return model.gesture.type !== 'idle'
         ? model
         : {
@@ -448,7 +775,7 @@ export function updateGroupWorkbenchV3(
       if (model.gesture.type !== 'idle') return model;
       if (!model.connectionSource) {
         const reason = sourceReason(model, event.endpoint, policy);
-        if (reason !== null) return { ...model, status: reason };
+        if (reason !== null) return { ...model, statusRequired: true, status: reason };
         return {
           ...model,
           connectionSource: event.endpoint,
@@ -456,7 +783,7 @@ export function updateGroupWorkbenchV3(
         };
       }
       return {
-        ...completed(
+        ...publishGroupWorkbenchResultV3(
           model,
           applyGroupConnectionV3(
             editor,
@@ -531,6 +858,7 @@ export function updateGroupWorkbenchV3(
             },
           };
     case 'ViewportNudged':
+      if (model.gesture.type !== 'idle') return model;
       return {
         ...model,
         viewport: {

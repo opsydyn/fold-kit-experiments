@@ -1,4 +1,5 @@
 import {
+  publishGroupWorkbenchResultV3,
   assessPortableCompatibilityV3,
   createSvgReview,
   createPngReview,
@@ -67,10 +68,26 @@ import type { Return } from 'foldkit/update';
 
 import { groupMermaidContext, groupMermaidControls, groupMermaidFindingLabel } from './mermaid';
 import { groupPngContext, groupPngControls } from './png';
+import {
+  createNativeReviewTools,
+  updateNativeReviewTools,
+  nativeReviewToolsView,
+  type NativeReviewTools,
+  type NativeReviewEvent,
+} from './review-tools';
 import { groupSvgContext, groupSvgControls } from './svg';
 
 export type ReadyState = Readonly<{
   workbench: ZlozGroupWorkbenchV3;
+  nativeTools: NativeReviewTools;
+  evidenceReview: ZlozGroupWorkbenchV3 | null;
+  nativeReadSequence: number;
+  pendingNativeRead: Readonly<{
+    token: number;
+    sessionId: string;
+    revision: number;
+    text: string;
+  }> | null;
   catalogue: Omit<ZlozModelDocumentV3, 'snapshot'>;
   review: Readonly<{ edition: ZlozEditionV3; workbench: ZlozGroupWorkbenchV3 }> | null;
   theme: 'light' | 'dark';
@@ -103,6 +120,11 @@ export const Message = defineMessageUnion({
   FailedIdentity: {},
   ClickedRetry: {},
   ObservedWorkbenchInput: { event: Schema.Unknown },
+  ObservedNativeReview: { event: Schema.Unknown },
+  ClickedNativeDownload: {},
+  ChoseNativeEvidenceFiles: { files: Schema.Unknown },
+  SucceededNativeRead: { text: Schema.String, token: Schema.Number },
+  FailedNativeRead: { reason: Schema.String, token: Schema.Number },
   ClickedTheme: {},
   ClickedMinimal: {},
   ClickedProtection: {},
@@ -165,10 +187,34 @@ const OpenGroupModel = Command.define('OpenGroupModel', {
       }),
     ),
 });
+const ReadNativeEvidence = Command.define('ReadNativeEvidence', {
+  args: { file: Schema.Unknown, token: Schema.Number },
+  messages: [Message.SucceededNativeRead, Message.FailedNativeRead],
+  execute: ({ file: raw, token }) => {
+    // SAFETY: Only this module's file chooser passes a browser File to this IO Command.
+    const file = raw as File;
+    return Effect.tryPromise({
+      try: async () => {
+        if (file.size > 1048576)
+          throw new ModelInputFailure({ message: 'Input exceeds 1 MiB UTF-8.' });
+        const bytes = await file.arrayBuffer();
+        if (bytes.byteLength > 1048576)
+          throw new ModelInputFailure({ message: 'Input exceeds 1 MiB UTF-8.' });
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      },
+      catch: (cause) => String(cause),
+    }).pipe(
+      Effect.match({
+        onSuccess: (text) => Message.SucceededNativeRead({ text, token }),
+        onFailure: (reason) => Message.FailedNativeRead({ reason, token }),
+      }),
+    );
+  },
+});
 const DownloadGroupModel = Command.define('DownloadGroupModel', {
-  args: { text: Schema.String },
+  args: { text: Schema.String, filename: Schema.String },
   messages: [Message.CompletedDownload, Message.FailedDownload],
-  execute: ({ text }) =>
+  execute: ({ text, filename }) =>
     Effect.gen(function* () {
       const acquire = Effect.try(() =>
         URL.createObjectURL(new Blob([text], { type: 'application/json' })),
@@ -179,7 +225,7 @@ const DownloadGroupModel = Command.define('DownloadGroupModel', {
       yield* Effect.try(() =>
         Object.assign(document.createElement('a'), {
           href: url,
-          download: 'zloz-model-v3.json',
+          download: filename,
         }).click(),
       );
       yield* Effect.sleep('1 second');
@@ -359,6 +405,7 @@ const initialDocument = () =>
         {
           id: 'service',
           label: 'Order service',
+          architecture: { family: 'event-storming', role: 'command' },
           parentId: 'orders',
           position: { x: 110, y: 205 },
           size: { width: 220, height: 100 },
@@ -395,6 +442,10 @@ function ready(id: string, document?: ZlozModelDocumentV3): ReadyState {
   const { snapshot, ...catalogue } = base;
   return {
     catalogue,
+    nativeTools: createNativeReviewTools(),
+    nativeReadSequence: 0,
+    pendingNativeRead: null,
+    evidenceReview: null,
     workbench: createGroupWorkbenchV3(snapshot, { sessionId: id }),
     review: null,
     theme: 'light',
@@ -441,16 +492,144 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SucceededIdentity: ({ id }) => (model._tag === 'Preparing' ? changed(ready(id)) : { model }),
     FailedIdentity: () => ({ model: model._tag === 'Preparing' ? Model.Failed() : model }),
     ClickedRetry: () => (model._tag === 'Failed' ? init() : { model }),
+    ChoseNativeEvidenceFiles: ({ files: raw }) => {
+      if (!state) return { model };
+      // SAFETY: Only the native file input supplies this browser File array.
+      const files = raw as readonly File[],
+        file = files[0];
+      if (files.length !== 1 || !file)
+        return changed({
+          ...state,
+          notice: 'Choose one evidence JSON file. Existing review retained.',
+        });
+      if (state.workbench.gesture.type !== 'idle')
+        return changed({
+          ...state,
+          notice: 'Finish or cancel the active gesture before opening evidence.',
+        });
+      const token = state.nativeReadSequence + 1;
+      return {
+        model: Model.Ready({
+          state: {
+            ...state,
+            nativeReadSequence: token,
+            pendingNativeRead: {
+              token,
+              sessionId: state.workbench.editor.sessionId,
+              revision: state.workbench.editor.revision,
+              text: state.nativeTools.text,
+            },
+          },
+        }),
+        commands: [ReadNativeEvidence({ file, token })],
+      };
+    },
+    SucceededNativeRead: ({ text, token }) => {
+      if (!state || state.pendingNativeRead?.token !== token) return { model };
+      const active = state.pendingNativeRead;
+      if (
+        active.sessionId !== state.workbench.editor.sessionId ||
+        active.revision !== state.workbench.editor.revision ||
+        active.text !== state.nativeTools.text ||
+        state.workbench.gesture.type !== 'idle'
+      )
+        return changed({
+          ...state,
+          pendingNativeRead: null,
+          notice: 'Evidence read became stale. Current work and previous review retained.',
+        });
+      const changedText = updateNativeReviewTools(
+        state.nativeTools,
+        { type: 'TextChanged', text },
+        state.workbench.editor,
+        working(state),
+      );
+      const reopened = updateNativeReviewTools(
+        changedText.tools,
+        { type: 'OpenEvidenceClicked' },
+        state.workbench.editor,
+        working(state),
+      );
+      const opened = reopened.tools.opened;
+      return changed({
+        ...state,
+        pendingNativeRead: null,
+        nativeTools: reopened.tools,
+        evidenceReview: opened
+          ? createGroupWorkbenchV3(opened[opened.side], {
+              sessionId: `${state.workbench.editor.sessionId}:evidence:${opened.sequence}:${opened.side}`,
+              readOnly: true,
+            })
+          : state.evidenceReview,
+      });
+    },
+    FailedNativeRead: ({ reason, token }) =>
+      state?.pendingNativeRead?.token === token
+        ? changed({ ...state, pendingNativeRead: null, notice: reason })
+        : { model },
+    ObservedNativeReview: ({ event }) => {
+      if (!state) return { model };
+      // SAFETY: Only native review view emits this closed host event universe.
+      const request = event as NativeReviewEvent;
+      const result = updateNativeReviewTools(
+        state.nativeTools,
+        request,
+        state.workbench.editor,
+        working(state),
+        policy(state),
+        state.review !== null ||
+          state.evidenceReview !== null ||
+          state.pendingOpen !== null ||
+          state.pendingLayout !== null ||
+          state.workbench.gesture.type !== 'idle',
+      );
+      const opened = result.tools.opened;
+      const evidenceReview = opened
+        ? opened === state.nativeTools.opened
+          ? state.evidenceReview
+          : createGroupWorkbenchV3(opened[opened.side], {
+              sessionId: `${state.workbench.editor.sessionId}:evidence:${opened.sequence}:${opened.side}`,
+              readOnly: true,
+            })
+        : null;
+      const { snapshot: _snapshot, ...catalogue } = result.document;
+      return changed({
+        ...state,
+        catalogue,
+        pendingNativeRead: null,
+        nativeTools: result.tools,
+        evidenceReview,
+        workbench:
+          result.editor === state.workbench.editor
+            ? state.workbench
+            : publishGroupWorkbenchResultV3(state.workbench, {
+                type: 'applied',
+                editor: result.editor,
+              }),
+      });
+    },
+    ClickedNativeDownload: () =>
+      state?.nativeTools.artifact
+        ? { model, commands: [DownloadGroupModel(state.nativeTools.artifact)] }
+        : { model },
     ObservedWorkbenchInput: ({ event }) => {
       if (!state) return { model };
       // SAFETY: Package views emit this declared event universe; no portable JSON becomes a UI event.
       const input = event as ZlozGroupWorkbenchEventV3;
+      if (state.evidenceReview)
+        return changed({
+          ...state,
+          evidenceReview: updateGroupWorkbenchV3(state.evidenceReview, input, policy(state), {
+            grid: 20,
+          }),
+        });
       return state.review
         ? changed({
             ...state,
             review: {
               ...state.review,
               workbench: updateGroupWorkbenchV3(state.review.workbench, input, policy(state), {
+                portAnchorSnap: { distance: 12, cornerDistance: 10, midpointDistance: 10 },
                 grid: 20,
                 pasteOffset: { x: 0, y: 380 },
               }),
@@ -459,6 +638,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         : changed({
             ...state,
             workbench: updateGroupWorkbenchV3(state.workbench, input, policy(state), {
+              portAnchorSnap: { distance: 12, cornerDistance: 10, midpointDistance: 10 },
               grid: 20,
               pasteOffset: { x: 0, y: 380 },
             }),
@@ -746,6 +926,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             model,
             commands: [
               DownloadGroupModel({
+                filename: 'zloz-model-v3.json',
                 text: serializeModelDocumentV3({
                   ...working(state),
                   snapshot: captureGroupWorkbenchDocumentV3(state.workbench),
@@ -755,7 +936,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           }
         : { model },
     CompletedDownload: () =>
-      state ? changed({ ...state, notice: 'Validated v3 model downloaded.' }) : { model },
+      state ? changed({ ...state, notice: 'Validated native artifact downloaded.' }) : { model },
     FailedDownload: () =>
       state
         ? changed({ ...state, notice: 'Download failed. The working model is retained.' })
@@ -778,9 +959,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       Ready: ({ state: raw }) => {
         // SAFETY: Ready contains only this module's ReadyState.
         const state = raw as ReadyState,
-          current = state.review?.workbench ?? state.workbench;
+          current = state.evidenceReview ?? state.review?.workbench ?? state.workbench;
         let options: ZlozGroupWorkbenchViewOptionsV3<Message> = {
           id: 'group-v3-canvas',
+          resize: true,
+          portAnchors: true,
+          reconnect: true,
+          boxSelection: true,
+          pinchZoom: true,
+          portAnchorSnapBypass: 'Alt',
           theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
           minimalMode: state.minimal,
           policy: policy(state),
@@ -863,6 +1050,21 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           Message.ClickedProtection(),
                         ),
                         h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
+                        nativeReviewToolsView(
+                          h,
+                          state.nativeTools,
+                          state.workbench.editor,
+                          working(state),
+                          policy(state),
+                          state.review !== null ||
+                            state.evidenceReview !== null ||
+                            state.pendingLayout !== null ||
+                            state.pendingOpen !== null ||
+                            state.workbench.gesture.type !== 'idle',
+                          (event) => Message.ObservedNativeReview({ event }),
+                          () => Message.ClickedNativeDownload(),
+                          (files) => Message.ChoseNativeEvidenceFiles({ files }),
+                        ),
                         ...(state.review
                           ? [
                               h.h2([], [`Review: ${state.review.edition.name}`]),
@@ -1067,7 +1269,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.section(
                   [
                     h.Class('group-v3-stage'),
-                    h.AriaLabel(state.review ? 'Read-only edition canvas' : 'Working group canvas'),
+                    h.AriaLabel(
+                      state.evidenceReview
+                        ? 'Read-only evidence canvas'
+                        : state.review
+                          ? 'Read-only edition canvas'
+                          : 'Working group canvas',
+                    ),
                   ],
                   [zlozGroupWorkbenchV3(h, current, options)],
                 ),

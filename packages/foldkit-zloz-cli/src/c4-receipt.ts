@@ -1,4 +1,7 @@
 import {
+  compareEditionsV3,
+  createEventStormingC4ConversionPlanV3,
+  parseEventStormingC4ConversionV3,
   captureEdition,
   compareEditionsV2,
   createEventStormingC4ConversionPlanV2,
@@ -80,6 +83,47 @@ export function inspectC4ReceiptV2(
         nodes: comparison.nodes,
         edges: comparison.edges,
         modeChange: comparison.modeChange,
+      },
+      losses,
+      lossesAccepted: true,
+    },
+    diagnostics: losses.map((loss) => ({
+      code: loss.code,
+      subject: loss.id,
+      message: loss.reason,
+      severity: 'loss',
+      dimension: 'semantics',
+    })),
+  };
+}
+
+export function inspectC4ReceiptV3(
+  text: string,
+): Extract<CliResponse, { operation: 'c4-receipt-inspect'; status: 'inspected' }> {
+  const receipt = parseEventStormingC4ConversionV3(text);
+  const plan = createEventStormingC4ConversionPlanV3(receipt.source, receipt.options);
+  const comparison = compareEditionsV3(
+    { id: 'receipt-before', name: 'Before conversion', snapshot: receipt.source.document.snapshot },
+    { id: 'receipt-after', name: 'After conversion', snapshot: receipt.document.snapshot },
+  );
+  const losses = plan.disclosures;
+  return {
+    protocol: cliProtocol,
+    operation: 'c4-receipt-inspect',
+    status: 'inspected',
+    scope: 'recorded-conversion',
+    data: {
+      format: receipt.format,
+      version: 3,
+      authority: 'read-only-evidence',
+      provenance: receipt.source,
+      target: receipt.document,
+      choices: receipt.options,
+      changes: {
+        nodes: comparison.nodes,
+        edges: comparison.edges,
+        modeChange: comparison.modeChange,
+        capabilityChange: comparison.capabilityChange,
       },
       losses,
       lossesAccepted: true,

@@ -3108,3 +3108,5 @@ export {
 export type { ZlozGroupWorkbenchViewOptionsV3 } from './group-workbench-v3-view';
 
 export { zlozGroupClipboardV3 } from './group-workbench-v3-view';
+
+export * from './group-workbench-interactions-v3';

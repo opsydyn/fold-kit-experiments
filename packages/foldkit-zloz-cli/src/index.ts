@@ -3,6 +3,13 @@
  * @module CLI
  */
 import {
+  auditGroupDddRelationshipsV3,
+  auditGroupEventStormingRelationshipsV3,
+  compareModelDddRelationshipsV3,
+  compareModelEventStormingRelationshipsV3,
+  parseModellingPatchV3,
+  dryRunModellingPatchV3,
+  type ZlozModelDocumentV3,
   assessPortableCompatibilityV2,
   assessPortableCompatibilityV3,
   parseModelDocumentV3,
@@ -26,6 +33,11 @@ import {
   type ZlozEventStormingRelationshipOptions,
 } from '@opsydyn/foldkit-zloz';
 import {
+  exportGroupMermaidV3,
+  createReviewPacketV3,
+  parseReviewPacketV3,
+  type ZlozReviewPacketV3,
+  type ZlozReviewPacketResultV3,
   exportMermaid,
   exportConnectionMermaid,
   createReviewPacket,
@@ -44,7 +56,7 @@ import { Console, Effect, Match, Option, Result, Schema, Stdio } from 'effect';
 import { CliError, CliOutput, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
-import { inspectC4Receipt, inspectC4ReceiptV2 } from './c4-receipt';
+import { inspectC4Receipt, inspectC4ReceiptV2, inspectC4ReceiptV3 } from './c4-receipt';
 import { readDddRelationshipRules } from './ddd-relationship-rules';
 import {
   inputByteLimit,
@@ -164,11 +176,15 @@ function execute(
 }
 const isModel = (
   value: CliPortableDocument,
-): value is Extract<CliPortableDocument, { kind: 'model' | 'model-v2' }> =>
-  value.kind === 'model' || value.kind === 'model-v2';
+): value is Extract<CliPortableDocument, { kind: 'model' | 'model-v2' | 'model-v3' }> =>
+  value.kind === 'model' || value.kind === 'model-v2' || value.kind === 'model-v3';
 const isCanonicalV2Model = (
-  model: ZlozModelDocument | ZlozModelDocumentV2,
-): model is ZlozModelDocumentV2 => 'connectionMode' in model.snapshot;
+  model: ZlozModelDocument | ZlozModelDocumentV2 | ZlozModelDocumentV3,
+): model is ZlozModelDocumentV2 =>
+  'connectionMode' in model.snapshot && !('capabilities' in model.snapshot);
+const isCanonicalV3Model = (
+  model: ZlozModelDocument | ZlozModelDocumentV2 | ZlozModelDocumentV3,
+): model is ZlozModelDocumentV3 => 'capabilities' in model.snapshot;
 const graphOf = (document: CliPortableDocument): ZlozGraph =>
   Match.value(document).pipe(
     Match.when(isModel, (value) => value.document.snapshot.graph),
@@ -176,6 +192,14 @@ const graphOf = (document: CliPortableDocument): ZlozGraph =>
   );
 const portableFields = (document: CliPortableDocument) =>
   Match.value(document).pipe(
+    Match.when({ kind: 'model-v3' }, ({ document }) => ({
+      connectionMode: document.snapshot.connectionMode,
+      documentVersion: 3 as const,
+    })),
+    Match.when({ kind: 'group-v3' }, ({ snapshot }) => ({
+      connectionMode: snapshot.connectionMode,
+      documentVersion: 3 as const,
+    })),
     Match.when({ kind: 'model-v2' }, ({ document }) => ({
       connectionMode: document.snapshot.connectionMode,
       documentVersion: 2 as const,
@@ -251,6 +275,12 @@ const convert =
   (document: CliPortableDocument): CliResponse => {
     const losses = metadataLosses(document);
     const result = Match.value(document).pipe(
+      Match.when({ kind: 'model-v3' }, ({ document }) =>
+        exportGroupMermaidV3(document.snapshot, { direction, lossPolicy }),
+      ),
+      Match.when({ kind: 'group-v3' }, ({ snapshot }) =>
+        exportGroupMermaidV3(snapshot, { direction, lossPolicy }),
+      ),
       Match.when({ kind: 'model-v2' }, ({ document }) =>
         exportConnectionMermaid(document.snapshot, { direction, lossPolicy }),
       ),
@@ -290,6 +320,12 @@ function executeAudit(input: string, rules: Option.Option<string>) {
     const options = yield* readingRules;
     const document = yield* readForOperation('relationships-audit', input);
     const data = Match.value(document).pipe(
+      Match.when({ kind: 'model-v3' }, ({ document }) =>
+        auditGroupEventStormingRelationshipsV3(document.snapshot, options),
+      ),
+      Match.when({ kind: 'group-v3' }, ({ snapshot }) =>
+        auditGroupEventStormingRelationshipsV3(snapshot, options),
+      ),
       Match.when({ kind: 'model-v2' }, ({ document }) =>
         auditConnectionEventStormingRelationships(document.snapshot, options),
       ),
@@ -349,6 +385,12 @@ function executeDddAudit(input: string, rules: Option.Option<string>) {
     const options = yield* readingRules;
     const document = yield* readForOperation('ddd-audit', input);
     const data = Match.value(document).pipe(
+      Match.when({ kind: 'model-v3' }, ({ document }) =>
+        auditGroupDddRelationshipsV3(document.snapshot, options),
+      ),
+      Match.when({ kind: 'group-v3' }, ({ snapshot }) =>
+        auditGroupDddRelationshipsV3(snapshot, options),
+      ),
       Match.when({ kind: 'model-v2' }, ({ document }) =>
         auditConnectionDddRelationships(document.snapshot, options),
       ),
@@ -412,9 +454,11 @@ function executeComparison(
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
-    const result = isCanonicalV2Model(model)
-      ? compareModelEventStormingRelationshipsV2(model, selection, options)
-      : compareModelEventStormingRelationships(model, selection, options);
+    const result = isCanonicalV3Model(model)
+      ? compareModelEventStormingRelationshipsV3(model, selection, options)
+      : isCanonicalV2Model(model)
+        ? compareModelEventStormingRelationshipsV2(model, selection, options)
+        : compareModelEventStormingRelationships(model, selection, options);
     const comparisonResult = Match.value(result).pipe(
       Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
       Match.orElse((result) =>
@@ -482,9 +526,11 @@ function executeDddComparison(
       onNone: () => ({ baselineId }),
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
-    const result = isCanonicalV2Model(model)
-      ? compareModelDddRelationshipsV2(model, selection, options)
-      : compareModelDddRelationships(model, selection, options);
+    const result = isCanonicalV3Model(model)
+      ? compareModelDddRelationshipsV3(model, selection, options)
+      : isCanonicalV2Model(model)
+        ? compareModelDddRelationshipsV2(model, selection, options)
+        : compareModelDddRelationships(model, selection, options);
     const comparisonResult = Match.value(result).pipe(
       Match.when({ type: 'compared' }, ({ comparison }) => Result.succeed(comparison)),
       Match.orElse((result) =>
@@ -532,11 +578,11 @@ function executeDddComparison(
   return comparing.pipe(Effect.withSpan('zloz.cli.compareDddRelationships'));
 }
 function boundNativePacket(
-  result: ZlozReviewPacketResult | ZlozReviewPacketResultV2,
-): ZlozReviewPacketResult | ZlozReviewPacketResultV2 {
+  result: ZlozReviewPacketResult | ZlozReviewPacketResultV2 | ZlozReviewPacketResultV3,
+): ZlozReviewPacketResult | ZlozReviewPacketResultV2 | ZlozReviewPacketResultV3 {
   if (
     result.status === 'created' &&
-    result.value.version === 2 &&
+    result.value.version >= 2 &&
     new TextEncoder().encode(JSON.stringify(result.value)).byteLength > inputByteLimit
   )
     return {
@@ -576,9 +622,11 @@ function executeReviewPacket(
       onSome: (selectedId) => ({ baselineId, selectedId }),
     });
     const creationOptions = { direction, lossPolicy, rules: options.rules };
-    const created = isCanonicalV2Model(model)
-      ? createReviewPacketV2(model, selection, creationOptions)
-      : createReviewPacket(model, selection, creationOptions);
+    const created = isCanonicalV3Model(model)
+      ? createReviewPacketV3(model, selection, creationOptions)
+      : isCanonicalV2Model(model)
+        ? createReviewPacketV2(model, selection, creationOptions)
+        : createReviewPacket(model, selection, creationOptions);
     const result = boundNativePacket(created);
     const response = Match.value(result).pipe(
       Match.when(
@@ -809,10 +857,14 @@ function reviewInputError(
 }
 function decodeReviewText(input: string, text: string) {
   const legacy = parseReviewPacket(text);
-  const decoded =
+  const intermediate =
     legacy.status === 'rejected' && legacy.code === 'unsupported-version'
       ? parseReviewPacketV2(text)
       : legacy;
+  const decoded =
+    intermediate.status === 'rejected' && intermediate.code === 'unsupported-version'
+      ? parseReviewPacketV3(text)
+      : intermediate;
   return Match.value(decoded).pipe(
     Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
     Match.when({ status: 'rejected' }, (result) => Result.fail(reviewInputError(input, result))),
@@ -827,7 +879,7 @@ function readReviewPacket(operation: ReviewReadOperation, input: string) {
 }
 function reviewReadResponse(
   operation: ReviewReadOperation,
-  packet: ZlozReviewPacket | ZlozReviewPacketV2,
+  packet: ZlozReviewPacket | ZlozReviewPacketV2 | ZlozReviewPacketV3,
 ): CliResponse {
   return Match.value(operation).pipe(
     Match.when(
@@ -895,10 +947,14 @@ const reviewCommand = Command.make('review').pipe(
 );
 function decodePatchProposal(input: string, text: string) {
   const legacy = parseModellingPatch(text);
-  const decoded =
+  const intermediate =
     legacy.status === 'rejected' && legacy.code === 'unsupported-version'
       ? parseModellingPatchV2(text)
       : legacy;
+  const decoded =
+    intermediate.status === 'rejected' && intermediate.code === 'unsupported-version'
+      ? parseModellingPatchV3(text)
+      : intermediate;
   return Match.value(decoded).pipe(
     Match.when({ status: 'parsed' }, (result) => Result.succeed(result.value)),
     Match.when({ status: 'rejected' }, (result) =>
@@ -964,6 +1020,17 @@ const patchDryRunCommand = Command.make(
         );
       const patch = yield* readPatchProposal(config.input);
       const preview = Match.value(source).pipe(
+        Match.when({ kind: 'model-v3' }, ({ document }) =>
+          dryRunModellingPatchV3(
+            {
+              ...document.snapshot,
+              modelId: document.id,
+              sessionId: config.session,
+              revision: config.revision,
+            },
+            patch,
+          ),
+        ),
         Match.when({ kind: 'model-v2' }, ({ document }) =>
           dryRunModellingPatchV2(
             {
@@ -1033,7 +1100,7 @@ function executeC4ReceiptInspection(input: string) {
     if (
       Schema.is(c4ReceiptEnvelope)(value) &&
       (value.format !== 'foldkit-zloz-c4-conversion' ||
-        (value.version !== 1 && value.version !== 2))
+        (value.version !== 1 && value.version !== 2 && value.version !== 3))
     )
       return yield* Effect.fail(
         new CliC4ReceiptIncompatible({
@@ -1044,9 +1111,11 @@ function executeC4ReceiptInspection(input: string) {
       );
     const response = yield* Effect.try({
       try: () =>
-        Schema.is(Schema.Struct({ version: Schema.Literal(2) }))(value)
-          ? inspectC4ReceiptV2(text)
-          : inspectC4Receipt(text),
+        Schema.is(Schema.Struct({ version: Schema.Literal(3) }))(value)
+          ? inspectC4ReceiptV3(text)
+          : Schema.is(Schema.Struct({ version: Schema.Literal(2) }))(value)
+            ? inspectC4ReceiptV2(text)
+            : inspectC4Receipt(text),
       catch: () =>
         new CliInputError({
           code: 'invalid-c4-receipt',

@@ -1928,3 +1928,37 @@ human device/screen-reader acceptance remain separate work.
 **Recommended next:** native v3 modelling-patch dry run, retaining group ports,
 mode/capability, provenance and source checks before any Apply. This closes the
 next agent-facing portability gap without implying unqualified write authority.
+
+## 2026-11-16 — Native v3 core completion and release candidate
+
+This entry supersedes the preceding native v3 authoring recommendation and reconciles
+C1/C2 against the implemented package APIs. Historical entries above retain their
+original local/hosted evidence boundaries.
+
+| Remaining core workflow            | Implementation/evidence owner                                                                                                       | Disposition                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Native modelling patches           | `capture/parse/dryRunModellingPatchV3`, source-bound review/Apply, strict recomputed receipts, live policies and one Undo           | Implemented locally; candidate qualification recorded below                        |
+| Native C4/DDD conversions          | V3 preview/plan/consent/Apply and strict portable receipts, preserving every checkpoint capability/mode and source provenance       | Implemented locally                                                                |
+| Native audit/edition deltas        | Full-document DDD/EventStorming auditors and comparisons; Effect CLI structured read-only commands                                  | Implemented locally                                                                |
+| Portable review packets            | Optional Mermaid v3 creation, strict recomputation/reopening, independent read-only native editor                                   | Implemented locally; explicit projection loss review                               |
+| Native direct interactions         | Resize, port-anchor drag/nudge, reconnect, box selection and opt-in pinch; scoped input with live source/policy and atomic Undo     | Implemented locally; Chromium synthetic pinch distinguished from human touch       |
+| Mounted review/files               | Workbench explicit mapping/provenance/loss review, guarded Apply, atomic receipt retention/download and bounded read-only reopening | Implemented locally; stale/corrupt-file recovery covered                           |
+| C3 hydration and consumers         | Native page-owner SSR→hydration→interaction fixtures, real installed Node/Bun and Bundler/NodeNext consumer contracts               | Qualification matrix and exact results in release record                           |
+| C4/Q performance and accessibility | Provisional Chromium/Firefox/WebKit + mobile viewport, 100/1,000 flat/nested scenarios; axe, focus and recovery                     | Automated evidence; numeric budgets and human device/AT acceptance remain explicit |
+| R delivery                         | Main integrated, root/clean-CI/PR checks and linked 0.6.0 candidate preparation                                                     | Record observed results in release candidate; no npm publication                   |
+
+The finite engineering scope and acceptance contract are in
+[the completion checklist](specs/2026-11-16-zloz-release-completion.md).
+The [0.6.0 candidate](releases/zloz-0.6.0-candidate.md) contains draft notes, the
+linked package/peer matrix, reproducible qualification, human acceptance rows and
+explicit remaining limits. CLI and Alchemy remain private. No new Flow package is
+eligible for release.
+
+This closes the approved main native v3 engineering scope when its checks/evidence
+are green. It does not close every advanced catalogue item or infer physical-device,
+screen-reader, hosted or registry acceptance. World coordinates and rectangular
+group envelopes remain deliberate. Rotation, lasso/freehand, dedicated multi-connect
+UI, production Mermaid import and server PNG remain outside this release.
+
+**Recommended next:** finish human release acceptance, then review the regenerated
+linked 0.6.0 release PR. Keep npm publication off until separately authorized.

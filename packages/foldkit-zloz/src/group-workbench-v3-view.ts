@@ -16,6 +16,10 @@ import { planGroupOperationV3 } from './group-operations-v3';
 import { planGroupPortEditV3 } from './group-port-edit-v3';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import {
+  zlozGroupInteractionViewsV3,
+  type ZlozNativeInteractionOptionsV3,
+} from './group-workbench-interactions-v3';
+import {
   groupWorkbenchGraphV3,
   groupWorkbenchPasteRequestV3,
   groupWorkbenchRoutesV3,
@@ -26,6 +30,7 @@ import { ZlozInput } from './mount';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
 import type { Port, ZlozNode, ZlozEdge } from './types';
 export type ZlozGroupWorkbenchViewOptionsV3<M> = ZlozDiagnosticOptions &
+  ZlozNativeInteractionOptionsV3<M> &
   Readonly<{
     /** Unique per simultaneously mounted instance. */
     id: string;
@@ -436,10 +441,14 @@ export function zlozGroupWorkbenchV3<M>(
         [
           h.Id(options.id),
           h.DataAttribute('flow-surface', ''),
+          h.DataAttribute('flow-stable-pointer-origin', 'true'),
+          h.DataAttribute('flow-port-anchor-snap-bypass', options.portAnchorSnapBypass ?? ''),
           h.DataAttribute('flow-connection-mode', model.editor.document.connectionMode),
           h.DataAttribute('flow-readonly', String(model.editor.readOnly)),
           h.DataAttribute('flow-space-to-pan', 'true'),
           h.DataAttribute('flow-middle-button-pan', 'true'),
+          h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom === true)),
+          h.DataAttribute('flow-box-selection', String(options.boxSelection === true)),
           h.Tabindex(0),
           h.Role('group'),
           h.AriaLabel(options.label ?? 'V3 group editor'),
@@ -640,12 +649,17 @@ export function zlozGroupWorkbenchV3<M>(
                   ],
                 ),
               ),
+              ...zlozGroupInteractionViewsV3(h, model, options, policy),
             ],
           ),
         ],
       ),
       h.p(
-        [h.Role('status'), h.AriaLive('polite'), h.Style(diagnostics.status ? {} : visuallyHidden)],
+        [
+          h.Role('status'),
+          h.AriaLive('polite'),
+          h.Style(diagnostics.status || model.statusRequired ? {} : visuallyHidden),
+        ],
         [model.status],
       ),
     ],

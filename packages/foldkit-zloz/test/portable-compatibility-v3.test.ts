@@ -44,3 +44,15 @@ test('native Mermaid format availability distinguishes exact output review from 
     reason: expect.stringContaining('exact-output'),
   });
 });
+
+test('native authoring, receipts, packets and audits advertise distinct full-document contracts', () => {
+  const report = assessPortableCompatibilityV3(parseModelDocumentV3(JSON.stringify(wire)));
+  for (const adapter of [
+    'modelling-patch',
+    'conversion-receipt',
+    'review-packet',
+    'relationship-audit',
+  ])
+    expect(report.adapters.find((a) => a.adapter === adapter)?.status).toBe('supported');
+  expect(report.limits.join(' ')).not.toContain('direct pointer resize');
+});

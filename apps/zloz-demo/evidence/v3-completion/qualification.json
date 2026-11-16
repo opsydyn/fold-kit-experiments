@@ -1,0 +1,821 @@
+{
+  "scope": "local-automated-provisional-matrix",
+  "capturedAt": "2026-11-16T13:43:17.444Z",
+  "head": "03e481023f0061025a5d1fd3b91361517ecf0bc8",
+  "workingTreeDirty": true,
+  "sourceSha256": "a81dcb69509c8c7cc284786393465a1ff7a42c59ba583940955179b1e349aac1",
+  "builtArtifactSha256": "f3cf5957f83bbaa165430d11c67301870362db088584546d3fa2d49f3da7ef5b",
+  "sourceCapture": "Source bytes after formatting; builtArtifactSha256 identifies the measured built site.",
+  "host": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "cpu": "Apple M4 Pro",
+    "logicalCpus": 12,
+    "memoryBytes": 25769803776,
+    "node": "v24.15.0",
+    "bun": "1.4.4",
+    "playwright": "1.62.1"
+  },
+  "stats": {
+    "startTime": "2026-11-16T13:38:15.788Z",
+    "duration": 96796.77399999999,
+    "expected": 56,
+    "skipped": 4,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "project": "chromium-desktop",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-desktop",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "chromium-mobile",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "skipped"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-desktop",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "skipped"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "firefox-mobile",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "skipped"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-desktop",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "native resize/anchor keyboard focus, protected minimal controls, atomic review/download/reopening",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 flat",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "SSR hydration and keyboard paint observations 100 nested",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 flat",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "SSR hydration and keyboard paint observations 1000 nested",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "WCAG automation covers the native light/dark/minimal/protected surface and review forms",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "native pointer resize, anchor drag, reconnection and box selection use the live scoped input",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "Chromium synthetic multitouch pinch changes only the camera and leaves Undo untouched",
+      "status": "skipped"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "c4 conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    },
+    {
+      "project": "webkit-mobile",
+      "title": "ddd conversion requires relation decisions, publishes one receipt and reopens read-only",
+      "status": "passed"
+    }
+  ],
+  "observations": [
+    {
+      "project": "chromium-desktop",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 131,
+      "keyboardToTwoFramesMs": [61, 63, 43, 57, 44],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-desktop",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 139,
+      "keyboardToTwoFramesMs": [61, 43, 59, 43, 58],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-desktop",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 626,
+      "keyboardToTwoFramesMs": [410, 292, 290, 298, 301],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-desktop",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 607,
+      "keyboardToTwoFramesMs": [282, 276, 292, 270, 269],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-mobile",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 128,
+      "keyboardToTwoFramesMs": [72, 47, 54, 41, 62],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-mobile",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 128,
+      "keyboardToTwoFramesMs": [55, 58, 73, 43, 58],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-mobile",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 612,
+      "keyboardToTwoFramesMs": [355, 292, 275, 279, 288],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "chromium-mobile",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 591,
+      "keyboardToTwoFramesMs": [302, 267, 297, 260, 284],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-desktop",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 187,
+      "keyboardToTwoFramesMs": [83, 67, 67, 67, 66],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-desktop",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 186,
+      "keyboardToTwoFramesMs": [84, 83, 65, 68, 66],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-desktop",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 852,
+      "keyboardToTwoFramesMs": [428, 377, 397, 370, 389],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-desktop",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 825,
+      "keyboardToTwoFramesMs": [403, 365, 384, 366, 414],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-mobile",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 188,
+      "keyboardToTwoFramesMs": [73, 67, 66, 66, 68],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-mobile",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 178,
+      "keyboardToTwoFramesMs": [87, 89, 77, 67, 66],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-mobile",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 833,
+      "keyboardToTwoFramesMs": [426, 361, 400, 401, 388],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "firefox-mobile",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 842,
+      "keyboardToTwoFramesMs": [457, 384, 381, 368, 397],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-desktop",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 191,
+      "keyboardToTwoFramesMs": [66, 81, 67, 83, 66],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-desktop",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 178,
+      "keyboardToTwoFramesMs": [80, 72, 61, 67, 76],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-desktop",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 801,
+      "keyboardToTwoFramesMs": [354, 315, 315, 301, 318],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-desktop",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 848,
+      "keyboardToTwoFramesMs": [412, 367, 408, 375, 424],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-mobile",
+      "count": 100,
+      "nested": false,
+      "mountedMs": 182,
+      "keyboardToTwoFramesMs": [60, 67, 66, 78, 72],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-mobile",
+      "count": 100,
+      "nested": true,
+      "mountedMs": 171,
+      "keyboardToTwoFramesMs": [70, 66, 67, 67, 79],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-mobile",
+      "count": 1000,
+      "nested": false,
+      "mountedMs": 846,
+      "keyboardToTwoFramesMs": [367, 328, 300, 325, 308],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    },
+    {
+      "project": "webkit-mobile",
+      "count": 1000,
+      "nested": true,
+      "mountedMs": 802,
+      "keyboardToTwoFramesMs": [395, 349, 338, 325, 319],
+      "serverNodeReused": true,
+      "notes": "Five sequential samples including Playwright scheduling and two animation frames; no agreed numeric performance threshold."
+    }
+  ],
+  "accessibility": [
+    {
+      "project": "chromium-desktop",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "chromium-desktop",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "chromium-desktop",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 1
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "chromium-mobile",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    },
+    {
+      "project": "chromium-mobile",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    },
+    {
+      "project": "chromium-mobile",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    },
+    {
+      "project": "firefox-desktop",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "firefox-desktop",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "firefox-desktop",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 1
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "firefox-mobile",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 1
+        }
+      ]
+    },
+    {
+      "project": "firefox-mobile",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 1
+        }
+      ]
+    },
+    {
+      "project": "firefox-mobile",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 1
+        }
+      ]
+    },
+    {
+      "project": "webkit-desktop",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "webkit-desktop",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 2
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "webkit-desktop",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 1
+        },
+        {
+          "id": "label-content-name-mismatch",
+          "affected": 5
+        }
+      ]
+    },
+    {
+      "project": "webkit-mobile",
+      "state": "axe-light.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    },
+    {
+      "project": "webkit-mobile",
+      "state": "axe-dark.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    },
+    {
+      "project": "webkit-mobile",
+      "state": "axe-protected-minimal.json",
+      "violationCount": 0,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "affected": 12
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Synthetic flat/nested 100 and 1000 total nodes, 99 or 999 edges; all nodes mounted without virtualization.",
+    "Five sequential keyboard samples include Playwright scheduling and two animation frames. No numeric latency budget was agreed.",
+    "Desktop 1440x1000 and touch-capable viewport 390x844 are provisional automated coverage; no physical-device or screen-reader sign-off is implied.",
+    "Chromium CDP multitouch is synthetic browser input; Firefox/WebKit real-device pinch remains a human acceptance gate.",
+    "Any axe incomplete results require manual review; no violation is not a blanket accessibility conformance claim."
+  ]
+}

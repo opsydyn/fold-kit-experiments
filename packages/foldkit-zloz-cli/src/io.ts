@@ -1,6 +1,11 @@
 import { Buffer } from 'node:buffer';
 
 import {
+  ZlozError,
+  parseModelDocumentV3,
+  parseGroupDocumentV3,
+  type ZlozModelDocumentV3,
+  type ZlozGroupDocumentV3,
   parseModelDocument,
   parseModelDocumentV2,
   parseConnectionDocument,
@@ -8,7 +13,6 @@ import {
   type ZlozConnectionDocument,
   parseSnapshot,
   type ZlozModelDocument,
-  type JsonValue,
   type ZlozSnapshot,
 } from '@opsydyn/foldkit-zloz';
 import { Effect, FileSystem, Match, Schema, Stdio, Stream } from 'effect';
@@ -86,6 +90,8 @@ export type CliDocument =
   | Readonly<{ kind: 'snapshot'; snapshot: ZlozSnapshot }>
   | Readonly<{ kind: 'model'; document: ZlozModelDocument }>;
 export type CliPortableDocument =
+  | Readonly<{ kind: 'model-v3'; document: ZlozModelDocumentV3 }>
+  | Readonly<{ kind: 'group-v3'; snapshot: ZlozGroupDocumentV3 }>
   | CliDocument
   | Readonly<{ kind: 'model-v2'; document: ZlozModelDocumentV2 }>
   | Readonly<{ kind: 'connection-v2'; snapshot: ZlozConnectionDocument }>;
@@ -96,8 +102,22 @@ const parseCliDocument = (text: string, model: boolean): CliDocument =>
     Match.when(true, () => ({ kind: 'model' as const, document: parseModelDocument(text) })),
     Match.orElse(() => ({ kind: 'snapshot' as const, snapshot: parseSnapshot(text) })),
   );
-const parsePortableDocument = (text: string, value: JsonValue): CliPortableDocument =>
-  Match.value({ v2: Schema.is(v2Marker)(value), model: Schema.is(modelMarker)(value) }).pipe(
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Raw bounded JSON header selects strict codecs before any recursive schema interpretation.
+const parsePortableDocument = (text: string, value: unknown): CliPortableDocument =>
+  Match.value({
+    v3: Schema.is(Schema.Struct({ version: Schema.Literal(3) }))(value),
+    v2: Schema.is(v2Marker)(value),
+    model: Schema.is(modelMarker)(value),
+  }).pipe(
+    Match.when({ v3: true, model: true }, () => ({
+      kind: 'model-v3' as const,
+      document: parseModelDocumentV3(text),
+    })),
+    Match.when({ v3: true }, () => {
+      const parsed = parseGroupDocumentV3(text);
+      if (parsed.status === 'rejected') throw new ZlozError('invalid-edit', parsed.reason);
+      return { kind: 'group-v3' as const, snapshot: parsed.value };
+    }),
     Match.when({ v2: true, model: true }, () => ({
       kind: 'model-v2' as const,
       document: parseModelDocumentV2(text),
@@ -108,7 +128,8 @@ const parsePortableDocument = (text: string, value: JsonValue): CliPortableDocum
     })),
     Match.orElse(({ model }) => parseCliDocument(text, model)),
   );
-const decodeDocument = (text: string, value: JsonValue, input: string) =>
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Dedicated portable document codecs validate bounded raw text; the parsed value is header-only.
+const decodeDocument = (text: string, value: unknown, input: string) =>
   Effect.try({
     try: () => parsePortableDocument(text, value),
     catch: (cause) =>
@@ -154,7 +175,7 @@ export function readJsonInput(input: string) {
 }
 /** Document interpretation remains separate from the shared bounded JSON input boundary. */
 export function readPortableDocument(input: string) {
-  return readJsonInput(input).pipe(
+  return readReceiptInput(input).pipe(
     Effect.flatMap(({ text, value }) => decodeDocument(text, value, input)),
     Effect.withSpan('zloz.cli.readDocument'),
   );

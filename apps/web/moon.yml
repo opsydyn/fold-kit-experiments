@@ -16,3 +16,10 @@ tasks:
     deps: ['^:build']
     options:
       cache: false
+
+  e2e-zloz-native:
+    script: 'playwright test --config playwright.zloz.config.ts'
+    deps: ['zloz-demo:build', '^:build']
+    inputs: ['e2e/zloz-native-release.spec.ts', 'playwright.zloz.config.ts', 'package.json']
+    options:
+      cache: false

@@ -409,3 +409,16 @@ human AT/device, hosted deployment, broad performance and registry acceptance.
 The private CLI's current Mermaid export remains v1/v2; compatibility inspection
 only reports native package availability. Native packets/receipts/patches/audits
 remain separate adoption work.
+
+### Native v3 review packets (unreleased)
+
+`createReviewPacketV3(model, { baselineId, selectedId? }, options)` combines the
+chosen complete native checkpoints, capability/mode-aware audit comparison and
+native Mermaid projections. `lossPolicy: 'report'` produces visible findings;
+hosts must obtain explicit acceptance before exposing a download. Group-port
+artwork and exact attachment remain reported Mermaid projection losses.
+
+`parseReviewPacketV3(text)` strictly bounds text and recomputes audits and both
+projections. `openReviewPacketV3(text, 'baseline' | 'selected', sessionId)` creates
+an independent read-only v3 review with empty Undo history. Imported packets
+never grant edit authority. Existing packet decoders remain version-fixed.

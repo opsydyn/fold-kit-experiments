@@ -1,6 +1,7 @@
 import {
   parseSnapshot,
   parseConnectionDocument,
+  captureGroupDocumentV3,
   type ZlozSnapshot,
   ZlozError,
   type ZlozRelationshipAuditSource,
@@ -15,6 +16,7 @@ import {
   type ZlozReviewPacket,
 } from './review-packet';
 import { createReviewPacketV2, type ZlozReviewPacketV2 } from './review-packet-v2';
+import { createReviewPacketV3, type ZlozReviewPacketV3 } from './review-packet-v3';
 export type ZlozReviewPacketParseOptions = Readonly<{
   maxCharacters?: number;
   maxDepth?: number;
@@ -187,7 +189,7 @@ export function decodeReviewJson(
 function parsePacket<S extends ZlozSnapshot, P extends object>(
   text: string,
   options: ZlozReviewPacketParseOptions,
-  version: 1 | 2,
+  version: 1 | 2 | 3,
   snapshot: (value: JsonObject) => S,
   create: (
     document: ReviewModel<S>,
@@ -349,5 +351,18 @@ export function parseReviewPacketV2(
     2,
     (value) => parseConnectionDocument(JSON.stringify(value)),
     createReviewPacketV2,
+  );
+}
+
+export function parseReviewPacketV3(
+  text: string,
+  options: ZlozReviewPacketParseOptions = {},
+): ZlozReviewPacketParseResult<ZlozReviewPacketV3> {
+  return parsePacket(
+    text,
+    options,
+    3,
+    (value) => captureGroupDocumentV3(value),
+    createReviewPacketV3,
   );
 }

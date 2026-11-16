@@ -22,6 +22,9 @@ import c4ReceiptWire from '../../foldkit-zloz/test/fixtures/c4-conversion-v1.jso
 import dddExpected from '../../foldkit-zloz/test/fixtures/ddd-audit-report.json';
 import dddWire from '../../foldkit-zloz/test/fixtures/ddd-audit-v1.json';
 import dddReview from '../../foldkit-zloz/test/fixtures/ddd-review-model.json';
+import modelV3Wire from '../../foldkit-zloz/test/fixtures/model-v3.json';
+import receiptV3Wire from '../../foldkit-zloz/test/fixtures/modelling-patch-receipt-v3.json';
+import patchV3Wire from '../../foldkit-zloz/test/fixtures/modelling-patch-v3.json';
 import manifest from '../package.json';
 
 const exec = promisify(execFile);
@@ -95,6 +98,72 @@ async function qualifyInstalledRuntime(selectedRuntime: 'node' | 'bun') {
       ]);
       return { code, stdout, stderr };
     };
+    const nativeV3 = JSON.stringify(modelV3Wire);
+    const validationV3 = await run([selectedRuntime, bin, 'validate'], nativeV3);
+    expect(validationV3.code).toBe(0);
+    expect(JSON.parse(validationV3.stdout).documentVersion).toBe(3);
+    const auditV3 = await run([selectedRuntime, bin, 'ddd', 'audit'], nativeV3);
+    expect([0, 1]).toContain(auditV3.code);
+    expect(JSON.parse(auditV3.stdout).documentVersion).toBe(3);
+    const packetV3 = await run(
+      [
+        selectedRuntime,
+        bin,
+        'review',
+        'packet',
+        '--baseline',
+        modelV3Wire.document.editions[0]!.id,
+        '--loss-policy',
+        'report',
+      ],
+      nativeV3,
+    );
+    expect(packetV3.code).toBe(0);
+    expect(JSON.parse(packetV3.stdout).data.version).toBe(3);
+    const openedV3 = await run(
+      [selectedRuntime, bin, 'review', 'inspect'],
+      JSON.stringify(JSON.parse(packetV3.stdout).data),
+    );
+    expect(openedV3.code).toBe(0);
+    const receiptV3 = await run(
+      [selectedRuntime, bin, 'patch', 'receipt', 'inspect'],
+      JSON.stringify(receiptV3Wire),
+    );
+    expect(receiptV3.code).toBe(0);
+    expect(JSON.parse(receiptV3.stdout).data.authority).toBe('read-only-evidence');
+    const { modelId, sessionId, revision, ...snapshotV3 } = patchV3Wire.source;
+    const sourceV3File = path.join(directory, 'source-v3.json');
+    await writeFile(
+      sourceV3File,
+      JSON.stringify({
+        format: 'foldkit-zloz-model',
+        version: 3,
+        document: {
+          id: modelId,
+          name: 'Literal native source',
+          snapshot: snapshotV3,
+          editions: [],
+          origin: null,
+        },
+      }),
+    );
+    const previewV3 = await run(
+      [
+        selectedRuntime,
+        bin,
+        'patch',
+        'dry-run',
+        '--source',
+        sourceV3File,
+        '--session',
+        sessionId,
+        '--revision',
+        String(revision),
+      ],
+      JSON.stringify(patchV3Wire),
+    );
+    expect(previewV3.code).toBe(0);
+    expect(JSON.parse(previewV3.stdout).data.patch.source.capabilities.groupPorts).toBe(true);
     const help = await run([bin, '--help']);
     expect(help.code).toBe(0);
     expect(help.stdout).toContain('validate');

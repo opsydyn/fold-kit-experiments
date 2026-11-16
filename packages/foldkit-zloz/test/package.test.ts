@@ -18,7 +18,9 @@ import groupV1Wire from './fixtures/group-document-v1-portless.json';
 import groupV3Wire from './fixtures/group-document-v3-ported.json';
 import nativeModelWire from './fixtures/model-native-v2.json';
 import modelModesWire from './fixtures/model-v2-modes.json';
+import patchReceiptV3Wire from './fixtures/modelling-patch-receipt-v3.json';
 import nativePatchWire from './fixtures/modelling-patch-v2.json';
+import patchV3Wire from './fixtures/modelling-patch-v3.json';
 import workshopWire from './fixtures/workshop-v1.json';
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -56,6 +58,25 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
         cwd: directory,
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
+    }
+    const nativeAuthoringConsumer = `import {parseModellingPatchV3,parseModellingPatchV2,dryRunModellingPatchV3,parseModellingPatchReceiptV3,auditGroupDddRelationshipsV3,createGroupEditorV3,resolveModellingPatchReviewV3,applyModellingPatchV3,updateGroupEditorV3,captureGroupEditorSourceV3} from '@opsydyn/foldkit-zloz';
+const patchResult=parseModellingPatchV3(${JSON.stringify(JSON.stringify(patchV3Wire))});
+if(patchResult.status!=='parsed')throw new Error('Native patch missing');
+const patch=patchResult.value, source=patch.source;
+if(dryRunModellingPatchV3(source,patch).type!=='reviewable'||parseModellingPatchV2(JSON.stringify(patch)).status!=='rejected')throw new Error('Version adapter mismatch');
+const receipt=parseModellingPatchReceiptV3(${JSON.stringify(JSON.stringify(patchReceiptV3Wire))});
+if(receipt.revision!==8||auditGroupDddRelationshipsV3(receipt.snapshot).summary.edges!==1)throw new Error('Native receipt/audit missing');
+const {modelId,sessionId,revision,...document}=source,editor={...createGroupEditorV3(document,{sessionId}),revision};
+const review=resolveModellingPatchReviewV3(editor,modelId,patch), result=applyModellingPatchV3(editor,modelId,patch,{consent:{key:review.key,reviewed:true,lossesAccepted:true}});
+if(result.type!=='applied'||result.editor.history.past.length!==1)throw new Error('Native atomic Apply missing');
+if(updateGroupEditorV3(result.editor,{type:'UndoPressed',source:captureGroupEditorSourceV3(result.editor)}).editor.document.graph.nodes[1].label!==document.graph.nodes[1].label)throw new Error('Native Undo missing');
+console.log('native-authoring-ok');`;
+    for (const runtime of ['node', 'bun']) {
+      const result = await exec(runtime, ['--input-type=module', '-e', nativeAuthoringConsumer], {
+        ...options,
+        cwd: directory,
+      });
+      expect(result.stdout.trim()).toBe('native-authoring-ok');
     }
     const browserConsumer = `import { renderPngExport, renderGroupPngExportV3 } from '@opsydyn/foldkit-zloz/browser';
 const result=await renderPngExport({snapshot:{graph:{nodes:[],edges:[]},viewport:{x:0,y:0,zoom:1}},svg:{title:'SSR',region:{type:'model',padding:0},theme:{colorScheme:'light'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}}});
@@ -388,7 +409,7 @@ const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
 const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
 if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
 const boundary:ZlozGroupEditorBoundaryV3='modelling-patch';
-if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
+if(resolveGroupEditorBoundaryV3(session,boundary).type!=='unchanged'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
 if(false){
 // @ts-expect-error legacy reducer cannot consume v3 sessions.
 updateEditor(session,{type:'UndoPressed'});

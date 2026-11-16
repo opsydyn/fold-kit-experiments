@@ -2,6 +2,7 @@ import type { ZlozNodeArchitecture } from './architecture';
 import {
   previewEventStormingC4Mapping,
   previewEventStormingC4MappingV2,
+  previewEventStormingC4MappingV3,
   type ZlozEventStormingC4Source,
   type ZlozEventStormingC4MappingOptions,
   type ZlozEventStormingC4Preview,
@@ -11,8 +12,10 @@ import {
 } from './event-storming-c4-preview';
 import { projectEventStormingC4Graph } from './event-storming-c4-projection';
 import { validateGraphForConnectionMode, ZlozError } from './graph';
+import { captureGroupDocumentV3 } from './group-document-v3';
 import type { ZlozModelDocument } from './model-document';
 import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
+import { captureModelDocumentV3, type ZlozModelDocumentV3 } from './model-document-v3';
 import type { ZlozNode } from './types';
 
 /** Root is diagram placement, not a claim about ownership outside the diagram. */
@@ -179,6 +182,7 @@ function createPlan<D extends ZlozModelDocument>(
     source: ZlozEventStormingC4Source<D>,
     options?: ZlozEventStormingC4MappingOptions,
   ) => ZlozEventStormingC4Preview<D>,
+  validateTarget?: (document: D, graph: D['snapshot']['graph']) => void,
 ): ZlozEventStormingC4ConversionPlan<D> {
   if (
     !record(options) ||
@@ -419,13 +423,16 @@ function createPlan<D extends ZlozModelDocument>(
     ),
   };
   const snapshot = provenance.document.snapshot;
-  validateGraphForConnectionMode(
-    projectEventStormingC4Graph(graph, changes),
-    'connectionMode' in snapshot &&
-      (snapshot.connectionMode === 'strict' || snapshot.connectionMode === 'loose')
-      ? snapshot.connectionMode
-      : 'strict',
-  );
+  if (validateTarget)
+    validateTarget(provenance.document, projectEventStormingC4Graph(graph, changes));
+  else
+    validateGraphForConnectionMode(
+      projectEventStormingC4Graph(graph, changes),
+      'connectionMode' in snapshot &&
+        (snapshot.connectionMode === 'strict' || snapshot.connectionMode === 'loose')
+        ? snapshot.connectionMode
+        : 'strict',
+    );
   return freeze(
     changes.nodes.length || changes.edges.length || changes.memberships.length
       ? { ...base, type: 'reviewable', changes }
@@ -480,3 +487,24 @@ export type ZlozEventStormingC4ConversionPlanV2 =
   ZlozEventStormingC4ConversionPlan<ZlozModelDocumentV2>;
 export type ZlozEventStormingC4ConversionConsentDecisionV2 =
   ZlozEventStormingC4ConversionConsentDecision<ZlozModelDocumentV2>;
+
+export type ZlozEventStormingC4ConversionSourceV3 = ZlozEventStormingC4Source<ZlozModelDocumentV3>;
+export type ZlozEventStormingC4ConversionPlanV3 =
+  ZlozEventStormingC4ConversionPlan<ZlozModelDocumentV3>;
+export type ZlozEventStormingC4ConversionConsentDecisionV3 =
+  ZlozEventStormingC4ConversionConsentDecision<ZlozModelDocumentV3>;
+export function createEventStormingC4ConversionPlanV3(
+  source: ZlozEventStormingC4Source<ZlozModelDocumentV3>,
+  options: ZlozEventStormingC4ConversionOptions = {},
+): ZlozEventStormingC4ConversionPlanV3 {
+  return createPlan(source, options, previewEventStormingC4MappingV3, (document, graph) => {
+    captureGroupDocumentV3({ ...document.snapshot, graph });
+  });
+}
+export function resolveEventStormingC4ConversionConsentV3(
+  source: ZlozEventStormingC4Source<ZlozModelDocumentV3>,
+  options: ZlozEventStormingC4ConversionOptions = {},
+  consent: ZlozEventStormingC4LossConsent | null = null,
+): ZlozEventStormingC4ConversionConsentDecisionV3 {
+  return resolveConsent(createEventStormingC4ConversionPlanV3(source, options), consent);
+}

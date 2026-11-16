@@ -29,6 +29,7 @@ tasks:
     description: the root tool and workflow tests
     script: >-
       bun test ./.github/scripts/format-release-changelogs.test.js
+      ./.github/scripts/zloz-release-train.test.js
       ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts
       ./tools/ci-parity.test.ts ./tools/pre-commit.test.ts
     inputs:

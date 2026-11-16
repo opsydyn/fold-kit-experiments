@@ -62,14 +62,22 @@ specifiers; npm publishes the resulting archive, not the workspace source tree.
 
 ## Release action
 
-After reviewed commits and green CI, use the existing **publish** workflow at the
-approved release ref. Select `foldkit-zloz` first, independently verify its npm
-version and contents, then select `foldkit-zloz-elk` at the same ref. That ordering
-ensures npm can resolve the adapter's core peer. Before publishing
-`foldkit-zloz-force`, verify that its packed Zloz peer and Viz dependency
-versions are available in the registry. Select `foldkit-zloz-force` at the
-approved ref. The workflow runs package checks
-and publishes the checked tarball with `--access public --provenance`.
+After reviewed commits and green CI, merging the linked release PR creates the
+four tags and invokes **zloz-release-train**. The train waits for successful push
+CI at the exact release SHA, qualifies all archives, then publishes core → ELK →
+Force → Mermaid. Each stage requires exact registry archive integrity, identity,
+peer/dependency and repository/source provenance checks plus `npm audit signatures`
+in a clean registry consumer. The final installed Node consumer exercises all four.
+The independent **publish** workflow no longer accepts Zloz packages.
+
+For recovery, inspect the retained `verification.json` and candidate archives in
+the workflow artifacts. Dispatch **zloz-release-train** from the matching core
+release tag and supply its full 40-character commit as `source_sha`. All four tags
+must resolve to that SHA. Manual and automatic runs share one concurrency lock.
+Existing versions are verified and skipped; downstream publication stops at the
+first failed barrier. Only registry reads retry. Never blindly retry an uncertain
+upload, move tags, unpublish or accept a differing archive. A byte mismatch on
+rebuild requires inspection of the retained candidate. See [ADR 0115](../adr/0115-serialize-zloz-publication-with-registry-verification.md).
 
 Use the existing repository credential/provenance setup. This slice neither
 changes credentials nor configures npm trusted-publisher settings. A future switch

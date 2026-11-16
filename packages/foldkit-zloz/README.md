@@ -7,6 +7,10 @@ edges through your existing FoldKit builder. ELK is available separately as
 
 `@opsydyn/foldkit-zloz` is available on npm.
 
+The four public Zloz packages release together, with adapters pinned to the exact
+core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
+verifies registry archives and provenance before advancing to the next package.
+
 ## Install
 
 ```sh

@@ -144,3 +144,46 @@ lint/format, typecheck, full tests and API docs. See
 
 Next: one mounted native v2 authoring/review workbench slice using these APIs, with
 visible loss review, receipt/packet downloads and read-only reopening evidence.
+
+## Approved mounted adoption follow-through — 2026-11-15
+
+The subsequent approved host slice extends `/history/`, which already owns a
+canonical v2 model, mixed-mode archive and independent working Undo. It adds
+Authoring and Portable review sections rather than widening the separate legacy
+architecture workspace or projecting loose graphs into v1 controls.
+
+A browser Command issues a fresh random page-session ID before authoring; the
+model owns it. Source identity combines that ID with model identity and canvas
+epoch, so reloading a page cannot reuse an old proposal incarnation. Failed
+initialization has an explicit retry; late successful callbacks cannot rebind it.
+
+Core retains proposal decoding, audit semantics, exact review keys, live policy
+checks, atomic Apply and receipt validation. Mermaid retains packet construction
+and strict reopening. The host binds model ID, session epoch and revision, owns
+bounded UTF-8 file Commands and scoped downloads, and publishes the returned editor
+and receipt together in one update. Imported patch/C4/DDD receipts and packets
+create detached read-only before/after editors with ghosts; they never grant live
+consent or replace the working model. Canvas epochs reject late events, and token,
+epoch and revision checks reject cancelled or stale file completions. Changing
+sections cancels reads and clears local Apply acknowledgement. Leaving an artifact
+review restores the working canvas and its existing Undo.
+
+Both reviewed-content and authored-loss acknowledgement are required for patches.
+Packet projection losses need separate consent bound to the source and baseline.
+The host limits reads and generated downloads to 1 MiB so it cannot produce an
+artifact its own file controls refuse. Failures preserve the working editor and
+retained receipts. Theme and Minimal preferences remain host-controlled; essential
+loss and protection reasons remain visible. No parser, dependency, runtime,
+protocol or public package API changes are introduced.
+
+Implementation: `apps/zloz-demo/src/history-workbench/native-*`, composed by the
+existing message/state/view. Regression tests cover stale mode/session/revision,
+protection, incomplete consent, single Undo, retained receipts, invalid/oversized
+UTF-8, strict conversion/packet decoding and detached reopening. Mounted evidence
+uses real model upload, downloads and file reopening in both themes and at 390px.
+See [qualification](../../apps/zloz-demo/evidence/native-authoring-workbench.md).
+C4/DDD conversion authoring remains in the existing architecture workspace; this
+slice adopts their native v2 receipt readers, not new conversion Apply controls.
+C2–C4, broader C1 adoption, physical-device/manual AT and release gates remain open.
+No publishing or deployment is included. Architecture, boundary and test review
+are self-review: safe with noted risk at the host's session/file lifecycle boundary.

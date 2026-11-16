@@ -592,3 +592,13 @@ schemas. No write, network or Apply command is added.
 
 The `readDocument`/`readGraph` embedding APIs remain v1-only and report an explicit
 incompatibility for v2; use `readPortableDocument` for discriminated v1/v2 records.
+
+## Read-only v3 compatibility inspection
+
+`zloz compatibility inspect-v3 --input model-v3.json` strictly decodes a canonical
+v3 model and reports every checkpoint's mode, group-port capability/count,
+independent adapter support and downgrade findings. It performs no conversion,
+Apply or file write. The existing 1 MiB UTF-8 budget still applies. Malformed or
+wrong-version input exits 2. Successful inspection exits 0 even when adapters or
+downgrade are unavailable: those are explicit findings, not performed operations.
+Other commands keep their documented v1/v2 contracts. CLI remains private.

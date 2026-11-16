@@ -7,6 +7,7 @@ import {
   PatchValidationError,
   type ZlozModellingPatch,
 } from './modelling-patch';
+import { preflightPortableJson as scanPortableJson, PortableJsonError } from './portable-json';
 import type { JsonValue, JsonObject } from './types';
 
 /** Positive safe integer limits; omitted values use the existing v1 object caps. */
@@ -52,135 +53,20 @@ class PatchTextError extends Error {
 }
 const record = (value: JsonValue): value is JsonObject =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
-const digit = (char: string | undefined) => char !== undefined && char >= '0' && char <= '9';
-const pointer = (path: string, key: string) =>
-  path + '/' + key.replaceAll('~', '~0').replaceAll('/', '~1');
-/** Bounded grammar/duplicate preflight. Native JSON.parse constructs the value only afterward. */
+/** Bounded grammar/duplicate preflight retaining the legacy patch error contract. */
 export function preflightPortableJson(text: string, maxDepth: number, maxValues: number): void {
-  let i = 0,
-    values = 0;
-  let nonfinite: string | null = null;
-  const fail = (path: string, message = 'Malformed modelling-patch JSON.'): never => {
-    throw new PatchTextError('invalid-json', message, path);
-  };
-  const skip = () => {
-    while (text[i] === ' ' || text[i] === '\t' || text[i] === '\r' || text[i] === '\n') i++;
-  };
-  const string = (path: string): string => {
-    const start = i++;
-    while (i < text.length) {
-      const char = text[i++];
-      if (char === '"') return text.slice(start, i);
-      if (char === '\\') {
-        const escaped = text[i++];
-        if (escaped === 'u') {
-          for (let n = 0; n < 4; n++) {
-            const hex = text[i++];
-            if (hex === undefined || !/[0-9a-fA-F]/u.test(hex))
-              fail(path, 'Invalid JSON Unicode escape.');
-          }
-        } else if (
-          escaped === undefined ||
-          !['"', '\\', '/', 'b', 'f', 'n', 'r', 't'].includes(escaped)
-        )
-          fail(path, 'Invalid JSON escape.');
-      } else if (char !== undefined && char.charCodeAt(0) < 32)
-        fail(path, 'Unescaped control character in JSON string.');
-    }
-    return fail(path, 'Unterminated JSON string.');
-  };
-  const value = (depth: number, path: string): void => {
-    if (depth > maxDepth)
+  // oxlint-disable-next-line linteffect/no-try-catch -- Preserve the version-fixed patch scanner error codes at this existing boundary.
+  try {
+    scanPortableJson(text, maxDepth, maxValues);
+  } catch (error) {
+    if (error instanceof PortableJsonError)
       throw new PatchTextError(
-        'limit-exceeded',
-        'Modelling patch exceeds its JSON value-depth budget.',
-        path,
+        error.code === 'invalid-data' ? 'invalid-patch' : error.code,
+        error.message,
+        error.path,
       );
-    if (++values > maxValues)
-      throw new PatchTextError(
-        'limit-exceeded',
-        'Modelling patch exceeds its JSON value budget.',
-        path,
-      );
-    skip();
-    const char = text[i];
-    if (char === '{') {
-      i++;
-      skip();
-      const keys = new Set<string>();
-      if (text[i] === '}') {
-        i++;
-        return;
-      }
-      while (i < text.length) {
-        if (text[i] !== '"') fail(path, 'Expected a JSON property name.');
-        const key: string = JSON.parse(string(path)),
-          child = pointer(path, key);
-        if (keys.has(key)) fail(child, 'Duplicate decoded JSON property names are not allowed.');
-        keys.add(key);
-        skip();
-        if (text[i++] !== ':') fail(child, 'Expected a colon after JSON property name.');
-        value(depth + 1, child);
-        skip();
-        const end = text[i++];
-        if (end === '}') return;
-        if (end !== ',') fail(path, 'Expected comma or closing object.');
-        skip();
-      }
-      return fail(path, 'Unterminated JSON object.');
-    }
-    if (char === '[') {
-      i++;
-      skip();
-      if (text[i] === ']') {
-        i++;
-        return;
-      }
-      let index = 0;
-      while (i < text.length) {
-        value(depth + 1, pointer(path, String(index++)));
-        skip();
-        const end = text[i++];
-        if (end === ']') return;
-        if (end !== ',') fail(path, 'Expected comma or closing array.');
-        skip();
-      }
-      return fail(path, 'Unterminated JSON array.');
-    }
-    if (char === '"') {
-      string(path);
-      return;
-    }
-    for (const literal of ['true', 'false', 'null'])
-      if (text.startsWith(literal, i)) {
-        i += literal.length;
-        return;
-      }
-    const start = i;
-    if (text[i] === '-') i++;
-    if (text[i] === '0') i++;
-    else {
-      if (!digit(text[i])) return fail(path, 'Expected a JSON value.');
-      while (digit(text[i])) i++;
-    }
-    if (text[i] === '.') {
-      i++;
-      if (!digit(text[i])) fail(path, 'JSON fraction requires digits.');
-      while (digit(text[i])) i++;
-    }
-    if (text[i] === 'e' || text[i] === 'E') {
-      i++;
-      if (text[i] === '+' || text[i] === '-') i++;
-      if (!digit(text[i])) fail(path, 'JSON exponent requires digits.');
-      while (digit(text[i])) i++;
-    }
-    if (!Number.isFinite(Number(text.slice(start, i)))) nonfinite ??= path;
-  };
-  value(0, '');
-  skip();
-  if (i !== text.length) fail('', 'Expected exactly one JSON document.');
-  if (nonfinite !== null)
-    throw new PatchTextError('invalid-patch', 'Modelling patch numbers must be finite.', nonfinite);
+    throw error;
+  }
 }
 /** Strict raw v1 proposal decoder. Does not dry-run, import, execute or grant Apply authority. */
 function parsePatch<P>(

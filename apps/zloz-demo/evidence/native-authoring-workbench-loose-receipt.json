@@ -1,0 +1,102 @@
+{
+  "format": "foldkit-zloz-patch-receipt",
+  "version": 2,
+  "patch": {
+    "format": "foldkit-zloz-patch",
+    "id": "rename-2",
+    "operations": [
+      {
+        "id": "rename",
+        "node": {
+          "architecture": { "family": "event-storming", "role": "domain-event" },
+          "data": { "owner": "commerce" },
+          "id": "a",
+          "label": "Orders — reviewed",
+          "ports": [{ "id": "shared", "kind": "input", "offset": 0.5, "side": "right" }],
+          "position": { "x": 20, "y": 40 },
+          "size": { "height": 64, "width": 200 }
+        },
+        "type": "node.replace"
+      }
+    ],
+    "provenance": {
+      "actor": { "id": "workbench-example", "kind": "human" },
+      "reason": "Review the Orders label",
+      "references": []
+    },
+    "source": {
+      "connectionMode": "loose",
+      "graph": {
+        "edges": [
+          {
+            "data": { "preserve": true },
+            "id": "orders-billing",
+            "label": "Uses",
+            "source": { "node": "a", "port": "shared" },
+            "target": { "node": "b", "port": "shared" }
+          }
+        ],
+        "nodes": [
+          {
+            "architecture": { "family": "event-storming", "role": "domain-event" },
+            "data": { "owner": "commerce" },
+            "id": "a",
+            "label": "Orders",
+            "ports": [{ "id": "shared", "kind": "input", "offset": 0.5, "side": "right" }],
+            "position": { "x": 20, "y": 40 },
+            "size": { "height": 64, "width": 200 }
+          },
+          {
+            "architecture": { "family": "event-storming", "role": "domain-event" },
+            "id": "b",
+            "label": "Billing",
+            "ports": [{ "id": "shared", "kind": "input", "offset": 0.5, "side": "left" }],
+            "position": { "x": 320, "y": 40 },
+            "size": { "height": 64, "width": 200 }
+          }
+        ]
+      },
+      "modelId": "native-v2",
+      "revision": 2,
+      "sessionId": "e1734f5b-c8ed-453c-ac87-d40b837a4c96/native-v2/10"
+    },
+    "version": 2
+  },
+  "snapshot": {
+    "connectionMode": "loose",
+    "graph": {
+      "edges": [
+        {
+          "data": { "preserve": true },
+          "id": "orders-billing",
+          "label": "Uses",
+          "source": { "node": "a", "port": "shared" },
+          "target": { "node": "b", "port": "shared" }
+        }
+      ],
+      "nodes": [
+        {
+          "architecture": { "family": "event-storming", "role": "domain-event" },
+          "data": { "owner": "commerce" },
+          "id": "a",
+          "label": "Orders — reviewed",
+          "ports": [{ "id": "shared", "kind": "input", "offset": 0.5, "side": "right" }],
+          "position": { "x": 20, "y": 40 },
+          "size": { "height": 64, "width": 200 }
+        },
+        {
+          "architecture": { "family": "event-storming", "role": "domain-event" },
+          "id": "b",
+          "label": "Billing",
+          "ports": [{ "id": "shared", "kind": "input", "offset": 0.5, "side": "left" }],
+          "position": { "x": 320, "y": 40 },
+          "size": { "height": 64, "width": 200 }
+        }
+      ]
+    },
+    "version": 2
+  },
+  "revision": 3,
+  "reviewed": true,
+  "lossesAccepted": true
+}

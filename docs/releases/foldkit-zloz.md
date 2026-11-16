@@ -47,7 +47,7 @@ The core package's consumer test packs core and ELK, installs the core alone
 with npm to check optional peers, then installs both tarballs with the qualified
 FoldKit/Effect/platform-browser versions. It checks core Node/Bun runtime imports,
 TypeScript Bundler and NodeNext resolution, Node server rendering and real ELK
-layout outside the workspace. The Node CI job targets 22; local receipts record
+layout outside the workspace. The Node CI job targets 24; local receipts record
 the actual tested runtime rather than treating that configuration as CI evidence.
 
 The force adapter's consumer test packs its runtime dependencies and installs
@@ -89,3 +89,13 @@ workbench evidence. It participates in the same four-package qualification and l
 metadata. This configuration does not authorize running publication.
 The CLI remains a private workspace package. Its local tarballs are installation
 and type-contract fixtures, not npm publication candidates.
+
+## Scoped v3 core release
+
+The 2026-11-15 batch is authorized for commit/push/publication after green checks;
+see [ADR 0108](../adr/0108-release-the-scoped-v3-core.md). Its remaining native,
+adapter, advanced-tool, performance and human acceptance limits must accompany the
+release. Existing 0.4.0 tags identify previous source: release-please must issue
+the next linked version rather than reusing those tags. CLI and Alchemy remain
+private. Verify all four registry versions, exact core peer pins, provenance and
+a registry-installed consumer before recording publication complete.

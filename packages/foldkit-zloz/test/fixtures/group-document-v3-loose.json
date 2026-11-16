@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "coordinateSpace": "world",
+  "connectionMode": "loose",
+  "capabilities": { "groupPorts": true },
+  "graph": {
+    "nodes": [
+      {
+        "id": "g",
+        "label": "Boundary",
+        "kind": "group",
+        "architecture": { "family": "ddd", "role": "bounded-context" },
+        "position": { "x": 100, "y": 80 },
+        "size": { "width": 400, "height": 300 },
+        "ports": [
+          { "id": "shared", "kind": "input", "side": "right", "anchor": { "x": 1, "y": 0.5 } }
+        ]
+      },
+      {
+        "id": "b",
+        "label": "Other",
+        "position": { "x": 600, "y": 140 },
+        "size": { "width": 200, "height": 100 },
+        "ports": [{ "id": "in", "kind": "input", "side": "left", "offset": 0.5 }]
+      }
+    ],
+    "edges": [
+      {
+        "id": "ordered",
+        "source": { "node": "g", "port": "shared" },
+        "target": { "node": "b", "port": "in" }
+      }
+    ]
+  }
+}

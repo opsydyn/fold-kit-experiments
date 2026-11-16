@@ -1,0 +1,339 @@
+{
+  "format": "foldkit-zloz-review",
+  "version": 2,
+  "scope": "selected-snapshots",
+  "model": { "id": "history-workshop", "name": "Architecture history" },
+  "baseline": {
+    "source": { "kind": "edition", "id": "strict-start", "name": "Strict foundation" },
+    "snapshot": {
+      "version": 2,
+      "connectionMode": "strict",
+      "graph": {
+        "nodes": [
+          {
+            "id": "a",
+            "label": "Orders",
+            "position": { "x": 90, "y": 140 },
+            "size": { "width": 220, "height": 130 },
+            "ports": [
+              { "id": "in", "kind": "input", "side": "right", "offset": 0.5 },
+              { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+            ]
+          },
+          {
+            "id": "b",
+            "label": "Billing",
+            "position": { "x": 440, "y": 140 },
+            "size": { "width": 220, "height": 130 },
+            "ports": [
+              { "id": "in", "kind": "input", "side": "left", "offset": 0.5 },
+              { "id": "out", "kind": "output", "side": "bottom", "offset": 0.5 }
+            ]
+          }
+        ],
+        "edges": []
+      }
+    }
+  },
+  "selected": {
+    "source": { "kind": "current" },
+    "snapshot": {
+      "version": 2,
+      "connectionMode": "strict",
+      "graph": {
+        "edges": [],
+        "nodes": [
+          {
+            "id": "a",
+            "label": "Orders — reviewed",
+            "ports": [
+              { "id": "in", "kind": "input", "offset": 0.5, "side": "right" },
+              { "id": "out", "kind": "output", "offset": 0.5, "side": "bottom" }
+            ],
+            "position": { "x": 90, "y": 140 },
+            "size": { "height": 64, "width": 220 }
+          },
+          {
+            "id": "b",
+            "label": "Billing",
+            "ports": [
+              { "id": "in", "kind": "input", "offset": 0.5, "side": "left" },
+              { "id": "out", "kind": "output", "offset": 0.5, "side": "bottom" }
+            ],
+            "position": { "x": 440, "y": 140 },
+            "size": { "height": 64, "width": 220 }
+          }
+        ]
+      },
+      "viewport": { "x": 0, "y": 0, "zoom": 1 }
+    }
+  },
+  "conventions": {
+    "source": "builtin",
+    "roleInterpretation": "zloz-event-storming/v1",
+    "rules": [
+      {
+        "architecture": { "family": "event-storming", "role": "issues" },
+        "sources": ["actor"],
+        "targets": ["command"],
+        "label": "Issues"
+      },
+      {
+        "architecture": { "family": "event-storming", "role": "handles" },
+        "sources": ["command"],
+        "targets": ["aggregate"],
+        "label": "Handled by"
+      },
+      {
+        "architecture": { "family": "event-storming", "role": "emits" },
+        "sources": ["aggregate"],
+        "targets": ["domain-event"],
+        "label": "Emits"
+      },
+      {
+        "architecture": { "family": "event-storming", "role": "produces" },
+        "sources": ["command"],
+        "targets": ["domain-event"],
+        "label": "Produces"
+      },
+      {
+        "architecture": { "family": "event-storming", "role": "activates" },
+        "sources": ["domain-event"],
+        "targets": ["policy"],
+        "label": "Activates"
+      },
+      {
+        "architecture": { "family": "event-storming", "role": "triggers" },
+        "sources": ["policy"],
+        "targets": ["command"],
+        "label": "Triggers"
+      }
+    ]
+  },
+  "comparison": {
+    "modelId": "history-workshop",
+    "status": "no-new-findings",
+    "baseline": {
+      "source": { "kind": "edition", "id": "strict-start", "name": "Strict foundation" },
+      "audit": {
+        "status": "compatible",
+        "summary": { "edges": 0, "typed": 0, "inferred": 0, "unrelated": 0, "blocked": 0 },
+        "entries": []
+      },
+      "connectionMode": "strict"
+    },
+    "selected": {
+      "source": { "kind": "current" },
+      "audit": {
+        "status": "compatible",
+        "summary": { "edges": 0, "typed": 0, "inferred": 0, "unrelated": 0, "blocked": 0 },
+        "entries": []
+      },
+      "connectionMode": "strict"
+    },
+    "summary": { "introduced": 0, "resolved": 0, "persisting": 0 },
+    "introduced": [],
+    "resolved": [],
+    "persisting": []
+  },
+  "projectionOptions": { "direction": "LR", "lossPolicy": "report" },
+  "projections": {
+    "baseline": {
+      "protocol": "foldkit-zloz-mermaid/v2",
+      "source": "flowchart LR\n  n_61[\"Orders\"]\n  n_62[\"Billing\"]\n",
+      "direction": "LR",
+      "identity": {
+        "version": 1,
+        "nodes": [
+          {
+            "mermaidId": "n_61",
+            "flowId": "a",
+            "ports": [
+              { "id": "in", "kind": "input" },
+              { "id": "out", "kind": "output" }
+            ]
+          },
+          {
+            "mermaidId": "n_62",
+            "flowId": "b",
+            "ports": [
+              { "id": "in", "kind": "input" },
+              { "id": "out", "kind": "output" }
+            ]
+          }
+        ],
+        "edges": []
+      },
+      "diagnostics": [
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "a"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "b"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null
+        }
+      ],
+      "connectionMode": "strict"
+    },
+    "selected": {
+      "protocol": "foldkit-zloz-mermaid/v2",
+      "source": "flowchart LR\n  n_61[\"Orders — reviewed\"]\n  n_62[\"Billing\"]\n",
+      "direction": "LR",
+      "identity": {
+        "version": 1,
+        "nodes": [
+          {
+            "mermaidId": "n_61",
+            "flowId": "a",
+            "ports": [
+              { "id": "in", "kind": "input" },
+              { "id": "out", "kind": "output" }
+            ]
+          },
+          {
+            "mermaidId": "n_62",
+            "flowId": "b",
+            "ports": [
+              { "id": "in", "kind": "input" },
+              { "id": "out", "kind": "output" }
+            ]
+          }
+        ],
+        "edges": []
+      },
+      "diagnostics": [
+        {
+          "code": "viewport-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Mermaid omits the snapshot camera.",
+          "subject": null
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "a"
+        },
+        {
+          "code": "port-details-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+          "subject": "b"
+        },
+        {
+          "code": "layout-omitted",
+          "severity": "loss",
+          "dimension": "layout",
+          "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+          "subject": null
+        },
+        {
+          "code": "identity-map-required",
+          "severity": "loss",
+          "dimension": "identity",
+          "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+          "subject": null
+        }
+      ],
+      "connectionMode": "strict"
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "a",
+      "side": "baseline"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "b",
+      "side": "baseline"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null,
+      "side": "baseline"
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null,
+      "side": "baseline"
+    },
+    {
+      "code": "viewport-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Mermaid omits the snapshot camera.",
+      "subject": null,
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "a",
+      "side": "selected"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "b",
+      "side": "selected"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null,
+      "side": "selected"
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null,
+      "side": "selected"
+    }
+  ]
+}

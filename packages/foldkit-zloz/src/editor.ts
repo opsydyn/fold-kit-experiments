@@ -415,6 +415,14 @@ function retainedCollapsedGroups(state: EditorState, graph: ZlozGraph) {
   );
 }
 
+function assertLegacyEditor(state: EditorState): void {
+  if ('format' in state && state.format === 'foldkit-zloz-group-editor')
+    throw new ZlozError(
+      'invalid-edit',
+      'v3 group sessions require the explicit v3 transaction and Undo APIs.',
+    );
+}
+
 /** Shared transaction boundary; document publications invalidate cached routes. */
 export function commitGraph(state: EditorState, graph: ZlozGraph): EditorState {
   return commitConnectionGraph(state, graph, state.connectionMode ?? 'strict');
@@ -425,6 +433,7 @@ export function commitConnectionGraph(
   graph: ZlozGraph,
   connectionMode: ZlozConnectionMode,
 ): EditorState {
+  assertLegacyEditor(state);
   validateGraphForConnectionMode(graph, connectionMode);
   return {
     ...cancelFit(state),
@@ -852,6 +861,7 @@ export function updateEditor(
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  assertLegacyEditor(state);
   if (event.type === 'EdgeWaypointRemoved') {
     const edge = state.graph.edges.find((edge) => edge.id === event.id);
     if (!edge?.waypoints?.some((waypoint) => waypoint.id === event.waypointId)) return state;

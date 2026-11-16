@@ -1,0 +1,146 @@
+{
+  "format": "foldkit-zloz-model",
+  "version": 3,
+  "document": {
+    "id": "systems",
+    "name": "System landscape",
+    "snapshot": {
+      "version": 3,
+      "coordinateSpace": "world",
+      "connectionMode": "strict",
+      "capabilities": {
+        "groupPorts": true
+      },
+      "graph": {
+        "nodes": [
+          {
+            "id": "child",
+            "label": "Child",
+            "parentId": "g",
+            "position": {
+              "x": 140,
+              "y": 140
+            },
+            "size": {
+              "width": 120,
+              "height": 80
+            },
+            "ports": []
+          },
+          {
+            "id": "g",
+            "label": "Boundary",
+            "kind": "group",
+            "position": {
+              "x": 100,
+              "y": 80
+            },
+            "size": {
+              "width": 400,
+              "height": 300
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ]
+          },
+          {
+            "id": "b",
+            "label": "Other system",
+            "position": {
+              "x": 600,
+              "y": 140
+            },
+            "size": {
+              "width": 200,
+              "height": 100
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "boundary-link",
+            "source": {
+              "node": "g",
+              "port": "out"
+            },
+            "target": {
+              "node": "b",
+              "port": "in"
+            }
+          }
+        ]
+      },
+      "viewport": {
+        "x": 12,
+        "y": -4,
+        "zoom": 1.25
+      }
+    },
+    "editions": [
+      {
+        "id": "baseline",
+        "name": "Before boundaries",
+        "snapshot": {
+          "version": 3,
+          "coordinateSpace": "world",
+          "connectionMode": "strict",
+          "capabilities": {
+            "groupPorts": false
+          },
+          "graph": {
+            "nodes": [
+              {
+                "id": "c",
+                "label": "Child",
+                "parentId": "g",
+                "position": {
+                  "x": 140,
+                  "y": 140
+                },
+                "size": {
+                  "width": 120,
+                  "height": 80
+                },
+                "ports": []
+              },
+              {
+                "id": "g",
+                "label": "Boundary",
+                "kind": "group",
+                "position": {
+                  "x": 100,
+                  "y": 80
+                },
+                "size": {
+                  "width": 400,
+                  "height": 300
+                },
+                "ports": []
+              }
+            ],
+            "edges": []
+          },
+          "viewport": {
+            "x": 12,
+            "y": -4,
+            "zoom": 1.25
+          }
+        }
+      }
+    ],
+    "origin": null
+  }
+}

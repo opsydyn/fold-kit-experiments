@@ -222,7 +222,9 @@ charts in all three apps.
   `/explore` now highlights live while dragging (median frame 20 ms, no long
   tasks). `layer.append` takes points streamed in by appendPoints, uploading
   only the new ones (81 ms for a million in 20 batches, against 116 ms
-  rebuilding). Measuring it found canvas/plot silently drawing nothing for a colour
+  rebuilding). Checked in Chromium 151, WebKit 26.5 and Firefox 153 at device
+  pixel ratio 2: the same pixels as the canvas painter, highlights dimming alike,
+  a million-point brush in 12 ms (WebKit) and 20 ms (Firefox). Measuring it found canvas/plot silently drawing nothing for a colour
   group over about 180,000 circles in Chromium; it now fills in chunks. The
   remaining cost is restyling row objects, which columnar data would cut.
 - DuckDB column input and streaming appends — done on the `feat/viz-svg-jupyter`

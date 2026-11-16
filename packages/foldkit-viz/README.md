@@ -509,6 +509,12 @@ layer.draw();
   only the new points while its buffers have room, doubling them when not: a
   million points streamed in 20 batches cost 81 ms on the GPU in all, against
   116 ms rebuilding the layer each batch (4.5 ms against 9.7 ms for the last).
+- Checked in Chromium 151, WebKit 26.5 and Firefox 153 (Playwright's builds),
+  at device pixel ratio 2 and drawing at ratios 1 to 3: the GPU's points cover
+  the same solid pixels as the canvas painter's (intersection over union 0.96 to
+  0.99 for 3-pixel points, 0.71 to 0.97 for 1.2-pixel ones, which rasterise
+  differently), highlights dim the same way, and a million-point brush takes
+  12 ms in WebKit and 20 ms in Firefox.
 - The context type is structural (`PointsGl`), so foldkit-viz needs no DOM
   types. Colours must be hex, `rgb()` or `rgba()`; pass `current` for points
   painted `currentColor`.

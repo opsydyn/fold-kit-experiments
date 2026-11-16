@@ -29,6 +29,8 @@ export const Message = defineMessageUnion({
   DetectedPlanes: { detected: SceneSchema.XrPlanesDetail },
   DetectedMeshes: { detected: SceneSchema.XrMeshesDetail },
   Glided: { moved: SceneSchema.XrMovedDetail },
+  /** The left hand's teleport arc let go over the floor: the player stands there. */
+  Teleported: { teleported: SceneSchema.XrTeleportedDetail },
   MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });

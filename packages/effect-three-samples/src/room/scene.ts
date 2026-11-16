@@ -28,6 +28,7 @@ import {
   plane,
   planeSpace,
   pointLight,
+  teleportArc,
   renderSettings,
   scene,
   type SceneNode,
@@ -266,7 +267,7 @@ const tips = (model: Model): ReadonlyArray<SceneNode> => {
   const text =
     model.session === 'immersive-ar'
       ? 'Point at a surface and pull the trigger (or pinch) to plant.'
-      : 'Left stick glides, right stick turns. Point at the floor and pull the trigger to plant.';
+      : 'Left stick glides, right stick turns. Hold the left trigger to aim an arc, let go to jump there; the right trigger plants.';
   const tip = (key: string) =>
     label({
       key,
@@ -304,6 +305,9 @@ export const sceneFor = (model: Model) => {
       anchors: inAr
         ? model.plants.map((plant) => xrAnchor({ id: plant.id, position: plant.at }))
         : [],
+      // In VR the left hand's select throws a teleport arc onto the floor; in AR the room
+      // is the real one, and the player walks.
+      teleportArc: inAr ? null : teleportArc({ targets: ['floor'] }),
     },
     environment: inAr ? null : environment({ environmentIntensity: 0.45 }),
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces', exposure: 1.05 }),

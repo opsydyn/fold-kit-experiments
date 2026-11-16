@@ -86,6 +86,23 @@ test('a surface selected in AR plants at its point; gliding keeps where the play
   expect([moved.player.origin, moved.player.heading]).toEqual([[1, 0, 1], 0.5]);
 });
 
+test('in VR the left hand throws a teleport arc at the floor, and landing moves the player', () => {
+  expect(sceneFor(start).xr?.teleportArc).toEqual({
+    hand: 'left',
+    targets: ['floor'],
+    color: 0xffffff,
+    opacity: 0.4,
+  });
+  const inAr = step(start, Message.ChangedSession({ mode: 'immersive-ar' }));
+  expect(sceneFor(inAr).xr?.teleportArc).toBeNull();
+  const landed = step(
+    start,
+    Message.Teleported({ teleported: { hand: 'left', point: [1, 0, -1], origin: [0.8, 0, -1.2] } }),
+  );
+  expect(landed.player.origin).toEqual([0.8, 0, -1.2]);
+  expect(landed.player.heading).toBe(start.player.heading);
+});
+
 test('only modes the browser can present are offered', () => {
   const vr = step(start, Message.CheckedSupport({ mode: 'immersive-vr', supported: true }));
   const ar = step(vr, Message.CheckedSupport({ mode: 'immersive-ar', supported: false }));

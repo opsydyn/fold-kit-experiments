@@ -1,4 +1,4 @@
-import { glided, type Gesture, orbit, orbitOptions } from '@opsydyn/effect-three';
+import { glided, type Gesture, orbit, orbitOptions, teleported } from '@opsydyn/effect-three';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
@@ -80,6 +80,9 @@ export const update = (model: Model, message: Message): AppReturn =>
     DetectedMeshes: ({ detected }) => ({ model: { ...model, meshes: detected.meshes } }),
     Glided: ({ moved }) => ({
       model: modifyFields(model, { player: (player) => glided(player, moved) }),
+    }),
+    Teleported: ({ teleported: arrived }) => ({
+      model: modifyFields(model, { player: (player) => teleported(player, arrived) }),
     }),
     MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
     ReceivedSceneLifecycle: () => ({ model }),

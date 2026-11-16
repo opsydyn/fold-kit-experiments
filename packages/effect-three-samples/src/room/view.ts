@@ -74,6 +74,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           onXRPlanes: (detected) => Message.DetectedPlanes({ detected }),
           onXRMeshes: (detected) => Message.DetectedMeshes({ detected }),
           onXRMoved: (moved) => Message.Glided({ moved }),
+          onXRTeleported: (arrived) => Message.Teleported({ teleported: arrived }),
         },
         h,
       ),

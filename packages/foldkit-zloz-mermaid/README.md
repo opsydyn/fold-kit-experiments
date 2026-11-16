@@ -2,8 +2,8 @@
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
 Foldkit or Effect dependency is installed by the headless entry. Requires the
-matching Zloz core peer. The published baseline is 0.3.0; the export controls below
-are the next unreleased feature.
+matching Zloz core peer. Export controls, native v3 projections and portable review
+packets are included in the linked 0.6.0 release.
 
 ```sh
 npm install @opsydyn/foldkit-zloz @opsydyn/foldkit-zloz-mermaid
@@ -147,7 +147,9 @@ Packet JSON round-trip tests reproduce its audit using only the chosen snapshots
 and exported rules. The optional adapter still installs no Effect, Foldkit,
 Mermaid parser, browser or layout engine. See [ADR 0035](../../docs/adr/0035-export-portable-review-packets.md).
 
-## Strict review-packet reopening (unreleased)
+<a id="strict-review-packet-reopening-unreleased"></a>
+
+## Strict review-packet reopening
 
 ```ts
 import { parseReviewPacket } from '@opsydyn/foldkit-zloz-mermaid';
@@ -191,7 +193,9 @@ no IO; the reader below and Effect CLI compose it at their host boundaries. See
 [ADR 0057](../../docs/adr/0057-decode-portable-review-packets-strictly.md) and
 [decoder qualification](evidence/review-packet-parse.md). PNG and Alchemy remain deferred.
 
-## Composable review-packet controls (unreleased)
+<a id="composable-review-packet-controls-unreleased"></a>
+
+## Composable review-packet controls
 
 The root entry exports `resolveReviewPacketControls` and
 `resolveReviewPacketRequest`. The optional `/foldkit` entry exports
@@ -245,7 +249,9 @@ packet import, graph mutation or new Undo entry is implied. Exact serialization
 costs packet-sized memory and projection work while previewing; no performance
 claim is made. See [ADR 0037](../../docs/adr/0037-compose-review-packet-export-controls.md).
 
-## Read-only packet reader (unreleased)
+<a id="read-only-packet-reader-unreleased"></a>
+
+## Read-only packet reader
 
 ```ts
 import {
@@ -349,7 +355,9 @@ mode with zero Undo, leaving the working editor/history untouched. Packets and
 recorded findings never authorize editing, import or Apply. Native workbench file
 controls remain a separate adoption slice.
 
-## Native v3 groups and loss review (unreleased)
+<a id="native-v3-groups-and-loss-review-unreleased"></a>
+
+## Native v3 groups and loss review
 
 ```ts
 import {
@@ -410,7 +418,9 @@ The private CLI's current Mermaid export remains v1/v2; compatibility inspection
 only reports native package availability. Native packets/receipts/patches/audits
 remain separate adoption work.
 
-### Native v3 review packets (unreleased)
+<a id="native-v3-review-packets-unreleased"></a>
+
+### Native v3 review packets
 
 `createReviewPacketV3(model, { baselineId, selectedId? }, options)` combines the
 chosen complete native checkpoints, capability/mode-aware audit comparison and

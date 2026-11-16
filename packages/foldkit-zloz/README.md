@@ -215,7 +215,9 @@ is a normalized graph placement contract, not an OS drag-and-drop parser. No gra
 wire format changes. The workbench demonstrates native/custom cards and shared
 C4/DDD placement with live protection and one Undo.
 
-## SVG export planning (unreleased)
+<a id="svg-export-planning-unreleased"></a>
+
+## SVG export planning
 
 `planSvgExport` defines the package-owned boundary before file writing or PNG:
 
@@ -302,7 +304,9 @@ and uncertainty reports. Plans detach inputs and preserve editor/history. They a
 ephemeral, with no graph wire-version change. The bounded writer below implements SVG serialization. Reusable review/download controls are described below; broader visual
 qualification and PNG remain subsequent work.
 
-## Standalone SVG writing (unreleased)
+<a id="standalone-svg-writing-unreleased"></a>
+
+## Standalone SVG writing
 
 ```ts
 import { writeSvgExport } from '@opsydyn/foldkit-zloz';
@@ -353,7 +357,9 @@ exports. The default prefix is suitable for separate standalone files.
 Representative emitted files and browser captures are linked in the
 [writer evidence](evidence/svg-writer.md). Resource embedding and PNG remain subsequent work.
 
-## SVG review and download controls (unreleased)
+<a id="svg-review-and-download-controls-unreleased"></a>
+
+## SVG review and download controls
 
 Core exports `createSvgReview(scope)`, `svgReviewForScope(state, scope)`,
 `resolveSvgReview(state, context)` and `updateSvgReview(state, context, request)`.
@@ -398,7 +404,9 @@ See [workbench evidence](../../apps/zloz-demo/evidence/svg-review.md) and
 means handoff, not confirmed OS saving. Broader font formats/resources remain open. PNG is implemented below; Alchemy
 Domain has a separate [integration review](../../docs/assessments/2026-11-13-zloz-alchemy-domain-integration.md).
 
-## Embedded TrueType fonts (unreleased)
+<a id="embedded-truetype-fonts-unreleased"></a>
+
+## Embedded TrueType fonts
 
 Supply trusted single-face TrueType sfnt bytes through `fontResources`, binding the
 selected `font.assetId` to an asset declared as an embedded font:
@@ -457,7 +465,9 @@ loss approval cannot authorize a different embedded font.
 See [ADR 0055](../../docs/adr/0055-embed-bounded-truetype-font-resources.md) and
 [font qualification](evidence/svg-font.md). PNG is implemented below; Alchemy remains separately scoped.
 
-## Default glyph coverage (unreleased)
+<a id="default-glyph-coverage-unreleased"></a>
+
+## Default glyph coverage
 
 `inspectSvgFontCoverage(resource, text, { maxBytes?, maxCharacters? })` validates
 and owns font bytes, then checks a default Unicode cmap. The result is `checked`,
@@ -3846,7 +3856,9 @@ hides numeric filter and status readouts without changing preferences. Hosts can
 bind it to diagnostics or minimal mode and omit status through its render slot.
 Rendering preferences do not replace functional protection policies.
 
-## DDD relationship contracts (unreleased)
+<a id="ddd-relationship-contracts-unreleased"></a>
+
+## DDD relationship contracts
 
 DDD meaning is an optional reserved edge descriptor, independent of label, shape
 and host-owned data. The root exports `DddEdgeArchitecture`,
@@ -3943,7 +3955,9 @@ DDD edges are unrelated to that audit, not certified compatible DDD models. No n
 DDD CLI audit, renderer, context-map pattern, publication or deployment is included.
 See [ADR 0038](../../docs/adr/0038-define-ddd-relationship-contracts.md).
 
-## Composable context maps (unreleased)
+<a id="composable-context-maps-unreleased"></a>
+
+## Composable context maps
 
 The headless root exports `createContextMapPattern` and
 `resolveContextMapRelationship`, plus `ZlozContextMapRelationship`,
@@ -4017,7 +4031,9 @@ storage remain outside this slice. The workbench demonstrates both themes and a
 presentation toggle that retains the authored model. No publication or deployment.
 See [ADR 0039](../../docs/adr/0039-compose-context-map-presentation.md).
 
-## Composable DDD relationship controls (unreleased)
+<a id="composable-ddd-relationship-controls-unreleased"></a>
+
+## Composable DDD relationship controls
 
 The headless root exports `resolveDddRelationshipControls` and
 `resolveDddRelationshipRequest`. Context, options, request/decision, choice,
@@ -4300,7 +4316,9 @@ edition, and retain that orientation when stepping. Hosts should also reject
 stale receipt, side and cursor callbacks. The helper performs no graph edits,
 persistence or DOM focus changes.
 
-## Headless modelling patches and dry runs (unreleased)
+<a id="headless-modelling-patches-and-dry-runs-unreleased"></a>
+
+## Headless modelling patches and dry runs
 
 A modelling patch is a data-only graph proposal. It carries a patch ID, exact
 expected source graph, model/session identity, monotonic revision, unsigned
@@ -4390,7 +4408,9 @@ See [ADR 0060](../../docs/adr/0060-preview-bounded-modelling-patches-before-appl
 [actual dry-run results](evidence/modelling-patch-example.json) and
 [qualification](evidence/modelling-patch.md). PNG is implemented below; Alchemy remains separately scoped.
 
-## Strict versioned patch decoding (unreleased)
+<a id="strict-versioned-patch-decoding-unreleased"></a>
+
+## Strict versioned patch decoding
 
 ```ts
 import { parseModellingPatch, dryRunModellingPatch } from '@opsydyn/foldkit-zloz';
@@ -4447,7 +4467,9 @@ See [ADR 0061](../../docs/adr/0061-decode-versioned-modelling-patch-text-strictl
 [literal fixture](test/fixtures/modelling-patch-v1.json) and
 [decoder qualification](evidence/modelling-patch-parse.md).
 
-## Reviewed modelling-patch Apply (unreleased)
+<a id="reviewed-modelling-patch-apply-unreleased"></a>
+
+## Reviewed modelling-patch Apply
 
 `resolveModellingPatchReview` composes the live editor, host identity and proposal.
 It returns the dry-run preview, an exact-content review key, protection reason,
@@ -4515,7 +4537,9 @@ receipt retention/download and one Undo with the original canvas always visible.
 See [ADR 0062](../../docs/adr/0062-complete-reviewed-patch-cli-and-atomic-apply.md)
 and [completion evidence](../../apps/zloz-demo/evidence/p2-completion.md).
 
-## Reviewed PNG export (unreleased)
+<a id="reviewed-png-export-unreleased"></a>
+
+## Reviewed PNG export
 
 The root entry exports pure `planPngExport`, `createPngReview`, `pngReviewForScope`,
 `resolvePngReview` and `updatePngReview`. PNG reuses SVG bounds/model/viewport,
@@ -4570,7 +4594,9 @@ shaping, identical browser pixels or server/CLI PNG rendering. System-font fidel
 remains reported uncertainty. See [ADR 0063](../../docs/adr/0063-rasterize-reviewed-model-artwork-as-png.md)
 and [browser/download evidence](../../apps/zloz-demo/evidence/png-export.md).
 
-## Read models and declared consumption (unreleased)
+<a id="read-models-and-declared-consumption-unreleased"></a>
+
+## Read models and declared consumption
 
 `{ family: 'ddd', role: 'read-model' }` is a native ordinary-node descriptor for an
 explicitly authored query-oriented representation. `architectureNodePresets`,
@@ -4631,7 +4657,9 @@ artwork and reports semantic-edge fallback through its existing findings.
 [ADR 0065](../../docs/adr/0065-declare-read-model-consumption-without-runtime-semantics.md) ·
 [Contract qualification](evidence/declared-consumption.md).
 
-## Read-only preview layout (unreleased)
+<a id="read-only-preview-layout-unreleased"></a>
+
+## Read-only preview layout
 
 `applyPreviewLayout(preview, currentActiveRequest, result)` applies layout geometry
 only to a detached **read-only** editor. It reuses the same complete-node, finite
@@ -4664,7 +4692,9 @@ See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).
 This API is qualified against this branch's source/artifact; published 0.3.0 does
 not contain it. No npm publication is implied.
 
-### Explicit layout label bounds (unreleased)
+<a id="explicit-layout-label-bounds-unreleased"></a>
+
+### Explicit layout label bounds
 
 Declare one world-unit envelope per composite edge label when the engine supports
 it. Include the text, badges and editor chrome in that size:
@@ -4697,7 +4727,9 @@ serialized graphs and authored SVG/PNG projections. Export fidelity findings sti
 apply to engine routes. Label measurement and universal collision avoidance are
 not implied.
 
-### Opt-in measured label bounds (unreleased)
+<a id="opt-in-measured-label-bounds-unreleased"></a>
+
+### Opt-in measured label bounds
 
 Core owns the request and validation; the optional Foldkit adapter measures rendered
 HTML labels. Start a fresh run and store its state in your Model:
@@ -4770,7 +4802,9 @@ measurement. Content margins, shadows, overflow, local transforms, portals, SVG
 labels and later image/font changes are outside this border-box contract. Ensure
 other resources have settled and explicitly remeasure when they change.
 
-### Explicit group-header bounds (unreleased)
+<a id="explicit-group-header-bounds-unreleased"></a>
+
+### Explicit group-header bounds
 
 Use `groupHeaders` to reserve space for custom container or context headings:
 
@@ -4832,7 +4866,9 @@ declared rectangle. The reservation covers child rectangles, not arbitrary route
 shadow, overflow or separate control collisions. No automatic header measurement
 or continuous layout is installed.
 
-### Opt-in measured group headings (unreleased)
+<a id="opt-in-measured-group-headings-unreleased"></a>
+
+### Opt-in measured group headings
 
 Intrinsic C4/DDD headings can size from their content. A `LayoutGroupHeaderSpec`
 contains identity and spacing, with no manually supplied width or height:
@@ -4914,7 +4950,9 @@ shadows, local transforms, portals, SVG content and later resources are outside 
 border-box snapshot. Use explicit remeasurement for changes; reserve separate
 controls through padding or custom control slots.
 
-### Retained layout SVG planning (unreleased)
+<a id="retained-layout-svg-planning-unreleased"></a>
+
+### Retained layout SVG planning
 
 `captureSvgLayout(editor, renderKey)` captures detached world-space routes and
 label envelopes from an idle editor. Pass the current renderer key separately:
@@ -4966,7 +5004,9 @@ control, with an Arrange reason when no routes exist. Source and Undo are unchan
 Omit `layout` for existing canonical SVG behavior. The workbench now has a separate
 unchecked retained-layout option for PNG, described below.
 
-### Retained layout PNG (unreleased)
+<a id="retained-layout-png-unreleased"></a>
+
+### Retained layout PNG
 
 The existing `ZlozPngReviewContext.layout` accepts the same validated capture:
 
@@ -4998,7 +5038,9 @@ reason. Changing either setting preserves source/Undo; the other format keeps it
 choice. Renderer keys and invalidation remain host-owned. No source wire format,
 provider activation or publishing is implied.
 
-### Read-only DDD relationship audit (unreleased)
+<a id="read-only-ddd-relationship-audit-unreleased"></a>
+
+### Read-only DDD relationship audit
 
 ```typescript
 import { auditDddRelationships, parseGraph } from '@opsydyn/foldkit-zloz';
@@ -5037,7 +5079,9 @@ remain separate.
 See [ADR 0078](../../docs/adr/0078-audit-declared-ddd-relationships.md)
 and [qualification](evidence/ddd-relationship-audit.md).
 
-### DDD review and edition comparison (unreleased)
+<a id="ddd-review-and-edition-comparison-unreleased"></a>
+
+### DDD review and edition comparison
 
 ```typescript
 import {
@@ -5114,7 +5158,9 @@ baseline comparison and immutable finding navigation in light/dark themes. See
 new correctness rules, workshop-role expansion and EventStorming-to-C4 conversion
 are outside this workflow. Nothing is published by these APIs.
 
-### External systems, hotspots and lanes (headless, unreleased)
+<a id="external-systems-hotspots-and-lanes-headless-unreleased"></a>
+
+### External systems, hotspots and lanes (headless)
 
 The workshop vocabulary distinguishes causal participants from discussion annotations
 and organizational frames. These are Zloz modelling conventions, not executable
@@ -5220,7 +5266,9 @@ new roles and are not forward-compatible readers. No version bump, publication o
 new renderer is implied. See [ADR 0081](../../docs/adr/0081-define-eventstorming-workshop-semantics.md)
 and [qualification](evidence/event-storming-workshop.md).
 
-### Composable workshop renderers and controls (unreleased)
+<a id="composable-workshop-renderers-and-controls-unreleased"></a>
+
+### Composable workshop renderers and controls
 
 ```typescript
 import {
@@ -5318,7 +5366,9 @@ Mermaid loss handling, causal default catalogues and wire formats are unchanged.
 No publication or deployment. See [ADR 0082](../../docs/adr/0082-compose-workshop-renderers-and-controls.md)
 and [visual/test qualification](../../apps/zloz-demo/evidence/workshop.md).
 
-### Portable workshop artwork (unreleased)
+<a id="portable-workshop-artwork-unreleased"></a>
+
+### Portable workshop artwork
 
 `writeSvgExport` includes canonical external-system dashed outlines and ports,
 labelled lane frames, and hotspot **Open question / Resolved** text and theme
@@ -5339,7 +5389,9 @@ No separate workshop raster renderer is required. Canonical models and Undo rema
 unchanged. See [ADR 0083](../../docs/adr/0083-qualify-workshop-portable-artwork.md) and
 [local SVG/PNG evidence](../../apps/zloz-demo/evidence/workshop-export.md).
 
-### Headless EventStorming-to-C4 mapping preview (unreleased)
+<a id="headless-eventstorming-to-c4-mapping-preview-unreleased"></a>
+
+### Headless EventStorming-to-C4 mapping preview
 
 `previewEventStormingC4Mapping` returns immutable advisory review data from a model
 document plus host-owned session/revision. It preserves the complete source,
@@ -5409,7 +5461,9 @@ are added here. See [ADR 0084](../../docs/adr/0084-preview-eventstorming-to-c4-m
 [headless qualification](evidence/event-storming-c4-preview.md) and
 [workbench visual evidence](../../apps/zloz-demo/evidence/c4-mapping.md).
 
-### Headless C4 conversion plans and exact loss consent (unreleased)
+<a id="headless-c4-conversion-plans-and-exact-loss-consent-unreleased"></a>
+
+### Headless C4 conversion plans and exact loss consent
 
 `createEventStormingC4ConversionPlan(source, options)` builds a complete advisory
 plan from the current model document and host session/revision. It reuses the C4
@@ -6586,7 +6640,9 @@ unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
 acceptance remain explicit release limits. See [batch qualification](evidence/v3-core-batch.md).
 
-### Native v3 layout (unreleased)
+<a id="native-v3-layout-unreleased"></a>
+
+### Native v3 layout
 
 `groupLayoutRequestV3(editor, requestId, options?)` captures the full source
 session/revision/document plus optional edge-label and group-header bounds.
@@ -6611,7 +6667,9 @@ propagate. Core has no ELK dependency.
 
 See [native ELK qualification](evidence/v3-elk-layout.md) for coverage and limits.
 
-### Native v3 SVG projection and review (unreleased)
+<a id="native-v3-svg-projection-and-review-unreleased"></a>
+
+### Native v3 SVG projection and review
 
 Use `planGroupSvgExportV3(document, options)` and
 `writeGroupSvgExportV3(document, options, writing?)` for complete native v3
@@ -6692,7 +6750,9 @@ its live camera and exports authored content, not collapse/selection/diagnostics
 See [native SVG qualification](evidence/v3-svg-export.md) and the distinct native
 PNG entry below. SVG support alone does not authorize rasterization.
 
-### Native v3 PNG export (unreleased)
+<a id="native-v3-png-export-unreleased"></a>
+
+### Native v3 PNG export
 
 `planGroupPngExportV3(input)` invokes the same native SVG writer and preserves its
 full document and findings before adding `rasterization-loss`. Planning is pure:
@@ -6759,7 +6819,9 @@ remain explicit; native server-side PNG is not implemented.
 See [native PNG qualification](evidence/v3-png-export.md) for actual browser
 pixel/download evidence, resource cleanup and source/policy/cancellation tests.
 
-### Native v3 session clipboard (unreleased)
+<a id="native-v3-session-clipboard-unreleased"></a>
+
+### Native v3 session clipboard
 
 `copyGroupSelectionV3` validates the complete native source, includes selected
 nodes plus every descendant once, and captures internal edges with authored ports.
@@ -6826,7 +6888,9 @@ button/keyboard placement. It does not implement OS clipboard permissions,
 cross-tab transport, paste-into-parent, cut, external text decoding or arbitrary
 metadata-reference rewriting. No dependencies or canonical wire formats changed.
 
-### Native v3 Mermaid projection (unreleased)
+<a id="native-v3-mermaid-projection-unreleased"></a>
+
+### Native v3 Mermaid projection
 
 The optional `@opsydyn/foldkit-zloz-mermaid` package exports
 `exportGroupMermaidV3` and composable exact-output review controls. Complete native
@@ -6839,7 +6903,9 @@ Legacy exporters/CLI entries/readers stay version-fixed. Native packets, receipt
 modelling patches and audits are separate adoption slices. The optional core
 Foldkit entry also exports `zlozThemeStyle` for shared token styling in adapters.
 
-### Native v3 authoring, auditing and portable evidence (unreleased)
+<a id="native-v3-authoring-auditing-and-portable-evidence-unreleased"></a>
+
+### Native v3 authoring, auditing and portable evidence
 
 Use the explicit v3 entries for a document with authored group ports. V1/v2
 readers and writers retain their original version contracts.

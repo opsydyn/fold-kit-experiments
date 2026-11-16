@@ -204,10 +204,44 @@ Use one bounded train for the four public Zloz packages:
    pinned Viz dependency must already be available. A successful workflow alone
    does not prove registry metadata or consumer installation.
 4. Install the exact four registry versions in a clean consumer and verify the
-   public imports, peer resolution and Node/Bun execution. Retain workflow links,
+   public imports, peer resolution and Node execution. Verify Core/Force/Mermaid
+   standalone execution in Bun separately; ELK's Bun lifecycle limit below is
+   explicitly outside qualification. Retain workflow links,
    version/integrity records and provenance. If a train stops midway, inspect the
    registry and resume only missing packages; never blindly republish a version.
 
 This uses the existing per-package publisher without introducing a repository-wide
 release scheduler. A future automated family train should preserve these same
 gates and partial-publication recovery rules.
+
+### Approved ELK runtime qualification
+
+The user approved releasing the Node/browser baseline with the observed Bun ELK
+limitation documented. Node 22+ remains the declared server baseline; the tested
+Node runtime was 24.15.0. The default ELK adapter is browser-qualified in Chromium.
+Other workbench interactions also have the broader provisional browser evidence
+above; that matrix is not a blanket claim about every ELK/runtime combination.
+
+A clean consumer installed all four local 0.6.0 tarballs with the actual public
+Viz 0.19.0 and elkjs 0.12.1 dependencies. Native ELK layout, group-port retention,
+atomic Undo, SVG, Mermaid fidelity findings and force layout passed in Node.
+Bundler and NodeNext declaration consumers passed. Core/Force/Mermaid also exit
+normally in standalone Bun consumers.
+
+On **Bun 1.4.4, macOS 26.6.2 arm64**, ELK computes the result but a standalone
+process remains alive. A program using plain elkjs 0.12.1 reproduces this without
+Zloz:
+
+```js
+import ELK from 'elkjs/lib/elk.bundled.js';
+
+await new ELK().layout({ id: 'root', children: [{ id: 'a', width: 100, height: 80 }] });
+console.log('layout-complete');
+```
+
+Node printed the line and exited with status 0. Bun printed the line but required
+an external eight-second watchdog to terminate it. Other Bun versions/platforms
+are unqualified for this behavior. Use Node for headless ELK jobs; the release does
+not claim standalone Bun ELK lifecycle support. No forced process exit, global
+runtime patch or weakened assertion is used to report a pass. Human acceptance
+rows above remain pending independently of this approved runtime limit.

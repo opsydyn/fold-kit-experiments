@@ -3,7 +3,7 @@
 Optional automatic layout for `@opsydyn/foldkit-zloz`. The adapter maps flat and nested graphs with fixed ports to ELK Layered. It returns node
 positions, fitted group bounds, and orthogonal edge routes. It owns no UI, persistence, graph state or workflow execution.
 
-The public package family is released together. The native v3 entry below is an unreleased addition to 0.5.0.
+The public package family is released together. Native v3 group-port layout is included in 0.6.0.
 
 ## Install and use
 
@@ -47,10 +47,13 @@ ELK is an external dependency, not bundled into this package. The core package
 installs and works without it. Node 22+, ESM only. Compatibility uses the matching Zloz version and the pinned elkjs 0.12.1. Both Zloz packages release at the same version.
 The adapter has no FoldKit or Effect peer.
 
-The default adapter is qualified in Node and Chromium. Bun can compute layouts,
-but elkjs 0.12.1's bundled fallback installs a global `self.onmessage` handler in
-Bun 1.4.4, keeping a standalone process alive after completion. Use Node for CLI
-layout jobs. The dependency-free core is separately tested in both Node and Bun.
+The server baseline is **Node 22+**; the default adapter is qualified in Node and
+Chromium. In the observed Bun 1.4.4 / macOS 26.6.2 arm64 consumer, layout completes
+but the standalone process stays alive. A minimal `elkjs@0.12.1` program reproduces
+this without Zloz. Bun process-exit behavior for ELK is outside this release's
+qualification; use Node for CLI layout jobs. Other Bun versions/platforms are
+unqualified for this lifecycle behavior. Core, Force and Mermaid separately pass
+standalone Node and Bun consumers.
 
 ## Scope and verification
 
@@ -65,7 +68,9 @@ real layout plus the optional FoldKit renderer.
 See [publication standards](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md) and
 [dependency notices](THIRD-PARTY-NOTICES.md).
 
-### Compound preview layouts (unreleased)
+<a id="compound-preview-layouts-unreleased"></a>
+
+### Compound preview layouts
 
 Configured `direction` and `spacing` now apply to root **and group parent**
 containers. A real-engine regression retains at least the requested inter-layer
@@ -79,7 +84,9 @@ cancellation, geometry-only restoration and preserved source/findings. See
 [qualification](../../apps/zloz-demo/evidence/alchemy-layout.md). Label dimensions
 are not yet supplied to ELK, so this is not a universal label-collision guarantee.
 
-### Custom label envelopes (unreleased)
+<a id="custom-label-envelopes-unreleased"></a>
+
+### Custom label envelopes
 
 Pass `layoutRequest(editor, id, { edgeLabels: [{ id: edgeId, size: { width: 176,
 height: 36 } }] })` to reserve space for a composite label, including badges.
@@ -99,7 +106,9 @@ request. Recheck freshness before both starting ELK and applying its result; ELK
 does not load fonts, inspect DOM or start measurement itself. See the
 [core measured-label guide](../foldkit-zloz/README.md#opt-in-measured-label-bounds-unreleased).
 
-### Group heading envelopes (unreleased)
+<a id="group-heading-envelopes-unreleased"></a>
+
+### Group heading envelopes
 
 Core requests may declare `groupHeaders` with an existing group ID, header `size`,
 `padding: { top, right, bottom, left }` and a `gap` before children. ELK maps these
@@ -115,7 +124,9 @@ or supplying a worker from another version. No post-layout stretching is used.
 These hints reserve child-node space; they do not guarantee arbitrary route or
 custom-artwork collision avoidance.
 
-## Native v3 group-port layout (unreleased)
+<a id="native-v3-group-port-layout-unreleased"></a>
+
+## Native v3 group-port layout
 
 Use the distinct full-document entry for authored group ports:
 

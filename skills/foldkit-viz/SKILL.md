@@ -55,6 +55,7 @@ does not infer confidence or statistical significance.
 | Histograms over data in DuckDB or Polars (unreleased) | `/plot` (`pushdown`), counted in the engine |
 | Named and high-contrast themes (unreleased)   | `/chart/theme` (`chartThemes`, `ThemeName`); `contrastRatio` in `/math/color` |
 | Inline plots in Deno or Bun Jupyter kernels (unreleased) | `/jupyter` (`displayPlot`, `plotMimeBundle`)                   |
+| 3D scatter or surface with effect-three (unreleased) | `/chart/space3d` laid out, `/effect-three/space3d` as scene nodes |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

@@ -90,6 +90,8 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/chart/intervalBand`      | `intervalBandGeometry` — a band between supplied bounds                                                                                                               |
 | `@opsydyn/foldkit-viz/chart/segments`          | `contiguousRuns` — break a series at gaps                                                                                                                             |
 | `@opsydyn/foldkit-viz/chart/orbit`             | `orbitGeometry` — modules orbiting a core                                                                                                                             |
+| `@opsydyn/foldkit-viz/chart/space3d`           | `space3d`, `scatter3d`, `surface3d`, `rgbOf` — 3D charts as plain geometry                                                                                            |
+| `@opsydyn/foldkit-viz/effect-three/space3d`    | `scatter3dScene`, `surface3dScene`, `space3dNodes` — 3D charts as effect-three scenes                                                                                 |
 | `@opsydyn/foldkit-viz/chart/theme`             | `lightTheme`, `darkTheme`, `chartThemes`, `createSeriesStyles`, `themeProperties`                                                                                     |
 | `@opsydyn/foldkit-viz/foldkit/cartesian`       | `chartFrame`, `axis`, `grid`, `legend`, `dataTable`, `barSeries`, `cellSeries`, `hexSeries`                                                                           |
 | `@opsydyn/foldkit-viz/foldkit/orbit`           | `orbitChart`                                                                                                                                                          |
@@ -178,6 +180,49 @@ Space, and `onInspect` reports hover and focus. A `pulse` ring is classed
 `prefers-reduced-motion` when it does. Pair it with `dataTable` from
 `foldkit/cartesian` for a non-visual reading. The web app's `/complexity-field`
 page composes both into a complete card.
+
+## 3D scatter and surface (unreleased)
+
+`chart/space3d` lays a three-dimensional chart out as plain geometry, with no
+renderer. `space3d(domains)` maps three domains onto a cube (x across, z up, y
+into the scene) and returns its twelve box edges, a grid on the floor and the
+two back walls at nice ticks, and tick and axis labels placed outside the box.
+`scatter3d(data, { x, y, z, color })` places each finite row, keeps which row
+each point came from, and colours categories in palette order with a legend.
+`surface3d({ xs, ys, z })` draws a grid of heights as a wireframe coloured by
+height from a sequential scheme (viridis by default).
+
+`effect-three/space3d` turns that geometry into
+[effect-three](https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/effect-three)
+scene nodes: lines for the box, grid and wireframe, round points, and billboard
+labels that face the camera. It is plain data the parent places in its scene,
+so the camera, gestures and selection stay in its Model. `@opsydyn/effect-three`
+is an optional peer, needed only for this subpath; labels need a label engine
+such as effect-three-troika in the environment.
+
+```ts
+import { scene } from '@opsydyn/effect-three';
+import { scatter3d } from '@opsydyn/foldkit-viz/chart/space3d';
+import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
+import { scatter3dScene } from '@opsydyn/foldkit-viz/effect-three/space3d';
+
+const scatter = scatter3d(
+  measurements,
+  { x: (d) => d.latency, y: (d) => d.load, z: (d) => d.cost, color: (d) => d.cluster },
+  { labels: { x: 'Latency', y: 'Load', z: 'Cost' } },
+);
+
+const view = (model: Model) =>
+  scene({
+    camera: model.camera,
+    gestures: 'scene',
+    children: [scatter3dScene(scatter, { key: 'scatter', theme: lightTheme })],
+  });
+```
+
+The web app's `/effect-three/chart-3d` page orbits a scatter and a surface, in
+light and dark. Surfaces draw as wireframes for now: a filled, lit mesh waits on
+mesh geometry in effect-three.
 
 ## Composable Cartesian charts
 

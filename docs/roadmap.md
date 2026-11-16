@@ -284,7 +284,14 @@ charts in all three apps.
     `plotHtml`, bundled from `js/widget.ts`. Assigning `spec` redraws; a
     data-dependent error shows in place and in `Plot.error`. Run live in
     JupyterLab 4: drawing, redraws, both errors and the dark theme.
-- Three-dimensional surfaces and scatter through effect-three.
+- Three-dimensional surfaces and scatter through effect-three — done on the
+  `feat/viz-svg-jupyter` branch (unreleased). `chart/space3d` lays a 3D chart out
+  as plain geometry: a boxed space with nice ticks, a floor and back-wall grid and
+  labels, a scatter coloured by category, and a surface as a wireframe coloured by
+  height. `effect-three/space3d` describes it as effect-three scene nodes (lines,
+  round points, billboard labels), with effect-three an optional peer. The web
+  app's `/effect-three/chart-3d` sample orbits both, light and dark. Follow-up: a
+  filled, lit surface needs mesh geometry in effect-three.
 
 The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
 and no dependency on `foldkit/http`.

@@ -1,6 +1,6 @@
 # Zloz 0.6.0 release candidate
 
-Status: **engineering candidate in preparation; no npm publication**. This record
+Status: **reviewable engineering candidate; human acceptance pending; no npm publication**. This record
 covers the approved remaining v3 core batch. It supersedes earlier “recommended
 next” entries for native v3 authoring/gesture adoption, not their historical evidence.
 
@@ -157,16 +157,21 @@ optional core feature is needed before that decision.
 - Selected visual evidence and timing/source/artifact fingerprints are in the
   [evidence record](../../apps/zloz-demo/evidence/v3-completion/README.md).
 
-Committed clean CI rehearsal and hosted PR checks remain delivery gates until
-observed. Human device/screen-reader acceptance remains pending. No npm publication.
+Committed clean CI rehearsal and hosted PR checks passed on `bd776638`;
+subsequent delivery commits must pass on their own final head. Human device/screen-reader acceptance remains pending. No npm publication.
 
 ### Delivery checkpoint
 
 Feature PR: [#151](https://github.com/opsydyn/fold-kit-experiments/pull/151).
-Engineering commit `cb84f992`; generated-output CI correction `557179b5`.
+Engineering commit `cb84f992`; generated-output CI correction `557179b5` and
+browser-harness routing correction `bd776638`.
 The committed clean rehearsal on `557179b5` passed 84 check/build tasks and
-14 integration tasks (236 seconds). Hosted checks are separate evidence and must
-be green on the final PR head before merge. The default web-app browser harness
+14 integration tasks (236 seconds). The clean rehearsal also passed on `bd776638`
+(237 seconds); its hosted general check, Astro compatibility, Three and Zloz
+browser jobs all passed. Hosted checks must remain green on the final PR head
+before merge. A force consumer timeout on the preceding head did not reproduce
+in the successful hosted run (13.6 seconds); bounded subprocesses and stage labels
+make any recurrence actionable without changing the simulation or weakening checks. The default web-app browser harness
 excludes the native Zloz suite, which has its own built-app configuration.
 
 A read-only registry check on 2026-11-16 confirmed all four public packages at

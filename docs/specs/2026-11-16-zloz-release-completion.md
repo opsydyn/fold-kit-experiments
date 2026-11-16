@@ -26,7 +26,7 @@ items. Architecture, boundary, delivery and test-quality reviews are self-review
       provisional until agreed, never inferred from a green synthetic run.
 - [x] Accessibility/contrast/focus/recovery automation, followed by an executable
       human screen-reader and physical-device acceptance checklist with honest status.
-- [ ] Main integrated, root lint/format/typecheck/test and package/API/demo checks,
+- [x] Main integrated, root lint/format/typecheck/test and package/API/demo checks,
       Moon pre-commit, committed clean CI rehearsal, pushed feature PR and green CI.
 - [x] Reviewable release candidate/version/changelog/linked-peer/identity manifest
       preparation, with CLI and Alchemy private. No npm workflow dispatch/publication.
@@ -80,6 +80,8 @@ now-supported v3 boundary while keeping the stale-source rejection check.
 
 Delivery checkpoint: PR #151 is open. `cb84f992` contains the implementation and
 `557179b5` declares generated evidence outputs for Moon hashing. Clean CI on
-557179b5 passed 84 check/build and 14 integration tasks. Hosted final-head CI is
-tracked on the PR checks, separately from this local checkpoint. The remaining release gate is human acceptance and review of
+557179b5 passed 84 check/build and 14 integration tasks. Hosted CI on `bd776638` passed all four jobs: general checks, Astro compatibility,
+Three and the native Zloz browser matrix. Its clean local rehearsal also passed
+84 check/build and 14 integration tasks. Subsequent delivery-only commits are
+tracked by the PR checks and must pass independently before merge. The remaining release gate is human acceptance and review of
 the regenerated 0.6.0 release PR after feature merge; npm publishing remains off.

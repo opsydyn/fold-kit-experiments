@@ -857,8 +857,10 @@ then `text/plain` (the title and `describePlot` summary). A `theme` option theme
 both pictures. `displayPlot` compiles the spec at once,
 so a spec error is raised in the cell, and turns on the summary and the data
 table; `plotMimeBundle(geometry, options)` builds the bundle from geometry, such
-as for `Deno.jupyter.display(bundle, { raw: true })`. Output is static: neither
-kernel documents widget support.
+as for `Deno.jupyter.display(bundle, { raw: true })`, or `display(bundle)` in the
+Bun kernel. Both kernels are checked: the example notebook runs in Deno 2.9's
+kernel and in `jupyter-bun` 0.1.0 with the same outputs. Output is static:
+neither kernel documents widget support.
 
 From Python, the repository's `foldkit-viz` Python package (not yet on PyPI)
 draws a spec as an [anywidget](https://anywidget.dev): `Plot(spec)` checks it

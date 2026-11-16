@@ -271,8 +271,9 @@ charts in all three apps.
     summary). Deno's kernel and the community Bun kernel (`jupyter-bun`, 0.1.0)
     both use that protocol. Run live in Deno 2.9.8's kernel under JupyterLab 4
     (`packages/foldkit-viz/examples/deno-jupyter.ipynb`): rows, typed-array
-    columns, polar charts, `plotMimeBundle` and spec errors, light and dark; the
-    Bun kernel is untried. Static output only: widget support is undocumented
+    columns, polar charts, `plotMimeBundle` and spec errors, light and dark. The
+    same notebook runs in the Bun kernel (`jupyter-bun` 0.1.0) with the same
+    outputs, its global `display()` standing in for `Deno.jupyter.display`. Static output only: widget support is undocumented
     for both kernels.
   - **Then Python — done on the same branch (unreleased, not on PyPI).**
     `packages/foldkit-viz-py` is a Python package whose `Plot` anywidget checks a

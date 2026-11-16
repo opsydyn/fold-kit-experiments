@@ -102,8 +102,11 @@ the gesture's hysteresis, modifier bypass, protection and one-step Undo.
 
 Generated from the package's public TypeScript entry points. Search for any type
 or function, or select a module to inspect signatures, fields and source links.
-This reference describes the current source revision. Version 0.1.0 remains a
-local release candidate; npm publication has not been performed.
+This reference describes the current source revision. The four public Zloz packages
+are published on npm as a linked version family; the CLI and Alchemy workspaces
+remain private. Headless ELK jobs use Node 22+; see the
+[ELK runtime qualification](https://github.com/opsydyn/fold-kit-experiments/blob/main/packages/foldkit-zloz-elk/README.md#worker-ownership)
+for the observed standalone Bun lifecycle limitation.
 
 | Module                   | Import                                    | Contract                                                                      |
 | ------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------- |

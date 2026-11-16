@@ -132,9 +132,9 @@ its compatibility gates. These are future catalogue items, not hidden 0.6.0 prom
    private packages remain private and pack/identity/CI checks pass on that SHA.
 4. Record human acceptance (or an explicit release decision with its remaining
    limits) before declaring full qualification. Review the concrete release PR.
-5. **Do not merge a publishing release, tag/publish npm artifacts or dispatch the
-   manual Zloz publishing workflow in this task.** No hosted deployment or registry
-   acceptance is inferred from local tests. Publishing requires its own authority.
+5. Preparation ended without npm publication or release tags. The later publication
+   authorization below supersedes the preparation-only publishing restriction.
+   Hosted deployment and registry acceptance require their own observed evidence.
 
 Recommended next after this batch: complete the human acceptance rows, then review
 the regenerated 0.6.0 release PR and exact linked package artifacts. No additional
@@ -178,3 +178,36 @@ A read-only registry check on 2026-11-16 confirmed all four public packages at
 0.5.0. No npm upload, release tag, release-please merge or deployment was performed.
 The linked 0.6.0 release PR remains the next release-please step after feature merge
 and the human acceptance decision.
+
+### Approved publication and ordered release train (2026-11-16)
+
+The user subsequently approved merging #151, generating the linked 0.6.0 release
+PR, verifying green checks and npm publication when ready. #151 merged as
+`629f7a38`; release-please generated #152. A Pages TypeDoc failure exposed a missing
+Effect Three declaration-build prerequisite for Viz. Repair and qualify that
+dependency before advancing the release. The human acceptance rows above remain
+unobserved; this is an engineering release with disclosed limits, not a claim of
+complete accessibility or physical-device qualification.
+
+Use one bounded train for the four public Zloz packages:
+
+1. Verify the release PR's four versions and adapter core peers are all 0.6.0,
+   package identities are Zloz, CLI/Alchemy remain private, and exact-head checks
+   pass. Check the complete Pages build separately from package CI.
+   If bot-created CI is `action_required`, approve the reviewed head's workflow
+   runs; an empty checks list is not a successful qualification.
+2. Merge the verified release PR. Verify all four component tags resolve to the
+   same merged release SHA. Use that immutable SHA for every publish dispatch.
+3. Publish core first through the existing `publish` workflow. Observe successful
+   publication and the exact registry version before starting an adapter. Then
+   publish ELK, Force and Mermaid, verifying each result before advancing. Force's
+   pinned Viz dependency must already be available. A successful workflow alone
+   does not prove registry metadata or consumer installation.
+4. Install the exact four registry versions in a clean consumer and verify the
+   public imports, peer resolution and Node/Bun execution. Retain workflow links,
+   version/integrity records and provenance. If a train stops midway, inspect the
+   registry and resume only missing packages; never blindly republish a version.
+
+This uses the existing per-package publisher without introducing a repository-wide
+release scheduler. A future automated family train should preserve these same
+gates and partial-publication recovery rules.

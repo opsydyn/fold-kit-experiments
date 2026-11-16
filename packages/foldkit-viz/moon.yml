@@ -8,6 +8,10 @@ tasks:
     script: 'tsc --noEmit'
     # effect-three/space3d imports effect-three's types, which come from its build.
     deps: ['^:build']
+  docs:
+    script: 'typedoc'
+    deps: ['^:build']
+    outputs: ['docs/**/*']
   test:
     script: "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'"
   api-check:

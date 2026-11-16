@@ -1,4 +1,6 @@
 import { Match, Option } from 'effect';
+import { fail, Idle, Loading, loadIfMissing, succeed } from 'foldkit/asyncData';
+import type { AsyncData } from 'foldkit/asyncData';
 import { Machine } from 'foldkit/experimental';
 
 import { FetchMetrics } from './command';
@@ -37,6 +39,34 @@ const isReloadCancellation = (
     Match.when('Reload', () => true),
     Match.orElse(() => false),
   );
+
+/**
+ * The explorer's metrics as AsyncData, so a return visit can follow
+ * loadIfMissing: load when there is nothing (never loaded, or failed), keep
+ * loaded metrics without fetching them again, and leave a load in flight alone.
+ */
+const metricsOf = (
+  state: ExplorerState,
+): AsyncData<ReadonlyArray<import('./model').Point>, string> =>
+  ExplorerState.match(state, {
+    Idle: () => Idle(),
+    Loading: () => Loading(),
+    Cancelling: () => Loading(),
+    Ready: ({ points }) => succeed(points),
+    Selecting: ({ allPoints }) => succeed(allPoints),
+    Filtered: ({ allPoints }) => succeed(allPoints),
+    Failed: ({ error }) => fail(error),
+  });
+
+/** A navigation back onto this page. Idle and Failed only follow an exit or a failure, so any is a return. */
+const isReturn = (message: Extract<Message, { readonly _tag: 'Navigated' }>): boolean =>
+  message.phase !== 'exited' && /^\/request-diagnostics(\/|$)/.test(message.path);
+
+/** Load on a return visit when loadIfMissing says the metrics are missing. */
+const loadOnReturn = (
+  state: ExplorerState,
+  message: Extract<Message, { readonly _tag: 'Navigated' }>,
+) => (isReturn(message) ? loadIfMissing(metricsOf(state)) : Option.none());
 
 const reloadTransition = () => ({
   model: cancelling('Reload'),
@@ -129,6 +159,7 @@ export const diagnosticsMachine = Machine.define({
     Failed: {
       on: {
         ClickedReload: Machine.to('Cancelling', reloadTransition),
+        Navigated: [Machine.when(loadOnReturn, 'Loading', restartAfterReload)],
       },
     },
     Cancelling: {
@@ -139,6 +170,10 @@ export const diagnosticsMachine = Machine.define({
         ],
       },
     },
-    Idle: { on: {} },
+    Idle: {
+      on: {
+        Navigated: [Machine.when(loadOnReturn, 'Loading', restartAfterReload)],
+      },
+    },
   },
 });

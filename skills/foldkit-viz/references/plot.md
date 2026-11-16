@@ -41,6 +41,10 @@ streamed in, convert each chunk with `duckdbColumns`, grow a `columnStore`, and
 add points with `appendPoints` when the spec fixes every domain a chunk could
 move (otherwise recompile; `appendPoints` refuses rather than guess).
 
+When the data stays in DuckDB or Polars, use `pushdown(spec, { from, query })`
+to count binned rect marks in the engine instead of pulling every row; it gives
+the same geometry as a local compile. Never build `from` from user input.
+
 ## Spec rules
 
 - **Plain JSON, no functions.** A channel is a field name or `{ value }`. A spec

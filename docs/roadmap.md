@@ -230,8 +230,16 @@ charts in all three apps.
   against 285 ms through row objects. `columnStore` grows a table chunk by
   chunk, and `appendPoints` adds a chunk's dense points without recompiling
   the rest when the spec fixes every domain: 20 streamed batches cost 120 ms of
-  plotting against 678 ms recompiling each. Next: pushing bin, stack and
-  density into DuckDB or Polars as SQL.
+  plotting against 678 ms recompiling each.
+- Pushing transforms into the engine — done on the same branch (unreleased).
+  `pushdown(spec, { from, query })` counts binned rect marks (histograms per
+  series, two-dimensional grids) in DuckDB or Polars and pulls only the columns
+  other marks use. The geometry equals a local compile, by test; the SQL runs
+  unchanged in Python Polars 2.1.0. A million-row histogram takes 31 ms against
+  212 ms pulling every row, a grid 8 ms against 230 ms. Stack needs nothing
+  pushed (it works on already-summarised rows); density stays local, as its
+  bandwidth needs every value. nodejs-polars 0.26.1's SQLContext could not be
+  used: its lazy frames have no working collect.
 - PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`
   branch (unreleased). `canvas/image` paints a compiled plot, legends and
   background included, on any 2D context, and `plotPng` encodes it through a
@@ -306,8 +314,8 @@ Schema for `PlotSpec`, and `apps/polars-summary` shows the summary pattern.
       server (not deployed: Polars is a native add-on, and the web app runs on
       Cloudflare Workers) bins a million requests per request in about 10 ms and
       renders a histogram and a density grid on the server.
-- [ ] Later, once the columnar input exists: translate bin, stack and density
-      into Polars or DuckDB queries, as VegaFusion does for Vega.
+- [x] Translate bin into Polars or DuckDB queries, as VegaFusion does for Vega:
+      `pushdown`, on the `feat/viz-svg-jupyter` branch (unreleased).
 
 **Exit criteria:** a million-row Arrow table from Polars compiles to a dense
 scatter faster than the same data as row objects, measured and recorded; a Rust

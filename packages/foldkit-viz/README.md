@@ -739,6 +739,44 @@ for (
   spends 120 ms plotting in all (6 ms for the last batch) against 678 ms
   recompiling every batch (57 ms for the last).
 
+### Pushing bins into DuckDB or Polars (unreleased)
+
+`pushdown(spec, { from, query })` draws a spec whose data lives in a SQL engine
+from what the engine sends back, rather than every row, as VegaFusion does for
+Vega. A binned rect mark (a histogram, per series or not, or a two-dimensional
+grid) is counted in the engine; every other mark pulls only the columns it uses.
+
+```ts
+import { compilePlot, fromDuckDB, pushdown } from '@opsydyn/foldkit-viz/plot';
+
+const query = async (sql: string) => fromDuckDB(await connection.runAndReadAll(sql));
+const spec = await pushdown(
+  {
+    width: 480,
+    height: 300,
+    marks: [{ mark: 'rect', x: 'latency', fill: 'kind', transform: { type: 'bin' } }],
+  },
+  { from: 'requests', query },
+);
+const geometry = compilePlot(spec);
+```
+
+- The chart is exactly the one compiling every row draws: the engine counts on
+  breakpoints from the same functions local binning uses (`binThresholds`,
+  `rectBinEdges`), and tests compare the whole geometry against a local compile.
+- A million-row histogram by series takes 31 ms against 212 ms pulling every
+  row; a two-dimensional grid 8 ms against 230 ms.
+- The SQL is portable: every statement also runs in Polars' SQL context
+  (checked with Python Polars 2.1.0). `query` is any function from SQL to a
+  column table: DuckDB in Bun, Node or the browser, or Polars.
+- `from` is inserted as written (a table name, a subquery, `read_parquet(…)`), so
+  it must never come from untrusted input; field names are quoted.
+- Series keep the order they first appear in, through `row_number() OVER ()`,
+  which follows DuckDB's default `preserve_insertion_order`.
+- Not pushed: density marks (their bandwidth needs every value) and anything a
+  binned mark carries beyond its series field; those pull columns instead. A
+  faceted spec is refused.
+
 ### Upgrading
 
 Two changes need code changes in some callers:

@@ -52,6 +52,7 @@ does not infer confidence or statistical significance.
 | A plot as a PNG (unreleased)                  | `/canvas/image` (`plotPng` on an OffscreenCanvas, `paintImage` on any 2D context) |
 | Brushing a million points in a frame (unreleased) | `/webgl/points` (`pointsLayer`) above `/canvas/plot` with `points: false` |
 | DuckDB results and streamed data (unreleased) | `/plot` (`fromDuckDB`, `duckdbColumns`, `columnStore`, `appendPoints`) |
+| Histograms over data in DuckDB or Polars (unreleased) | `/plot` (`pushdown`), counted in the engine |
 | Named and high-contrast themes (unreleased)   | `/chart/theme` (`chartThemes`, `ThemeName`); `contrastRatio` in `/math/color` |
 | Inline plots in Deno or Bun Jupyter kernels (unreleased) | `/jupyter` (`displayPlot`, `plotMimeBundle`)                   |
 

@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import coreManifest from '../../foldkit-zloz/package.json';
+import groupV3Wire from '../../foldkit-zloz/test/fixtures/group-document-v3-ported.json';
 import manifest from '../package.json';
-
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const options = { cwd: root, maxBuffer: 5 * 1024 * 1024 };
@@ -94,6 +94,18 @@ const doc={id:'preview',name:'Preview',origin:null,snapshot:{graph:editor.graph}
 const selection={baselineId:'base',selectedId:null}, state={consentKey:null};
 const preview=resolveReviewPacketControls(doc,selection,state); if(!preview.key||!preview.requiresConsent)throw new Error('Missing packet preview');
 if(resolveReviewPacketRequest(doc,selection,state,{type:'DownloadClicked',key:preview.key}).type!=='blocked')throw new Error('Missing packet consent guard');
+import {captureGroupDocumentV3} from '@opsydyn/foldkit-zloz';
+import {exportGroupMermaidV3,createGroupMermaidReviewV3,resolveGroupMermaidReviewV3,updateGroupMermaidReviewV3,type MermaidBundleV3} from '@opsydyn/foldkit-zloz-mermaid';
+const nativeDocument=captureGroupDocumentV3(${JSON.stringify(groupV3Wire)});
+const nativeResult=exportGroupMermaidV3(nativeDocument,{lossPolicy:'report'});
+if(nativeResult.status!=='converted'||nativeResult.value.identity.version!==3||nativeResult.value.identity.nodes.find(n=>n.nodeId==='g')?.ports[0]?.id!=='out'||!nativeResult.diagnostics.some(d=>d.code==='group-port-attachment-omitted'))throw new Error('Missing native group projection');
+const nativeBundle:MermaidBundleV3=nativeResult.value;
+const nativeContext={scope:'consumer-native',sourceRevision:0,document:nativeDocument}, nativeState=createGroupMermaidReviewV3(nativeContext.scope),nativeControls=resolveGroupMermaidReviewV3(nativeState,nativeContext);
+const nativeAccepted=updateGroupMermaidReviewV3(nativeState,nativeContext,{...nativeControls.identity,type:'MermaidLossAcceptanceChanged',accepted:true}).state;
+const nativeDownload=updateGroupMermaidReviewV3(nativeAccepted,nativeContext,{...nativeControls.identity,type:'MermaidDownloadRequested'});
+if(!nativeDownload.payload||nativeDownload.payload.text!==JSON.stringify(nativeBundle,null,2)+'\\n'||updateGroupMermaidReviewV3(nativeAccepted,{...nativeContext,canDownload:()=> 'Locked'},{...nativeControls.identity,type:'MermaidDownloadRequested'}).payload)throw new Error('Missing exact reviewed native payload');
+// @ts-expect-error Legacy bundles cannot substitute for native metadata.
+const oldAsNative:MermaidBundleV3=result.value;void oldAsNative;
 console.log('mermaid-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');
@@ -152,9 +164,18 @@ console.log('mermaid-consumer-ok');
       ],
       { ...options, cwd: directory },
     );
-    const viewSource = `import { zlozReviewReader, zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+    const viewSource = `import {zlozGroupMermaidReviewV3} from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import {Effect,Schema} from 'effect';
+import {renderToString} from 'foldkit/experimental/server';
+import type {HtmlBuilder} from 'foldkit/html';
+import {captureGroupDocumentV3} from '@opsydyn/foldkit-zloz';
+import {createGroupMermaidReviewV3,resolveGroupMermaidReviewV3,type ZlozGroupMermaidReviewRequestV3} from '@opsydyn/foldkit-zloz-mermaid';
+import { zlozReviewReader, zlozReviewPacketControls, zlozReviewPacketConsent, zlozReviewPacketDownload, type ZlozReviewPacketViewOptions } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 const options:ZlozReviewPacketViewOptions<unknown>={showCounts:false,renderStatus:()=>null};
 if([zlozReviewReader,zlozReviewPacketControls,zlozReviewPacketConsent,zlozReviewPacketDownload].some(value=>typeof value!=='function')||options.showCounts!==false)throw new Error('Missing packed view contract');
+const nativeControls=resolveGroupMermaidReviewV3(createGroupMermaidReviewV3('installed'),{scope:'installed',sourceRevision:0,document:captureGroupDocumentV3(${JSON.stringify(groupV3Wire)})});
+const nativeHtml=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:nativeControls}),view:(model,h:HtmlBuilder<ZlozGroupMermaidReviewRequestV3>)=>({title:'Native Mermaid',body:zlozGroupMermaidReviewV3(h,model,r=>r,{id:'installed-review',minimalMode:true})})},{flags:{},isHydratable:false}));
+if(!nativeHtml.html.includes('Download Mermaid bundle')||!nativeHtml.html.includes('authored socket')||!nativeHtml.html.includes('language-mermaid'))throw new Error('Installed native source review SSR failed');
 console.log('mermaid-view-consumer-ok');`;
     const viewFile = path.join(directory, 'view.mts');
     await writeFile(viewFile, viewSource);

@@ -348,3 +348,64 @@ JSON values) and reports `packet-limit` before claiming portable success.
 mode with zero Undo, leaving the working editor/history untouched. Packets and
 recorded findings never authorize editing, import or Apply. Native workbench file
 controls remain a separate adoption slice.
+
+## Native v3 groups and loss review (unreleased)
+
+```ts
+import {
+  exportGroupMermaidV3,
+  createGroupMermaidReviewV3,
+  resolveGroupMermaidReviewV3,
+  updateGroupMermaidReviewV3,
+} from '@opsydyn/foldkit-zloz-mermaid';
+
+const projection = exportGroupMermaidV3(documentV3, { lossPolicy: 'report' });
+const context = { scope: 'working:mermaid', sourceRevision: editor.revision, document: documentV3 };
+const state = createGroupMermaidReviewV3(context.scope);
+const controls = resolveGroupMermaidReviewV3(state, context);
+// Emit native review facts from controls; consume only a returned download payload in host IO.
+```
+
+The distinct `foldkit-zloz-mermaid/v3` bundle validates the complete native source
+and retains world convention, connection mode, group-port capability and native
+identity (`nodeId`, `edgeId`, original parent and scoped endpoint IDs/kinds).
+Source uses safe aliases, named edges and nested nonempty subgraphs. A group edge
+links its boundary alias: actual socket artwork, anchor positions and attachment
+are **explicit losses**, not implied fidelity. Layout, camera, future mode/capability
+rules and omitted semantic/data fields retain their findings. No full graph is
+hidden in identity. Canonical JSON remains authoritative; no production import or
+round trip is promised. Existing graph/v2 exports, protocols and readers stay fixed.
+
+Losses reject by default. `report` creates a review candidate, never an IO grant.
+Errors (invalid documents/options/labels, empty groups and generated source over
+32768 UTF-16 code units) cannot be accepted. Native scalar options reject accessors
+and unknown fields; returned native bundle/identity records are frozen.
+
+`resolveGroupMermaidReviewV3` binds acceptance to the full document, scope/revision,
+direction, file name and exact output/findings. `updateGroupMermaidReviewV3` accepts
+`MermaidDirectionChanged`, `MermaidLossAcceptanceChanged`, `MermaidDownloadRequested`
+and `MermaidDownloadSettled` facts carrying its identity. It reruns `canDownload`
+against the current document and candidate, checks consent and emits a detached
+`ZlozGroupMermaidDownloadV3` only when allowed. Consume its exact `text` in a host
+Command; never render again to download. Pending runs prevent duplicate requests,
+failure permits retry and stale completions do not overwrite current feedback.
+`groupMermaidReviewForScopeV3` resets authority for working/edition scope changes
+while retaining direction preference. Review state is trusted transient Model data,
+not a credential or portable session codec. A download already dispatched cannot
+be retroactively revoked. Graph, revision and Undo remain unchanged by export.
+
+Optional `/foldkit` `zlozGroupMermaidReviewV3(h, controls, onRequest, { id })`
+provides a direction selector, safe highlighted source, all findings, consent and
+download. Minimal/global diagnostics hide optional status, preserving functional
+findings and denial reasons. `renderPart`, `renderFinding` and `renderLayout` use
+undefined for native defaults and null to omit; replacements own their semantics
+and explanations. Compose `zlozGroupMermaidConsentV3` /
+`zlozGroupMermaidDownloadV3` independently or use headless APIs for a fully custom
+surface. Scoped `theme` uses core's shared public Foldkit theme mapper.
+
+No Mermaid parser/renderer, DOM, Astro, Foldkit or Effect dependency enters the
+headless root. Local browser oracle evidence is version-specific and separate from
+human AT/device, hosted deployment, broad performance and registry acceptance.
+The private CLI's current Mermaid export remains v1/v2; compatibility inspection
+only reports native package availability. Native packets/receipts/patches/audits
+remain separate adoption work.

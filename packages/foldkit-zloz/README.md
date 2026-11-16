@@ -6414,8 +6414,8 @@ plan: include every intended affected child/ancestor in the target, retaining
 world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
 `createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
 `resolveGroupEditorBoundaryV3` reports availability for the distinct native-controls,
-model, edition, clipboard, layout, SVG and PNG entries documented below. Mermaid,
-patch and review-packet entries remain blocked pending native adoption.
+model, edition, clipboard, layout, SVG, PNG and optional Mermaid entries documented
+below. Patch and review-packet entries remain blocked pending native adoption.
 It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
 See [the editor qualification receipt](evidence/group-editor-v3.md) and
@@ -6580,7 +6580,7 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 Mermaid, patches, conversion receipts, review
+V3 patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
@@ -6825,3 +6825,16 @@ APIs when desired. Pass the same offset to controls and controller for consisten
 button/keyboard placement. It does not implement OS clipboard permissions,
 cross-tab transport, paste-into-parent, cut, external text decoding or arbitrary
 metadata-reference rewriting. No dependencies or canonical wire formats changed.
+
+### Native v3 Mermaid projection (unreleased)
+
+The optional `@opsydyn/foldkit-zloz-mermaid` package exports
+`exportGroupMermaidV3` and composable exact-output review controls. Complete native
+documents keep world convention, mode/capability and socket identity in a distinct
+v3 bundle. Group links project to boundaries; missing socket artwork/attachment,
+geometry, camera and omitted semantics/data are explicit findings. Losses reject
+by default, errors always block, and review/download never edit source or Undo.
+See the [adapter API and limits](../foldkit-zloz-mermaid/README.md#native-v3-groups-and-loss-review-unreleased).
+Legacy exporters/CLI entries/readers stay version-fixed. Native packets, receipts,
+modelling patches and audits are separate adoption slices. The optional core
+Foldkit entry also exports `zlozThemeStyle` for shared token styling in adapters.

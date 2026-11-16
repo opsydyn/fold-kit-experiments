@@ -25,6 +25,7 @@ test('v3 compatibility inventories every exact checkpoint and keeps unsupported 
     'svg',
     'png',
     'clipboard',
+    'mermaid',
   ] as const)
     expect(resolveGroupEditorBoundaryV3(editor, boundary)).toEqual({ type: 'unchanged', editor });
   expect(report.adapters.find((a) => a.adapter === 'layout')?.status).toBe('supported');
@@ -34,4 +35,12 @@ test('native PNG and clipboard availability retain explicit limits', () => {
   const report = assessPortableCompatibilityV3(parseModelDocumentV3(JSON.stringify(wire)));
   expect(report.adapters.find((a) => a.adapter === 'png')?.status).toBe('supported');
   expect(report.adapters.find((a) => a.adapter === 'clipboard')?.status).toBe('supported');
+});
+
+test('native Mermaid format availability distinguishes exact output review from legacy CLI/import', () => {
+  const report = assessPortableCompatibilityV3(parseModelDocumentV3(JSON.stringify(wire)));
+  expect(report.adapters.find((a) => a.adapter === 'mermaid')).toMatchObject({
+    status: 'supported',
+    reason: expect.stringContaining('exact-output'),
+  });
 });

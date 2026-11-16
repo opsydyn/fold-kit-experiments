@@ -595,3 +595,13 @@ crossing-edge omissions produce findings. Opaque metadata references are not
 rewritten. {@link FoldKit.zlozGroupClipboardV3} supplies optional composable
 controls with visible reasons, including minimal mode. Session clipboard has no OS
 clipboard IO and is not persisted in models or history.
+
+Native v3 Mermaid is available through {@link Mermaid.exportGroupMermaidV3} and
+{@link Mermaid.resolveGroupMermaidReviewV3} /
+{@link Mermaid.updateGroupMermaidReviewV3}. Group port artwork and exact attachment
+are explicit projection losses; native identity/mode/capability remain in the
+separate v3 bundle. Full-source/output consent and current policy guard downloads.
+{@link MermaidFoldkit.zlozGroupMermaidReviewV3} composes highlighted source, findings,
+consent and download with nullable slots and required reasons in minimal mode.
+{@link FoldKit.zlozThemeStyle} shares scoped token mapping with optional adapters.
+No production Mermaid import, runtime renderer or native packet writer is implied.

@@ -37,6 +37,15 @@ import {
   type ZlozModelDocumentV3,
 } from '@opsydyn/foldkit-zloz';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+import {
+  createGroupMermaidReviewV3,
+  groupMermaidReviewForScopeV3,
+  updateGroupMermaidReviewV3,
+  type ZlozGroupMermaidReviewStateV3,
+  type ZlozGroupMermaidReviewRequestV3,
+  type ZlozGroupMermaidDownloadV3,
+} from '@opsydyn/foldkit-zloz-mermaid';
+import { zlozGroupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import { renderGroupPngExportV3, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import {
   zlozGroupInspectorV3,
@@ -56,6 +65,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { defineTaggedUnion } from 'foldkit/schema';
 import type { Return } from 'foldkit/update';
 
+import { groupMermaidContext, groupMermaidControls, groupMermaidFindingLabel } from './mermaid';
 import { groupPngContext, groupPngControls } from './png';
 import { groupSvgContext, groupSvgControls } from './svg';
 
@@ -78,6 +88,8 @@ export type ReadyState = Readonly<{
   pngReview: ZlozPngReviewState;
   pngRetained: boolean;
   protectPng: boolean;
+  mermaidReview: ZlozGroupMermaidReviewStateV3;
+  protectMermaid: boolean;
   pendingOpen: Readonly<{ token: number; sessionId: string; revision: number }> | null;
 }>;
 export const Model = defineTaggedUnion({
@@ -97,6 +109,8 @@ export const Message = defineMessageUnion({
   ClickedCheckpoint: {},
   ObservedSvgReview: { request: Schema.Unknown },
   ObservedPngReview: { request: Schema.Unknown },
+  ObservedMermaidReview: { request: Schema.Unknown },
+  ClickedMermaidProtection: {},
   ClickedPngRetained: {},
   ClickedPngProtection: {},
   SettledPngDownload: { scope: Schema.String, key: Schema.String, succeeded: Schema.Boolean },
@@ -213,6 +227,47 @@ const DownloadGroupSvg = Command.define('DownloadGroupSvg', {
         onFailure: () =>
           Message.ObservedSvgReview({
             request: { ...identity, type: 'SvgDownloadSettled', outcome: 'failed' },
+          }),
+      }),
+    );
+  },
+});
+const DownloadGroupMermaid = Command.define('DownloadGroupMermaid', {
+  args: { payload: Schema.Unknown },
+  messages: [Message.ObservedMermaidReview],
+  execute: ({ payload: raw }) => {
+    // SAFETY: The native review controller alone constructs this detached source-bound download payload.
+    const payload = raw as ZlozGroupMermaidDownloadV3;
+    const identity = {
+      scope: payload.scope,
+      generation: payload.generation,
+      key: payload.key,
+      run: payload.run,
+    };
+    return Effect.gen(function* () {
+      const acquire = Effect.try(() =>
+        URL.createObjectURL(new Blob([payload.text], { type: 'application/json' })),
+      );
+      const url = yield* Effect.acquireRelease(acquire, (url) =>
+        Effect.sync(() => URL.revokeObjectURL(url)),
+      );
+      yield* Effect.try(() =>
+        Object.assign(document.createElement('a'), {
+          href: url,
+          download: payload.fileName,
+        }).click(),
+      );
+      yield* Effect.sleep('1 second');
+    }).pipe(
+      Effect.scoped,
+      Effect.match({
+        onSuccess: () =>
+          Message.ObservedMermaidReview({
+            request: { ...identity, type: 'MermaidDownloadSettled', outcome: 'succeeded' },
+          }),
+        onFailure: () =>
+          Message.ObservedMermaidReview({
+            request: { ...identity, type: 'MermaidDownloadSettled', outcome: 'failed' },
           }),
       }),
     );
@@ -357,6 +412,8 @@ function ready(id: string, document?: ZlozModelDocumentV3): ReadyState {
     pngReview: createPngReview(`${id}:png`),
     pngRetained: false,
     protectPng: false,
+    mermaidReview: createGroupMermaidReviewV3(`${id}:mermaid`),
+    protectMermaid: false,
     notice: 'Native v3 controls. Export and advanced-tool limits are listed below.',
   };
 }
@@ -415,6 +472,27 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       state ? changed({ ...state, pngRetained: !state.pngRetained }) : { model },
     ClickedPngProtection: () =>
       state ? changed({ ...state, protectPng: !state.protectPng }) : { model },
+    ClickedMermaidProtection: () =>
+      state ? changed({ ...state, protectMermaid: !state.protectMermaid }) : { model },
+    ObservedMermaidReview: ({ request: raw }) => {
+      if (!state) return { model };
+      // SAFETY: Only package controls and the download Command produce native review requests.
+      const request = raw as ZlozGroupMermaidReviewRequestV3,
+        context = groupMermaidContext(state);
+      if (request.scope !== context.scope) return { model };
+      const result = updateGroupMermaidReviewV3(
+        groupMermaidReviewForScopeV3(state.mermaidReview, context.scope),
+        context,
+        request,
+      );
+      const next = { ...state, mermaidReview: result.state, notice: result.notice || state.notice };
+      return result.payload
+        ? {
+            model: Model.Ready({ state: next }),
+            commands: [DownloadGroupMermaid({ payload: result.payload })],
+          }
+        : changed(next);
+    },
     ObservedPngReview: ({ request: raw }) => {
       if (!state) return { model };
       // SAFETY: Package PNG controls and RenderGroupPng emit the declared native review facts.
@@ -888,6 +966,42 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 diagnostics: {
                                   instructions: !state.minimal,
                                   measurements: !state.minimal,
+                                },
+                              },
+                            ),
+                          ],
+                        ),
+                        h.details(
+                          [],
+                          [
+                            h.summary([], ['Mermaid export review']),
+                            button(
+                              state.protectMermaid
+                                ? 'Allow Mermaid export'
+                                : 'Protect Mermaid export',
+                              Message.ClickedMermaidProtection(),
+                            ),
+                            zlozGroupMermaidReviewV3(
+                              h,
+                              groupMermaidControls(state),
+                              (request) => Message.ObservedMermaidReview({ request }),
+                              {
+                                id: 'native-v3-mermaid',
+                                minimalMode: state.minimal,
+                                theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
+                                renderFinding: (finding, h) => {
+                                  const subject = groupMermaidFindingLabel(state, finding);
+                                  return h.li(
+                                    [
+                                      h.DataAttribute('zloz-mermaid-finding', finding.code),
+                                      h.Title(finding.subject ?? finding.code),
+                                    ],
+                                    [
+                                      h.strong([], [finding.severity + ': ']),
+                                      ...(subject ? [h.strong([], [subject + ': '])] : []),
+                                      finding.message,
+                                    ],
+                                  );
                                 },
                               },
                             ),

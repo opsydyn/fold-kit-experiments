@@ -105,14 +105,14 @@ export function assessPortableCompatibilityV3(
       reason:
         'Use copyGroupSelectionV3 and the distinct native paste request/planner/Apply. Explicit node/edge/scoped-port maps, full-source freshness and live policies retain one Undo. Cross-mode/capability paste requires explicit conversion; no OS clipboard IO is implied.',
     },
+    {
+      adapter: 'mermaid',
+      status: 'supported',
+      reason:
+        'Use the optional Mermaid package native v3 exporter and exact-output review controls. Full documents retain mode/capability in the native bundle, while group socket artwork and exact attachment are explicit losses. Legacy exporters and CLI entries remain version-fixed; no production import is implied.',
+    },
     ...(
-      [
-        'mermaid',
-        'modelling-patch',
-        'conversion-receipt',
-        'review-packet',
-        'relationship-audit',
-      ] as const
+      ['modelling-patch', 'conversion-receipt', 'review-packet', 'relationship-audit'] as const
     ).map((adapter) => ({
       adapter,
       status: 'requires-version' as const,

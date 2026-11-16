@@ -1820,3 +1820,38 @@ or deployment is part of the slice.
 **Recommended next:** native v3 Mermaid projection/export with explicit group-port
 representation findings and exact-output loss review. Keep remaining native
 patch/receipt/packet/audit adapters and advanced tools open until qualified.
+
+## 2026-11-16 — Native v3 Mermaid projection and exact loss review
+
+- Optional `exportGroupMermaidV3` validates full native documents before shared
+  syntax generation. A distinct `foldkit-zloz-mermaid/v3` bundle retains world
+  convention, mode/capability and native node/edge/scoped-port/hierarchy identity.
+  Legacy exporters/readers and CLI writer entries remain version-fixed.
+- Group links become subgraph boundary links. Missing socket artwork, labels,
+  anchors and exact attachment are explicit findings, alongside camera, layout,
+  future rules and omitted semantic/data fields. Default loss rejection remains;
+  errors (including empty groups) never become consentable partial output.
+- Native review binds source scope/revision/full document, direction, name and
+  exact output/findings to consent; current policy, pending runs and stale
+  settlement guards protect Command payloads. Projection/download never edit
+  source, revision or Undo. Read-only editions have independent review scopes.
+- Optional composable Foldkit controls provide safe highlighted source, direction,
+  findings, consent and download with nullable part/finding/layout slots. The
+  left-sidebar demo composes readable finding names with exact ID tooltips;
+  minimal mode keeps required reasons/findings. Core's existing theme mapper is
+  exposed through the optional Foldkit entry so adapters share scoped tokens.
+- [ADR 0113](adr/0113-export-native-v3-mermaid-with-exact-loss-review.md) and
+  [qualification](../packages/foldkit-zloz-mermaid/evidence/group-v3.md) document
+  unit/installed/SSR and actual browser download evidence. The pinned Mermaid 12.3
+  oracle independently parses/renders eleven native sources, including group
+  self/child/boundary links, nested loose endpoints and actual workbench exports.
+
+Mermaid remains a static projection with explicit loss, not a canonical model or
+production import/round trip. No product parser/renderer, hidden full-graph metadata,
+new runtime dependency, hosted/registry activation or npm publication is included.
+Empty groups, native patch/receipt/packet/audit adoption, broad performance and
+human device/screen-reader acceptance remain separate work.
+
+**Recommended next:** native v3 modelling-patch dry run, retaining group ports,
+mode/capability, provenance and source checks before any Apply. This closes the
+next agent-facing portability gap without implying unqualified write authority.

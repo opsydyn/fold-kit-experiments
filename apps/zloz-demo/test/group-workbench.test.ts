@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
 import { Message, Model, update, type ReadyState } from '../src/group-workbench/main';
+import { groupMermaidControls } from '../src/group-workbench/mermaid';
 import { groupPngControls } from '../src/group-workbench/png';
 import { groupSvgControls } from '../src/group-workbench/svg';
 function ready(model: Model): ReadyState {
@@ -324,4 +325,68 @@ test('native clipboard demo keeps editor publication in package controls with cu
   model = input(model, { type: 'UndoPressed' });
   expect(ready(model).workbench.editor.document).toEqual(original.document);
   expect(ready(model).workbench.clipboard).toBe(clipboard);
+});
+
+test('native Mermaid review hands exact consented bundles to Commands and rejects current protection, stale source and foreign edition scope', () => {
+  let model = initial();
+  const editor = ready(model).workbench.editor;
+  let controls = groupMermaidControls(ready(model));
+  const accepted = update(
+    model,
+    Message.ObservedMermaidReview({
+      request: { ...controls.identity, type: 'MermaidLossAcceptanceChanged', accepted: true },
+    }),
+  );
+  model = accepted.model;
+  expect(ready(model).workbench.editor).toBe(editor);
+  model = update(model, Message.ClickedMermaidProtection()).model;
+  const denied = update(
+    model,
+    Message.ObservedMermaidReview({
+      request: { ...controls.identity, type: 'MermaidDownloadRequested' },
+    }),
+  );
+  expect(denied.commands).toBeUndefined();
+  expect(ready(denied.model).notice).toContain('protected');
+  model = update(model, Message.ClickedMermaidProtection()).model;
+  const download = update(
+    model,
+    Message.ObservedMermaidReview({
+      request: { ...controls.identity, type: 'MermaidDownloadRequested' },
+    }),
+  );
+  expect(download.commands).toHaveLength(1);
+  expect(download.commands?.[0]?.name).toBe('DownloadGroupMermaid');
+  expect(ready(download.model).workbench.editor).toBe(editor);
+  model = input(model, { type: 'NodeSelected', id: 'orders', additive: false });
+  model = input(model, { type: 'SelectionNudged', delta: { x: 20, y: 0 } });
+  expect(
+    update(
+      model,
+      Message.ObservedMermaidReview({
+        request: { ...controls.identity, type: 'MermaidDownloadRequested' },
+      }),
+    ).commands,
+  ).toBeUndefined();
+  controls = groupMermaidControls(ready(model));
+  expect(controls.accepted).toBe(false);
+  model = update(model, Message.ClickedCheckpoint()).model;
+  const edition = ready(model).catalogue.editions[0]!;
+  model = update(model, Message.ClickedReview({ id: edition.id })).model;
+  const reviewControls = groupMermaidControls(ready(model));
+  expect(reviewControls.identity.scope).not.toBe(controls.identity.scope);
+  expect(reviewControls.accepted).toBe(false);
+  expect(
+    update(
+      model,
+      Message.ObservedMermaidReview({
+        request: {
+          ...controls.identity,
+          type: 'MermaidDownloadSettled',
+          run: 1,
+          outcome: 'succeeded',
+        },
+      }),
+    ).model,
+  ).toBe(model);
 });

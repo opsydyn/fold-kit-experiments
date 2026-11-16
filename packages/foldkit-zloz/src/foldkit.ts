@@ -255,7 +255,7 @@ export type {
 } from './port-label';
 
 import { zlozThemeStyle, type ZlozTheme } from './theme';
-export { zlozLightTheme, zlozDarkTheme } from './theme';
+export { zlozLightTheme, zlozDarkTheme, zlozThemeStyle } from './theme';
 export type { ZlozColorScheme, ZlozTheme, ZlozThemeToken, ZlozThemeTokens } from './theme';
 
 import { backgroundView, type ZlozBackground } from './background';

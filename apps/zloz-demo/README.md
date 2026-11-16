@@ -796,3 +796,13 @@ interface to see current paste denial; **Minimal mode** keeps required findings
 and reasons. One **Undo** removes the entire pasted fragment. Read-only edition
 copying stays separate from working-session state; paste stays disabled there.
 This is model-owned session clipboard, not OS clipboard IO or cross-tab transport.
+
+**Mermaid export review** in `/groups/` composes the optional package's native v3
+source/fidelity controls. Make a boundary-to-warehouse connection to see exact
+socket-attachment loss. Review the highlighted source and findings, accept losses
+for this exact output, then **Download Mermaid bundle**. Change direction or edit
+the graph/camera to require fresh review. **Protect Mermaid export** blocks current
+downloads; **Minimal mode** keeps findings and protection visible. Working and
+read-only editions have independent review scopes. The download contains exact
+reviewed source, native identity and diagnostics; no editor/Undo mutation or product
+Mermaid runtime is added. Custom parts remain available at package level.

@@ -367,7 +367,7 @@ test('whole-document live policy covers capability/mode/camera/data and applies 
 
 test('unsupported adapters and runtime native events report version-required without losing capability', () => {
   const editor = init();
-  for (const operation of ['mermaid', 'modelling-patch', 'review-packet'] as const) {
+  for (const operation of ['modelling-patch', 'review-packet'] as const) {
     expect(resolveGroupEditorBoundaryV3(editor, operation)).toMatchObject({
       type: 'blocked',
       code: 'version-required',

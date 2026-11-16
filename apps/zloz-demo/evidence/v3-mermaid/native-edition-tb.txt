@@ -1,0 +1,123 @@
+{
+  "protocol": "foldkit-zloz-mermaid/v3",
+  "source": "flowchart TB\n  subgraph n_6f_72_64_65_72_73[\"Orders boundary\"]\n    n_73_65_72_76_69_63_65[\"Order service\"]\n  end\n  n_77_61_72_65_68_6f_75_73_65[\"Warehouse\"]\n  n_73_65_72_76_69_63_65 e_73_65_72_76_69_63_65_2d_65_76_65_6e_74_73@-->|\"Order placed\"| n_77_61_72_65_68_6f_75_73_65\n  n_6f_72_64_65_72_73 e_61_63_61_35_66_36_36_31_2d_32_66_33_64_2d_34_61_34_33_2d_62_32_64_35_2d_34_65_34_65_34_35_31_64_34_39_39_33_3a_65_64_67_65_3a_31_3a_30@--> n_77_61_72_65_68_6f_75_73_65\n",
+  "direction": "TB",
+  "coordinateSpace": "world",
+  "connectionMode": "strict",
+  "capabilities": {
+    "groupPorts": true
+  },
+  "identity": {
+    "version": 3,
+    "nodes": [
+      {
+        "mermaidId": "n_6f_72_64_65_72_73",
+        "kind": "group",
+        "nodeId": "orders",
+        "ports": [
+          {
+            "id": "api",
+            "kind": "output"
+          }
+        ]
+      },
+      {
+        "mermaidId": "n_73_65_72_76_69_63_65",
+        "parentId": "orders",
+        "nodeId": "service",
+        "ports": [
+          {
+            "id": "events",
+            "kind": "output"
+          }
+        ]
+      },
+      {
+        "mermaidId": "n_77_61_72_65_68_6f_75_73_65",
+        "nodeId": "warehouse",
+        "ports": [
+          {
+            "id": "input",
+            "kind": "input"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "mermaidId": "e_73_65_72_76_69_63_65_2d_65_76_65_6e_74_73",
+        "sourceNode": "n_73_65_72_76_69_63_65",
+        "sourcePort": "events",
+        "targetNode": "n_77_61_72_65_68_6f_75_73_65",
+        "targetPort": "input",
+        "edgeId": "service-events"
+      },
+      {
+        "mermaidId": "e_61_63_61_35_66_36_36_31_2d_32_66_33_64_2d_34_61_34_33_2d_62_32_64_35_2d_34_65_34_65_34_35_31_64_34_39_39_33_3a_65_64_67_65_3a_31_3a_30",
+        "sourceNode": "n_6f_72_64_65_72_73",
+        "sourcePort": "api",
+        "targetNode": "n_77_61_72_65_68_6f_75_73_65",
+        "targetPort": "input",
+        "edgeId": "aca5f661-2f3d-4a43-b2d5-4e4e451d4993:edge:1:0"
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "viewport-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Mermaid omits the native document camera.",
+      "subject": null
+    },
+    {
+      "code": "group-capability-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "The native bundle retains group-port capability. Mermaid source cannot express future group-socket editing rules.",
+      "subject": null
+    },
+    {
+      "code": "group-port-attachment-omitted",
+      "severity": "loss",
+      "dimension": "semantics",
+      "message": "The source endpoint links a Mermaid boundary, not the authored socket. Exact owner/port IDs remain in native identity only.",
+      "subject": "aca5f661-2f3d-4a43-b2d5-4e4e451d4993:edge:1:0"
+    },
+    {
+      "code": "group-port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored group sockets are not drawn or positioned in Mermaid. IDs/kinds remain in native identity; labels, ordering and anchors are omitted from source.",
+      "subject": "orders"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "service"
+    },
+    {
+      "code": "port-details-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.",
+      "subject": "warehouse"
+    },
+    {
+      "code": "layout-omitted",
+      "severity": "loss",
+      "dimension": "layout",
+      "message": "Authored positions and dimensions are not represented; Mermaid chooses layout.",
+      "subject": null
+    },
+    {
+      "code": "identity-map-required",
+      "severity": "loss",
+      "dimension": "identity",
+      "message": "Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.",
+      "subject": null
+    }
+  ]
+}

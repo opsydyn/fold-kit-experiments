@@ -199,3 +199,13 @@ export function zlozReviewPacketControls<M>(
 
 export { zlozReviewReader } from './review-reader-view';
 export type { ZlozReviewReaderParts, ZlozReviewReaderViewOptions } from './review-reader-view';
+
+export {
+  zlozGroupMermaidReviewV3,
+  zlozGroupMermaidConsentV3,
+  zlozGroupMermaidDownloadV3,
+} from './group-review-v3-view';
+export type {
+  ZlozGroupMermaidReviewViewOptionsV3,
+  ZlozGroupMermaidReviewPartsV3,
+} from './group-review-v3-view';

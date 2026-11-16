@@ -387,7 +387,7 @@ const undoEvent:ZlozGroupEditorEventV3={type:'UndoPressed',source:captureGroupEd
 const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
 const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
 if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
-const boundary:ZlozGroupEditorBoundaryV3='mermaid';
+const boundary:ZlozGroupEditorBoundaryV3='modelling-patch';
 if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
 if(false){
 // @ts-expect-error legacy reducer cannot consume v3 sessions.

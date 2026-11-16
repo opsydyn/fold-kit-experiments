@@ -58,6 +58,7 @@ hasher:
     - '**/react-three-rapier-main/**'
     - '**/react-three-xr-main/**'
     - '**/three-effect-main/**'
+    - '**/packages/foldkit-viz/docs/**'
     - '**/packages/foldkit-zloz/docs/**'
     - '**/.venv/**'
     - '**/__pycache__/**'

@@ -144,6 +144,7 @@ const SCRIPT_OF: ReadonlyMap<string, string> = new Map([
   ['api-check', 'api:check'],
   ['size-check', 'size:check'],
   ['schema-check', 'schema:check'],
+  ['docs', 'docs'],
   ['pack-check', 'pack:check'],
   ['e2e', 'test:e2e'],
   ['e2e-zloz', 'test:e2e'],
@@ -244,6 +245,16 @@ describe('CI runs root ci:* scripts of moon tasks', () => {
     expect(phases[0]).not.toContain(':integration');
   });
 
+  test('CI qualifies every public API documentation build with declared outputs', () => {
+    const documented = projects.filter(({ manifest }) => manifest.scripts?.docs !== undefined);
+    expect(documented.map(({ id }) => id).sort()).toEqual(['foldkit-viz', 'foldkit-zloz']);
+    expect(documented.filter(({ tasks }) => tasks.docs === undefined).map(({ id }) => id)).toEqual(
+      [],
+    );
+    for (const project of documented) expect(project.tasks.docs?.outputs).toContain('docs/**/*');
+    expect(rootManifest.scripts?.['ci:check']?.split(' && ')[0]?.split(' ')).toContain(':docs');
+  });
+
   test("moon compares against HEAD, as a pull request's shallow checkout has no main", () => {
     expect(ci.env?.MOON_BASE).toBe('HEAD');
     expect(inherited.taskOptions.runInCI).toBe('always');
@@ -278,7 +289,11 @@ describe('project tasks are their package scripts', () => {
       const reachable = closure(project);
       return [
         ...builds
-          .filter((name) => !reachable.has(name) || !deps.includes('^:build'))
+          .filter(
+            (name) =>
+              !(reachable.has(name) && deps.includes('^:build')) &&
+              !deps.includes(`${byName.get(name)?.id}:build`),
+          )
           .map((name) => `${project.id}:${task} no longer builds ${name}`),
         ...(buildsItself && !deps.includes('build')
           ? [`${project.id}:${task} skips its build`]

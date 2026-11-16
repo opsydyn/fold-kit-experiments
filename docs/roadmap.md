@@ -240,6 +240,14 @@ charts in all three apps.
   pushed (it works on already-summarised rows); density stays local, as its
   bandwidth needs every value. nodejs-polars 0.26.1's SQLContext could not be
   used: its lazy frames have no working collect.
+- DuckDB in the browser — done on the same branch (unreleased). The web app's
+  `/duckdb` page loads DuckDB-Wasm on request (from jsDelivr, pinned: its WASM
+  builds exceed Cloudflare's 25 MiB static file limit) as a FoldKit managed
+  resource, makes a million rows by SQL, and pushes both charts' bins into it:
+  about 200 ms in Chromium, sending back hundreds of bins rather than the rows.
+  foldkit-viz needed nothing new: DuckDB-Wasm's Arrow results go through
+  fromArrow. Its tests run the page's engine code through DuckDB-Wasm's Node
+  build, offline.
 - PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`
   branch (unreleased). `canvas/image` paints a compiled plot, legends and
   background included, on any 2D context, and `plotPng` encodes it through a

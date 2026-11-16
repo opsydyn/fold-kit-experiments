@@ -43,7 +43,9 @@ move (otherwise recompile; `appendPoints` refuses rather than guess).
 
 When the data stays in DuckDB or Polars, use `pushdown(spec, { from, query })`
 to count binned rect marks in the engine instead of pulling every row; it gives
-the same geometry as a local compile. Never build `from` from user input.
+the same geometry as a local compile. Never build `from` from user input. In
+the browser, DuckDB-Wasm returns Arrow tables: wrap `connection.query` with
+`fromArrow` to make the `query` function.
 
 ## Spec rules
 

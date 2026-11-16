@@ -771,6 +771,11 @@ const geometry = compilePlot(spec);
   column table: DuckDB in Bun, Node or the browser, or Polars.
 - `from` is inserted as written (a table name, a subquery, `read_parquet(…)`), so
   it must never come from untrusted input; field names are quoted.
+- In the browser, DuckDB-Wasm returns Arrow tables, so the query is
+  `async (sql) => fromArrow(await connection.query(sql))`. The web app's
+  [`/duckdb` page](https://github.com/opsydyn/fold-kit-experiments/tree/main/apps/web/src/apps/duckdb)
+  bins a million rows in the visitor's browser in about 200 ms (Chromium), and
+  its tests run the same code through DuckDB-Wasm's Node build.
 - Series keep the order they first appear in, through `row_number() OVER ()`,
   which follows DuckDB's default `preserve_insertion_order`.
 - Not pushed: density marks (their bandwidth needs every value) and anything a

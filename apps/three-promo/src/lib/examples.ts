@@ -25,6 +25,14 @@ export const examples = [
     alt: '3D bar chart: three rows of blue, orange and green bars for six months, with gridlines on the back wall.',
   },
   {
+    id: 'chart3d',
+    category: 'Data',
+    title: 'Turn a chart around',
+    description:
+      'Foldkit Viz lays out a 3D scatter or surface as plain geometry, with boxed, ticked axes; effect-three draws it as points, lines and labels that face the camera. Orbit it with the camera in the Model.',
+    alt: '3D scatter: three clusters of coloured points inside a ticked box with a grid on the floor and back walls.',
+  },
+  {
     id: 'studio',
     category: 'Light and material',
     title: 'Drag it into the light',

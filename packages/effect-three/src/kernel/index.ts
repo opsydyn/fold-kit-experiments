@@ -38,6 +38,7 @@ export {
   colorRange,
   xr,
   glide,
+  teleportArc,
   xrAnchor,
   headSpace,
   jointSpace,
@@ -227,7 +228,9 @@ export type {
   RenderKit,
   ShadowedScene,
 } from './renderKit.ts';
-export { glided, type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
+export { glided, type LocomotionOptions, locomote, teleport, teleported } from './xrLocomotion.ts';
+export { avatar, type AvatarOptions, type XrPoses } from './presence.ts';
+export { type ArcHit, arcAim, arcHit, arcPoints, easeAim, teleportOrigin } from './teleportArc.ts';
 export {
   createXrTracker,
   type XrButtonName,

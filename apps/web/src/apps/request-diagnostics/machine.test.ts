@@ -172,4 +172,55 @@ describe('request diagnostics machine', () => {
       state: { _tag: 'Ready', points: samplePoints },
     });
   });
+
+  describe('revisiting the route', () => {
+    const entered = Message.Navigated({
+      phase: 'entered',
+      path: '/request-diagnostics',
+      previousPath: '/',
+    });
+    const interrupted = Message.CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } });
+    const step = (model: typeof initModel, message: Message) => update(model, message);
+
+    test('loads again after leaving while the first load was in flight', () => {
+      const idle = step(step(initModel, exited).model, interrupted).model;
+      expect(idle.explorer._tag).toBe('Idle');
+      const back = step(idle, entered);
+      expect(back.model.explorer._tag).toBe('Loading');
+      expect(machineCommands(back.commands).map(({ name }) => name)).toEqual(['FetchMetrics']);
+    });
+
+    test('keeps loaded data without fetching it again', () => {
+      const ready = step(initModel, Message.LoadedMetrics({ points: samplePoints })).model;
+      const back = step(step(ready, exited).model, entered);
+      expect(back.model.explorer._tag).toBe('Ready');
+      expect(machineCommands(back.commands)).toEqual([]);
+    });
+
+    test('tries a failed load again', () => {
+      const failed = step(initModel, Message.FailedLoad({ error: 'offline' })).model;
+      const back = step(failed, entered);
+      expect(back.model.explorer._tag).toBe('Loading');
+      expect(machineCommands(back.commands).map(({ name }) => name)).toEqual(['FetchMetrics']);
+    });
+
+    test('ignores navigation elsewhere', () => {
+      const idle = step(step(initModel, exited).model, interrupted).model;
+      const elsewhere = step(
+        idle,
+        Message.Navigated({ phase: 'entered', path: '/charts', previousPath: '/' }),
+      );
+      expect(elsewhere.model.explorer._tag).toBe('Idle');
+      expect(machineCommands(elsewhere.commands)).toEqual([]);
+    });
+
+    test('shows the revisit edges to Stateflow', () => {
+      expect(diagnosticsMachine.edges).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ from: 'Idle', messageTag: 'Navigated', target: 'Loading' }),
+          expect.objectContaining({ from: 'Failed', messageTag: 'Navigated', target: 'Loading' }),
+        ]),
+      );
+    });
+  });
 });

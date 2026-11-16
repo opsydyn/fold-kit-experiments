@@ -65,6 +65,12 @@ export const teleport = (settings: Xr, point: Vec3): Xr => ({
   origin: [point[0], settings.origin[1], point[2]],
 });
 
+/** The settings where a teleport arc took the player (an `XrTeleported` event). */
+export const teleported = (settings: Xr, moved: { readonly origin: Vec3 }): Xr => ({
+  ...settings,
+  origin: moved.origin,
+});
+
 /** The settings where gliding left the player (an `XrMoved` event): its origin and heading. */
 export const glided = (
   settings: Xr,

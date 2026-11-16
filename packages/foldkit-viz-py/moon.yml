@@ -1,0 +1,18 @@
+# Each task is the package script of the same name without its dependency
+# builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tasks:
+  build:
+    script: 'bun build js/widget.ts --outfile dist/widget.js --format esm --minify && cp ../foldkit-viz/schema/plot-spec.schema.json dist/'
+    deps: ['^:build']
+    # Bundles foldkit-viz's build and copies its published schema; the package's
+    # static/ folder is a symlink to dist/, so the wheel ships both.
+    inputs: ['js/**/*', 'package.json', '/packages/foldkit-viz/schema/plot-spec.schema.json']
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc --noEmit'
+    deps: ['^:build']
+  test:
+    # The front end in Bun, then the Python package against the built bundle
+    # and schema, in the uv environment uv.lock pins.
+    script: 'bun test ./test && uv run --frozen pytest'
+    deps: ['build']

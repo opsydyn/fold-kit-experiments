@@ -1,0 +1,6 @@
+/* The web app's islands read these, with dark fallbacks; give them the promo's colours. */
+:root {
+  --ex-border: var(--border);
+  --ex-surface: var(--surface);
+  --page-text: var(--text);
+}

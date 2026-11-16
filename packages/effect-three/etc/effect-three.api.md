@@ -99,6 +99,21 @@ type Applied<I> = {
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
 
 // @public
+export const arcAim: (quaternion: Quat) => Quat;
+
+// @public
+export type ArcHit = {
+    readonly point: Vec3;
+    readonly segment: number;
+};
+
+// @public
+export const arcHit: (points: ReadonlyArray<Vec3>, cast: (from: Vec3, to: Vec3) => Vec3 | undefined) => ArcHit | undefined;
+
+// @public
+export const arcPoints: (position: Vec3, aim: Quat) => ReadonlyArray<Vec3>;
+
+// @public
 export type Asset = {
     readonly kind: AssetKind;
     readonly id: string;
@@ -154,6 +169,15 @@ const AutoRotatedDetail: Schema.Struct<{
     readonly view: Schema.optionalKey<Schema.String>;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
+
+// @public
+export const avatar: (key: string, poses: XrPoses, options?: Partial<AvatarOptions>) => GroupNode;
+
+// @public (undocumented)
+export type AvatarOptions = {
+    readonly color: Rgb;
+    readonly seconds: number;
+};
 
 // @public
 export type Axis = 'x' | 'y' | 'z';
@@ -1299,6 +1323,9 @@ export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
 }) => Transition;
+
+// @public
+export const easeAim: (from: Quat, to: Quat, elapsed: number) => Quat;
 
 // @public
 export const easeProgress: (easing: Easing, progress: number) => number;
@@ -5465,6 +5492,13 @@ const SceneDescription_2: Schema.Struct<{
         readonly planes: Schema.Boolean;
         readonly meshes: Schema.Boolean;
         readonly domOverlay: Schema.Boolean;
+        readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+            readonly hand: Schema.Literals<readonly ["left", "right"]>;
+            readonly targets: Schema.$Array<Schema.String>;
+            readonly color: Schema.Int;
+            readonly opacity: Schema.Finite;
+        }>>, never>;
+        readonly poses: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Finite>, never>;
         readonly glide: Schema.NullOr<Schema.Struct<{
             readonly speed: Schema.Finite;
             readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -5729,6 +5763,27 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'XrMoved';
     readonly origin: Vec3;
     readonly heading: number;
+}
+/**
+* A teleport arc (`xr({ teleportArc })`) was let go over a target: the point it landed
+* on, and where the player's origin goes so their head stands over it, to keep in the
+* Model's `xr({ origin })` (`teleported`).
+*/
+| {
+    readonly _tag: 'XrTeleported';
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly origin: Vec3;
+}
+/**
+* Where the player's head and hands are, in the scene's space, reported every
+* `xr({ poses })` seconds while presenting: for showing the player to others (`avatar`).
+*/
+| {
+    readonly _tag: 'XrPoses';
+    readonly head: XrPoses['head'];
+    readonly left: XrPoses['left'];
+    readonly right: XrPoses['right'];
 }
 /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
 | {
@@ -6061,6 +6116,23 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 }>, Schema.TaggedStruct<"XrMoved", {
     readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly heading: Schema.Finite;
+}>, Schema.TaggedStruct<"XrTeleported", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"XrPoses", {
+    readonly head: Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+    readonly left: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+    readonly right: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
 }>, Schema.TaggedStruct<"XrPlanes", {
     readonly planes: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
@@ -6349,6 +6421,13 @@ const SceneFile_2: Schema.Struct<{
             readonly planes: Schema.Boolean;
             readonly meshes: Schema.Boolean;
             readonly domOverlay: Schema.Boolean;
+            readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly hand: Schema.Literals<readonly ["left", "right"]>;
+                readonly targets: Schema.$Array<Schema.String>;
+                readonly color: Schema.Int;
+                readonly opacity: Schema.Finite;
+            }>>, never>;
+            readonly poses: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Finite>, never>;
             readonly glide: Schema.NullOr<Schema.Struct<{
                 readonly speed: Schema.Finite;
                 readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -6749,6 +6828,9 @@ declare namespace SceneSchema {
         XrStickDetail,
         XrButtonDetail,
         XrMovedDetail,
+        XrTeleportedDetail,
+        XrPose,
+        XrPosesDetail,
         XrSurfaceDetail,
         XrPlane_2 as XrPlane,
         XrPlanesDetail,
@@ -7370,6 +7452,19 @@ export const tapeNodes: (key: string, state: Tape, look?: Partial<TapeLook>) => 
 export const teleport: (settings: Xr, point: Vec3) => Xr;
 
 // @public
+export const teleportArc: (options: Partial<XrTeleportArc> & {
+    readonly targets: ReadonlyArray<string>;
+}) => XrTeleportArc;
+
+// @public
+export const teleported: (settings: Xr, moved: {
+    readonly origin: Vec3;
+}) => Xr;
+
+// @public
+export const teleportOrigin: (settings: Xr, landing: Vec3, head: Vec3) => Vec3;
+
+// @public
 export const text: (options: {
     readonly text: string;
     readonly font: string;
@@ -7752,6 +7847,8 @@ export type Xr = {
     readonly meshes: boolean;
     readonly domOverlay: boolean;
     readonly glide: XrGlide | null;
+    readonly teleportArc: XrTeleportArc | null;
+    readonly poses: number | null;
 };
 
 // @public
@@ -7773,6 +7870,13 @@ const Xr_2: Schema.Struct<{
     readonly planes: Schema.Boolean;
     readonly meshes: Schema.Boolean;
     readonly domOverlay: Schema.Boolean;
+    readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right"]>;
+        readonly targets: Schema.$Array<Schema.String>;
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>>, never>;
+    readonly poses: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Finite>, never>;
     readonly glide: Schema.NullOr<Schema.Struct<{
         readonly speed: Schema.Finite;
         readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -7861,6 +7965,20 @@ export type XrInput =
     readonly _tag: 'Moved';
     readonly origin: Vec3;
     readonly heading: number;
+}
+/** A teleport arc let go over a target: where it landed, and where the origin goes. */
+| {
+    readonly _tag: 'Teleport';
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly origin: Vec3;
+}
+/** Where the player's head and hands are (`xr({ poses })`), in the scene's space. */
+| {
+    readonly _tag: 'Poses';
+    readonly head: XrPoses['head'];
+    readonly left: XrPoses['left'];
+    readonly right: XrPoses['right'];
 }
 /** The detected planes changed: all of them, as they are now. */
 | {
@@ -7952,6 +8070,35 @@ const XrPlanesDetail: Schema.Struct<{
 }>;
 
 // @public
+const XrPose: Schema.Struct<{
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
+export type XrPoses = {
+    readonly head: BodyPose;
+    readonly left: BodyPose | null;
+    readonly right: BodyPose | null;
+};
+
+// @public
+const XrPosesDetail: Schema.Struct<{
+    readonly head: Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+    readonly left: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+    readonly right: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public
 export type XrSpace = {
     readonly _tag: 'Head';
 } | {
@@ -8002,6 +8149,21 @@ const XrSurfaceDetail: Schema.Struct<{
     readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
+export type XrTeleportArc = {
+    readonly hand: 'left' | 'right';
+    readonly targets: ReadonlyArray<string>;
+    readonly color: Rgb;
+    readonly opacity: number;
+};
+
+// @public
+const XrTeleportedDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
 
 // Warnings were encountered during analysis:

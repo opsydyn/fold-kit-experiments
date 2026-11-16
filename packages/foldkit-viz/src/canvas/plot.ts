@@ -11,7 +11,8 @@ import type {
  * Paints compiled plot geometry (ADR 0037) on a 2D canvas context: grid,
  * axes, facet headings and every mark, with packed points drawn in one pass
  * per colour. Framework-free and listener-free: call it when the canvas
- * mounts or the geometry changes. Legends stay HTML; see foldkit/plot.
+ * mounts or the geometry changes. On a page, legends stay HTML (foldkit/plot);
+ * canvas/image paints a whole image, legends and background included.
  */
 
 /** A path built from SVG path data; Path2D in a browser. Opaque to the painter. */
@@ -63,6 +64,10 @@ export type PaintPlotOptions = Readonly<{
   labelSize?: number;
   /** Builds a path from SVG path data. Default: the platform's Path2D. */
   makePath?: (d: string) => PlotPath;
+  /** Fills the plot area after clearing it. Default: left clear. */
+  background?: string;
+  /** Paint dense dot marks. False leaves them to a GPU layer above (webgl/points). Default true. */
+  points?: boolean;
 }>;
 
 export const defaultCanvasColors: PlotCanvasColors = {
@@ -78,6 +83,7 @@ type Settings = Readonly<{
   font: string;
   labelSize: number;
   makePath: (d: string) => PlotPath;
+  points: boolean;
 }>;
 
 const paintOf = (paint: string, settings: Settings): string =>
@@ -168,6 +174,9 @@ function paintAxis(
   );
 }
 
+/** The most points one path holds; see paintPoints. */
+const PATH_CHUNK = 100_000;
+
 function paintPoints(
   ctx: PlotCanvasContext,
   g: Extract<Graphic, { kind: 'points' }>,
@@ -200,6 +209,12 @@ function paintPoints(
     ctx.globalAlpha = g.opacity * (dimmed ? 0.15 : 1);
     ctx.beginPath();
     for (let k = from; k < to; k += 1) {
+      // Chromium silently draws nothing for one path of more than about
+      // 180,000 circles, so a large group is filled a chunk at a time.
+      if (k > from && (k - from) % PATH_CHUNK === 0) {
+        ctx.fill();
+        ctx.beginPath();
+      }
       const i = order[k] ?? 0;
       const r = g.radius instanceof Float64Array ? (g.radius[i] ?? 0) : g.radius;
       const x = g.xs[i] ?? 0,
@@ -273,7 +288,7 @@ function paintGraphic(ctx: PlotCanvasContext, g: Graphic, settings: Settings): v
       ctx.fillText(g.text, g.x, g.y);
       break;
     case 'points':
-      paintPoints(ctx, g, settings);
+      if (settings.points) paintPoints(ctx, g, settings);
       break;
   }
   ctx.globalAlpha = 1;
@@ -294,9 +309,16 @@ export function paintPlot(
     font: options.fontFamily ?? 'system-ui, sans-serif',
     labelSize: options.labelSize ?? 11,
     makePath: options.makePath ?? platformPath,
+    points: options.points ?? true,
   };
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.clearRect(0, 0, geometry.width, geometry.height);
+  if (options.background !== undefined) {
+    ctx.beginPath();
+    ctx.rect(0, 0, geometry.width, geometry.height);
+    ctx.fillStyle = options.background;
+    ctx.fill();
+  }
   for (const facet of geometry.facets) {
     if (facet.label !== '') {
       ctx.font = `600 ${settings.labelSize + 1}px ${settings.font}`;

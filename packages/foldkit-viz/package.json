@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-viz",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
   "keywords": [
     "charts",
@@ -199,11 +199,29 @@
       "canvas/plot": [
         "./dist/canvas/plot.d.mts"
       ],
+      "canvas/image": [
+        "./dist/canvas/image.d.mts"
+      ],
+      "webgl/points": [
+        "./dist/webgl/points.d.mts"
+      ],
+      "svg/plot": [
+        "./dist/svg/plot.d.mts"
+      ],
+      "jupyter": [
+        "./dist/jupyter.d.mts"
+      ],
       "interaction/keyboard": [
         "./dist/interaction/keyboard.d.mts"
       ],
       "foldkit/keyboard": [
         "./dist/foldkit/keyboard.d.mts"
+      ],
+      "chart/space3d": [
+        "./dist/chart/space3d.d.mts"
+      ],
+      "effect-three/space3d": [
+        "./dist/effect-three/space3d.d.mts"
       ]
     }
   },
@@ -433,6 +451,22 @@
       "types": "./dist/canvas/plot.d.mts",
       "import": "./dist/canvas/plot.mjs"
     },
+    "./canvas/image": {
+      "types": "./dist/canvas/image.d.mts",
+      "import": "./dist/canvas/image.mjs"
+    },
+    "./webgl/points": {
+      "types": "./dist/webgl/points.d.mts",
+      "import": "./dist/webgl/points.mjs"
+    },
+    "./svg/plot": {
+      "types": "./dist/svg/plot.d.mts",
+      "import": "./dist/svg/plot.mjs"
+    },
+    "./jupyter": {
+      "types": "./dist/jupyter.d.mts",
+      "import": "./dist/jupyter.mjs"
+    },
     "./interaction/keyboard": {
       "types": "./dist/interaction/keyboard.d.mts",
       "import": "./dist/interaction/keyboard.mjs"
@@ -440,6 +474,14 @@
     "./foldkit/keyboard": {
       "types": "./dist/foldkit/keyboard.d.mts",
       "import": "./dist/foldkit/keyboard.mjs"
+    },
+    "./chart/space3d": {
+      "types": "./dist/chart/space3d.d.mts",
+      "import": "./dist/chart/space3d.mjs"
+    },
+    "./effect-three/space3d": {
+      "types": "./dist/effect-three/space3d.d.mts",
+      "import": "./dist/effect-three/space3d.mjs"
     }
   },
   "publishConfig": {
@@ -447,7 +489,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run --filter @opsydyn/effect-three build && tsc --noEmit",
     "test": "bun run test:unit && bun run test:package",
     "test:unit": "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'",
     "test:package": "bun test ./test/package-import-smoke.test.ts",
@@ -462,6 +504,8 @@
     "schema:check": "bun ../../tools/plot-schema.ts --check"
   },
   "devDependencies": {
+    "@duckdb/node-api": "2.0.0-r.1",
+    "@opsydyn/effect-three": "workspace:*",
     "@types/node": "^22.0.0",
     "ajv": "8.20.0",
     "bun-types": "^1.3.14",
@@ -474,10 +518,14 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
+    "@opsydyn/effect-three": ">=0.6.4 <0.8.0",
     "effect": ">=4.0.0 <5.0.0",
     "foldkit": ">=0.167.0 <0.171.0"
   },
   "peerDependenciesMeta": {
+    "@opsydyn/effect-three": {
+      "optional": true
+    },
     "effect": {
       "optional": true
     },

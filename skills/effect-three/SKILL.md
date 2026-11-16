@@ -52,7 +52,9 @@ for a view with selection and a Model-owned orbit camera.
   included. Use the record's stable id, never its index in a filtered or sorted list.
   A node keeps its three.js object while its key and kind stay the same.
 - **The Model owns what persists**: the camera (`orbit`, `rotateCamera`, `fitCamera`),
-  the XR player (`locomote`, `teleport`, `glided`), selection and hover. Things that
+  the XR player (`locomote`, `teleport`, `glided`, `teleported` for
+  `xr({ teleportArc })`), other players (`xr({ poses })` reports `XrPoses` to send them;
+  draw what they send with `avatar`), selection and hover. Things that
   move every frame without changing the Model are behaviours (`spin`, `float`, user
   `behaviours`), physics, damping and `autoRotate`; the scene reports where they end
   (`AutoRotated`, `XrMoved`) when the Model needs it.
@@ -65,7 +67,9 @@ for a view with selection and a Model-owned orbit camera.
   OutMessages; the parent keeps the placements, the selection and the camera. Scene
   files (`SceneFile`), branching history (`History`), review diffs (`sceneChanges`), the
   schema-generated inspector (`Inspector`, `inspectorView`), a scene vocabulary for
-  agents (`describeScene`, `shotCamera`, `moodStaging`) and editing together
+  agents (`describeScene`, `shotCamera`, `moodStaging`; in this repository, the
+  `effect-three-scenes` MCP server, `bun run scene-mcp`, describes, checks, previews and
+  diffs scenes from files or a running app) and editing together
   (`Lockstep`) are pure too; the promo's editor example uses them all. Physics in
   lockstep puts the world's clock in the Model (`physics({ until })`, `Timeline`): the
   tabletop example; `physics({ snapshotAt })` reports a snapshot and `physics({ from })`

@@ -404,6 +404,8 @@ export default defineConfig({
     '.roo/**',
     '.windsurf/**',
     '.worktrees/**',
+    // A symlink to the package's dist/, which holds the minified widget bundle.
+    'packages/foldkit-viz-py/src/foldkit_viz/static/**',
     'skills/**',
     'tools/oxlint/anti-slop/**',
   ],

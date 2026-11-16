@@ -317,6 +317,64 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
+const chartThemes: {
+  readonly light: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly dark: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-light': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-dark': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+};
 type ChordMark = CommonMark & Readonly<{
   mark: 'chord';
   source: Channel;
@@ -631,6 +689,8 @@ type HexBin<T> = Readonly<{
   count: number;
   values: ReadonlyArray<T>;
 }>;
+const highContrastDarkTheme: ChartTheme;
+const highContrastLightTheme: ChartTheme;
 type Highlight = Readonly<{
   field: string;
   range?: readonly [number, number] | readonly [string, string];
@@ -1248,6 +1308,7 @@ type TextMark = CommonMark & Readonly<{
   dx?: number;
   dy?: number;
 }>;
+type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
 function themeProperties(theme: ChartTheme): {
   '--chart-background': string;
   '--chart-text': string;
@@ -1347,6 +1408,34 @@ function zip<A, B>(a: ReadonlyArray<A>, b: ReadonlyArray<B>): ReadonlyArray<read
 function zoomDomain(domain: ContinuousDomain, factor: number, anchor: number, bounds: ContinuousDomain, minSpan: number): ContinuousDomain;
 ```
 
+## ./canvas/image
+
+```ts
+type ImageOptions = Readonly<{
+  theme?: PlotTheme;
+  legend?: boolean;
+  background?: boolean;
+}>;
+function imageSize(geometry: PlotGeometry, options?: ImageOptions): ImageSize;
+type ImageSize = Readonly<{
+  width: number;
+  height: number;
+}>;
+function paintImage(ctx: PlotCanvasContext, geometry: PlotGeometry, options?: PaintImageOptions): void;
+type PaintImageOptions = ImageOptions & Readonly<{
+  pixelRatio?: number;
+  makePath?: (d: string) => PlotPath;
+}>;
+function plotPng(geometry: PlotGeometry, canvas: PngCanvas, options?: PaintImageOptions): Promise<Uint8Array>;
+type PngCanvas = PlotCanvasElement & Readonly<{
+  convertToBlob: (options: Readonly<{
+    type: 'image/png';
+  }>) => Promise<Readonly<{
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  }>>;
+}>;
+```
+
 ## ./canvas/plot
 
 ```ts
@@ -1359,6 +1448,8 @@ type PaintPlotOptions = Readonly<{
   fontFamily?: string;
   labelSize?: number;
   makePath?: (d: string) => PlotPath;
+  background?: string;
+  points?: boolean;
 }>;
 type PlotCanvasColors = Readonly<{
   current: string;
@@ -1740,6 +1831,75 @@ type SegmentAccessors<T> = Readonly<{
 }>;
 ```
 
+## ./chart/space3d
+
+```ts
+type AxisName3 = 'x' | 'y' | 'z';
+type Domain3 = readonly [number, number];
+function rgbOf(colour: string): number;
+function scatter3d<D>(data: ReadonlyArray<D>, accessors: Scatter3dAccessors<D>, options?: Space3dOptions & Readonly<{
+  domains?: Partial<Record<AxisName3, Domain3>>;
+  palette?: ReadonlyArray<string>;
+}>): Scatter3d;
+type Scatter3d = Readonly<{
+  space: Space3d;
+  positions: ReadonlyArray<Vec3>;
+  colors: ReadonlyArray<number>;
+  rows: ReadonlyArray<number>;
+  legend: ReadonlyArray<Readonly<{
+    label: string;
+    color: number;
+  }>>;
+}>;
+type Scatter3dAccessors<D> = Readonly<{
+  x: (d: D) => number;
+  y: (d: D) => number;
+  z: (d: D) => number;
+  color?: (d: D) => string;
+}>;
+type Segment3 = readonly [Vec3, Vec3];
+function space3d(domains: Readonly<Record<AxisName3, Domain3>>, options?: Space3dOptions): Space3d;
+type Space3d = Readonly<{
+  half: number;
+  domains: Readonly<Record<AxisName3, Domain3>>;
+  place: (x: number, y: number, z: number) => Vec3;
+  box: ReadonlyArray<Segment3>;
+  grid: ReadonlyArray<Segment3>;
+  axes: readonly [Space3dAxis, Space3dAxis, Space3dAxis];
+}>;
+type Space3dAxis = Readonly<{
+  name: AxisName3;
+  label: string;
+  labelPosition: Vec3;
+  ticks: ReadonlyArray<Space3dTick>;
+}>;
+type Space3dOptions = Readonly<{
+  half?: number;
+  ticks?: number;
+  labels?: Partial<Record<AxisName3, string>>;
+}>;
+type Space3dTick = Readonly<{
+  value: number;
+  label: string;
+  position: Vec3;
+}>;
+function surface3d(grid: Surface3dGrid, options?: Space3dOptions & Readonly<{
+  scheme?: ReadonlyArray<string>;
+}>): Surface3d;
+type Surface3d = Readonly<{
+  space: Space3d;
+  points: ReadonlyArray<Vec3>;
+  colors: ReadonlyArray<number>;
+  range: Domain3;
+}>;
+type Surface3dGrid = Readonly<{
+  xs: ReadonlyArray<number>;
+  ys: ReadonlyArray<number>;
+  z: ReadonlyArray<ReadonlyArray<number>>;
+}>;
+type Vec3 = readonly [number, number, number];
+```
+
 ## ./chart/theme
 
 ```ts
@@ -1758,8 +1918,68 @@ type ChartTheme = Readonly<{
   series: SeriesStyle;
 }>;
 type ChartThemeProperty = '--chart-background' | '--chart-text' | '--chart-muted-text' | '--chart-grid' | '--chart-axis' | '--chart-focus' | '--chart-selection' | '--chart-tooltip-background' | '--chart-tooltip-text' | '--chart-font-family' | '--chart-label-size';
+const chartThemes: {
+  readonly light: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly dark: Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-light': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+  readonly 'high-contrast-dark': Readonly<{
+    background: string;
+    text: string;
+    mutedText: string;
+    grid: string;
+    axis: string;
+    focus: string;
+    selection: string;
+    tooltipBackground: string;
+    tooltipText: string;
+    fontFamily: string;
+    labelSize: number;
+    series: SeriesStyle;
+  }>;
+};
 function createSeriesStyles(domain: ReadonlyArray<string>, palette: ReadonlyArray<string>, overrides?: ReadonlyMap<string, Partial<SeriesStyle>>): ReadonlyMap<string, SeriesStyle>;
 const darkTheme: ChartTheme;
+const highContrastDarkTheme: ChartTheme;
+const highContrastLightTheme: ChartTheme;
 const lightTheme: ChartTheme;
 function resolveSeriesStyle(theme: ChartTheme, chart: Partial<SeriesStyle>, series: Partial<SeriesStyle>, datum: Partial<SeriesStyle>): SeriesStyle;
 type SeriesStyle = Readonly<{
@@ -1771,6 +1991,7 @@ type SeriesStyle = Readonly<{
   symbol: SymbolType;
   dashPattern: string;
 }>;
+type ThemeName = 'light' | 'dark' | 'high-contrast-light' | 'high-contrast-dark';
 function themeProperties(theme: ChartTheme): {
   '--chart-background': string;
   '--chart-text': string;
@@ -1784,6 +2005,21 @@ function themeProperties(theme: ChartTheme): {
   '--chart-font-family': string;
   '--chart-label-size': string;
 };
+```
+
+## ./effect-three/space3d
+
+```ts
+function scatter3dScene(scatter: Scatter3d, options: Space3dSceneOptions & Readonly<{
+  pointSize?: number;
+}>): GroupNode;
+function space3dNodes(space: Space3d, options: Space3dSceneOptions): ReadonlyArray<SceneNode>;
+type Space3dSceneOptions = Readonly<{
+  key: string;
+  theme?: Pick<ChartTheme, 'text' | 'mutedText' | 'grid' | 'axis'>;
+  fontSize?: number;
+}>;
+function surface3dScene(surface: Surface3d, options: Space3dSceneOptions): GroupNode;
 ```
 
 ## ./foldkit/cartesian
@@ -1984,6 +2220,10 @@ function plotCanvas<M>(h: HtmlBuilder<M>, geometry: PlotGeometry, options: PlotC
 type PlotCanvasOptions<M> = Readonly<{
   onMount: MountAction<M>;
   key: string;
+  pointsLayer?: Readonly<{
+    key: string;
+    onMount: MountAction<M>;
+  }>;
   palette?: PlotPalette;
   legend?: boolean;
   overlay?: PlotOverlay;
@@ -2018,6 +2258,7 @@ type PlotPalette = Readonly<{
   axis: string;
   fontFamily: string;
   labelSize: number;
+  background?: string;
 }>;
 ```
 
@@ -2201,6 +2442,23 @@ function panDomain(domain: ContinuousDomain, delta: number, bounds: ContinuousDo
 function zoomDomain(domain: ContinuousDomain, factor: number, anchor: number, bounds: ContinuousDomain, minSpan: number): ContinuousDomain;
 ```
 
+## ./jupyter
+
+```ts
+function displayPlot(spec: PlotSpec, options?: PlotDisplayOptions): JupyterDisplayable;
+const jupyterDisplay: unique symbol;
+type JupyterDisplayable = Readonly<{
+  [jupyterDisplay]: () => PlotMimeBundle;
+}>;
+type PlotDisplayOptions = Omit<PlotHtmlOptions, 'palette'>;
+function plotMimeBundle(geometry: PlotGeometry, options?: PlotDisplayOptions): PlotMimeBundle;
+type PlotMimeBundle = Readonly<{
+  'text/html': string;
+  'image/svg+xml': string;
+  'text/plain': string;
+}>;
+```
+
 ## ./layout/text
 
 ```ts
@@ -2294,6 +2552,7 @@ type BinConfig<T = number> = Readonly<{
   domain?: readonly [number, number];
   thresholds?: number | ReadonlyArray<number>;
 }>;
+function binThresholds(domain: readonly [number, number], thresholds?: number | ReadonlyArray<number>): ReadonlyArray<number>;
 ```
 
 ## ./math/bin2d
@@ -2321,6 +2580,13 @@ type RectBin<T> = Readonly<{
   count: number;
   values: ReadonlyArray<T>;
 }>;
+function rectBinEdges(config: RectBinsConfig): (i: number, j: number) => Readonly<{
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}>;
+const rectBinIndex: (value: number, lo: number, hi: number, n: number) => number;
 function rectBins<T>(data: ReadonlyArray<T>, accessors: Bin2dAccessors<T>, config: RectBinsConfig): ReadonlyArray<RectBin<T>>;
 type RectBinsConfig = Readonly<{
   xDomain: readonly [number, number];
@@ -2370,6 +2636,7 @@ type ColorScaleConfig = Readonly<{
   interpolator: (t: number) => string;
   clamp?: boolean;
 }>;
+function contrastRatio(a: string, b: string): number;
 function divergingScale(config: DivergingScaleConfig): (value: number) => string;
 type DivergingScaleConfig = Readonly<{
   domain: readonly [number, number, number];
@@ -2728,6 +2995,9 @@ function translateMatrix(translateX: number, translateY: number): TransformMatri
 
 ```ts
 function angularLabel(geometry: PolarGeometry, angle: number): AngularLabel;
+function appendPoints(geometry: PlotGeometry, spec: PlotSpec, chunk: PlotData, options: Readonly<{
+  rowOffset: number;
+}>): PlotGeometry;
 type ArcDiagramMark = CommonMark & Readonly<{
   mark: 'arc-diagram';
   source: Channel;
@@ -2833,6 +3103,11 @@ type ColorScaleSpec = Readonly<{
   label?: string;
 }>;
 type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+function columnStore(): ColumnStore;
+type ColumnStore = Readonly<{
+  append: (chunk: PlotData) => ColumnTable;
+  table: () => ColumnTable;
+}>;
 function columnTable(columns: Readonly<Record<string, Column>>): ColumnTable;
 type ColumnTable = Readonly<{
   length: number;
@@ -2864,6 +3139,11 @@ type DownsampleTransform = Readonly<{
   type: 'downsample';
   method: 'm4' | 'lttb';
 }>;
+function duckdbColumns(names: ReadonlyArray<string>, columns: ReadonlyArray<ReadonlyArray<unknown>>): ColumnTable;
+interface DuckDBReader {
+  columnNames(): ReadonlyArray<string>;
+  getColumnsJS(): ReadonlyArray<ReadonlyArray<unknown>>;
+}
 type FacetGeometry = Readonly<{
   key: string;
   label: string;
@@ -2885,6 +3165,7 @@ type ForceMark = CommonMark & Readonly<{
   strength?: number;
 }>;
 function fromArrow(table: ArrowTable): ColumnTable;
+const fromDuckDB: (reader: DuckDBReader) => ColumnTable;
 type GeoMark = CommonMark & Readonly<{
   mark: 'geo';
   features: GeoObject;
@@ -3144,6 +3425,7 @@ type ProjectionSpec = Readonly<{
   zoom?: number;
   center?: readonly [number, number];
 }>;
+function pushdown(spec: PlotSpec, source: SqlSource): Promise<PlotSpec>;
 type RectMark = CommonMark & Readonly<{
   mark: 'rect';
   x?: Channel;
@@ -3186,6 +3468,10 @@ type SizeScaleSpec = Readonly<{
   range?: readonly [number, number];
 }>;
 function spokeOf(geometry: PolarGeometry, angle: number): readonly [number, number, number, number];
+type SqlSource = Readonly<{
+  from: string;
+  query: (sql: string) => Promise<ColumnTable>;
+}>;
 type Stack = StackOffset | Readonly<{
   offset?: StackOffset;
   order?: StackOrder;
@@ -3691,4 +3977,143 @@ type StateFlowNode = Readonly<{
   visitCount: number;
 }>;
 type StateFlowNodeRole = 'initial' | 'normal' | 'active' | 'error' | 'transient';
+```
+
+## ./svg/plot
+
+```ts
+const currentColorPalette: PlotPalette;
+function paletteOf(theme: PlotTheme): PlotPalette;
+type PlotChartOptions = Readonly<{
+  palette?: PlotPalette;
+  legend?: boolean;
+  overlay?: PlotOverlay;
+}> & AccessibleOptions;
+function plotHtml(geometry: PlotGeometry, options?: PlotHtmlOptions): string;
+type PlotHtmlOptions = PlotChartOptions & Readonly<{
+  theme?: PlotTheme;
+}>;
+type PlotOverlay = Readonly<{
+  crosshair?: Readonly<{
+    x: number;
+    y: number;
+  }>;
+  ring?: Readonly<{
+    x: number;
+    y: number;
+    r: number;
+  }>;
+  brush?: Readonly<{
+    x0: number;
+    x1: number;
+    facet?: string;
+  }>;
+  color?: string;
+}>;
+type PlotPalette = Readonly<{
+  text: string;
+  mutedText: string;
+  grid: string;
+  axis: string;
+  fontFamily: string;
+  labelSize: number;
+  background?: string;
+}>;
+function plotSvg(geometry: PlotGeometry, options?: PlotSvgOptions): string;
+type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> & Readonly<{
+  theme?: PlotTheme;
+  background?: boolean;
+}>;
+type PlotTheme = ThemeName | PlotPalette;
+```
+
+## ./webgl/points
+
+```ts
+interface GlBuffer {}
+interface GlProgram {}
+interface GlShader {}
+interface GlTexture {}
+interface GlUniformLocation {}
+function parseColour(colour: string): readonly [number, number, number, number];
+type PointsGl = Readonly<{
+  ARRAY_BUFFER: number;
+  STATIC_DRAW: number;
+  DYNAMIC_DRAW: number;
+  FLOAT: number;
+  UNSIGNED_BYTE: number;
+  UNSIGNED_SHORT: number;
+  POINTS: number;
+  VERTEX_SHADER: number;
+  FRAGMENT_SHADER: number;
+  COMPILE_STATUS: number;
+  LINK_STATUS: number;
+  BLEND: number;
+  SCISSOR_TEST: number;
+  ONE: number;
+  ONE_MINUS_SRC_ALPHA: number;
+  COLOR_BUFFER_BIT: number;
+  TEXTURE_2D: number;
+  TEXTURE0: number;
+  RGBA: number;
+  NEAREST: number;
+  CLAMP_TO_EDGE: number;
+  TEXTURE_MIN_FILTER: number;
+  TEXTURE_MAG_FILTER: number;
+  TEXTURE_WRAP_S: number;
+  TEXTURE_WRAP_T: number;
+}> & {
+  createShader(type: number): GlShader | null;
+  shaderSource(shader: GlShader, source: string): void;
+  compileShader(shader: GlShader): void;
+  getShaderParameter(shader: GlShader, name: number): boolean;
+  getShaderInfoLog(shader: GlShader): string | null;
+  deleteShader(shader: GlShader | null): void;
+  createProgram(): GlProgram | null;
+  attachShader(program: GlProgram, shader: GlShader): void;
+  linkProgram(program: GlProgram): void;
+  getProgramParameter(program: GlProgram, name: number): boolean;
+  getProgramInfoLog(program: GlProgram): string | null;
+  useProgram(program: GlProgram | null): void;
+  deleteProgram(program: GlProgram | null): void;
+  createBuffer(): GlBuffer | null;
+  bindBuffer(target: number, buffer: GlBuffer | null): void;
+  bufferData(target: number, data: Float32Array | Uint16Array | Uint8Array, usage: number): void;
+  bufferSubData(target: number, offset: number, data: Float32Array | Uint16Array | Uint8Array): void;
+  deleteBuffer(buffer: GlBuffer | null): void;
+  getAttribLocation(program: GlProgram, name: string): number;
+  enableVertexAttribArray(index: number): void;
+  disableVertexAttribArray(index: number): void;
+  vertexAttribPointer(index: number, size: number, type: number, normalized: boolean, stride: number, offset: number): void;
+  vertexAttrib1f(index: number, value: number): void;
+  getUniformLocation(program: GlProgram, name: string): GlUniformLocation | null;
+  uniform1f(location: GlUniformLocation | null, x: number): void;
+  uniform1i(location: GlUniformLocation | null, x: number): void;
+  uniform2f(location: GlUniformLocation | null, x: number, y: number): void;
+  createTexture(): GlTexture | null;
+  bindTexture(target: number, texture: GlTexture | null): void;
+  activeTexture(unit: number): void;
+  texParameteri(target: number, name: number, value: number): void;
+  texImage2D(target: number, level: number, internalFormat: number, width: number, height: number, border: number, format: number, type: number, pixels: Uint8Array | null): void;
+  deleteTexture(texture: GlTexture | null): void;
+  viewport(x: number, y: number, width: number, height: number): void;
+  clearColor(r: number, g: number, b: number, a: number): void;
+  clear(mask: number): void;
+  enable(capability: number): void;
+  disable(capability: number): void;
+  blendFunc(source: number, destination: number): void;
+  scissor(x: number, y: number, width: number, height: number): void;
+  drawArrays(mode: number, first: number, count: number): void;
+};
+function pointsLayer(gl: PointsGl, geometry: PlotGeometry, options?: PointsLayerOptions): PointsLayer;
+type PointsLayer = Readonly<{
+  highlight: (geometry: PlotGeometry) => void;
+  append: (geometry: PlotGeometry) => void;
+  draw: () => void;
+  dispose: () => void;
+}>;
+type PointsLayerOptions = Readonly<{
+  pixelRatio?: number;
+  current?: string;
+}>;
 ```

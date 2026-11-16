@@ -42,6 +42,40 @@ describe('explore', () => {
     expect(clicked.brushed).toBeNull();
   });
 
+  it('highlights live while dragging on the GPU, repainting the points layer in place', () => {
+    expect(model.points).toBe('gpu');
+    const pressed = update(model, Message.PressedPointer({ surface: 'histogram', x: 100 })).model;
+    const dragging = update(pressed, Message.MovedPointer({ surface: 'histogram', x: 300, y: 50 }));
+    expect(dragging.model.brushed?.[0]).toBeLessThan(dragging.model.brushed?.[1] ?? 0);
+    expect(dragging.commands?.map((command) => command.name)).toEqual(['HighlightScatter']);
+    // The same covered bins keep the same highlight, and repaint nothing.
+    const still = update(
+      dragging.model,
+      Message.MovedPointer({ surface: 'histogram', x: 301, y: 50 }),
+    );
+    expect(still.commands).toBeUndefined();
+    const reset = update(dragging.model, Message.ResetView());
+    expect(reset.commands?.map((command) => command.name)).toEqual(['HighlightScatter']);
+  });
+
+  it('falls back to canvas when the GPU layer cannot be made, highlighting on release as before', () => {
+    const fallback = update(
+      model,
+      Message.FailedPointsLayer({ reason: 'WebGL is unavailable' }),
+    ).model;
+    expect(fallback.points).toBe('canvas');
+    const pressed = update(
+      fallback,
+      Message.PressedPointer({ surface: 'histogram', x: 100 }),
+    ).model;
+    const dragging = update(pressed, Message.MovedPointer({ surface: 'histogram', x: 300, y: 50 }));
+    expect(dragging.model.brushed).toBeNull();
+    expect(dragging.commands).toBeUndefined();
+    const released = update(dragging.model, Message.ReleasedPointer());
+    expect(released.model.brushed).not.toBeNull();
+    expect(released.commands).toBeUndefined();
+  });
+
   it('zooms the latency axis in and resets', () => {
     const zoomed = update(model, Message.ZoomedIn()).model;
     expect(zoomed.domain).not.toBeNull();

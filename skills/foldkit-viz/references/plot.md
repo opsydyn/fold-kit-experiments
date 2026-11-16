@@ -1,8 +1,8 @@
 # The plot grammar
 
-`@opsydyn/foldkit-viz/plot` is newer than `0.17.0`. Before using anything here,
-confirm the installed package's export map has `./plot`. Where it does not, use
-the geometry layers in [chart composition](charts.md).
+`@opsydyn/foldkit-viz/plot` is new in `0.18.0`. On an older installed version,
+whose export map has no `./plot`, use the geometry layers in
+[chart composition](charts.md).
 
 ## When to use it
 
@@ -18,6 +18,34 @@ the geometry layers in [chart composition](charts.md).
 `compilePlot(spec)` is pure and framework-free. It returns geometry, which
 `foldkit/plot` (`plotChart`, `plotCanvas`) renders in a FoldKit view, and
 `canvas/plot` (`paintCanvas`) paints on a canvas with no FoldKit at all.
+Where the installed export map has them (`0.19.0` and newer), `svg/plot`
+returns markup strings with no framework: `plotSvg` a standalone SVG file with
+its legends, in the `light` theme unless given another, and `plotHtml` the same
+figure `plotChart` renders. `canvas/image` paints that picture on a canvas and
+`plotPng` encodes it through a canvas the caller supplies (foldkit-viz bundles no
+rasteriser). A `theme` is a `ThemeName` (`light`, `dark`, `high-contrast-light`,
+`high-contrast-dark`) or a palette; choose a high-contrast theme where readers
+need AAA text contrast, and never invent theme colours without checking them
+with `contrastRatio`. In a Deno or Bun Jupyter kernel, make
+`displayPlot(spec)` from `jupyter` a cell's value; `plotMimeBundle` builds the
+same bundle from geometry. From Python, the repository's `foldkit_viz.Plot`
+anywidget (not on PyPI yet) checks a spec against the schema and draws it the
+same way. Don't hand-write SVG for a chart the grammar draws. For a dense
+mark that must restyle within a frame (live brushing), draw the points with
+`webgl/points` above a canvas painted with `points: false`, keep the layer for
+the canvas's lifetime, and on each brush call `highlight` with the
+`highlightPoints` result, then `draw`; do not remount the canvas per brush.
+
+For DuckDB, plot `fromDuckDB(reader)` rather than row objects; for a result
+streamed in, convert each chunk with `duckdbColumns`, grow a `columnStore`, and
+add points with `appendPoints` when the spec fixes every domain a chunk could
+move (otherwise recompile; `appendPoints` refuses rather than guess).
+
+When the data stays in DuckDB or Polars, use `pushdown(spec, { from, query })`
+to count binned rect marks in the engine instead of pulling every row; it gives
+the same geometry as a local compile. Never build `from` from user input. In
+the browser, DuckDB-Wasm returns Arrow tables: wrap `connection.query` with
+`fromArrow` to make the `query` function.
 
 ## Spec rules
 

@@ -56,27 +56,44 @@ export function rectBins<T>(
   const nx = binCount(config.xCount, 'x'),
     ny = binCount(config.yCount, 'y');
   const cells: T[][] = Array.from({ length: nx * ny }, () => []);
-  const index = (value: number, lo: number, hi: number, n: number): number =>
-    value === hi ? n - 1 : Math.floor(((value - lo) / (hi - lo)) * n);
+  const index = rectBinIndex;
   data.forEach((datum, i) => {
     const x = accessors.x(datum, i),
       y = accessors.y(datum, i);
     if (!Number.isFinite(x) || !Number.isFinite(y) || x < x0 || x > x1 || y < y0 || y > y1) return;
     cells[index(x, x0, x1, nx) * ny + index(y, y0, y1, ny)]?.push(datum);
   });
+  const edges = rectBinEdges(config);
+  return cells.map((values, cell) => ({
+    ...edges(Math.floor(cell / ny), cell % ny),
+    count: values.length,
+    values,
+  }));
+}
+
+/**
+ * The column (or row) of a grid of `n` equal bins over [lo, hi] holding a
+ * value, the top bin closed: as rectBins places points, for another engine
+ * (a SQL query, say) to place them the same way.
+ */
+export const rectBinIndex = (value: number, lo: number, hi: number, n: number): number =>
+  value === hi ? n - 1 : Math.floor(((value - lo) / (hi - lo)) * n);
+
+/** The edges of cell (i, j) in rectBins' grid. */
+export function rectBinEdges(
+  config: RectBinsConfig,
+): (i: number, j: number) => Readonly<{ x0: number; x1: number; y0: number; y1: number }> {
+  const [x0, x1] = ascending(config.xDomain, 'x');
+  const [y0, y1] = ascending(config.yDomain, 'y');
+  const nx = binCount(config.xCount, 'x'),
+    ny = binCount(config.yCount, 'y');
   const wx = (x1 - x0) / nx,
     wy = (y1 - y0) / ny;
-  return cells.map((values, cell) => {
-    const i = Math.floor(cell / ny),
-      j = cell % ny;
-    return {
-      x0: x0 + i * wx,
-      x1: i === nx - 1 ? x1 : x0 + (i + 1) * wx,
-      y0: y0 + j * wy,
-      y1: j === ny - 1 ? y1 : y0 + (j + 1) * wy,
-      count: values.length,
-      values,
-    };
+  return (i, j) => ({
+    x0: x0 + i * wx,
+    x1: i === nx - 1 ? x1 : x0 + (i + 1) * wx,
+    y0: y0 + j * wy,
+    y1: j === ny - 1 ? y1 : y0 + (j + 1) * wy,
   });
 }
 

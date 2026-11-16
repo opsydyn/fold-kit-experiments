@@ -537,6 +537,15 @@ const sceneFields = {
       planes: Schema.Boolean,
       meshes: Schema.Boolean,
       domOverlay: Schema.Boolean,
+      teleportArc: Schema.NullOr(
+        Schema.Struct({
+          hand: Schema.Literals(['left', 'right']),
+          targets: Schema.Tuple([Schema.Literals(['floor'])]),
+          color: Schema.Literals([0xffffff]),
+          opacity: Schema.Literals([0.4, 1]),
+        }),
+      ),
+      poses: Schema.NullOr(Schema.Literals([0.05, 0.1])),
       glide: Schema.NullOr(
         Schema.Struct({
           speed: Schema.Literals([2]),

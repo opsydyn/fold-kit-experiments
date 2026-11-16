@@ -361,3 +361,122 @@ test('with planes and meshes, what was detected is reported once, where it is in
   expect(meshes).toEqual(['xr-meshes mesh-0:couch@2.0,0.5,-2.0']);
   await page.close();
 }, 60_000);
+
+function teleportReady(): void {
+  // The left controller at hand height, level: its arc dips and falls to the floor ahead.
+  Reflect.get(globalThis, '__xr').aimLeft(1.2);
+}
+function holdLeft(): void {
+  Reflect.get(globalThis, '__xr').leftTrigger(1);
+}
+function letGoLeft(): void {
+  Reflect.get(globalThis, '__xr').leftTrigger(0);
+}
+function arc(): { readonly shown: boolean; readonly ring: ReadonlyArray<number> | undefined } {
+  return Reflect.get(globalThis, '__xr').arc();
+}
+
+test('with a teleport arc, holding select draws it to the floor, and letting go says where to stand', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('xr.html?teleport'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enter);
+  await page.waitForFunction(sessionsReported, 1);
+  await pointAway(page);
+  await inPage(page, teleportReady);
+  await settle(page);
+  // Not held: no arc.
+  expect((await inPage(page, arc)).shown).toBe(false);
+  await inPage(page, holdLeft);
+  await settle(page);
+  const held = await inPage(page, arc);
+  expect(held.shown).toBe(true);
+  // The player stands at x = 2 facing +x: the arc lands on the floor ahead of them.
+  const [ringX = 0, ringY = 1, ringZ = 1] = held.ring ?? [];
+  expect(ringY).toBeCloseTo(0, 2);
+  expect(ringX).toBeGreaterThan(3);
+  expect(Math.abs(ringZ)).toBeLessThan(1.5);
+  const [headX = 0, , headZ = 0] = (await inPage(page, head)) ?? [];
+  await inPage(page, letGoLeft);
+  await settle(page);
+  // A teleport, not a click: the arc's hand's select is the arc's.
+  const said = await inPage(page, events);
+  expect(said.filter((line) => line.startsWith('scene-click') || line.startsWith('click'))).toEqual(
+    [],
+  );
+  const teleported = said.filter((line) => line.startsWith('xr-teleported'));
+  expect(teleported).toHaveLength(1);
+  // The origin moves so the head stands over the ring.
+  const [originX = 0, , originZ = 0] =
+    (teleported[0] ?? '').split(' ').at(-1)?.split(',').map(Number) ?? [];
+  expect(originX - 2 + headX).toBeCloseTo(ringX, 0);
+  expect(originZ + headZ).toBeCloseTo(ringZ, 0);
+  expect((await inPage(page, arc)).shown).toBe(false);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
+type Pose = {
+  readonly position: ReadonlyArray<number>;
+  readonly quaternion: ReadonlyArray<number>;
+};
+type Poses = { readonly head: Pose; readonly left: Pose | null; readonly right: Pose | null };
+
+function posesHeard(): ReadonlyArray<Poses> {
+  return Reflect.get(globalThis, '__xr').poses();
+}
+/** The headset two metres up and half a metre to its right, in its own space. */
+function standTall(): void {
+  Reflect.get(globalThis, '__xr').moveHead(0.5, 2, 0);
+}
+
+test('with poses, the head and hands are reported in the scene’s space, about as often as asked', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('xr.html?poses'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enter);
+  await page.waitForFunction(sessionsReported, 1);
+  await inPage(page, standTall);
+  await settle(page);
+  const before = (await inPage(page, posesHeard)).length;
+  await page.waitForTimeout(1000);
+  const heard = await inPage(page, posesHeard);
+  // Every tenth of a second: about ten in a second, however fast frames come.
+  expect(heard.length - before).toBeGreaterThan(4);
+  expect(heard.length - before).toBeLessThan(14);
+  const last = heard.at(-1);
+  // The player stands at x = 2 facing +x: half a metre to the headset's right is +z.
+  const [x = 0, y = 0, z = 0] = last?.head.position ?? [];
+  expect(x).toBeCloseTo(2, 1);
+  expect(y).toBeCloseTo(2, 1);
+  expect(z).toBeCloseTo(0.5, 1);
+  // The headset's heading: facing +x is a quarter turn about y from −z.
+  const [, qy = 0, , qw = 1] = last?.head.quaternion ?? [];
+  expect(Math.abs(2 * Math.atan2(qy, qw))).toBeCloseTo(Math.PI / 2, 1);
+  // Both controllers are held: both grips are reported.
+  expect(last?.left).not.toBeNull();
+  expect(last?.right).not.toBeNull();
+  await inPage(page, exit);
+  await page.waitForFunction(sessionsReported, 2);
+  const after = (await inPage(page, posesHeard)).length;
+  await page.waitForTimeout(300);
+  // Nothing more once the session ends.
+  expect((await inPage(page, posesHeard)).length).toBe(after);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
+test('without poses, nothing is reported', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  await page.goto(app.url('xr.html'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enter);
+  await page.waitForFunction(sessionsReported, 1);
+  await page.waitForTimeout(500);
+  expect(await inPage(page, posesHeard)).toEqual([]);
+  await page.close();
+}, 60_000);

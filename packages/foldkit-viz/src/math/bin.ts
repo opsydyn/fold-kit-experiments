@@ -47,6 +47,21 @@ function valuesExtent(values: ReadonlyArray<number>): readonly [number, number] 
  * The first bin's lower bound and last bin's upper bound are inclusive;
  * interior boundaries are exclusive on the left, matching D3 parity.
  */
+/**
+ * The breakpoints `bin` uses inside a domain, excluding its ends: about `n`
+ * nice ticks for a count (default 10), or the given breaks that fall inside.
+ * A value's bin is how many breakpoints are at or below it, so another engine
+ * (a SQL query, say) can bin exactly as `bin` does.
+ */
+export function binThresholds(
+  domain: readonly [number, number],
+  thresholds: number | ReadonlyArray<number> = 10,
+): ReadonlyArray<number> {
+  const [lo, hi] = domain;
+  const breaks = isThresholdArray(thresholds) ? thresholds : linearTicks([lo, hi], thresholds);
+  return breaks.filter((t) => t > lo && t < hi);
+}
+
 export function bin<T = number>(
   data: ReadonlyArray<T>,
   config: BinConfig<T> = {},
@@ -58,17 +73,7 @@ export function bin<T = number>(
   const [domainMin, domainMax] = config.domain ?? valuesExtent(values);
   if (!Number.isFinite(domainMin) || !Number.isFinite(domainMax)) return [];
 
-  // Compute threshold breakpoints, excluding the domain endpoints
-  let thresholds: ReadonlyArray<number>;
-  const configuredThresholds = config.thresholds;
-  if (configuredThresholds === undefined || !isThresholdArray(configuredThresholds)) {
-    const count = configuredThresholds ?? 10;
-    thresholds = linearTicks([domainMin, domainMax], count).filter(
-      (t) => t > domainMin && t < domainMax,
-    );
-  } else {
-    thresholds = configuredThresholds.filter((t) => t > domainMin && t < domainMax);
-  }
+  const thresholds = binThresholds([domainMin, domainMax], config.thresholds);
 
   const n = thresholds.length;
   const buckets: Array<T[]> = Array.from({ length: n + 1 }, () => []);

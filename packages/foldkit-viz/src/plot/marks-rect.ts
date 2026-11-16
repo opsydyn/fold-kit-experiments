@@ -71,7 +71,8 @@ export type BinnedRows = Readonly<{
 }>;
 
 /** The field splitting a rect's rows into series: z, or the colour field. */
-const seriesField = (mark: RectMark): string | undefined =>
+/** The field a histogram bins separately by: z, else the fill or stroke field. */
+export const seriesField = (mark: RectMark): string | undefined =>
   mark.z ?? fieldOf(mark.fill) ?? fieldOf(mark.stroke);
 
 /**

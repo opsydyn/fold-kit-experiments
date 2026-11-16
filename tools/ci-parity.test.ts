@@ -480,6 +480,14 @@ const RELATIVE = /['"`](\.\.\/[^'"`$\s]*)/g;
  */
 const NOT_READS: ReadonlyMap<string, string> = new Map([
   [
+    'apps/web/playwright.zloz.config.ts :: ../../apps/zloz-demo/evidence/v3-completion/playwright-results.json',
+    'the Playwright JSON reporter writes this generated output; no task reads it as an input',
+  ],
+  [
+    'apps/web/playwright.zloz.config.ts :: ../../apps/zloz-demo/evidence/v3-completion/browser-artifacts',
+    'Playwright writes screenshots and traces here; the uncached browser task does not read them as inputs',
+  ],
+  [
     'packages/effect-three-samples/scripts/scene-mcp.ts :: ../../../node_modules/.bin/foldkit-devtools-mcp',
     'the Foldkit DevTools MCP server it starts when run, not a file a task reads',
   ],

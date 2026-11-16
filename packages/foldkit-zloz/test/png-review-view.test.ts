@@ -67,3 +67,17 @@ test('native PNG controls label settings, require consent and an actual render; 
   expect(minimal.querySelector('ul')?.textContent).toContain('flattens');
   expect(minimal.body.textContent).not.toContain('same bytes.');
 });
+test('PNG field labels contain only their names and independently bind their selects', async () => {
+  const document = await render();
+  for (const [field, name] of [
+    ['regionId', 'PNG region'],
+    ['themeId', 'PNG theme'],
+    ['backgroundId', 'PNG background'],
+    ['scale', 'PNG scale'],
+  ] as const) {
+    const label = document.querySelector(`label[for="zloz-png-review-${field}"]`);
+    expect(label?.textContent).toBe(name);
+    expect(label?.querySelector('select')).toBeNull();
+    expect(document.getElementById(`zloz-png-review-${field}`)?.tagName).toBe('SELECT');
+  }
+});

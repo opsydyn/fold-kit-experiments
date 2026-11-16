@@ -3,11 +3,9 @@
 Optional automatic layout for `@opsydyn/foldkit-zloz`. The adapter maps flat and nested graphs with fixed ports to ELK Layered. It returns node
 positions, fitted group bounds, and orthogonal edge routes. It owns no UI, persistence, graph state or workflow execution.
 
-Version 0.1.0 is a local release candidate; npm publication has not been performed.
+The public package family is released together. The native v3 entry below is an unreleased addition to 0.5.0.
 
 ## Install and use
-
-After publication:
 
 ```sh
 npm install @opsydyn/foldkit-zloz @opsydyn/foldkit-zloz-elk
@@ -46,8 +44,7 @@ does not cancel ELK computation; request/revision checks prevent late publicatio
 See [ELK's worker documentation](https://github.com/kieler/elkjs#web-worker).
 
 ELK is an external dependency, not bundled into this package. The core package
-installs and works without it. Node 22+, ESM only. Initial compatibility is Zloz
-0.1.0 and the pinned elkjs 0.12.1. Both Zloz packages release at the same version.
+installs and works without it. Node 22+, ESM only. Compatibility uses the matching Zloz version and the pinned elkjs 0.12.1. Both Zloz packages release at the same version.
 The adapter has no FoldKit or Effect peer.
 
 The default adapter is qualified in Node and Chromium. Bun can compute layouts,
@@ -117,3 +114,41 @@ regressions qualify both directions. Requalify the correction when upgrading ELK
 or supplying a worker from another version. No post-layout stretching is used.
 These hints reserve child-node space; they do not guarantee arbitrary route or
 custom-artwork collision avoidance.
+
+## Native v3 group-port layout (unreleased)
+
+Use the distinct full-document entry for authored group ports:
+
+```ts
+import { groupLayoutRequestV3, applyGroupLayoutV3 } from '@opsydyn/foldkit-zloz';
+import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+
+const active = groupLayoutRequestV3(editorV3, 'arrange-v3-1');
+// Store active in Model before executing this Promise in a Command.
+const result = await createElkGroupLayoutV3({ direction: 'RIGHT' })(active);
+// At completion, read the current editor, active request and live policy from Model.
+const decision = applyGroupLayoutV3(currentEditor, currentActive, result, livePolicy);
+```
+
+Both RIGHT and DOWN support nested rectangular groups, unused/authored group
+ports, ancestor-to-descendant edges and crossing boundaries. Group port definitions,
+custom anchors, identities, membership, metadata, modes, capabilities and camera
+remain authored data. ELK changes world positions and group bounds; core validates
+all nodes/routes, declared header/label envelopes and resize/extent constraints.
+A stale source, lifecycle veto or protected move/resize blocks the entire result.
+A changed layout appends one Undo frame; identical geometry appends none.
+
+`applyGroupWorkbenchLayoutV3` integrates accepted routes into the native controller.
+Its optional Foldkit view renders them only while the complete document matches,
+no move/connection gesture is active and no collapsed projection is present.
+Undo/editing invalidates routes; camera/selection do not author layout geometry.
+Routes are transient, not serialized into authored edges. Authored waypoints keep
+precedence. Engine interiors are orthogonal; connector leads join ELK's fixed
+boundary points to the exact final authored anchors after group resizing, and
+may be oblique. This is not an obstacle/collision guarantee for arbitrary custom
+content. Fixed-position compound ports are qualified with elkjs 0.12.1; its
+FIXED_RATIO path failed on the nested regression and is not used.
+
+Logical cancellation and supersession ignore late results; they do not terminate
+ELK computation. Worker ownership and the Node/Bun qualification limits above
+also apply to the native entry. V1/v2 `createElkLayout` still rejects group ports.

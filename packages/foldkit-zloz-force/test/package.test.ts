@@ -13,7 +13,14 @@ import manifest from '../package.json';
 
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const options = { cwd: root, maxBuffer: 5 * 1024 * 1024 };
+// A child can stall independently of Bun's outer test deadline. Bound it so
+// cleanup runs and the failure names the exact compiler/runtime command.
+const options = {
+  cwd: root,
+  maxBuffer: 5 * 1024 * 1024,
+  timeout: 45_000,
+  killSignal: 'SIGKILL' as const,
+};
 
 test('packed adapter installs in a clean npm consumer and runs in Node and Bun', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'foldkit-zloz-force-consumer-'));
@@ -76,7 +83,8 @@ console.log('force-consumer-ok');
     const consumer = path.join(directory, 'consumer.ts');
     await writeFile(consumer, source);
     const tsc = path.join(root, 'packages/foldkit-zloz-force/node_modules/.bin/tsc');
-    for (const resolution of ['Bundler', 'NodeNext'])
+    for (const resolution of ['Bundler', 'NodeNext']) {
+      console.info(`[force-consumer] TypeScript ${resolution}`);
       await exec(
         tsc,
         [
@@ -93,6 +101,8 @@ console.log('force-consumer-ok');
         ],
         { ...options, cwd: directory },
       );
+    }
+    console.info('[force-consumer] TypeScript emit');
     await exec(
       tsc,
       [
@@ -108,6 +118,7 @@ console.log('force-consumer-ok');
       { ...options, cwd: directory },
     );
     for (const runtime of ['node', 'bun']) {
+      console.info(`[force-consumer] ${runtime} execution`);
       const result = await exec(runtime, [path.join(directory, 'compiled/consumer.js')], {
         ...options,
         cwd: directory,

@@ -831,3 +831,51 @@ for (const mode of ['strict', 'loose'] as const)
         release();
       });
     }
+
+test('native opt-in pointer origin survives surface reflow while legacy coordinates retain their existing behavior', () => {
+  for (const stable of [false, true]) {
+    const window = new Window();
+    Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+    Object.defineProperty(globalThis, 'PointerEvent', {
+      value: window.PointerEvent,
+      configurable: true,
+    });
+    const surface = document.createElement('div');
+    surface.dataset.flowSurface = '';
+    surface.dataset.flowStablePointerOrigin = String(stable);
+    surface.innerHTML =
+      '<button data-flow-resize="a" data-flow-resize-handle="bottom-right">Resize</button>';
+    document.body.append(surface);
+    let top = 100;
+    surface.getBoundingClientRect = () => new window.DOMRect(20, top, 500, 400);
+    surface.setPointerCapture = () => {};
+    surface.releasePointerCapture = () => {};
+    const events: EditorEvent[] = [],
+      release = bindInput(surface, (event) => events.push(event));
+    surface.querySelector('button')!.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        pointerId: 91,
+        button: 0,
+        clientX: 120,
+        clientY: 200,
+        bubbles: true,
+      }),
+    );
+    top = 160;
+    surface.dispatchEvent(
+      new PointerEvent('pointermove', {
+        pointerId: 91,
+        button: 0,
+        clientX: 140,
+        clientY: 220,
+        bubbles: true,
+      }),
+    );
+    expect(events.find((event) => event.type === 'PointerMoved')).toMatchObject({
+      point: { x: 120, y: stable ? 120 : 60 },
+    });
+    surface.dispatchEvent(new PointerEvent('pointerup', { pointerId: 91, bubbles: true }));
+    release();
+    window.happyDOM.abort();
+  }
+});

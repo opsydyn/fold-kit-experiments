@@ -36,6 +36,8 @@ hasher:
     - '**/packages/astro-foldkit/artifacts/**'
     - '**/apps/web/test-results/**'
     - '**/apps/web/playwright-report/**'
+    - '**/apps/zloz-demo/evidence/v3-completion/**/browser-artifacts/**'
+    - '**/apps/zloz-demo/evidence/v3-completion/**/playwright-results.json'
     - '**/.astro/**'
     - '**/node_modules/**'
     - '**/npm-debug.log*'

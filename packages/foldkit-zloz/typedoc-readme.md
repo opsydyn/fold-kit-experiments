@@ -539,3 +539,69 @@ review, comparison, restore, additive merge and provenance-preserving forks.
 ported checkpoints refuse whole-model downgrade. No bare-graph cast makes a
 legacy entry v3-compatible. See README and batch evidence for native interaction,
 portable adapter, advanced-tool and human acceptance limits.
+
+## Native v3 compound layout
+
+{@link Core.groupLayoutRequestV3} captures the complete source document. Compose
+it with optional {@link ELK.createElkGroupLayoutV3} in a Command, then
+{@link Core.applyGroupLayoutV3} using the current editor, active request and live
+policy. Authored group ports/endpoints, modes, capabilities and camera survive;
+complete validated geometry is one Undo transaction. Stale/partial output and
+current protection vetoes publish nothing.
+
+{@link Core.applyGroupWorkbenchLayoutV3} integrates accepted transient routes into
+the native controller. {@link Core.groupWorkbenchRoutesV3} exposes only routes
+matching the current document and uncollapsed idle projection. Existing legacy
+layout APIs remain version-fixed. See the ELK README and native qualification for
+fixed-position compound port behavior, connector leads and worker/runtime limits.
+
+## Native v3 SVG export
+
+{@link Core.planGroupSvgExportV3} and {@link Core.writeGroupSvgExportV3} validate
+the full document, retain source mode/capability and project nested groups and
+authored sockets. {@link Core.captureGroupSvgLayoutV3} binds retained routes to
+that complete source and a renderer key. Native custom adapters receive the full
+immutable source; safe primitives, fonts, output budgets and explicit fidelity
+findings share the qualified SVG writer.
+
+Compose {@link Core.resolveGroupSvgReviewV3} and
+{@link Core.updateGroupSvgReviewV3} with shared review state and
+{@link FoldKit.zlozSvgReview}. Exact-artifact loss consent and current policy are
+checked before returning a detached download payload for a Command. Export never
+edits history. SVG is static artwork, not an editable model codec; other adapters
+remain separately scoped. See README and native SVG evidence.
+
+## Native v3 PNG export
+
+{@link Core.planGroupPngExportV3} uses the same validated full-document SVG and
+findings, adding explicit rasterization loss and bounded integer output.
+{@link Core.resolveGroupPngReviewV3} / {@link Core.updateGroupPngReviewV3} compose
+with shared PNG review state and {@link FoldKit.zlozPngReview}; consent, full-source
+freshness and live protection guard render, completion and download.
+
+`renderGroupPngExportV3` is the optional browser encoder. It rebuilds
+the native SVG and checks reviewed bytes before allocation. It supports abort,
+deadline and resource cleanup; preview/download use identical PNG bytes.
+SSR import is safe and calls report unsupported without browser APIs. Pixels
+retain no editable semantics; server PNG, broad performance and human acceptance
+remain unqualified. See README and native PNG evidence for limits.
+
+Native v3 session clipboard uses {@link Core.copyGroupSelectionV3},
+{@link Core.groupPasteRequestV3}, {@link Core.planGroupPasteV3} and
+{@link Core.applyGroupPasteV3}. Full-source and live policy checks protect explicit
+node/edge/scoped-port remapping and one full-document Undo. Mode/capability
+mismatches block rather than silently convert. External-parent detachment and
+crossing-edge omissions produce findings. Opaque metadata references are not
+rewritten. {@link FoldKit.zlozGroupClipboardV3} supplies optional composable
+controls with visible reasons, including minimal mode. Session clipboard has no OS
+clipboard IO and is not persisted in models or history.
+
+Native v3 Mermaid is available through {@link Mermaid.exportGroupMermaidV3} and
+{@link Mermaid.resolveGroupMermaidReviewV3} /
+{@link Mermaid.updateGroupMermaidReviewV3}. Group port artwork and exact attachment
+are explicit projection losses; native identity/mode/capability remain in the
+separate v3 bundle. Full-source/output consent and current policy guard downloads.
+{@link MermaidFoldkit.zlozGroupMermaidReviewV3} composes highlighted source, findings,
+consent and download with nullable slots and required reasons in minimal mode.
+{@link FoldKit.zlozThemeStyle} shares scoped token mapping with optional adapters.
+No production Mermaid import, runtime renderer or native packet writer is implied.

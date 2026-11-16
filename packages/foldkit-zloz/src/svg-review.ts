@@ -141,6 +141,22 @@ export function resolveSvgReview(
   state: ZlozSvgReviewState,
   context: ZlozSvgReviewContext,
 ): ZlozSvgReviewControls {
+  return resolveSvgReviewProjection(
+    state,
+    context,
+    (options) =>
+      writeSvgExport(context.snapshot, options, { ...context.writing, allowLosses: true }),
+    (viewport) =>
+      viewport ? serializeSnapshot(context.snapshot) : serializeGraph(context.snapshot.graph),
+  );
+}
+/** @internal Shared review projection; versioned wrappers provide their own validated writer and source identity. */
+export function resolveSvgReviewProjection<R extends ZlozSvgWriteResult>(
+  state: ZlozSvgReviewState,
+  context: ZlozSvgReviewContext,
+  write: (options: ZlozSvgExportOptions) => R,
+  sourceKey: (viewport: boolean) => string,
+): Omit<ZlozSvgReviewControls, 'result'> & Readonly<{ result: R | null }> {
   if (!isRevision(context.sourceRevision))
     invalid('SVG review requires a source revision or immutable snapshot identity.');
   const regions = choices(
@@ -210,9 +226,7 @@ export function resolveSvgReview(
         context.layout === undefined ? configured : { ...configured, layout: context.layout };
     }
   }
-  const result = options
-    ? writeSvgExport(context.snapshot, options, { ...context.writing, allowLosses: true })
-    : null;
+  const result = options ? write(options) : null;
   const artifactReason =
     reason ??
     (result?.type === 'blocked' ? 'Resolve unsupported SVG findings before downloading.' : null);
@@ -220,10 +234,7 @@ export function resolveSvgReview(
   if (policy !== null) reason = reason ?? (policy.trim() || 'SVG downloads are protected.');
   if (result?.type === 'blocked')
     reason = reason ?? 'Resolve unsupported SVG findings before downloading.';
-  const source =
-    region?.type === 'viewport'
-      ? serializeSnapshot(context.snapshot)
-      : serializeGraph(context.snapshot.graph);
+  const source = sourceKey(region?.type === 'viewport');
   const findings = result?.findings ?? [];
   const key = JSON.stringify({
     scope: context.scope,
@@ -268,14 +279,25 @@ export function updateSvgReview(
   context: ZlozSvgReviewContext,
   request: ZlozSvgReviewRequest,
 ): ZlozSvgReviewUpdate {
+  return updateSvgReviewProjection(state, context.scope, request, () =>
+    resolveSvgReview(state, context),
+  );
+}
+/** @internal Common artifact-bound review transitions. Resolution must recompute the current versioned artifact and policy. */
+export function updateSvgReviewProjection(
+  state: ZlozSvgReviewState,
+  scope: string,
+  request: ZlozSvgReviewRequest,
+  resolve: () => ZlozSvgReviewControls,
+): ZlozSvgReviewUpdate {
   const unchanged = (notice = ''): ZlozSvgReviewUpdate => ({ state, payload: null, notice });
   if (
     request.scope !== state.scope ||
-    context.scope !== state.scope ||
+    scope !== state.scope ||
     request.generation !== state.generation
   )
     return unchanged('This SVG review changed; review the current export.');
-  const controls = resolveSvgReview(state, context);
+  const controls = resolve();
   if (request.type === 'SvgDownloadSettled') {
     if (
       state.download.type !== 'pending' ||

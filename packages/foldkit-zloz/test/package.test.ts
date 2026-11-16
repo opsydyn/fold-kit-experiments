@@ -18,7 +18,9 @@ import groupV1Wire from './fixtures/group-document-v1-portless.json';
 import groupV3Wire from './fixtures/group-document-v3-ported.json';
 import nativeModelWire from './fixtures/model-native-v2.json';
 import modelModesWire from './fixtures/model-v2-modes.json';
+import patchReceiptV3Wire from './fixtures/modelling-patch-receipt-v3.json';
 import nativePatchWire from './fixtures/modelling-patch-v2.json';
+import patchV3Wire from './fixtures/modelling-patch-v3.json';
 import workshopWire from './fixtures/workshop-v1.json';
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -57,9 +59,30 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const browserConsumer = `import { renderPngExport } from '@opsydyn/foldkit-zloz/browser';
+    const nativeAuthoringConsumer = `import {parseModellingPatchV3,parseModellingPatchV2,dryRunModellingPatchV3,parseModellingPatchReceiptV3,auditGroupDddRelationshipsV3,createGroupEditorV3,resolveModellingPatchReviewV3,applyModellingPatchV3,updateGroupEditorV3,captureGroupEditorSourceV3} from '@opsydyn/foldkit-zloz';
+const patchResult=parseModellingPatchV3(${JSON.stringify(JSON.stringify(patchV3Wire))});
+if(patchResult.status!=='parsed')throw new Error('Native patch missing');
+const patch=patchResult.value, source=patch.source;
+if(dryRunModellingPatchV3(source,patch).type!=='reviewable'||parseModellingPatchV2(JSON.stringify(patch)).status!=='rejected')throw new Error('Version adapter mismatch');
+const receipt=parseModellingPatchReceiptV3(${JSON.stringify(JSON.stringify(patchReceiptV3Wire))});
+if(receipt.revision!==8||auditGroupDddRelationshipsV3(receipt.snapshot).summary.edges!==1)throw new Error('Native receipt/audit missing');
+const {modelId,sessionId,revision,...document}=source,editor={...createGroupEditorV3(document,{sessionId}),revision};
+const review=resolveModellingPatchReviewV3(editor,modelId,patch), result=applyModellingPatchV3(editor,modelId,patch,{consent:{key:review.key,reviewed:true,lossesAccepted:true}});
+if(result.type!=='applied'||result.editor.history.past.length!==1)throw new Error('Native atomic Apply missing');
+if(updateGroupEditorV3(result.editor,{type:'UndoPressed',source:captureGroupEditorSourceV3(result.editor)}).editor.document.graph.nodes[1].label!==document.graph.nodes[1].label)throw new Error('Native Undo missing');
+console.log('native-authoring-ok');`;
+    for (const runtime of ['node', 'bun']) {
+      const result = await exec(runtime, ['--input-type=module', '-e', nativeAuthoringConsumer], {
+        ...options,
+        cwd: directory,
+      });
+      expect(result.stdout.trim()).toBe('native-authoring-ok');
+    }
+    const browserConsumer = `import { renderPngExport, renderGroupPngExportV3 } from '@opsydyn/foldkit-zloz/browser';
 const result=await renderPngExport({snapshot:{graph:{nodes:[],edges:[]},viewport:{x:0,y:0,zoom:1}},svg:{title:'SSR',region:{type:'model',padding:0},theme:{colorScheme:'light'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}}});
 if(result.type!=='failed'||result.code!=='unsupported')throw new Error('Browser entry imported unsafely under SSR');
+const nativeResult=await renderGroupPngExportV3({document:${JSON.stringify(groupV3Wire)},svg:{title:'Native SSR',region:{type:'model',padding:24},theme:{colorScheme:'light'},background:{type:'theme'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}},writing:{allowLosses:true}});
+if(nativeResult.type!=='failed'||nativeResult.code!=='unsupported')throw new Error('Native browser entry imported unsafely');
 console.log('browser-import-ok');`;
     for (const runtime of ['node', 'bun']) {
       const result = await exec(runtime, ['--input-type=module', '-e', browserConsumer], {
@@ -341,6 +364,28 @@ validateGroupDocumentV3(doc);
 const parsed:ZlozGroupDocumentV3ParseResult=parseGroupDocumentV3(serializeGroupDocumentV3(doc));
 const blocked:ZlozGroupDocumentDowngradePlanV3=planGroupDocumentDowngradeV3(doc);
 if(parsed.status!=='parsed'||!caps.groupPorts||blocked.type!=='blocked'||'document' in blocked||portPosition(doc.graph.nodes[1]!,'out').x!==500||groupDocumentV3Limits.maxDepth!==64)throw new Error('Missing group v3 boundary');
+import {planGroupSvgExportV3,writeGroupSvgExportV3,captureGroupSvgLayoutV3,createSvgReview,resolveGroupSvgReviewV3,updateGroupSvgReviewV3,type ZlozGroupSvgExportOptionsV3,type ZlozGroupSvgReviewContextV3} from '@opsydyn/foldkit-zloz';
+const nativeSvgOptions:ZlozGroupSvgExportOptionsV3={title:'Packed native SVG',region:{type:'model',padding:40},theme:{colorScheme:'dark'},background:{type:'theme'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}};
+const nativeSvgPlan=planGroupSvgExportV3(doc,nativeSvgOptions),nativeSvg=writeGroupSvgExportV3(doc,nativeSvgOptions);
+if(nativeSvg.type!=='written'||nativeSvgPlan.document.capabilities.groupPorts!==true||!nativeSvg.svg.includes('data-zloz-export-owner="g"')||!nativeSvg.svg.includes('data-zloz-document-version="3"'))throw new Error('Packed native v3 SVG source/artwork missing');
+const nativeSvgContext:ZlozGroupSvgReviewContextV3={scope:'installed-svg-v3',sourceRevision:0,document:doc,title:'Packed review',theme:{colorScheme:'light'},renderers:nativeSvgOptions.renderers};
+const nativeSvgState=createSvgReview(nativeSvgContext.scope),nativeSvgControls=resolveGroupSvgReviewV3(nativeSvgState,nativeSvgContext);
+if(nativeSvgControls.result?.type!=='written'||updateGroupSvgReviewV3(nativeSvgState,nativeSvgContext,{...nativeSvgControls.identity,type:'SvgDownloadRequested'}).payload?.svg!==nativeSvgControls.result.svg)throw new Error('Packed SVG review missing');
+const packedSourceEdge=doc.graph.edges[0]!;
+const packedRoutes=captureGroupSvgLayoutV3(doc,[{id:packedSourceEdge.id,points:[packedSourceEdge.source,packedSourceEdge.target].map(e=>portPosition(doc.graph.nodes.find(n=>n.id===e.node)!,e.port))}],'installed');
+if(writeGroupSvgExportV3(doc,{...nativeSvgOptions,layout:{snapshot:packedRoutes,renderKey:'installed'}}).type!=='written')throw new Error('Packed native retained routes missing');
+
+import {planGroupPngExportV3,createPngReview,resolveGroupPngReviewV3,updateGroupPngReviewV3,type ZlozGroupPngReviewContextV3,type ZlozGroupPngRenderPayloadV3} from '@opsydyn/foldkit-zloz';
+const nativePngContext:ZlozGroupPngReviewContextV3={...nativeSvgContext,scope:'installed-native-png',regions:[{id:'model',label:'One pixel fixture',value:{type:'bounds',bounds:{x:0,y:0,width:1,height:1}}}],layout:{snapshot:packedRoutes,renderKey:'installed'}};
+const nativePngState=createPngReview(nativePngContext.scope),nativePngView=resolveGroupPngReviewV3(nativePngState,nativePngContext);
+const nativePngAccepted=updateGroupPngReviewV3(nativePngState,nativePngContext,{...nativePngView.identity,type:'PngLossAcceptanceChanged',accepted:true}).state;
+const nativePngJob=updateGroupPngReviewV3(nativePngAccepted,nativePngContext,{...nativePngView.identity,type:'PngRenderRequested'});
+const nativePayload:ZlozGroupPngRenderPayloadV3|null=nativePngJob.payload;
+if(!nativePayload||nativePayload.input.document.version!==3||nativePayload.input.document.capabilities.groupPorts!==true||nativePayload.input.expectedSvg!==nativePayload.plan.svg||planGroupPngExportV3(nativePayload.input).type!=='ready'||'snapshot' in nativePayload.input)throw new Error('Packed native PNG source/plan missing');
+const nativePixel={dataUrl:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',byteLength:68,width:1,height:1};
+const nativePngReady=updateGroupPngReviewV3(nativePngJob.state,nativePngContext,{...nativePngView.identity,type:'PngRenderSettled',run:nativePayload.run,result:{type:'rendered',artifact:nativePixel}});
+if(updateGroupPngReviewV3(nativePngReady.state,nativePngContext,{...nativePngView.identity,type:'PngDownloadRequested'}).download?.artifact.dataUrl!==nativePixel.dataUrl)throw new Error('Packed native PNG exact artifact lifecycle missing');
+
 let rejected=false;
 try { createEditor(doc.graph); } catch { rejected=true; }
 if(!rejected)throw new Error('Widened legacy editor');
@@ -363,8 +408,8 @@ const undoEvent:ZlozGroupEditorEventV3={type:'UndoPressed',source:captureGroupEd
 const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
 const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
 if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
-const boundary:ZlozGroupEditorBoundaryV3='clipboard';
-if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
+const boundary:ZlozGroupEditorBoundaryV3='modelling-patch';
+if(resolveGroupEditorBoundaryV3(session,boundary).type!=='unchanged'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
 if(false){
 // @ts-expect-error legacy reducer cannot consume v3 sessions.
 updateEditor(session,{type:'UndoPressed'});
@@ -399,6 +444,16 @@ const selectedV3=updateGroupWorkbenchV3(nativeV3,{type:'NodeSelected',id:'g',add
 if(groupWorkbenchGraphV3(selectedV3).nodes.length!==3||updateGroupWorkbenchV3(selectedV3,{type:'SelectionNudged',delta:{x:20,y:0}}).editor.history.past.length!==1)throw new Error('V3 native controller missing');
 const mergedV3=mergeEditionsV3(v3Model.editions,v3Model.editions);
 if(mergedV3.type!=='unchanged'||compareEditionsV3(v3Model.editions[0]!,v3Model.editions[0]!).semanticChanged||forkModelDocumentV3(v3Model,'first',{id:'forked-v3',name:'Fork'}).origin?.modelId!=='packed-v3'||restoreModelEditionV3(v3Model,v3Editor,{source:captureGroupEditorSourceV3(v3Editor),modelId:v3Model.id,edition:v3Model.editions[0]!}).type!=='unchanged')throw new Error('V3 model workflow missing');
+import {copyGroupSelectionV3,groupPasteRequestV3,planGroupPasteV3,applyGroupPasteV3,type ZlozGroupPasteRequestV3,type ZlozGroupClipboardV3} from '@opsydyn/foldkit-zloz';
+const copiedNative=copyGroupSelectionV3(v3Editor,['g','b']);
+if(copiedNative.type!=='copied')throw new Error('Installed native copy missing');
+const clipboardNative:ZlozGroupClipboardV3=copiedNative.clipboard;
+const pasteNative:ZlozGroupPasteRequestV3=groupPasteRequestV3(v3Editor,clipboardNative,{offset:{x:40,y:40}});
+if(planGroupPasteV3(v3Editor,pasteNative).type!=='ready'||applyGroupPasteV3(v3Editor,pasteNative).editor.history.past.length!==1||applyGroupPasteV3(v3Editor,pasteNative,{canEditPort:()=> 'Locked'}).type!=='blocked')throw new Error('Installed native clipboard lost policy/atomicity');
+// @ts-expect-error Legacy graphs are not full native clipboard contracts.
+const graphClipboard:ZlozGroupClipboardV3=doc.graph;void graphClipboard;
+// @ts-expect-error Native paste requires explicit scoped-port maps.
+const partialPaste:ZlozGroupPasteRequestV3={source:pasteNative.source,clipboard:clipboardNative,offset:{x:0,y:0},identities:{nodes:[],edges:[]}};void partialPaste;
 console.log('group-v3-ok');
 `;
     const groupConsumer = path.join(directory, 'group-v3.mts');
@@ -478,14 +533,33 @@ import { zlozDddAuditControls, zlozDddAuditFindingButton } from '@opsydyn/foldki
 import { resolveModellingPatchReview, applyModellingPatch, parseModellingPatch, type ZlozModellingPatchParseResult, captureModellingPatch, dryRunModellingPatch, resolveAuditComparisonControls, type ZlozAuditComparisonControlsContext, compareModelEventStormingRelationships, type ZlozRelationshipAuditComparisonDecision, auditEventStormingRelationships, type ZlozEventStormingRelationshipAudit, resolveEventStormingRelationshipControls, resolveEventStormingRelationshipRequest, createEventStormingPattern, resolveEventStormingRelationship, eventStormingRelationshipPolicy, type EventStormingEdgeArchitecture, fitNodes, resolveHistoryChangeNavigator, resolveHistoryChangeFocus, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, captureModelDocument, serializeModelDocument, parseModelDocument, forkEdition, createModelEditor, type ZlozModelDocument, mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
 import { createPngReview, resolvePngReview, updatePngReview, type ZlozPngReviewContext, captureSvgLayout, planSvgExport, writeSvgExport, type ZlozSvgAdapter, type ZlozSvgLayoutOptions, startGroupHeaderMeasurement, updateGroupHeaderMeasurements, resolveGroupHeaderMeasurements, resolveLayoutGroupHeader, type LayoutGroupHeader, startLabelMeasurement, updateLabelMeasurements, resolveLabelMeasurements, createArchitectureNode, createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, applyPreviewLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type ZlozConnectionGeometryPolicy, resolveEdgeGeometry, type ZlozEdgeGeometryPolicy, type ZlozEdge, type ZlozGraph, type ZlozNode, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelationshipPatternSelect, zlozDddUpstreamRole, zlozDddDownstreamRoleSelect, type ZlozDddRelationshipControlsViewOptions, zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingRelationshipControls, zlozEventStormingRelationshipInference, type ZlozEventStormingRelationshipControlsViewOptions, zlozHistoryChangeNavigator, zlozHistoryChangeButton, type ZlozHistoryChangeNavigatorViewOptions, zlozHistoryComparisonControls, zlozHistoryGhostToggle, type ZlozHistoryComparisonControlsViewOptions, zlozEditionScrubber, zlozEditionScrubberReadout, type ZlozEditionScrubberViewOptions, zlozPlaybackControls, zlozPlaybackControl, zlozPlaybackStatus, type ZlozPlaybackControlsViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozHistoryGhosts, type ZlozHistoryGhostOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
-import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
+import { createElkLayout,createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import {zlozGroupWorkbenchV3,zlozGroupInspectorV3,zlozGroupActionV3} from '@opsydyn/foldkit-zloz/foldkit';
-import {createGroupWorkbenchV3,captureGroupDocumentV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
+import {createGroupWorkbenchV3,updateGroupWorkbenchV3,captureGroupDocumentV3,groupLayoutRequestV3,applyGroupWorkbenchLayoutV3,groupWorkbenchRoutesV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
 const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
+const installedV3Request=groupLayoutRequestV3(packedNativeV3.editor,'installed-elk-v3');
+const installedV3Result=await createElkGroupLayoutV3({direction:'DOWN'})(installedV3Request);
+const installedV3Layout=applyGroupWorkbenchLayoutV3(packedNativeV3,installedV3Request,installedV3Result);
+if(installedV3Layout.editor.history.past.length!==1||installedV3Layout.editor.document.graph.nodes.find(n=>n.id==='g')?.ports[0]?.id!=='out'||groupWorkbenchRoutesV3(installedV3Layout).length!==1)throw new Error('Installed native v3 ELK/atomic Apply failed');
 const packedNativeOutputV3=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedNativeV3}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Packed native v3',body:h.div([], [zlozGroupWorkbenchV3(h,model,{id:'packed-native-v3',onEvent:event=>event}),zlozGroupInspectorV3(h,model,{id:'packed-native-v3-inspector',onEvent:event=>event}),zlozGroupActionV3(h,'Custom fit',{type:'FitViewRequested'},null,event=>event)])})},{flags:{},isHydratable:false}));
 if(!packedNativeOutputV3.html.includes('data-flow-owner="g"')||!packedNativeOutputV3.html.includes('Custom fit'))throw new Error('Installed native v3 controls missing');
+import {createSvgReview as createPackedNativeSvgReview,resolveGroupSvgReviewV3 as packedNativeSvgReview,type ZlozSvgReviewRequest} from '@opsydyn/foldkit-zloz';
+import {zlozSvgReview as packedSvgControls} from '@opsydyn/foldkit-zloz/foldkit';
+const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(createPackedNativeSvgReview(packedSvgScope),{scope:packedSvgScope,sourceRevision:0,document:packedNativeV3.editor.document,title:'Native export',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
+const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
+if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
+import {resolveGroupPngReviewV3 as resolvePackedNativePng,type ZlozPngReviewRequest} from '@opsydyn/foldkit-zloz';
+import {zlozPngReview as packedPngReviewUi,zlozGroupClipboardV3 as packedClipboardUi} from '@opsydyn/foldkit-zloz/foldkit';
+const packedPngNative=resolvePackedNativePng(createPngReview('packed-png-native'),{scope:'packed-png-native',sourceRevision:0,document:packedNativeV3.editor.document,title:'Native PNG',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
+const packedPngUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedPngNative}),view:(model,h:HtmlBuilder<ZlozPngReviewRequest>)=>({title:'Packed native PNG review',body:packedPngReviewUi(h,model,event=>event)})},{flags:{},isHydratable:false}));
+const copiedWorkbenchNative=updateGroupWorkbenchV3({...packedNativeV3,selectedNodeIds:['g']},{type:'CopyPressed'});
+const packedClipboardHtml=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:copiedWorkbenchNative}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Native clipboard',body:packedClipboardUi(h,model,{id:'clipboard-consumer',onEvent:e=>e})})},{flags:{},isHydratable:false}));
+if(!packedClipboardHtml.html.includes('Copy selection')||!packedClipboardHtml.html.includes('Paste copy'))throw new Error('Installed clipboard controls missing');
+if(!packedPngUi.html.includes('Render PNG')||!packedPngUi.html.includes('Accept the reported PNG losses'))throw new Error('Native PNG review SSR missing');
+
+
 
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';

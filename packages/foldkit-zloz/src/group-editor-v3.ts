@@ -81,7 +81,9 @@ export type ZlozGroupEditorBoundaryV3 =
   | 'png'
   | 'mermaid'
   | 'modelling-patch'
-  | 'review-packet';
+  | 'review-packet'
+  | 'conversion-receipt'
+  | 'relationship-audit';
 
 const isRecord = (value: JsonValue): value is JsonObject =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -345,7 +347,20 @@ export function resolveGroupEditorBoundaryV3(
   boundary: ZlozGroupEditorBoundaryV3,
 ): ZlozGroupEditorResultV3 {
   assertSession(editor);
-  if (boundary === 'native-controls' || boundary === 'model' || boundary === 'editions')
+  if (
+    boundary === 'native-controls' ||
+    boundary === 'model' ||
+    boundary === 'editions' ||
+    boundary === 'layout' ||
+    boundary === 'svg' ||
+    boundary === 'png' ||
+    boundary === 'clipboard' ||
+    boundary === 'mermaid' ||
+    boundary === 'modelling-patch' ||
+    boundary === 'review-packet' ||
+    boundary === 'conversion-receipt' ||
+    boundary === 'relationship-audit'
+  )
     return { type: 'unchanged', editor };
   return blocked(
     editor,

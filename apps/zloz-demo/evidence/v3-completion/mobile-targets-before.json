@@ -1,0 +1,44 @@
+[
+  {
+    "name": "axe-light.json",
+    "rules": [
+      {
+        "id": "target-size",
+        "targets": [
+          ["a[href$=\"groups/\"]"],
+          ["a[href$=\"history/\"]"],
+          ["a[href$=\"connections/\"]"],
+          ["a:nth-child(4)"]
+        ]
+      }
+    ]
+  },
+  {
+    "name": "axe-light.json",
+    "rules": [
+      {
+        "id": "target-size",
+        "targets": [
+          ["a[href$=\"groups/\"]"],
+          ["a[href$=\"history/\"]"],
+          ["a[href$=\"connections/\"]"],
+          ["a:nth-child(4)"]
+        ]
+      }
+    ]
+  },
+  {
+    "name": "axe-light.json",
+    "rules": [
+      {
+        "id": "target-size",
+        "targets": [
+          ["a[href$=\"groups/\"]"],
+          ["a[href$=\"history/\"]"],
+          ["a[href$=\"connections/\"]"],
+          ["a:nth-child(4)"]
+        ]
+      }
+    ]
+  }
+]

@@ -9,6 +9,7 @@ import {
 import { ZlozError } from './graph';
 import { captureModelDocument, type ZlozModelDocument } from './model-document';
 import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
+import { captureModelDocumentV3, type ZlozModelDocumentV3 } from './model-document-v3';
 
 /** Host-owned live scope, captured for review; neither identity nor revision grants edit authority. */
 export type ZlozEventStormingC4Source<D extends ZlozModelDocument = ZlozModelDocument> = Readonly<{
@@ -446,4 +447,13 @@ export function previewEventStormingC4MappingV2(
   options: ZlozEventStormingC4MappingOptions = {},
 ): ZlozEventStormingC4PreviewV2 {
   return previewC4(source, options, captureModelDocumentV2);
+}
+
+export type ZlozEventStormingC4SourceV3 = ZlozEventStormingC4Source<ZlozModelDocumentV3>;
+export type ZlozEventStormingC4PreviewV3 = ZlozEventStormingC4Preview<ZlozModelDocumentV3>;
+export function previewEventStormingC4MappingV3(
+  source: ZlozEventStormingC4SourceV3,
+  options: ZlozEventStormingC4MappingOptions = {},
+): ZlozEventStormingC4PreviewV3 {
+  return previewC4(source, options, captureModelDocumentV3);
 }

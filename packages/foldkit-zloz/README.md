@@ -6379,7 +6379,7 @@ const undone = updateGroupEditorV3(applied.editor, {
   source: captureGroupEditorSourceV3(applied.editor),
 });
 const clipboard = resolveGroupEditorBoundaryV3(undone.editor, 'clipboard');
-// blocked: version-required; keep the envelope or plan an explicit downgrade.
+// unchanged: use the distinct native clipboard APIs below; never use legacy graph paste.
 ```
 
 Apply takes an exact source token and a complete proposed document. It returns
@@ -6413,9 +6413,9 @@ This transaction does **not** infer a drag, group expansion, deletion or reparen
 plan: include every intended affected child/ancestor in the target, retaining
 world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
 `createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
-`resolveGroupEditorBoundaryV3` returns unchanged for the distinct native-controls,
-model and edition entries; unsupported clipboard, layout, SVG/PNG, Mermaid,
-patch and review-packet entries remain blocked.
+`resolveGroupEditorBoundaryV3` reports availability for the distinct native-controls,
+model, edition, clipboard, layout, SVG, PNG and optional Mermaid entries documented
+below. Patch and review-packet entries remain blocked pending native adoption.
 It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
 See [the editor qualification receipt](evidence/group-editor-v3.md) and
@@ -6580,8 +6580,302 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 clipboard, layout, SVG/PNG, Mermaid, patches, conversion receipts, review
+V3 patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
 acceptance remain explicit release limits. See [batch qualification](evidence/v3-core-batch.md).
+
+### Native v3 layout (unreleased)
+
+`groupLayoutRequestV3(editor, requestId, options?)` captures the full source
+session/revision/document plus optional edge-label and group-header bounds.
+Store it as the host Model's active request. The optional ELK package exposes
+`createElkGroupLayoutV3({ direction: 'RIGHT' | 'DOWN', spacing?, elk? })`.
+`applyGroupLayoutV3(currentEditor, currentActive, result, livePolicy?)` validates
+complete world geometry and preserved anchors before one atomic kernel commit.
+Group ports/endpoints, mode, capability, data and camera remain intact. All node
+moves and group resizes are checked against current policy; stale/partial results
+publish nothing. Authored resize and parent-extent constraints also apply.
+
+`applyGroupWorkbenchLayoutV3` rejects an active gesture, updates the native
+controller and retains accepted routes transiently. `groupWorkbenchRoutesV3`
+returns routes only for its exact current document, idle gesture and uncollapsed
+projection. The `/foldkit` native view uses them with authored-waypoint precedence.
+Undo restores the complete pre-layout document and invalidates routes. Layout of
+identical geometry is a no-op in history. Use a new request ID for every run and
+clear the active request on cancellation/replacement/read-only review. A source
+token is freshness data, never cached permission. Engine errors remain rejected
+Promises; known invalid geometry becomes a blocked decision; policy defects
+propagate. Core has no ELK dependency.
+
+See [native ELK qualification](evidence/v3-elk-layout.md) for coverage and limits.
+
+### Native v3 SVG projection and review (unreleased)
+
+Use `planGroupSvgExportV3(document, options)` and
+`writeGroupSvgExportV3(document, options, writing?)` for complete native v3
+sources. They validate/own the document before sharing SVG projection internals;
+legacy `planSvgExport` / `writeSvgExport` remain version-fixed and reject authored
+group ports. Native plans retain `version: 3` and the immutable `document`;
+`plan.graph` aliases that document's graph. Export changes no editor state or Undo.
+
+```ts
+import { writeGroupSvgExportV3, type ZlozGroupSvgExportOptionsV3 } from '@opsydyn/foldkit-zloz';
+
+const options: ZlozGroupSvgExportOptionsV3 = {
+  title: 'Orders model',
+  region: { type: 'model', padding: 48 },
+  theme: { colorScheme: 'dark' },
+  background: { type: 'theme' },
+  font: { family: 'sans-serif', size: 14, weight: 400 },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const result = writeGroupSvgExportV3(documentV3, options);
+// Inspect result.findings. Only a written result contains SVG bytes.
+```
+
+Nested rectangular groups, group-port artwork and authored endpoint anchors are
+preserved. Group sockets paint above crossing edges. Root data attributes declare
+v3, strict/loose mode and group-port capability. SVG is a static vector projection,
+not a model codec: arbitrary data, history and interactive tools are not embedded.
+Use canonical model JSON to move editable models. Model, viewport crop and explicit
+bounds, scale, themes, backgrounds, safe custom primitives and embedded TrueType
+validation use the same existing SVG contracts. `ZlozGroupSvgAdapterV3` callbacks
+add a frozen full native document to the node/edge geometry context. A custom node
+adapter owns its socket artwork; declarations are host assertions, not fidelity
+certification. Raw markup, scripts, remote resources and foreignObject are excluded.
+
+For retained native ELK geometry, call
+`captureGroupSvgLayoutV3(documentV3, routes, renderKey)` and pass
+`layout: { snapshot, renderKey }`. Routes are owned, bounded and anchored to the
+source ports. Source identity covers the entire v3 document, including camera,
+mode and capability. Mismatched source/key blocks; forged snapshot metadata or
+invalid routes rejects. Authored waypoints/path style retain geometry precedence.
+Custom label content, fonts, ink/stroke bounds and renderer fidelity remain
+explicit findings rather than a universal collision/fit promise.
+
+```ts
+import {
+  createSvgReview,
+  resolveGroupSvgReviewV3,
+  updateGroupSvgReviewV3,
+  type ZlozGroupSvgReviewContextV3,
+} from '@opsydyn/foldkit-zloz';
+
+const review = createSvgReview(sessionId);
+const context: ZlozGroupSvgReviewContextV3 = {
+  scope: sessionId,
+  sourceRevision: editorV3.revision,
+  document: editorV3.document,
+  title: 'Orders export',
+  theme: { colorScheme: 'light' },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const controls = resolveGroupSvgReviewV3(review, context);
+// Render controls with /foldkit's composable zlozSvgReview primitives.
+// On a view request, recompute the context from the current Model:
+const next = updateGroupSvgReviewV3(review, context, request);
+// next.payload, when present, is a detached file payload for a host Command.
+```
+
+Fallback, approximation and omission require explicit acceptance for the exact
+source/settings/produced bytes. Unsupported content cannot be accepted away.
+Native consent is stricter than legacy whole-model consent: camera changes also
+invalidate it. Current `canDownload(document, options)` protection is rechecked
+at handoff; consent never caches permission. Pending job identities prevent stale
+completion messages from settling newer jobs. Review state/presentation primitives
+are shared, while native context/writer/result types stay explicit. Read-only
+edition export is allowed when the host policy permits it. The workbench captures
+its live camera and exports authored content, not collapse/selection/diagnostics.
+
+See [native SVG qualification](evidence/v3-svg-export.md) and the distinct native
+PNG entry below. SVG support alone does not authorize rasterization.
+
+### Native v3 PNG export (unreleased)
+
+`planGroupPngExportV3(input)` invokes the same native SVG writer and preserves its
+full document and findings before adding `rasterization-loss`. Planning is pure:
+`ready` means supported geometry/budgets, not permission to encode. The optional
+`/browser` entry exposes `renderGroupPngExportV3(input, { signal?, timeoutMs? })`.
+It rebuilds `writeGroupSvgExportV3`, checks reviewed `expectedSvg` bytes and only
+then allocates image/canvas/encoder resources. No legacy snapshot or graph-only
+conversion is used. The core and browser entry remain safe to import under SSR;
+calling the rasterizer without a browser returns `unsupported`.
+
+```ts
+import {
+  createPngReview,
+  resolveGroupPngReviewV3,
+  updateGroupPngReviewV3,
+  type ZlozGroupPngReviewContextV3,
+} from '@opsydyn/foldkit-zloz';
+
+const state = createPngReview(sessionId);
+const context: ZlozGroupPngReviewContextV3 = {
+  scope: sessionId,
+  sourceRevision: editorV3.revision,
+  document: editorV3.document,
+  title: 'Orders PNG',
+  theme: { colorScheme: 'light' },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const controls = resolveGroupPngReviewV3(state, context);
+// Compose /foldkit's zlozPngReview, zlozPngAction and zlozPngPreview.
+const next = updateGroupPngReviewV3(state, currentContext, request);
+// When next.payload exists, a Command calls:
+// renderGroupPngExportV3(next.payload.input, { signal }) from /browser.
+// Feed its result back as PngRenderSettled with the payload identity/run.
+```
+
+PNG consent is separate from SVG consent and always includes raster flattening.
+The review key covers full v3 source, current revision/session, SVG bytes,
+settings and PNG budgets. Native render jobs detach the document, data-only
+options, validated retained routes, adapter records and font bytes. Callback
+closures remain host code: a changed callback output fails the reviewed-SVG byte
+comparison. Source/mode/capability/camera, settings, policy and consent are
+rechecked before render, on completion and before download. Cancelled/superseded
+or stale replies cannot publish a preview. Current `canDownload` also protects
+rendering; consent never caches permission. Read-only edition export is allowed
+when the host permits it, without changing the working editor or Undo.
+
+Whole model, explicit crop, measured viewport, 1×/2×/3× (or configured) scale,
+light/dark backgrounds and transparency use the SVG contract. Dimension ceilings
+are integers: default maximum 8192 per side, 8,388,608 pixels and 8,388,608 encoded
+bytes; configurable maxima are 16384, 16,777,216 pixels and 33,554,432 bytes.
+Invalid dimension/pixel budgets block before allocation; the encoded byte budget
+is checked after encoding. Timeout is 1–30000 ms (default 10000). Abort/deadline
+paths release URLs, readers, handlers and canvas storage. Synchronous draw/encode
+cannot always be physically interrupted; logical cancellation rejects results.
+
+Only an actual rendered PNG appears in preview. Download reuses that exact data
+URL without rerendering. Native settlement additionally checks bounded base64
+byte length and IHDR dimensions against the plan. This is a trusted renderer
+artifact contract, not a decoder/importer for untrusted PNG files. Native group
+ports become pixels; editable semantics/history are not embedded. Keep canonical
+JSON and SVG separately. Browser/font/antialiasing and custom-renderer findings
+remain explicit; native server-side PNG is not implemented.
+
+See [native PNG qualification](evidence/v3-png-export.md) for actual browser
+pixel/download evidence, resource cleanup and source/policy/cancellation tests.
+
+### Native v3 session clipboard (unreleased)
+
+`copyGroupSelectionV3` validates the complete native source, includes selected
+nodes plus every descendant once, and captures internal edges with authored ports.
+Selecting a child alone detaches its external parent/extent/expansion; crossing
+edges are omitted. Both effects produce visible findings. The returned frozen
+`ZlozGroupClipboardV3` keeps the fragment's connection mode and group-port
+capability, excludes the camera and changes neither editor nor Undo. Copying a
+read-only edition is allowed; `canCopyGroupFragmentV3` can veto the full fragment.
+
+```ts
+import {
+  copyGroupSelectionV3,
+  groupPasteRequestV3,
+  planGroupPasteV3,
+  applyGroupPasteV3,
+} from '@opsydyn/foldkit-zloz';
+
+const copied = copyGroupSelectionV3(editor, ['orders']);
+if (copied.type === 'copied') {
+  const request = groupPasteRequestV3(editor, copied.clipboard, {
+    offset: { x: 40, y: 40 },
+  });
+  const plan = planGroupPasteV3(editor, request, livePolicy);
+  if (plan.type === 'ready') {
+    const result = applyGroupPasteV3(editor, plan.request, currentPolicy);
+    // Publish result.editor only. An applied paste is one full-document Undo.
+  }
+}
+```
+
+Requests contain explicit complete node/edge/scoped-port identity maps. The factory
+allocates collision-free defaults; pass `identities` for designer/host-owned IDs.
+Node/edge IDs must be fresh across original fragment and target namespaces; port
+IDs are scoped to each original owner and may retain local spelling when the
+owner changes. Every mapping must be exact, with distinct output port IDs per
+owner. Parents and endpoints follow the maps. World positions and authored bends
+receive exactly one offset; waypoint IDs remain scoped to their new edge. Opaque
+`data` and semantic metadata are preserved unchanged: application references
+inside them are not inferred or rewritten.
+
+Plan and Apply validate the full target, scoped identities and parent geometry.
+Apply rebuilds from immutable intent and rechecks session, revision, full document,
+current port/connection/complete-transaction policies, lifecycle and Undo settings.
+An old plan grants no authority. Mismatched mode or group-port capability is
+blocked; no automatic enablement, conversion or port-kind coercion occurs. Camera,
+existing nodes/edges and clipboard stay unchanged on rejection. A successful paste
+keeps the target mode/capability/camera and publishes everything in one transaction.
+
+`createGroupWorkbenchV3` owns transient `clipboard` / `clipboardFindings`.
+`updateGroupWorkbenchV3` handles **CopyPressed**, **PastePressed** and custom
+**GroupPasteRequested** facts; the existing native input adapter supplies keyboard
+shortcuts. Gesture/busy/read-only/protection reasons remain visible. Clipboard is
+not captured by model/editions/Undo and is reset by a new session.
+`groupWorkbenchPasteRequestV3(model, step)` advances repeated offsets to avoid
+occupied node anchors; exact custom placement remains available through the core
+factory. Set `pasteOffset` in controller options for keyboard placement.
+
+Optional `/foldkit` **`zlozGroupClipboardV3(h, model, options, pasteOffset?)`**
+composes Copy/Paste controls anywhere in a host's sidebar or custom shell.
+It emits source-bound requests, exposes current denial reasons and retains
+omission/detachment findings in minimal mode. Replace it entirely with headless
+APIs when desired. Pass the same offset to controls and controller for consistent
+button/keyboard placement. It does not implement OS clipboard permissions,
+cross-tab transport, paste-into-parent, cut, external text decoding or arbitrary
+metadata-reference rewriting. No dependencies or canonical wire formats changed.
+
+### Native v3 Mermaid projection (unreleased)
+
+The optional `@opsydyn/foldkit-zloz-mermaid` package exports
+`exportGroupMermaidV3` and composable exact-output review controls. Complete native
+documents keep world convention, mode/capability and socket identity in a distinct
+v3 bundle. Group links project to boundaries; missing socket artwork/attachment,
+geometry, camera and omitted semantics/data are explicit findings. Losses reject
+by default, errors always block, and review/download never edit source or Undo.
+See the [adapter API and limits](../foldkit-zloz-mermaid/README.md#native-v3-groups-and-loss-review-unreleased).
+Legacy exporters/CLI entries/readers stay version-fixed. Native packets, receipts,
+modelling patches and audits are separate adoption slices. The optional core
+Foldkit entry also exports `zlozThemeStyle` for shared token styling in adapters.
+
+### Native v3 authoring, auditing and portable evidence (unreleased)
+
+Use the explicit v3 entries for a document with authored group ports. V1/v2
+readers and writers retain their original version contracts.
+
+| Workflow                  | Public native v3 entries                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Modelling proposal        | `captureModellingPatchSourceV3`, `captureModellingPatchV3`, `parseModellingPatchV3`, `dryRunModellingPatchV3`     |
+| Reviewed atomic Apply     | `resolveModellingPatchReviewV3`, `applyModellingPatchV3`                                                          |
+| Portable patch receipt    | `serializeModellingPatchReceiptV3`, `parseModellingPatchReceiptV3`                                                |
+| DDD conversion            | `previewEventStormingDddMappingV3`, `createEventStormingDddConversionPlanV3`, `applyEventStormingDddConversionV3` |
+| C4 conversion             | `previewEventStormingC4MappingV3`, `createEventStormingC4ConversionPlanV3`, `applyEventStormingC4ConversionV3`    |
+| Conversion evidence       | `serializeEventStormingDddConversionV3` / `parseEventStormingDddConversionV3`, and the corresponding C4 entries   |
+| Full-document auditing    | `auditGroupDddRelationshipsV3`, `auditGroupEventStormingRelationshipsV3`                                          |
+| Chosen-baseline audits    | `compareModelDddRelationshipsV3`, `compareModelEventStormingRelationshipsV3`                                      |
+| Ordinary or group sockets | `planPortEditV3`, `applyPortEditV3`; group-only wrappers remain available                                         |
+
+Patch source identity includes model, session, revision, mode, capabilities,
+graph and optional camera. Apply binds consent to the exact reviewed source and
+output, rechecks current protections, retains provenance, and adds one complete
+Undo frame. Conversion receipts retain the canonical source/target models and
+all archived checkpoint modes/capabilities. Strict receipt decoders recompute the
+recorded target. Imported evidence grants no current edit permission or consent.
+
+The optional `/foldkit` `zlozGroupWorkbenchV3` view now offers `resize`,
+`portAnchors`, `reconnect`, `boxSelection` and `pinchZoom` options. Controls remain
+opt-in; custom `renderResize` and `renderPortAnchor` slots can replace or omit
+handles. Compose `zlozNativeResizeHandleV3` for eight-direction custom handles.
+Keyboard arrows resize or move anchors, the inspector offers keyboard
+reconnection, Shift-background dragging selects visible roots, and Escape
+cancels. Preview geometry never becomes authority; release rechecks live policy.
+Required protection reasons remain visible in minimal mode. Geometry input uses
+a stable pointer origin across surface reflow.
+
+`publishGroupWorkbenchResultV3` composes an already validated native Apply/Undo
+result into transient workbench presentation. It grants no transaction authority.
+
+See the [release qualification and human checklist](../../docs/releases/zloz-0.6.0-candidate.md)
+for the measured automated matrix and the remaining acceptance gates. This is not
+an unrestricted React Flow parity or accessibility-conformance claim.

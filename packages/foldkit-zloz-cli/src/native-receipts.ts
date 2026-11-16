@@ -1,4 +1,10 @@
 import {
+  createEventStormingDddConversionPlanV3,
+  dryRunModellingPatchV3,
+  parseEventStormingDddConversionV3,
+  parseModellingPatchReceiptV3,
+  type ZlozEventStormingDddConversionV3,
+  type ZlozModellingPatchReceiptV3,
   createEventStormingDddConversionPlan,
   createEventStormingDddConversionPlanV2,
   dryRunModellingPatchV2,
@@ -33,18 +39,25 @@ function receiptReview(
   receipt:
     | ZlozEventStormingDddConversion
     | ZlozEventStormingDddConversionV2
+    | ZlozEventStormingDddConversionV3
+    | ZlozModellingPatchReceiptV3
     | ZlozModellingPatchReceiptV2,
 ): CliNativeReceiptReview {
   if (receipt.format === 'foldkit-zloz-patch-receipt') {
-    const preview = dryRunModellingPatchV2(receipt.patch.source, receipt.patch);
+    const preview =
+      receipt.version === 3
+        ? dryRunModellingPatchV3(receipt.patch.source, receipt.patch)
+        : dryRunModellingPatchV2(receipt.patch.source, receipt.patch);
     if (preview.type !== 'reviewable')
       throw new ZlozError('invalid-edit', 'Receipt patch cannot reproduce a reviewable proposal.');
     return { kind: 'patch', changes: preview.changes, losses: preview.losses };
   }
   const plan =
-    receipt.version === 2
-      ? createEventStormingDddConversionPlanV2(receipt.source, receipt.mappings)
-      : createEventStormingDddConversionPlan(receipt.source, receipt.mappings);
+    receipt.version === 3
+      ? createEventStormingDddConversionPlanV3(receipt.source, receipt.mappings)
+      : receipt.version === 2
+        ? createEventStormingDddConversionPlanV2(receipt.source, receipt.mappings)
+        : createEventStormingDddConversionPlan(receipt.source, receipt.mappings);
   if (plan.type !== 'reviewable')
     throw new ZlozError('invalid-edit', 'Receipt conversion cannot reproduce a reviewable plan.');
   return { kind: 'ddd', changes: plan.changes, losses: plan.preview.disclosures };
@@ -60,6 +73,8 @@ export type CliNativeReceiptInspection = Readonly<{
     receipt:
       | ZlozEventStormingDddConversion
       | ZlozEventStormingDddConversionV2
+      | ZlozEventStormingDddConversionV3
+      | ZlozModellingPatchReceiptV3
       | ZlozModellingPatchReceiptV2;
   }>;
   diagnostics: readonly CliDiagnostic[];
@@ -67,12 +82,16 @@ export type CliNativeReceiptInspection = Readonly<{
 const marker = Schema.Struct({ format: Schema.String, version: Schema.Number });
 function decodeNativeReceipt(
   operation: 'ddd-receipt-inspect' | 'patch-receipt-inspect',
-  v2: boolean,
+  version: number,
   text: string,
 ) {
-  return Match.value({ operation, v2 }).pipe(
+  return Match.value({ operation, version }).pipe(
+    Match.when({ operation: 'patch-receipt-inspect', version: 3 }, () =>
+      parseModellingPatchReceiptV3(text),
+    ),
     Match.when({ operation: 'patch-receipt-inspect' }, () => parseModellingPatchReceiptV2(text)),
-    Match.when({ v2: true }, () => parseEventStormingDddConversionV2(text)),
+    Match.when({ version: 3 }, () => parseEventStormingDddConversionV3(text)),
+    Match.when({ version: 2 }, () => parseEventStormingDddConversionV2(text)),
     Match.orElse(() => parseEventStormingDddConversion(text)),
   );
 }
@@ -86,13 +105,13 @@ export function inspectNativeReceipt(
       Match.when('ddd-receipt-inspect', () =>
         Schema.Struct({
           format: Schema.Literal('foldkit-zloz-ddd-conversion'),
-          version: Schema.Literals([1, 2]),
+          version: Schema.Literals([1, 2, 3]),
         }),
       ),
       Match.orElse(() =>
         Schema.Struct({
           format: Schema.Literal('foldkit-zloz-patch-receipt'),
-          version: Schema.Literal(2),
+          version: Schema.Literals([2, 3]),
         }),
       ),
     );
@@ -101,9 +120,13 @@ export function inspectNativeReceipt(
       Match.orElse(() => Result.succeed(null)),
     );
     yield* Effect.fromResult(versionCheck);
-    const v2 = Schema.is(Schema.Struct({ version: Schema.Literal(2) }))(value);
+    const version = Schema.is(Schema.Struct({ version: Schema.Literal(3) }))(value)
+      ? 3
+      : Schema.is(Schema.Struct({ version: Schema.Literal(2) }))(value)
+        ? 2
+        : 1;
     const decoding = Effect.try({
-      try: () => decodeNativeReceipt(operation, v2, text),
+      try: () => decodeNativeReceipt(operation, version, text),
       catch: () =>
         new CliInputError({
           code: 'invalid-receipt',

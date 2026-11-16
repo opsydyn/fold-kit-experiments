@@ -3,8 +3,10 @@ import { commitGraph } from './editor';
 import {
   createEventStormingDddConversionPlan,
   createEventStormingDddConversionPlanV2,
+  createEventStormingDddConversionPlanV3,
   resolveEventStormingDddConversionConsent,
   resolveEventStormingDddConversionConsentV2,
+  resolveEventStormingDddConversionConsentV3,
   type ZlozEventStormingDddConversionConsentDecision,
   type ZlozEventStormingDddConversionPlan,
   type ZlozEventStormingDddConversionSource,
@@ -12,6 +14,12 @@ import {
 } from './event-storming-ddd-conversion-plan';
 import type { ZlozEventStormingDddMappingOptions } from './event-storming-ddd-preview';
 import { ZlozError } from './graph';
+import {
+  reviewGroupEditorTransactionV3,
+  applyGroupEditorTransactionV3,
+  type ZlozGroupEditorStateV3,
+  type ZlozGroupEditorPolicyV3,
+} from './group-editor-v3';
 import { historyValueEqual } from './history';
 import { captureModelDocument, parseModelDocument, type ZlozModelDocument } from './model-document';
 import {
@@ -19,7 +27,9 @@ import {
   parseModelDocumentV2,
   type ZlozModelDocumentV2,
 } from './model-document-v2';
+import { captureModelDocumentV3, type ZlozModelDocumentV3 } from './model-document-v3';
 import { ownedData } from './modelling-patch';
+import type { ZlozNativeConversionApplyResultV3 } from './native-conversion-v3';
 import { readPortableEvidenceJson } from './parse-modelling-patch';
 import type { EditorPolicy, EditorState, JsonValue } from './types';
 
@@ -30,7 +40,7 @@ type ReviewablePlan<D extends ZlozModelDocument = ZlozModelDocument> = Extract<
 /** Portable unsigned conversion receipt. Source provenance is separate from edition-fork ancestry. */
 export type ZlozEventStormingDddConversion<
   D extends ZlozModelDocument = ZlozModelDocument,
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
 > = Readonly<{
   format: 'foldkit-zloz-ddd-conversion';
   version: V;
@@ -58,7 +68,7 @@ export type ZlozEventStormingDddApplyOptions<D extends ZlozModelDocument = ZlozM
   }>;
 export type ZlozEventStormingDddApplyResult<
   D extends ZlozModelDocument = ZlozModelDocument,
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
 > =
   | Readonly<{
       type: 'applied';
@@ -101,7 +111,7 @@ function convertedDocument<D extends ZlozModelDocument>(
     },
   });
 }
-function receipt<D extends ZlozModelDocument, V extends 1 | 2>(
+function receipt<D extends ZlozModelDocument, V extends 1 | 2 | 3>(
   plan: ReviewablePlan<D>,
   document: D,
   version: V,
@@ -124,7 +134,7 @@ const denial = (reason: string | null | undefined): string | null =>
  * Caller must publish the returned editor and retain the conversion receipt together, without an
  * intervening await. Storage, host scope authenticity and external busy conditions belong to host.
  */
-function applyConversion<D extends ZlozModelDocument, V extends 1 | 2>(
+function applyConversion<D extends ZlozModelDocument, V extends 1 | 2 | 3>(
   editor: EditorState,
   source: ZlozEventStormingDddConversionSource<D>,
   options: ZlozEventStormingDddApplyOptions<D>,
@@ -282,7 +292,7 @@ function decodeDocument(value: JsonValue | undefined): ZlozModelDocument {
     JSON.stringify({ format: 'foldkit-zloz-model', version: 1, document: value }),
   );
 }
-function captureReceiptFor<D extends ZlozModelDocument, V extends 1 | 2>(
+function captureReceiptFor<D extends ZlozModelDocument, V extends 1 | 2 | 3>(
   value: JsonValue,
   version: V,
   decode: (value: JsonValue | undefined) => D,
@@ -311,9 +321,12 @@ function captureReceiptFor<D extends ZlozModelDocument, V extends 1 | 2>(
     revision: value.source.revision,
   };
   const plan = create(source, value.mappings);
-  if (plan.type !== 'reviewable' || plan.provenance.document.snapshot.viewport === undefined)
+  if (
+    plan.type !== 'reviewable' ||
+    (version !== 3 && plan.provenance.document.snapshot.viewport === undefined)
+  )
     return invalidReceipt();
-  if (version === 2 && plan.provenance.revision >= Number.MAX_SAFE_INTEGER) return invalidReceipt();
+  if (version !== 1 && plan.provenance.revision >= Number.MAX_SAFE_INTEGER) return invalidReceipt();
   const target = convertedDocument(plan, capture);
   if (!historyValueEqual(decode(value.document), target)) return invalidReceipt();
   return receipt(plan, target, version);
@@ -411,3 +424,92 @@ export function parseEventStormingDddConversionV2(text: string): ZlozEventStormi
 
 export type ZlozEventStormingDddApplyPolicyV2 =
   ZlozEventStormingDddApplyPolicy<ZlozModelDocumentV2>;
+
+export type ZlozEventStormingDddConversionV3 = ZlozEventStormingDddConversion<
+  ZlozModelDocumentV3,
+  3
+>;
+export type ZlozEventStormingDddApplyPolicyV3 =
+  ZlozEventStormingDddApplyPolicy<ZlozModelDocumentV3> & ZlozGroupEditorPolicyV3;
+export type ZlozEventStormingDddApplyOptionsV3 = Omit<
+  ZlozEventStormingDddApplyOptions<ZlozModelDocumentV3>,
+  'policy'
+> &
+  Readonly<{ policy?: ZlozEventStormingDddApplyPolicyV3 }>;
+export type ZlozEventStormingDddApplyResultV3 =
+  ZlozNativeConversionApplyResultV3<ZlozEventStormingDddConversionV3>;
+export function applyEventStormingDddConversionV3(
+  editor: ZlozGroupEditorStateV3,
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV3>,
+  options: ZlozEventStormingDddApplyOptionsV3,
+): ZlozEventStormingDddApplyResultV3 {
+  const review = resolveEventStormingDddConversionConsentV3(
+      source,
+      options.mappings,
+      options.consent,
+    ),
+    checked = review.plan.provenance;
+  const transactionSource = {
+    sessionId: checked.sessionId,
+    revision: checked.revision,
+    document: checked.document.snapshot,
+  };
+  const live = reviewGroupEditorTransactionV3(editor, {
+    source: transactionSource,
+    document: editor.document,
+  });
+  if (live.type === 'blocked') return live;
+  const blocked = (
+    code: Extract<ZlozEventStormingDddApplyResultV3, { type: 'blocked' }>['code'],
+    reason: string,
+  ): ZlozEventStormingDddApplyResultV3 => ({ type: 'blocked', editor, code, reason });
+  if (options.blockedReason != null)
+    return blocked('busy', options.blockedReason.trim() || 'Finish active host work.');
+  if (review.type === 'blocked')
+    return blocked(
+      'unresolved-mapping',
+      review.plan.blockers[0]?.reason ?? 'Resolve every mapping.',
+    );
+  if (review.type === 'unchanged') return { type: 'unchanged', editor };
+  if (review.type === 'consent-required') return blocked('consent-required', review.reason);
+  let target: ZlozModelDocumentV3, conversion: ZlozEventStormingDddConversionV3;
+  // oxlint-disable-next-line linteffect/no-try-catch -- Native target/portable-budget failures block before any editor publication; policies run outside the catch.
+  try {
+    target = convertedDocument(review.plan, captureModelDocumentV3);
+    conversion = receipt(review.plan, target, 3);
+    serializeEventStormingDddConversionV3(conversion);
+  } catch (error) {
+    if (error instanceof ZlozError) return blocked('invalid-conversion', error.message);
+    throw error;
+  }
+  const reason = denial(options.policy?.canApplyEventStormingDddConversion?.(review.plan, target));
+  if (reason !== null) return blocked('policy', reason);
+  const result = applyGroupEditorTransactionV3(
+    editor,
+    { source: transactionSource, document: target.snapshot },
+    options.policy,
+  );
+  if (result.type === 'blocked') return result;
+  if (result.type === 'unchanged') return { type: 'unchanged', editor };
+  return { type: 'applied', editor: result.editor, conversion };
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Bounded data-only native receipt; recompute exact semantic plan and full target.
+function captureReceiptV3(input: unknown): ZlozEventStormingDddConversionV3 {
+  return captureReceiptFor(
+    ownedData(input),
+    3,
+    (document) => captureModelDocumentV3(document),
+    captureModelDocumentV3,
+    createEventStormingDddConversionPlanV3,
+  );
+}
+export function serializeEventStormingDddConversionV3(
+  conversion: ZlozEventStormingDddConversionV3,
+): string {
+  const text = JSON.stringify(captureReceiptV3(conversion));
+  readPortableEvidenceJson(text);
+  return text;
+}
+export function parseEventStormingDddConversionV3(text: string): ZlozEventStormingDddConversionV3 {
+  return captureReceiptV3(readPortableEvidenceJson(text));
+}

@@ -745,3 +745,64 @@ model and paste its JSON to reopen in a fresh session; the workbench input budge
 is 1 MiB UTF-8. Delayed open results cannot overwrite intervening graph edits.
 The compatibility panel lists v3 native and adapter limits independently; this
 page does not imply that existing v1/v2 exports or advanced tools accept v3.
+
+**Arrange right** / **Arrange down** opt into native v3 ELK layout. Connect the
+Orders boundary's Public API port to Warehouse to demonstrate a ported group
+connection alongside a child connection. Each changed layout is one Undo frame;
+authoring, hierarchy, endpoints and camera remain intact. Current protection
+can veto the whole layout. Cancel and superseding requests ignore late engine
+results; opening/reviewing documents or editing meanwhile cannot overwrite the
+current working state. This is logical cancellation, not worker termination.
+See [light/dark/protection evidence](evidence/v3-elk/browser.json) and
+[package qualification](../../packages/foldkit-zloz/evidence/v3-elk-layout.md).
+
+**SVG export review** uses the package's full-document native v3 API. Review the
+inert preview, region/palette/background, findings and download controls in the
+left sidebar. **Show custom workshop shells** adds a live badge to the canvas;
+its canonical static SVG fallback requires explicit loss acceptance. Theme,
+source or adapter changes invalidate acceptance. **Use retained ELK routes**
+requires an arranged, expanded idle model. **Protect SVG downloads** shows a live
+veto that remains visible in minimal mode. A read-only edition has its own export
+scope; working Undo is never changed by preview or download. Browser IO runs in
+a Command after package validation. The file is static authored artwork, not an
+interactive canvas capture or an embedded canonical model.
+
+See [native SVG qualification](../../packages/foldkit-zloz/evidence/v3-svg-export.md)
+and [visual receipt](evidence/v3-svg/browser.json). Native PNG uses the distinct reviewed entry below.
+
+**PNG export review** composes the same native SVG/fidelity contract with separate
+PNG consent, crop/palette/background/scale settings, **Render PNG**, logical
+cancellation, actual image preview and **Download PNG**. Use **Use retained ELK
+routes for PNG** after arranging, or **Show custom workshop shells for PNG** to
+review fallback plus rasterization loss. **Protect PNG export** vetoes render,
+completion and download; reasons/findings remain visible in minimal mode.
+
+Both export panels describe the actual shared canvas shell; changing that shell
+invalidates prior artifacts/consent where output changes. PNG retained-route and
+protection settings are independent from SVG. Rendering uses a Command and the
+optional native `/browser` entry; download reuses exact preview bytes. Read-only
+edition reviews have a separate export scope and working Undo remains intact.
+See [package qualification](../../packages/foldkit-zloz/evidence/v3-png-export.md)
+and [browser/download evidence](evidence/v3-png/browser.json).
+
+**Clipboard** in the native `/groups/` sidebar composes package-level
+`zlozGroupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
+Groups/descendants, sockets, internal edges and world geometry use the native
+headless remapping/planner/Apply contract. External parents are detached and
+crossing edges omitted with visible findings. Repeated placement advances down
+380 world units to keep workshop copies separate; **Fit view** reveals them.
+Keyboard copy/paste uses the same controller offset. Protect the published
+interface to see current paste denial; **Minimal mode** keeps required findings
+and reasons. One **Undo** removes the entire pasted fragment. Read-only edition
+copying stays separate from working-session state; paste stays disabled there.
+This is model-owned session clipboard, not OS clipboard IO or cross-tab transport.
+
+**Mermaid export review** in `/groups/` composes the optional package's native v3
+source/fidelity controls. Make a boundary-to-warehouse connection to see exact
+socket-attachment loss. Review the highlighted source and findings, accept losses
+for this exact output, then **Download Mermaid bundle**. Change direction or edit
+the graph/camera to require fresh review. **Protect Mermaid export** blocks current
+downloads; **Minimal mode** keeps findings and protection visible. Working and
+read-only editions have independent review scopes. The download contains exact
+reviewed source, native identity and diagnostics; no editor/Undo mutation or product
+Mermaid runtime is added. Custom parts remain available at package level.

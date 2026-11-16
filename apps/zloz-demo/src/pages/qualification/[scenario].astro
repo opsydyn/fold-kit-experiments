@@ -1,0 +1,12 @@
+---
+import Fixture from '../../qualification/page';
+import WorkbenchShell from '../../layouts/WorkbenchShell.astro';
+export function getStaticPaths() {
+ const counts:readonly(100|1000)[]=[100,1000];
+ return counts.flatMap(count=>[false,true].map(nested=>({params:{scenario:`${count}-${nested?'nested':'flat'}`},props:{count,nested}})));
+}
+const {count,nested}=Astro.props;
+---
+<WorkbenchShell title="Native v3 qualification | Zloz" heading="Synthetic qualification" mainLabel="Native qualification">
+ <Fixture count={count} nested={nested} client:load />
+</WorkbenchShell>

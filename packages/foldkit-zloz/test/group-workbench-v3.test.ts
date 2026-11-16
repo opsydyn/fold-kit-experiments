@@ -130,3 +130,59 @@ test('click/keyboard and drag connection creation both use strict eligibility an
     updateGroupWorkbenchV3(hover, { type: 'PointerReleased', pointer: 2 }).editor.history.past,
   ).toHaveLength(1);
 });
+test('session clipboard is transient, live guarded, repeatable and supports one Undo without restoring clipboard authority', () => {
+  const selected = updateGroupWorkbenchV3(init(), {
+    type: 'NodeSelected',
+    id: 'g',
+    additive: false,
+  });
+  const copied = updateGroupWorkbenchV3(selected, { type: 'CopyPressed' });
+  expect(copied.editor).toBe(selected.editor);
+  expect(copied.clipboard?.document.graph.nodes.map((n) => n.id)).toEqual(['child', 'g']);
+  expect(copied.clipboardFindings[0]?.code).toBe('boundary-edge-omitted');
+  const blocked = updateGroupWorkbenchV3(
+    copied,
+    { type: 'PastePressed' },
+    { canEditPort: () => 'Interfaces frozen.' },
+  );
+  expect(blocked.editor).toBe(copied.editor);
+  expect(blocked.status).toBe('Interfaces frozen.');
+  const pasted = updateGroupWorkbenchV3(copied, { type: 'PastePressed' }, {}, { grid: 20 });
+  expect(pasted.editor.document.graph.nodes).toHaveLength(5);
+  expect(pasted.selectedNodeIds).toHaveLength(1);
+  expect(pasted.editor.history.past).toHaveLength(1);
+  expect(pasted.clipboard).toBe(copied.clipboard);
+  const repeated = updateGroupWorkbenchV3(pasted, { type: 'PastePressed' }, {}, { grid: 20 });
+  expect(repeated.editor.document.graph.nodes).toHaveLength(7);
+  expect(repeated.editor.document.graph.nodes[5]?.position).toEqual({ x: 220, y: 220 });
+  const protectedUndo = updateGroupWorkbenchV3(
+    pasted,
+    { type: 'UndoPressed' },
+    { canDelete: () => 'Pasted boundary locked.' },
+  );
+  expect(protectedUndo.editor).toBe(pasted.editor);
+  const undone = updateGroupWorkbenchV3(pasted, { type: 'UndoPressed' });
+  expect(undone.editor.document).toEqual(copied.editor.document);
+  expect(undone.clipboard).toBe(copied.clipboard);
+  const redo = updateGroupWorkbenchV3(undone, { type: 'RedoPressed' });
+  expect(redo.editor.document).toEqual(pasted.editor.document);
+  const readOnly = { ...copied, editor: { ...copied.editor, readOnly: true } };
+  expect(updateGroupWorkbenchV3(readOnly, { type: 'CopyPressed' }).status).toContain(
+    'Selection copied',
+  );
+  expect(updateGroupWorkbenchV3(readOnly, { type: 'PastePressed' }).editor).toBe(readOnly.editor);
+  const deniedCopy = updateGroupWorkbenchV3(
+    copied,
+    { type: 'CopyPressed' },
+    { canCopyGroupFragmentV3: () => 'Copy protected.' },
+  );
+  expect(deniedCopy.clipboard).toBe(copied.clipboard);
+  expect(deniedCopy.status).toBe('Copy protected.');
+  const gesture = updateGroupWorkbenchV3(copied, {
+    type: 'NodeDragStarted',
+    id: 'g',
+    point: { x: 0, y: 0 },
+    pointer: 9,
+  });
+  expect(updateGroupWorkbenchV3(gesture, { type: 'PastePressed' }).editor).toBe(copied.editor);
+});

@@ -3,6 +3,7 @@ import { checkedDddRelationshipRules } from './ddd-relationships';
 import {
   previewEventStormingDddMapping,
   previewEventStormingDddMappingV2,
+  previewEventStormingDddMappingV3,
   type ZlozEventStormingDddMappingOptions,
   type ZlozEventStormingDddNodePreview,
   type ZlozEventStormingDddEdgePreview,
@@ -11,6 +12,7 @@ import {
 import { ZlozError } from './graph';
 import { captureModelDocument, type ZlozModelDocument } from './model-document';
 import { captureModelDocumentV2, type ZlozModelDocumentV2 } from './model-document-v2';
+import { captureModelDocumentV3, type ZlozModelDocumentV3 } from './model-document-v3';
 
 /** Host-owned live scope; a new source session must not reuse an earlier session ID. */
 export type ZlozEventStormingDddConversionSource<D extends ZlozModelDocument = ZlozModelDocument> =
@@ -224,3 +226,25 @@ export type ZlozEventStormingDddConversionConsentDecisionV2 =
   ZlozEventStormingDddConversionConsentDecision<ZlozModelDocumentV2>;
 export type ZlozEventStormingDddConversionSourceV2 =
   ZlozEventStormingDddConversionSource<ZlozModelDocumentV2>;
+
+export type ZlozEventStormingDddConversionSourceV3 =
+  ZlozEventStormingDddConversionSource<ZlozModelDocumentV3>;
+export type ZlozEventStormingDddConversionPlanV3 =
+  ZlozEventStormingDddConversionPlan<ZlozModelDocumentV3>;
+export type ZlozEventStormingDddConversionConsentDecisionV3 =
+  ZlozEventStormingDddConversionConsentDecision<ZlozModelDocumentV3>;
+export function createEventStormingDddConversionPlanV3(
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV3>,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddConversionPlanV3 {
+  return createPlan(source, options, captureModelDocumentV3, (document, choices) =>
+    previewEventStormingDddMappingV3(document.snapshot, choices),
+  );
+}
+export function resolveEventStormingDddConversionConsentV3(
+  source: ZlozEventStormingDddConversionSource<ZlozModelDocumentV3>,
+  options: ZlozEventStormingDddMappingOptions = {},
+  consent: ZlozEventStormingDddLossConsent | null = null,
+): ZlozEventStormingDddConversionConsentDecisionV3 {
+  return resolveConsent(createEventStormingDddConversionPlanV3(source, options), consent);
+}

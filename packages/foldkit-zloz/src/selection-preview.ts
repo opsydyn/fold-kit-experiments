@@ -8,7 +8,7 @@ export type BoxSelectionPreview = Readonly<{
 
 /** Shared selection resolution for the visible preview and final pointer release. */
 export function resolveBoxSelection(
-  state: EditorState,
+  state: Pick<EditorState, 'graph' | 'collapsedGroups' | 'boxSelectionMatch'>,
   gesture: Extract<Gesture, { type: 'box-selection' }>,
   nodes: readonly ZlozNode[],
   canSelectNode?: EditorPolicy['canSelectNode'],

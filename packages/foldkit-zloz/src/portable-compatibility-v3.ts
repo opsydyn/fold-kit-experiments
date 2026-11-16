@@ -81,10 +81,15 @@ export function assessPortableCompatibilityV3(
       reason:
         'Native v3 archives, detached read-only review, comparison, restore, additive merge and provenance-preserving fork retain checkpoint capabilities.',
     },
+    {
+      adapter: 'layout',
+      status: 'supported',
+      reason:
+        'Use groupLayoutRequestV3, the optional createElkGroupLayoutV3 engine and applyGroupLayoutV3/applyGroupWorkbenchLayoutV3. Full-document freshness, authored group ports, live protections and one Undo are retained. Legacy layout entries remain version-fixed.',
+    },
     ...(
       [
         'clipboard',
-        'layout',
         'svg',
         'png',
         'mermaid',

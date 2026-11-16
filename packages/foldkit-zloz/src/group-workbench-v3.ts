@@ -11,6 +11,11 @@ import {
   type ZlozGroupEditorPolicyV3,
 } from './group-editor-v3';
 import {
+  applyGroupLayoutV3,
+  type ZlozGroupLayoutRequestV3,
+  type ZlozGroupLayoutResultV3,
+} from './group-layout-v3';
+import {
   applyGroupOperationV3,
   planGroupOperationV3,
   type ZlozGroupOperationV3,
@@ -18,7 +23,7 @@ import {
 import { applyGroupPortEditV3, type ZlozGroupPortEditV3 } from './group-port-edit-v3';
 import { presentGroups } from './group-presentation';
 import { historyValueEqual } from './history';
-import type { EditorEvent, Endpoint, Point, Size, Viewport, ZlozGraph } from './types';
+import type { EditorEvent, Endpoint, Point, Size, Viewport, ZlozGraph, EdgeRoute } from './types';
 
 export type ZlozGroupWorkbenchGestureV3 =
   | Readonly<{ type: 'idle' }>
@@ -49,6 +54,7 @@ export type ZlozGroupWorkbenchV3 = Readonly<{
   gesture: ZlozGroupWorkbenchGestureV3;
   connectionSource: Endpoint | null;
   status: string;
+  layout: Readonly<{ document: ZlozGroupDocumentV3; routes: readonly EdgeRoute[] }> | null;
 }>;
 export type ZlozGroupWorkbenchEventV3 =
   | EditorEvent
@@ -72,6 +78,7 @@ export function createGroupWorkbenchV3(
     surface: { width: 800, height: 600 },
     gesture: { type: 'idle' },
     connectionSource: null,
+    layout: null,
     status: 'Select a node or port. Arrow keys move the selection; Escape cancels.',
   };
 }
@@ -83,6 +90,7 @@ function completed(
   return {
     ...model,
     editor: result.editor,
+    layout: result.editor === model.editor ? model.layout : null,
     viewport: historyValueEqual(model.editor.document.viewport, result.editor.document.viewport)
       ? model.viewport
       : (result.editor.document.viewport ?? { x: 20, y: 20, zoom: 1 }),
@@ -139,6 +147,37 @@ export function groupWorkbenchGraphV3(
     policy,
   );
   return plan.type === 'ready' ? plan.transaction.document.graph : model.editor.document.graph;
+}
+/** Accepted routes are transient and valid only for this complete document and unprojected geometry. */
+export function groupWorkbenchRoutesV3(model: ZlozGroupWorkbenchV3): readonly EdgeRoute[] {
+  return model.layout &&
+    model.gesture.type === 'idle' &&
+    model.collapsedGroupIds.length === 0 &&
+    historyValueEqual(model.layout.document, model.editor.document)
+    ? model.layout.routes
+    : [];
+}
+/** Apply current async geometry to an idle workbench using the same live transaction kernel. */
+export function applyGroupWorkbenchLayoutV3(
+  model: ZlozGroupWorkbenchV3,
+  active: ZlozGroupLayoutRequestV3,
+  result: ZlozGroupLayoutResultV3,
+  policy: ZlozGroupEditorPolicyV3 = {},
+): ZlozGroupWorkbenchV3 {
+  if (model.gesture.type !== 'idle')
+    return { ...model, status: 'Finish or cancel the active gesture before applying layout.' };
+  const applied = applyGroupLayoutV3(model.editor, active, result, policy),
+    next = completed(model, applied);
+  return applied.type === 'blocked'
+    ? next
+    : {
+        ...next,
+        layout: { document: applied.editor.document, routes: applied.routes ?? [] },
+        status:
+          applied.type === 'unchanged'
+            ? 'Layout geometry is unchanged. No Undo frame added.'
+            : 'Layout applied. One Undo restores the complete document.',
+      };
 }
 /** Native/browser facts and custom controls share source-bound live v3 transactions. */
 export function updateGroupWorkbenchV3(

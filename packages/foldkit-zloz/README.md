@@ -6580,8 +6580,33 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 clipboard, layout, SVG/PNG, Mermaid, patches, conversion receipts, review
+V3 clipboard, SVG/PNG, Mermaid, patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
 acceptance remain explicit release limits. See [batch qualification](evidence/v3-core-batch.md).
+
+### Native v3 layout (unreleased)
+
+`groupLayoutRequestV3(editor, requestId, options?)` captures the full source
+session/revision/document plus optional edge-label and group-header bounds.
+Store it as the host Model's active request. The optional ELK package exposes
+`createElkGroupLayoutV3({ direction: 'RIGHT' | 'DOWN', spacing?, elk? })`.
+`applyGroupLayoutV3(currentEditor, currentActive, result, livePolicy?)` validates
+complete world geometry and preserved anchors before one atomic kernel commit.
+Group ports/endpoints, mode, capability, data and camera remain intact. All node
+moves and group resizes are checked against current policy; stale/partial results
+publish nothing. Authored resize and parent-extent constraints also apply.
+
+`applyGroupWorkbenchLayoutV3` rejects an active gesture, updates the native
+controller and retains accepted routes transiently. `groupWorkbenchRoutesV3`
+returns routes only for its exact current document, idle gesture and uncollapsed
+projection. The `/foldkit` native view uses them with authored-waypoint precedence.
+Undo restores the complete pre-layout document and invalidates routes. Layout of
+identical geometry is a no-op in history. Use a new request ID for every run and
+clear the active request on cancellation/replacement/read-only review. A source
+token is freshness data, never cached permission. Engine errors remain rejected
+Promises; known invalid geometry becomes a blocked decision; policy defects
+propagate. Core has no ELK dependency.
+
+See [native ELK qualification](evidence/v3-elk-layout.md) for coverage and limits.

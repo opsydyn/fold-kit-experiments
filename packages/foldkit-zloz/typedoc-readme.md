@@ -539,3 +539,18 @@ review, comparison, restore, additive merge and provenance-preserving forks.
 ported checkpoints refuse whole-model downgrade. No bare-graph cast makes a
 legacy entry v3-compatible. See README and batch evidence for native interaction,
 portable adapter, advanced-tool and human acceptance limits.
+
+## Native v3 compound layout
+
+{@link Core.groupLayoutRequestV3} captures the complete source document. Compose
+it with optional {@link ELK.createElkGroupLayoutV3} in a Command, then
+{@link Core.applyGroupLayoutV3} using the current editor, active request and live
+policy. Authored group ports/endpoints, modes, capabilities and camera survive;
+complete validated geometry is one Undo transaction. Stale/partial output and
+current protection vetoes publish nothing.
+
+{@link Core.applyGroupWorkbenchLayoutV3} integrates accepted transient routes into
+the native controller. {@link Core.groupWorkbenchRoutesV3} exposes only routes
+matching the current document and uncollapsed idle projection. Existing legacy
+layout APIs remain version-fixed. See the ELK README and native qualification for
+fixed-position compound port behavior, connector leads and worker/runtime limits.

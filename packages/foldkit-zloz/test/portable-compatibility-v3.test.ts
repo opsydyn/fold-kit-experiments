@@ -17,10 +17,7 @@ test('v3 compatibility inventories every exact checkpoint and keeps unsupported 
   expect(report.adapters.find((a) => a.adapter === 'native-controls')?.status).toBe('supported');
   expect(report.adapters.find((a) => a.adapter === 'svg')?.status).toBe('requires-version');
   const editor = createGroupEditorV3(model.snapshot, { sessionId: 'boundaries-v3' });
-  for (const boundary of ['model', 'editions', 'native-controls'] as const)
+  for (const boundary of ['model', 'editions', 'native-controls', 'layout'] as const)
     expect(resolveGroupEditorBoundaryV3(editor, boundary)).toEqual({ type: 'unchanged', editor });
-  expect(resolveGroupEditorBoundaryV3(editor, 'layout')).toMatchObject({
-    type: 'blocked',
-    code: 'version-required',
-  });
+  expect(report.adapters.find((a) => a.adapter === 'layout')?.status).toBe('supported');
 });

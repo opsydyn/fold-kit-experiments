@@ -12,6 +12,7 @@ import { planGroupPortEditV3 } from './group-port-edit-v3';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import {
   groupWorkbenchGraphV3,
+  groupWorkbenchRoutesV3,
   type ZlozGroupWorkbenchV3,
   type ZlozGroupWorkbenchEventV3,
 } from './group-workbench-v3';
@@ -318,6 +319,7 @@ export function zlozGroupWorkbenchV3<M>(
     graph = groupWorkbenchGraphV3(model, policy),
     presentation = presentGroups(graph, model.collapsedGroupIds),
     diagnostics = resolveZlozDiagnostics(options);
+  const layoutRoutes = new Map(groupWorkbenchRoutesV3(model).map((route) => [route.id, route]));
   const byId = new Map(presentation.nodes.map((node) => [node.id, node]));
   const geometryGraph = { ...graph, nodes: graph.nodes.map((node) => byId.get(node.id) ?? node) };
   const button = (label: string, event: ZlozGroupWorkbenchEventV3, reason: string | null = null) =>
@@ -436,10 +438,15 @@ export function zlozGroupWorkbenchV3<M>(
                 graph.edges
                   .filter((edge) => edgeIsVisible(edge, presentation.hiddenBy))
                   .map((edge) => {
-                    const geometry = edgeGeometry(geometryGraph, edge, undefined, {
-                      source: presentation.hiddenBy.get(edge.source.node),
-                      target: presentation.hiddenBy.get(edge.target.node),
-                    });
+                    const geometry = edgeGeometry(
+                      geometryGraph,
+                      edge,
+                      layoutRoutes.get(edge.id)?.points,
+                      {
+                        source: presentation.hiddenBy.get(edge.source.node),
+                        target: presentation.hiddenBy.get(edge.target.node),
+                      },
+                    );
                     return (
                       options.renderEdge?.(edge, geometry, h) ??
                       h.path([

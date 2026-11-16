@@ -249,7 +249,8 @@ function editedGraph(graph: ZlozGraph, operation: ZlozGroupOperationV3): GroupGr
     }
   }
 }
-function constraints(source: ZlozGraph, target: ZlozGraph): void {
+/** @internal Shared authored geometry constraints for v3 planners and layout. */
+export function assertGroupGeometryConstraintsV3(source: ZlozGraph, target: ZlozGraph): void {
   const changes = graphChanges(source, target),
     changed = new Set(changes.filter((c) => c.entity === 'node').map((c) => c.id));
   const previous = new Map(source.nodes.map((n) => [n.id, n])),
@@ -323,7 +324,7 @@ function build(
     let graph = captureGroupDocumentV3({ ...source.document, graph: edited.graph }).graph;
     for (const id of edited.expand) graph = expandParents(graph, id);
     const document = captureGroupDocumentV3({ ...source.document, graph });
-    constraints(source.document.graph, document.graph);
+    assertGroupGeometryConstraintsV3(source.document.graph, document.graph);
     const changes = graphChanges(source.document.graph, document.graph);
     return Object.freeze({
       type: 'ready',

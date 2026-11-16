@@ -967,3 +967,17 @@ export type {
 
 export { assessPortableCompatibilityV3 } from './portable-compatibility-v3';
 export type { ZlozPortableCompatibilityV3 } from './portable-compatibility-v3';
+
+export {
+  groupLayoutRequestV3,
+  validateGroupLayoutRequestV3,
+  applyGroupLayoutV3,
+} from './group-layout-v3';
+export type {
+  ZlozGroupLayoutRequestV3,
+  ZlozGroupLayoutResultV3,
+  ZlozGroupLayoutEngineV3,
+  ZlozGroupLayoutApplyV3,
+} from './group-layout-v3';
+
+export { applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3 } from './group-workbench-v3';

@@ -1701,3 +1701,31 @@ observed qualification and separate delivery/release status.
 **Recommended next after release:** qualify native v3 ELK layout and SVG/PNG
 projection with group-port fidelity, then Mermaid/portable domain adapters. This
 makes authored ported-group models portable before adding more tools.
+
+## 2026-11-16 — Native v3 ELK layout
+
+The next scoped adapter adoption is implemented in the isolated worktree:
+
+- Core `groupLayoutRequestV3` retains the complete v3 source; `applyGroupLayoutV3`
+  validates complete world geometry and applies through live v3 policy/transaction
+  checks. One changed layout is one full-document Undo; no partial publication.
+- Optional `createElkGroupLayoutV3` preserves nested group ports, authored anchors,
+  endpoint IDs/membership/data, checkpoint mode/capability and camera for RIGHT
+  and DOWN. Legacy layout APIs remain version-fixed. No downgrade/cast workaround.
+- Native workbench route publication and RIGHT/DOWN/Cancel demo use current active
+  request, current editor and current policy. Cancellation, supersession, edits,
+  replacement, active gestures and read-only review cannot publish a late result.
+- Evidence: [ADR 0109](adr/0109-layout-native-v3-groups-with-elk.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-elk-layout.md),
+  core/real-engine/app/installed-consumer tests and light/dark browser captures.
+
+Completion is local tests/build/visual evidence plus the requested commit; this
+slice does not publish or deploy. ELK fixed-position engine interiors can require
+connector leads to final authored group anchors after resizing. Arbitrary custom
+content collision avoidance, worker cancellation, broad performance and human
+physical-device/screen-reader acceptance remain explicit limits.
+
+**Recommended next:** native v3 SVG projection/export, then PNG using that same
+projection. Preserve full-document capabilities and report custom-renderer loss
+before download. Other v3 clipboard/Mermaid/patch/receipt/packet/audit adapters and
+advanced tools remain open; this entry does not close the whole parity catalogue.

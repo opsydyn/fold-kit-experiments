@@ -369,7 +369,6 @@ test('unsupported adapters and runtime native events report version-required wit
   const editor = init();
   for (const operation of [
     'clipboard',
-    'layout',
     'svg',
     'png',
     'mermaid',

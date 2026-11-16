@@ -1,5 +1,9 @@
 import {
   assessPortableCompatibilityV3,
+  groupLayoutRequestV3,
+  applyGroupWorkbenchLayoutV3,
+  type ZlozGroupLayoutRequestV3,
+  type ZlozGroupLayoutResultV3,
   captureEditionV3,
   captureGroupDocumentV3,
   captureGroupWorkbenchDocumentV3,
@@ -19,6 +23,7 @@ import {
   type ZlozGroupEditorPolicyV3,
   type ZlozModelDocumentV3,
 } from '@opsydyn/foldkit-zloz';
+import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 import {
   zlozGroupInspectorV3,
   zlozGroupWorkbenchV3,
@@ -42,6 +47,8 @@ export type ReadyState = Readonly<{
   text: string;
   notice: string;
   openSequence: number;
+  layoutSequence: number;
+  pendingLayout: ZlozGroupLayoutRequestV3 | null;
   pendingOpen: Readonly<{ token: number; sessionId: string; revision: number }> | null;
 }>;
 export const Model = defineTaggedUnion({
@@ -59,6 +66,10 @@ export const Message = defineMessageUnion({
   ClickedMinimal: {},
   ClickedProtection: {},
   ClickedCheckpoint: {},
+  ClickedLayout: { direction: Schema.Literals(['RIGHT', 'DOWN']) },
+  ClickedCancelLayout: {},
+  SucceededLayout: { result: Schema.Unknown },
+  FailedLayout: { requestId: Schema.String, reason: Schema.String },
   ClickedReview: { id: Schema.String },
   ClickedWorking: {},
   ClickedRestore: {},
@@ -129,6 +140,21 @@ const DownloadGroupModel = Command.define('DownloadGroupModel', {
       }),
     ),
 });
+const ArrangeGroupModel = Command.define('ArrangeGroupModel', {
+  args: { request: Schema.Unknown, direction: Schema.Literals(['RIGHT', 'DOWN']) },
+  messages: [Message.SucceededLayout, Message.FailedLayout],
+  execute: ({ request: raw, direction }) => {
+    // SAFETY: Only groupLayoutRequestV3 constructs this Command argument in the typed update below.
+    const request = raw as ZlozGroupLayoutRequestV3;
+    return Effect.tryPromise(() => createElkGroupLayoutV3({ direction })(request)).pipe(
+      Effect.match({
+        onSuccess: (result) => Message.SucceededLayout({ result }),
+        onFailure: (error) =>
+          Message.FailedLayout({ requestId: request.requestId, reason: String(error) }),
+      }),
+    );
+  },
+});
 const initialDocument = () =>
   captureGroupDocumentV3({
     version: 3,
@@ -191,6 +217,8 @@ function ready(id: string, document?: ZlozModelDocumentV3): ReadyState {
     locked: false,
     text: '',
     openSequence: 0,
+    layoutSequence: 0,
+    pendingLayout: null,
     pendingOpen: null,
     notice: 'Native v3 controls. Export and advanced-tool limits are listed below.',
   };
@@ -242,6 +270,60 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       state ? changed({ ...state, theme: state.theme === 'light' ? 'dark' : 'light' }) : { model },
     ClickedMinimal: () => (state ? changed({ ...state, minimal: !state.minimal }) : { model }),
     ClickedProtection: () => (state ? changed({ ...state, locked: !state.locked }) : { model }),
+    ClickedLayout: ({ direction }) => {
+      if (!state || state.review || state.workbench.gesture.type !== 'idle') return { model };
+      const sequence = state.layoutSequence + 1,
+        request = groupLayoutRequestV3(
+          state.workbench.editor,
+          `${state.workbench.editor.sessionId}:layout:${sequence}`,
+        );
+      return {
+        model: Model.Ready({
+          state: {
+            ...state,
+            layoutSequence: sequence,
+            pendingLayout: request,
+            notice: `Arranging native v3 groups ${direction.toLowerCase()}…`,
+          },
+        }),
+        commands: [ArrangeGroupModel({ request, direction })],
+      };
+    },
+    ClickedCancelLayout: () =>
+      state
+        ? changed({
+            ...state,
+            pendingLayout: null,
+            notice: 'Layout cancelled. Late results will be ignored.',
+          })
+        : { model },
+    SucceededLayout: ({ result: raw }) => {
+      // SAFETY: The engine Command produces this result; core independently validates complete geometry at Apply.
+      const result = raw as ZlozGroupLayoutResultV3;
+      if (!state?.pendingLayout || result.requestId !== state.pendingLayout.requestId)
+        return { model };
+      if (state.review)
+        return changed({
+          ...state,
+          pendingLayout: null,
+          notice: 'Layout ignored during read-only review.',
+        });
+      const workbench = applyGroupWorkbenchLayoutV3(
+        state.workbench,
+        state.pendingLayout,
+        result,
+        policy(state),
+      );
+      return changed({ ...state, pendingLayout: null, workbench, notice: workbench.status });
+    },
+    FailedLayout: ({ requestId, reason }) =>
+      state?.pendingLayout?.requestId === requestId
+        ? changed({
+            ...state,
+            pendingLayout: null,
+            notice: `Layout failed. Current model retained. ${reason}`,
+          })
+        : { model },
     ClickedCheckpoint: () => {
       if (!state || state.review || state.workbench.gesture.type !== 'idle') return { model };
       const result = applyGroupEditorTransactionV3(
@@ -291,6 +373,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return changed({
         ...state,
         review: { edition: review.edition, workbench },
+        pendingLayout: null,
         notice: 'Read-only checkpoint. Working Undo remains independent.',
       });
     },
@@ -472,6 +555,26 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                               ),
                             ]
                           : [zlozGroupInspectorV3(h, current, options)]),
+                        h.h2([], ['Native v3 ELK layout']),
+                        button(
+                          'Arrange right',
+                          Message.ClickedLayout({ direction: 'RIGHT' }),
+                          state.review !== null || current.gesture.type !== 'idle',
+                        ),
+                        button(
+                          'Arrange down',
+                          Message.ClickedLayout({ direction: 'DOWN' }),
+                          state.review !== null || current.gesture.type !== 'idle',
+                        ),
+                        ...(state.pendingLayout
+                          ? [button('Cancel layout', Message.ClickedCancelLayout())]
+                          : []),
+                        h.p(
+                          [],
+                          [
+                            'Keeps group ports, connections and camera. Each accepted layout is one Undo; current protections are checked again before Apply.',
+                          ],
+                        ),
                         h.h2([], ['Editions']),
                         button(
                           'Save checkpoint',

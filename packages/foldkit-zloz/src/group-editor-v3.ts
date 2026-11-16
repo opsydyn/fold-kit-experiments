@@ -345,7 +345,12 @@ export function resolveGroupEditorBoundaryV3(
   boundary: ZlozGroupEditorBoundaryV3,
 ): ZlozGroupEditorResultV3 {
   assertSession(editor);
-  if (boundary === 'native-controls' || boundary === 'model' || boundary === 'editions')
+  if (
+    boundary === 'native-controls' ||
+    boundary === 'model' ||
+    boundary === 'editions' ||
+    boundary === 'layout'
+  )
     return { type: 'unchanged', editor };
   return blocked(
     editor,

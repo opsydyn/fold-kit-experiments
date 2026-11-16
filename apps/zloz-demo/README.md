@@ -745,3 +745,13 @@ model and paste its JSON to reopen in a fresh session; the workbench input budge
 is 1 MiB UTF-8. Delayed open results cannot overwrite intervening graph edits.
 The compatibility panel lists v3 native and adapter limits independently; this
 page does not imply that existing v1/v2 exports or advanced tools accept v3.
+
+**Arrange right** / **Arrange down** opt into native v3 ELK layout. Connect the
+Orders boundary's Public API port to Warehouse to demonstrate a ported group
+connection alongside a child connection. Each changed layout is one Undo frame;
+authoring, hierarchy, endpoints and camera remain intact. Current protection
+can veto the whole layout. Cancel and superseding requests ignore late engine
+results; opening/reviewing documents or editing meanwhile cannot overwrite the
+current working state. This is logical cancellation, not worker termination.
+See [light/dark/protection evidence](evidence/v3-elk/browser.json) and
+[package qualification](../../packages/foldkit-zloz/evidence/v3-elk-layout.md).

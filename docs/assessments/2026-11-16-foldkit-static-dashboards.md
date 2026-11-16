@@ -12,8 +12,9 @@
 - **remaining uncertainty:** interactive pages (inputs, cross-filtering) are not spiked;
   Foldkit's server rendering is `foldkit/experimental/server`; the page format and CLI
   are unproven with agents beyond this session.
-- **next:** if accepted, an ADR and stage 1 below: a `foldkit-dash` package with
-  `build`, `check` and `describe`, a starter, and a skill.
+- **next:** stage 1 below, proposed in
+  [ADR 0109](../adr/0109-build-agent-first-static-dashboards-with-foldkit-dash.md): a
+  `foldkit-dash` package with `new`, `build`, `check` and `describe`, and a skill.
 
 The article the question pointed to (`old.observablehq.com/blog/what-is-static-site-generator`)
 could not be fetched from this environment, so the comparison below is with Observable

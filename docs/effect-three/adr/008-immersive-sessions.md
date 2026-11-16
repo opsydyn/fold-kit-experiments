@@ -101,3 +101,29 @@ rotation })] })` asks the session to anchor those places (`frame.createAnchor` i
   builds it, again only when the arrays change (IWER moves `lastChangedTime` every
   frame), and taken back when the mesh is lost or the session ends. The IWER test's
   environment detects a one-triangle couch.
+
+## Since: the teleport arc
+
+`xr({ teleportArc: teleportArc({ targets }) })` puts pmndrs/xr's teleport pointer
+(`packages/xr/src/teleport.ts` and `vanilla/default.ts` at `0e1acd8`) on one hand, the
+left by default, leaving the other to point:
+
+- **The arc is the core's, pure:** `arcAim` keeps the controller's yaw and pitch, dipped
+  10° and clamped between straight down and 49.5° up (its roll dropped), `easeAim` catches
+  up over 100 ms, `arcPoints` places pmndrs/xr's quadratic Bézier (from (0, 0, 0) through
+  (0, 0, −8) to (0, −20, −15), 20 segments) there, `arcHit` finds the first segment that
+  meets something, and `teleportOrigin` moves the origin so the head, not the origin,
+  stands over the landing, on its floor.
+- **The session draws it,** like gliding, with no Message per frame: while the arc's
+  hand holds select, its segments are cast at the nodes keyed in `targets` and drawn up
+  to the landing, with a ring there. Letting go over a target reports `XrTeleported {
+hand, point, origin }`, and `teleported(xr, event)` keeps the new origin.
+- **The arc's hand selects for the arc,** as pmndrs/xr's teleport pointer takes its
+  source's select: it neither clicks nor reports AR surfaces. Its aim still hovers.
+
+Evidence: `packages/effect-three/test/teleportArc.test.ts` (the curve against three's
+`QuadraticBezierCurve3`, the aim's dip, clamp and dropped roll, the easing, the first hit,
+the head over the landing, the event and equality) and the IWER session in
+`packages/effect-three-foldkit/e2e/xr.test.ts` (no arc until select is held; held, it
+reaches the floor ahead of the player; let go, one `XrTeleported` and no click, with the
+origin that puts the head over the ring). The XR room uses it in VR.

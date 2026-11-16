@@ -352,8 +352,12 @@ Effect owns every lifetime.
    `pointTape` and `tapeNodes` (two clicked ends, a dashed run to the pointer while the
    second is placed, optional snapping), and the adapter's `MeasuringTape` with its
    length as an overlay at the middle. The arrange example measures between anything on
-   the table. Next: the XR teleport arc, the last widget of 5 (`teleport` today moves
-   the player to where a straight ray points).
+   the table.
+   ✅ Last, the XR teleport arc (ADR-008, since): pmndrs/xr's teleport pointer, its
+   curve and aim pure in the core (`arcAim`, `arcPoints`, `arcHit`, `teleportOrigin`),
+   drawn by the session while the arc's hand holds select, and reported as
+   `XrTeleported` when let go over a target. The XR room's left hand jumps with it in VR.
+   With it, every widget of 5 is done.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -411,7 +415,6 @@ Still open:
 
 - XR co-presence (2): other players' heads and hands as tracked spaces, over the
   lockstep session and relay that already exist.
-- The XR teleport arc (5), the last interaction widget.
 - Agent tools that answer with a scene's description (`describeScene`) rather than the
   raw Model (3).
 - Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on

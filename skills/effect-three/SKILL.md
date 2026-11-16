@@ -52,7 +52,8 @@ for a view with selection and a Model-owned orbit camera.
   included. Use the record's stable id, never its index in a filtered or sorted list.
   A node keeps its three.js object while its key and kind stay the same.
 - **The Model owns what persists**: the camera (`orbit`, `rotateCamera`, `fitCamera`),
-  the XR player (`locomote`, `teleport`, `glided`), selection and hover. Things that
+  the XR player (`locomote`, `teleport`, `glided`, `teleported` for
+  `xr({ teleportArc })`), selection and hover. Things that
   move every frame without changing the Model are behaviours (`spin`, `float`, user
   `behaviours`), physics, damping and `autoRotate`; the scene reports where they end
   (`AutoRotated`, `XrMoved`) when the Model needs it.

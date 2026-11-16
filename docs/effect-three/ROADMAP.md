@@ -13,6 +13,9 @@ traces the reference before designing (the R3F reference rule in `CLAUDE.md`).
 **Status key:** ✅ done · 🟡 partial · ❌ missing · ⏸ designed for, not built.
 **Sizes:** S ≈ ≤1 day · M ≈ 2–4 days · L ≈ a week or more.
 
+**Closed (2026-11-16):** all done but the real-device XR checks, which need a headset;
+see [Closed](#closed-2026-11-16).
+
 ## Where we are (2026-10-18)
 
 R1 to R5 are done: everything in the tables below is ✅. A scene can hold meshes (nine shapes and text), instances,
@@ -202,8 +205,9 @@ request. (Labels under WebGPU were a third, until E.)
   sample now runs under `?renderer=webgpu`, labels included, and the label e2e runs on
   WebGL, WebGPU and WebGPU's WebGL 2 backend. Not ported: clip rectangles, inner strokes
   and outline offsets (`LabelNode` has none), and label shadows.
-- Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
-  `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
+- ⏸ Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
+  `WebGPURenderer`, the DOM overlay and co-presence; they retire the documented limits.
+  The steps are in [real-device-checks.md](real-device-checks.md).
 - ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
   a Model pattern, a sized candidate, or out of scope with a reason.
 - ✅ The audit's S candidates, each traced from Drei at `bf6f4ad`:
@@ -422,10 +426,16 @@ first; a scene previews as SVG without a browser; and Rapier steps in a worker b
 same engine contract. A newcomer to a lockstep session starts from the leader's
 snapshot, and a predicting peer rolls back for late inputs (2).
 
-Still open:
+Agents read scenes through MCP tools that describe, check, preview and diff them (3),
+and players presenting the XR room see one another's heads and hands (2).
 
-- Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on
-  `WebGPURenderer`, and the DOM overlay. Until then they stay documented limits.
+## Closed (2026-11-16)
+
+Every item above is done but one, which needs hardware: the real-device XR checks (E),
+listed step by step in [real-device-checks.md](real-device-checks.md). Until someone runs
+them with a headset, WebXR on `WebGPURenderer`, the DOM overlay and co-presence on real
+grips stay documented limits; everything else XR is checked under emulation. New work
+starts a new roadmap rather than reopening this one.
 
 ## Not planned
 

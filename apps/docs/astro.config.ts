@@ -71,6 +71,7 @@ export default defineConfig({
             'effect-three/references',
             'effect-three/drei-audit',
             'effect-three/devtools-mcp-notes',
+            'effect-three/real-device-checks',
           ],
         },
         folder('Examples', 'examples', true),

@@ -2468,6 +2468,7 @@ type BinConfig<T = number> = Readonly<{
   domain?: readonly [number, number];
   thresholds?: number | ReadonlyArray<number>;
 }>;
+function binThresholds(domain: readonly [number, number], thresholds?: number | ReadonlyArray<number>): ReadonlyArray<number>;
 ```
 
 ## ./math/bin2d
@@ -2495,6 +2496,13 @@ type RectBin<T> = Readonly<{
   count: number;
   values: ReadonlyArray<T>;
 }>;
+function rectBinEdges(config: RectBinsConfig): (i: number, j: number) => Readonly<{
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}>;
+const rectBinIndex: (value: number, lo: number, hi: number, n: number) => number;
 function rectBins<T>(data: ReadonlyArray<T>, accessors: Bin2dAccessors<T>, config: RectBinsConfig): ReadonlyArray<RectBin<T>>;
 type RectBinsConfig = Readonly<{
   xDomain: readonly [number, number];
@@ -3333,6 +3341,7 @@ type ProjectionSpec = Readonly<{
   zoom?: number;
   center?: readonly [number, number];
 }>;
+function pushdown(spec: PlotSpec, source: SqlSource): Promise<PlotSpec>;
 type RectMark = CommonMark & Readonly<{
   mark: 'rect';
   x?: Channel;
@@ -3375,6 +3384,10 @@ type SizeScaleSpec = Readonly<{
   range?: readonly [number, number];
 }>;
 function spokeOf(geometry: PolarGeometry, angle: number): readonly [number, number, number, number];
+type SqlSource = Readonly<{
+  from: string;
+  query: (sql: string) => Promise<ColumnTable>;
+}>;
 type Stack = StackOffset | Readonly<{
   offset?: StackOffset;
   order?: StackOrder;

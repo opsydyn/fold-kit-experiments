@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.19.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.18.0...foldkit-viz-v0.19.0) (2026-11-16)
+
+
+### Features
+
+* **foldkit-viz:** export, Jupyter, GPU points, DuckDB pushdown and 3D charts ([#146](https://github.com/opsydyn/fold-kit-experiments/issues/146)) ([f37d448](https://github.com/opsydyn/fold-kit-experiments/commit/f37d4489bacbe41e122b00cd43d4bf53f2068df5))
+
 ## [0.18.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.17.0...foldkit-viz-v0.18.0) (2026-11-15)
 
 ### Features

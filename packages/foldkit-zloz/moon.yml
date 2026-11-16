@@ -6,6 +6,16 @@ tasks:
     outputs: ['dist/**/*']
   typecheck:
     script: 'tsc --noEmit'
+  docs:
+    script: 'typedoc'
+    deps: ['build', 'foldkit-viz:build']
+    # This API reference also documents the optional adapters and private CLI.
+    inputs:
+      - '**/*'
+      - '/packages/foldkit-zloz*/src/**/*'
+      - '/packages/foldkit-zloz*/tsconfig*.json'
+      - '/packages/foldkit-zloz*/package.json'
+    outputs: ['docs/**/*']
   test:
     script: "bun test ./test --path-ignore-patterns='**/package.test.ts'"
   integration:

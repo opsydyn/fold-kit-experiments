@@ -92,6 +92,19 @@
   --toggle-hover-text: #111111;
 }
 
+/*
+ * effect-three samples take their colours from the host's --text, --surface,
+ * --muted, --border and --blue, falling back to dark ones. In light mode this
+ * workbench supplies them, so a sample's text, buttons and stage are light too.
+ */
+[data-theme='light'] .e3-sample {
+  --text: var(--page-text);
+  --surface: var(--card-bg);
+  --muted: var(--card-label);
+  --border: var(--card-border);
+  --blue: var(--chart-accent);
+}
+
 /* The web workbench defaults to dark, independently of the OS setting. */
 :root:not([data-theme='light']) .syntax-highlight {
   --color-prettylights-syntax-brackethighlighter-angle: #9198a1;

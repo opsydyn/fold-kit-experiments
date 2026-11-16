@@ -768,5 +768,19 @@ a Command after package validation. The file is static authored artwork, not an
 interactive canvas capture or an embedded canonical model.
 
 See [native SVG qualification](../../packages/foldkit-zloz/evidence/v3-svg-export.md)
-and [visual receipt](evidence/v3-svg/browser.json). Native PNG remains deferred to
-the next slice using this projection.
+and [visual receipt](evidence/v3-svg/browser.json). Native PNG uses the distinct reviewed entry below.
+
+**PNG export review** composes the same native SVG/fidelity contract with separate
+PNG consent, crop/palette/background/scale settings, **Render PNG**, logical
+cancellation, actual image preview and **Download PNG**. Use **Use retained ELK
+routes for PNG** after arranging, or **Show custom workshop shells for PNG** to
+review fallback plus rasterization loss. **Protect PNG export** vetoes render,
+completion and download; reasons/findings remain visible in minimal mode.
+
+Both export panels describe the actual shared canvas shell; changing that shell
+invalidates prior artifacts/consent where output changes. PNG retained-route and
+protection settings are independent from SVG. Rendering uses a Command and the
+optional native `/browser` entry; download reuses exact preview bytes. Read-only
+edition reviews have a separate export scope and working Undo remains intact.
+See [package qualification](../../packages/foldkit-zloz/evidence/v3-png-export.md)
+and [browser/download evidence](evidence/v3-png/browser.json).

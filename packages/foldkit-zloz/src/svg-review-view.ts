@@ -176,14 +176,19 @@ export function zlozSvgReview<M>(
     h.div(
       [h.Style({ display: 'grid', gap: '8px' })],
       (['regionId', 'themeId', 'backgroundId'] as const).map((field) =>
-        h.label(
-          [h.For(`${prefix}-${field}`)],
+        h.div(
+          [h.Style({ display: 'grid', gap: '4px' })],
           [
-            field === 'regionId'
-              ? 'SVG region'
-              : field === 'themeId'
-                ? 'SVG theme'
-                : 'SVG background',
+            h.label(
+              [h.For(`${prefix}-${field}`)],
+              [
+                field === 'regionId'
+                  ? 'SVG region'
+                  : field === 'themeId'
+                    ? 'SVG theme'
+                    : 'SVG background',
+              ],
+            ),
             zlozSvgReviewSelect(h, context, field, onRequest, [h.Id(`${prefix}-${field}`)]),
           ],
         ),

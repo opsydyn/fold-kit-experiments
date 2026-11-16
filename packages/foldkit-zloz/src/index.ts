@@ -1002,3 +1002,17 @@ export type {
   ZlozGroupSvgReviewContextV3,
   ZlozGroupSvgReviewControlsV3,
 } from './group-svg-review-v3';
+
+export {
+  planGroupPngExportV3,
+  resolveGroupPngReviewV3,
+  updateGroupPngReviewV3,
+} from './group-png-v3';
+export type {
+  ZlozGroupPngExportInputV3,
+  ZlozGroupPngExportPlanV3,
+  ZlozGroupPngReviewContextV3,
+  ZlozGroupPngReviewControlsV3,
+  ZlozGroupPngRenderPayloadV3,
+  ZlozGroupPngReviewUpdateV3,
+} from './group-png-v3';

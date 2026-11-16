@@ -9,13 +9,19 @@ import {
 
 import type { ReadyState } from './main';
 /** The working model and detached edition each provide a full native source; overlays are not exported. */
-export function groupSvgContext(state: ReadyState): ZlozGroupSvgReviewContextV3 {
+export function groupSvgContext(
+  state: ReadyState,
+  format: 'svg' | 'png' = 'svg',
+): ZlozGroupSvgReviewContextV3 {
+  const retained = format === 'png' ? state.pngRetained : state.svgRetained;
+  const protectedExport = format === 'png' ? state.protectPng : state.protectSvg;
+  const label = format.toUpperCase();
   const current = state.review?.workbench ?? state.workbench;
   const document = captureGroupWorkbenchDocumentV3(current);
   const routes = groupWorkbenchRoutesV3(current);
   const readyRoutes = routes.length === document.graph.edges.length;
   const context: ZlozGroupSvgReviewContextV3 = {
-    scope: `${current.editor.sessionId}:svg`,
+    scope: `${current.editor.sessionId}:${format}`,
     sourceRevision: current.editor.revision,
     document,
     surface: current.surface,
@@ -39,17 +45,19 @@ export function groupSvgContext(state: ReadyState): ZlozGroupSvgReviewContextV3 
         : [],
     },
     canDownload: () =>
-      state.protectSvg
-        ? 'SVG downloads are protected in this workspace.'
+      protectedExport
+        ? format === 'png'
+          ? 'PNG exports are protected in this workspace.'
+          : 'SVG downloads are protected in this workspace.'
         : current.gesture.type !== 'idle'
-          ? 'Finish the active gesture before downloading SVG.'
+          ? `Finish the active gesture before exporting ${label}.`
           : state.pendingLayout
-            ? 'Wait for or cancel layout before downloading SVG.'
-            : state.svgRetained && !readyRoutes
+            ? `Wait for or cancel layout before exporting ${label}.`
+            : retained && !readyRoutes
               ? 'Arrange with ELK and expand groups before exporting retained routes.'
               : null,
   };
-  if (!state.svgRetained || !readyRoutes) return context;
+  if (!retained || !readyRoutes) return context;
   const renderKey = `native-v3:${state.theme}:${state.svgCustom ? 'badge' : 'canonical'}`;
   return {
     ...context,

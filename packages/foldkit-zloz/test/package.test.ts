@@ -57,9 +57,11 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const browserConsumer = `import { renderPngExport } from '@opsydyn/foldkit-zloz/browser';
+    const browserConsumer = `import { renderPngExport, renderGroupPngExportV3 } from '@opsydyn/foldkit-zloz/browser';
 const result=await renderPngExport({snapshot:{graph:{nodes:[],edges:[]},viewport:{x:0,y:0,zoom:1}},svg:{title:'SSR',region:{type:'model',padding:0},theme:{colorScheme:'light'},background:{type:'transparent'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}}});
 if(result.type!=='failed'||result.code!=='unsupported')throw new Error('Browser entry imported unsafely under SSR');
+const nativeResult=await renderGroupPngExportV3({document:${JSON.stringify(groupV3Wire)},svg:{title:'Native SSR',region:{type:'model',padding:24},theme:{colorScheme:'light'},background:{type:'theme'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}},writing:{allowLosses:true}});
+if(nativeResult.type!=='failed'||nativeResult.code!=='unsupported')throw new Error('Native browser entry imported unsafely');
 console.log('browser-import-ok');`;
     for (const runtime of ['node', 'bun']) {
       const result = await exec(runtime, ['--input-type=module', '-e', browserConsumer], {
@@ -352,6 +354,17 @@ const packedSourceEdge=doc.graph.edges[0]!;
 const packedRoutes=captureGroupSvgLayoutV3(doc,[{id:packedSourceEdge.id,points:[packedSourceEdge.source,packedSourceEdge.target].map(e=>portPosition(doc.graph.nodes.find(n=>n.id===e.node)!,e.port))}],'installed');
 if(writeGroupSvgExportV3(doc,{...nativeSvgOptions,layout:{snapshot:packedRoutes,renderKey:'installed'}}).type!=='written')throw new Error('Packed native retained routes missing');
 
+import {planGroupPngExportV3,createPngReview,resolveGroupPngReviewV3,updateGroupPngReviewV3,type ZlozGroupPngReviewContextV3,type ZlozGroupPngRenderPayloadV3} from '@opsydyn/foldkit-zloz';
+const nativePngContext:ZlozGroupPngReviewContextV3={...nativeSvgContext,scope:'installed-native-png',regions:[{id:'model',label:'One pixel fixture',value:{type:'bounds',bounds:{x:0,y:0,width:1,height:1}}}],layout:{snapshot:packedRoutes,renderKey:'installed'}};
+const nativePngState=createPngReview(nativePngContext.scope),nativePngView=resolveGroupPngReviewV3(nativePngState,nativePngContext);
+const nativePngAccepted=updateGroupPngReviewV3(nativePngState,nativePngContext,{...nativePngView.identity,type:'PngLossAcceptanceChanged',accepted:true}).state;
+const nativePngJob=updateGroupPngReviewV3(nativePngAccepted,nativePngContext,{...nativePngView.identity,type:'PngRenderRequested'});
+const nativePayload:ZlozGroupPngRenderPayloadV3|null=nativePngJob.payload;
+if(!nativePayload||nativePayload.input.document.version!==3||nativePayload.input.document.capabilities.groupPorts!==true||nativePayload.input.expectedSvg!==nativePayload.plan.svg||planGroupPngExportV3(nativePayload.input).type!=='ready'||'snapshot' in nativePayload.input)throw new Error('Packed native PNG source/plan missing');
+const nativePixel={dataUrl:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=',byteLength:68,width:1,height:1};
+const nativePngReady=updateGroupPngReviewV3(nativePngJob.state,nativePngContext,{...nativePngView.identity,type:'PngRenderSettled',run:nativePayload.run,result:{type:'rendered',artifact:nativePixel}});
+if(updateGroupPngReviewV3(nativePngReady.state,nativePngContext,{...nativePngView.identity,type:'PngDownloadRequested'}).download?.artifact.dataUrl!==nativePixel.dataUrl)throw new Error('Packed native PNG exact artifact lifecycle missing');
+
 let rejected=false;
 try { createEditor(doc.graph); } catch { rejected=true; }
 if(!rejected)throw new Error('Widened legacy editor');
@@ -506,6 +519,12 @@ import {zlozSvgReview as packedSvgControls} from '@opsydyn/foldkit-zloz/foldkit'
 const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(createPackedNativeSvgReview(packedSvgScope),{scope:packedSvgScope,sourceRevision:0,document:packedNativeV3.editor.document,title:'Native export',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
 const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
 if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
+import {resolveGroupPngReviewV3 as resolvePackedNativePng,type ZlozPngReviewRequest} from '@opsydyn/foldkit-zloz';
+import {zlozPngReview as packedPngReviewUi} from '@opsydyn/foldkit-zloz/foldkit';
+const packedPngNative=resolvePackedNativePng(createPngReview('packed-png-native'),{scope:'packed-png-native',sourceRevision:0,document:packedNativeV3.editor.document,title:'Native PNG',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
+const packedPngUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedPngNative}),view:(model,h:HtmlBuilder<ZlozPngReviewRequest>)=>({title:'Packed native PNG review',body:packedPngReviewUi(h,model,event=>event)})},{flags:{},isHydratable:false}));
+if(!packedPngUi.html.includes('Render PNG')||!packedPngUi.html.includes('Accept the reported PNG losses'))throw new Error('Native PNG review SSR missing');
+
 
 
 import type { HtmlBuilder } from 'foldkit/html';

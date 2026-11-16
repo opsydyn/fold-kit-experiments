@@ -6413,9 +6413,9 @@ This transaction does **not** infer a drag, group expansion, deletion or reparen
 plan: include every intended affected child/ancestor in the target, retaining
 world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
 `createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
-`resolveGroupEditorBoundaryV3` returns unchanged for the distinct native-controls,
-model and edition entries; unsupported clipboard, layout, SVG/PNG, Mermaid,
-patch and review-packet entries remain blocked.
+`resolveGroupEditorBoundaryV3` reports availability for the distinct native-controls,
+model, edition, layout, SVG and PNG entries documented below. Clipboard, Mermaid,
+patch and review-packet entries remain blocked pending native adoption.
 It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
 See [the editor qualification receipt](evidence/group-editor-v3.md) and
@@ -6580,7 +6580,7 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 clipboard, PNG, Mermaid, patches, conversion receipts, review
+V3 clipboard, Mermaid, patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
@@ -6689,5 +6689,72 @@ are shared, while native context/writer/result types stay explicit. Read-only
 edition export is allowed when the host policy permits it. The workbench captures
 its live camera and exports authored content, not collapse/selection/diagnostics.
 
-See [native SVG qualification](evidence/v3-svg-export.md). Native PNG remains a
-separate adapter slice and is not enabled by SVG support.
+See [native SVG qualification](evidence/v3-svg-export.md) and the distinct native
+PNG entry below. SVG support alone does not authorize rasterization.
+
+### Native v3 PNG export (unreleased)
+
+`planGroupPngExportV3(input)` invokes the same native SVG writer and preserves its
+full document and findings before adding `rasterization-loss`. Planning is pure:
+`ready` means supported geometry/budgets, not permission to encode. The optional
+`/browser` entry exposes `renderGroupPngExportV3(input, { signal?, timeoutMs? })`.
+It rebuilds `writeGroupSvgExportV3`, checks reviewed `expectedSvg` bytes and only
+then allocates image/canvas/encoder resources. No legacy snapshot or graph-only
+conversion is used. The core and browser entry remain safe to import under SSR;
+calling the rasterizer without a browser returns `unsupported`.
+
+```ts
+import {
+  createPngReview,
+  resolveGroupPngReviewV3,
+  updateGroupPngReviewV3,
+  type ZlozGroupPngReviewContextV3,
+} from '@opsydyn/foldkit-zloz';
+
+const state = createPngReview(sessionId);
+const context: ZlozGroupPngReviewContextV3 = {
+  scope: sessionId,
+  sourceRevision: editorV3.revision,
+  document: editorV3.document,
+  title: 'Orders PNG',
+  theme: { colorScheme: 'light' },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const controls = resolveGroupPngReviewV3(state, context);
+// Compose /foldkit's zlozPngReview, zlozPngAction and zlozPngPreview.
+const next = updateGroupPngReviewV3(state, currentContext, request);
+// When next.payload exists, a Command calls:
+// renderGroupPngExportV3(next.payload.input, { signal }) from /browser.
+// Feed its result back as PngRenderSettled with the payload identity/run.
+```
+
+PNG consent is separate from SVG consent and always includes raster flattening.
+The review key covers full v3 source, current revision/session, SVG bytes,
+settings and PNG budgets. Native render jobs detach the document, data-only
+options, validated retained routes, adapter records and font bytes. Callback
+closures remain host code: a changed callback output fails the reviewed-SVG byte
+comparison. Source/mode/capability/camera, settings, policy and consent are
+rechecked before render, on completion and before download. Cancelled/superseded
+or stale replies cannot publish a preview. Current `canDownload` also protects
+rendering; consent never caches permission. Read-only edition export is allowed
+when the host permits it, without changing the working editor or Undo.
+
+Whole model, explicit crop, measured viewport, 1×/2×/3× (or configured) scale,
+light/dark backgrounds and transparency use the SVG contract. Dimension ceilings
+are integers: default maximum 8192 per side, 8,388,608 pixels and 8,388,608 encoded
+bytes; configurable maxima are 16384, 16,777,216 pixels and 33,554,432 bytes.
+Invalid dimension/pixel budgets block before allocation; the encoded byte budget
+is checked after encoding. Timeout is 1–30000 ms (default 10000). Abort/deadline
+paths release URLs, readers, handlers and canvas storage. Synchronous draw/encode
+cannot always be physically interrupted; logical cancellation rejects results.
+
+Only an actual rendered PNG appears in preview. Download reuses that exact data
+URL without rerendering. Native settlement additionally checks bounded base64
+byte length and IHDR dimensions against the plan. This is a trusted renderer
+artifact contract, not a decoder/importer for untrusted PNG files. Native group
+ports become pixels; editable semantics/history are not embedded. Keep canonical
+JSON and SVG separately. Browser/font/antialiasing and custom-renderer findings
+remain explicit; native server-side PNG is not implemented.
+
+See [native PNG qualification](evidence/v3-png-export.md) for actual browser
+pixel/download evidence, resource cleanup and source/policy/cancellation tests.

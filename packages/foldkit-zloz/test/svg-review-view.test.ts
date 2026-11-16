@@ -105,3 +105,15 @@ test('minimal/custom presentation keeps findings, acceptance and download semant
   );
   expect(document.body.textContent).not.toContain('Loss acceptance applies only');
 });
+test('SVG choice names remain separate from option text and bind their controls', async () => {
+  const document = await render();
+  for (const [field, name] of [
+    ['regionId', 'SVG region'],
+    ['themeId', 'SVG theme'],
+    ['backgroundId', 'SVG background'],
+  ] as const) {
+    const label = document.querySelector(`label[for="zloz-svg-review-${field}"]`);
+    expect(label?.textContent).toBe(name);
+    expect(document.getElementById(`zloz-svg-review-${field}`)?.tagName).toBe('SELECT');
+  }
+});

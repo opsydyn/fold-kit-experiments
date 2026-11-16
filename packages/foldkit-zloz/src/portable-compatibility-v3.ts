@@ -93,10 +93,15 @@ export function assessPortableCompatibilityV3(
       reason:
         'Use the distinct full-document native v3 planner/writer/review. Group ports, endpoint anchors, explicit bounds/themes and optional validated routes are supported; custom artwork needs declared adapters or explicit loss acceptance. SVG is a static projection, not a model codec.',
     },
+    {
+      adapter: 'png',
+      status: 'supported',
+      reason:
+        'Use native v3 PNG planning/review and the optional /browser renderGroupPngExportV3. The exact native SVG projection and findings are retained, with explicit rasterization consent, bounded browser output and source/policy checks. Pixels do not retain editable model semantics.',
+    },
     ...(
       [
         'clipboard',
-        'png',
         'mermaid',
         'modelling-patch',
         'conversion-receipt',

@@ -125,14 +125,19 @@ export function zlozPngReview<M>(
       [h.Style({ display: 'grid', gap: '8px' })],
       [
         ...(['regionId', 'themeId', 'backgroundId'] as const).map((field) =>
-          h.label(
-            [h.For(`${prefix}-${field}`)],
+          h.div(
+            [h.Style({ display: 'grid', gap: '4px' })],
             [
-              field === 'regionId'
-                ? 'PNG region'
-                : field === 'themeId'
-                  ? 'PNG theme'
-                  : 'PNG background',
+              h.label(
+                [h.For(`${prefix}-${field}`)],
+                [
+                  field === 'regionId'
+                    ? 'PNG region'
+                    : field === 'themeId'
+                      ? 'PNG theme'
+                      : 'PNG background',
+                ],
+              ),
               zlozSvgReviewSelect(
                 h,
                 context.svg,
@@ -151,10 +156,10 @@ export function zlozPngReview<M>(
             ],
           ),
         ),
-        h.label(
-          [h.For(`${prefix}-scale`)],
+        h.div(
+          [h.Style({ display: 'grid', gap: '4px' })],
           [
-            'PNG scale',
+            h.label([h.For(`${prefix}-scale`)], ['PNG scale']),
             h.select(
               [
                 h.Id(`${prefix}-scale`),

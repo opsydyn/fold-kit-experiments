@@ -1,6 +1,13 @@
 import {
   assessPortableCompatibilityV3,
   createSvgReview,
+  createPngReview,
+  pngReviewForScope,
+  updateGroupPngReviewV3,
+  type ZlozPngReviewState,
+  type ZlozPngReviewRequest,
+  type ZlozPngArtifact,
+  type ZlozGroupPngRenderPayloadV3,
   svgReviewForScope,
   updateGroupSvgReviewV3,
   type ZlozSvgReviewState,
@@ -30,10 +37,12 @@ import {
   type ZlozModelDocumentV3,
 } from '@opsydyn/foldkit-zloz';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+import { renderGroupPngExportV3, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import {
   zlozGroupInspectorV3,
   zlozGroupDragHandleV3,
   zlozSvgReview,
+  zlozPngReview,
   type ZlozGroupWorkbenchViewOptionsV3,
   zlozGroupWorkbenchV3,
   zlozDarkTheme,
@@ -46,6 +55,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { defineTaggedUnion } from 'foldkit/schema';
 import type { Return } from 'foldkit/update';
 
+import { groupPngContext, groupPngControls } from './png';
 import { groupSvgContext, groupSvgControls } from './svg';
 
 export type ReadyState = Readonly<{
@@ -64,6 +74,9 @@ export type ReadyState = Readonly<{
   svgCustom: boolean;
   svgRetained: boolean;
   protectSvg: boolean;
+  pngReview: ZlozPngReviewState;
+  pngRetained: boolean;
+  protectPng: boolean;
   pendingOpen: Readonly<{ token: number; sessionId: string; revision: number }> | null;
 }>;
 export const Model = defineTaggedUnion({
@@ -82,6 +95,10 @@ export const Message = defineMessageUnion({
   ClickedProtection: {},
   ClickedCheckpoint: {},
   ObservedSvgReview: { request: Schema.Unknown },
+  ObservedPngReview: { request: Schema.Unknown },
+  ClickedPngRetained: {},
+  ClickedPngProtection: {},
+  SettledPngDownload: { scope: Schema.String, key: Schema.String, succeeded: Schema.Boolean },
   ClickedSvgCustom: {},
   ClickedSvgRetained: {},
   ClickedSvgProtection: {},
@@ -200,6 +217,58 @@ const DownloadGroupSvg = Command.define('DownloadGroupSvg', {
     );
   },
 });
+const RenderGroupPng = Command.define('RenderGroupPng', {
+  args: { payload: Schema.Unknown },
+  interrupt: true,
+  messages: [Message.ObservedPngReview],
+  execute: ({ payload: raw }) => {
+    // SAFETY: The native package review controller constructs this detached, source-bound job.
+    const payload = raw as ZlozGroupPngRenderPayloadV3;
+    const identity = {
+      scope: payload.scope,
+      generation: payload.generation,
+      key: payload.key,
+      run: payload.run,
+    };
+    return Effect.tryPromise((signal) => renderGroupPngExportV3(payload.input, { signal })).pipe(
+      Effect.match({
+        onSuccess: (result) =>
+          Message.ObservedPngReview({ request: { ...identity, type: 'PngRenderSettled', result } }),
+        onFailure: () =>
+          Message.ObservedPngReview({
+            request: {
+              ...identity,
+              type: 'PngRenderSettled',
+              result: {
+                type: 'failed',
+                code: 'render-failed',
+                reason: 'PNG rendering failed. Review settings and retry.',
+              },
+            },
+          }),
+      }),
+    );
+  },
+});
+const DownloadGroupPng = Command.define('DownloadGroupPng', {
+  args: {
+    artifact: Schema.Unknown,
+    fileName: Schema.String,
+    scope: Schema.String,
+    key: Schema.String,
+  },
+  messages: [Message.SettledPngDownload],
+  execute: ({ artifact: raw, fileName, scope, key }) => {
+    // SAFETY: Only a native reviewed browser artifact reaches this download Command.
+    const artifact = raw as ZlozPngArtifact;
+    return Effect.try(() => downloadPngArtifact(artifact, fileName)).pipe(
+      Effect.match({
+        onSuccess: () => Message.SettledPngDownload({ scope, key, succeeded: true }),
+        onFailure: () => Message.SettledPngDownload({ scope, key, succeeded: false }),
+      }),
+    );
+  },
+});
 const ArrangeGroupModel = Command.define('ArrangeGroupModel', {
   args: { request: Schema.Unknown, direction: Schema.Literals(['RIGHT', 'DOWN']) },
   messages: [Message.SucceededLayout, Message.FailedLayout],
@@ -284,6 +353,9 @@ function ready(id: string, document?: ZlozModelDocumentV3): ReadyState {
     svgCustom: false,
     svgRetained: false,
     protectSvg: false,
+    pngReview: createPngReview(`${id}:png`),
+    pngRetained: false,
+    protectPng: false,
     notice: 'Native v3 controls. Export and advanced-tool limits are listed below.',
   };
 }
@@ -334,6 +406,47 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       state ? changed({ ...state, theme: state.theme === 'light' ? 'dark' : 'light' }) : { model },
     ClickedMinimal: () => (state ? changed({ ...state, minimal: !state.minimal }) : { model }),
     ClickedProtection: () => (state ? changed({ ...state, locked: !state.locked }) : { model }),
+    ClickedPngRetained: () =>
+      state ? changed({ ...state, pngRetained: !state.pngRetained }) : { model },
+    ClickedPngProtection: () =>
+      state ? changed({ ...state, protectPng: !state.protectPng }) : { model },
+    ObservedPngReview: ({ request: raw }) => {
+      if (!state) return { model };
+      // SAFETY: Package PNG controls and RenderGroupPng emit the declared native review facts.
+      const request = raw as ZlozPngReviewRequest;
+      const context = groupPngContext(state);
+      if (request.type === 'PngRenderSettled' && request.scope !== context.scope) return { model };
+      const result = updateGroupPngReviewV3(
+        pngReviewForScope(state.pngReview, context.scope),
+        context,
+        request,
+      );
+      const next = { ...state, pngReview: result.state, notice: result.notice || state.notice };
+      return result.payload
+        ? {
+            model: Model.Ready({ state: next }),
+            commands: [RenderGroupPng({ payload: result.payload })],
+          }
+        : result.download
+          ? {
+              model: Model.Ready({ state: next }),
+              commands: [
+                DownloadGroupPng({ ...result.download, scope: context.scope, key: request.key }),
+              ],
+            }
+          : changed(next);
+    },
+    SettledPngDownload: ({ scope, key, succeeded }) => {
+      if (!state) return { model };
+      const current = groupPngControls(state);
+      if (scope !== current.identity.scope || key !== current.identity.key) return { model };
+      return changed({
+        ...state,
+        notice: succeeded
+          ? 'Reviewed PNG downloaded.'
+          : 'PNG download failed. The reviewed image is retained for retry.',
+      });
+    },
     ClickedSvgCustom: () =>
       state ? changed({ ...state, svgCustom: !state.svgCustom }) : { model },
     ClickedSvgRetained: () =>
@@ -726,6 +839,40 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                               (request) => Message.ObservedSvgReview({ request }),
                               {
                                 idPrefix: 'group-v3-svg',
+                                diagnostics: {
+                                  instructions: !state.minimal,
+                                  measurements: !state.minimal,
+                                },
+                              },
+                            ),
+                          ],
+                        ),
+                        h.details(
+                          [h.DataAttribute('native-png-review', '')],
+                          [
+                            h.summary([], ['PNG export review']),
+                            button(
+                              state.svgCustom
+                                ? 'Use canonical PNG shells'
+                                : 'Show custom workshop shells for PNG',
+                              Message.ClickedSvgCustom(),
+                            ),
+                            button(
+                              state.pngRetained
+                                ? 'Use canonical PNG paths'
+                                : 'Use retained ELK routes for PNG',
+                              Message.ClickedPngRetained(),
+                            ),
+                            button(
+                              state.protectPng ? 'Allow PNG export' : 'Protect PNG export',
+                              Message.ClickedPngProtection(),
+                            ),
+                            zlozPngReview(
+                              h,
+                              groupPngControls(state),
+                              (request) => Message.ObservedPngReview({ request }),
+                              {
+                                idPrefix: 'group-v3-png',
                                 diagnostics: {
                                   instructions: !state.minimal,
                                   measurements: !state.minimal,

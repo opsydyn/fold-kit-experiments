@@ -1759,3 +1759,32 @@ is part of this local commit.
 **Recommended next:** native v3 PNG using this same validated SVG projection and
 fidelity findings. Keep remaining clipboard/Mermaid/patch/receipt/packet/audit
 adapters and advanced tools open until separately qualified.
+
+## 2026-11-16 — Native v3 PNG through the reviewed SVG projection
+
+- `planGroupPngExportV3` retains the full v3 source and unchanged SVG findings,
+  adds rasterization loss and enforces integer geometry/pixel/byte budgets.
+- `resolveGroupPngReviewV3` / `updateGroupPngReviewV3` reuse package review state
+  and composable PNG controls. Separate PNG consent, native document/layout/font
+  capture and exact SVG bytes bind deferred jobs. Current source, settings,
+  protection and consent are checked at request, completion and download.
+- Optional `/browser` `renderGroupPngExportV3` rebuilds the native SVG without
+  legacy graph/snapshot conversion. Shared abort/deadline/resource cleanup stays
+  intact. Actual PNG previews and downloads use the same bytes; native settlement
+  binds byte length and IHDR dimensions to the reviewed plan. No editor/Undo change.
+- Workbench sidebar demos both palettes, crops/transparency/scale, custom-shell
+  loss, retained group-port routes, protected output and independent edition scope.
+- [ADR 0111](adr/0111-rasterize-reviewed-native-v3-svg-as-png.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-png-export.md), native/legacy
+  unit and installed-consumer tests, actual browser pixels/downloads and cleanup
+  probes provide local evidence. CLI format inspection now reports native PNG.
+
+PNG is browser-rendered pixels, not a portable editable model or untrusted image
+import contract. Platform fonts/antialiasing, custom fidelity, server PNG, broad
+performance and human physical-device/AT acceptance remain explicit limits.
+This local slice does not publish/deploy or complete the advanced parity catalogue.
+
+**Recommended next:** native v3 clipboard copy/paste with explicit group/port
+identity remapping, full-source validation, live policies and one Undo. This closes
+an everyday authoring gap without routing ported groups through legacy snapshots.
+Mermaid/patch/receipt/packet/audit adoption and advanced tools remain open.

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
 import { Message, Model, update, type ReadyState } from '../src/group-workbench/main';
+import { groupPngControls } from '../src/group-workbench/png';
 import { groupSvgControls } from '../src/group-workbench/svg';
 function ready(model: Model): ReadyState {
   if (model._tag !== 'Ready') throw new Error('Expected ready fixture.');
@@ -200,4 +201,107 @@ test('native SVG retained-route opt-in waits for layout, keeps source meaning an
     }),
   );
   expect(late.model).toBe(model);
+});
+test('native PNG handoff requires raster consent, supports cancellation/retry and preserves working Undo', () => {
+  let model = initial();
+  const editor = ready(model).workbench.editor,
+    view = groupPngControls(ready(model));
+  expect(
+    update(
+      model,
+      Message.ObservedPngReview({ request: { ...view.identity, type: 'PngRenderRequested' } }),
+    ).commands,
+  ).toBeUndefined();
+  model = update(
+    model,
+    Message.ObservedPngReview({
+      request: { ...view.identity, type: 'PngLossAcceptanceChanged', accepted: true },
+    }),
+  ).model;
+  const started = update(
+    model,
+    Message.ObservedPngReview({ request: { ...view.identity, type: 'PngRenderRequested' } }),
+  );
+  expect(started.commands).toHaveLength(1);
+  model = started.model;
+  const run = ready(model).pngReview.run;
+  model = update(
+    model,
+    Message.ObservedPngReview({ request: { ...view.identity, type: 'PngRenderCancelled' } }),
+  ).model;
+  expect(ready(model).pngReview.rendering.type).toBe('idle');
+  const old = update(
+    model,
+    Message.ObservedPngReview({
+      request: {
+        ...view.identity,
+        type: 'PngRenderSettled',
+        run,
+        result: { type: 'failed', code: 'timeout', reason: 'Late failure' },
+      },
+    }),
+  );
+  expect(ready(old.model).pngReview).toBe(ready(model).pngReview);
+  const retry = update(
+    model,
+    Message.ObservedPngReview({ request: { ...view.identity, type: 'PngRenderRequested' } }),
+  );
+  expect(retry.commands).toHaveLength(1);
+  expect(ready(retry.model).pngReview.run).toBe(run + 1);
+  expect(ready(retry.model).workbench.editor).toBe(editor);
+  expect(editor.history.past).toEqual([]);
+});
+test('native PNG protection, layout readiness and review scopes are current at action/settlement', async () => {
+  let model = update(initial(), Message.ClickedPngRetained()).model;
+  expect(groupPngControls(ready(model)).renderReason).toContain('Arrange with ELK');
+  model = update(model, Message.ClickedLayout({ direction: 'RIGHT' })).model;
+  const layout = await createElkGroupLayoutV3()(ready(model).pendingLayout!);
+  model = update(model, Message.SucceededLayout({ result: layout })).model;
+  const controls = groupPngControls(ready(model));
+  expect(controls.svg.result?.plan.document.capabilities.groupPorts).toBe(true);
+  expect(controls.svg.result?.plan.layout?.routes).toHaveLength(1);
+  model = update(
+    model,
+    Message.ObservedPngReview({
+      request: { ...controls.identity, type: 'PngLossAcceptanceChanged', accepted: true },
+    }),
+  ).model;
+  model = update(model, Message.ClickedPngProtection()).model;
+  const protectedResult = update(
+    model,
+    Message.ObservedPngReview({ request: { ...controls.identity, type: 'PngRenderRequested' } }),
+  );
+  expect(protectedResult.commands).toBeUndefined();
+  expect(ready(protectedResult.model).notice).toContain('protected');
+  model = update(model, Message.ClickedPngProtection()).model;
+  model = update(model, Message.ClickedPngRetained()).model;
+  model = update(model, Message.ClickedCheckpoint()).model;
+  model = update(
+    model,
+    Message.ClickedReview({ id: ready(model).catalogue.editions[0]!.id }),
+  ).model;
+  const readonly = groupPngControls(ready(model));
+  expect(readonly.plan?.type).toBe('ready');
+  expect(readonly.identity.scope).not.toBe(controls.identity.scope);
+  const old = update(
+    model,
+    Message.ObservedPngReview({
+      request: {
+        ...controls.identity,
+        type: 'PngRenderSettled',
+        run: 1,
+        result: { type: 'failed', code: 'aborted', reason: 'Old source' },
+      },
+    }),
+  );
+  expect(old.model).toBe(model);
+  const oldDownload = update(
+    model,
+    Message.SettledPngDownload({
+      scope: controls.identity.scope,
+      key: controls.identity.key,
+      succeeded: true,
+    }),
+  );
+  expect(oldDownload.model).toBe(model);
 });

@@ -568,5 +568,20 @@ Compose {@link Core.resolveGroupSvgReviewV3} and
 {@link Core.updateGroupSvgReviewV3} with shared review state and
 {@link FoldKit.zlozSvgReview}. Exact-artifact loss consent and current policy are
 checked before returning a detached download payload for a Command. Export never
-edits history. SVG is static artwork, not an editable model codec; native PNG
-and other adapters remain separately scoped. See README and native SVG evidence.
+edits history. SVG is static artwork, not an editable model codec; other adapters
+remain separately scoped. See README and native SVG evidence.
+
+## Native v3 PNG export
+
+{@link Core.planGroupPngExportV3} uses the same validated full-document SVG and
+findings, adding explicit rasterization loss and bounded integer output.
+{@link Core.resolveGroupPngReviewV3} / {@link Core.updateGroupPngReviewV3} compose
+with shared PNG review state and {@link FoldKit.zlozPngReview}; consent, full-source
+freshness and live protection guard render, completion and download.
+
+`renderGroupPngExportV3` is the optional browser encoder. It rebuilds
+the native SVG and checks reviewed bytes before allocation. It supports abort,
+deadline and resource cleanup; preview/download use identical PNG bytes.
+SSR import is safe and calls report unsupported without browser APIs. Pixels
+retain no editable semantics; server PNG, broad performance and human acceptance
+remain unqualified. See README and native PNG evidence for limits.

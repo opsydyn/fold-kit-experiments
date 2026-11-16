@@ -1346,6 +1346,9 @@ test('explicit v3 compatibility inspector retains all checkpoint capabilities an
   expect(report.data.version).toBe(3);
   expect(report.data.downgrade.type).toBe('blocked');
   expect(report.data.adapters.find((a: { adapter: string }) => a.adapter === 'svg').status).toBe(
+    'supported',
+  );
+  expect(report.data.adapters.find((a: { adapter: string }) => a.adapter === 'png').status).toBe(
     'requires-version',
   );
   expect((await invoke(['compatibility', 'inspect-v3'], '{"version":3,"version":3}')).code).toBe(2);

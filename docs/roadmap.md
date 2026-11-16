@@ -1729,3 +1729,33 @@ physical-device/screen-reader acceptance remain explicit limits.
 projection. Preserve full-document capabilities and report custom-renderer loss
 before download. Other v3 clipboard/Mermaid/patch/receipt/packet/audit adapters and
 advanced tools remain open; this entry does not close the whole parity catalogue.
+
+## 2026-11-16 — Native v3 SVG projection and fidelity review
+
+- Added native `planGroupSvgExportV3` / `writeGroupSvgExportV3`, validating and
+  retaining the complete document before shared SVG internals. Nested groups,
+  group sockets/endpoints, mode/capability and world-space membership survive;
+  group sockets paint above edges. Source/editor/Undo remain unchanged.
+- `captureGroupSvgLayoutV3` owns bounded anchored routes and binds the entire
+  document plus renderer key. Stale geometry blocks with findings; no bare-graph
+  downgrade or forged legacy editor. Model/camera/explicit bounds, themes and
+  existing safe primitive/font/output limits remain available.
+- Native `resolveGroupSvgReviewV3` / `updateGroupSvgReviewV3` reuse composable
+  Foldkit review controls. Fallback/omission/approximation need exact-artifact loss
+  acceptance; unsupported content stays blocked and current download policy is
+  rechecked. Workbench sidebar demos custom shells, retained routes, protected
+  downloads, palettes/minimal mode and independent read-only edition exports.
+- Evidence: [ADR 0110](adr/0110-export-native-v3-groups-as-reviewed-svg.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-svg-export.md), native/legacy
+  tests, installed consumers and source-hashed browser/download captures.
+
+SVG is static vector artwork, not a model/history codec or an interactive DOM
+capture. Arbitrary custom visual fidelity, text/stroke bounds, system font
+substitution, broad performance and human AT/device acceptance remain explicit
+limits. CLI inspection reports native SVG availability while existing writer
+entries and unsupported adapters remain version-fixed. No publication/deployment
+is part of this local commit.
+
+**Recommended next:** native v3 PNG using this same validated SVG projection and
+fidelity findings. Keep remaining clipboard/Mermaid/patch/receipt/packet/audit
+adapters and advanced tools open until separately qualified.

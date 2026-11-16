@@ -981,3 +981,24 @@ export type {
 } from './group-layout-v3';
 
 export { applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3 } from './group-workbench-v3';
+
+export {
+  captureGroupSvgLayoutV3,
+  planGroupSvgExportV3,
+  writeGroupSvgExportV3,
+} from './group-svg-v3';
+export type {
+  ZlozGroupSvgLayoutSnapshotV3,
+  ZlozGroupSvgLayoutOptionsV3,
+  ZlozGroupSvgExportOptionsV3,
+  ZlozGroupSvgExportPlanV3,
+  ZlozGroupSvgAdapterContextV3,
+  ZlozGroupSvgAdapterV3,
+  ZlozGroupSvgWriteOptionsV3,
+  ZlozGroupSvgWriteResultV3,
+} from './group-svg-v3';
+export { resolveGroupSvgReviewV3, updateGroupSvgReviewV3 } from './group-svg-review-v3';
+export type {
+  ZlozGroupSvgReviewContextV3,
+  ZlozGroupSvgReviewControlsV3,
+} from './group-svg-review-v3';

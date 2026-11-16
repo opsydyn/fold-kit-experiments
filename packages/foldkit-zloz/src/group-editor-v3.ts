@@ -349,7 +349,8 @@ export function resolveGroupEditorBoundaryV3(
     boundary === 'native-controls' ||
     boundary === 'model' ||
     boundary === 'editions' ||
-    boundary === 'layout'
+    boundary === 'layout' ||
+    boundary === 'svg'
   )
     return { type: 'unchanged', editor };
   return blocked(

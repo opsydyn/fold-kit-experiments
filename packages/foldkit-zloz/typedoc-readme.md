@@ -554,3 +554,19 @@ the native controller. {@link Core.groupWorkbenchRoutesV3} exposes only routes
 matching the current document and uncollapsed idle projection. Existing legacy
 layout APIs remain version-fixed. See the ELK README and native qualification for
 fixed-position compound port behavior, connector leads and worker/runtime limits.
+
+## Native v3 SVG export
+
+{@link Core.planGroupSvgExportV3} and {@link Core.writeGroupSvgExportV3} validate
+the full document, retain source mode/capability and project nested groups and
+authored sockets. {@link Core.captureGroupSvgLayoutV3} binds retained routes to
+that complete source and a renderer key. Native custom adapters receive the full
+immutable source; safe primitives, fonts, output budgets and explicit fidelity
+findings share the qualified SVG writer.
+
+Compose {@link Core.resolveGroupSvgReviewV3} and
+{@link Core.updateGroupSvgReviewV3} with shared review state and
+{@link FoldKit.zlozSvgReview}. Exact-artifact loss consent and current policy are
+checked before returning a detached download payload for a Command. Export never
+edits history. SVG is static artwork, not an editable model codec; native PNG
+and other adapters remain separately scoped. See README and native SVG evidence.

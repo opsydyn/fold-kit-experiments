@@ -1,5 +1,11 @@
 import {
   assessPortableCompatibilityV3,
+  createSvgReview,
+  svgReviewForScope,
+  updateGroupSvgReviewV3,
+  type ZlozSvgReviewState,
+  type ZlozSvgReviewRequest,
+  type ZlozSvgDownload,
   groupLayoutRequestV3,
   applyGroupWorkbenchLayoutV3,
   type ZlozGroupLayoutRequestV3,
@@ -26,6 +32,9 @@ import {
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 import {
   zlozGroupInspectorV3,
+  zlozGroupDragHandleV3,
+  zlozSvgReview,
+  type ZlozGroupWorkbenchViewOptionsV3,
   zlozGroupWorkbenchV3,
   zlozDarkTheme,
   zlozLightTheme,
@@ -36,6 +45,8 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { defineTaggedUnion } from 'foldkit/schema';
 import type { Return } from 'foldkit/update';
+
+import { groupSvgContext, groupSvgControls } from './svg';
 
 export type ReadyState = Readonly<{
   workbench: ZlozGroupWorkbenchV3;
@@ -49,6 +60,10 @@ export type ReadyState = Readonly<{
   openSequence: number;
   layoutSequence: number;
   pendingLayout: ZlozGroupLayoutRequestV3 | null;
+  svgReview: ZlozSvgReviewState;
+  svgCustom: boolean;
+  svgRetained: boolean;
+  protectSvg: boolean;
   pendingOpen: Readonly<{ token: number; sessionId: string; revision: number }> | null;
 }>;
 export const Model = defineTaggedUnion({
@@ -66,6 +81,10 @@ export const Message = defineMessageUnion({
   ClickedMinimal: {},
   ClickedProtection: {},
   ClickedCheckpoint: {},
+  ObservedSvgReview: { request: Schema.Unknown },
+  ClickedSvgCustom: {},
+  ClickedSvgRetained: {},
+  ClickedSvgProtection: {},
   ClickedLayout: { direction: Schema.Literals(['RIGHT', 'DOWN']) },
   ClickedCancelLayout: {},
   SucceededLayout: { result: Schema.Unknown },
@@ -139,6 +158,47 @@ const DownloadGroupModel = Command.define('DownloadGroupModel', {
         onFailure: () => Message.FailedDownload(),
       }),
     ),
+});
+const DownloadGroupSvg = Command.define('DownloadGroupSvg', {
+  args: { payload: Schema.Unknown },
+  messages: [Message.ObservedSvgReview],
+  execute: ({ payload: raw }) => {
+    // SAFETY: Only the native review controller produces this detached, validated download payload.
+    const payload = raw as ZlozSvgDownload;
+    const identity = {
+      scope: payload.scope,
+      generation: payload.generation,
+      key: payload.key,
+      run: payload.run,
+    };
+    return Effect.gen(function* () {
+      const acquire = Effect.try(() =>
+        URL.createObjectURL(new Blob([payload.svg], { type: 'image/svg+xml' })),
+      );
+      const url = yield* Effect.acquireRelease(acquire, (url) =>
+        Effect.sync(() => URL.revokeObjectURL(url)),
+      );
+      yield* Effect.try(() =>
+        Object.assign(document.createElement('a'), {
+          href: url,
+          download: payload.fileName,
+        }).click(),
+      );
+      yield* Effect.sleep('1 second');
+    }).pipe(
+      Effect.scoped,
+      Effect.match({
+        onSuccess: () =>
+          Message.ObservedSvgReview({
+            request: { ...identity, type: 'SvgDownloadSettled', outcome: 'succeeded' },
+          }),
+        onFailure: () =>
+          Message.ObservedSvgReview({
+            request: { ...identity, type: 'SvgDownloadSettled', outcome: 'failed' },
+          }),
+      }),
+    );
+  },
 });
 const ArrangeGroupModel = Command.define('ArrangeGroupModel', {
   args: { request: Schema.Unknown, direction: Schema.Literals(['RIGHT', 'DOWN']) },
@@ -220,6 +280,10 @@ function ready(id: string, document?: ZlozModelDocumentV3): ReadyState {
     layoutSequence: 0,
     pendingLayout: null,
     pendingOpen: null,
+    svgReview: createSvgReview(`${id}:svg`),
+    svgCustom: false,
+    svgRetained: false,
+    protectSvg: false,
     notice: 'Native v3 controls. Export and advanced-tool limits are listed below.',
   };
 }
@@ -270,12 +334,43 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       state ? changed({ ...state, theme: state.theme === 'light' ? 'dark' : 'light' }) : { model },
     ClickedMinimal: () => (state ? changed({ ...state, minimal: !state.minimal }) : { model }),
     ClickedProtection: () => (state ? changed({ ...state, locked: !state.locked }) : { model }),
+    ClickedSvgCustom: () =>
+      state ? changed({ ...state, svgCustom: !state.svgCustom }) : { model },
+    ClickedSvgRetained: () =>
+      state ? changed({ ...state, svgRetained: !state.svgRetained }) : { model },
+    ClickedSvgProtection: () =>
+      state ? changed({ ...state, protectSvg: !state.protectSvg }) : { model },
+    ObservedSvgReview: ({ request: raw }) => {
+      if (!state) return { model };
+      // SAFETY: Package SVG controls and DownloadGroupSvg emit this closed review event universe.
+      const request = raw as ZlozSvgReviewRequest;
+      const context = groupSvgContext(state);
+      if (request.type === 'SvgDownloadSettled' && request.scope !== context.scope)
+        return { model };
+      const result = updateGroupSvgReviewV3(
+        svgReviewForScope(state.svgReview, context.scope),
+        context,
+        request,
+      );
+      const next = { ...state, svgReview: result.state, notice: result.notice || state.notice };
+      return result.payload
+        ? {
+            model: Model.Ready({ state: next }),
+            commands: [DownloadGroupSvg({ payload: result.payload })],
+          }
+        : changed(next);
+    },
     ClickedLayout: ({ direction }) => {
       if (!state || state.review || state.workbench.gesture.type !== 'idle') return { model };
       const sequence = state.layoutSequence + 1,
         request = groupLayoutRequestV3(
           state.workbench.editor,
           `${state.workbench.editor.sessionId}:layout:${sequence}`,
+          {
+            edgeLabels: state.workbench.editor.document.graph.edges
+              .filter((edge) => edge.label?.trim())
+              .map((edge) => ({ id: edge.id, size: { width: 160, height: 32 } })),
+          },
         );
       return {
         model: Model.Ready({
@@ -488,13 +583,43 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         // SAFETY: Ready contains only this module's ReadyState.
         const state = raw as ReadyState,
           current = state.review?.workbench ?? state.workbench;
-        const options = {
+        let options: ZlozGroupWorkbenchViewOptionsV3<Message> = {
           id: 'group-v3-canvas',
           theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
           minimalMode: state.minimal,
           policy: policy(state),
           onEvent: (event: ZlozGroupWorkbenchEventV3) => Message.ObservedWorkbenchInput({ event }),
         };
+        if (state.svgCustom)
+          options = {
+            ...options,
+            renderNode: (node, selected, builder) =>
+              builder.div(
+                [],
+                [
+                  zlozGroupDragHandleV3(builder, node, selected),
+                  builder.span(
+                    [
+                      builder.DataAttribute('zloz-workshop-badge', ''),
+                      builder.Style({
+                        position: 'absolute',
+                        right: '10px',
+                        top: node.kind === 'group' ? '12px' : 'auto',
+                        bottom: node.kind === 'group' ? 'auto' : '10px',
+                        'pointer-events': 'none',
+                        'font-size': '10px',
+                        'line-height': '14px',
+                        padding: '1px 5px',
+                        'border-radius': '4px',
+                        background: 'var(--flow-selection, #2563eb)',
+                        color: 'var(--flow-control-color, #fff)',
+                      }),
+                    ],
+                    ['Workshop'],
+                  ),
+                ],
+              ),
+          };
         const button = (label: string, message: Message, disabled = false) =>
           h.button([h.Type('button'), h.OnClick(message), h.Disabled(disabled)], [label]);
         const report = assessPortableCompatibilityV3(working(state));
@@ -573,6 +698,40 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           [],
                           [
                             'Keeps group ports, connections and camera. Each accepted layout is one Undo; current protections are checked again before Apply.',
+                          ],
+                        ),
+                        h.details(
+                          [],
+                          [
+                            h.summary([], ['SVG export review']),
+                            button(
+                              state.svgCustom
+                                ? 'Use canonical shells'
+                                : 'Show custom workshop shells',
+                              Message.ClickedSvgCustom(),
+                            ),
+                            button(
+                              state.svgRetained
+                                ? 'Use canonical edge paths'
+                                : 'Use retained ELK routes',
+                              Message.ClickedSvgRetained(),
+                            ),
+                            button(
+                              state.protectSvg ? 'Allow SVG downloads' : 'Protect SVG downloads',
+                              Message.ClickedSvgProtection(),
+                            ),
+                            zlozSvgReview(
+                              h,
+                              groupSvgControls(state),
+                              (request) => Message.ObservedSvgReview({ request }),
+                              {
+                                idPrefix: 'group-v3-svg',
+                                diagnostics: {
+                                  instructions: !state.minimal,
+                                  measurements: !state.minimal,
+                                },
+                              },
+                            ),
                           ],
                         ),
                         h.h2([], ['Editions']),

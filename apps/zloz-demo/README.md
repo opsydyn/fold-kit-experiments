@@ -755,3 +755,18 @@ results; opening/reviewing documents or editing meanwhile cannot overwrite the
 current working state. This is logical cancellation, not worker termination.
 See [light/dark/protection evidence](evidence/v3-elk/browser.json) and
 [package qualification](../../packages/foldkit-zloz/evidence/v3-elk-layout.md).
+
+**SVG export review** uses the package's full-document native v3 API. Review the
+inert preview, region/palette/background, findings and download controls in the
+left sidebar. **Show custom workshop shells** adds a live badge to the canvas;
+its canonical static SVG fallback requires explicit loss acceptance. Theme,
+source or adapter changes invalidate acceptance. **Use retained ELK routes**
+requires an arranged, expanded idle model. **Protect SVG downloads** shows a live
+veto that remains visible in minimal mode. A read-only edition has its own export
+scope; working Undo is never changed by preview or download. Browser IO runs in
+a Command after package validation. The file is static authored artwork, not an
+interactive canvas capture or an embedded canonical model.
+
+See [native SVG qualification](../../packages/foldkit-zloz/evidence/v3-svg-export.md)
+and [visual receipt](evidence/v3-svg/browser.json). Native PNG remains deferred to
+the next slice using this projection.

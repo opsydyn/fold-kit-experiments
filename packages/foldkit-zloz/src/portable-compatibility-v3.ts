@@ -87,10 +87,15 @@ export function assessPortableCompatibilityV3(
       reason:
         'Use groupLayoutRequestV3, the optional createElkGroupLayoutV3 engine and applyGroupLayoutV3/applyGroupWorkbenchLayoutV3. Full-document freshness, authored group ports, live protections and one Undo are retained. Legacy layout entries remain version-fixed.',
     },
+    {
+      adapter: 'svg',
+      status: 'supported',
+      reason:
+        'Use the distinct full-document native v3 planner/writer/review. Group ports, endpoint anchors, explicit bounds/themes and optional validated routes are supported; custom artwork needs declared adapters or explicit loss acceptance. SVG is a static projection, not a model codec.',
+    },
     ...(
       [
         'clipboard',
-        'svg',
         'png',
         'mermaid',
         'modelling-patch',

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
 import { Message, Model, update, type ReadyState } from '../src/group-workbench/main';
+import { groupSvgControls } from '../src/group-workbench/svg';
 function ready(model: Model): ReadyState {
   if (model._tag !== 'Ready') throw new Error('Expected ready fixture.');
   // SAFETY: Test models are created only by the application's typed initializer/transitions.
@@ -120,4 +121,83 @@ test('cancel, in-flight edits, session replacement and read-only review cannot p
     Message.SucceededOpen({ document, id: 'new-layout-session', token: 1 }),
   ).model;
   expect(update(model, Message.SucceededLayout({ result: old })).model).toBe(model);
+});
+test('native SVG review requires current loss consent and policy while preserving editor/history', () => {
+  let model = update(initial(), Message.ClickedSvgCustom()).model;
+  const state = ready(model),
+    editor = state.workbench.editor;
+  const controls = groupSvgControls(state);
+  expect(controls.hasLosses).toBe(true);
+  const blocked = update(
+    model,
+    Message.ObservedSvgReview({ request: { ...controls.identity, type: 'SvgDownloadRequested' } }),
+  );
+  expect(blocked.commands).toBeUndefined();
+  model = update(
+    model,
+    Message.ObservedSvgReview({
+      request: { ...controls.identity, type: 'SvgLossAcceptanceChanged', accepted: true },
+    }),
+  ).model;
+  model = update(model, Message.ClickedSvgProtection()).model;
+  const protectedResult = update(
+    model,
+    Message.ObservedSvgReview({ request: { ...controls.identity, type: 'SvgDownloadRequested' } }),
+  );
+  expect(protectedResult.commands).toBeUndefined();
+  expect(ready(protectedResult.model).notice).toContain('protected');
+  model = update(protectedResult.model, Message.ClickedSvgProtection()).model;
+  const download = update(
+    model,
+    Message.ObservedSvgReview({ request: { ...controls.identity, type: 'SvgDownloadRequested' } }),
+  );
+  expect(download.commands).toHaveLength(1);
+  expect(ready(download.model).workbench.editor).toBe(editor);
+  expect(editor.history.past).toEqual([]);
+  const changed = update(model, Message.ClickedTheme()).model;
+  expect(groupSvgControls(ready(changed)).accepted).toBe(false);
+  expect(
+    update(
+      changed,
+      Message.ObservedSvgReview({
+        request: { ...controls.identity, type: 'SvgDownloadRequested' },
+      }),
+    ).commands,
+  ).toBeUndefined();
+});
+test('native SVG retained-route opt-in waits for layout, keeps source meaning and allows independent read-only edition export', async () => {
+  let model = update(initial(), Message.ClickedSvgRetained()).model;
+  expect(groupSvgControls(ready(model)).downloadReason).toContain('Arrange with ELK');
+  model = update(model, Message.ClickedLayout({ direction: 'RIGHT' })).model;
+  expect(groupSvgControls(ready(model)).downloadReason).toContain('Wait for or cancel');
+  const result = await createElkGroupLayoutV3()(ready(model).pendingLayout!);
+  model = update(model, Message.SucceededLayout({ result })).model;
+  const controls = groupSvgControls(ready(model));
+  expect(controls.downloadReason).toBeNull();
+  expect(controls.result?.plan.layout?.routes).toHaveLength(1);
+  expect(controls.result?.plan.document.capabilities.groupPorts).toBe(true);
+  model = update(model, Message.ClickedSvgRetained()).model;
+  model = update(model, Message.ClickedCheckpoint()).model;
+  const working = ready(model).workbench.editor;
+  model = update(
+    model,
+    Message.ClickedReview({ id: ready(model).catalogue.editions[0]!.id }),
+  ).model;
+  const review = groupSvgControls(ready(model));
+  expect(review.result?.type).toBe('written');
+  expect(review.identity.scope).not.toBe(controls.identity.scope);
+  const downloaded = update(
+    model,
+    Message.ObservedSvgReview({ request: { ...review.identity, type: 'SvgDownloadRequested' } }),
+  );
+  expect(downloaded.commands).toHaveLength(1);
+  expect(ready(downloaded.model).workbench.editor).toBe(working);
+  model = update(downloaded.model, Message.ClickedWorking()).model;
+  const late = update(
+    model,
+    Message.ObservedSvgReview({
+      request: { ...review.identity, type: 'SvgDownloadSettled', run: 1, outcome: 'succeeded' },
+    }),
+  );
+  expect(late.model).toBe(model);
 });

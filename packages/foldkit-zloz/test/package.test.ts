@@ -341,6 +341,17 @@ validateGroupDocumentV3(doc);
 const parsed:ZlozGroupDocumentV3ParseResult=parseGroupDocumentV3(serializeGroupDocumentV3(doc));
 const blocked:ZlozGroupDocumentDowngradePlanV3=planGroupDocumentDowngradeV3(doc);
 if(parsed.status!=='parsed'||!caps.groupPorts||blocked.type!=='blocked'||'document' in blocked||portPosition(doc.graph.nodes[1]!,'out').x!==500||groupDocumentV3Limits.maxDepth!==64)throw new Error('Missing group v3 boundary');
+import {planGroupSvgExportV3,writeGroupSvgExportV3,captureGroupSvgLayoutV3,createSvgReview,resolveGroupSvgReviewV3,updateGroupSvgReviewV3,type ZlozGroupSvgExportOptionsV3,type ZlozGroupSvgReviewContextV3} from '@opsydyn/foldkit-zloz';
+const nativeSvgOptions:ZlozGroupSvgExportOptionsV3={title:'Packed native SVG',region:{type:'model',padding:40},theme:{colorScheme:'dark'},background:{type:'theme'},font:{family:'sans-serif',size:14,weight:400},renderers:{nodes:'built-in',edges:'built-in'}};
+const nativeSvgPlan=planGroupSvgExportV3(doc,nativeSvgOptions),nativeSvg=writeGroupSvgExportV3(doc,nativeSvgOptions);
+if(nativeSvg.type!=='written'||nativeSvgPlan.document.capabilities.groupPorts!==true||!nativeSvg.svg.includes('data-zloz-export-owner="g"')||!nativeSvg.svg.includes('data-zloz-document-version="3"'))throw new Error('Packed native v3 SVG source/artwork missing');
+const nativeSvgContext:ZlozGroupSvgReviewContextV3={scope:'installed-svg-v3',sourceRevision:0,document:doc,title:'Packed review',theme:{colorScheme:'light'},renderers:nativeSvgOptions.renderers};
+const nativeSvgState=createSvgReview(nativeSvgContext.scope),nativeSvgControls=resolveGroupSvgReviewV3(nativeSvgState,nativeSvgContext);
+if(nativeSvgControls.result?.type!=='written'||updateGroupSvgReviewV3(nativeSvgState,nativeSvgContext,{...nativeSvgControls.identity,type:'SvgDownloadRequested'}).payload?.svg!==nativeSvgControls.result.svg)throw new Error('Packed SVG review missing');
+const packedSourceEdge=doc.graph.edges[0]!;
+const packedRoutes=captureGroupSvgLayoutV3(doc,[{id:packedSourceEdge.id,points:[packedSourceEdge.source,packedSourceEdge.target].map(e=>portPosition(doc.graph.nodes.find(n=>n.id===e.node)!,e.port))}],'installed');
+if(writeGroupSvgExportV3(doc,{...nativeSvgOptions,layout:{snapshot:packedRoutes,renderKey:'installed'}}).type!=='written')throw new Error('Packed native retained routes missing');
+
 let rejected=false;
 try { createEditor(doc.graph); } catch { rejected=true; }
 if(!rejected)throw new Error('Widened legacy editor');
@@ -490,6 +501,12 @@ const installedV3Layout=applyGroupWorkbenchLayoutV3(packedNativeV3,installedV3Re
 if(installedV3Layout.editor.history.past.length!==1||installedV3Layout.editor.document.graph.nodes.find(n=>n.id==='g')?.ports[0]?.id!=='out'||groupWorkbenchRoutesV3(installedV3Layout).length!==1)throw new Error('Installed native v3 ELK/atomic Apply failed');
 const packedNativeOutputV3=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedNativeV3}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Packed native v3',body:h.div([], [zlozGroupWorkbenchV3(h,model,{id:'packed-native-v3',onEvent:event=>event}),zlozGroupInspectorV3(h,model,{id:'packed-native-v3-inspector',onEvent:event=>event}),zlozGroupActionV3(h,'Custom fit',{type:'FitViewRequested'},null,event=>event)])})},{flags:{},isHydratable:false}));
 if(!packedNativeOutputV3.html.includes('data-flow-owner="g"')||!packedNativeOutputV3.html.includes('Custom fit'))throw new Error('Installed native v3 controls missing');
+import {createSvgReview as createPackedNativeSvgReview,resolveGroupSvgReviewV3 as packedNativeSvgReview,type ZlozSvgReviewRequest} from '@opsydyn/foldkit-zloz';
+import {zlozSvgReview as packedSvgControls} from '@opsydyn/foldkit-zloz/foldkit';
+const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(createPackedNativeSvgReview(packedSvgScope),{scope:packedSvgScope,sourceRevision:0,document:packedNativeV3.editor.document,title:'Native export',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
+const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
+if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
+
 
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';

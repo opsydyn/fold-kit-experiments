@@ -6580,7 +6580,7 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 clipboard, SVG/PNG, Mermaid, patches, conversion receipts, review
+V3 clipboard, PNG, Mermaid, patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
@@ -6610,3 +6610,84 @@ Promises; known invalid geometry becomes a blocked decision; policy defects
 propagate. Core has no ELK dependency.
 
 See [native ELK qualification](evidence/v3-elk-layout.md) for coverage and limits.
+
+### Native v3 SVG projection and review (unreleased)
+
+Use `planGroupSvgExportV3(document, options)` and
+`writeGroupSvgExportV3(document, options, writing?)` for complete native v3
+sources. They validate/own the document before sharing SVG projection internals;
+legacy `planSvgExport` / `writeSvgExport` remain version-fixed and reject authored
+group ports. Native plans retain `version: 3` and the immutable `document`;
+`plan.graph` aliases that document's graph. Export changes no editor state or Undo.
+
+```ts
+import { writeGroupSvgExportV3, type ZlozGroupSvgExportOptionsV3 } from '@opsydyn/foldkit-zloz';
+
+const options: ZlozGroupSvgExportOptionsV3 = {
+  title: 'Orders model',
+  region: { type: 'model', padding: 48 },
+  theme: { colorScheme: 'dark' },
+  background: { type: 'theme' },
+  font: { family: 'sans-serif', size: 14, weight: 400 },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const result = writeGroupSvgExportV3(documentV3, options);
+// Inspect result.findings. Only a written result contains SVG bytes.
+```
+
+Nested rectangular groups, group-port artwork and authored endpoint anchors are
+preserved. Group sockets paint above crossing edges. Root data attributes declare
+v3, strict/loose mode and group-port capability. SVG is a static vector projection,
+not a model codec: arbitrary data, history and interactive tools are not embedded.
+Use canonical model JSON to move editable models. Model, viewport crop and explicit
+bounds, scale, themes, backgrounds, safe custom primitives and embedded TrueType
+validation use the same existing SVG contracts. `ZlozGroupSvgAdapterV3` callbacks
+add a frozen full native document to the node/edge geometry context. A custom node
+adapter owns its socket artwork; declarations are host assertions, not fidelity
+certification. Raw markup, scripts, remote resources and foreignObject are excluded.
+
+For retained native ELK geometry, call
+`captureGroupSvgLayoutV3(documentV3, routes, renderKey)` and pass
+`layout: { snapshot, renderKey }`. Routes are owned, bounded and anchored to the
+source ports. Source identity covers the entire v3 document, including camera,
+mode and capability. Mismatched source/key blocks; forged snapshot metadata or
+invalid routes rejects. Authored waypoints/path style retain geometry precedence.
+Custom label content, fonts, ink/stroke bounds and renderer fidelity remain
+explicit findings rather than a universal collision/fit promise.
+
+```ts
+import {
+  createSvgReview,
+  resolveGroupSvgReviewV3,
+  updateGroupSvgReviewV3,
+  type ZlozGroupSvgReviewContextV3,
+} from '@opsydyn/foldkit-zloz';
+
+const review = createSvgReview(sessionId);
+const context: ZlozGroupSvgReviewContextV3 = {
+  scope: sessionId,
+  sourceRevision: editorV3.revision,
+  document: editorV3.document,
+  title: 'Orders export',
+  theme: { colorScheme: 'light' },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+};
+const controls = resolveGroupSvgReviewV3(review, context);
+// Render controls with /foldkit's composable zlozSvgReview primitives.
+// On a view request, recompute the context from the current Model:
+const next = updateGroupSvgReviewV3(review, context, request);
+// next.payload, when present, is a detached file payload for a host Command.
+```
+
+Fallback, approximation and omission require explicit acceptance for the exact
+source/settings/produced bytes. Unsupported content cannot be accepted away.
+Native consent is stricter than legacy whole-model consent: camera changes also
+invalidate it. Current `canDownload(document, options)` protection is rechecked
+at handoff; consent never caches permission. Pending job identities prevent stale
+completion messages from settling newer jobs. Review state/presentation primitives
+are shared, while native context/writer/result types stay explicit. Read-only
+edition export is allowed when the host policy permits it. The workbench captures
+its live camera and exports authored content, not collapse/selection/diagnostics.
+
+See [native SVG qualification](evidence/v3-svg-export.md). Native PNG remains a
+separate adapter slice and is not enabled by SVG support.

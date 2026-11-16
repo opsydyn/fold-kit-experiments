@@ -16,18 +16,25 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { workbenchThemes } from '../editor/theme';
 import { Side, Theme } from './message';
+import { nativeView } from './native-view';
 import { Message, targetFor, type Model } from './state';
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const displayed = model.review?.editor ?? model.editor;
-  const editor = model.reading ? { ...displayed, readOnly: true } : displayed;
-  const baseline = model.editions.find((item) => item.id === model.baselineId);
-  const selected = model.editions.find((item) => item.id === model.selectedId);
+  const displayed = model.native.inspection?.review.editor ?? model.review?.editor ?? model.editor;
+  const editor =
+    model.reading || model.native.pending ? { ...displayed, readOnly: true } : displayed;
+  const artifact = model.native.inspection;
+  const baseline = artifact
+    ? { id: 'artifact:before', name: 'Before', snapshot: artifact.before }
+    : model.editions.find((item) => item.id === model.baselineId);
+  const selected = artifact
+    ? { id: 'artifact:after', name: 'After', snapshot: artifact.after }
+    : model.editions.find((item) => item.id === model.selectedId);
   const presentation =
     baseline && selected
       ? resolveHistoryComparisonPresentationV2(baseline, selected, {
           ghosts: model.ghosts,
-          displaySide: model.side,
+          displaySide: artifact?.side ?? model.side,
           minimalMode: model.minimal,
         })
       : null;
@@ -77,23 +84,28 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
             h.div(
               [h.Class('workbench-sections'), h.AriaLabel('History sections')],
-              (['files', 'review', 'playback', 'restore'] as const).map((section) =>
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaPressed(String(model.section === section)),
-                    h.OnClick(Message.SelectedSection({ section })),
-                  ],
-                  [
-                    section === 'files'
-                      ? 'Capture / files'
-                      : section === 'review'
-                        ? 'Review / compare'
-                        : section === 'playback'
-                          ? 'Playback'
-                          : 'Restore / Undo',
-                  ],
-                ),
+              (['files', 'review', 'playback', 'restore', 'authoring', 'evidence'] as const).map(
+                (section) =>
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(model.section === section)),
+                      h.OnClick(Message.SelectedSection({ section })),
+                    ],
+                    [
+                      section === 'files'
+                        ? 'Capture / files'
+                        : section === 'review'
+                          ? 'Review / compare'
+                          : section === 'playback'
+                            ? 'Playback'
+                            : section === 'restore'
+                              ? 'Restore / Undo'
+                              : section === 'authoring'
+                                ? 'Authoring'
+                                : 'Portable review',
+                    ],
+                  ),
               ),
             ),
             h.div(
@@ -153,6 +165,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ),
                 ...(parts.controls ? [parts.controls] : []),
                 ...(parts.minimap ? [parts.minimap] : []),
+                ...(model.section === 'authoring' || model.section === 'evidence'
+                  ? [nativeView(model, h)]
+                  : []),
                 h.div(
                   [h.Hidden(model.section !== 'files')],
                   [
@@ -459,7 +474,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       [
         zlozView(h, editor, {
           id: `history-v2-${model.epoch}`,
-          label: model.review ? 'Read-only edition preview' : 'Working history canvas',
+          label: artifact
+            ? 'Read-only artifact preview'
+            : model.review
+              ? 'Read-only edition preview'
+              : 'Working history canvas',
           onEvent: observe,
           height: 'fill',
           theme: workbenchThemes[scheme],
@@ -476,7 +495,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
             ),
           renderWorldOverlay: (_context, builder) =>
-            model.review && presentation ? zlozHistoryGhostsV2(builder, presentation) : null,
+            (model.review || artifact) && presentation
+              ? zlozHistoryGhostsV2(builder, presentation)
+              : null,
         }),
       ],
     ),

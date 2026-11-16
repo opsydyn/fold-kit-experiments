@@ -1,0 +1,23 @@
+{
+  "base": "http://127.0.0.1:4388",
+  "viewport": [1440, 1000],
+  "narrow": [390, 844],
+  "checks": [
+    "native hydration",
+    "return from edition review before opening portable evidence",
+    "exact review and loss consent",
+    "live protection clears consent",
+    "atomic Apply",
+    "receipt download",
+    "packet loss review/download",
+    "receipt before/after",
+    "packet read-only reopening",
+    "working Undo after reopening",
+    "retained receipt after Undo",
+    "loose model authoring preserves ordered input-to-input edges",
+    "C4 and DDD v2 conversion receipts reopen through actual file controls",
+    "light/dark and narrow screenshots",
+    "no page errors"
+  ],
+  "errors": []
+}

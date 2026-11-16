@@ -1,0 +1,20 @@
+---
+import Groups from '../group-workbench/app';
+import WorkbenchShell from '../layouts/WorkbenchShell.astro';
+---
+<WorkbenchShell title="Group workbench | Foldkit Zloz" heading="Group workbench" mainLabel="Group workbench">
+  <Groups client:load />
+  <noscript>Enable JavaScript to edit group ports and review v3 editions.</noscript>
+</WorkbenchShell>
+<style is:global>
+.group-v3-stage { padding: 16px; min-width: 0; min-height: 0; }
+.group-v3-workbench button { cursor: pointer; padding: 7px 10px; margin: 4px 4px 4px 0; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; }
+.group-v3-workbench button:disabled { cursor: default; opacity: .65; }
+.group-v3-workbench details { margin-block: 16px; }
+.group-v3-workbench summary { cursor: pointer; color: var(--accent); }
+.group-v3-workbench h1 { font-size: 22px; }
+.group-v3-workbench h2 { font-size: 16px; margin-top: 24px; }
+.group-v3-workbench label { display: grid; gap: 8px; }
+.group-v3-workbench textarea { box-sizing: border-box; width: 100%; min-height: 180px; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); }
+@media (max-width: 650px) { .group-v3-stage { padding: 6px; } }
+</style>

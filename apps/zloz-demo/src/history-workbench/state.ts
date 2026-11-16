@@ -34,9 +34,12 @@ import type { Return } from 'foldkit/update';
 
 import { ReadHistoryFile, DownloadHistory, byteLimit } from './command';
 import { Message, Theme } from './message';
+import { nativeInitial, nativeHandlers, type NativeState } from './native-authoring';
+import { CreateNativeSession } from './native-command';
 export { Message };
 export const Model = Schema.Struct({
-  section: Schema.Literals(['files', 'review', 'playback', 'restore']),
+  section: Schema.Literals(['files', 'review', 'playback', 'restore', 'authoring', 'evidence']),
+  native: Schema.Unknown,
   editor: Schema.Unknown,
   identity: Schema.Unknown,
   editions: Schema.Unknown,
@@ -70,7 +73,8 @@ type Session = Readonly<{
   editions: readonly ZlozEditionV2[];
 }>;
 export type Model = Readonly<{
-  section: 'files' | 'review' | 'playback' | 'restore';
+  section: 'files' | 'review' | 'playback' | 'restore' | 'authoring' | 'evidence';
+  native: NativeState;
   previousSession: Session | null;
   editor: EditorState;
   identity: Pick<ZlozModelDocumentV2, 'id' | 'name' | 'origin'>;
@@ -148,8 +152,10 @@ export function initialDocument(): ZlozModelDocumentV2 {
 export function init(): Return<Model, Message> {
   const document = initialDocument();
   return {
+    commands: [CreateNativeSession()],
     model: {
       section: 'review',
+      native: nativeInitial(),
       previousSession: null,
       editor: createModelEditorV2(document),
       identity: { id: document.id, name: document.name, origin: document.origin },
@@ -241,6 +247,7 @@ function loaded(model: Model, document: ZlozModelDocumentV2): Model {
     epoch: model.epoch + 1,
     run: model.run + 1,
     notice: 'V2 model opened with fresh independent Undo.',
+    native: { ...model.native, text: '', patch: null, consent: null, packetConsent: null },
   };
 }
 function transport(model: Model, action: Parameters<typeof updateEditionPlaybackV2>[1]): Model {
@@ -280,12 +287,57 @@ function focus(model: Model, request: ZlozHistoryChangeFocusRequestV2): Model {
   };
 }
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if (
+    (model.native.inspection || model.native.pending) &&
+    ![
+      'ObservedEditor',
+      'SelectedSection',
+      'ClickedMinimal',
+      'ClickedMinimap',
+      'SelectedTheme',
+      'ChangedSystemTheme',
+      'ChangedReducedMotion',
+      'ChangedVisibility',
+      'SucceededNativeRead',
+      'FailedNativeRead',
+      'ClickedCancelNativeRead',
+      'SelectedNativeSide',
+      'ClickedCloseNativeReview',
+      'CompletedNativeDownload',
+      'FailedNativeDownload',
+    ].includes(message._tag)
+  )
+    return {
+      model: {
+        ...model,
+        native: {
+          ...model.native,
+          notice:
+            'Close the artifact review or cancel its read before changing the working session.',
+        },
+      },
+    };
   return Message.match(message, {
+    ...nativeHandlers(model),
     ObservedEditor: ({ epoch, event: raw }) => {
       // SAFETY: the scoped native canvas emits EditorEvent; epoch/read guards reject obsolete bindings.
       const event = raw as EditorEvent;
       if (epoch !== model.epoch || (model.reading && event.type !== 'SurfaceMeasured'))
         return { model };
+      if (model.native.inspection)
+        return {
+          model: {
+            ...model,
+            native: {
+              ...model.native,
+              inspection: {
+                ...model.native.inspection,
+                review: updateHistoryReviewV2(model.native.inspection.review, event),
+              },
+            },
+          },
+        };
+      if (model.native.pending && event.type !== 'SurfaceMeasured') return { model };
       const next =
         event.type === 'SurfaceMeasured' ||
         event.type === 'NodeMeasured' ||
@@ -301,6 +353,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...next,
           editor,
+          native:
+            editor.revision !== model.editor.revision ||
+            editor.connectionMode !== model.editor.connectionMode
+              ? { ...next.native, consent: null, packetConsent: null }
+              : next.native,
           notice:
             editor.notice !== model.editor.notice && editor.notice !== null
               ? editor.notice
@@ -343,7 +400,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
-    SelectedSection: ({ section }) => ({ model: { ...pause(model), section, preview: null } }),
+    SelectedSection: ({ section }) => ({
+      model: {
+        ...pause(model),
+        section,
+        preview: null,
+        epoch: model.native.inspection && section !== 'evidence' ? model.epoch + 1 : model.epoch,
+        native: {
+          ...model.native,
+          pending: section === model.section ? model.native.pending : null,
+          inspection: section === 'evidence' ? model.native.inspection : null,
+          consent: section === model.section ? model.native.consent : null,
+        },
+      },
+    }),
     ClickedReview: () => ({ model: model.reading ? model : review(model) }),
     SelectedEdition: ({ id }) => ({
       model:

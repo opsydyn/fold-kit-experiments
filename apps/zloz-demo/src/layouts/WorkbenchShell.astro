@@ -30,7 +30,7 @@ const { title = 'Architecture workbench | Foldkit Zloz', heading = 'Architecture
     </script>
   </head>
   <body>
-    <header><div class="zloz-brand"><span class="zloz-mark" aria-hidden="true" set:html={zlozMark} /><strong>Foldkit Zloz</strong><span class="workbench-title">{heading}</span></div><nav aria-label="Workbench navigation"><a href={history ? "/connections/" : "/history/"}>{history ? "Connection workbench" : "History workbench"}</a><a href={connections || history ? "/" : "/connections/"}>{connections || history ? "Architecture workbench" : "Connection workbench"}</a><a href="https://opsydyn.github.io/fold-kit-experiments/zloz/api/">API contracts ↗</a></nav></header>
+    <header><div class="zloz-brand"><span class="zloz-mark" aria-hidden="true" set:html={zlozMark} /><strong>Foldkit Zloz</strong><span class="workbench-title">{heading}</span></div><nav aria-label="Workbench navigation"><a href="/groups/">Group workbench</a><a href={history ? "/connections/" : "/history/"}>{history ? "Connection workbench" : "History workbench"}</a><a href={connections || history ? "/" : "/connections/"}>{connections || history ? "Architecture workbench" : "Connection workbench"}</a><a href="https://opsydyn.github.io/fold-kit-experiments/zloz/api/">API contracts ↗</a></nav></header>
     <main aria-label={mainLabel}><slot /></main>
   </body>
 </html>

@@ -1,5 +1,6 @@
 import type { ZlozConnectionMode } from './connection-mode';
 import { isNode, isEdge, isGraph, validateGraphForConnectionMode, ZlozError } from './graph';
+import { ownPortableData, PortableDataError, portableDataLimits } from './portable-data';
 import type { JsonObject, JsonValue, ZlozGraph, ZlozNode, ZlozEdge } from './types';
 
 /** Host-owned graph identity and incarnation. Revision must remain monotonic through Undo. */
@@ -91,9 +92,7 @@ export type ZlozModellingPatchOptions<
 }>;
 /** @internal Shared v1 object/text budgets; text decoders may only tighten them. */
 export const modellingPatchLimits = Object.freeze({
-  maxCharacters: 2000000,
-  maxDepth: 64,
-  maxValues: 100000,
+  ...portableDataLimits,
   maxOperations: 1000,
 });
 /** @internal Carries the existing object-boundary path into text decoder findings. */
@@ -123,72 +122,14 @@ function exact(v: unknown, fields: readonly string[], path: string): asserts v i
 /* oxlint-disable anti-slop/no-unknown-parameters, anti-slop/no-runtime-typeof -- This bounded dependency-free object decoder is the input boundary, not an application transition. */
 /** Bounded defensive object boundary. Does not parse text or execute getters/toJSON. */
 export function ownedData(input: unknown): JsonValue {
-  let count = 0,
-    characters = 0;
-  const ancestors = new Set<object>();
-  const visit = (v: unknown, depth: number, path: string): JsonValue => {
-    if (++count > modellingPatchLimits.maxValues || depth > modellingPatchLimits.maxDepth)
-      invalid(path, 'Patch exceeds 100000 JSON values or depth 64.');
-    if (v === null || typeof v === 'boolean') return v;
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string') {
-      characters += v.length;
-      if (characters > modellingPatchLimits.maxCharacters)
-        invalid(path, 'Patch exceeds 2000000 characters of string/key content.');
-      return v;
-    }
-    if (typeof v !== 'object' || v === null || ancestors.has(v))
-      invalid(path, 'Patch requires finite, acyclic plain JSON data.');
-    if (
-      !Array.isArray(v) &&
-      Object.getPrototypeOf(v) !== Object.prototype &&
-      Object.getPrototypeOf(v) !== null
-    )
-      invalid(path, 'Patch requires plain JSON objects.');
-    const keys = Reflect.ownKeys(v);
-    if (keys.some((k) => typeof k !== 'string'))
-      invalid(path, 'Patch cannot contain symbol properties.');
-    ancestors.add(v);
-    if (Array.isArray(v)) {
-      if (Object.getPrototypeOf(v) !== Array.prototype)
-        invalid(path, 'Patch requires plain JSON arrays.');
-      if (v.length > modellingPatchLimits.maxValues)
-        invalid(path, 'Patch arrays exceed 100000 JSON values.');
-      if (keys.length !== v.length + 1)
-        invalid(path, 'Patch arrays must be dense and contain only indexed values.');
-      const result: JsonValue[] = [];
-      for (let i = 0; i < v.length; i++) {
-        const descriptor = Object.getOwnPropertyDescriptor(v, String(i));
-        if (!descriptor || !descriptor.enumerable || !('value' in descriptor))
-          invalid(path, 'Patch arrays cannot contain accessors or holes.');
-        result.push(visit(descriptor.value, depth + 1, `${path}/${i}`));
-      }
-      ancestors.delete(v);
-      return Object.freeze(result);
-    }
-    const entries: [string, JsonValue][] = [];
-    for (const key of keys) {
-      if (typeof key !== 'string') invalid(path, 'Patch cannot contain symbols.');
-      const descriptor = Object.getOwnPropertyDescriptor(v, key);
-      if (!descriptor?.enumerable || !('value' in descriptor))
-        invalid(path, 'Patch cannot contain accessors or non-enumerable fields.');
-      characters += key.length;
-      if (characters > modellingPatchLimits.maxCharacters)
-        invalid(path, 'Patch exceeds 2000000 characters of string/key content.');
-      entries.push([
-        key,
-        visit(
-          descriptor.value,
-          depth + 1,
-          `${path}/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`,
-        ),
-      ]);
-    }
-    ancestors.delete(v);
-    entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    return Object.freeze(Object.fromEntries(entries));
-  };
-  return visit(input, 0, '');
+  // oxlint-disable-next-line linteffect/no-try-catch -- Keep the existing patch-specific ownership error class and messages after sharing the bounded traversal.
+  try {
+    return ownPortableData(input);
+  } catch (error) {
+    if (error instanceof PortableDataError)
+      throw new PatchValidationError(error.message, error.path);
+    throw error;
+  }
 }
 /** Internal comparisons only receive key-normalized owned JSON values (or absent fields). */
 function dataEqual<T>(a: T, b: T): boolean {

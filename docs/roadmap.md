@@ -1617,3 +1617,160 @@ No npm publishing, deployment or PR.
 visible audit/patch/loss review, guarded Apply/Undo, receipt and packet download,
 and read-only reopening using these package APIs. Capture mounted light/dark
 and file-flow evidence.
+
+**Mounted native v2 authoring/review — implemented locally (2026-11-15), unreleased:**
+The `/history/` workspace now composes package-owned live DDD/workshop audit
+comparisons, strict v2 proposal review, visible authored losses, independent review
+and loss acknowledgement, protected atomic Apply/one Undo and retained receipt
+download. Portable review builds a baseline-to-working v2 packet, requires exact
+projection-loss acceptance and reopens downloaded packets or patch/C4/DDD v2
+receipts as detached Before/After canvases with history ghosts. Working mode,
+archives and Undo stay independent. UTF-8 I/O and generated downloads share a
+1 MiB limit; read tokens, source revision and canvas epochs reject stale work.
+See [host follow-through](adr/0104-adopt-native-v2-authoring-and-review.md#approved-mounted-adoption-follow-through--2026-11-15)
+and [mounted qualification](../apps/zloz-demo/evidence/native-authoring-workbench.md).
+This closes the preceding mounted audit/patch/portable-review recommendation.
+Existing architecture conversion authoring remains on its documented legacy host
+path; this slice adds native conversion-receipt inspection, not replacement C4/DDD
+Apply controls. Wider C1, C2–C4/Q/R remain open. No npm publishing or deployment.
+
+**Recommended next:** resolve C2's group contract before adding interaction:
+explicitly decide the retained coordinate/parent model and define opt-in drawable
+group endpoints (or approve an item-specific deferral), with geometry, policies,
+serialization and Undo acceptance criteria. Existing world-coordinate groups and
+portless frames remain the baseline until that decision is approved.
+
+**C2 group contract — defined, runtime implementation outstanding (2026-11-15):**
+[ADR 0105](adr/0105-define-group-endpoints-and-coordinate-compatibility.md) and its
+[decision challenge](assessments/2026-11-15-zloz-c2-group-contract-decision.md)
+record the inspected baseline and recommended contract: retain world coordinates
+and explicit group parents, add opt-in authored group ports through a future v3
+envelope, preserve strict/loose eligibility and old readers, and keep collapsed
+proxies distinct from authored endpoints. Ported lane/hotspot semantics remain
+invalid. The contract specifies geometry, collapse visibility, live vetoes,
+destructive operations, downgrade refusal and one-Undo acceptance.
+
+This is a definition, not a shipped v3 API or C2 closure. World coordinates and
+explicit parenthood are proposed intentional differences; arbitrary ordinary-node
+parents and nonrectangular group geometry remain item-specific scope decisions,
+not silently accepted deferrals. No public types, graph validators, editors,
+readers, versions or interactions change in this slice.
+
+**Recommended next:** implement the standalone headless v3 group-document contract
+only: strict bounded decoding, capability-aware graph validation, explicit
+v1/v2 upgrade, refusal to downgrade ported groups and literal old-reader fixtures.
+Review/approve the proposed envelope before implementation. Editor/gesture,
+history, layout, export and CLI adoption follow separate compatibility gates;
+no adapter is implicitly qualified by a new document decoder. C1/C3–C4/Q/R remain
+open. No npm publishing or deployment.
+
+**C2 standalone v3 document — implemented locally, unreleased (2026-11-15):**
+Core exports strict capture/validation, bounded text decoding, canonical writing,
+explicit standalone v1/v2 upgrade and reviewed v2 downgrade planning. World
+coordinates, strict/loose mode and a required group-port capability are retained.
+Eligible group ports are valid only in this envelope; lanes/hotspots and legacy
+readers/editors remain portless. Any ported group blocks downgrade with findings
+and no target, including groups without edges. Unknown fields, accessors,
+duplicate keys and budget violations reject without partial data. Portless
+downgrade discloses enabled future capability removal without changing mode.
+See [ADR 0105](adr/0105-define-group-endpoints-and-coordinate-compatibility.md) and
+[package/installed qualification](../packages/foldkit-zloz/evidence/group-document-v3.md).
+This closes the preceding standalone codec/validation recommendation, not C2 or
+all ported-group workflows. No v3 editor, model/archive, CLI, layout, render/export,
+patch/receipt/packet or gesture adoption is implied. C1/C3–C4/Q/R remain open.
+No npm publication or deployment.
+
+**Recommended next:** define and implement explicit v3 editor initialization and
+capability-preserving graph transactions/Undo before exposing group port controls.
+Preserve live policies, world coordinates and source freshness; legacy sessions
+must reject v3, and unsupported clipboard/history/adapter paths must report their
+boundary instead of erasing capability. Canonical archive adoption and mounted
+interactions follow their separately qualified contracts.
+
+**C2 explicit v3 editor/Undo — implemented locally, unreleased (2026-11-15):**
+Core now exposes `createGroupEditorV3`, exact `captureGroupEditorSourceV3`,
+`applyGroupEditorTransactionV3` and source-bound `updateGroupEditorV3` Undo/Redo.
+The distinct headless session holds a complete validated v3 document; it cannot
+be passed as a legacy `EditorState`. Full-document frames retain world coordinates,
+connection mode, group-port capability and camera. Revisions remain monotonic;
+branching clears Redo and no-op preserves it. Apply and travel recheck live source,
+lifecycle, read-only/history/revision guards, shared granular policies and a
+whole-document veto. Invalid capability/eligibility, stale sources, protected
+ports/descendants/incident edges and ported ungrouping cannot publish partial data.
+Unsupported native/clipboard/model/edition/layout/export/Mermaid/patch/packet
+paths return a version-required boundary decision. Standalone serialization remains
+explicit; adapters do not gain authority from a bare graph.
+
+[ADR 0106](adr/0106-initialize-v3-editor-sessions-with-document-history.md) and
+[qualification](../packages/foldkit-zloz/evidence/group-editor-v3.md) record the
+package tests, installed consumer contracts and local verification. This closes
+the preceding initialization/transaction/Undo recommendation, not C2. Complete
+group gesture plans, native controls, canonical v3 model/archive/editions and
+adapter adoption remain open. C1/C3–C4/Q/R are unchanged. No npm publication,
+deployment or mounted v3 UI is claimed.
+
+**Recommended next:** add headless v3 group-port edit planners for add, label,
+anchor movement and removal, producing complete transaction targets with incident
+edge handling and visible live-policy reasons. Then qualify connection/reconnection
+and complete group movement/deletion plans before native controls. Keep canonical
+archive/adapter adoption behind their separate compatibility gates.
+
+**C2 headless v3 group-port edit planners — implemented locally, unreleased (2026-11-15):**
+Core now exposes `planGroupPortEditV3` and `applyGroupPortEditV3` for explicit add,
+label, position and removal requests. Preview owns the request, supplies complete
+before/after and incident-edge effects, and reports current protection reasons
+without allocating a prospective editor/history. Apply rebuilds from intent,
+rechecks exact source/lifecycle/capability and current granular/whole-operation
+policies, then publishes through the existing v3 transaction kernel. Removal
+includes incoming/outgoing connections and self-loops once; a protected incident
+edge vetoes the whole operation. One accepted edit is one full-document Undo unit.
+No-op retains Redo and state identity. Disabled capability, ineligible workshop
+nodes, stale requests, malformed data and missing/duplicate identities stay blocked.
+No implicit snapping, port-kind change or legacy reducer widening is introduced.
+
+[ADR 0107](adr/0107-plan-v3-group-port-edits-through-live-transactions.md) and
+[qualification](../packages/foldkit-zloz/evidence/group-port-edit-v3.md) record the
+package, installed consumer and repository evidence. This closes the preceding
+port-edit recommendation, not C2 or native interaction parity. Canonical v3
+model/archive/edition and adapter adoption remain open. C1/C3–C4/Q/R are unchanged.
+No npm publication, deployment or mounted v3 controls are claimed.
+
+**Recommended next:** add headless v3 connection creation/reconnection planners
+for authored group endpoints, preserving strict/loose eligibility, exact source,
+visible live port/edge vetoes and atomic Undo. Then qualify complete group movement/
+deletion plans and native controls against these package-owned contracts.
+
+**Scoped v3 core release batch (2026-11-15):**
+
+The latest user selection is **Finish v3 core and release with explicit remaining
+limits**; it supersedes the intervening full-roadmap batch interpretation.
+[ADR 0108](adr/0108-release-the-scoped-v3-core.md) and
+[the scope contract](specs/2026-11-15-zloz-scoped-v3-release.md) record that decision.
+
+The distinct v3 core now adds `planGroupConnectionV3`/`applyGroupConnectionV3`,
+`planGroupOperationV3`/`applyGroupOperationV3`, canonical model/edition codecs,
+read-only review/comparison/restore/merge/fork and a package-level
+`createGroupWorkbenchV3`/`updateGroupWorkbenchV3` controller with optional Foldkit
+surface/inspector/action/drag-handle primitives. The `/groups/` workbench exercises
+these contracts with live protection, light/dark/minimal presentation, complete
+Undo, checkpoint review and validated model save/reopen. No legacy editor is
+constructed from a ported graph.
+
+`assessPortableCompatibilityV3` inventories every checkpoint and lists native
+adapters independently. Private Effect CLI `compatibility inspect-v3` reports
+that inventory without conversion or Apply. Unsupported v3 clipboard, layout,
+SVG/PNG, Mermaid, patch, receipt, packet and relationship-audit entries remain
+explicitly version-required. Ported checkpoints block entire-model downgrade.
+
+C2 remains **partial**: world coordinates, explicit group parents and rectangular
+group envelopes are retained; arbitrary parents/shaped groups and the full v3
+native interaction catalogue are not claimed. C3/C4 and Q/R are not closed by
+these APIs. Rotation, lasso/freehand/eraser, dedicated multi-connect UI, production
+Mermaid import, server image creation, broader performance and human device/AT
+acceptance remain open. Atomic explicit connection sets are available headlessly.
+See [the batch evidence](../packages/foldkit-zloz/evidence/v3-core-batch.md) for
+observed qualification and separate delivery/release status.
+
+**Recommended next after release:** qualify native v3 ELK layout and SVG/PNG
+projection with group-port fidelity, then Mermaid/portable domain adapters. This
+makes authored ported-group models portable before adding more tools.

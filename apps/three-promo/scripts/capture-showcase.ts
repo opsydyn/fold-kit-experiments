@@ -60,6 +60,7 @@ const shots: ReadonlyArray<Shot> = [
   { id: 'playground', prepare: (page) => clickButton(page, 'Add cube', 2) },
   { id: 'sculpture', prepare: placeBlocks },
   { id: 'bars', prepare: async () => undefined },
+  { id: 'chart3d', prepare: (page) => page.waitForTimeout(2000) },
   { id: 'arrange', prepare: async () => undefined },
   { id: 'editor', prepare: async () => undefined },
   // Rapier loads, the session starts alone, then a few throws hit the tower.

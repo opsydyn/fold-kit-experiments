@@ -489,7 +489,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run --filter @opsydyn/effect-three build && tsc --noEmit",
     "test": "bun run test:unit && bun run test:package",
     "test:unit": "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'",
     "test:package": "bun test ./test/package-import-smoke.test.ts",

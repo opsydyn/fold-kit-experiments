@@ -21,8 +21,10 @@ instructions to downgrade another project. When using the adapters, pin
 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which requires an equal or
 newer `effect` and fails to resolve against an exact `4.1.0`.
 
-Every subpath in the table below not marked unreleased is published in `0.18.0`;
-those marked unreleased need a newer release. New in
+Every subpath in the table below is published by `0.19.0`; rows marked `0.19.0`+
+need that release or newer. New in `0.19.0`: SVG and PNG export, named and
+high-contrast themes, Jupyter, GPU points, DuckDB input, pushdown into SQL engines
+and 3D charts through effect-three. New in
 `0.18.0`: the plot grammar (`./plot`, `./foldkit/plot`, `./canvas/plot`), the keyboard
 helpers (`./interaction/keyboard`, `./foldkit/keyboard`), column tables and Arrow data,
 and the JSON Schema for plot specs (`./plot-spec.schema.json`); see
@@ -48,14 +50,14 @@ does not infer confidence or statistical significance.
 | Column, Arrow or million-row data (`0.18.0`+) | `/plot` (`columnTable`, `fromArrow`, `dense` dot marks)             |
 | Keyboard paths through chart targets (`0.18.0`+) | `/interaction/keyboard`, `/foldkit/keyboard`                        |
 | Checking specs another program writes (`0.18.0`+) | `/plot-spec.schema.json`, a JSON Schema for `PlotSpec`              |
-| A plot as an SVG file or HTML string (unreleased) | `/svg/plot` (`plotSvg`, `plotHtml`), legends and a `theme` included |
-| A plot as a PNG (unreleased)                  | `/canvas/image` (`plotPng` on an OffscreenCanvas, `paintImage` on any 2D context) |
-| Brushing a million points in a frame (unreleased) | `/webgl/points` (`pointsLayer`) above `/canvas/plot` with `points: false` |
-| DuckDB results and streamed data (unreleased) | `/plot` (`fromDuckDB`, `duckdbColumns`, `columnStore`, `appendPoints`) |
-| Histograms over data in DuckDB or Polars (unreleased) | `/plot` (`pushdown`), counted in the engine |
-| Named and high-contrast themes (unreleased)   | `/chart/theme` (`chartThemes`, `ThemeName`); `contrastRatio` in `/math/color` |
-| Inline plots in Deno or Bun Jupyter kernels (unreleased) | `/jupyter` (`displayPlot`, `plotMimeBundle`)                   |
-| 3D scatter or surface with effect-three (unreleased) | `/chart/space3d` laid out, `/effect-three/space3d` as scene nodes |
+| A plot as an SVG file or HTML string (`0.19.0`+) | `/svg/plot` (`plotSvg`, `plotHtml`), legends and a `theme` included |
+| A plot as a PNG (`0.19.0`+)                  | `/canvas/image` (`plotPng` on an OffscreenCanvas, `paintImage` on any 2D context) |
+| Brushing a million points in a frame (`0.19.0`+) | `/webgl/points` (`pointsLayer`) above `/canvas/plot` with `points: false` |
+| DuckDB results and streamed data (`0.19.0`+) | `/plot` (`fromDuckDB`, `duckdbColumns`, `columnStore`, `appendPoints`) |
+| Histograms over data in DuckDB or Polars (`0.19.0`+) | `/plot` (`pushdown`), counted in the engine |
+| Named and high-contrast themes (`0.19.0`+)   | `/chart/theme` (`chartThemes`, `ThemeName`); `contrastRatio` in `/math/color` |
+| Inline plots in Deno or Bun Jupyter kernels (`0.19.0`+) | `/jupyter` (`displayPlot`, `plotMimeBundle`)                   |
+| 3D scatter or surface with effect-three (`0.19.0`+) | `/chart/space3d` laid out, `/effect-three/space3d` as scene nodes |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

@@ -495,7 +495,7 @@
     "test:package": "bun test ./test/package-import-smoke.test.ts",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
-    "docs": "typedoc",
+    "docs": "bun run --filter @opsydyn/effect-three build && typedoc",
     "api:report": "bun ../../tools/api-surface.ts",
     "api:check": "bun ../../tools/api-surface.ts --check",
     "size:check": "bun ../../tools/bundle-budget.ts",

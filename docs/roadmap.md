@@ -15,7 +15,7 @@ priorities rather than duplicating their status.
 
 Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
 `@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
-`0.17.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
+`0.18.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
 notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
 [0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
 covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`.
@@ -898,7 +898,10 @@ Met, 2026-11-14: linked charts, request diagnostics and comparison compose indep
 
 - [x] Load data through `foldkit/http` with browser-safe tracing defaults.
 - [x] Model request/loading/filtering/failure states with `experimental/machine`.
-- [ ] Use `AsyncData.loadIfMissing` where cached data should not be revalidated on every revisit.
+- [x] Use `AsyncData.loadIfMissing` where cached data should not be revalidated on every revisit.
+      `/request-diagnostics` returns through it: its machine's Idle and Failed states
+      load again on a return visit while loaded metrics are kept. This also fixed a
+      page left mid-load that stayed empty on return (`feat/viz-svg-jupyter`).
 - [x] Render linked histogram and scatter charts through parent-owned filtering.
 - [x] Exercise command mappings with `Story` and mounted child mappings with `Scene` tests.
 - [x] Add route entry/exit behavior through the Astro integration.

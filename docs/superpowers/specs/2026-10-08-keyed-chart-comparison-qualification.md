@@ -74,7 +74,26 @@ attempt was made by this implementer. Task 4 host observations are still awaited
 the supplied standalone observations are recorded below. Controller QA remains
 separate from the HTTP smoke below.
 
-All Task 4 browser gates remain pending:
+**Update, 2026-11-16 (`feat/viz-svg-jupyter`):** the Task 4 host gates below now
+run as an automated browser acceptance in real engines, `apps/web/e2e/comparison.spec.ts`,
+in Firefox 153 and Chromium 151 (Playwright's builds) at 1365px and 390px: 80
+runs (four configurations, twice each) passed. It also checks that no two chart
+labels overlap, which covers the scatter y-label recheck. Not covered: screen
+readers, physical devices and touch, the promo host and standalone projects in
+a browser, and ZIP and StackBlitz delivery from the hosted promo page.
+
+- [x] Desktop default panels; readable axes, controls, count and data alternative.
+- [x] Add both types to four and blocked fifth in the live Astro host.
+- [x] Reorder with active inspection and retained keyed-control focus.
+- [x] Source removal clears the overlay while local state persists.
+- [x] Remove all, recover focus to add, and re-add with a monotonic ID.
+- [x] Keyboard and pointer ranges agree; visible count includes all matches.
+- [x] Pointer hit testing after reorder, scroll and resize.
+- [x] 390px single-column layout without horizontal overflow or clipped text.
+- [x] Distinct local focus and linked-highlight styles; reduced motion usable.
+- [x] No duplicate runtime or console errors; host teardown observed.
+
+The original, manual gates (kept for the record) were:
 
 - [ ] Desktop default panels; readable axes, controls, count and data alternative.
 - [ ] Add both types to four and blocked fifth in the live Astro host.
@@ -237,7 +256,8 @@ These were not observed independently by the implementer:
       reduced motion, teardown and runtime/console checks.
 - [ ] Real ZIP download and StackBlitz delivery in the hosted promo page.
 - [x] Controller independent final source review and label-spacing correction.
-- [ ] Post-fix native visual recheck of label spacing and shared-chart focus.
+- [x] Post-fix native visual recheck of label spacing and shared-chart focus: automated
+      label-overlap and focus checks in Firefox and Chromium (2026-11-16).
 
 These gates are pending exclusive Firefox access, not blocked by a locked Mac.
 The controller stopped UI actions and requested a brief exclusive session after

@@ -731,9 +731,12 @@ each panel's selection and inspection state when panels move.
       cannot recreate panels.
 - [x] Implement the same-source promo/download workflow; generated comparison,
       line, histogram and scatter projects install, typecheck and build locally.
-- [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
-      standalone browser acceptance. Further controller QA is pending exclusive
-      Firefox access; no live pass is inferred from automated tests.
+- [x] Desktop/390px, keyboard and reduced-motion browser acceptance of the Astro
+      host: `apps/web/e2e/comparison.spec.ts` runs every Task 4 gate in Firefox 153
+      and Chromium 151 at both widths (80 runs passed, 2026-11-16), including the
+      scatter label recheck.
+- [ ] Standalone and promo-host browser acceptance, ZIP and StackBlitz delivery
+      from the hosted promo page, and screen-reader and device checks.
 - [x] Publish the runnable promo example and FoldKit 0.167 package updates
       through the authorised release workflow; verify hosted and registry results.
 

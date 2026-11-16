@@ -45,14 +45,14 @@ The Effect CLI and Alchemy adapter remain **private workspace packages**.
 Website deployment and npm package publication are separate workflows.
 See [naming and compatibility](docs/zloz-migration.md) for retained saved-data and integration contracts.
 
-| Package                                                           | Responsibility                                                                                       |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [`@opsydyn/foldkit-zloz`](packages/foldkit-zloz/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit` |
-| [`@opsydyn/foldkit-zloz-elk`](packages/foldkit-zloz-elk/)         | Optional ELK layout adapter                                                                          |
-| [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
-| [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid projections, portable review packets and conversion-loss reporting                      |
-| [`@opsydyn/foldkit-zloz-cli`](packages/foldkit-zloz-cli/)         | Effect CLI: model validation, causal audits, review packets, Mermaid bundles and JSON diagnostics    |
-| [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private read-only Domain inspection and SDK-free portable projection; compatibility gates retained   |
+| Package                                                           | Responsibility                                                                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [`@opsydyn/foldkit-zloz`](packages/foldkit-zloz/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit`      |
+| [`@opsydyn/foldkit-zloz-elk`](packages/foldkit-zloz-elk/)         | Optional ELK layout adapter                                                                               |
+| [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                         |
+| [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid projections, portable review packets and conversion-loss reporting                           |
+| [`@opsydyn/foldkit-zloz-cli`](packages/foldkit-zloz-cli/)         | Private Effect CLI: model validation, causal audits, review packets, Mermaid bundles and JSON diagnostics |
+| [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private read-only Domain inspection and SDK-free portable projection; compatibility gates retained        |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import remains separate work. See the
@@ -130,11 +130,12 @@ fold-kit-experiments/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
     ├── dataset-explorer/ — private shared KeyedQuery example for both apps
-    ├── foldkit-zloz/      — Zloz graph core and optional Foldkit views (unpublished)
-    ├── foldkit-zloz-elk/  — Zloz ELK layout adapter (unpublished)
-    ├── foldkit-zloz-force/ — Zloz force layout/routing adapter (unpublished)
-    ├── foldkit-zloz-mermaid/ — Zloz loss-aware Mermaid export (unpublished)
-    ├── foldkit-zloz-cli/  — Standalone Effect CLI and agent JSON contracts (unpublished)
+    ├── foldkit-zloz/      — Zloz graph core and optional Foldkit views (published to npm)
+    ├── foldkit-zloz-elk/  — Zloz ELK layout adapter (published to npm)
+    ├── foldkit-zloz-force/ — Zloz force layout/routing adapter (published to npm)
+    ├── foldkit-zloz-mermaid/ — Zloz loss-aware Mermaid export (published to npm)
+    ├── foldkit-zloz-cli/  — Standalone Effect CLI and agent JSON contracts (private)
+    ├── foldkit-zloz-alchemy/ — Domain inspection and portable projection (private)
     ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
     ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
     ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)

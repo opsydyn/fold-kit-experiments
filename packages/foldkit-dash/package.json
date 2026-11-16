@@ -1,0 +1,50 @@
+{
+  "name": "@opsydyn/foldkit-dash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agent-first static dashboards: Markdown pages, foldkit-viz plot specs as JSON and build-time data loaders, built to HTML with no JavaScript.",
+  "keywords": [
+    "cli",
+    "dashboard",
+    "foldkit",
+    "static-site",
+    "visualization"
+  ],
+  "homepage": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-dash#readme",
+  "bugs": {
+    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
+  },
+  "license": "MIT",
+  "author": "Alan P Currie",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
+    "directory": "packages/foldkit-dash"
+  },
+  "bin": {
+    "foldkit-dash": "./src/bin.ts"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./test --path-ignore-patterns='**/browser.test.ts'",
+    "test:e2e": "bun test ./test/browser.test.ts"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@opsydyn/foldkit-viz": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "bun-types": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  }
+}

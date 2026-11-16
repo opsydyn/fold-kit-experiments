@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed**, 2026-11-16, for stage 1 of the
+**Accepted**, 2026-11-16, for stage 1 of the
 [static dashboards assessment](../assessments/2026-11-16-foldkit-static-dashboards.md).
 The [spike](../../experiments/foldkit-dash/README.md) is its evidence; stages 2 and 3
 need ADRs of their own.
@@ -100,7 +100,20 @@ Stage 1 is done when:
   output matches the prompt, recorded in the assessment;
 - `bun run check`, the package's typecheck and API report pass.
 
+## Outcome
+
+Stage 1 is built and qualified (2026-11-16): the unit, command-line and Chromium tests
+pass, and two fresh agent sessions given only the skill built dashboards that passed
+`check` first time with `describe` matching their text (the second a six-page site with
+a page per region). What they had to guess became the skill and `new`'s starter; see the
+[assessment](../assessments/2026-11-16-foldkit-static-dashboards.md#stage-1-acceptance-2026-11-16).
+Two gaps stay open: `describe` gives one range per axis, not each series' own or where a
+peak falls, and showing part of the data on a page takes a loader per part.
+
 ## Follow-up work
+
+- A per-series summary in `describe` (each series' high and low, with where), and a
+  parameterised loader or a filter on a fence, from the second acceptance run.
 
 - Stage 2 (its own ADR): `dev` with reload, and interactive pages as Foldkit apps,
   prerendered by `@foldkit/vite-plugin` and hydrated.

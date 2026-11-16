@@ -411,6 +411,23 @@
         "three": ">=0.186.0 <0.187.0",
       },
     },
+    "packages/foldkit-dash": {
+      "name": "@opsydyn/foldkit-dash",
+      "version": "0.1.0",
+      "bin": {
+        "foldkit-dash": "./src/bin.ts",
+      },
+      "dependencies": {
+        "@effect/platform-bun": "catalog:",
+        "@opsydyn/foldkit-viz": "workspace:*",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "bun-types": "catalog:",
+        "playwright": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
       "version": "0.19.0",
@@ -451,7 +468,7 @@
     },
     "packages/foldkit-zloz": {
       "name": "@opsydyn/foldkit-zloz",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@types/node": "^22.0.0",
@@ -523,7 +540,7 @@
     },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "elkjs": "0.12.1",
       },
@@ -542,7 +559,7 @@
     },
     "packages/foldkit-zloz-force": {
       "name": "@opsydyn/foldkit-zloz-force",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
@@ -561,7 +578,7 @@
     },
     "packages/foldkit-zloz-mermaid": {
       "name": "@opsydyn/foldkit-zloz-mermaid",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -1143,6 +1160,8 @@
     "@opsydyn/effect-three-samples": ["@opsydyn/effect-three-samples@workspace:packages/effect-three-samples"],
 
     "@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@workspace:packages/effect-three-troika"],
+
+    "@opsydyn/foldkit-dash": ["@opsydyn/foldkit-dash@workspace:packages/foldkit-dash"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 

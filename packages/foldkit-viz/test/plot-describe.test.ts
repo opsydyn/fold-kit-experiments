@@ -21,7 +21,7 @@ const sales: PlotSpec = {
 describe('describePlot', () => {
   it('says what is drawn, what the axes cover and what colour shows', () => {
     expect(describePlot(compilePlot(sales))).toBe(
-      'Shows 3 bars. Month in 3 categories; Units from 0 to 1,430. ' +
+      'Shows 3 bars. Month in 3 categories: Jan, Feb, Mar; Units from 0 to 1,430. ' +
         'Colour shows region (2 groups: north, south).',
     );
   });
@@ -43,6 +43,20 @@ describe('describePlot', () => {
     );
     expect(summary).toContain('Shows 2,500 points across 2 panels.');
     expect(summary).toContain('on a log scale');
+  });
+
+  it('counts a box or a violin once, not each of the lines it is drawn with', () => {
+    const groups = (mark: 'box' | 'violin') =>
+      describePlot(
+        compilePlot({
+          width: 400,
+          height: 260,
+          data: ['a', 'b', 'c'].flatMap((g) => [1, 3, 5, 9].map((v) => ({ g, v }))),
+          marks: [{ mark, x: 'g', y: 'v' }],
+        }),
+      );
+    expect(groups('box')).toStartWith('Shows 3 boxes.');
+    expect(groups('violin')).toStartWith('Shows 3 violins.');
   });
 
   it('describes polar charts by their directions', () => {

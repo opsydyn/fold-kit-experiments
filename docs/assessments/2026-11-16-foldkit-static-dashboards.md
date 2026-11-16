@@ -121,6 +121,49 @@ without a browser:
    Observable does), DuckDB and Polars summaries among them
    (`apps/polars-summary` shows the pattern).
 
+## Stage 1 acceptance (2026-11-16)
+
+ADR 0109's bar: a fresh agent session, given only the
+[foldkit-dash skill](../../skills/foldkit-dash/SKILL.md) and a prompt, produces a page
+that passes `check` and whose `describe` output matches the prompt.
+
+- **Run:** a fresh agent, told to read the skill and nothing else in the repository
+  but the plot spec schema, was asked for "a dashboard of this CSV's weekly sales by
+  region" (130 rows: five regions, 26 weeks, orders and revenue).
+- **Result: passed.** It ran `new`, replaced the example with two loaders (weekly rows
+  from the CSV, and totals per region ranked largest first) and one page of three
+  charts, and its first `check` exited 0. `describe` matched the prose of all three
+  charts; comparing `describe` and the data also caught a wrong claim in its own prose
+  (a low it had dated to July was in early August), which it fixed. `build` exited 0:
+  one page, three charts, no script.
+- **What it had to guess, and what changed:**
+  - The schema's documented paths did not exist in a new project (nothing installed,
+    nothing published): `new` now writes `plot-spec.schema.json` into the project.
+  - The skill sent it to a 61 KB schema for every channel: the skill now has a
+    [marks and scales](../../skills/foldkit-dash/references/marks.md) reference.
+  - Whether loaders may use top-level `await`, Bun's APIs, or read outside the
+    project (they may), the order of a band axis (first appearance; `domain` sets it),
+    and that ticks have no number format (units go in the label): now in the skill.
+  - `describe` could not confirm "largest first": it counted a band axis's categories
+    without naming them. `describePlot` now names up to six, in order (foldkit-viz).
+    Earlier, it had also counted a box as three (whisker, box, median); fixed.
+  - A passing `check --json` listed no charts; every envelope now lists them.
+- **Repeated with those changes: passed.** A second fresh agent, asked for the same data
+  with "an overview page and a page for each region", wrote six pages (13 charts) and
+  seven loaders. `check` exited 0 first time, `describe` matched its prose, and `build`
+  exited 0 with six pages. It no longer had to guess the schema, the loader runtime or the
+  category order, and read `describe`'s category list to confirm a "largest first" claim.
+  It caught one wrong claim in its own first draft (every region dips in July; Scotland's
+  low is in early August) by checking the data, because `describe` gives only ranges.
+- **What the second run still had to guess**, now in the skill: how to show part of the
+  data on a page (a loader per part; a fence has no filter), whether a loader may import
+  shared code (it may), and what directory a loader runs from (the project's).
+- **Not solved, for stage 2 or 3:** `describe` reports one range per axis, not each
+  series' own, and not where a peak or trough falls, so a trend claim in prose cannot be
+  confirmed from its output alone. A per-series summary (high and low, with where) in
+  `describe` would close it. One loader per region is clumsy; a parameterised loader or a
+  filter on a fence is the likely answer. Neither is built.
+
 ## Risks
 
 - `foldkit/experimental/server` and the plugin's prerender options may change between

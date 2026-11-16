@@ -247,6 +247,17 @@ export type SceneEvent =
    * in the Model's `xr({ origin, heading })`.
    */
   | { readonly _tag: 'XrMoved'; readonly origin: Vec3; readonly heading: number }
+  /**
+   * A teleport arc (`xr({ teleportArc })`) was let go over a target: the point it landed
+   * on, and where the player's origin goes so their head stands over it, to keep in the
+   * Model's `xr({ origin })` (`teleported`).
+   */
+  | {
+      readonly _tag: 'XrTeleported';
+      readonly hand: XrHand;
+      readonly point: Vec3;
+      readonly origin: Vec3;
+    }
   /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
   | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */

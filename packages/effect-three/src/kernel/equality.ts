@@ -752,6 +752,14 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
     a.planes === b.planes &&
     a.meshes === b.meshes &&
     a.domOverlay === b.domOverlay &&
+    (a.teleportArc === b.teleportArc ||
+      (a.teleportArc !== null &&
+        b.teleportArc !== null &&
+        a.teleportArc.hand === b.teleportArc.hand &&
+        a.teleportArc.color === b.teleportArc.color &&
+        Object.is(a.teleportArc.opacity, b.teleportArc.opacity) &&
+        a.teleportArc.targets.length === b.teleportArc.targets.length &&
+        a.teleportArc.targets.every((key, i) => key === b.teleportArc?.targets[i]))) &&
     a.anchors.length === b.anchors.length &&
     a.anchors.every((anchor, i) => xrAnchorEquals(anchor, b.anchors[i])));
 

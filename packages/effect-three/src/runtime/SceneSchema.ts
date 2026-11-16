@@ -907,6 +907,14 @@ export const Xr = Schema.Struct({
   planes: Schema.Boolean,
   meshes: Schema.Boolean,
   domOverlay: Schema.Boolean,
+  teleportArc: absentAsNull(
+    Schema.Struct({
+      hand: Schema.Literals(['left', 'right']),
+      targets: Schema.Array(Schema.String),
+      color: Rgb,
+      opacity: UnitInterval,
+    }),
+  ),
   glide: Schema.NullOr(
     Schema.Struct({
       speed: NonNegative,
@@ -1109,6 +1117,9 @@ export const XrButtonDetail = Schema.Struct({
 /** Detail of XR moved events: where gliding left the player. */
 export const XrMovedDetail = Schema.Struct({ origin: Vec3, heading: Schema.Finite });
 
+/** Detail of XR teleported events: where an arc landed, and where the origin goes. */
+export const XrTeleportedDetail = Schema.Struct({ hand: XrHand, point: Vec3, origin: Vec3 });
+
 /** Detail of XR surface events: in AR, where a select met a real surface. */
 export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
 
@@ -1205,6 +1216,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
+  Schema.TaggedStruct('XrTeleported', XrTeleportedDetail.fields),
   Schema.TaggedStruct('XrPlanes', XrPlanesDetail.fields),
   Schema.TaggedStruct('XrMeshes', XrMeshesDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),

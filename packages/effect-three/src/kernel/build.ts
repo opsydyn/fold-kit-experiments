@@ -94,6 +94,7 @@ import type {
   ViewRect,
   XrAnchor,
   XrGlide,
+  XrTeleportArc,
   XrSpace,
   Handedness,
   HandJoint,
@@ -1191,6 +1192,20 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   planes: options.planes ?? false,
   meshes: options.meshes ?? false,
   domOverlay: options.domOverlay ?? false,
+  teleportArc: options.teleportArc ?? null,
+});
+
+/**
+ * A teleport arc on `hand` (the left by default, leaving the right to point), landing on
+ * the nodes keyed in `targets`. Drawn white at 0.4 opacity, as pmndrs/xr's.
+ */
+export const teleportArc = (
+  options: Partial<XrTeleportArc> & { readonly targets: ReadonlyArray<string> },
+): XrTeleportArc => ({
+  hand: options.hand ?? 'left',
+  targets: options.targets,
+  color: options.color ?? 0xffffff,
+  opacity: options.opacity ?? 0.4,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */

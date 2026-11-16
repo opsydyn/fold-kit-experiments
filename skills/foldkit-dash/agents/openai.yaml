@@ -1,0 +1,4 @@
+interface:
+  display_name: 'foldkit-dash'
+  short_description: 'Static dashboards from Markdown, JSON plot specs and data loaders'
+  default_prompt: 'Use $foldkit-dash to build a static dashboard: write the pages and loaders, then check, describe and build until it is clean.'

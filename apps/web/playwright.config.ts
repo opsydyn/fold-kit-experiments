@@ -24,6 +24,18 @@ export default defineConfig({
   projects: [
     { name: 'desktop', use: { viewport: { width: 1365, height: 900 } } },
     { name: 'mobile', use: { viewport: { width: 390, height: 844 } } },
+    // The keyed comparison's browser acceptance also runs in Firefox, which its
+    // qualification record names (`bunx playwright install firefox` locally).
+    {
+      name: 'firefox-desktop',
+      testMatch: /comparison\.spec\.ts/,
+      use: { browserName: 'firefox', viewport: { width: 1365, height: 900 } },
+    },
+    {
+      name: 'firefox-mobile',
+      testMatch: /comparison\.spec\.ts/,
+      use: { browserName: 'firefox', viewport: { width: 390, height: 844 } },
+    },
   ],
   webServer: {
     command: 'bunx --no-install astro dev --host 127.0.0.1 --port 4371 --ignore-lock',

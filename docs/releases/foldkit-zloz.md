@@ -60,6 +60,12 @@ files into local consumers before publication. Package packing is local and does
 not contact the registry to publish. `bun pm pack` resolves development workspace
 specifiers; npm publishes the resulting archive, not the workspace source tree.
 
+Family qualification immediately copies each checked archive to
+`dist/zloz-release/candidates/`. Later adapter builds can clean the core's
+`dist/pack/`; the retained copies survive that cleanup. Publication reads only
+those copies after all four have qualified, and the workflow artifact retains
+them together with candidate hashes and the verification receipt.
+
 ## Release action
 
 After reviewed commits and green CI, merging the linked release PR creates the

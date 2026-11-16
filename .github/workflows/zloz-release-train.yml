@@ -56,9 +56,12 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Qualify all candidate archives before publishing
         run: |
+          train_version="$(node -p "JSON.parse(require('node:fs').readFileSync('packages/foldkit-zloz/package.json', 'utf8')).version")"
+          mkdir -p dist/zloz-release/candidates
           for package in foldkit-zloz foldkit-zloz-elk foldkit-zloz-force foldkit-zloz-mermaid; do
             REQUESTED_PACKAGE="$package" bun tools/check-package-identity.ts
             bun run --filter "@opsydyn/$package" pack:check
+            cp "packages/$package/dist/pack/opsydyn-$package-$train_version.tgz" dist/zloz-release/candidates/
           done
       - name: Publish and verify in dependency order
         env:
@@ -71,9 +74,5 @@ jobs:
         with:
           name: zloz-release-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            artifacts/zloz-release/
-            packages/foldkit-zloz/dist/pack/*.tgz
-            packages/foldkit-zloz-elk/dist/pack/*.tgz
-            packages/foldkit-zloz-force/dist/pack/*.tgz
-            packages/foldkit-zloz-mermaid/dist/pack/*.tgz
+            dist/zloz-release/
           if-no-files-found: ignore

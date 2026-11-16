@@ -121,6 +121,36 @@ without a browser:
    Observable does), DuckDB and Polars summaries among them
    (`apps/polars-summary` shows the pattern).
 
+## Stage 1 acceptance (2026-11-16)
+
+ADR 0109's bar: a fresh agent session, given only the
+[foldkit-dash skill](../../skills/foldkit-dash/SKILL.md) and a prompt, produces a page
+that passes `check` and whose `describe` output matches the prompt.
+
+- **Run:** a fresh agent, told to read the skill and nothing else in the repository
+  but the plot spec schema, was asked for "a dashboard of this CSV's weekly sales by
+  region" (130 rows: five regions, 26 weeks, orders and revenue).
+- **Result: passed.** It ran `new`, replaced the example with two loaders (weekly rows
+  from the CSV, and totals per region ranked largest first) and one page of three
+  charts, and its first `check` exited 0. `describe` matched the prose of all three
+  charts; comparing `describe` and the data also caught a wrong claim in its own prose
+  (a low it had dated to July was in early August), which it fixed. `build` exited 0:
+  one page, three charts, no script.
+- **What it had to guess, and what changed:**
+  - The schema's documented paths did not exist in a new project (nothing installed,
+    nothing published): `new` now writes `plot-spec.schema.json` into the project.
+  - The skill sent it to a 61 KB schema for every channel: the skill now has a
+    [marks and scales](../../skills/foldkit-dash/references/marks.md) reference.
+  - Whether loaders may use top-level `await`, Bun's APIs, or read outside the
+    project (they may), the order of a band axis (first appearance; `domain` sets it),
+    and that ticks have no number format (units go in the label): now in the skill.
+  - `describe` could not confirm "largest first": it counted a band axis's categories
+    without naming them. `describePlot` now names up to six, in order (foldkit-viz).
+    Earlier, it had also counted a box as three (whisker, box, median); fixed.
+  - A passing `check --json` listed no charts; every envelope now lists them.
+- **Not yet repeated** with those changes: a second fresh run stopped at a usage limit
+  before it began. Rerun it before calling stage 1 qualified.
+
 ## Risks
 
 - `foldkit/experimental/server` and the plugin's prerender options may change between

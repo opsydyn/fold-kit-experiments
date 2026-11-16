@@ -29,15 +29,23 @@ describe('foldkit-dash', () => {
       'pages/index.md',
       'data/sales.json.ts',
       '.gitignore',
+      'plot-spec.schema.json',
     ]);
+    expect(JSON.parse(readFileSync(join(dir, 'plot-spec.schema.json'), 'utf8')).title).toBe(
+      'foldkit-viz plot spec',
+    );
     const checked = run('check', '-C', dir, '--json');
     expect(checked.code).toBe(0);
     expect(envelopeOf(checked.out)).toMatchObject({ command: 'check', status: 'ok', problems: [] });
+    expect(envelopeOf(checked.out).charts).toHaveLength(2);
     const described = envelopeOf(run('describe', '-C', dir, '--json').out);
     expect(described.charts.map((chart) => chart.summary.split('.')[0])).toEqual([
       'Shows 4 lines',
       'Shows 4 boxes',
     ]);
+    expect(described.charts[1]?.summary).toContain(
+      'Region in 4 categories: North, South, East, West',
+    );
     const built = run('build', '-C', dir);
     expect(built.code).toBe(0);
     expect(built.out).toBe('1 page, 2 charts, no problems. Wrote dist/.\n');

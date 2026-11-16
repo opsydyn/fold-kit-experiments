@@ -20,7 +20,7 @@ import {
   protocol,
 } from './problems';
 import { analyse, type Report } from './project';
-import { starter } from './template';
+import { schemaFile, starter } from './template';
 
 export { analyse, readPages, type BuiltPage, type Report } from './project';
 export { dataReader, cacheDirectory, Rows, type DataOptions } from './data';
@@ -108,7 +108,12 @@ const pagesOf = (report: Report): ReadonlyArray<string> => report.pages.map((pag
 function checked(config: ReadOptions & { readonly json: boolean }) {
   const running = Effect.gen(function* () {
     const report = yield* Effect.fromResult(analyse(optionsOf(config)));
-    const result = envelope('check', { pages: pagesOf(report), problems: report.problems }, [], []);
+    const result = envelope(
+      'check',
+      { pages: pagesOf(report), problems: report.problems },
+      report.charts,
+      [],
+    );
     yield* finish(config.json, result, [...report.problems.map(problemLine), summary(report)]);
   });
   return running.pipe(Effect.withSpan('foldkit-dash.check'));
@@ -182,7 +187,7 @@ function built(config: ReadOptions & { readonly json: boolean; readonly out: str
     const result = envelope(
       'build',
       { pages: pagesOf(report), problems: report.problems },
-      [],
+      report.charts,
       written,
     );
     yield* finish(config.json, result, [
@@ -210,7 +215,12 @@ function started(config: { readonly dir: string; readonly json: boolean }) {
       });
     }
     yield* Effect.forEach(starter, ([path, text]) => writeText(join(folder, path), text));
-    const written = starter.map(([path]) => path);
+    // The plot spec schema, from the installed foldkit-viz, so the project has it offline.
+    const schema = yield* fs.readFileString(
+      Bun.resolveSync('@opsydyn/foldkit-viz/plot-spec.schema.json', import.meta.dir),
+    );
+    yield* writeText(join(folder, schemaFile), schema);
+    const written = [...starter.map(([path]) => path), schemaFile];
     const result = envelope('new', { pages: ['pages/index.md'], problems: [] }, [], written);
     yield* finish(config.json, result, [
       `Started ${config.dir}: ${written.join(', ')}.`,

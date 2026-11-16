@@ -22,12 +22,13 @@ in the repository, run it as `bun packages/foldkit-dash/src/bin.ts` instead of
 ## Start
 
 ```sh
-bunx foldkit-dash new my-dashboard   # a page, a data loader, AGENTS.md
+bunx foldkit-dash new my-dashboard   # a page, a loader, AGENTS.md, plot-spec.schema.json
 cd my-dashboard
 bunx foldkit-dash check
 ```
 
-`new` refuses a folder that is not empty.
+`new` refuses a folder that is not empty. Replace its example page and loader with
+your own; delete what you do not use.
 
 ## The loop
 
@@ -35,7 +36,9 @@ bunx foldkit-dash check
 2. `bunx foldkit-dash check --json`. Fix every problem; exit 0 means none.
 3. `bunx foldkit-dash describe`. Read what each chart shows and compare it with what
    the page says about it: the right number of series, the fields on each axis, the
-   ranges you expect. A chart can compile and still show the wrong thing.
+   categories in the order you claim, the ranges you expect. A chart can compile and
+   still show the wrong thing. Check the numbers in your prose against the data too:
+   `describe` rounds (see [marks and scales](references/marks.md#what-describe-says)).
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
 Exit codes: 0 done, 1 problems found (a build still writes its pages, each problem
@@ -67,8 +70,8 @@ bad flag, `new` into a folder in use, `--out` outside the project).
 `kind` is `json` (the fence is not one JSON object), `spec` (the plot grammar refused
 it; `path` says where), `data` (no such file or loader), `loader` (it failed or ran
 past `--loader-timeout`, 60 s by default) or `rows` (the data is not an array of
-objects of plain values). `line` is the fence's opening line. `describe --json` fills
-`charts` with `{ file, line, summary }`.
+objects of plain values). `line` is the fence's opening line. `charts` lists every
+chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
 
 ## Pages
 
@@ -91,17 +94,15 @@ objects of plain values). `line` is the fence's opening line. `describe --json` 
 ```
 ````
 
-- One JSON object per fence, the whole spec. Its schema is foldkit-viz's
-  `plot-spec.schema.json` (`node_modules/@opsydyn/foldkit-viz/schema/`, or
-  `https://unpkg.com/@opsydyn/foldkit-viz/schema/plot-spec.schema.json`); read it for
-  every mark's channels and options rather than guessing.
+- One JSON object per fence, the whole spec. [Marks and scales](references/marks.md)
+  lists the marks a dashboard uses most, their channels, and how axes are ordered;
+  the project's `plot-spec.schema.json` (written by `new`) is the whole contract.
 - `"data"` is a name in `data/` (`"sales.json"`), or the rows themselves.
 - A channel is a field name, or `{ "value": ... }` for a constant.
-- Marks: `dot`, `line`, `area`, `bar`, `rule`, `text`, `cell`, `link`, `box`, `violin`
-  on x and y axes; `treemap`, `sunburst`, `sankey` and `parallel` fill their panel.
-  `facet: { "x": field }` splits a chart into panels on shared scales.
 - Scales are inferred: numbers give linear axes, strings bands, ISO dates time axes.
-  Override with `x`, `y` and `color` (`type`, `domain`, `scheme`, `label`).
+  A band axis keeps the order categories first appear in the rows; set its `domain`
+  to choose the order, and `color.domain` to order a legend.
+- There is no number format for ticks: put units in the axis `label`.
 - Keep `width` about 720 for a full-width chart; the page scales it down on phones.
 
 ## Data and loaders
@@ -109,13 +110,16 @@ objects of plain values). `line` is the fence's opening line. `describe --json` 
 - A data file is JSON: an array of objects whose values are numbers, strings,
   booleans or null. ISO date strings become time axes.
 - A loader is `data/<name>.ts`, making `<name>`: `data/sales.json.ts` makes
-  `sales.json`. It is a program that prints that JSON to stdout; read a database, an
-  API or a CSV there, and keep the rows the page needs (summarise in the loader, not
-  in the chart). It runs from the project folder.
+  `sales.json`. It is a program Bun runs from the project folder, printing that JSON
+  to stdout. Top-level `await` and Bun's APIs work, and it may read files anywhere
+  (`await Bun.file('../export.csv').text()`). Read a database, an API or a CSV there,
+  and keep the rows the page needs: summarise in the loader (totals, rankings), not in
+  the chart. One loader per shape of data; several fences can share one.
 - A loader's output is cached in `node_modules/.cache/foldkit-dash/` until the loader
   changes. `--fresh` runs every loader again: use it when the data behind a loader
   changed but the loader did not.
 - A data file of the same name wins over a loader. Names cannot leave `data/`.
+- A deleted loader's cached output stays in the cache, unused; it does no harm.
 - Loaders run arbitrary code at build time. Treat `data/` as code.
 
 ## Not yet

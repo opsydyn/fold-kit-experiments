@@ -4,6 +4,9 @@
  * @module Template
  */
 
+/** Where `new` puts a copy of the plot spec schema, in the project. */
+export const schemaFile = 'plot-spec.schema.json';
+
 /** The plot spec schema, as foldkit-viz publishes it. */
 export const schemaUrl = 'https://unpkg.com/@opsydyn/foldkit-viz/schema/plot-spec.schema.json';
 
@@ -55,10 +58,15 @@ const agents = `# Working on this dashboard
 This is a foldkit-dash project: Markdown pages in \`pages/\`, data in \`data/\`.
 
 - A chart is a fenced block marked \`plot\` holding one JSON plot spec (foldkit-viz's
-  grammar of marks). Its schema: ${schemaUrl}
-  (also \`node_modules/@opsydyn/foldkit-viz/schema/plot-spec.schema.json\`).
+  grammar of marks). Its schema is \`plot-spec.schema.json\`, here in the project
+  (look up \`definitions.LineMark\`, \`BarMark\` and the rest, and \`PositionScaleSpec\`
+  for axes). It is also published at ${schemaUrl}.
 - \`"data": "name.json"\` reads \`data/name.json\`, or the output of the loader
-  \`data/name.json.ts\` (a program that prints JSON rows). Rows are objects of plain values.
+  \`data/name.json.ts\`: a program Bun runs from this folder, which prints JSON rows (top-level
+  \`await\` and Bun's APIs work; it may read files anywhere, such as \`../export.csv\`).
+  Rows are objects of plain values; ISO date strings make time axes.
+- A band axis shows its categories in the order they first appear in the rows; set the
+  axis's \`domain\` to order them yourself.
 - Each \`pages/**/*.md\` becomes \`dist/**/*.html\`. Link pages with \`[text](other.md)\`.
 
 The loop:

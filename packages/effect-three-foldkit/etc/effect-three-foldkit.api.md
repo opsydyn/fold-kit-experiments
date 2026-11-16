@@ -165,6 +165,7 @@ export const domEventName: {
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
     readonly XrMoved: 'scene-xr-moved';
+    readonly XrTeleported: 'scene-xr-teleported';
     readonly XrPlanes: 'scene-xr-planes';
     readonly XrMeshes: 'scene-xr-meshes';
     readonly PerformanceChanged: 'scene-performance';
@@ -312,10 +313,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -1160,6 +1161,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly planes: Schema.Boolean;
             readonly meshes: Schema.Boolean;
             readonly domOverlay: Schema.Boolean;
+            readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly hand: Schema.Literals<readonly ["left", "right"]>;
+                readonly targets: Schema.$Array<Schema.String>;
+                readonly color: Schema.Int;
+                readonly opacity: Schema.Finite;
+            }>>, never>;
             readonly glide: Schema.NullOr<Schema.Struct<{
                 readonly speed: Schema.Finite;
                 readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -1599,6 +1606,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly heading: Schema.Finite;
     }>;
+    'scene-xr-teleported': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
     'scene-xr-planes': Schema.Struct<{
         readonly planes: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
@@ -1849,6 +1861,7 @@ export type ViewConfig<Message> = {
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onXRMoved?: (detail: XrMovedDetail) => Message;
+    readonly onXRTeleported?: (detail: XrTeleportedDetail) => Message;
     readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
     readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
@@ -1927,6 +1940,9 @@ export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 
 // @public
 export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
+
+// @public (undocumented)
+export type XrTeleportedDetail = typeof SceneSchema.XrTeleportedDetail.Type;
 
 // Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
 //

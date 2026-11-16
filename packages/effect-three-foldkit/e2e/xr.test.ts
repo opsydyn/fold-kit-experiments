@@ -361,3 +361,59 @@ test('with planes and meshes, what was detected is reported once, where it is in
   expect(meshes).toEqual(['xr-meshes mesh-0:couch@2.0,0.5,-2.0']);
   await page.close();
 }, 60_000);
+
+function teleportReady(): void {
+  // The left controller at hand height, level: its arc dips and falls to the floor ahead.
+  Reflect.get(globalThis, '__xr').aimLeft(1.2);
+}
+function holdLeft(): void {
+  Reflect.get(globalThis, '__xr').leftTrigger(1);
+}
+function letGoLeft(): void {
+  Reflect.get(globalThis, '__xr').leftTrigger(0);
+}
+function arc(): { readonly shown: boolean; readonly ring: ReadonlyArray<number> | undefined } {
+  return Reflect.get(globalThis, '__xr').arc();
+}
+
+test('with a teleport arc, holding select draws it to the floor, and letting go says where to stand', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('xr.html?teleport'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enter);
+  await page.waitForFunction(sessionsReported, 1);
+  await pointAway(page);
+  await inPage(page, teleportReady);
+  await settle(page);
+  // Not held: no arc.
+  expect((await inPage(page, arc)).shown).toBe(false);
+  await inPage(page, holdLeft);
+  await settle(page);
+  const held = await inPage(page, arc);
+  expect(held.shown).toBe(true);
+  // The player stands at x = 2 facing +x: the arc lands on the floor ahead of them.
+  const [ringX = 0, ringY = 1, ringZ = 1] = held.ring ?? [];
+  expect(ringY).toBeCloseTo(0, 2);
+  expect(ringX).toBeGreaterThan(3);
+  expect(Math.abs(ringZ)).toBeLessThan(1.5);
+  const [headX = 0, , headZ = 0] = (await inPage(page, head)) ?? [];
+  await inPage(page, letGoLeft);
+  await settle(page);
+  // A teleport, not a click: the arc's hand's select is the arc's.
+  const said = await inPage(page, events);
+  expect(said.filter((line) => line.startsWith('scene-click') || line.startsWith('click'))).toEqual(
+    [],
+  );
+  const teleported = said.filter((line) => line.startsWith('xr-teleported'));
+  expect(teleported).toHaveLength(1);
+  // The origin moves so the head stands over the ring.
+  const [originX = 0, , originZ = 0] =
+    (teleported[0] ?? '').split(' ').at(-1)?.split(',').map(Number) ?? [];
+  expect(originX - 2 + headX).toBeCloseTo(ringX, 0);
+  expect(originZ + headZ).toBeCloseTo(ringZ, 0);
+  expect((await inPage(page, arc)).shown).toBe(false);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);

@@ -19,6 +19,7 @@ import type { PresentableRenderer } from './renderSettings.ts';
 import { floorFacing, type GlidePose, glideFrame, startGlider } from './xrGlide.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
 import { type Follow, type LendGeometry, trackSpaces } from './xrSpaces.ts';
+import { type TeleportArc, trackTeleportArc } from './xrTeleport.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
 export type XrSystem = Pick<XRSystem, 'requestSession' | 'isSessionSupported'>;
@@ -71,15 +72,21 @@ const originOffset = (settings: GlidePose): XRRigidTransform => {
 /**
  * Forwards each source's select as a ray in the presented space (the scene's, since the
  * reference space is offset to the player's origin); a select ending in AR also reports
- * the surface its ray met. Returns a function that stops.
+ * the surface its ray met. The teleport arc's hand selects for the arc instead, as
+ * pmndrs/xr's teleport pointer takes its source's select. Returns a function that stops.
  */
 const listenForSelects = (
   session: XRSession,
   space: () => XRReferenceSpace | null,
   inputs: XrInputs,
+  arc: { readonly settings: () => Xr; readonly track: TeleportArc },
   input: (input: XrInput) => void,
 ): (() => void) => {
   const forward = (tag: 'SelectStart' | 'SelectEnd') => (event: XRInputSourceEvent) => {
+    if (arc.settings().teleportArc?.hand === event.inputSource.handedness) {
+      arc.track.selecting(event.inputSource, tag === 'SelectStart');
+      return;
+    }
     const reference = space();
     const pose =
       reference === null
@@ -114,6 +121,8 @@ export type Presented = {
   readonly follow: Follow;
   /** Lends detected meshes' geometry to the scene (`xrMesh(id)`). */
   readonly lend: LendGeometry;
+  /** The scene's node by key, for the teleport arc's targets. */
+  readonly object: (key: string) => Object3D | undefined;
   readonly input: (input: XrInput) => void;
 };
 
@@ -135,6 +144,8 @@ export const present = async (
   xr.setReferenceSpaceType(settings.referenceSpace);
   xr.setFramebufferScaleFactor(settings.framebufferScale);
   let inputs: XrInputs | undefined;
+  let arc: TeleportArc | undefined;
+  let arcTime: number | undefined;
   const spaces = trackSpaces(session, () => current, presented.follow, input, presented.lend);
   let current = settings;
   // Gliding (`xr({ glide })`) moves the player from the description's place; the
@@ -167,6 +178,8 @@ export const present = async (
     if (frame !== undefined && space !== null) {
       inputs?.frame(frame, space);
       glideStep(time, frame, space);
+      arc?.frame(frame, space, time - (arcTime ?? time));
+      arcTime = time;
       // After gliding, so the spaces are where the player now stands.
       spaces.frame(frame, xr.getReferenceSpace() ?? space);
     }
@@ -182,12 +195,21 @@ export const present = async (
   scene.add(shown);
   const tracked = trackInputs(session, shown, () => current, input);
   inputs = tracked;
-  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), tracked, input);
+  const teleporting = trackTeleportArc(session, shown, () => current, presented.object, input);
+  arc = teleporting;
+  const stopSelects = listenForSelects(
+    session,
+    () => xr.getReferenceSpace(),
+    tracked,
+    { settings: () => current, track: teleporting },
+    input,
+  );
   session.addEventListener(
     'end',
     () => {
       stopSelects();
       tracked.stop();
+      teleporting.stop();
       spaces.stop();
       shown.removeFromParent();
       renderer.setXrLoop(null);

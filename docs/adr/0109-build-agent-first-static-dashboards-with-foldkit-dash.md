@@ -36,7 +36,7 @@ that does this for any project, and checks that an agent can run in a loop.
    escaped, so a page cannot run script.
 3. **Data loaders run at build time, cached.** `data/name.json.ts` is run with Bun; its
    stdout, decoded as rows of plain values, is `name.json`. Output is cached under
-   `.foldkit-dash/cache/` and reused until the loader file changes, or `--fresh` is
+   `node_modules/.cache/foldkit-dash/` (ignored wherever `node_modules` is) and reused until the loader file changes, or `--fresh` is
    given; a loader that fails or exceeds its time limit (default 60 s) is a problem, not
    a crash. Stage 1 loaders are TypeScript and JSON only.
 4. **Four commands, each usable by an agent without a browser.**

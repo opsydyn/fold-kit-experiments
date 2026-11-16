@@ -16,7 +16,7 @@ bun build.ts --check   # writes nothing; problems as JSON, exit 1 if any
   marks, `packages/foldkit-viz/schema/plot-spec.schema.json`); `"data": "latency.json"`
   names a data file in `data/`, or a loader's output.
 - `data/latency.json.ts`: a loader. It prints JSON; the build runs it and caches the
-  output in `.cache/` until the loader changes.
+  output in `node_modules/.cache/foldkit-dash/` until the loader changes.
 - Each fence becomes a figure: SVG, legend, a summary and the data table. The pages ship
   no JavaScript.
 

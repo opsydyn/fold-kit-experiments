@@ -5,7 +5,7 @@
 // - A ```plot fence holds a foldkit-viz plot spec as JSON (the grammar of marks, ADR 0037);
 //   `"data": "name.json"` names a data file or a loader's output.
 // - A data loader is `data/name.json.ts`: run at build time, its stdout is `name.json`,
-//   cached in `.cache/` until the loader changes.
+//   cached in `node_modules/.cache/foldkit-dash/` (ignored by git) until the loader changes.
 // - Each fence becomes a static figure (`plotHtml`: SVG, legend, summary and data table).
 //
 //   bun build.ts           # writes dist/
@@ -21,6 +21,7 @@ import { plotHtml } from '../../packages/foldkit-viz/dist/svg/plot.mjs';
 
 const root = import.meta.dir;
 const checkOnly = process.argv.includes('--check');
+const cache = join(root, 'node_modules', '.cache', 'foldkit-dash');
 
 /** What a data file or loader holds: rows of plain values. */
 const Rows = Schema.fromJsonString(
@@ -45,13 +46,13 @@ const decodeRows = (text: string, name: string): Result.Result<Rows, string> =>
 
 /** A loader's output: run again when the loader is newer than its cache. */
 function loaderOutput(name: string, loader: string): Result.Result<string, string> {
-  const cached = join(root, '.cache', name);
+  const cached = join(cache, name);
   if (existsSync(cached) && statSync(cached).mtimeMs >= statSync(loader).mtimeMs) {
     return Result.succeed(readFileSync(cached, 'utf8'));
   }
   const run = Bun.spawnSync(['bun', loader], { stderr: 'pipe' });
   if (run.exitCode !== 0) return Result.fail(`loader ${name}.ts failed: ${run.stderr}`);
-  mkdirSync(join(root, '.cache'), { recursive: true });
+  mkdirSync(cache, { recursive: true });
   writeFileSync(cached, run.stdout);
   return Result.succeed(run.stdout.toString());
 }

@@ -304,8 +304,13 @@ Effect owns every lifetime.
    intents, `PlacedThing`, `FramedShot` and `ChoseMood`, exported to the DevTools MCP
    server; an agent placed things, chose a mood and framed a shot through it, and a mood
    the schema does not know was refused (checked end to end in a headless browser).
-   Next: tools that answer with a scene's description directly, rather than the raw
-   Model.
+   ✅ Then scene tools (2026-11-16): `bun run scene-mcp`, registered in `.mcp.json` as
+   `effect-three-scenes`, is an MCP server whose tools answer with a scene rather than
+   the raw Model: `scene_describe` (the `formatSummary` lines), `scene_check` (schemas,
+   then the scene's own rules, naming the behaviours an app must register),
+   `scene_preview` (SVG) and `scene_diff`. A scene comes from a saved file, from text,
+   or from a running app's Model path, read through `@foldkit/devtools-mcp`; checked end
+   to end against the editor in a headless browser.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
@@ -415,8 +420,6 @@ Still open:
 
 - XR co-presence (2): other players' heads and hands as tracked spaces, over the
   lockstep session and relay that already exist.
-- Agent tools that answer with a scene's description (`describeScene`) rather than the
-  raw Model (3).
 - Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay. Until then they stay documented limits.
 

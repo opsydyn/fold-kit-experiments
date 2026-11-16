@@ -66,7 +66,9 @@ for a view with selection and a Model-owned orbit camera.
   OutMessages; the parent keeps the placements, the selection and the camera. Scene
   files (`SceneFile`), branching history (`History`), review diffs (`sceneChanges`), the
   schema-generated inspector (`Inspector`, `inspectorView`), a scene vocabulary for
-  agents (`describeScene`, `shotCamera`, `moodStaging`) and editing together
+  agents (`describeScene`, `shotCamera`, `moodStaging`; in this repository, the
+  `effect-three-scenes` MCP server, `bun run scene-mcp`, describes, checks, previews and
+  diffs scenes from files or a running app) and editing together
   (`Lockstep`) are pure too; the promo's editor example uses them all. Physics in
   lockstep puts the world's clock in the Model (`physics({ until })`, `Timeline`): the
   tabletop example; `physics({ snapshotAt })` reports a snapshot and `physics({ from })`

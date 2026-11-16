@@ -47,6 +47,7 @@
     "three": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
     "@types/pngjs": "catalog:",
     "bun-types": "catalog:",
     "pngjs": "catalog:",

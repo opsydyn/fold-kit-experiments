@@ -907,6 +907,15 @@ export const Xr = Schema.Struct({
   planes: Schema.Boolean,
   meshes: Schema.Boolean,
   domOverlay: Schema.Boolean,
+  teleportArc: absentAsNull(
+    Schema.Struct({
+      hand: Schema.Literals(['left', 'right']),
+      targets: Schema.Array(Schema.String),
+      color: Rgb,
+      opacity: UnitInterval,
+    }),
+  ),
+  poses: absentAsNull(Positive),
   glide: Schema.NullOr(
     Schema.Struct({
       speed: NonNegative,
@@ -1109,6 +1118,22 @@ export const XrButtonDetail = Schema.Struct({
 /** Detail of XR moved events: where gliding left the player. */
 export const XrMovedDetail = Schema.Struct({ origin: Vec3, heading: Schema.Finite });
 
+/** Detail of XR teleported events: where an arc landed, and where the origin goes. */
+export const XrTeleportedDetail = Schema.Struct({ hand: XrHand, point: Vec3, origin: Vec3 });
+
+/** A tracked pose: a position and a unit quaternion `[x, y, z, w]`. */
+export const XrPose = Schema.Struct({
+  position: Vec3,
+  quaternion: Schema.Tuple([Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]),
+});
+
+/** Detail of XR poses events: where the player's head and hands are, in the scene. */
+export const XrPosesDetail = Schema.Struct({
+  head: XrPose,
+  left: Schema.NullOr(XrPose),
+  right: Schema.NullOr(XrPose),
+});
+
 /** Detail of XR surface events: in AR, where a select met a real surface. */
 export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
 
@@ -1205,6 +1230,8 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
+  Schema.TaggedStruct('XrTeleported', XrTeleportedDetail.fields),
+  Schema.TaggedStruct('XrPoses', XrPosesDetail.fields),
   Schema.TaggedStruct('XrPlanes', XrPlanesDetail.fields),
   Schema.TaggedStruct('XrMeshes', XrMeshesDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),

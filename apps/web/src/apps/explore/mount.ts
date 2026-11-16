@@ -9,12 +9,33 @@ import { scatter, scatterByKey } from './charts';
 import { Message } from './message';
 import { Range } from './model';
 
-const colors = {
+/** The dark colours the canvas falls back to when the page sets no chart tokens. */
+const fallback = {
   current: '#9aa7b4',
   text: '#e6edf3',
   mutedText: '#9aa7b4',
   grid: 'rgba(154, 167, 180, 0.15)',
   axis: 'rgba(154, 167, 180, 0.5)',
+};
+
+/**
+ * The canvas's colours from the page's chart tokens where it sets them, so its
+ * axes follow a light or dark page. The first name is foldkit-viz's, the second
+ * this web app's.
+ */
+const colorsOf = (element: Element) => {
+  const style = getComputedStyle(element);
+  const read = (names: ReadonlyArray<string>, otherwise: string): string =>
+    names.map((name) => style.getPropertyValue(name).trim()).find((value) => value !== '') ??
+    otherwise;
+  const mutedText = read(['--chart-muted-text', '--chart-label'], fallback.mutedText);
+  return {
+    current: mutedText,
+    text: read(['--chart-text', '--page-text'], fallback.text),
+    mutedText,
+    grid: read(['--chart-grid'], fallback.grid),
+    axis: read(['--chart-axis'], fallback.axis),
+  };
 };
 
 /**
@@ -32,7 +53,7 @@ export const PaintScatter = defineMount('PaintScatter', {
       if (compiled !== undefined && element instanceof HTMLCanvasElement)
         paintCanvas(element, compiled.geometry, {
           pixelRatio: window.devicePixelRatio || 1,
-          colors,
+          colors: colorsOf(element),
           points,
         });
       return Message.PaintedScatter({ key });

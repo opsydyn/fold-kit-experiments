@@ -49,12 +49,14 @@ export const xrTarget = (scene: {
   readonly scene: Object3D;
   readonly follow: Follow;
   readonly lend: LendGeometry;
+  readonly object: (key: string) => Object3D | undefined;
   readonly input: (input: XrInput) => ReadonlyArray<SceneEvent>;
 }): XrTarget => ({
   canvas: scene.canvas,
   element: scene.element,
   follow: scene.follow,
   lend: scene.lend,
+  object: scene.object,
   settings: scene.settings,
   draw: scene.draw,
   scene: scene.scene,

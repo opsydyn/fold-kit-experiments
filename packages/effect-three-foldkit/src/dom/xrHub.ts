@@ -28,6 +28,8 @@ export type XrTarget = {
   readonly follow: Follow;
   /** Lends a geometry to the scene's store, for detected meshes. */
   readonly lend: LendGeometry;
+  /** The scene's node by key, for the teleport arc's targets. */
+  readonly object: (key: string) => Object3D | undefined;
   /** Input from the session: aims, selects, sticks, buttons and surfaces. */
   readonly input: (input: XrInput) => void;
   /** The session began presenting this scene in `mode`, or (with `null`) ended. */
@@ -93,6 +95,7 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
         draw,
         follow: target.follow,
         lend: target.lend,
+        object: target.object,
         input: target.input,
       },
       ended,

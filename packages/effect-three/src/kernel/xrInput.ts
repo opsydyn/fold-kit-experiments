@@ -14,6 +14,7 @@
  */
 import type { Vec3 } from './description.ts';
 import type { Hit, Picker, Ray, SceneEvent } from './pointer.ts';
+import type { XrPoses } from './presence.ts';
 
 /** Which hand an input source is held in or is, as WebXR's `handedness`. */
 export type XrHand = 'left' | 'right' | 'none';
@@ -83,6 +84,20 @@ export type XrInput =
     }
   /** Gliding (`xr({ glide })`) stopped: where the player stands now, for the Model. */
   | { readonly _tag: 'Moved'; readonly origin: Vec3; readonly heading: number }
+  /** A teleport arc let go over a target: where it landed, and where the origin goes. */
+  | {
+      readonly _tag: 'Teleport';
+      readonly hand: XrHand;
+      readonly point: Vec3;
+      readonly origin: Vec3;
+    }
+  /** Where the player's head and hands are (`xr({ poses })`), in the scene's space. */
+  | {
+      readonly _tag: 'Poses';
+      readonly head: XrPoses['head'];
+      readonly left: XrPoses['left'];
+      readonly right: XrPoses['right'];
+    }
   /** The detected planes changed: all of them, as they are now. */
   | { readonly _tag: 'Planes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The detected meshes changed: all of them, as they are now. */
@@ -219,6 +234,12 @@ export const createXrTracker = (picker: Picker) => {
         ];
       case 'Moved':
         return [{ _tag: 'XrMoved', origin: input.origin, heading: input.heading }];
+      case 'Teleport':
+        return [
+          { _tag: 'XrTeleported', hand: input.hand, point: input.point, origin: input.origin },
+        ];
+      case 'Poses':
+        return [{ _tag: 'XrPoses', head: input.head, left: input.left, right: input.right }];
       case 'Planes':
         return [{ _tag: 'XrPlanes', planes: input.planes }];
       case 'Meshes':

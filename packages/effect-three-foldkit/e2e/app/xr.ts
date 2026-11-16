@@ -12,6 +12,7 @@ import { metaQuest3, XRDevice } from 'iwer';
 import * as EffectThreeFoldkit from '../../src/index.ts';
 import {
   aimDown,
+  arcShown,
   aimStraight,
   describeEvent,
   FloorEnvironment,
@@ -26,6 +27,9 @@ import {
   rendererFinder,
   shimOffsetSpaces,
   spacesFromAddress,
+  teleportFromAddress,
+  posesFromAddress,
+  posesOf,
 } from './xrProbe.ts';
 
 shimOffsetSpaces();
@@ -41,6 +45,7 @@ const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const spaces = spacesFromAddress(location.search);
+const teleporting = teleportFromAddress(location.search);
 const described = scene({
   xr: xr({
     origin: [2, 0, 0],
@@ -50,9 +55,12 @@ const described = scene({
     anchors: spaces.anchors,
     planes: spaces.planes,
     meshes: spaces.meshes,
+    teleportArc: teleporting.arc,
+    poses: posesFromAddress(location.search),
   }),
   children: [
     ...spaces.children,
+    ...teleporting.floor,
     mesh({
       key: 'cube',
       position: [4, 1.5, 0],
@@ -80,6 +88,7 @@ const watched = [
   'scene-xr-surface',
   'scene-pointer-missed',
   'scene-xr-moved',
+  'scene-xr-teleported',
   'scene-xr-planes',
   'scene-xr-meshes',
   'scene-click',
@@ -87,6 +96,8 @@ const watched = [
 const events: Array<string> = [];
 for (const type of watched)
   element.addEventListener(type, (event) => events.push(describeEvent(event)));
+const posesHeard: Array<unknown> = [];
+element.addEventListener('scene-xr-poses', (event) => posesHeard.push(posesOf(event)));
 let drags = 0;
 element.addEventListener('scene-drag', () => drags++);
 
@@ -118,6 +129,10 @@ Reflect.set(globalThis, '__xr', {
   /** Pulls (1) or releases (0) the right controller's trigger: a select. */
   trigger: (value: number) => device.controllers.right?.updateButtonValue('trigger', value),
   enterAr: () => Effect.runPromise(environment.xr.enter('immersive-ar')),
+  /** Pulls (1) or releases (0) the left controller's trigger. */
+  leftTrigger: (value: number) => device.controllers.left?.updateButtonValue('trigger', value),
+  /** The teleport arc as drawn: whether it shows, and where its ring is. */
+  arc: () => arcShown(Reflect.get(globalThis, '__observedScenes') ?? []),
   /** Points the left controller straight ahead from `y`. */
   aimLeft: (y: number) => aimStraight(device.controllers.left, y),
   /** Points the right controller straight down from `y`. */
@@ -135,6 +150,8 @@ Reflect.set(globalThis, '__xr', {
   /** Pinches (1) or opens (0) the right hand. */
   pinch: (value: number) => device.hands.right?.updatePinchValue(value),
   events: () => events,
+  /** Every poses event's detail, in order. */
+  poses: () => posesHeard,
   clearEvents: () => {
     events.length = 0;
   },

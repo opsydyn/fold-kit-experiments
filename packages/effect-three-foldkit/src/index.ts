@@ -75,6 +75,8 @@ export {
   type XrButtonDetail,
   type XrMeshesDetail,
   type XrMovedDetail,
+  type XrTeleportedDetail,
+  type XrPosesDetail,
   type XrPlanesDetail,
   type XrStickDetail,
   type XrSurfaceDetail,

@@ -1,0 +1,29 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import MillionPoints from '../../examples/million-points/app';
+import Layout from '../../layouts/Layout.astro';
+import { sitePath } from '../../lib/site-path';
+import '../../styles/web-islands.css';
+
+const files = import.meta.glob<string>(
+  '../../../../web/src/apps/explore/{data,charts,model,message,update,mount,view,command,subscription,main}.ts',
+  { query: '?raw', import: 'default', eager: true },
+);
+const order = ['data.ts', 'charts.ts', 'model.ts', 'message.ts', 'update.ts', 'mount.ts', 'view.ts', 'command.ts', 'subscription.ts', 'main.ts'];
+const sources = Object.entries(files)
+  .map(([path, content]) => ({ name: path.split('/').at(-1) ?? path, content }))
+  .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
+---
+<Layout title="A million points on the GPU — Foldkit Viz">
+  <section class="page-intro">
+    <a class="text-link" href={sitePath('/examples/')}>← All examples</a>
+    <p class="eyebrow">New in 0.19.0 / GPU points</p>
+    <h1>Brush a million points, live</h1>
+    <p>A million requests, made in your browser and linked to a histogram. Drag across the histogram and the scatter highlights the brushed requests as you move: the points are drawn on the GPU by <code>webgl/points</code>, so a highlight uploads one byte per point instead of repainting the canvas.</p>
+    <p class="small-note">Synthetic data. Without WebGL the points fall back to a canvas and repaint when you release the brush.</p>
+  </section>
+  <MillionPoints client:load noMeta />
+  <noscript><p>This example needs JavaScript to make and draw its points.</p></noscript>
+  <section class="closing-callout"><h2>One frame, a million points.</h2><p>A million-point brush costs 13 ms in Chromium, 12 ms in WebKit and 20 ms in Firefox, against 62 ms repainting a canvas. Streamed points append to the GPU layer without rebuilding it.</p><a class="text-link" href={sitePath('/docs/')}>Read the docs →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

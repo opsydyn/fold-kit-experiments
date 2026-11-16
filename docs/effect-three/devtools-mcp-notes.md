@@ -37,6 +37,18 @@ at ["mood"]`. `foldkit_get_model` summarises a large Model; reading by path
 and the moved camera. Finding 1 was still there: the relay listed 88 runtimes, so the
 script picks the one that appeared when it opened its page.
 
+### The scene tools (2026-11-16)
+
+`scene-mcp` (`packages/effect-three-samples/scripts/scene-mcp.ts`) starts
+`foldkit-devtools-mcp` itself and reads `root.nodes` (and a camera path, if given) with
+`foldkit_get_model { path, expand: true }`; the scene nodes decode with the scene
+schemas even though Model JSON flattens `Option`. Its runtime id is the `connectionId`
+`foldkit_list_runtimes` answers with. With Astro running under Bun (`bunx --bun astro
+dev`, needed where Node is older than Astro 7 asks for), the MCP server did not trust
+the relay it discovered; naming the relay worked: `foldkit({ server: { devToolsMcpPort:
+4329 } })` in the app's Astro config and `FOLDKIT_DEVTOOLS_MCP_PORT=4329` for the MCP
+server. Under Node, discovery as in finding 3 is enough.
+
 ## Setup for the reproductions
 
 1. `bun install` at the repository root (it installs `@foldkit/devtools-mcp`).

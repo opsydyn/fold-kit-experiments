@@ -165,6 +165,8 @@ export const domEventName: {
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
     readonly XrMoved: 'scene-xr-moved';
+    readonly XrTeleported: 'scene-xr-teleported';
+    readonly XrPoses: 'scene-xr-poses';
     readonly XrPlanes: 'scene-xr-planes';
     readonly XrMeshes: 'scene-xr-meshes';
     readonly PerformanceChanged: 'scene-performance';
@@ -1160,6 +1162,13 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly planes: Schema.Boolean;
             readonly meshes: Schema.Boolean;
             readonly domOverlay: Schema.Boolean;
+            readonly teleportArc: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly hand: Schema.Literals<readonly ["left", "right"]>;
+                readonly targets: Schema.$Array<Schema.String>;
+                readonly color: Schema.Int;
+                readonly opacity: Schema.Finite;
+            }>>, never>;
+            readonly poses: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Finite>, never>;
             readonly glide: Schema.NullOr<Schema.Struct<{
                 readonly speed: Schema.Finite;
                 readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -1599,6 +1608,25 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly heading: Schema.Finite;
     }>;
+    'scene-xr-teleported': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+    'scene-xr-poses': Schema.Struct<{
+        readonly head: Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
+        readonly left: Schema.NullOr<Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+        readonly right: Schema.NullOr<Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly quaternion: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>;
     'scene-xr-planes': Schema.Struct<{
         readonly planes: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
@@ -1849,6 +1877,8 @@ export type ViewConfig<Message> = {
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onXRMoved?: (detail: XrMovedDetail) => Message;
+    readonly onXRTeleported?: (detail: XrTeleportedDetail) => Message;
+    readonly onXRPoses?: (detail: XrPosesDetail) => Message;
     readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
     readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
@@ -1915,6 +1945,9 @@ export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
 export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 
 // @public
+export type XrPosesDetail = typeof SceneSchema.XrPosesDetail.Type;
+
+// @public
 export const XrSessionDetail: Schema.Struct<{
     readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
 }>;
@@ -1927,6 +1960,9 @@ export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 
 // @public
 export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
+
+// @public (undocumented)
+export type XrTeleportedDetail = typeof SceneSchema.XrTeleportedDetail.Type;
 
 // Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
 //

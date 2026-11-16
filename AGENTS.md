@@ -272,3 +272,19 @@ another task produces unless it declares that task in `deps`. A test that
 rebuilds or packs packages belongs in that package's `test:integration` or
 `test:package` script, which runs alone after the parallel checks.
 `tools/ci-parity.test.ts` checks each moon task against its package script.
+
+## Commit types and releases
+
+release-please reads Conventional Commits to release each package: a `feat` or
+`fix` commit that touches a package's folder releases that package. Choose the
+type by what changes for the package's users, not by what the change fixes:
+
+- **`feat` / `fix`:** behaviour or types that ship in the package.
+- **`build` / `ci` / `chore` / `test` / `docs`:** moon config (a package's
+  `moon.yml`), CI, tooling, tests and docs. These never release a package.
+
+A `fix(moon)` commit that only edited `packages/effect-three/moon.yml` once
+proposed an effect-three release with nothing in it. release-please's
+`exclude-paths` cannot prevent that: it excludes folders, not single files. If
+a merged PR's commits are typed wrongly, correct them with a
+`BEGIN_COMMIT_OVERRIDE` … `END_COMMIT_OVERRIDE` block in its description.

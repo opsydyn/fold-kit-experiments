@@ -45,8 +45,10 @@ and colour schemes. The chart layer on top is thin:
 interactive; accessibility by default; typed, pure, testable geometry; and a planned
 JSON-serialisable spec that suits generated charts and other languages.
 
-**Release status:** 0.18.0 to 0.22.0 are complete on the `feat/viz-roadmap-scales`
-branch and not yet released. 0.21.0 meets two of its three exit criteria; see below.
+**Release status:** the milestones planned as 0.18.0 to 0.22.0 shipped together
+in the published foldkit-viz `0.18.0`. The "Later — Reach" items are done on the
+`feat/viz-svg-jupyter` branch and not yet released. 0.21.0's third exit criterion,
+a one-frame `/explore` brush, was met there by the GPU points layer; see below.
 
 ### 0.18.0 — Foundations (next release)
 
@@ -152,10 +154,13 @@ request-diagnostics and comparison reference apps use them. Zoomable line and
 histogram brush are small apps over specs. Small additions the demos needed:
 `clip`, `axis: false`, and constant marks such as reference rules drawing once.
 
-Not met: the `/explore` brush takes 84–107 ms from pointer release to painted
-canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms is the
-canvas rasterising a million squares. One frame needs GPU drawing or a separate
-highlight layer, which moves to Later.
+Not met at release: the `/explore` brush took 84–107 ms from pointer release to
+painted canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms was
+the canvas rasterising a million squares. Met since, on the `feat/viz-svg-jupyter`
+branch (unreleased): `webgl/points` draws the points on the GPU, and a
+million-point brush costs 13 ms in Chromium, 12 ms in WebKit and 20 ms in
+Firefox, with `/explore` highlighting live while dragging (median frame 20 ms).
+See "Later — Reach".
 
 ### 0.22.0 — Beyond Cartesian
 
@@ -298,8 +303,8 @@ and no dependency on `foldkit/http`.
 
 ## Viz: Polars and Arrow data — 2026-11-14
 
-**Status:** done except the later item, on the `feat/viz-columnar-data` branch
-(unreleased). [Assessment](superpowers/specs/2026-11-14-polars-assessment.md) and
+**Status:** done. The columnar items shipped in foldkit-viz `0.18.0`; translating
+bin into SQL (`pushdown`) is on the `feat/viz-svg-jupyter` branch (unreleased). [Assessment](superpowers/specs/2026-11-14-polars-assessment.md) and
 [design and results](superpowers/specs/2026-11-15-columnar-data-design.md).
 
 **Outcome:** data held in Polars (Rust, Python or Bun) or any Arrow source plots
@@ -344,8 +349,9 @@ example runs in the web app.
 
 - Met: 86 ms through Arrow columns against 248 ms through row objects.
 - Met in substance: every spec the web app draws is validated as JSON text, the
-  form any program sends, by a standard JSON Schema validator (ajv). No Rust or
-  Python program has been run against it yet.
+  form any program sends, by a standard JSON Schema validator (ajv). Python
+  does so since: the `foldkit-viz-py` widget checks every spec against the
+  published schema. No Rust program has been run against it yet.
 - Changed: the summary example is a standalone Bun app, not a web app page.
   Polars is a native add-on, and the web app runs on Cloudflare Workers, where a
   request-time Polars route cannot run.

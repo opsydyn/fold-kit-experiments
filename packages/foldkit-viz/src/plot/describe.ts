@@ -71,6 +71,10 @@ function legendPhrase(legend: Legend): string {
   return `${shown} shows ${label} (${plural(names.length, ['group', 'groups'])}${listed})`;
 }
 
+/** Whether a graphic of `kind` is one of what `mark` draws, rather than a part of one. */
+const countsAsOne = (mark: MarkGeometry['mark'], kind: string): boolean =>
+  mark === 'box' ? kind === 'rect' : mark === 'violin' ? kind === 'path' : true;
+
 /**
  * A plain-language summary of a compiled plot: what it draws and how many,
  * what each axis covers, and what colour shows. Meant for an SVG's desc or an
@@ -84,8 +88,12 @@ export function describePlot(geometry: PlotGeometry): string {
     for (const mark of f.marks) {
       const noun = NOUNS.get(mark.mark);
       const key = noun === undefined ? `${mark.mark} mark` : noun[1];
-      // Packed points count every point, not their one graphic.
-      const drawn = mark.graphics.reduce((sum, g) => sum + (g.kind === 'points' ? g.count : 1), 0);
+      // Packed points count every point, not their one graphic; a box or violin is
+      // several graphics (whisker, box and median; shape and median) but one of each.
+      const drawn = mark.graphics.reduce(
+        (sum, g) => sum + (g.kind === 'points' ? g.count : countsAsOne(mark.mark, g.kind) ? 1 : 0),
+        0,
+      );
       counts.set(key, (counts.get(key) ?? 0) + drawn);
     }
   const drawn = [...counts]

@@ -45,6 +45,20 @@ describe('describePlot', () => {
     expect(summary).toContain('on a log scale');
   });
 
+  it('counts a box or a violin once, not each of the lines it is drawn with', () => {
+    const groups = (mark: 'box' | 'violin') =>
+      describePlot(
+        compilePlot({
+          width: 400,
+          height: 260,
+          data: ['a', 'b', 'c'].flatMap((g) => [1, 3, 5, 9].map((v) => ({ g, v }))),
+          marks: [{ mark, x: 'g', y: 'v' }],
+        }),
+      );
+    expect(groups('box')).toStartWith('Shows 3 boxes.');
+    expect(groups('violin')).toStartWith('Shows 3 violins.');
+  });
+
   it('describes polar charts by their directions', () => {
     const summary = describePlot(
       compilePlot({

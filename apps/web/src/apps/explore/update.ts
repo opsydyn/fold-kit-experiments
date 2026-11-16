@@ -3,6 +3,7 @@ import { invertAxis } from '@opsydyn/foldkit-viz/plot';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { histogram, scatter } from './charts';
+import { HighlightScatter } from './command';
 import { bins, latencyExtent } from './data';
 import { Message } from './message';
 import type { Model } from './model';
@@ -44,11 +45,31 @@ const zoom = (model: Model, factor: number): Model => {
   return { ...model, domain: next, hover: null };
 };
 
+const sameRange = (a: readonly [number, number] | null, b: readonly [number, number] | null) =>
+  a === b || (a !== null && b !== null && a[0] === b[0] && a[1] === b[1]);
+
+/** On the GPU, a changed brush repaints the points layer in place. */
+const highlighted = (before: Model, after: Model): Return =>
+  after.points === 'gpu' && !sameRange(before.brushed, after.brushed)
+    ? {
+        model: after,
+        commands: [HighlightScatter({ domain: after.domain, brushed: after.brushed })],
+      }
+    : { model: after };
+
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
     MovedPointer: ({ surface, x, y }) => {
-      if (surface === 'histogram' && model.dragFrom !== null)
-        return { model: { ...model, brushPixels: pair(model.dragFrom, x) } };
+      if (surface === 'histogram' && model.dragFrom !== null) {
+        const brushPixels = pair(model.dragFrom, x);
+        // The GPU repaints within a frame, so the scatter follows the drag.
+        if (model.points === 'canvas') return { model: { ...model, brushPixels } };
+        return highlighted(model, {
+          ...model,
+          brushPixels,
+          brushed: brushedRange(model.dragFrom, x),
+        });
+      }
       if (surface !== 'scatter')
         return { model: model.hover === null ? model : { ...model, hover: null } };
       const hit = scatter(model.domain, model.brushed).index.nearest(x, y, HOVER_RADIUS);
@@ -70,20 +91,23 @@ export const update = (model: Model, message: Message): Return =>
       if (model.dragFrom === null) return { model };
       const to = model.brushPixels?.[1] ?? model.dragFrom;
       const brushed = brushedRange(model.dragFrom, to);
-      return {
-        model: {
-          ...model,
-          dragFrom: null,
-          brushed,
-          brushPixels: brushed === null ? null : model.brushPixels,
-          hover: null,
-        },
-      };
+      return highlighted(model, {
+        ...model,
+        dragFrom: null,
+        brushed,
+        brushPixels: brushed === null ? null : model.brushPixels,
+        hover: null,
+      });
     },
     ZoomedIn: () => ({ model: zoom(model, 0.5) }),
     ZoomedOut: () => ({ model: zoom(model, 2) }),
-    ResetView: () => ({
-      model: { ...model, domain: null, brushed: null, brushPixels: null, hover: null },
-    }),
+    ResetView: () =>
+      highlighted(model, { ...model, domain: null, brushed: null, brushPixels: null, hover: null }),
     PaintedScatter: () => ({ model }),
+    MountedPointsLayer: () => ({ model }),
+    FailedPointsLayer: () => {
+      const fallback: Model = { ...model, points: 'canvas' };
+      return { model: fallback };
+    },
+    HighlightedScatter: () => ({ model }),
   });

@@ -1,0 +1,18 @@
+{
+  "name": "@opsydyn/foldkit-viz-py",
+  "private": true,
+  "description": "The foldkit-viz Python package: an anywidget that draws a plot spec in Jupyter, with its JavaScript bundled from foldkit-viz.",
+  "type": "module",
+  "scripts": {
+    "build": "bun build js/widget.ts --outfile dist/widget.js --format esm --minify && cp ../foldkit-viz/schema/plot-spec.schema.json dist/",
+    "test": "bun test ./test && uv run --frozen pytest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opsydyn/foldkit-viz": "workspace:*"
+  },
+  "devDependencies": {
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -24,6 +24,11 @@ export const diagnosticsExamples = {
     path: '/request-diagnostics',
     previousPath: '/',
   }),
+  returned: Message.Navigated({
+    phase: 'entered',
+    path: '/request-diagnostics',
+    previousPath: '/',
+  }),
   cancelled: Message.CompletedCancelFetchMetrics({
     outcome: Command.Interruptible.Outcome.Interrupted(),
   }),

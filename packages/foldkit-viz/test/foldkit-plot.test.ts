@@ -136,3 +136,37 @@ it('renders a canvas sized by aspect ratio, with an overlay above it', async () 
   expect(html).not.toMatch(/<canvas[^>]* width=/);
   expect(count(html, 'class="plot-canvas-overlay"')).toBe(1);
 });
+
+it('stacks a GPU points canvas between the base canvas and the overlay, when given one', async () => {
+  const geometry = compilePlot({
+    width: 400,
+    height: 200,
+    data: rows,
+    marks: [{ mark: 'dot', x: 'dose', y: 'response', dense: true }],
+  });
+  const paint = defineMount('PaintTest', {
+    messages: [Painted],
+    execute: ({ element }) =>
+      Effect.sync(() => {
+        element.setAttribute('data-painted', 'true');
+        return Painted();
+      }),
+  });
+  const html = await renderChart<typeof Painted.Type>((h) =>
+    plotCanvas(h, geometry, {
+      key: 'base',
+      onMount: paint(),
+      pointsLayer: { key: 'points', onMount: paint() },
+    }),
+  );
+  expect(count(html, '<canvas')).toBe(2);
+  const base = html.indexOf('<canvas'),
+    points = html.indexOf('class="plot-points"'),
+    overlay = html.indexOf('class="plot-canvas-overlay"');
+  expect(base).toBeLessThan(points);
+  expect(points).toBeLessThan(overlay);
+  expect(html).toMatch(
+    /<canvas[^>]*aria-hidden="true"[^>]*class="plot-points"[^>]*style="[^"]*pointer-events: none/,
+  );
+  expect(html).not.toMatch(/<canvas[^>]* width=/);
+});

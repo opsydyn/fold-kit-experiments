@@ -1,5 +1,6 @@
 {
   ".": 73728,
+  "./canvas/image": 5120,
   "./canvas/plot": 2560,
   "./chart/bars": 5632,
   "./chart/cartesian": 9216,
@@ -8,7 +9,9 @@
   "./chart/intervalBand": 4096,
   "./chart/orbit": 2048,
   "./chart/segments": 512,
+  "./chart/space3d": 3072,
   "./chart/theme": 1024,
+  "./effect-three/space3d": 1536,
   "./foldkit/cartesian": 3072,
   "./foldkit/keyboard": 1024,
   "./foldkit/orbit": 3584,
@@ -20,6 +23,7 @@
   "./interaction/keyboard": 512,
   "./interaction/selection": 512,
   "./interaction/viewport": 1024,
+  "./jupyter": 64000,
   "./layout/text": 1024,
   "./layout/wordcloud": 1536,
   "./math/array": 1024,
@@ -56,5 +60,7 @@
   "./shape/stack": 1536,
   "./shape/symbol": 1024,
   "./simulation": 3584,
-  "./stateflow": 4096
+  "./stateflow": 4096,
+  "./svg/plot": 7680,
+  "./webgl/points": 3072
 }

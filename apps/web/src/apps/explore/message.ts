@@ -14,5 +14,8 @@ export const Message = defineMessageUnion({
   ZoomedOut: {},
   ResetView: {},
   PaintedScatter: { key: Schema.String },
+  MountedPointsLayer: {},
+  FailedPointsLayer: { reason: Schema.String },
+  HighlightedScatter: {},
 });
 export type Message = typeof Message.Type;

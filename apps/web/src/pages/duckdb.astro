@@ -1,0 +1,10 @@
+---
+import DuckDB from '../apps/duckdb/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Query a Million Rows in Your Browser — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Query a million rows in your browser</h1>
+  <DuckDB client:load noMeta />
+</Layout>

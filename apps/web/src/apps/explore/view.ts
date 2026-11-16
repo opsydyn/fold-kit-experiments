@@ -6,7 +6,7 @@ import { histogram, scatter, scatterKey } from './charts';
 import { POINT_COUNT, requests } from './data';
 import { Message } from './message';
 import type { Model } from './model';
-import { PaintScatter } from './mount';
+import { MountPointsLayer, PaintScatter } from './mount';
 
 import * as styles from './explore.css';
 
@@ -37,10 +37,30 @@ const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html 
   h.button([h.Type('button'), h.Class(styles.button), h.OnClick(message)], [label]);
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { geometry } = scatter(model.domain, model.brushed);
-  const key = scatterKey(model.domain, model.brushed);
+  // On the GPU the canvas holds only axes and grid, so it is keyed by zoom
+  // alone, and the points layer above repaints each brush in place.
+  const gpu = model.points === 'gpu';
+  const brushed = gpu ? null : model.brushed;
+  const { geometry } = scatter(model.domain, brushed);
+  const key = scatterKey(model.domain, brushed);
   const hover = model.hover;
   const brush = model.brushPixels;
+  const canvas = {
+    key: `${model.points}:${key}`,
+    onMount: PaintScatter({ key, points: !gpu }),
+    overlay:
+      hover === null
+        ? {}
+        : {
+            crosshair: { x: hover.x, y: hover.y },
+            ring: { x: hover.x, y: hover.y, r: 5 },
+            color: '#e8a33c',
+          },
+  };
+  const pointsLayer = {
+    key: JSON.stringify(model.domain),
+    onMount: MountPointsLayer({ domain: model.domain, initialBrushed: model.brushed }),
+  };
   return {
     title: 'Explore a million points — foldkit-viz',
     body: h.div(
@@ -63,20 +83,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         readout(model, h),
         h.div(
           [h.Class(styles.surface), h.DataAttribute('explore', 'scatter')],
-          [
-            plotCanvas(h, geometry, {
-              key,
-              onMount: PaintScatter({ key }),
-              overlay:
-                hover === null
-                  ? {}
-                  : {
-                      crosshair: { x: hover.x, y: hover.y },
-                      ring: { x: hover.x, y: hover.y, r: 5 },
-                      color: '#e8a33c',
-                    },
-            }),
-          ],
+          [plotCanvas(h, geometry, gpu ? { ...canvas, pointsLayer } : canvas)],
         ),
         h.div(
           [h.Class(styles.surface), h.DataAttribute('explore', 'histogram')],

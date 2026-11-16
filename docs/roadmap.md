@@ -15,7 +15,7 @@ priorities rather than duplicating their status.
 
 Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
 `@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
-`0.17.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
+`0.18.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
 notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
 [0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
 covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`.
@@ -45,8 +45,10 @@ and colour schemes. The chart layer on top is thin:
 interactive; accessibility by default; typed, pure, testable geometry; and a planned
 JSON-serialisable spec that suits generated charts and other languages.
 
-**Release status:** 0.18.0 to 0.22.0 are complete on the `feat/viz-roadmap-scales`
-branch and not yet released. 0.21.0 meets two of its three exit criteria; see below.
+**Release status:** the milestones planned as 0.18.0 to 0.22.0 shipped together
+in the published foldkit-viz `0.18.0`. The "Later — Reach" items are done on the
+`feat/viz-svg-jupyter` branch and not yet released. 0.21.0's third exit criterion,
+a one-frame `/explore` brush, was met there by the GPU points layer; see below.
 
 ### 0.18.0 — Foundations (next release)
 
@@ -152,10 +154,13 @@ request-diagnostics and comparison reference apps use them. Zoomable line and
 histogram brush are small apps over specs. Small additions the demos needed:
 `clip`, `axis: false`, and constant marks such as reference rules drawing once.
 
-Not met: the `/explore` brush takes 84–107 ms from pointer release to painted
-canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms is the
-canvas rasterising a million squares. One frame needs GPU drawing or a separate
-highlight layer, which moves to Later.
+Not met at release: the `/explore` brush took 84–107 ms from pointer release to
+painted canvas (headless Chromium, dev server, 2026-11-14), of which 57–77 ms was
+the canvas rasterising a million squares. Met since, on the `feat/viz-svg-jupyter`
+branch (unreleased): `webgl/points` draws the points on the GPU, and a
+million-point brush costs 13 ms in Chromium, 12 ms in WebKit and 20 ms in
+Firefox, with `/explore` highlighting live while dragging (median frame 20 ms).
+See "Later — Reach".
 
 ### 0.22.0 — Beyond Cartesian
 
@@ -215,30 +220,91 @@ charts in all three apps.
 
 ### Later — Reach
 
-- One-frame repainting of a million points: WebGL points, or a highlight layer
-  that repaints only the brushed points.
-- DuckDB column input and streaming appends, after the Arrow input in "Viz: Polars
-  and Arrow data" below.
-- SVG and PNG export, and themes beyond light and dark.
+- One-frame repainting of a million points — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `webgl/points` draws dense dot marks on the GPU and a
+  highlight uploads one byte per point: a brush costs 13 ms in Chromium (8 ms
+  restyling, under 5 on the GPU) against 62 ms repainting a canvas, and
+  `/explore` now highlights live while dragging (median frame 20 ms, no long
+  tasks). `layer.append` takes points streamed in by appendPoints, uploading
+  only the new ones (81 ms for a million in 20 batches, against 116 ms
+  rebuilding). Checked in Chromium 151, WebKit 26.5 and Firefox 153 at device
+  pixel ratio 2: the same pixels as the canvas painter, highlights dimming alike,
+  a million-point brush in 12 ms (WebKit) and 20 ms (Firefox). Measuring it found canvas/plot silently drawing nothing for a colour
+  group over about 180,000 circles in Chromium; it now fills in chunks. The
+  remaining cost is restyling row objects, which columnar data would cut.
+- DuckDB column input and streaming appends — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `fromDuckDB` and `duckdbColumns` read `@duckdb/node-api`
+  results and streamed chunks as column tables, with no DuckDB dependency in
+  foldkit-viz (a dev dependency for tests): a million rows plot in 126 ms
+  against 285 ms through row objects. `columnStore` grows a table chunk by
+  chunk, and `appendPoints` adds a chunk's dense points without recompiling
+  the rest when the spec fixes every domain: 20 streamed batches cost 120 ms of
+  plotting against 678 ms recompiling each.
+- Pushing transforms into the engine — done on the same branch (unreleased).
+  `pushdown(spec, { from, query })` counts binned rect marks (histograms per
+  series, two-dimensional grids) in DuckDB or Polars and pulls only the columns
+  other marks use. The geometry equals a local compile, by test; the SQL runs
+  unchanged in Python Polars 2.1.0. A million-row histogram takes 31 ms against
+  212 ms pulling every row, a grid 8 ms against 230 ms. Stack needs nothing
+  pushed (it works on already-summarised rows); density stays local, as its
+  bandwidth needs every value. nodejs-polars 0.26.1's SQLContext could not be
+  used: its lazy frames have no working collect.
+- DuckDB in the browser — done on the same branch (unreleased). The web app's
+  `/duckdb` page loads DuckDB-Wasm on request (from jsDelivr, pinned: its WASM
+  builds exceed Cloudflare's 25 MiB static file limit) as a FoldKit managed
+  resource, makes a million rows by SQL, and pushes both charts' bins into it:
+  about 200 ms in Chromium, sending back hundreds of bins rather than the rows.
+  foldkit-viz needed nothing new: DuckDB-Wasm's Arrow results go through
+  fromArrow. Its tests run the page's engine code through DuckDB-Wasm's Node
+  build, offline.
+- PNG export and themes beyond light and dark — done on the `feat/viz-svg-jupyter`
+  branch (unreleased). `canvas/image` paints a compiled plot, legends and
+  background included, on any 2D context, and `plotPng` encodes it through a
+  canvas the caller supplies, with no new dependency; checked as real PNGs from
+  Chromium's OffscreenCanvas. Standalone SVGs draw their legends too. Themes:
+  `high-contrast-light` and `high-contrast-dark` (WCAG AAA text), all four named
+  in `chartThemes` and chosen by `theme` in `plotSvg`, `plotHtml`, Jupyter and
+  the Python widget, with a test holding every theme to AA and `contrastRatio`
+  public. The light theme's axis colour moved to 3.1:1 to meet WCAG 1.4.11.
 - Jupyter support, in two steps:
-  - **TypeScript kernels first.** Deno's kernel (`deno jupyter`) shows any cell
-    value with a `Symbol.for('Jupyter.display')` method returning a MIME bundle,
-    and imports npm packages. The community Bun kernel (`jupyter-bun`, 0.1.0)
-    uses the same protocol. A framework-free `plotSvg(geometry)` (the SVG export
-    above) and a helper returning that display bundle (SVG, the text summary and
-    the data table) would work in both, depending on neither. Static output only:
-    widget support is undocumented for both kernels.
-  - **Then Python:** a widget (anywidget) that renders a JSON spec, which a Python
-    program writes and checks against the published schema.
-- Three-dimensional surfaces and scatter through effect-three.
+  - **TypeScript kernels first — done on the `feat/viz-svg-jupyter` branch
+    (unreleased).** `svg/plot` renders any compiled plot as a string with no
+    framework: `plotSvg` a standalone SVG document in concrete colours, and
+    `plotHtml` the whole figure, byte for byte what `foldkit/plot`'s `plotChart`
+    renders, since both now draw through one builder-generic renderer
+    (`plot/render`). `jupyter` exports `displayPlot(spec)`, whose
+    `Symbol.for('Jupyter.display')` method returns a bundle of `text/html` (the
+    figure, in the notebook's theme), `image/svg+xml` and `text/plain` (the
+    summary). Deno's kernel and the community Bun kernel (`jupyter-bun`, 0.1.0)
+    both use that protocol. Run live in Deno 2.9.8's kernel under JupyterLab 4
+    (`packages/foldkit-viz/examples/deno-jupyter.ipynb`): rows, typed-array
+    columns, polar charts, `plotMimeBundle` and spec errors, light and dark. The
+    same notebook runs in the Bun kernel (`jupyter-bun` 0.1.0) with the same
+    outputs, its global `display()` standing in for `Deno.jupyter.display`. Static output only: widget support is undocumented
+    for both kernels.
+  - **Then Python — done on the same branch (unreleased, not on PyPI).**
+    `packages/foldkit-viz-py` is a Python package whose `Plot` anywidget checks a
+    spec against the published schema (naming the spec path, and for a bad mark
+    the branch of the mark it names) and draws it with foldkit-viz's own
+    `plotHtml`, bundled from `js/widget.ts`. Assigning `spec` redraws; a
+    data-dependent error shows in place and in `Plot.error`. Run live in
+    JupyterLab 4: drawing, redraws, both errors and the dark theme.
+- Three-dimensional surfaces and scatter through effect-three — done on the
+  `feat/viz-svg-jupyter` branch (unreleased). `chart/space3d` lays a 3D chart out
+  as plain geometry: a boxed space with nice ticks, a floor and back-wall grid and
+  labels, a scatter coloured by category, and a surface as a wireframe coloured by
+  height. `effect-three/space3d` describes it as effect-three scene nodes (lines,
+  round points, billboard labels), with effect-three an optional peer. The web
+  app's `/effect-three/chart-3d` sample orbits both, light and dark. Follow-up: a
+  filled, lit surface needs mesh geometry in effect-three.
 
 The deliberate non-goals below still hold: foldkit-viz gains no DOM or event runtime
 and no dependency on `foldkit/http`.
 
 ## Viz: Polars and Arrow data — 2026-11-14
 
-**Status:** done except the later item, on the `feat/viz-columnar-data` branch
-(unreleased). [Assessment](superpowers/specs/2026-11-14-polars-assessment.md) and
+**Status:** done. The columnar items shipped in foldkit-viz `0.18.0`; translating
+bin into SQL (`pushdown`) is on the `feat/viz-svg-jupyter` branch (unreleased). [Assessment](superpowers/specs/2026-11-14-polars-assessment.md) and
 [design and results](superpowers/specs/2026-11-15-columnar-data-design.md).
 
 **Outcome:** data held in Polars (Rust, Python or Bun) or any Arrow source plots
@@ -273,8 +339,8 @@ Schema for `PlotSpec`, and `apps/polars-summary` shows the summary pattern.
       server (not deployed: Polars is a native add-on, and the web app runs on
       Cloudflare Workers) bins a million requests per request in about 10 ms and
       renders a histogram and a density grid on the server.
-- [ ] Later, once the columnar input exists: translate bin, stack and density
-      into Polars or DuckDB queries, as VegaFusion does for Vega.
+- [x] Translate bin into Polars or DuckDB queries, as VegaFusion does for Vega:
+      `pushdown`, on the `feat/viz-svg-jupyter` branch (unreleased).
 
 **Exit criteria:** a million-row Arrow table from Polars compiles to a dense
 scatter faster than the same data as row objects, measured and recorded; a Rust
@@ -283,8 +349,9 @@ example runs in the web app.
 
 - Met: 86 ms through Arrow columns against 248 ms through row objects.
 - Met in substance: every spec the web app draws is validated as JSON text, the
-  form any program sends, by a standard JSON Schema validator (ajv). No Rust or
-  Python program has been run against it yet.
+  form any program sends, by a standard JSON Schema validator (ajv). Python
+  does so since: the `foldkit-viz-py` widget checks every spec against the
+  published schema. No Rust program has been run against it yet.
 - Changed: the summary example is a standalone Bun app, not a web app page.
   Polars is a native add-on, and the web app runs on Cloudflare Workers, where a
   request-time Polars route cannot run.
@@ -677,9 +744,12 @@ each panel's selection and inspection state when panels move.
       cannot recreate panels.
 - [x] Implement the same-source promo/download workflow; generated comparison,
       line, histogram and scatter projects install, typecheck and build locally.
-- [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
-      standalone browser acceptance. Further controller QA is pending exclusive
-      Firefox access; no live pass is inferred from automated tests.
+- [x] Desktop/390px, keyboard and reduced-motion browser acceptance of the Astro
+      host: `apps/web/e2e/comparison.spec.ts` runs every Task 4 gate in Firefox 153
+      and Chromium 151 at both widths (80 runs passed, 2026-11-16), including the
+      scatter label recheck.
+- [ ] Standalone and promo-host browser acceptance, ZIP and StackBlitz delivery
+      from the hosted promo page, and screen-reader and device checks.
 - [x] Publish the runnable promo example and FoldKit 0.167 package updates
       through the authorised release workflow; verify hosted and registry results.
 
@@ -844,7 +914,10 @@ Met, 2026-11-14: linked charts, request diagnostics and comparison compose indep
 
 - [x] Load data through `foldkit/http` with browser-safe tracing defaults.
 - [x] Model request/loading/filtering/failure states with `experimental/machine`.
-- [ ] Use `AsyncData.loadIfMissing` where cached data should not be revalidated on every revisit.
+- [x] Use `AsyncData.loadIfMissing` where cached data should not be revalidated on every revisit.
+      `/request-diagnostics` returns through it: its machine's Idle and Failed states
+      load again on a return visit while loaded metrics are kept. This also fixed a
+      page left mid-load that stayed empty on return (`feat/viz-svg-jupyter`).
 - [x] Render linked histogram and scatter charts through parent-owned filtering.
 - [x] Exercise command mappings with `Story` and mounted child mappings with `Scene` tests.
 - [x] Add route entry/exit behavior through the Astro integration.

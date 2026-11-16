@@ -194,3 +194,28 @@ export function interpolateLab(c0: string, c1: string): (t: number) => string {
     return `rgb(${r},${g},${b})`;
   };
 }
+
+const HEX_COLOUR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** WCAG 2 relative luminance of a `#rgb` or `#rrggbb` colour. */
+function luminance(colour: string): number {
+  const match = HEX_COLOUR.exec(colour);
+  if (match?.[1] === undefined)
+    throw new RangeError(`contrastRatio takes #rgb or #rrggbb colours, not "${colour}"`);
+  const hex = match[1].length === 3 ? [...match[1]].map((c) => c + c).join('') : match[1];
+  const linear = (at: number): number => {
+    const c = Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * linear(0) + 0.7152 * linear(2) + 0.0722 * linear(4);
+}
+
+/**
+ * The WCAG 2 contrast ratio of two opaque hex colours, from 1 (none) to 21
+ * (black on white): at least 4.5 for body text, 7 for AAA text, and 3 for
+ * graphics a reader needs, such as axes. Order does not matter.
+ */
+export function contrastRatio(a: string, b: string): number {
+  const [lighter, darker] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
+}

@@ -224,6 +224,15 @@ const json = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const versionUrl = (name, version) =>
   `${registry}/${encodeURIComponent(name).replace('%40', '@')}/${version}`;
 
+/** Compiler cleanup can remove dist/pack; only retained, checked archives reach publication. */
+export function loadCandidates(source, directory) {
+  return source.candidates.map((item) => {
+    const path = join(directory, 'candidates', `opsydyn-${item.component}-${source.version}.tgz`);
+    const manifest = JSON.parse(command('tar', ['-xOf', path, 'package/package.json']));
+    return { ...item, path, manifest, integrity: digest(readFileSync(path)) };
+  });
+}
+
 function checkSource(releaseSha) {
   assert.match(releaseSha, /^[a-f0-9]{40}$/, 'Expected full product release SOURCE_SHA');
   const sourceSha = process.env.GITHUB_SHA;
@@ -309,20 +318,9 @@ async function main() {
     return;
   }
   assert(process.env.NODE_AUTH_TOKEN, 'NPM_TOKEN is required');
-  const output = join(root, 'artifacts', 'zloz-release');
+  const output = join(root, 'dist', 'zloz-release');
   mkdirSync(output, { recursive: true });
-  const candidates = source.candidates.map((item) => {
-    const path = join(
-      root,
-      'packages',
-      item.component,
-      'dist',
-      'pack',
-      `opsydyn-${item.component}-${source.version}.tgz`,
-    );
-    const manifest = JSON.parse(command('tar', ['-xOf', path, 'package/package.json']));
-    return { ...item, path, manifest, integrity: digest(readFileSync(path)) };
-  });
+  const candidates = loadCandidates(source, output);
   const plan = releasePlan(
     candidates,
     sourceSha,

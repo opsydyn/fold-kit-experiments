@@ -27,7 +27,10 @@ package and build input remains identical to the tagged product; the exact allow
 control/documentation paths are enumerated in `assertControllerSource`. Wait for
 successful push CI on both identities when they differ,
 then qualify every archive through the existing build/Publint/ATTW checks before
-the first publication. Publish core, ELK, Force, Mermaid, in that order.
+the first publication. Immediately retain each checked archive outside compiler
+output at `dist/zloz-release/candidates/`; later dependency builds may erase
+`dist/pack/`. Publication loads only the retained copies. Publish core, ELK, Force,
+Mermaid, in that order.
 
 At each barrier, download registry metadata, archive and SLSA provenance. Check
 identity, peers/dependencies, exact candidate SHA-512 bytes, subject identity and
@@ -103,3 +106,19 @@ CI policy and all other inputs must remain identical. CI must pass on controller
 and product commits. Published provenance names the actual controller/source SHA;
 receipts retain the product SHA and independently compare downloaded package
 README bytes with that original tag. Do not disable or weaken identity checks.
+
+Run 43941392617 passed source CI and all four archive qualifications, then failed
+before any registry lookup/upload: subsequent adapter builds had cleaned the core
+archive from `dist/pack/`. Retain each checked archive immediately outside the
+compiler-owned directory, and make the real publication loader read that storage.
+The regression executes the actual qualification shell with the real identity
+guard and a builder that creates valid archives and wipes core output on each
+subsequent build. It checks all four retained archives byte-for-byte against their
+checked originals, then uses the production tar/manifest/hash loader after the
+core output is gone. The original workflow reproduced the missing archive failure.
+
+Local evidence for the retention fix: the complete real four-package qualification
+shell passed build, Publint and ATTW; all four retained archives loaded through the
+production parser with matching versions/peers and SHA-512 checks. Each archived
+README matched the original immutable `b68c8f15` product tag, while the core archive
+was confirmed absent from its cleaned build directory. All 14 train tests passed.

@@ -1,7 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +22,7 @@ import {
   registryRequest,
   waitForCI,
   assertControllerSource,
+  loadCandidates,
 } from './zloz-release-train.mjs';
 
 test('release CI must succeed on the exact source; pending is polled and failures stop', async () => {
@@ -104,11 +114,23 @@ test('controller recovery preserves tagged package/build input identity and hone
   ).toThrow();
 });
 
-test('the actual qualification shell supplies every identity guard before packing', () => {
+test('qualification guards and retains all archives despite subsequent core rebuild cleanup', () => {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const directory = mkdtempSync(join(tmpdir(), 'zloz-qualification-command-'));
   const log = join(directory, 'calls');
   const wrapper = join(directory, 'bun');
+  mkdirSync(join(directory, 'tools'));
+  writeFileSync(
+    join(directory, 'tools/check-package-identity.ts'),
+    readFileSync(join(root, 'tools/check-package-identity.ts')),
+  );
+  symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'));
+  mkdirSync(join(directory, 'expected'));
+  for (const item of candidates()) {
+    const path = join(directory, 'packages', item.component);
+    mkdirSync(path, { recursive: true });
+    writeFileSync(join(path, 'package.json'), JSON.stringify(item.manifest));
+  }
   writeFileSync(
     wrapper,
     `#!/bin/bash
@@ -119,6 +141,14 @@ if [ "$1" = tools/check-package-identity.ts ]; then
 fi
 if [ "$1" = run ] && [ "$2" = --filter ] && [ "$4" = pack:check ]; then
   printf 'pack:%s\\n' "$3" >> "$TRAIN_TEST_LOG"
+  component="\${3#@opsydyn/}"
+  rm -rf packages/foldkit-zloz/dist
+  mkdir -p "packages/$component/dist/pack" "$component-stage/package"
+  cp "packages/$component/package.json" "$component-stage/package/package.json"
+  printf 'checked:%s' "$component" > "$component-stage/package/README.md"
+  tar -czf "packages/$component/dist/pack/opsydyn-$component-$TRAIN_TEST_VERSION.tgz" -C "$component-stage" package
+  cp "packages/$component/dist/pack/opsydyn-$component-$TRAIN_TEST_VERSION.tgz" expected/
+  rm -rf "$component-stage"
   exit 0
 fi
 exit 99
@@ -136,13 +166,47 @@ exit 99
     PATH: `${directory}:${process.env.PATH}`,
     TRAIN_TEST_BUN: process.execPath,
     TRAIN_TEST_LOG: log,
+    TRAIN_TEST_VERSION: version,
   };
   delete env.REQUESTED_PACKAGE;
-  const result = spawnSync('bash', ['-e', '-c', step.run], { cwd: root, env, encoding: 'utf8' });
+  const result = spawnSync('bash', ['-e', '-c', step.run], {
+    cwd: directory,
+    env,
+    encoding: 'utf8',
+  });
   const calls = readFileSync(log, 'utf8').trim().split('\n');
-  rmSync(directory, { recursive: true, force: true });
   expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: '' });
   expect(calls).toEqual(names.flatMap((name) => [`guard:${name}`, `pack:@opsydyn/${name}`]));
+  expect(
+    existsSync(
+      join(directory, 'packages/foldkit-zloz/dist/pack', `opsydyn-foldkit-zloz-${version}.tgz`),
+    ),
+  ).toBe(false);
+  for (const component of names) {
+    const filename = `opsydyn-${component}-${version}.tgz`;
+    const retained = join(directory, 'dist/zloz-release/candidates', filename);
+    expect(existsSync(retained)).toBe(true);
+    expect(readFileSync(retained)).toEqual(readFileSync(join(directory, 'expected', filename)));
+  }
+  const loaded = loadCandidates(plan(), join(directory, 'dist/zloz-release'));
+  expect(loaded.map((item) => item.manifest.name)).toEqual(names.map((name) => `@opsydyn/${name}`));
+  for (const item of loaded)
+    expect(item.integrity).toBe(
+      `sha512-${createHash('sha512')
+        .update(
+          readFileSync(join(directory, 'expected', `opsydyn-${item.component}-${version}.tgz`)),
+        )
+        .digest('base64')}`,
+    );
+  expect(
+    releasePlan(
+      loaded,
+      sha,
+      names.map(() => sha),
+      [true, true],
+    ).version,
+  ).toBe(version);
+  rmSync(directory, { recursive: true, force: true });
 }, 30_000);
 
 test('real preflight checks both CI sources and rejects modified tagged product files', () => {

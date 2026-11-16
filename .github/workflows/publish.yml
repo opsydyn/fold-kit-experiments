@@ -10,10 +10,6 @@ on:
         options:
           - astro-foldkit
           - foldkit-viz
-          - foldkit-zloz
-          - foldkit-zloz-elk
-          - foldkit-zloz-force
-          - foldkit-zloz-mermaid
           # effect-three's four are released together: publish effect-three first, then
           # the others, which pin it as a peer at the same version.
           - effect-three
@@ -62,12 +58,9 @@ jobs:
         run: |
           case "$REQUESTED_PACKAGE" in
             foldkit-flow*) echo '::error::Flow publication is forbidden. Use Zloz.'; exit 1 ;;
+            foldkit-zloz*) echo '::error::Use the zloz-release-train workflow for the complete family.'; exit 1 ;;
           esac
           bun tools/check-package-identity.ts
-
-      - name: Build Zloz core dependency
-        if: ${{ startsWith(inputs.package, 'foldkit-zloz') }}
-        run: bun run --filter @opsydyn/foldkit-zloz build
 
       - name: Build and typecheck
         run: bun run --filter @opsydyn/${{ inputs.package }} build && bun run --filter @opsydyn/${{ inputs.package }} typecheck
@@ -83,23 +76,6 @@ jobs:
       # publish would ship `workspace:*`); npm publishes the tarball with provenance.
       - name: Pack and publish to npm (effect-three)
         if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'effect-three') }}
-        working-directory: packages/${{ inputs.package }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          bun run pack:check
-          npm publish dist/pack/*.tgz --access public --provenance
-
-      - name: Qualify Zloz packages and consumer
-        if: ${{ startsWith(inputs.package, 'foldkit-zloz') }}
-        run: |
-          bun run --filter @opsydyn/foldkit-zloz test
-          bun run --filter @opsydyn/foldkit-zloz-elk test
-          bun run --filter @opsydyn/foldkit-zloz-force test
-          bun run --filter @opsydyn/foldkit-zloz-mermaid test
-
-      - name: Pack and publish to npm (Foldkit Zloz)
-        if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'foldkit-zloz') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

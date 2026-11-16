@@ -19,6 +19,8 @@ jobs:
     outputs:
       prs_created: ${{ steps.release.outputs.prs_created }}
       prs: ${{ steps.release.outputs.prs }}
+      zloz_created: ${{ steps.release.outputs['packages/foldkit-zloz--release_created'] }}
+      zloz_sha: ${{ steps.release.outputs['packages/foldkit-zloz--sha'] }}
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -124,6 +126,19 @@ jobs:
         run: |
           echo "foldkit-viz release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
           echo "Add an NPM_TOKEN repository secret to enable automated publication."
+
+  publish-zloz:
+    needs: release
+    if: ${{ needs.release.outputs.zloz_created == 'true' }}
+    uses: ./.github/workflows/zloz-release-train.yml
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    with:
+      source_sha: ${{ needs.release.outputs.zloz_sha }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   normalize-changelogs:
     needs: release

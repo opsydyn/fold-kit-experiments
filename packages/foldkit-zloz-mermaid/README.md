@@ -32,6 +32,10 @@ bundle. `report` permits losses, never errors. Every result and bundle carries
 `protocol: 'foldkit-flow-mermaid/v1'`. Source is bounded at 32768 UTF-16 code units;
 `mermaidSourceLimit` exposes that bound.
 
+The four public Zloz packages release together, with adapters pinned to the exact
+core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
+verifies registry archives and provenance before advancing to the next package.
+
 ## Type contract
 
 - `MermaidExportOptions`: optional direction (`LR | RL | TB | BT`) and loss policy

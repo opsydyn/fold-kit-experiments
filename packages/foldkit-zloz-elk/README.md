@@ -5,6 +5,10 @@ positions, fitted group bounds, and orthogonal edge routes. It owns no UI, persi
 
 The public package family is released together. Native v3 group-port layout is included in 0.6.0.
 
+The four public Zloz packages release together, with adapters pinned to the exact
+core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
+verifies registry archives and provenance before advancing to the next package.
+
 ## Install and use
 
 ```sh

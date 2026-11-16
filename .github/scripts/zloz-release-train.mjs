@@ -1,6 +1,6 @@
 // ADR-0115: one immutable, resumable family train; npm never receives workspace sources.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync,
@@ -212,6 +212,31 @@ export async function runTrain(plan, io) {
   }
 }
 
+export async function waitForPublication(component, lookup, wait = pause) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const metadata = await lookup();
+    if (metadata !== null) return metadata;
+    if (attempt % 12 === 0)
+      console.log(`Registry metadata pending: ${component} (check ${attempt + 1}/120)`);
+    await wait(5_000);
+  }
+  throw new Error(`Registry metadata propagation timed out: ${component}`);
+}
+
+export async function installFromRegistry(component, install, wait = pause) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const result = await install();
+    if (result.error) throw result.error;
+    if (result.status === 0) return result;
+    if (result.status === null || !/^(?:npm error|npm ERR!) code ETARGET\b/m.test(result.stderr))
+      throw new Error(`Registry install failed: ${component}\n${result.stderr}`);
+    if (attempt % 12 === 0)
+      console.log(`Registry install pending: ${component} (check ${attempt + 1}/120)`);
+    await wait(5_000);
+  }
+  throw new Error(`Registry install propagation timed out: ${component}`);
+}
+
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const command = (exe, args, options = {}) =>
   execFileSync(exe, args, {
@@ -398,30 +423,28 @@ async function main() {
           { stdio: 'inherit' },
         );
       },
-      waitForPublication: async (item) => {
-        for (let attempt = 0; attempt < 24; attempt += 1) {
-          const metadata = await registryRequest(
-            versionUrl(item.manifest.name, item.manifest.version),
-          );
-          if (metadata !== null) return metadata;
-          await pause(5_000);
-        }
-        throw new Error(`Registry metadata propagation timed out: ${item.component}`);
-      },
+      waitForPublication: (item) =>
+        waitForPublication(item.component, () =>
+          registryRequest(versionUrl(item.manifest.name, item.manifest.version)),
+        ),
       verify: (item, metadata) => verifyFromRegistry(item, metadata, sourceSha),
-      audit: (item) => {
-        command(
-          'npm',
-          [
-            'install',
-            `${item.manifest.name}@${item.manifest.version}`,
-            '--save-exact',
-            '--ignore-scripts',
-            '--no-audit',
-            '--no-fund',
-          ],
-          npmOptions,
+      audit: async (item) => {
+        const installed = await installFromRegistry(item.component, () =>
+          spawnSync(
+            'npm',
+            [
+              'install',
+              `${item.manifest.name}@${item.manifest.version}`,
+              '--save-exact',
+              '--prefer-online',
+              '--ignore-scripts',
+              '--no-audit',
+              '--no-fund',
+            ],
+            { ...npmOptions, encoding: 'utf8', stdio: 'pipe' },
+          ),
         );
+        if (installed.stdout) console.log(installed.stdout.trimEnd());
         const lock = json(join(consumer, 'package-lock.json'));
         assert.equal(lock.packages[`node_modules/${item.manifest.name}`].integrity, item.integrity);
         command('npm', ['audit', 'signatures'], npmOptions);

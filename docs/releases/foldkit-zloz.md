@@ -86,9 +86,23 @@ pass on both controller and product commits. All four tags stay at the product
 SHA; provenance records the actual publication source, and receipts retain both.
 Manual and automatic runs share one concurrency lock.
 Existing versions are verified and skipped; downstream publication stops at the
-first failed barrier. Only registry reads retry. Never blindly retry an uncertain
+first failed barrier. New uploads can remain in npm processing for several minutes;
+metadata lookup allows 120 read-only polls with five-second delays (a nominal
+ten-minute delay budget), with progress in the log. The workflow has a bounded
+90-minute total limit. The clean install also revalidates registry metadata with
+`--prefer-online` and retries only npm's `ETARGET` processing result within the
+same bounded polling policy. Permission, dependency-resolution and integrity
+errors stop immediately. Install scripts remain disabled, and publication commands
+are never retried.
+Only registry reads/isolated installs retry. Never blindly retry an uncertain
 upload, move tags, unpublish or accept a differing archive. A byte mismatch on
 rebuild requires inspection of the retained candidate. See [ADR 0115](../adr/0115-serialize-zloz-publication-with-registry-verification.md).
+
+After any package upload, resume the original workflow run so the publication
+source remains the one recorded in provenance. Repair-from-main recovery is for
+pre-upload failures. A different existing publication source is rejected rather
+than silently adopted. Reconcile the retained archive, registry bytes and source
+before resuming a run that stopped during npm processing.
 
 Use the existing repository credential/provenance setup. This slice neither
 changes credentials nor configures npm trusted-publisher settings. A future switch

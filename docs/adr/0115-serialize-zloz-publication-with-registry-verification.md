@@ -122,3 +122,37 @@ shell passed build, Publint and ATTW; all four retained archives loaded through 
 production parser with matching versions/peers and SHA-512 checks. Each archived
 README matched the original immutable `b68c8f15` product tag, while the core archive
 was confirmed absent from its cleaned build directory. All 14 train tests passed.
+
+## Registry processing budget
+
+The corrected `de67a794` train published core 0.6.1, then exhausted the original
+24 five-second metadata polls while npm processed the upload. Independent registry
+readback subsequently matched the retained archive and actual source provenance.
+Resuming the same immutable workflow verified/skipped core, passed its signature
+audit, then published ELK and encountered the same two-minute processing limit.
+Both uploaded versions were independently reconciled before another resume.
+
+Increase metadata processing to 120 read-only five-second polls, a nominal
+ten-minute delay budget, with periodic progress. Bound the whole workflow at
+90 minutes to leave room for source CI, qualification, processing and audits.
+Extract the actual polling function so a virtual-time regression reproduces the
+old two-minute failure and proves three-minute processing succeeds without a
+second upload. Test immediate availability, exhaustion, permanent read failures
+and the verification-before-next-package barrier. Publication is never retried
+inside that polling loop.
+
+Once an upload exists, resume its original run/source. A new controller revision
+must not be substituted for an already-attested source. These polling changes
+apply to future executions; the in-progress 0.6.1 release completes through its
+original `de67a794` workflow. XState/Effect FSM adoption remains a separate proposed
+qualification slice, not a dependency introduced during this release.
+
+The next original-source resume verified/skipped core and ELK and uploaded Force.
+Its exact-version metadata, archive and provenance became visible, but npm's
+install view still returned `ETARGET`; the train correctly withheld Mermaid.
+Treat installability as a separate readiness barrier. In the isolated consumer,
+use `--prefer-online --ignore-scripts` and retry only the observed `ETARGET`
+processing result with the same 120 five-second poll budget. Resolution, permission,
+integrity and process-spawn errors remain terminal. Await a successful install,
+check its lockfile integrity and audit signatures before advancing. Tests cover
+delayed/immediate installability, budget exhaustion and non-retryable failures.

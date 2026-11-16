@@ -23,7 +23,195 @@ import {
   waitForCI,
   assertControllerSource,
   loadCandidates,
+  waitForPublication,
+  installFromRegistry,
 } from './zloz-release-train.mjs';
+
+test('registry installs wait through ETARGET processing without retrying publication', async () => {
+  let elapsed = 0;
+  let installs = 0;
+  const result = await installFromRegistry(
+    'foldkit-zloz-force',
+    async () => {
+      installs += 1;
+      return elapsed < 180_000
+        ? {
+            status: 1,
+            stdout: '',
+            stderr: 'npm error code ETARGET\nnpm error notarget No matching version found',
+          }
+        : { status: 0, stdout: 'installed', stderr: '' };
+    },
+    async (ms) => {
+      elapsed += ms;
+    },
+  );
+  expect(result.status).toBe(0);
+  expect(elapsed).toBe(180_000);
+  expect(installs).toBe(37);
+});
+
+test('immediately installable versions require no retry delay', async () => {
+  let waits = 0;
+  const installed = { status: 0, stdout: 'installed', stderr: '' };
+  expect(
+    await installFromRegistry(
+      'foldkit-zloz',
+      async () => installed,
+      async () => {
+        waits += 1;
+      },
+    ),
+  ).toEqual(installed);
+  expect(waits).toBe(0);
+});
+
+test('incompatible or forbidden installs fail immediately', async () => {
+  for (const code of ['ERESOLVE', 'E403', 'EINTEGRITY']) {
+    let installs = 0;
+    let waits = 0;
+    await expect(
+      installFromRegistry(
+        'foldkit-zloz',
+        async () => {
+          installs += 1;
+          return { status: 1, stdout: '', stderr: `npm error code ${code}` };
+        },
+        async () => {
+          waits += 1;
+        },
+      ),
+    ).rejects.toThrow(code);
+    expect(installs).toBe(1);
+    expect(waits).toBe(0);
+  }
+});
+
+test('install processing retries are bounded and spawn failures are not retried', async () => {
+  let installs = 0;
+  let elapsed = 0;
+  await expect(
+    installFromRegistry(
+      'foldkit-zloz',
+      async () => {
+        installs += 1;
+        return { status: 1, stdout: '', stderr: 'npm error code ETARGET' };
+      },
+      async (ms) => {
+        elapsed += ms;
+      },
+    ),
+  ).rejects.toThrow('Registry install propagation timed out');
+  expect(installs).toBe(120);
+  expect(elapsed).toBe(600_000);
+  let waits = 0;
+  await expect(
+    installFromRegistry(
+      'foldkit-zloz',
+      async () => ({ error: new Error('npm unavailable'), status: null, stdout: '', stderr: '' }),
+      async () => {
+        waits += 1;
+      },
+    ),
+  ).rejects.toThrow('npm unavailable');
+  expect(waits).toBe(0);
+  await expect(
+    installFromRegistry(
+      'foldkit-zloz',
+      async () => ({ status: null, stdout: '', stderr: 'npm error code ETARGET' }),
+      async () => {
+        waits += 1;
+      },
+    ),
+  ).rejects.toThrow('Registry install failed');
+  expect(waits).toBe(0);
+});
+
+test('npm processing beyond two minutes remains read-only and can complete unattended', async () => {
+  let elapsed = 0;
+  const metadata = { name: '@opsydyn/foldkit-zloz', version: '0.6.1' };
+  const observed = await waitForPublication(
+    'foldkit-zloz',
+    async () => (elapsed < 180_000 ? null : metadata),
+    async (ms) => {
+      elapsed += ms;
+    },
+  );
+  expect(observed).toEqual(metadata);
+  expect(elapsed).toBe(180_000);
+});
+
+test('already-visible metadata returns without a polling delay', async () => {
+  let waits = 0;
+  const metadata = { version: '0.6.1' };
+  expect(
+    await waitForPublication(
+      'foldkit-zloz',
+      async () => metadata,
+      async () => {
+        waits += 1;
+      },
+    ),
+  ).toEqual(metadata);
+  expect(waits).toBe(0);
+});
+
+test('registry processing has a bounded ten-minute delay budget', async () => {
+  let reads = 0;
+  let elapsed = 0;
+  await expect(
+    waitForPublication(
+      'foldkit-zloz-elk',
+      async () => {
+        reads += 1;
+        return null;
+      },
+      async (ms) => {
+        elapsed += ms;
+      },
+    ),
+  ).rejects.toThrow('Registry metadata propagation timed out: foldkit-zloz-elk');
+  expect(reads).toBe(120);
+  expect(elapsed).toBe(600_000);
+});
+
+test('permanent registry read failures stop immediately rather than becoming absence', async () => {
+  let waits = 0;
+  await expect(
+    waitForPublication(
+      'foldkit-zloz',
+      async () => {
+        throw new Error('Registry HTTP 403');
+      },
+      async () => {
+        waits += 1;
+      },
+    ),
+  ).rejects.toThrow('Registry HTTP 403');
+  expect(waits).toBe(0);
+});
+
+test('delayed processing does not repeat an upload or advance before verification', async () => {
+  const events = [];
+  const io = transport(events);
+  let elapsed = 0;
+  io.waitForPublication = (item) =>
+    waitForPublication(
+      item.component,
+      async () => (item.component === names[0] && elapsed < 180_000 ? null : metadata(item)),
+      async (ms) => {
+        elapsed += ms;
+      },
+    );
+  await runTrain(plan(), io);
+  expect(elapsed).toBe(180_000);
+  expect(events.filter((event) => event.startsWith('publish:'))).toEqual(
+    names.map((name) => `publish:${name}`),
+  );
+  expect(events.indexOf('audit:foldkit-zloz')).toBeLessThan(
+    events.indexOf('publish:foldkit-zloz-elk'),
+  );
+});
 
 test('release CI must succeed on the exact source; pending is polled and failures stop', async () => {
   let reads = 0;

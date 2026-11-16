@@ -181,7 +181,7 @@ Space, and `onInspect` reports hover and focus. A `pulse` ring is classed
 `foldkit/cartesian` for a non-visual reading. The web app's `/complexity-field`
 page composes both into a complete card.
 
-## 3D scatter and surface (unreleased)
+## 3D scatter and surface (0.19.0+)
 
 `chart/space3d` lays a three-dimensional chart out as plain geometry, with no
 renderer. `space3d(domains)` maps three domains onto a cube (x across, z up, y
@@ -520,7 +520,7 @@ The library still installs no listeners: the parent streams pointer events and
 keeps hover, brush and domain in its Model. The web app's `/explore` page links a
 million-point scatter to a latency histogram this way.
 
-### Points on the GPU (unreleased)
+### Points on the GPU (0.19.0+)
 
 `webgl/points` draws dense dot marks with WebGL, for brushing a million points
 within a frame. A layer uploads each packed graphic's positions, radii, colour
@@ -741,7 +741,7 @@ The repository's [Polars summary app](https://github.com/opsydyn/fold-kit-experi
 is a worked example: a Bun server that bins a million rows in Polars on each
 request and sends a spec of the summary.
 
-### DuckDB and streaming data (unreleased)
+### DuckDB and streaming data (0.19.0+)
 
 `fromDuckDB` reads a DuckDB result (`@duckdb/node-api`'s reader) as a column
 table, and `duckdbColumns` does the same for one streamed chunk. Numeric,
@@ -794,7 +794,7 @@ for (
   spends 120 ms plotting in all (6 ms for the last batch) against 678 ms
   recompiling every batch (57 ms for the last).
 
-### Pushing bins into DuckDB or Polars (unreleased)
+### Pushing bins into DuckDB or Polars (0.19.0+)
 
 `pushdown(spec, { from, query })` draws a spec whose data lives in a SQL engine
 from what the engine sends back, rather than every row, as VegaFusion does for
@@ -849,7 +849,7 @@ Two changes need code changes in some callers:
   unaffected at compile time, and `compilePlot` still rejects an unknown
   scheme at run time.
 
-## SVG and PNG export, themes and Jupyter notebooks (unreleased)
+## SVG and PNG export, themes and Jupyter notebooks (0.19.0+)
 
 Any compiled plot renders to a string or an image, with no FoldKit, Effect or
 DOM: for a file, a server response, an image pipeline or a notebook.

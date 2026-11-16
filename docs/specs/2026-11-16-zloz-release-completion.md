@@ -28,7 +28,7 @@ items. Architecture, boundary, delivery and test-quality reviews are self-review
       human screen-reader and physical-device acceptance checklist with honest status.
 - [ ] Main integrated, root lint/format/typecheck/test and package/API/demo checks,
       Moon pre-commit, committed clean CI rehearsal, pushed feature PR and green CI.
-- [ ] Reviewable release candidate/version/changelog/linked-peer/identity manifest
+- [x] Reviewable release candidate/version/changelog/linked-peer/identity manifest
       preparation, with CLI and Alchemy private. No npm workflow dispatch/publication.
 
 ## Boundaries and acceptance
@@ -77,3 +77,9 @@ The root Python test prerequisite was built through its existing `build` script;
 its Moon test already declares that dependency. No Python package source changed.
 The installed core's former version-required assertion was updated alongside the
 now-supported v3 boundary while keeping the stale-source rejection check.
+
+Delivery checkpoint: PR #151 is open. `cb84f992` contains the implementation and
+`557179b5` declares generated evidence outputs for Moon hashing. Clean CI on
+557179b5 passed 84 check/build and 14 integration tasks. Hosted final-head CI is
+tracked on the PR checks, separately from this local checkpoint. The remaining release gate is human acceptance and review of
+the regenerated 0.6.0 release PR after feature merge; npm publishing remains off.

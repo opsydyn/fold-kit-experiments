@@ -159,3 +159,17 @@ optional core feature is needed before that decision.
 
 Committed clean CI rehearsal and hosted PR checks remain delivery gates until
 observed. Human device/screen-reader acceptance remains pending. No npm publication.
+
+### Delivery checkpoint
+
+Feature PR: [#151](https://github.com/opsydyn/fold-kit-experiments/pull/151).
+Engineering commit `cb84f992`; generated-output CI correction `557179b5`.
+The committed clean rehearsal on `557179b5` passed 84 check/build tasks and
+14 integration tasks (236 seconds). Hosted checks are separate evidence and must
+be green on the final PR head before merge. The default web-app browser harness
+excludes the native Zloz suite, which has its own built-app configuration.
+
+A read-only registry check on 2026-11-16 confirmed all four public packages at
+0.5.0. No npm upload, release tag, release-please merge or deployment was performed.
+The linked 0.6.0 release PR remains the next release-please step after feature merge
+and the human acceptance decision.

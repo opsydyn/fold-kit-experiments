@@ -56,6 +56,19 @@ const repository = 'https://github.com/opsydyn/fold-kit-experiments';
 const names = ['foldkit-zloz', 'foldkit-zloz-elk', 'foldkit-zloz-force', 'foldkit-zloz-mermaid'];
 const version = '0.6.1';
 
+test('stdin imports do not execute the native CLI or resolve stdin as a file', () => {
+  const module = new URL('./zloz-release-train.mjs', import.meta.url).href;
+  const result = spawnSync('node', ['--input-type=module', '-'], {
+    input: `await import(${JSON.stringify(module)}); console.log('imported');`,
+    encoding: 'utf8',
+  });
+  expect({ status: result.status, stdout: result.stdout, stderr: result.stderr }).toEqual({
+    status: 0,
+    stdout: 'imported\n',
+    stderr: '',
+  });
+});
+
 test('controller recovery preserves tagged package/build input identity and honest provenance', () => {
   const controller = 'b'.repeat(40);
   assertControllerSource(controller, sha, ['.github/workflows/zloz-release-train.yml']);

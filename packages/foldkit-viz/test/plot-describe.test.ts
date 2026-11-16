@@ -21,7 +21,7 @@ const sales: PlotSpec = {
 describe('describePlot', () => {
   it('says what is drawn, what the axes cover and what colour shows', () => {
     expect(describePlot(compilePlot(sales))).toBe(
-      'Shows 3 bars. Month in 3 categories; Units from 0 to 1,430. ' +
+      'Shows 3 bars. Month in 3 categories: Jan, Feb, Mar; Units from 0 to 1,430. ' +
         'Colour shows region (2 groups: north, south).',
     );
   });

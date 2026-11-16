@@ -53,8 +53,12 @@ export const readable = (value: number | string): string =>
 function axisPhrase(name: string, axis: PlotAxis | null): string | undefined {
   if (axis === null) return undefined;
   const label = axis.label === '' ? name : axis.label;
-  if (axis.type === 'band')
-    return `${label} in ${plural(axis.domain.length, ['category', 'categories'])}`;
+  // A few categories are named in axis order, as a legend's groups are, so the order
+  // can be checked without seeing the chart.
+  if (axis.type === 'band') {
+    const named = axis.domain.length <= 6 ? `: ${axis.domain.map(readable).join(', ')}` : '';
+    return `${label} in ${plural(axis.domain.length, ['category', 'categories'])}${named}`;
+  }
   const [lo = 0, hi = 0] = axis.domain;
   if (axis.type === 'time')
     return `${label} from ${new Date(Number(lo)).toISOString().slice(0, 10)} to ${new Date(Number(hi)).toISOString().slice(0, 10)}`;

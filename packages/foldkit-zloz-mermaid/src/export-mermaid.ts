@@ -1,3 +1,4 @@
+/* oxlint-disable anti-slop/no-runtime-typeof -- Native scalar options are validated through data descriptors at this explicit export boundary, without a mandatory schema/runtime peer. */
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Built-in geometric outlines are public domain concepts. */
 /**
  * Pure Mermaid projections with identity metadata and explicit conversion losses.
@@ -6,6 +7,9 @@
 // ADR 0008: Optional pure export; the headless parser spike is not a production import API.
 import {
   validateGraph,
+  captureGroupDocumentV3,
+  ZlozError,
+  type ZlozGroupDocumentV3,
   captureConnectionDocument,
   serializeConnectionDocument,
   parseConnectionDocument,
@@ -21,6 +25,9 @@ export const mermaidSourceLimit = 32768;
 export type MermaidDirection = 'LR' | 'RL' | 'TB' | 'BT';
 export type MermaidLossPolicy = 'reject' | 'report';
 export type MermaidDiagnosticCode =
+  | 'group-port-details-omitted'
+  | 'group-port-attachment-omitted'
+  | 'group-capability-omitted'
   | 'connection-mode-omitted'
   | 'viewport-omitted'
   | 'invalid-graph'
@@ -150,11 +157,13 @@ function projectMermaid(
   options: MermaidExportOptions = {},
   mode: ZlozConnectionMode = 'strict',
   initialDiagnostics: readonly MermaidDiagnostic[] = [],
+  nativeDocument?: ZlozGroupDocumentV3,
 ): MermaidExportResult {
   // Core throws on invalid input. Normalize only at this public conversion boundary.
   // oxlint-disable-next-line linteffect/no-try-catch
   try {
-    if (mode === 'strict') validateGraph(graph);
+    if (nativeDocument) captureGroupDocumentV3(nativeDocument);
+    else if (mode === 'strict') validateGraph(graph);
     else captureConnectionDocument({ graph, connectionMode: mode });
   } catch (error) {
     return rejected([
@@ -235,10 +244,14 @@ function projectMermaid(
     if (node.ports.length)
       diagnostics.push(
         diagnostic(
-          'port-details-omitted',
+          nativeDocument && node.kind === 'group'
+            ? 'group-port-details-omitted'
+            : 'port-details-omitted',
           'loss',
           'layout',
-          'Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.',
+          nativeDocument && node.kind === 'group'
+            ? 'Authored group sockets are not drawn or positioned in Mermaid. IDs/kinds remain in native identity; labels, ordering and anchors are omitted from source.'
+            : 'Port IDs/kinds remain in identity metadata. Port labels, ordering, offsets and anchors are omitted from source.',
           node.id,
         ),
       );
@@ -441,4 +454,161 @@ export function exportConnectionMermaid(
       ],
     };
   }
+}
+
+export const mermaidProtocolV3 = 'foldkit-zloz-mermaid/v3';
+/** Native identity only. No legacy field names, hidden graph, geometry or editor authority. */
+export type MermaidIdentityV3 = Readonly<{
+  version: 3;
+  nodes: readonly (Omit<MermaidIdentity['nodes'][number], 'flowId'> &
+    Readonly<{ nodeId: string }>)[];
+  edges: readonly (Omit<MermaidIdentity['edges'][number], 'flowId'> &
+    Readonly<{ edgeId: string }>)[];
+}>;
+export type MermaidBundleV3 = Omit<MermaidBundle, 'protocol' | 'identity'> &
+  Readonly<{
+    protocol: typeof mermaidProtocolV3;
+    coordinateSpace: 'world';
+    connectionMode: ZlozConnectionMode;
+    capabilities: ZlozGroupDocumentV3['capabilities'];
+    identity: MermaidIdentityV3;
+  }>;
+export type MermaidExportResultV3 =
+  | Readonly<{
+      protocol: typeof mermaidProtocolV3;
+      status: 'converted';
+      value: MermaidBundleV3;
+      diagnostics: readonly MermaidDiagnostic[];
+    }>
+  | Readonly<{
+      protocol: typeof mermaidProtocolV3;
+      status: 'rejected';
+      diagnostics: readonly MermaidDiagnostic[];
+    }>;
+/** @internal Own the small scalar option record without invoking accessors or accepting unknown fields. */
+function groupOptions(input: MermaidExportOptions): MermaidExportOptions {
+  // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Explicit native scalar options boundary; descriptors reject accessors without reading them.
+  if (
+    input === null ||
+    typeof input !== 'object' ||
+    Array.isArray(input) ||
+    (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null)
+  )
+    throw new ZlozError('invalid-edit', 'Expected data-only Mermaid options.');
+  const fields = Object.getOwnPropertyDescriptors(input);
+  if (
+    Reflect.ownKeys(fields).some((key) => key !== 'direction' && key !== 'lossPolicy') ||
+    Object.values(fields).some((field) => !('value' in field))
+  )
+    throw new ZlozError(
+      'invalid-edit',
+      'Expected only data-only direction and lossPolicy options.',
+    );
+  const options = {
+    direction: fields.direction?.value ?? 'LR',
+    lossPolicy: fields.lossPolicy?.value ?? 'reject',
+  };
+  if (!isOptions(options) || fields.direction?.value === null || fields.lossPolicy?.value === null)
+    throw new ZlozError('invalid-edit', 'Unknown direction or loss policy.');
+  return options;
+}
+/** Native full-document projection. Boundary links do not preserve socket attachment: explicit report policy never hides that loss or permits errors. */
+export function exportGroupMermaidV3(
+  document: ZlozGroupDocumentV3,
+  options: MermaidExportOptions = {},
+): MermaidExportResultV3 {
+  let source: ZlozGroupDocumentV3, owned: MermaidExportOptions;
+  // oxlint-disable-next-line linteffect/no-try-catch -- Public native data validation normalizes known failures; no runtime callbacks or IO occur here.
+  try {
+    source = captureGroupDocumentV3(document);
+  } catch (error) {
+    if (error instanceof ZlozError)
+      return {
+        protocol: mermaidProtocolV3,
+        status: 'rejected',
+        diagnostics: [diagnostic('invalid-graph', 'error', 'semantics', error.message)],
+      };
+    throw error;
+  }
+  // oxlint-disable-next-line linteffect/no-try-catch -- Scalar options use descriptors so validation never evaluates accessors.
+  try {
+    owned = groupOptions(options);
+  } catch (error) {
+    if (error instanceof ZlozError)
+      return {
+        protocol: mermaidProtocolV3,
+        status: 'rejected',
+        diagnostics: [diagnostic('invalid-options', 'error', 'syntax', error.message)],
+      };
+    throw error;
+  }
+  const losses: MermaidDiagnostic[] = [];
+  if (source.connectionMode === 'loose')
+    losses.push(
+      diagnostic(
+        'connection-mode-omitted',
+        'loss',
+        'semantics',
+        'The native bundle retains loose mode; Mermaid source cannot express future connection rules.',
+      ),
+    );
+  if (source.viewport)
+    losses.push(
+      diagnostic('viewport-omitted', 'loss', 'layout', 'Mermaid omits the native document camera.'),
+    );
+  if (source.capabilities.groupPorts)
+    losses.push(
+      diagnostic(
+        'group-capability-omitted',
+        'loss',
+        'semantics',
+        'The native bundle retains group-port capability. Mermaid source cannot express future group-socket editing rules.',
+      ),
+    );
+  const groups = new Set(source.graph.nodes.filter((n) => n.kind === 'group').map((n) => n.id));
+  for (const edge of source.graph.edges) {
+    const ends = (['source', 'target'] as const).filter((end) => groups.has(edge[end].node));
+    if (ends.length)
+      losses.push(
+        diagnostic(
+          'group-port-attachment-omitted',
+          'loss',
+          'semantics',
+          `The ${ends.join(' and ')} endpoint links a Mermaid boundary, not the authored socket. Exact owner/port IDs remain in native identity only.`,
+          edge.id,
+        ),
+      );
+  }
+  const result = projectMermaid(source.graph, owned, source.connectionMode, losses, source);
+  const diagnostics = Object.freeze(result.diagnostics.map((item) => Object.freeze({ ...item })));
+  if (result.status !== 'converted')
+    return Object.freeze({ protocol: mermaidProtocolV3, status: 'rejected', diagnostics });
+  const identity: MermaidIdentityV3 = Object.freeze({
+    version: 3,
+    nodes: Object.freeze(
+      result.value.identity.nodes.map(({ flowId, ports, ...entry }) =>
+        Object.freeze({
+          ...entry,
+          nodeId: flowId,
+          ports: Object.freeze(ports.map((p) => Object.freeze({ ...p }))),
+        }),
+      ),
+    ),
+    edges: Object.freeze(
+      result.value.identity.edges.map(({ flowId, ...entry }) =>
+        Object.freeze({ ...entry, edgeId: flowId }),
+      ),
+    ),
+  });
+  const value: MermaidBundleV3 = Object.freeze({
+    protocol: mermaidProtocolV3,
+    source: result.value.source,
+    direction: result.value.direction,
+    coordinateSpace: 'world',
+    connectionMode: source.connectionMode,
+    capabilities: source.capabilities,
+    identity,
+    diagnostics,
+  });
+  return Object.freeze({ protocol: mermaidProtocolV3, status: 'converted', value, diagnostics });
 }

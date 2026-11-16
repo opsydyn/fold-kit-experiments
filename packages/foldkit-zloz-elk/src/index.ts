@@ -10,6 +10,10 @@ import {
   resolveLayoutGroupHeader,
   type EdgeRoute,
   type LayoutEngine,
+  validateGroupLayoutRequestV3,
+  type ZlozGroupLayoutEngineV3,
+  type LayoutRequest,
+  type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import type {
   ELK as ElkInstance,
@@ -55,12 +59,12 @@ function routePoints(sections: readonly ElkEdgeSection[], edgeId: string): EdgeR
 }
 
 /** Default invocations use in-process ELK. Caller-supplied worker instances remain caller-owned. */
-export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
+function elkLayout(options: ElkLayoutOptions, nativeV3: boolean): LayoutEngine {
   const spacing = options.spacing ?? 64;
   if (!Number.isFinite(spacing) || spacing <= 0)
     throw new ZlozError('invalid-layout', 'Layout spacing must be positive and finite');
   return async (request) => {
-    validateLayoutRequest(request);
+    if (!nativeV3) validateLayoutRequest(request);
     const labelHints = new Map((request.edgeLabels ?? []).map((label) => [label.id, label]));
     const groupHeaders = new Map((request.groupHeaders ?? []).map((header) => [header.id, header]));
     const nodeIds = new Map(request.graph.nodes.map((node, index) => [node.id, `n:${index}`]));
@@ -76,6 +80,23 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
     const children: ElkNode[] = [];
     const elkNodes = new Map(
       request.graph.nodes.map((node, index): [string, ElkNode] => {
+        const ports = new Map(node.ports.map((port, at) => [port.id, `p:${index}:${at}`]));
+        portIds.set(node.id, ports);
+        const elkPorts = node.ports.map((port) => {
+          const point = portBoundaryPosition(node, port.id);
+          return {
+            id: ports.get(port.id) ?? '',
+            width: 0,
+            height: 0,
+            x: point.x - node.position.x,
+            y: point.y - node.position.y,
+            layoutOptions: {
+              'elk.port.side': { left: 'WEST', right: 'EAST', top: 'NORTH', bottom: 'SOUTH' }[
+                port.side
+              ],
+            },
+          };
+        });
         if (node.kind === 'group') {
           const hint = groupHeaders.get(node.id);
           const header = hint ? resolveLayoutGroupHeader(node, hint) : undefined;
@@ -83,6 +104,7 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
             ...layoutOptions,
             'elk.padding': '[top=52,left=24,bottom=24,right=24]',
           };
+          if (nativeV3) groupOptions['elk.portConstraints'] = 'FIXED_POS';
           if (header) {
             const p = header.contentPadding;
             groupOptions['elk.padding'] =
@@ -98,19 +120,16 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
               ? `(${minimum.height},${minimum.width})`
               : `(${minimum.width},${minimum.height})`;
           }
-          return [
-            node.id,
-            {
-              id: `n:${index}`,
-              width: node.size.width,
-              height: node.size.height,
-              children: [],
-              layoutOptions: groupOptions,
-            },
-          ];
+          const group: ElkNode = {
+            id: `n:${index}`,
+            width: node.size.width,
+            height: node.size.height,
+            children: [],
+            layoutOptions: groupOptions,
+          };
+          if (nativeV3) group.ports = elkPorts;
+          return [node.id, group];
         }
-        const ports = new Map(node.ports.map((port, at) => [port.id, `p:${index}:${at}`]));
-        portIds.set(node.id, ports);
         return [
           node.id,
           {
@@ -118,20 +137,7 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
             width: node.size.width,
             height: node.size.height,
             layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
-            ports: node.ports.map((port) => {
-              const point = portBoundaryPosition(node, port.id);
-              const side = { left: 'WEST', right: 'EAST', top: 'NORTH', bottom: 'SOUTH' }[
-                port.side
-              ];
-              return {
-                id: ports.get(port.id) ?? '',
-                width: 0,
-                height: 0,
-                x: point.x - node.position.x,
-                y: point.y - node.position.y,
-                layoutOptions: { 'elk.port.side': side },
-              };
-            }),
+            ports: elkPorts,
           },
         ];
       }),
@@ -192,7 +198,7 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
       }
       for (const child of node.children ?? []) pending.push(child);
     }
-    const positions = request.graph.nodes.map((node) => {
+    const positions: LayoutResult['positions'] = request.graph.nodes.map((node) => {
       const laidOut = laidOutNodes.get(nodeIds.get(node.id) ?? '');
       if (
         !laidOut ||
@@ -228,9 +234,15 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
       if (!sourceNode || !targetNode || !sourcePosition || !targetPosition)
         throw new ZlozError('invalid-layout', 'Missing routed endpoint');
       const anchored = [
-        portPosition({ ...sourceNode, position: sourcePosition }, edge.source.port),
+        portPosition(
+          { ...sourceNode, position: sourcePosition, size: sourcePosition.size ?? sourceNode.size },
+          edge.source.port,
+        ),
         ...points,
-        portPosition({ ...targetNode, position: targetPosition }, edge.target.port),
+        portPosition(
+          { ...targetNode, position: targetPosition, size: targetPosition.size ?? targetNode.size },
+          edge.target.port,
+        ),
       ];
       const route = {
         id: edge.id,
@@ -264,5 +276,27 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
       };
     });
     return { requestId: request.requestId, revision: request.revision, positions, routes };
+  };
+}
+
+/** Legacy graph layout. Group ports require the distinct native v3 entry. */
+export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
+  return elkLayout(options, false);
+}
+/** Native v3 compound layout; preserves authored group ports and their endpoint identities. */
+export function createElkGroupLayoutV3(options: ElkLayoutOptions = {}): ZlozGroupLayoutEngineV3 {
+  const engine = elkLayout(options, true);
+  return async (request) => {
+    validateGroupLayoutRequestV3(request);
+    const document = request.source.document;
+    // This internal geometry input never crosses a legacy validation/publication boundary.
+    const geometry: LayoutRequest = {
+      ...request.options,
+      requestId: request.requestId,
+      revision: request.source.revision,
+      graph: document.graph,
+      connectionMode: document.connectionMode,
+    };
+    return { ...(await engine(geometry)), version: 3 };
   };
 }

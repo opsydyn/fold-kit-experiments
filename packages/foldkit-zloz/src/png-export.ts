@@ -166,6 +166,18 @@ export function resolvePngReview(
 ): ZlozPngReviewControls {
   const svg = resolveSvgReview(state.svg, svgContext(context)),
     plan = svg.result ? planPngExport(svg.result, context.png) : null;
+  return resolvePngReviewProjection(state, context.fileName, svg, plan);
+}
+/** @internal Version-neutral PNG presentation from a freshly resolved versioned SVG review. */
+export function resolvePngReviewProjection<
+  S extends ZlozPngReviewControls['svg'],
+  P extends ZlozPngExportPlan,
+>(
+  state: ZlozPngReviewState,
+  fileNameInput: string | undefined,
+  svg: S,
+  plan: P | null,
+): Omit<ZlozPngReviewControls, 'svg' | 'plan'> & Readonly<{ svg: S; plan: P | null }> {
   const identity = {
     scope: state.svg.scope,
     generation: state.svg.generation,
@@ -179,7 +191,7 @@ export function resolvePngReview(
     state.rendering.type === 'ready' && state.rendering.key === identity.key
       ? state.rendering.artifact
       : null;
-  const fileName = context.fileName ?? 'foldkit-zloz.png';
+  const fileName = fileNameInput ?? 'foldkit-zloz.png';
   if (!/^[^/\\\u0000-\u001f]{1,128}\.png$/iu.test(fileName))
     throw new ZlozError('invalid-edit', 'PNG filename must be a plain .png filename.');
   return {
@@ -216,7 +228,67 @@ export function updatePngReview(
   context: ZlozPngReviewContext,
   request: ZlozPngReviewRequest,
 ): ZlozPngReviewUpdate {
-  const unchanged = (notice = ''): ZlozPngReviewUpdate => ({
+  return updatePngReviewProjection(state, context.scope, request, {
+    resolve: () => resolvePngReview(state, context),
+    settings: (view, preferences) =>
+      updateSvgReview(state.svg, svgContext(context), {
+        ...view.svg.identity,
+        type: 'SvgSettingsChanged',
+        preferences,
+      }),
+    input: (view, plan) => legacyPngInput(view, plan, context),
+  });
+}
+function legacyPngInput(
+  view: ZlozPngReviewControls,
+  plan: Extract<ZlozPngExportPlan, { type: 'ready' }>,
+  context: ZlozPngReviewContext,
+): ZlozPngExportInput {
+  if (!view.svg.options)
+    throw new ZlozError('invalid-edit', 'Resolve SVG options before creating a PNG job.');
+  const layout = view.svg.result?.plan.layout;
+  const svg =
+    layout === undefined
+      ? view.svg.options
+      : {
+          ...view.svg.options,
+          layout: Object.freeze({ snapshot: layout, renderKey: layout.renderKey }),
+        };
+  return {
+    snapshot: parseSnapshot(serializeSnapshot(context.snapshot)),
+    svg,
+    writing: { ...context.writing, allowLosses: true },
+    png: Object.freeze({ ...context.png }),
+    expectedSvg: plan.svg,
+  };
+}
+/** @internal Shared lifecycle; native wrappers supply full-document capture, settings and artifact hooks. */
+export function updatePngReviewProjection<I, V extends ZlozPngReviewControls>(
+  state: ZlozPngReviewState,
+  scope: string,
+  request: ZlozPngReviewRequest,
+  hooks: Readonly<{
+    resolve: () => V;
+    settings: (
+      view: V,
+      preferences: ZlozSvgReviewPreferences,
+    ) => ReturnType<typeof updateSvgReview>;
+    input: (view: V, plan: Extract<ZlozPngExportPlan, { type: 'ready' }>) => I;
+    artifactMatches?: (
+      artifact: ZlozPngArtifact,
+      plan: Extract<ZlozPngExportPlan, { type: 'ready' }>,
+    ) => boolean;
+  }>,
+): Omit<ZlozPngReviewUpdate, 'payload'> &
+  Readonly<{
+    payload:
+      | (ZlozSvgReviewIdentity &
+          Readonly<{ run: number; input: I; plan: Extract<ZlozPngExportPlan, { type: 'ready' }> }>)
+      | null;
+  }> {
+  const unchanged = (
+    notice = '',
+  ): Omit<ZlozPngReviewUpdate, 'payload'> & Readonly<{ payload: null }> => ({
     state,
     payload: null,
     download: null,
@@ -224,11 +296,11 @@ export function updatePngReview(
   });
   if (
     request.scope !== state.svg.scope ||
-    context.scope !== state.svg.scope ||
+    scope !== state.svg.scope ||
     request.generation !== state.svg.generation
   )
     return unchanged('This PNG review belongs to another model or generation.');
-  const view = resolvePngReview(state, context);
+  const view = hooks.resolve();
   if (request.type === 'PngRenderSettled') {
     if (
       state.rendering.type !== 'pending' ||
@@ -254,7 +326,8 @@ export function updatePngReview(
       artifact.byteLength < 33 ||
       artifact.byteLength > plan.maxBytes ||
       !artifact.dataUrl.startsWith('data:image/png;base64,iVBORw0KGgo') ||
-      artifact.dataUrl.length > Math.ceil(plan.maxBytes / 3) * 4 + 22
+      artifact.dataUrl.length > Math.ceil(plan.maxBytes / 3) * 4 + 22 ||
+      (hooks.artifactMatches !== undefined && !hooks.artifactMatches(artifact, plan))
     )
       return { ...unchanged('PNG output failed its artifact checks.'), state: idle };
     return {
@@ -275,11 +348,7 @@ export function updatePngReview(
   if (request.key !== view.identity.key)
     return unchanged('PNG source or settings changed; review the current export.');
   if (request.type === 'PngSettingsChanged') {
-    const changed = updateSvgReview(state.svg, svgContext(context), {
-      ...view.svg.identity,
-      type: 'SvgSettingsChanged',
-      preferences: request.preferences,
-    });
+    const changed = hooks.settings(view, request.preferences);
     return {
       ...unchanged(changed.notice),
       state:
@@ -311,22 +380,7 @@ export function updatePngReview(
   if (!Number.isSafeInteger(state.run) || state.run >= Number.MAX_SAFE_INTEGER)
     throw new ZlozError('invalid-edit', 'PNG render counter exhausted.');
   const run = state.run + 1;
-  // ADR 0077: bind deferred encoding to the validated immutable layout, not caller-owned routes.
-  const layout = view.svg.result?.plan.layout;
-  const svg =
-    layout === undefined
-      ? view.svg.options
-      : {
-          ...view.svg.options,
-          layout: Object.freeze({ snapshot: layout, renderKey: layout.renderKey }),
-        };
-  const input: ZlozPngExportInput = {
-    snapshot: parseSnapshot(serializeSnapshot(context.snapshot)),
-    svg,
-    writing: { ...context.writing, allowLosses: true },
-    png: Object.freeze({ ...context.png }),
-    expectedSvg: view.plan.svg,
-  };
+  const input = hooks.input(view, view.plan);
   return {
     state: { ...state, run, rendering: { type: 'pending', key: request.key, run } },
     payload: { ...view.identity, run, input, plan: view.plan },

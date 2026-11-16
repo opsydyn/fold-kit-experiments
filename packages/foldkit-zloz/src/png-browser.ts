@@ -1,4 +1,6 @@
 import { ZlozError } from './graph';
+import type { ZlozGroupPngExportInputV3 } from './group-png-v3';
+import { writeGroupSvgExportV3 } from './group-svg-v3';
 import {
   planPngExport,
   type ZlozPngExportInput,
@@ -6,7 +8,7 @@ import {
   type ZlozPngArtifact,
 } from './png-export';
 /** Optional browser rasterization. Import is safe under Node/SSR; IO occurs only when called. */
-import { writeSvgExport } from './svg-writer';
+import { writeSvgExport, type ZlozSvgWriteResult } from './svg-writer';
 export type ZlozPngBrowserOptions = Readonly<{ signal?: AbortSignal; timeoutMs?: number }>;
 class RasterError extends Error {
   constructor(
@@ -26,6 +28,25 @@ export async function renderPngExport(
   input: ZlozPngExportInput,
   options: ZlozPngBrowserOptions = {},
 ): Promise<ZlozPngRenderResult> {
+  return renderPngProjection(input, options, () =>
+    writeSvgExport(input.snapshot, input.svg, input.writing),
+  );
+}
+/** Rebuild native v3 SVG before allocating browser resources; no legacy snapshot path. */
+export async function renderGroupPngExportV3(
+  input: ZlozGroupPngExportInputV3,
+  options: ZlozPngBrowserOptions = {},
+): Promise<ZlozPngRenderResult> {
+  return renderPngProjection(input, options, () =>
+    writeGroupSvgExportV3(input.document, input.svg, input.writing),
+  );
+}
+async function renderPngProjection(
+  input: Pick<ZlozPngExportInput, 'png' | 'expectedSvg'> &
+    Readonly<{ writing?: Readonly<{ allowLosses?: boolean }> }>,
+  options: ZlozPngBrowserOptions,
+  write: () => ZlozSvgWriteResult,
+): Promise<ZlozPngRenderResult> {
   const timeout = options.timeoutMs ?? 10000;
   if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 30000)
     throw new ZlozError('invalid-edit', 'PNG timeout must be an integer from 1 to 30000 ms.');
@@ -44,12 +65,13 @@ export async function renderPngExport(
       'loss-consent-required',
       'Review PNG rasterization and SVG findings, then explicitly allow losses.',
     );
-  const written = writeSvgExport(input.snapshot, input.svg, input.writing);
+  const written = write();
   const plan = planPngExport(written, input.png);
   if (plan.type !== 'ready')
     return failure('plan-blocked', 'Resolve PNG/SVG findings before rasterization.');
   if (input.expectedSvg !== undefined && input.expectedSvg !== plan.svg)
     return failure('source-changed', 'The rendered SVG differs from the reviewed source.');
+  if (options.signal?.aborted) return failure('aborted', 'PNG rendering was cancelled.');
   const controller = new AbortController();
   let timedOut = false;
   const forward = () => controller.abort();

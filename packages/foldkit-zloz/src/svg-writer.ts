@@ -1,6 +1,7 @@
 import { resolveEdgeGeometry, type ZlozEdgeGeometry } from './edge-geometry';
 import { edgeEndpoints, portPosition } from './geometry';
 import { ZlozError } from './graph';
+import type { ZlozGroupDocumentV3 } from './group-document-v3';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Core node shape geometry describes domain outlines.
 import { nodeShapeGeometry as nodeOutlineGeometry } from './node-shape';
 import {
@@ -297,7 +298,16 @@ export function writeSvgExport(
   options: ZlozSvgExportOptions,
   writing: ZlozSvgWriteOptions = {},
 ): ZlozSvgWriteResult {
-  const plan = freeze(planSvgExport(snapshot, options));
+  return writeSvgProjection(planSvgExport(snapshot, options), writing);
+}
+/** @internal A freshly validated versioned projection only; not a public prepared-plan writing API. */
+export function writeSvgProjection<P extends ZlozSvgExportPlan>(
+  input: P,
+  writing: ZlozSvgWriteOptions = {},
+  metadata?: Pick<ZlozGroupDocumentV3, 'version' | 'connectionMode' | 'capabilities'>,
+): Readonly<{ plan: P; findings: readonly ZlozSvgWriteFinding[] }> &
+  (Readonly<{ type: 'written'; svg: string }> | Readonly<{ type: 'blocked' }>) {
+  const plan = freeze(input);
   const findings: ZlozSvgWriteFinding[] = [...plan.findings];
   const add = (
     code: ZlozSvgWriteFinding['code'],
@@ -440,6 +450,7 @@ export function writeSvgExport(
     t = plan.theme.tokens,
     width = plan.theme.edgeWidth ?? 1;
   const output = new Map<string, string>();
+  const socketArtwork = new Map<string, string>();
   const itemKey = (target: ZlozSvgTarget) => `${target.kind}:${target.id}`;
   for (const item of plan.items) {
     if (item.renderer.type === 'omit') {
@@ -508,10 +519,17 @@ export function writeSvgExport(
         const labels = lines(node);
         const content = outline.contentBounds;
         artwork = `<g transform="translate(${point(node.position)})"><path d="${path(outline.outlinePath)}" fill="${xml(fill)}" stroke="${xml(border)}" stroke-width="${workshopAccent ? 2 : 1.5}"${dashed ? ' stroke-dasharray="6 4"' : ''}/>${outline.decorationPaths.map((d) => `<path d="${path(d)}" fill="none" stroke="${xml(t.nodeBorder)}"/>`).join('')}${labels.map((label, index) => render({ type: 'text', position: { x: content.x + 12, y: content.y + plan.font.size + 10 + index * plan.font.size * 1.25 }, text: label, fill: meaning?.role === 'hotspot' && index === 2 ? border : t.nodeColor, size: plan.font.size, weight: index === 0 ? Math.max(600, plan.font.weight) : plan.font.weight })).join('')}</g>`;
+        let sockets = '';
         for (const port of node.ports) {
           const at = portPosition(node, port.id);
-          artwork += `<g data-zloz-export-port="${xml(port.id)}">${render({ type: 'circle', center: at, radius: 4, fill: port.kind === 'input' ? t.inputPort : t.outputPort, stroke: t.portBorder, strokeWidth: 1 })}${render({ type: 'text', position: { x: at.x + (port.kind === 'input' ? -9 : 9), y: at.y - 7 }, anchor: port.kind === 'input' ? 'end' : 'start', text: port.label ?? port.id, fill: t.nodeColor, size: plan.font.size, weight: plan.font.weight })}</g>`;
+          sockets += `<g data-zloz-export-port="${xml(port.id)}"${metadata ? ` data-zloz-export-owner="${xml(node.id)}"` : ''}>${render({ type: 'circle', center: at, radius: 4, fill: port.kind === 'input' ? t.inputPort : t.outputPort, stroke: t.portBorder, strokeWidth: 1 })}${render({ type: 'text', position: { x: at.x + (port.kind === 'input' ? -9 : 9), y: at.y - 7 }, anchor: port.kind === 'input' ? 'end' : 'start', text: port.label ?? port.id, fill: t.nodeColor, size: plan.font.size, weight: plan.font.weight })}</g>`;
         }
+        if (metadata)
+          socketArtwork.set(
+            node.id,
+            `<g data-zloz-export-node-ports="${xml(node.id)}">${sockets}</g>`,
+          );
+        else artwork += sockets;
       } else {
         const edge = plan.graph.edges.find((e) => e.id === item.target.id);
         if (!edge) invalid('Missing edge.');
@@ -617,12 +635,16 @@ export function writeSvgExport(
       ...plan.graph.nodes
         .filter((n) => n.kind !== 'group')
         .map((n) => output.get(`node:${n.id}`) ?? ''),
+      ...plan.graph.nodes.map((n) => socketArtwork.get(n.id) ?? ''),
     ].join('');
     const background =
       plan.background === null
         ? ''
         : `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="${xml(plan.background)}"/>`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${plan.size.width}" height="${plan.size.height}" viewBox="${b.x} ${b.y} ${b.width} ${b.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" font-family="${xml(embeddedFamily ?? textFamily(plan.font.family))}"><title id="${prefix}-title">${xml(plan.title)}</title><desc id="${prefix}-description">${xml(plan.description)}</desc><defs>${fontStyle}<clipPath id="${prefix}-clip" clipPathUnits="userSpaceOnUse"><rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}"/></clipPath><marker id="${prefix}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="${xml(t.edge)}"/></marker></defs><g clip-path="url(#${prefix}-clip)">${background}${ordered}</g></svg>`;
+    const documentAttributes = metadata
+      ? ` data-zloz-document-version="${metadata.version}" data-zloz-connection-mode="${xml(metadata.connectionMode)}" data-zloz-group-ports="${metadata.capabilities.groupPorts}"`
+      : '';
+    const svg = `<svg${documentAttributes} xmlns="http://www.w3.org/2000/svg" width="${plan.size.width}" height="${plan.size.height}" viewBox="${b.x} ${b.y} ${b.width} ${b.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" font-family="${xml(embeddedFamily ?? textFamily(plan.font.family))}"><title id="${prefix}-title">${xml(plan.title)}</title><desc id="${prefix}-description">${xml(plan.description)}</desc><defs>${fontStyle}<clipPath id="${prefix}-clip" clipPathUnits="userSpaceOnUse"><rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}"/></clipPath><marker id="${prefix}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="${xml(t.edge)}"/></marker></defs><g clip-path="url(#${prefix}-clip)">${background}${ordered}</g></svg>`;
     if (svg.length > maxCharacters) invalid('SVG output character budget exceeded.');
     return { type: 'written', svg, plan, findings };
   } catch (error) {

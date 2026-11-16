@@ -18,6 +18,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   emit({ type: 'GestureCancelled' });
   let captured: number | null = null;
   const touches = new Map<number, Point>();
+  // Native geometry can retain its original surface frame when live controls reflow.
+  let gestureSurface: Point | null = null;
   let pinching = false;
   let nodeDragOrigin: Point | null = null;
   let panPointer: Point | null = null;
@@ -128,7 +130,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const rect = element.getBoundingClientRect();
     return { x: client.x - rect.left, y: client.y - rect.top };
   };
-  const point = (event: MouseEvent) => localPoint({ x: event.clientX, y: event.clientY });
+  const point = (event: MouseEvent) =>
+    gestureSurface
+      ? { x: event.clientX - gestureSurface.x, y: event.clientY - gestureSurface.y }
+      : localPoint({ x: event.clientX, y: event.clientY });
   const wireTargets = (client: Point) => {
     if (!wire) return {};
     const { ownerDocument } = element;
@@ -224,6 +229,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     anchorModifier = undefined;
     wire = null;
     nodeDragOrigin = null;
+    gestureSurface = null;
     panPointer = null;
     if (panFrame !== null) window.cancelAnimationFrame(panFrame);
     panFrame = null;
@@ -315,6 +321,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       return;
     }
     if (event.button !== 0) return;
+    if (captured === null && element.dataset.flowStablePointerOrigin === 'true') {
+      const rect = element.getBoundingClientRect();
+      gestureSurface = { x: rect.left, y: rect.top };
+    }
     backgroundPressed = false;
     const target = targetOf(event);
     if (
@@ -461,7 +471,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       emit({ type: 'PanStarted', pointer: event.pointerId, point: origin });
     else if (element.dataset.flowZoomAreaMode === 'true')
       emit({ type: 'ZoomAreaStarted', pointer: event.pointerId, point: origin });
-    else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
+    else if (
+      element.dataset.flowBoxSelection !== 'false' &&
+      (event.shiftKey || element.dataset.flowSelectionMode === 'true')
+    )
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: origin });
     else {
       backgroundPressed = Boolean(element.dataset.flowDoubleClickZoom);
@@ -777,7 +790,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
     const nodeResize = target
-      .closest('[data-flow-resize]:not([data-flow-group-resize])')
+      .closest('[data-flow-resize]:not([data-flow-group-resize]):not([data-zloz-native-resize])')
       ?.getAttribute('data-flow-resize');
     if (nodeResize && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
       event.preventDefault();
@@ -792,7 +805,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       });
       return;
     }
-    const resizeHandle = target.closest('[data-flow-group-resize]');
+    const resizeHandle = target.closest('[data-flow-group-resize], [data-zloz-native-resize]');
     const groupResize = resizeHandle?.getAttribute('data-flow-resize');
     if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       event.preventDefault();

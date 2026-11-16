@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-zloz",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Model-owned graph editing and optional native FoldKit views.",
   "keywords": [
     "diagram",
@@ -58,7 +58,7 @@
     "test:unit": "bun test ./test --path-ignore-patterns='**/package.test.ts'",
     "test:package": "bun test ./test/package.test.ts",
     "pack:check": "bun run build && publint && bun ../../tools/pack-zloz.ts foldkit-zloz",
-    "docs": "bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && typedoc"
+    "docs": "bun run build && bun run --filter @opsydyn/foldkit-viz build && typedoc"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",

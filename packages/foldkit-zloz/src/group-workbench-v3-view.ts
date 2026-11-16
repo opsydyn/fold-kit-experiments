@@ -5,13 +5,24 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { resolveZlozDiagnostics, visuallyHidden, type ZlozDiagnosticOptions } from './diagnostics';
 import { edgeGeometry, fittedGroupBounds, portPosition } from './geometry';
+import {
+  copyGroupSelectionV3,
+  planGroupPasteV3,
+  type ZlozGroupClipboardPolicyV3,
+} from './group-clipboard-v3';
 import { planGroupConnectionV3 } from './group-connection-v3';
-import { captureGroupEditorSourceV3, type ZlozGroupEditorPolicyV3 } from './group-editor-v3';
+import { captureGroupEditorSourceV3 } from './group-editor-v3';
 import { planGroupOperationV3 } from './group-operations-v3';
 import { planGroupPortEditV3 } from './group-port-edit-v3';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import {
+  zlozGroupInteractionViewsV3,
+  type ZlozNativeInteractionOptionsV3,
+} from './group-workbench-interactions-v3';
+import {
   groupWorkbenchGraphV3,
+  groupWorkbenchPasteRequestV3,
+  groupWorkbenchRoutesV3,
   type ZlozGroupWorkbenchV3,
   type ZlozGroupWorkbenchEventV3,
 } from './group-workbench-v3';
@@ -19,12 +30,13 @@ import { ZlozInput } from './mount';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
 import type { Port, ZlozNode, ZlozEdge } from './types';
 export type ZlozGroupWorkbenchViewOptionsV3<M> = ZlozDiagnosticOptions &
+  ZlozNativeInteractionOptionsV3<M> &
   Readonly<{
     /** Unique per simultaneously mounted instance. */
     id: string;
     label?: string;
     theme?: ZlozTheme;
-    policy?: ZlozGroupEditorPolicyV3;
+    policy?: ZlozGroupClipboardPolicyV3;
     onEvent: (event: ZlozGroupWorkbenchEventV3) => M;
     /** Complete content inside the authored node frame, beside live ports. Compose zlozGroupDragHandleV3. */
     renderNode?: (node: ZlozNode, selected: boolean, h: HtmlBuilder<M>) => Html;
@@ -97,6 +109,58 @@ export function zlozGroupActionV3<M>(
         [label],
       ),
       ...(reason ? [h.small([], [reason])] : []),
+    ],
+  );
+}
+/** Optional session-clipboard controls. Compose separately or replace with headless planners/custom controls. */
+export function zlozGroupClipboardV3<M>(
+  h: HtmlBuilder<M>,
+  model: ZlozGroupWorkbenchV3,
+  options: ZlozGroupWorkbenchViewOptionsV3<M>,
+  pasteOffset = { x: 40, y: 40 },
+): Html {
+  const policy = options.policy ?? {},
+    copy = copyGroupSelectionV3(model.editor, model.selectedNodeIds, policy);
+  const request = groupWorkbenchPasteRequestV3(model, pasteOffset);
+  const paste = request ? planGroupPasteV3(model.editor, request, policy) : null;
+  const busy = model.gesture.type !== 'idle' ? 'Finish or cancel the active gesture first.' : null;
+  const copyReason = busy ?? (copy.type === 'blocked' ? copy.reason : null);
+  const pasteReason =
+    busy ??
+    (paste?.type === 'blocked'
+      ? paste.reason
+      : request
+        ? null
+        : 'Copy a selection before pasting.');
+  const diagnostics = resolveZlozDiagnostics(options);
+  return h.div(
+    [
+      h.Role('group'),
+      h.AriaLabel('V3 clipboard controls'),
+      h.Style({ ...zlozThemeStyle(options.theme ?? {}), color: 'var(--flow-node-color, #172033)' }),
+    ],
+    [
+      zlozGroupActionV3(h, 'Copy selection', { type: 'CopyPressed' }, copyReason, options.onEvent),
+      zlozGroupActionV3(
+        h,
+        'Paste copy',
+        request ? { type: 'GroupPasteRequested', request } : { type: 'PastePressed' },
+        pasteReason,
+        options.onEvent,
+      ),
+      ...model.clipboardFindings.map((f) =>
+        h.p([h.DataAttribute('zloz-clipboard-finding', f.code)], [f.reason]),
+      ),
+      ...(diagnostics.instructions
+        ? [
+            h.p(
+              [],
+              [
+                'Copies groups and descendants with internal connections. External parents are detached; crossing connections are omitted. Clipboard state stays in this workbench session.',
+              ],
+            ),
+          ]
+        : []),
     ],
   );
 }
@@ -318,6 +382,7 @@ export function zlozGroupWorkbenchV3<M>(
     graph = groupWorkbenchGraphV3(model, policy),
     presentation = presentGroups(graph, model.collapsedGroupIds),
     diagnostics = resolveZlozDiagnostics(options);
+  const layoutRoutes = new Map(groupWorkbenchRoutesV3(model).map((route) => [route.id, route]));
   const byId = new Map(presentation.nodes.map((node) => [node.id, node]));
   const geometryGraph = { ...graph, nodes: graph.nodes.map((node) => byId.get(node.id) ?? node) };
   const button = (label: string, event: ZlozGroupWorkbenchEventV3, reason: string | null = null) =>
@@ -376,10 +441,14 @@ export function zlozGroupWorkbenchV3<M>(
         [
           h.Id(options.id),
           h.DataAttribute('flow-surface', ''),
+          h.DataAttribute('flow-stable-pointer-origin', 'true'),
+          h.DataAttribute('flow-port-anchor-snap-bypass', options.portAnchorSnapBypass ?? ''),
           h.DataAttribute('flow-connection-mode', model.editor.document.connectionMode),
           h.DataAttribute('flow-readonly', String(model.editor.readOnly)),
           h.DataAttribute('flow-space-to-pan', 'true'),
           h.DataAttribute('flow-middle-button-pan', 'true'),
+          h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom === true)),
+          h.DataAttribute('flow-box-selection', String(options.boxSelection === true)),
           h.Tabindex(0),
           h.Role('group'),
           h.AriaLabel(options.label ?? 'V3 group editor'),
@@ -436,10 +505,15 @@ export function zlozGroupWorkbenchV3<M>(
                 graph.edges
                   .filter((edge) => edgeIsVisible(edge, presentation.hiddenBy))
                   .map((edge) => {
-                    const geometry = edgeGeometry(geometryGraph, edge, undefined, {
-                      source: presentation.hiddenBy.get(edge.source.node),
-                      target: presentation.hiddenBy.get(edge.target.node),
-                    });
+                    const geometry = edgeGeometry(
+                      geometryGraph,
+                      edge,
+                      layoutRoutes.get(edge.id)?.points,
+                      {
+                        source: presentation.hiddenBy.get(edge.source.node),
+                        target: presentation.hiddenBy.get(edge.target.node),
+                      },
+                    );
                     return (
                       options.renderEdge?.(edge, geometry, h) ??
                       h.path([
@@ -575,12 +649,17 @@ export function zlozGroupWorkbenchV3<M>(
                   ],
                 ),
               ),
+              ...zlozGroupInteractionViewsV3(h, model, options, policy),
             ],
           ),
         ],
       ),
       h.p(
-        [h.Role('status'), h.AriaLive('polite'), h.Style(diagnostics.status ? {} : visuallyHidden)],
+        [
+          h.Role('status'),
+          h.AriaLive('polite'),
+          h.Style(diagnostics.status || model.statusRequired ? {} : visuallyHidden),
+        ],
         [model.status],
       ),
     ],

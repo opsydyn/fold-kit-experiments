@@ -602,3 +602,19 @@ Apply or file write. The existing 1 MiB UTF-8 budget still applies. Malformed or
 wrong-version input exits 2. Successful inspection exits 0 even when adapters or
 downgrade are unavailable: those are explicit findings, not performed operations.
 Other commands keep their documented v1/v2 contracts. CLI remains private.
+
+### Native v3 support (private workspace CLI, unreleased)
+
+The Effect command tree selects strict native codecs from explicit envelope
+versions for `validate`, Mermaid export, `ddd audit/compare`,
+`relationships audit/compare`, `patch dry-run`, `review packet/validate/inspect`
+and C4/DDD/patch receipt inspection. Group ports remain in the native source;
+they are never removed to enter a v1/v2 adapter. Unknown versions still fail.
+
+V3 patch dry run requires a separate canonical v3 model, session and monotonic
+revision. Receipts and packets are read-only evidence. There is no writable CLI
+Apply command. File/stdin text is bounded to 1 MiB UTF-8; strict versioned parsers
+check duplicate keys, nesting and consistency before publication. Validation,
+incompatibility and new-finding exits retain their documented distinctions.
+
+The CLI and Alchemy adapter remain private. No npm publication is implied.

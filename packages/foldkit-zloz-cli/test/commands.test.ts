@@ -1346,8 +1346,59 @@ test('explicit v3 compatibility inspector retains all checkpoint capabilities an
   expect(report.data.version).toBe(3);
   expect(report.data.downgrade.type).toBe('blocked');
   expect(report.data.adapters.find((a: { adapter: string }) => a.adapter === 'svg').status).toBe(
-    'requires-version',
+    'supported',
   );
+  expect(report.data.adapters.find((a: { adapter: string }) => a.adapter === 'png').status).toBe(
+    'supported',
+  );
+  expect(
+    report.data.adapters.find((a: { adapter: string }) => a.adapter === 'clipboard').status,
+  ).toBe('supported');
+  expect(
+    report.data.adapters.find((a: { adapter: string }) => a.adapter === 'mermaid').status,
+  ).toBe('supported');
   expect((await invoke(['compatibility', 'inspect-v3'], '{"version":3,"version":3}')).code).toBe(2);
   expect((await invoke(['compatibility', 'inspect-v3'], empty)).code).toBe(2);
+});
+
+test('native v3 CLI validates and audits the full capability document and recomputes read-only packets', async () => {
+  const text = JSON.stringify(modelV3Wire);
+  const valid = await invoke(['validate'], text);
+  expect(valid.code).toBe(0);
+  expect(JSON.parse(valid.text).documentVersion).toBe(3);
+  for (const command of [
+    ['ddd', 'audit'],
+    ['relationships', 'audit'],
+  ]) {
+    const result = await invoke(command, text);
+    expect([0, 1]).toContain(result.code);
+    expect(JSON.parse(result.text).documentVersion).toBe(3);
+  }
+  const baseline = modelV3Wire.document.editions[0]!.id;
+  for (const command of [
+    ['ddd', 'compare'],
+    ['relationships', 'compare'],
+  ]) {
+    const result = await invoke([...command, '--baseline', baseline], text);
+    expect([0, 1]).toContain(result.code);
+    expect(JSON.parse(result.text).data.baseline.capabilities).toBeDefined();
+  }
+  const created = await invoke(
+    ['review', 'packet', '--baseline', baseline, '--loss-policy', 'report'],
+    text,
+  );
+  expect(created.code).toBe(0);
+  const packet = JSON.parse(created.text).data;
+  expect(packet.version).toBe(3);
+  const inspected = await invoke(['review', 'inspect'], JSON.stringify(packet));
+  expect(inspected.code).toBe(0);
+  expect(JSON.parse(inspected.text).data.baseline.snapshot.capabilities).toBeDefined();
+  const changed = {
+    ...packet,
+    projections: {
+      ...packet.projections,
+      selected: { ...packet.projections.selected, source: 'flowchart LR\n' },
+    },
+  };
+  expect((await invoke(['review', 'inspect'], JSON.stringify(changed))).code).toBe(2);
 });

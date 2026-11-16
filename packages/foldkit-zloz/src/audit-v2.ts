@@ -28,6 +28,7 @@ import {
   type ZlozRelationshipAuditComparison,
   type ZlozRelationshipAuditSelection,
 } from './relationship-audit-comparison';
+import type { ZlozSnapshot } from './types';
 type WithModes<C extends { baseline: object; selected: object }> = Omit<
   C,
   'baseline' | 'selected'
@@ -58,7 +59,13 @@ export function auditConnectionEventStormingRelationships(
   const checked = parseConnectionDocument(serializeConnectionDocument(document));
   return auditEventStormingRelationships(checked.graph, options);
 }
-function select(model: ZlozModelDocumentV2, selection: ZlozRelationshipAuditSelection) {
+export function selectAuditSnapshots<S extends ZlozSnapshot>(
+  model: Readonly<{
+    snapshot: S;
+    editions: readonly Readonly<{ id: string; name: string; snapshot: S }>[];
+  }>,
+  selection: ZlozRelationshipAuditSelection,
+) {
   const baseline = model.editions.find((e) => e.id === selection.baselineId);
   if (!baseline)
     return {
@@ -97,7 +104,7 @@ export function compareModelDddRelationshipsV2(
 ): ZlozDddRelationshipAuditComparisonDecisionV2 {
   checkedDddRelationshipRules(options);
   const model = captureModelDocumentV2(document),
-    sides = select(model, selection);
+    sides = selectAuditSnapshots(model, selection);
   if (sides.type === 'blocked') return sides;
   const result = compareDddRelationshipAudits(
     model.id,
@@ -124,7 +131,7 @@ export function compareModelEventStormingRelationshipsV2(
 ): ZlozRelationshipAuditComparisonDecisionV2 {
   checkedEventStormingRelationshipRules(options);
   const model = captureModelDocumentV2(document),
-    sides = select(model, selection);
+    sides = selectAuditSnapshots(model, selection);
   if (sides.type === 'blocked') return sides;
   const result = compareRelationshipAudits(
     model.id,

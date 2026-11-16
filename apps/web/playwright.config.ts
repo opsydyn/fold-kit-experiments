@@ -13,6 +13,8 @@ if (process.env.TEST_WORKER_INDEX === undefined) {
 
 export default defineConfig({
   testDir: './e2e',
+  // Native release qualification targets the separate built Zloz app/config.
+  testIgnore: '**/zloz-native-release.spec.ts',
   reporter: [['list'], ['html', { open: 'never' }]],
   workers: 1,
   use: {

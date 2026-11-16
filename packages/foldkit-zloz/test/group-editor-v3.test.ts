@@ -365,22 +365,15 @@ test('whole-document live policy covers capability/mode/camera/data and applies 
   expect(editor.revision).toBe(0);
 });
 
-test('unsupported adapters and runtime native events report version-required without losing capability', () => {
+test('native authoring boundaries are explicit while runtime events remain version-required without losing capability', () => {
   const editor = init();
   for (const operation of [
-    'clipboard',
-    'layout',
-    'svg',
-    'png',
-    'mermaid',
     'modelling-patch',
     'review-packet',
+    'conversion-receipt',
+    'relationship-audit',
   ] as const) {
-    expect(resolveGroupEditorBoundaryV3(editor, operation)).toMatchObject({
-      type: 'blocked',
-      code: 'version-required',
-    });
-    expect(resolveGroupEditorBoundaryV3(editor, operation).editor).toBe(editor);
+    expect(resolveGroupEditorBoundaryV3(editor, operation)).toEqual({ type: 'unchanged', editor });
   }
   expect(
     updateGroupEditorV3(editor, {

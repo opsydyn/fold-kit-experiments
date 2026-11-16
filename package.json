@@ -64,7 +64,8 @@
       "world-atlas": "^2.0.2",
       "wrangler": "^4.125.0",
       "elkjs": "0.12.1",
-      "typedoc": "^0.28.19"
+      "typedoc": "^0.28.19",
+      "axe-core": "4.14.1"
     },
     "catalogs": {
       "strict": {
@@ -98,9 +99,9 @@
     "relay": "bun packages/effect-three-samples/scripts/relay.ts",
     "scene-mcp": "bun packages/effect-three-samples/scripts/scene-mcp.ts",
     "hooks:install": "moon sync vcs-hooks",
-    "ci:check": "moon run :lint root:format root:catalog root:skills :typecheck :test :build :api-check :size-check :schema-check && moon run :integration",
+    "ci:check": "moon run :lint root:format root:catalog root:skills :typecheck :test :build :api-check :size-check :schema-check :docs && moon run :integration",
     "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e foldkit-dash:e2e",
-    "ci:foldkit-zloz": "moon run web:e2e-zloz",
+    "ci:foldkit-zloz": "moon run web:e2e-zloz web:e2e-zloz-native",
     "ci:astro-compat": "moon run astro-foldkit:compat",
     "ci:clean": "bun tools/ci-local.ts --fresh"
   },

@@ -1774,3 +1774,191 @@ observed qualification and separate delivery/release status.
 **Recommended next after release:** qualify native v3 ELK layout and SVG/PNG
 projection with group-port fidelity, then Mermaid/portable domain adapters. This
 makes authored ported-group models portable before adding more tools.
+
+## 2026-11-16 — Native v3 ELK layout
+
+The next scoped adapter adoption is implemented in the isolated worktree:
+
+- Core `groupLayoutRequestV3` retains the complete v3 source; `applyGroupLayoutV3`
+  validates complete world geometry and applies through live v3 policy/transaction
+  checks. One changed layout is one full-document Undo; no partial publication.
+- Optional `createElkGroupLayoutV3` preserves nested group ports, authored anchors,
+  endpoint IDs/membership/data, checkpoint mode/capability and camera for RIGHT
+  and DOWN. Legacy layout APIs remain version-fixed. No downgrade/cast workaround.
+- Native workbench route publication and RIGHT/DOWN/Cancel demo use current active
+  request, current editor and current policy. Cancellation, supersession, edits,
+  replacement, active gestures and read-only review cannot publish a late result.
+- Evidence: [ADR 0109](adr/0109-layout-native-v3-groups-with-elk.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-elk-layout.md),
+  core/real-engine/app/installed-consumer tests and light/dark browser captures.
+
+Completion is local tests/build/visual evidence plus the requested commit; this
+slice does not publish or deploy. ELK fixed-position engine interiors can require
+connector leads to final authored group anchors after resizing. Arbitrary custom
+content collision avoidance, worker cancellation, broad performance and human
+physical-device/screen-reader acceptance remain explicit limits.
+
+**Recommended next:** native v3 SVG projection/export, then PNG using that same
+projection. Preserve full-document capabilities and report custom-renderer loss
+before download. Other v3 clipboard/Mermaid/patch/receipt/packet/audit adapters and
+advanced tools remain open; this entry does not close the whole parity catalogue.
+
+## 2026-11-16 — Native v3 SVG projection and fidelity review
+
+- Added native `planGroupSvgExportV3` / `writeGroupSvgExportV3`, validating and
+  retaining the complete document before shared SVG internals. Nested groups,
+  group sockets/endpoints, mode/capability and world-space membership survive;
+  group sockets paint above edges. Source/editor/Undo remain unchanged.
+- `captureGroupSvgLayoutV3` owns bounded anchored routes and binds the entire
+  document plus renderer key. Stale geometry blocks with findings; no bare-graph
+  downgrade or forged legacy editor. Model/camera/explicit bounds, themes and
+  existing safe primitive/font/output limits remain available.
+- Native `resolveGroupSvgReviewV3` / `updateGroupSvgReviewV3` reuse composable
+  Foldkit review controls. Fallback/omission/approximation need exact-artifact loss
+  acceptance; unsupported content stays blocked and current download policy is
+  rechecked. Workbench sidebar demos custom shells, retained routes, protected
+  downloads, palettes/minimal mode and independent read-only edition exports.
+- Evidence: [ADR 0110](adr/0110-export-native-v3-groups-as-reviewed-svg.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-svg-export.md), native/legacy
+  tests, installed consumers and source-hashed browser/download captures.
+
+SVG is static vector artwork, not a model/history codec or an interactive DOM
+capture. Arbitrary custom visual fidelity, text/stroke bounds, system font
+substitution, broad performance and human AT/device acceptance remain explicit
+limits. CLI inspection reports native SVG availability while existing writer
+entries and unsupported adapters remain version-fixed. No publication/deployment
+is part of this local commit.
+
+**Recommended next:** native v3 PNG using this same validated SVG projection and
+fidelity findings. Keep remaining clipboard/Mermaid/patch/receipt/packet/audit
+adapters and advanced tools open until separately qualified.
+
+## 2026-11-16 — Native v3 PNG through the reviewed SVG projection
+
+- `planGroupPngExportV3` retains the full v3 source and unchanged SVG findings,
+  adds rasterization loss and enforces integer geometry/pixel/byte budgets.
+- `resolveGroupPngReviewV3` / `updateGroupPngReviewV3` reuse package review state
+  and composable PNG controls. Separate PNG consent, native document/layout/font
+  capture and exact SVG bytes bind deferred jobs. Current source, settings,
+  protection and consent are checked at request, completion and download.
+- Optional `/browser` `renderGroupPngExportV3` rebuilds the native SVG without
+  legacy graph/snapshot conversion. Shared abort/deadline/resource cleanup stays
+  intact. Actual PNG previews and downloads use the same bytes; native settlement
+  binds byte length and IHDR dimensions to the reviewed plan. No editor/Undo change.
+- Workbench sidebar demos both palettes, crops/transparency/scale, custom-shell
+  loss, retained group-port routes, protected output and independent edition scope.
+- [ADR 0111](adr/0111-rasterize-reviewed-native-v3-svg-as-png.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-png-export.md), native/legacy
+  unit and installed-consumer tests, actual browser pixels/downloads and cleanup
+  probes provide local evidence. CLI format inspection now reports native PNG.
+
+PNG is browser-rendered pixels, not a portable editable model or untrusted image
+import contract. Platform fonts/antialiasing, custom fidelity, server PNG, broad
+performance and human physical-device/AT acceptance remain explicit limits.
+This local slice does not publish/deploy or complete the advanced parity catalogue.
+
+**Recommended next:** native v3 clipboard copy/paste with explicit group/port
+identity remapping, full-source validation, live policies and one Undo. This closes
+an everyday authoring gap without routing ported groups through legacy snapshots.
+Mermaid/patch/receipt/packet/audit adoption and advanced tools remain open.
+
+## 2026-11-16 — Native v3 session clipboard
+
+- `copyGroupSelectionV3` validates the complete native source and captures selected
+  groups/descendants once with internal edges and sockets. External parents and
+  their constraints are detached; crossing connections are omitted with findings.
+  Read-only copy is permitted subject to `canCopyGroupFragmentV3`.
+- `groupPasteRequestV3`, `planGroupPasteV3` and `applyGroupPasteV3` retain full-source
+  freshness, explicit node/edge/scoped-port maps, world offset and matching
+  mode/capability. Parents/endpoints and authored bends follow immutable intent;
+  opaque metadata remains unchanged. Live port, connection and complete-document
+  protections apply before one atomic publication/Undo; rejection edits nothing.
+- The native package controller owns transient clipboard/findings and handles
+  button/custom/keyboard facts. `groupWorkbenchPasteRequestV3` advances repeated
+  offsets past occupied anchors. Optional `zlozGroupClipboardV3` composes controls
+  in the demo's left sidebar with required findings/reasons in minimal mode.
+- [ADR 0112](adr/0112-paste-native-v3-fragments-with-explicit-identities.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-clipboard.md), native and
+  legacy tests, installed consumers and light/dark browser/download evidence
+  qualify this local slice. The CLI compatibility inventory reports native
+  clipboard availability; no CLI clipboard/OS command is added.
+
+Clipboard is session data, independent of document/edition/Undo. This does not add
+OS clipboard permissions, cross-tab transport, cut, paste-into-parent, external
+clipboard text decoding or automatic metadata-reference conversion. Placement
+avoids occupied anchors, not arbitrary visual envelopes. Broad performance,
+hosted/registry and human AT/device acceptance remain unqualified. No publication
+or deployment is part of the slice.
+
+**Recommended next:** native v3 Mermaid projection/export with explicit group-port
+representation findings and exact-output loss review. Keep remaining native
+patch/receipt/packet/audit adapters and advanced tools open until qualified.
+
+## 2026-11-16 — Native v3 Mermaid projection and exact loss review
+
+- Optional `exportGroupMermaidV3` validates full native documents before shared
+  syntax generation. A distinct `foldkit-zloz-mermaid/v3` bundle retains world
+  convention, mode/capability and native node/edge/scoped-port/hierarchy identity.
+  Legacy exporters/readers and CLI writer entries remain version-fixed.
+- Group links become subgraph boundary links. Missing socket artwork, labels,
+  anchors and exact attachment are explicit findings, alongside camera, layout,
+  future rules and omitted semantic/data fields. Default loss rejection remains;
+  errors (including empty groups) never become consentable partial output.
+- Native review binds source scope/revision/full document, direction, name and
+  exact output/findings to consent; current policy, pending runs and stale
+  settlement guards protect Command payloads. Projection/download never edit
+  source, revision or Undo. Read-only editions have independent review scopes.
+- Optional composable Foldkit controls provide safe highlighted source, direction,
+  findings, consent and download with nullable part/finding/layout slots. The
+  left-sidebar demo composes readable finding names with exact ID tooltips;
+  minimal mode keeps required reasons/findings. Core's existing theme mapper is
+  exposed through the optional Foldkit entry so adapters share scoped tokens.
+- [ADR 0113](adr/0113-export-native-v3-mermaid-with-exact-loss-review.md) and
+  [qualification](../packages/foldkit-zloz-mermaid/evidence/group-v3.md) document
+  unit/installed/SSR and actual browser download evidence. The pinned Mermaid 12.3
+  oracle independently parses/renders eleven native sources, including group
+  self/child/boundary links, nested loose endpoints and actual workbench exports.
+
+Mermaid remains a static projection with explicit loss, not a canonical model or
+production import/round trip. No product parser/renderer, hidden full-graph metadata,
+new runtime dependency, hosted/registry activation or npm publication is included.
+Empty groups, native patch/receipt/packet/audit adoption, broad performance and
+human device/screen-reader acceptance remain separate work.
+
+**Recommended next:** native v3 modelling-patch dry run, retaining group ports,
+mode/capability, provenance and source checks before any Apply. This closes the
+next agent-facing portability gap without implying unqualified write authority.
+
+## 2026-11-16 — Native v3 core completion and release candidate
+
+This entry supersedes the preceding native v3 authoring recommendation and reconciles
+C1/C2 against the implemented package APIs. Historical entries above retain their
+original local/hosted evidence boundaries.
+
+| Remaining core workflow            | Implementation/evidence owner                                                                                                       | Disposition                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Native modelling patches           | `capture/parse/dryRunModellingPatchV3`, source-bound review/Apply, strict recomputed receipts, live policies and one Undo           | Implemented locally; candidate qualification recorded below                        |
+| Native C4/DDD conversions          | V3 preview/plan/consent/Apply and strict portable receipts, preserving every checkpoint capability/mode and source provenance       | Implemented locally                                                                |
+| Native audit/edition deltas        | Full-document DDD/EventStorming auditors and comparisons; Effect CLI structured read-only commands                                  | Implemented locally                                                                |
+| Portable review packets            | Optional Mermaid v3 creation, strict recomputation/reopening, independent read-only native editor                                   | Implemented locally; explicit projection loss review                               |
+| Native direct interactions         | Resize, port-anchor drag/nudge, reconnect, box selection and opt-in pinch; scoped input with live source/policy and atomic Undo     | Implemented locally; Chromium synthetic pinch distinguished from human touch       |
+| Mounted review/files               | Workbench explicit mapping/provenance/loss review, guarded Apply, atomic receipt retention/download and bounded read-only reopening | Implemented locally; stale/corrupt-file recovery covered                           |
+| C3 hydration and consumers         | Native page-owner SSR→hydration→interaction fixtures, real installed Node/Bun and Bundler/NodeNext consumer contracts               | Qualification matrix and exact results in release record                           |
+| C4/Q performance and accessibility | Provisional Chromium/Firefox/WebKit + mobile viewport, 100/1,000 flat/nested scenarios; axe, focus and recovery                     | Automated evidence; numeric budgets and human device/AT acceptance remain explicit |
+| R delivery                         | Main integrated, root/clean-CI/PR checks and linked 0.6.0 candidate preparation                                                     | Record observed results in release candidate; no npm publication                   |
+
+The finite engineering scope and acceptance contract are in
+[the completion checklist](specs/2026-11-16-zloz-release-completion.md).
+The [0.6.0 candidate](releases/zloz-0.6.0-candidate.md) contains draft notes, the
+linked package/peer matrix, reproducible qualification, human acceptance rows and
+explicit remaining limits. CLI and Alchemy remain private. No new Flow package is
+eligible for release.
+
+This closes the approved main native v3 engineering scope when its checks/evidence
+are green. It does not close every advanced catalogue item or infer physical-device,
+screen-reader, hosted or registry acceptance. World coordinates and rectangular
+group envelopes remain deliberate. Rotation, lasso/freehand, dedicated multi-connect
+UI, production Mermaid import and server PNG remain outside this release.
+
+**Recommended next:** finish human release acceptance, then review the regenerated
+linked 0.6.0 release PR. Keep npm publication off until separately authorized.

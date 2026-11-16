@@ -1,5 +1,8 @@
 import type { ZlozConnectionMode } from './connection-mode';
 import { isNode, isEdge, isGraph, validateGraphForConnectionMode, ZlozError } from './graph';
+/* oxlint-disable anti-slop/no-runtime-typeof -- Versioned data validation owns inputs before scalar/native contract checks. */
+import { captureGroupDocumentV3, type ZlozGroupDocumentV3 } from './group-document-v3';
+import { assertGroupGeometryConstraintsV3 } from './group-operations-v3';
 import { ownPortableData, PortableDataError, portableDataLimits } from './portable-data';
 import type { JsonObject, JsonValue, ZlozGraph, ZlozNode, ZlozEdge } from './types';
 
@@ -25,7 +28,7 @@ export type ZlozModellingPatchOperation = Readonly<{ id: string }> &
   );
 /** Complete graph proposal; no merge semantics, implicit cascades, generated IDs or editor state. */
 export type ZlozModellingPatch<
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
   S extends ZlozModellingPatchSource = ZlozModellingPatchSource,
 > = Readonly<{
   format: 'foldkit-zloz-patch';
@@ -66,7 +69,7 @@ export type ZlozModellingPatchFinding = Readonly<{
   message: string;
 }>;
 export type ZlozModellingPatchCandidate<
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
   S extends ZlozModellingPatchSource = ZlozModellingPatchSource,
 > = Readonly<{
   patch: ZlozModellingPatch<V, S>;
@@ -75,7 +78,7 @@ export type ZlozModellingPatchCandidate<
   losses: readonly ZlozModellingPatchLoss[];
 }>;
 export type ZlozModellingPatchPreview<
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
   S extends ZlozModellingPatchSource = ZlozModellingPatchSource,
 > =
   | Readonly<{ type: 'rejected'; findings: readonly ZlozModellingPatchFinding[] }>
@@ -83,7 +86,7 @@ export type ZlozModellingPatchPreview<
       Readonly<{ type: 'reviewable' | 'blocked'; findings: readonly ZlozModellingPatchFinding[] }>);
 /** Pure live review policies, separate from portable proposals and future editor Apply policies. */
 export type ZlozModellingPatchOptions<
-  V extends 1 | 2 = 1,
+  V extends 1 | 2 | 3 = 1,
   S extends ZlozModellingPatchSource = ZlozModellingPatchSource,
 > = Readonly<{
   blockedReason?: string | null;
@@ -149,7 +152,7 @@ function assertSource(value: unknown): asserts value is ZlozModellingPatchSource
   validateGraphForConnectionMode(value.graph, 'strict');
 }
 /** Validate/detach/freeze an object proposal. Invalid input throws the existing ZlozError contract. */
-function assertPatch<V extends 1 | 2, S extends ZlozModellingPatchSource>(
+function assertPatch<V extends 1 | 2 | 3, S extends ZlozModellingPatchSource>(
   value: unknown,
   version: V,
   checkSource: (value: unknown) => asserts value is S,
@@ -255,7 +258,7 @@ const rejected = (
 const denial = (reason: string | null | undefined) =>
   reason == null ? null : reason.trim() || 'Modelling patch is protected.';
 /** Rebuild a detached proposal from current source. Never edits, imports, commits or grants Apply authority. */
-function runModellingPatch<V extends 1 | 2, S extends ZlozModellingPatchSource>(
+function runModellingPatch<V extends 1 | 2 | 3, S extends ZlozModellingPatchSource>(
   source: S,
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Shared decoder boundary owns and validates external proposals before domain use.
   input: unknown,
@@ -264,6 +267,7 @@ function runModellingPatch<V extends 1 | 2, S extends ZlozModellingPatchSource>(
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Shared decoder boundary owns and validates external proposals before domain use.
   capture: (value: unknown) => ZlozModellingPatch<V, S>,
   modeOf: (source: S) => ZlozConnectionMode,
+  validateTarget?: (graph: ZlozGraph, source: S) => void,
 ): ZlozModellingPatchPreview<V, S> {
   const current = ownedData(source);
   checkSource(current);
@@ -420,7 +424,8 @@ function runModellingPatch<V extends 1 | 2, S extends ZlozModellingPatchSource>(
   });
   // oxlint-disable-next-line linteffect/no-try-catch -- Final combined graph invariants become findings; no partial graph is returned.
   try {
-    validateGraphForConnectionMode(graph, mode);
+    if (validateTarget) validateTarget(graph, current);
+    else validateGraphForConnectionMode(graph, mode);
   } catch (error) {
     if (!(error instanceof ZlozError)) throw error;
     return rejected([...findings, finding('invalid-graph', error.message, '/graph')]);
@@ -479,5 +484,56 @@ export function dryRunModellingPatchV2(
     assertSourceV2,
     captureModellingPatchV2,
     (current) => current.connectionMode,
+  );
+}
+
+export type ZlozModellingPatchSourceV3 = ZlozModellingPatchSource & ZlozGroupDocumentV3;
+export type ZlozModellingPatchV3 = ZlozModellingPatch<3, ZlozModellingPatchSourceV3>;
+export type ZlozModellingPatchPreviewV3 = ZlozModellingPatchPreview<3, ZlozModellingPatchSourceV3>;
+export type ZlozModellingPatchOptionsV3 = ZlozModellingPatchOptions<3, ZlozModellingPatchSourceV3>;
+/** @internal Full native checkpoint, without host scope metadata. */
+export function patchGroupDocumentV3(source: ZlozModellingPatchSourceV3): ZlozGroupDocumentV3 {
+  const { modelId: _model, sessionId: _session, revision: _revision, ...document } = source;
+  return captureGroupDocumentV3(document);
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Native patch source is a bounded data boundary.
+function assertSourceV3(value: unknown): asserts value is ZlozModellingPatchSourceV3 {
+  const owned = ownedData(value);
+  if (
+    !record(owned) ||
+    !text(owned.modelId) ||
+    !text(owned.sessionId) ||
+    typeof owned.revision !== 'number' ||
+    !Number.isSafeInteger(owned.revision) ||
+    owned.revision < 0
+  )
+    invalid('/source', 'Native patch source requires model/session and a safe revision.');
+  const { modelId: _model, sessionId: _session, revision: _revision, ...document } = owned;
+  captureGroupDocumentV3(document);
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- External proposals are owned before version/native validation.
+export function captureModellingPatchV3(input: unknown): ZlozModellingPatchV3 {
+  const value = ownedData(input);
+  assertPatch(value, 3, assertSourceV3);
+  return value;
+}
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Existing shared dry-run boundary validates external intent.
+export function dryRunModellingPatchV3(
+  source: ZlozModellingPatchSourceV3,
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- Owned strict proposal boundary, shared with the versioned text decoder.
+  input: unknown,
+  options: ZlozModellingPatchOptionsV3 = {},
+): ZlozModellingPatchPreviewV3 {
+  return runModellingPatch(
+    source,
+    input,
+    options,
+    assertSourceV3,
+    captureModellingPatchV3,
+    (current) => current.connectionMode,
+    (graph, current) => {
+      captureGroupDocumentV3({ ...patchGroupDocumentV3(current), graph });
+      assertGroupGeometryConstraintsV3(current.graph, graph);
+    },
   );
 }

@@ -21,6 +21,7 @@ import {
   type ZlozDddRelationshipOptions,
 } from './ddd-relationships';
 import { validateGraphForConnectionMode, ZlozError } from './graph';
+import { captureGroupDocumentV3, type ZlozGroupDocumentV3 } from './group-document-v3';
 import type { ZlozGraph } from './types';
 
 /** Explicit workshop choices, not editor events or permission to convert. Null retains source meaning. */
@@ -95,8 +96,10 @@ function previewDdd(
   graph: ZlozGraph,
   options: ZlozEventStormingDddMappingOptions,
   mode: ZlozConnectionMode,
+  native?: ZlozGroupDocumentV3,
 ): ZlozEventStormingDddPreview {
-  validateGraphForConnectionMode(graph, mode);
+  if (native) captureGroupDocumentV3(native);
+  else validateGraphForConnectionMode(graph, mode);
   checkedDddRelationshipRules(options.relationships ?? {});
   const notes = graph.nodes.filter((node) => node.architecture?.family === 'event-storming');
   const noteIds = new Set(notes.map((node) => node.id));
@@ -315,4 +318,12 @@ export function previewEventStormingDddMappingV2(
 ): ZlozEventStormingDddPreview {
   const checked = parseConnectionDocument(serializeConnectionDocument(document));
   return previewDdd(checked.graph, options, checked.connectionMode);
+}
+
+export function previewEventStormingDddMappingV3(
+  document: ZlozGroupDocumentV3,
+  options: ZlozEventStormingDddMappingOptions = {},
+): ZlozEventStormingDddPreview {
+  const source = captureGroupDocumentV3(document);
+  return previewDdd(source.graph, options, source.connectionMode, source);
 }

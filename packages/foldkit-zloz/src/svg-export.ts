@@ -258,6 +258,15 @@ export function planSvgExport(
   options: ZlozSvgExportOptions,
 ): ZlozSvgExportPlan {
   const graph = copyGraph(snapshot.graph);
+  return planSvgProjection({ ...snapshot, graph }, options, () => serializeGraph(graph));
+}
+/** @internal Shared geometry/fidelity projection. Each public entry must own and validate its full versioned source first. */
+export function planSvgProjection(
+  snapshot: ZlozSnapshot,
+  options: ZlozSvgExportOptions,
+  sourceKey: () => string,
+): ZlozSvgExportPlan {
+  const graph = snapshot.graph;
   const title = text(options.title);
   if (options.description !== undefined && !isString(options.description))
     invalid('Export description must be literal text.');
@@ -457,10 +466,7 @@ export function planSvgExport(
     const captured = options.layout.snapshot;
     text(options.layout.renderKey);
     text(captured.renderKey);
-    if (
-      captured.source !== serializeGraph(graph) ||
-      captured.renderKey !== options.layout.renderKey
-    )
+    if (captured.source !== sourceKey() || captured.renderKey !== options.layout.renderKey)
       add(
         'layout-stale',
         'unsupported',

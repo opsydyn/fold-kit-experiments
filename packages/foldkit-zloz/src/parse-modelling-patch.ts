@@ -2,6 +2,8 @@ import { ZlozError } from './graph';
 import {
   captureModellingPatch,
   captureModellingPatchV2,
+  captureModellingPatchV3,
+  type ZlozModellingPatchV3,
   type ZlozModellingPatchV2,
   modellingPatchLimits,
   PatchValidationError,
@@ -72,7 +74,7 @@ export function preflightPortableJson(text: string, maxDepth: number, maxValues:
 function parsePatch<P>(
   text: string,
   options: ZlozModellingPatchParseOptions,
-  version: 1 | 2,
+  version: 1 | 2 | 3,
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- The injected version-specific capture validates the raw parsed proposal.
   capture: (input: unknown) => P,
 ): ZlozModellingPatchParseResult<P> {
@@ -144,4 +146,11 @@ export function readPortableEvidenceJson(text: string): JsonValue {
       throw new ZlozError('invalid-edit', error.message);
     throw error;
   }
+}
+
+export function parseModellingPatchV3(
+  text: string,
+  options: ZlozModellingPatchParseOptions = {},
+): ZlozModellingPatchParseResult<ZlozModellingPatchV3> {
+  return parsePatch(text, options, 3, captureModellingPatchV3);
 }

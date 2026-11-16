@@ -210,8 +210,9 @@ console.log(JSON.stringify({workflow_runs:[{head_sha:sha,status:'completed',conc
   expect({ status: accepted.status, stderr: accepted.stderr }).toEqual({ status: 0, stderr: '' });
   expect(readFileSync(log, 'utf8').trim().split('\n')).toEqual([controller, product]);
   writeFileSync(join(directory, 'packages/foldkit-zloz/README.md'), 'changed product');
-  git('add', '.');
+  git('add', 'packages/foldkit-zloz/README.md');
   git('commit', '-qm', 'forbidden product change');
+  expect(git('diff', '--name-only', controller, 'HEAD')).toBe('packages/foldkit-zloz/README.md');
   env.GITHUB_SHA = git('rev-parse', 'HEAD');
   const rejected = run();
   expect(rejected.status).not.toBe(0);

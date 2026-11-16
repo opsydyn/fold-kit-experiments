@@ -1453,6 +1453,26 @@ export type Xr = {
    * `heading`. `null` to leave the sticks to the application (`XrStick`, `locomote`).
    */
   readonly glide: XrGlide | null;
+  /**
+   * A teleport arc on one hand, as pmndrs/xr's teleport pointer: while that hand holds
+   * select, a curve falls from its controller to where it meets one of `targets`; letting
+   * go there reports `XrTeleported`, for the Model's `origin`. `null`: no arc.
+   */
+  readonly teleportArc: XrTeleportArc | null;
+  /**
+   * Seconds between reports of where the player's head and hands are (`XrPoses` events,
+   * in the scene's space), for showing the player to others (`avatar`); `null` for none.
+   */
+  readonly poses: number | null;
+};
+
+/** Which hand holds the teleport arc, what it may land on, and how it is drawn. */
+export type XrTeleportArc = {
+  readonly hand: 'left' | 'right';
+  /** Keys of the nodes the player may teleport onto (their meshes and their children's). */
+  readonly targets: ReadonlyArray<string>;
+  readonly color: Rgb;
+  readonly opacity: number;
 };
 
 /** An anchor the description places: its id, and where in the scene (Euler rotation). */

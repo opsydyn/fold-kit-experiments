@@ -10,6 +10,7 @@
  * - a tips label follows your left hand or controller (`jointSpace`, `controllerSpace`).
  */
 import {
+  avatar,
   basic,
   box,
   circle,
@@ -28,6 +29,7 @@ import {
   plane,
   planeSpace,
   pointLight,
+  teleportArc,
   renderSettings,
   scene,
   type SceneNode,
@@ -42,6 +44,7 @@ import {
 
 import { paintColour } from '../palette';
 import type { Model, Plant, PlantKind } from './model';
+import { type Other, reportSeconds } from './wire';
 
 const piece = (
   key: string,
@@ -266,7 +269,7 @@ const tips = (model: Model): ReadonlyArray<SceneNode> => {
   const text =
     model.session === 'immersive-ar'
       ? 'Point at a surface and pull the trigger (or pinch) to plant.'
-      : 'Left stick glides, right stick turns. Point at the floor and pull the trigger to plant.';
+      : 'Left stick glides, right stick turns. Hold the left trigger to aim an arc, let go to jump there; the right trigger plants.';
   const tip = (key: string) =>
     label({
       key,
@@ -293,6 +296,21 @@ const tips = (model: Model): ReadonlyArray<SceneNode> => {
   ];
 };
 
+const avatarColours = Object.values(paintColour);
+
+/** A colour for a player, the same on every page: from their name. */
+const colourOf = (peer: string): number =>
+  avatarColours[
+    [...peer].reduce((sum, char) => sum + char.charCodeAt(0), 0) % avatarColours.length
+  ] ?? paintColour.periwinkle;
+
+/** Another player, where they last said they were, easing between reports. */
+const otherNode = (other: Other): SceneNode =>
+  avatar(`avatar:${other.peer}`, other.poses, {
+    color: colourOf(other.peer),
+    seconds: reportSeconds,
+  });
+
 export const sceneFor = (model: Model) => {
   const inAr = model.session === 'immersive-ar';
   return scene({
@@ -304,6 +322,9 @@ export const sceneFor = (model: Model) => {
       anchors: inAr
         ? model.plants.map((plant) => xrAnchor({ id: plant.id, position: plant.at }))
         : [],
+      // In VR the left hand's select throws a teleport arc onto the floor; in AR the room
+      // is the real one, and the player walks.
+      teleportArc: inAr ? null : teleportArc({ targets: ['floor'] }),
     },
     environment: inAr ? null : environment({ environmentIntensity: 0.45 }),
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces', exposure: 1.05 }),
@@ -333,6 +354,7 @@ export const sceneFor = (model: Model) => {
         }),
       ),
       ...tips(model),
+      ...model.others.map(otherNode),
     ],
   });
 };

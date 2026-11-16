@@ -15,6 +15,7 @@
 import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Gestures, Vec3 } from './description.ts';
+import type { XrPoses } from './presence.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 import type { XrButtonName, XrHand, XrMesh, XrPlane, XrStickDirection } from './xrInput.ts';
 
@@ -247,6 +248,27 @@ export type SceneEvent =
    * in the Model's `xr({ origin, heading })`.
    */
   | { readonly _tag: 'XrMoved'; readonly origin: Vec3; readonly heading: number }
+  /**
+   * A teleport arc (`xr({ teleportArc })`) was let go over a target: the point it landed
+   * on, and where the player's origin goes so their head stands over it, to keep in the
+   * Model's `xr({ origin })` (`teleported`).
+   */
+  | {
+      readonly _tag: 'XrTeleported';
+      readonly hand: XrHand;
+      readonly point: Vec3;
+      readonly origin: Vec3;
+    }
+  /**
+   * Where the player's head and hands are, in the scene's space, reported every
+   * `xr({ poses })` seconds while presenting: for showing the player to others (`avatar`).
+   */
+  | {
+      readonly _tag: 'XrPoses';
+      readonly head: XrPoses['head'];
+      readonly left: XrPoses['left'];
+      readonly right: XrPoses['right'];
+    }
   /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
   | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */

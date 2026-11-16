@@ -2,20 +2,25 @@ import {
   anchorSpace,
   box,
   controllerSpace,
+  fixed as fixedRotation,
   glide,
   group,
   type GroupNode,
   headSpace,
   jointSpace,
   mesh,
+  type MeshNode,
   meshSpace,
+  plane,
   planeSpace,
   standard,
+  teleportArc,
   xrAnchor,
   xrMesh,
   type XrAnchor,
   type XrGlide,
   type XrSpace,
+  type XrTeleportArc,
 } from '@opsydyn/effect-three';
 /**
  * Plain helpers for the XR page: the emulator shim, and reading the presented scene's
@@ -165,9 +170,11 @@ export const describeEvent = (event: Event): string => {
     .filter((part) => part !== undefined)
     .map(String);
   // Where surfaces and glides ended (pointer events' hit points are left out).
-  const place = { 'scene-xr-surface': field('point'), 'scene-xr-moved': field('origin') }[
-    event.type
-  ];
+  const place = {
+    'scene-xr-surface': field('point'),
+    'scene-xr-moved': field('origin'),
+    'scene-xr-teleported': field('origin'),
+  }[event.type];
   if (Array.isArray(place)) parts.push(place.map((value: number) => fixed(value, 1)).join(','));
   // Each plane or mesh reported: its id, label and where it is.
   for (const found of [field('planes'), field('meshes')]) {
@@ -178,6 +185,25 @@ export const describeEvent = (event: Event): string => {
     }
   }
   return [event.type.replace('scene-', ''), ...parts].join(' ');
+};
+
+/**
+ * The teleport arc as the session draws it: whether its line shows, and where its landing
+ * ring is (the visible ring mesh in the inputs group), `undefined` while it is hidden.
+ */
+export const arcShown = (
+  scenes: ReadonlyArray<unknown>,
+): { readonly shown: boolean; readonly ring: ReadonlyArray<number> | undefined } => {
+  let shown = false;
+  let ring: ReadonlyArray<number> | undefined;
+  for (const scene of scenes) {
+    if (!(scene instanceof Object3D)) continue;
+    scene.getObjectByName('xr-inputs')?.traverse((object) => {
+      if (object.name === 'teleport-arc' && object.visible) shown = true;
+      if (object.name === 'teleport-ring' && object.visible) ring = object.position.toArray();
+    });
+  }
+  return { shown, ring };
 };
 
 /** What the session draws for its inputs: visible rays, and hand joint spheres placed. */
@@ -206,6 +232,32 @@ export const framesDrawn = (renderer: ThreeRenderer | undefined): number => {
 /** Gliding with the sticks when the page's address has `?glide`; otherwise none. */
 export const glideFromAddress = (search: string): XrGlide | null =>
   new URLSearchParams(search).has('glide') ? glide() : null;
+
+/** `?poses`: the head and hands reported every tenth of a second. */
+export const posesFromAddress = (search: string): number | null =>
+  new URLSearchParams(search).has('poses') ? 0.1 : null;
+
+/** A poses event's detail, as the page heard it. */
+export const posesOf = (event: Event): unknown =>
+  event instanceof CustomEvent ? event.detail : undefined;
+
+/** `?teleport`: a teleport arc on the left hand, and a floor node for it to land on. */
+export const teleportFromAddress = (
+  search: string,
+): { readonly arc: XrTeleportArc | null; readonly floor: ReadonlyArray<MeshNode> } =>
+  new URLSearchParams(search).has('teleport')
+    ? {
+        arc: teleportArc({ targets: ['floor'] }),
+        floor: [
+          mesh({
+            key: 'floor',
+            rotation: fixedRotation([-Math.PI / 2, 0, 0]),
+            geometry: plane({ width: 40, height: 40 }),
+            material: standard(),
+          }),
+        ],
+      }
+    : { arc: null, floor: [] };
 
 /** The groups the `?spaces` page has follow tracked spaces, by key. */
 const following: ReadonlyArray<readonly [string, XrSpace]> = [

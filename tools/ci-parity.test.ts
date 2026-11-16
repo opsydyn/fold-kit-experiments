@@ -479,6 +479,10 @@ const RELATIVE = /['"`](\.\.\/[^'"`$\s]*)/g;
  */
 const NOT_READS: ReadonlyMap<string, string> = new Map([
   [
+    'packages/effect-three-samples/scripts/scene-mcp.ts :: ../../../node_modules/.bin/foldkit-devtools-mcp',
+    'the Foldkit DevTools MCP server it starts when run, not a file a task reads',
+  ],
+  [
     'apps/promo/test/comparison-source.test.ts :: ../../',
     "the apps folder, as the source collector's base; it reads promo's files and apps/web/src (the reads-web-sources tag)",
   ],

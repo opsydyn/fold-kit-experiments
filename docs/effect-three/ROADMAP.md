@@ -13,6 +13,9 @@ traces the reference before designing (the R3F reference rule in `CLAUDE.md`).
 **Status key:** ✅ done · 🟡 partial · ❌ missing · ⏸ designed for, not built.
 **Sizes:** S ≈ ≤1 day · M ≈ 2–4 days · L ≈ a week or more.
 
+**Closed (2026-11-16):** all done but the real-device XR checks, which need a headset;
+see [Closed](#closed-2026-11-16).
+
 ## Where we are (2026-10-18)
 
 R1 to R5 are done: everything in the tables below is ✅. A scene can hold meshes (nine shapes and text), instances,
@@ -202,8 +205,9 @@ request. (Labels under WebGPU were a third, until E.)
   sample now runs under `?renderer=webgpu`, labels included, and the label e2e runs on
   WebGL, WebGPU and WebGPU's WebGL 2 backend. Not ported: clip rectangles, inner strokes
   and outline offsets (`LabelNode` has none), and label shadows.
-- Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
-  `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
+- ⏸ Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
+  `WebGPURenderer`, the DOM overlay and co-presence; they retire the documented limits.
+  The steps are in [real-device-checks.md](real-device-checks.md).
 - ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
   a Model pattern, a sized candidate, or out of scope with a reason.
 - ✅ The audit's S candidates, each traced from Drei at `bf6f4ad`:
@@ -285,8 +289,14 @@ Effect owns every lifetime.
    world's latest stops, and a run starts from one by step. The tabletop with
    `?predict=1` runs its world to the turn it sends, shows its own throws at once, and
    rolls back a few steps when another's lands where its world has been; checked with
-   real Rapier worlds over a network two turns late. Next: XR co-presence, other
-   players' heads and hands as tracked spaces in a shared session.
+   real Rapier worlds over a network two turns late.
+   ✅ Then co-presence ([ADR-020](adr/020-co-presence.md), 2026-11-16): `xr({ poses })`
+   reports where the player's head and hands are as `XrPoses`, in the scene's space, and
+   `avatar(key, poses)` draws another player from what they sent, each part easing
+   between reports. Poses are latest-wins state, so they travel beside a lockstep
+   session on the same transport rather than through its turns. The XR room shows the
+   other players presenting it, between tabs or through the relay; checked in an
+   emulated Quest 3 and across browser contexts.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -304,8 +314,13 @@ Effect owns every lifetime.
    intents, `PlacedThing`, `FramedShot` and `ChoseMood`, exported to the DevTools MCP
    server; an agent placed things, chose a mood and framed a shot through it, and a mood
    the schema does not know was refused (checked end to end in a headless browser).
-   Next: tools that answer with a scene's description directly, rather than the raw
-   Model.
+   ✅ Then scene tools (2026-11-16): `bun run scene-mcp`, registered in `.mcp.json` as
+   `effect-three-scenes`, is an MCP server whose tools answer with a scene rather than
+   the raw Model: `scene_describe` (the `formatSummary` lines), `scene_check` (schemas,
+   then the scene's own rules, naming the behaviours an app must register),
+   `scene_preview` (SVG) and `scene_diff`. A scene comes from a saved file, from text,
+   or from a running app's Model path, read through `@foldkit/devtools-mcp`; checked end
+   to end against the editor in a headless browser.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
@@ -352,8 +367,12 @@ Effect owns every lifetime.
    `pointTape` and `tapeNodes` (two clicked ends, a dashed run to the pointer while the
    second is placed, optional snapping), and the adapter's `MeasuringTape` with its
    length as an overlay at the middle. The arrange example measures between anything on
-   the table. Next: the XR teleport arc, the last widget of 5 (`teleport` today moves
-   the player to where a straight ray points).
+   the table.
+   ✅ Last, the XR teleport arc (ADR-008, since): pmndrs/xr's teleport pointer, its
+   curve and aim pure in the core (`arcAim`, `arcPoints`, `arcHit`, `teleportOrigin`),
+   drawn by the session while the arc's hand holds select, and reported as
+   `XrTeleported` when let go over a target. The XR room's left hand jumps with it in VR.
+   With it, every widget of 5 is done.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -407,15 +426,16 @@ first; a scene previews as SVG without a browser; and Rapier steps in a worker b
 same engine contract. A newcomer to a lockstep session starts from the leader's
 snapshot, and a predicting peer rolls back for late inputs (2).
 
-Still open:
+Agents read scenes through MCP tools that describe, check, preview and diff them (3),
+and players presenting the XR room see one another's heads and hands (2).
 
-- XR co-presence (2): other players' heads and hands as tracked spaces, over the
-  lockstep session and relay that already exist.
-- The XR teleport arc (5), the last interaction widget.
-- Agent tools that answer with a scene's description (`describeScene`) rather than the
-  raw Model (3).
-- Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on
-  `WebGPURenderer`, and the DOM overlay. Until then they stay documented limits.
+## Closed (2026-11-16)
+
+Every item above is done but one, which needs hardware: the real-device XR checks (E),
+listed step by step in [real-device-checks.md](real-device-checks.md). Until someone runs
+them with a headset, WebXR on `WebGPURenderer`, the DOM overlay and co-presence on real
+grips stay documented limits; everything else XR is checked under emulation. New work
+starts a new roadmap rather than reopening this one.
 
 ## Not planned
 

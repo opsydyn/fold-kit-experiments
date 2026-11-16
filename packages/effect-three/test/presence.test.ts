@@ -65,7 +65,11 @@ test('an avatar has a head where the player looks, and the hands they have track
   const euler = rotation?._tag === 'Fixed' ? rotation.euler : [0, 0, 0];
   expect(euler[1]).toBeCloseTo(Math.PI / 4, 9);
   // Each part eases to its next pose over the report interval.
-  expect(left?.transition).toEqual({ _tag: 'Ease', seconds: 0.1, easing: 'linear' });
+  expect(left?._tag === 'Group' && left.transition).toEqual({
+    _tag: 'Ease',
+    seconds: 0.1,
+    easing: 'linear',
+  });
   expect(avatar('a', { ...poses, left: null }).children.map(keys)).toEqual(['a-head']);
   expect(avatar('a', { ...poses, right: poses.head }).children.map(keys)).toEqual([
     'a-head',

@@ -263,7 +263,12 @@ export type SceneEvent =
    * Where the player's head and hands are, in the scene's space, reported every
    * `xr({ poses })` seconds while presenting: for showing the player to others (`avatar`).
    */
-  | ({ readonly _tag: 'XrPoses' } & XrPoses)
+  | {
+      readonly _tag: 'XrPoses';
+      readonly head: XrPoses['head'];
+      readonly left: XrPoses['left'];
+      readonly right: XrPoses['right'];
+    }
   /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
   | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */

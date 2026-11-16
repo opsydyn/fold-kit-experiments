@@ -5779,9 +5779,12 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 * Where the player's head and hands are, in the scene's space, reported every
 * `xr({ poses })` seconds while presenting: for showing the player to others (`avatar`).
 */
-| ({
+| {
     readonly _tag: 'XrPoses';
-} & XrPoses)
+    readonly head: XrPoses['head'];
+    readonly left: XrPoses['left'];
+    readonly right: XrPoses['right'];
+}
 /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
 | {
     readonly _tag: 'XrPlanes';
@@ -7971,9 +7974,12 @@ export type XrInput =
     readonly origin: Vec3;
 }
 /** Where the player's head and hands are (`xr({ poses })`), in the scene's space. */
-| ({
+| {
     readonly _tag: 'Poses';
-} & XrPoses)
+    readonly head: XrPoses['head'];
+    readonly left: XrPoses['left'];
+    readonly right: XrPoses['right'];
+}
 /** The detected planes changed: all of them, as they are now. */
 | {
     readonly _tag: 'Planes';

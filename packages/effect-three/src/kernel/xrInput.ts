@@ -92,7 +92,12 @@ export type XrInput =
       readonly origin: Vec3;
     }
   /** Where the player's head and hands are (`xr({ poses })`), in the scene's space. */
-  | ({ readonly _tag: 'Poses' } & XrPoses)
+  | {
+      readonly _tag: 'Poses';
+      readonly head: XrPoses['head'];
+      readonly left: XrPoses['left'];
+      readonly right: XrPoses['right'];
+    }
   /** The detected planes changed: all of them, as they are now. */
   | { readonly _tag: 'Planes'; readonly planes: ReadonlyArray<XrPlane> }
   /** The detected meshes changed: all of them, as they are now. */

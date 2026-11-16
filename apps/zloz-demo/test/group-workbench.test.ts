@@ -305,3 +305,23 @@ test('native PNG protection, layout readiness and review scopes are current at a
   );
   expect(oldDownload.model).toBe(model);
 });
+test('native clipboard demo keeps editor publication in package controls with current protection, camera and one Undo', () => {
+  let model = input(initial(), { type: 'NodeSelected', id: 'orders', additive: false });
+  const original = ready(model).workbench.editor;
+  model = input(model, { type: 'CopyPressed' });
+  const clipboard = ready(model).workbench.clipboard;
+  expect(ready(model).workbench.editor).toBe(original);
+  expect(ready(model).workbench.clipboardFindings[0]?.code).toBe('boundary-edge-omitted');
+  model = update(model, Message.ClickedProtection()).model;
+  model = input(model, { type: 'PastePressed' });
+  expect(ready(model).workbench.editor).toBe(original);
+  expect(ready(model).workbench.status).toContain('published interface is protected');
+  model = update(model, Message.ClickedProtection()).model;
+  model = input(model, { type: 'PastePressed' });
+  expect(ready(model).workbench.editor.document.graph.nodes).toHaveLength(5);
+  expect(ready(model).workbench.editor.history.past).toHaveLength(1);
+  expect(ready(model).workbench.editor.document.graph.nodes[3]?.position.y).toBe(480);
+  model = input(model, { type: 'UndoPressed' });
+  expect(ready(model).workbench.editor.document).toEqual(original.document);
+  expect(ready(model).workbench.clipboard).toBe(clipboard);
+});

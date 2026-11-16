@@ -387,7 +387,7 @@ const undoEvent:ZlozGroupEditorEventV3={type:'UndoPressed',source:captureGroupEd
 const undone=updateGroupEditorV3(applied.editor,undoEvent,policy);
 const redone=updateGroupEditorV3(undone.editor,{type:'RedoPressed',source:captureGroupEditorSourceV3(undone.editor)},policy);
 if(undone.type!=='applied'||redone.type!=='applied'||undone.editor.document.viewport?.x!==12||redone.editor.document.viewport?.x!==40||!undone.editor.document.capabilities.groupPorts||redone.editor.revision!==3||checked.length!==3)throw new Error('Lost v3 history capability/mode/camera');
-const boundary:ZlozGroupEditorBoundaryV3='clipboard';
+const boundary:ZlozGroupEditorBoundaryV3='mermaid';
 if(resolveGroupEditorBoundaryV3(session,boundary).type!=='blocked'||applyGroupEditorTransactionV3(applied.editor,transaction).type!=='blocked')throw new Error('Missing v3 compatibility/source protection');
 if(false){
 // @ts-expect-error legacy reducer cannot consume v3 sessions.
@@ -423,6 +423,16 @@ const selectedV3=updateGroupWorkbenchV3(nativeV3,{type:'NodeSelected',id:'g',add
 if(groupWorkbenchGraphV3(selectedV3).nodes.length!==3||updateGroupWorkbenchV3(selectedV3,{type:'SelectionNudged',delta:{x:20,y:0}}).editor.history.past.length!==1)throw new Error('V3 native controller missing');
 const mergedV3=mergeEditionsV3(v3Model.editions,v3Model.editions);
 if(mergedV3.type!=='unchanged'||compareEditionsV3(v3Model.editions[0]!,v3Model.editions[0]!).semanticChanged||forkModelDocumentV3(v3Model,'first',{id:'forked-v3',name:'Fork'}).origin?.modelId!=='packed-v3'||restoreModelEditionV3(v3Model,v3Editor,{source:captureGroupEditorSourceV3(v3Editor),modelId:v3Model.id,edition:v3Model.editions[0]!}).type!=='unchanged')throw new Error('V3 model workflow missing');
+import {copyGroupSelectionV3,groupPasteRequestV3,planGroupPasteV3,applyGroupPasteV3,type ZlozGroupPasteRequestV3,type ZlozGroupClipboardV3} from '@opsydyn/foldkit-zloz';
+const copiedNative=copyGroupSelectionV3(v3Editor,['g','b']);
+if(copiedNative.type!=='copied')throw new Error('Installed native copy missing');
+const clipboardNative:ZlozGroupClipboardV3=copiedNative.clipboard;
+const pasteNative:ZlozGroupPasteRequestV3=groupPasteRequestV3(v3Editor,clipboardNative,{offset:{x:40,y:40}});
+if(planGroupPasteV3(v3Editor,pasteNative).type!=='ready'||applyGroupPasteV3(v3Editor,pasteNative).editor.history.past.length!==1||applyGroupPasteV3(v3Editor,pasteNative,{canEditPort:()=> 'Locked'}).type!=='blocked')throw new Error('Installed native clipboard lost policy/atomicity');
+// @ts-expect-error Legacy graphs are not full native clipboard contracts.
+const graphClipboard:ZlozGroupClipboardV3=doc.graph;void graphClipboard;
+// @ts-expect-error Native paste requires explicit scoped-port maps.
+const partialPaste:ZlozGroupPasteRequestV3={source:pasteNative.source,clipboard:clipboardNative,offset:{x:0,y:0},identities:{nodes:[],edges:[]}};void partialPaste;
 console.log('group-v3-ok');
 `;
     const groupConsumer = path.join(directory, 'group-v3.mts');
@@ -506,7 +516,7 @@ import { createElkLayout,createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-el
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import {zlozGroupWorkbenchV3,zlozGroupInspectorV3,zlozGroupActionV3} from '@opsydyn/foldkit-zloz/foldkit';
-import {createGroupWorkbenchV3,captureGroupDocumentV3,groupLayoutRequestV3,applyGroupWorkbenchLayoutV3,groupWorkbenchRoutesV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
+import {createGroupWorkbenchV3,updateGroupWorkbenchV3,captureGroupDocumentV3,groupLayoutRequestV3,applyGroupWorkbenchLayoutV3,groupWorkbenchRoutesV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
 const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
 const installedV3Request=groupLayoutRequestV3(packedNativeV3.editor,'installed-elk-v3');
 const installedV3Result=await createElkGroupLayoutV3({direction:'DOWN'})(installedV3Request);
@@ -520,9 +530,12 @@ const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(crea
 const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
 if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
 import {resolveGroupPngReviewV3 as resolvePackedNativePng,type ZlozPngReviewRequest} from '@opsydyn/foldkit-zloz';
-import {zlozPngReview as packedPngReviewUi} from '@opsydyn/foldkit-zloz/foldkit';
+import {zlozPngReview as packedPngReviewUi,zlozGroupClipboardV3 as packedClipboardUi} from '@opsydyn/foldkit-zloz/foldkit';
 const packedPngNative=resolvePackedNativePng(createPngReview('packed-png-native'),{scope:'packed-png-native',sourceRevision:0,document:packedNativeV3.editor.document,title:'Native PNG',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
 const packedPngUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedPngNative}),view:(model,h:HtmlBuilder<ZlozPngReviewRequest>)=>({title:'Packed native PNG review',body:packedPngReviewUi(h,model,event=>event)})},{flags:{},isHydratable:false}));
+const copiedWorkbenchNative=updateGroupWorkbenchV3({...packedNativeV3,selectedNodeIds:['g']},{type:'CopyPressed'});
+const packedClipboardHtml=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:copiedWorkbenchNative}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Native clipboard',body:packedClipboardUi(h,model,{id:'clipboard-consumer',onEvent:e=>e})})},{flags:{},isHydratable:false}));
+if(!packedClipboardHtml.html.includes('Copy selection')||!packedClipboardHtml.html.includes('Paste copy'))throw new Error('Installed clipboard controls missing');
 if(!packedPngUi.html.includes('Render PNG')||!packedPngUi.html.includes('Accept the reported PNG losses'))throw new Error('Native PNG review SSR missing');
 
 

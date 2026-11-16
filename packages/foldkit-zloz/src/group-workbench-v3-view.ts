@@ -5,13 +5,19 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { resolveZlozDiagnostics, visuallyHidden, type ZlozDiagnosticOptions } from './diagnostics';
 import { edgeGeometry, fittedGroupBounds, portPosition } from './geometry';
+import {
+  copyGroupSelectionV3,
+  planGroupPasteV3,
+  type ZlozGroupClipboardPolicyV3,
+} from './group-clipboard-v3';
 import { planGroupConnectionV3 } from './group-connection-v3';
-import { captureGroupEditorSourceV3, type ZlozGroupEditorPolicyV3 } from './group-editor-v3';
+import { captureGroupEditorSourceV3 } from './group-editor-v3';
 import { planGroupOperationV3 } from './group-operations-v3';
 import { planGroupPortEditV3 } from './group-port-edit-v3';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import {
   groupWorkbenchGraphV3,
+  groupWorkbenchPasteRequestV3,
   groupWorkbenchRoutesV3,
   type ZlozGroupWorkbenchV3,
   type ZlozGroupWorkbenchEventV3,
@@ -25,7 +31,7 @@ export type ZlozGroupWorkbenchViewOptionsV3<M> = ZlozDiagnosticOptions &
     id: string;
     label?: string;
     theme?: ZlozTheme;
-    policy?: ZlozGroupEditorPolicyV3;
+    policy?: ZlozGroupClipboardPolicyV3;
     onEvent: (event: ZlozGroupWorkbenchEventV3) => M;
     /** Complete content inside the authored node frame, beside live ports. Compose zlozGroupDragHandleV3. */
     renderNode?: (node: ZlozNode, selected: boolean, h: HtmlBuilder<M>) => Html;
@@ -98,6 +104,58 @@ export function zlozGroupActionV3<M>(
         [label],
       ),
       ...(reason ? [h.small([], [reason])] : []),
+    ],
+  );
+}
+/** Optional session-clipboard controls. Compose separately or replace with headless planners/custom controls. */
+export function zlozGroupClipboardV3<M>(
+  h: HtmlBuilder<M>,
+  model: ZlozGroupWorkbenchV3,
+  options: ZlozGroupWorkbenchViewOptionsV3<M>,
+  pasteOffset = { x: 40, y: 40 },
+): Html {
+  const policy = options.policy ?? {},
+    copy = copyGroupSelectionV3(model.editor, model.selectedNodeIds, policy);
+  const request = groupWorkbenchPasteRequestV3(model, pasteOffset);
+  const paste = request ? planGroupPasteV3(model.editor, request, policy) : null;
+  const busy = model.gesture.type !== 'idle' ? 'Finish or cancel the active gesture first.' : null;
+  const copyReason = busy ?? (copy.type === 'blocked' ? copy.reason : null);
+  const pasteReason =
+    busy ??
+    (paste?.type === 'blocked'
+      ? paste.reason
+      : request
+        ? null
+        : 'Copy a selection before pasting.');
+  const diagnostics = resolveZlozDiagnostics(options);
+  return h.div(
+    [
+      h.Role('group'),
+      h.AriaLabel('V3 clipboard controls'),
+      h.Style({ ...zlozThemeStyle(options.theme ?? {}), color: 'var(--flow-node-color, #172033)' }),
+    ],
+    [
+      zlozGroupActionV3(h, 'Copy selection', { type: 'CopyPressed' }, copyReason, options.onEvent),
+      zlozGroupActionV3(
+        h,
+        'Paste copy',
+        request ? { type: 'GroupPasteRequested', request } : { type: 'PastePressed' },
+        pasteReason,
+        options.onEvent,
+      ),
+      ...model.clipboardFindings.map((f) =>
+        h.p([h.DataAttribute('zloz-clipboard-finding', f.code)], [f.reason]),
+      ),
+      ...(diagnostics.instructions
+        ? [
+            h.p(
+              [],
+              [
+                'Copies groups and descendants with internal connections. External parents are detached; crossing connections are omitted. Clipboard state stays in this workbench session.',
+              ],
+            ),
+          ]
+        : []),
     ],
   );
 }

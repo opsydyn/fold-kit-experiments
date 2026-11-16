@@ -1,4 +1,13 @@
 import { finitePoint, fitViewport, screenToWorld, zoomAt } from './geometry';
+import {
+  applyGroupPasteV3,
+  copyGroupSelectionV3,
+  groupPasteRequestV3,
+  type ZlozGroupClipboardV3,
+  type ZlozGroupClipboardFindingV3,
+  type ZlozGroupClipboardPolicyV3,
+  type ZlozGroupPasteRequestV3,
+} from './group-clipboard-v3';
 import { applyGroupConnectionV3, type ZlozGroupConnectionEditV3 } from './group-connection-v3';
 import { captureGroupDocumentV3, type ZlozGroupDocumentV3 } from './group-document-v3';
 import {
@@ -46,6 +55,8 @@ export type ZlozGroupWorkbenchGestureV3 =
 /** One authored document in editor; selection, camera, collapse and gestures are transient. */
 export type ZlozGroupWorkbenchV3 = Readonly<{
   editor: ZlozGroupEditorStateV3;
+  clipboard: ZlozGroupClipboardV3 | null;
+  clipboardFindings: readonly ZlozGroupClipboardFindingV3[];
   selectedNodeIds: readonly string[];
   selectedEdgeId: string | null;
   collapsedGroupIds: readonly string[];
@@ -62,8 +73,9 @@ export type ZlozGroupWorkbenchEventV3 =
   | Readonly<{ type: 'GroupPortEditRequested'; edit: ZlozGroupPortEditV3 }>
   | Readonly<{ type: 'ConnectionEditRequested'; edit: ZlozGroupConnectionEditV3 }>
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
-  | Readonly<{ type: 'FitViewRequested' }>;
-export type ZlozGroupWorkbenchOptionsV3 = Readonly<{ grid?: number }>;
+  | Readonly<{ type: 'FitViewRequested' }>
+  | Readonly<{ type: 'GroupPasteRequested'; request: ZlozGroupPasteRequestV3 }>;
+export type ZlozGroupWorkbenchOptionsV3 = Readonly<{ grid?: number; pasteOffset?: Point }>;
 export function createGroupWorkbenchV3(
   document: ZlozGroupDocumentV3,
   options: ZlozGroupEditorOptionsV3,
@@ -71,6 +83,8 @@ export function createGroupWorkbenchV3(
   const editor = createGroupEditorV3(document, options);
   return {
     editor,
+    clipboard: null,
+    clipboardFindings: [],
     selectedNodeIds: [],
     selectedEdgeId: null,
     collapsedGroupIds: [],
@@ -132,6 +146,29 @@ function edgeId(model: ZlozGroupWorkbenchV3): string {
 export function captureGroupWorkbenchDocumentV3(model: ZlozGroupWorkbenchV3): ZlozGroupDocumentV3 {
   return captureGroupDocumentV3({ ...model.editor.document, viewport: model.viewport });
 }
+/** Session placement convenience: advance the requested offset until copied anchors are unoccupied. Custom headless requests retain exact offsets. */
+export function groupWorkbenchPasteRequestV3(
+  model: ZlozGroupWorkbenchV3,
+  step: Point = { x: 40, y: 40 },
+): ZlozGroupPasteRequestV3 | null {
+  if (!model.clipboard) return null;
+  const occupied = new Set(
+    model.editor.document.graph.nodes.map((n) => JSON.stringify([n.position.x, n.position.y])),
+  );
+  let offset = step;
+  if (step.x !== 0 || step.y !== 0) {
+    for (let multiple = 1; multiple <= model.editor.document.graph.nodes.length + 1; multiple++) {
+      offset = { x: step.x * multiple, y: step.y * multiple };
+      if (
+        !model.clipboard.document.graph.nodes.some((n) =>
+          occupied.has(JSON.stringify([n.position.x + offset.x, n.position.y + offset.y])),
+        )
+      )
+        break;
+    }
+  }
+  return groupPasteRequestV3(model.editor, model.clipboard, { offset });
+}
 /** Recompute transient geometry through the same live planner used at release. No preview is authority. */
 export function groupWorkbenchGraphV3(
   model: ZlozGroupWorkbenchV3,
@@ -183,7 +220,7 @@ export function applyGroupWorkbenchLayoutV3(
 export function updateGroupWorkbenchV3(
   model: ZlozGroupWorkbenchV3,
   event: ZlozGroupWorkbenchEventV3,
-  policy: ZlozGroupEditorPolicyV3 = {},
+  policy: ZlozGroupClipboardPolicyV3 = {},
   options: ZlozGroupWorkbenchOptionsV3 = {},
 ): ZlozGroupWorkbenchV3 {
   const editor = model.editor,
@@ -203,10 +240,50 @@ export function updateGroupWorkbenchV3(
       'UndoPressed',
       'RedoPressed',
       'DeletePressed',
+      'CopyPressed',
+      'PastePressed',
+      'GroupPasteRequested',
     ].includes(event.type)
   )
     return { ...model, status: 'Finish or cancel the active gesture first.' };
   switch (event.type) {
+    case 'CopyPressed': {
+      const result = copyGroupSelectionV3(editor, model.selectedNodeIds, policy);
+      return result.type === 'blocked'
+        ? { ...model, status: result.reason }
+        : {
+            ...model,
+            clipboard: result.clipboard,
+            clipboardFindings: result.findings,
+            status: `Selection copied. ${result.findings.map((f) => f.reason).join(' ')}`.trim(),
+          };
+    }
+    case 'PastePressed':
+    case 'GroupPasteRequested': {
+      if (event.type === 'PastePressed' && !model.clipboard)
+        return { ...model, status: 'Copy a selection before pasting.' };
+      const request =
+        event.type === 'GroupPasteRequested'
+          ? event.request
+          : groupWorkbenchPasteRequestV3(
+              model,
+              options.pasteOffset ?? { x: grid * 2, y: grid * 2 },
+            )!;
+      const result = applyGroupPasteV3(editor, request, policy),
+        next = completed(model, result);
+      if (result.type !== 'applied') return next;
+      const graph = result.editor.document.graph;
+      return {
+        ...next,
+        connectionSource: null,
+        selectedEdgeId: null,
+        selectedNodeIds: result.rootNodeIds.filter((id) => {
+          const node = graph.nodes.find((n) => n.id === id);
+          return node && policy.canSelectNode?.(node, graph) == null;
+        }),
+        status: 'Clipboard pasted. One Undo restores the complete document.',
+      };
+    }
     case 'GroupOperationRequested':
       return operate(event.operation);
     case 'GroupPortEditRequested':

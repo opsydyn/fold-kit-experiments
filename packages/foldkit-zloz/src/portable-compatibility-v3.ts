@@ -99,9 +99,14 @@ export function assessPortableCompatibilityV3(
       reason:
         'Use native v3 PNG planning/review and the optional /browser renderGroupPngExportV3. The exact native SVG projection and findings are retained, with explicit rasterization consent, bounded browser output and source/policy checks. Pixels do not retain editable model semantics.',
     },
+    {
+      adapter: 'clipboard',
+      status: 'supported',
+      reason:
+        'Use copyGroupSelectionV3 and the distinct native paste request/planner/Apply. Explicit node/edge/scoped-port maps, full-source freshness and live policies retain one Undo. Cross-mode/capability paste requires explicit conversion; no OS clipboard IO is implied.',
+    },
     ...(
       [
-        'clipboard',
         'mermaid',
         'modelling-patch',
         'conversion-receipt',

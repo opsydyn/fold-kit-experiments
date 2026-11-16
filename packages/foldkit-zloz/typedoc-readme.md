@@ -585,3 +585,13 @@ deadline and resource cleanup; preview/download use identical PNG bytes.
 SSR import is safe and calls report unsupported without browser APIs. Pixels
 retain no editable semantics; server PNG, broad performance and human acceptance
 remain unqualified. See README and native PNG evidence for limits.
+
+Native v3 session clipboard uses {@link Core.copyGroupSelectionV3},
+{@link Core.groupPasteRequestV3}, {@link Core.planGroupPasteV3} and
+{@link Core.applyGroupPasteV3}. Full-source and live policy checks protect explicit
+node/edge/scoped-port remapping and one full-document Undo. Mode/capability
+mismatches block rather than silently convert. External-parent detachment and
+crossing-edge omissions produce findings. Opaque metadata references are not
+rewritten. {@link FoldKit.zlozGroupClipboardV3} supplies optional composable
+controls with visible reasons, including minimal mode. Session clipboard has no OS
+clipboard IO and is not persisted in models or history.

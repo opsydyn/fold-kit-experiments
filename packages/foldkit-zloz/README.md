@@ -6379,7 +6379,7 @@ const undone = updateGroupEditorV3(applied.editor, {
   source: captureGroupEditorSourceV3(applied.editor),
 });
 const clipboard = resolveGroupEditorBoundaryV3(undone.editor, 'clipboard');
-// blocked: version-required; keep the envelope or plan an explicit downgrade.
+// unchanged: use the distinct native clipboard APIs below; never use legacy graph paste.
 ```
 
 Apply takes an exact source token and a complete proposed document. It returns
@@ -6414,7 +6414,7 @@ plan: include every intended affected child/ancestor in the target, retaining
 world coordinates. The v3 connection/group/workbench APIs below supply those plans. Legacy
 `createEditor`/`updateEditor` and v1/v2 serializers remain closed to v3 sessions.
 `resolveGroupEditorBoundaryV3` reports availability for the distinct native-controls,
-model, edition, layout, SVG and PNG entries documented below. Clipboard, Mermaid,
+model, edition, clipboard, layout, SVG and PNG entries documented below. Mermaid,
 patch and review-packet entries remain blocked pending native adoption.
 It is a compatibility decision, never adapter authority. Standalone document
 serialization works; no other adapter is qualified by extracting its bare graph.
@@ -6580,7 +6580,7 @@ bypass a version or capability boundary.
 `assessPortableCompatibilityV3` inventories checkpoints and independently reports
 entry availability. Private Effect CLI `zloz compatibility inspect-v3 -i model.json`
 prints that read-only inventory with the existing 1 MiB UTF-8 input budget.
-V3 clipboard, Mermaid, patches, conversion receipts, review
+V3 Mermaid, patches, conversion receipts, review
 packets and relationship audits remain version-required. Their v1/v2 APIs are
 unchanged. Rotation, whiteboard tools, dedicated multi-connect UI, production
 Mermaid import, server PNG, broad performance and human device/screen-reader
@@ -6758,3 +6758,70 @@ remain explicit; native server-side PNG is not implemented.
 
 See [native PNG qualification](evidence/v3-png-export.md) for actual browser
 pixel/download evidence, resource cleanup and source/policy/cancellation tests.
+
+### Native v3 session clipboard (unreleased)
+
+`copyGroupSelectionV3` validates the complete native source, includes selected
+nodes plus every descendant once, and captures internal edges with authored ports.
+Selecting a child alone detaches its external parent/extent/expansion; crossing
+edges are omitted. Both effects produce visible findings. The returned frozen
+`ZlozGroupClipboardV3` keeps the fragment's connection mode and group-port
+capability, excludes the camera and changes neither editor nor Undo. Copying a
+read-only edition is allowed; `canCopyGroupFragmentV3` can veto the full fragment.
+
+```ts
+import {
+  copyGroupSelectionV3,
+  groupPasteRequestV3,
+  planGroupPasteV3,
+  applyGroupPasteV3,
+} from '@opsydyn/foldkit-zloz';
+
+const copied = copyGroupSelectionV3(editor, ['orders']);
+if (copied.type === 'copied') {
+  const request = groupPasteRequestV3(editor, copied.clipboard, {
+    offset: { x: 40, y: 40 },
+  });
+  const plan = planGroupPasteV3(editor, request, livePolicy);
+  if (plan.type === 'ready') {
+    const result = applyGroupPasteV3(editor, plan.request, currentPolicy);
+    // Publish result.editor only. An applied paste is one full-document Undo.
+  }
+}
+```
+
+Requests contain explicit complete node/edge/scoped-port identity maps. The factory
+allocates collision-free defaults; pass `identities` for designer/host-owned IDs.
+Node/edge IDs must be fresh across original fragment and target namespaces; port
+IDs are scoped to each original owner and may retain local spelling when the
+owner changes. Every mapping must be exact, with distinct output port IDs per
+owner. Parents and endpoints follow the maps. World positions and authored bends
+receive exactly one offset; waypoint IDs remain scoped to their new edge. Opaque
+`data` and semantic metadata are preserved unchanged: application references
+inside them are not inferred or rewritten.
+
+Plan and Apply validate the full target, scoped identities and parent geometry.
+Apply rebuilds from immutable intent and rechecks session, revision, full document,
+current port/connection/complete-transaction policies, lifecycle and Undo settings.
+An old plan grants no authority. Mismatched mode or group-port capability is
+blocked; no automatic enablement, conversion or port-kind coercion occurs. Camera,
+existing nodes/edges and clipboard stay unchanged on rejection. A successful paste
+keeps the target mode/capability/camera and publishes everything in one transaction.
+
+`createGroupWorkbenchV3` owns transient `clipboard` / `clipboardFindings`.
+`updateGroupWorkbenchV3` handles **CopyPressed**, **PastePressed** and custom
+**GroupPasteRequested** facts; the existing native input adapter supplies keyboard
+shortcuts. Gesture/busy/read-only/protection reasons remain visible. Clipboard is
+not captured by model/editions/Undo and is reset by a new session.
+`groupWorkbenchPasteRequestV3(model, step)` advances repeated offsets to avoid
+occupied node anchors; exact custom placement remains available through the core
+factory. Set `pasteOffset` in controller options for keyboard placement.
+
+Optional `/foldkit` **`zlozGroupClipboardV3(h, model, options, pasteOffset?)`**
+composes Copy/Paste controls anywhere in a host's sidebar or custom shell.
+It emits source-bound requests, exposes current denial reasons and retains
+omission/detachment findings in minimal mode. Replace it entirely with headless
+APIs when desired. Pass the same offset to controls and controller for consistent
+button/keyboard placement. It does not implement OS clipboard permissions,
+cross-tab transport, paste-into-parent, cut, external text decoding or arbitrary
+metadata-reference rewriting. No dependencies or canonical wire formats changed.

@@ -40,6 +40,7 @@ import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 import { renderGroupPngExportV3, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import {
   zlozGroupInspectorV3,
+  zlozGroupClipboardV3,
   zlozGroupDragHandleV3,
   zlozSvgReview,
   zlozPngReview,
@@ -394,12 +395,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               ...state.review,
               workbench: updateGroupWorkbenchV3(state.review.workbench, input, policy(state), {
                 grid: 20,
+                pasteOffset: { x: 0, y: 380 },
               }),
             },
           })
         : changed({
             ...state,
-            workbench: updateGroupWorkbenchV3(state.workbench, input, policy(state), { grid: 20 }),
+            workbench: updateGroupWorkbenchV3(state.workbench, input, policy(state), {
+              grid: 20,
+              pasteOffset: { x: 0, y: 380 },
+            }),
           });
     },
     ClickedTheme: () =>
@@ -793,6 +798,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                               ),
                             ]
                           : [zlozGroupInspectorV3(h, current, options)]),
+                        h.details(
+                          [h.DataAttribute('zloz-clipboard-panel', '')],
+                          [
+                            h.summary([], ['Clipboard']),
+                            zlozGroupClipboardV3(h, current, options, { x: 0, y: 380 }),
+                          ],
+                        ),
                         h.h2([], ['Native v3 ELK layout']),
                         button(
                           'Arrange right',

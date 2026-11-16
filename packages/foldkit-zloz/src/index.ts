@@ -1016,3 +1016,22 @@ export type {
   ZlozGroupPngRenderPayloadV3,
   ZlozGroupPngReviewUpdateV3,
 } from './group-png-v3';
+
+export {
+  copyGroupSelectionV3,
+  groupPasteRequestV3,
+  planGroupPasteV3,
+  applyGroupPasteV3,
+} from './group-clipboard-v3';
+export type {
+  ZlozGroupClipboardV3,
+  ZlozGroupClipboardFindingV3,
+  ZlozGroupClipboardPolicyV3,
+  ZlozGroupPasteIdentitiesV3,
+  ZlozGroupPasteRequestV3,
+  ZlozGroupCopyResultV3,
+  ZlozGroupPasteResultV3,
+  ZlozGroupPastePlanV3,
+} from './group-clipboard-v3';
+
+export { groupWorkbenchPasteRequestV3 } from './group-workbench-v3';

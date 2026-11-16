@@ -351,7 +351,8 @@ export function resolveGroupEditorBoundaryV3(
     boundary === 'editions' ||
     boundary === 'layout' ||
     boundary === 'svg' ||
-    boundary === 'png'
+    boundary === 'png' ||
+    boundary === 'clipboard'
   )
     return { type: 'unchanged', editor };
   return blocked(

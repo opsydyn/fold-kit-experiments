@@ -1788,3 +1788,35 @@ This local slice does not publish/deploy or complete the advanced parity catalog
 identity remapping, full-source validation, live policies and one Undo. This closes
 an everyday authoring gap without routing ported groups through legacy snapshots.
 Mermaid/patch/receipt/packet/audit adoption and advanced tools remain open.
+
+## 2026-11-16 — Native v3 session clipboard
+
+- `copyGroupSelectionV3` validates the complete native source and captures selected
+  groups/descendants once with internal edges and sockets. External parents and
+  their constraints are detached; crossing connections are omitted with findings.
+  Read-only copy is permitted subject to `canCopyGroupFragmentV3`.
+- `groupPasteRequestV3`, `planGroupPasteV3` and `applyGroupPasteV3` retain full-source
+  freshness, explicit node/edge/scoped-port maps, world offset and matching
+  mode/capability. Parents/endpoints and authored bends follow immutable intent;
+  opaque metadata remains unchanged. Live port, connection and complete-document
+  protections apply before one atomic publication/Undo; rejection edits nothing.
+- The native package controller owns transient clipboard/findings and handles
+  button/custom/keyboard facts. `groupWorkbenchPasteRequestV3` advances repeated
+  offsets past occupied anchors. Optional `zlozGroupClipboardV3` composes controls
+  in the demo's left sidebar with required findings/reasons in minimal mode.
+- [ADR 0112](adr/0112-paste-native-v3-fragments-with-explicit-identities.md),
+  [qualification](../packages/foldkit-zloz/evidence/v3-clipboard.md), native and
+  legacy tests, installed consumers and light/dark browser/download evidence
+  qualify this local slice. The CLI compatibility inventory reports native
+  clipboard availability; no CLI clipboard/OS command is added.
+
+Clipboard is session data, independent of document/edition/Undo. This does not add
+OS clipboard permissions, cross-tab transport, cut, paste-into-parent, external
+clipboard text decoding or automatic metadata-reference conversion. Placement
+avoids occupied anchors, not arbitrary visual envelopes. Broad performance,
+hosted/registry and human AT/device acceptance remain unqualified. No publication
+or deployment is part of the slice.
+
+**Recommended next:** native v3 Mermaid projection/export with explicit group-port
+representation findings and exact-output loss review. Keep remaining native
+patch/receipt/packet/audit adapters and advanced tools open until qualified.

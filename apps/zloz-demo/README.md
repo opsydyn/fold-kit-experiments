@@ -784,3 +784,15 @@ optional native `/browser` entry; download reuses exact preview bytes. Read-only
 edition reviews have a separate export scope and working Undo remains intact.
 See [package qualification](../../packages/foldkit-zloz/evidence/v3-png-export.md)
 and [browser/download evidence](evidence/v3-png/browser.json).
+
+**Clipboard** in the native `/groups/` sidebar composes package-level
+`zlozGroupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
+Groups/descendants, sockets, internal edges and world geometry use the native
+headless remapping/planner/Apply contract. External parents are detached and
+crossing edges omitted with visible findings. Repeated placement advances down
+380 world units to keep workshop copies separate; **Fit view** reveals them.
+Keyboard copy/paste uses the same controller offset. Protect the published
+interface to see current paste denial; **Minimal mode** keeps required findings
+and reasons. One **Undo** removes the entire pasted fragment. Read-only edition
+copying stays separate from working-session state; paste stays disabled there.
+This is model-owned session clipboard, not OS clipboard IO or cross-tab transport.

@@ -74,6 +74,12 @@
 - Add typed tactical and strategic DDD relationship contracts, pure resolution and opt-in editor policy.
 - Preserve DDD descriptors across codecs, Undo and history; protect them from causal-only controls and audits.
 
+## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.6.0...foldkit-zloz-v0.6.1) (2026-11-16)
+
+### Bug Fixes
+
+- **zloz:** ship documentation through a verified family release train ([#156](https://github.com/opsydyn/fold-kit-experiments/issues/156)) ([51977d2](https://github.com/opsydyn/fold-kit-experiments/commit/51977d2c2c517c83c537454389c7f24689e229e7))
+
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.5.0...foldkit-zloz-v0.6.0) (2026-11-16)
 
 ### Features

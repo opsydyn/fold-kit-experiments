@@ -114,7 +114,10 @@ choices }`.
 
 - One JSON object per fence, the whole spec. [Marks and scales](references/marks.md)
   lists the marks a dashboard uses most, their channels, and how axes are ordered;
-  the project's `plot-spec.schema.json` (written by `new`) is the whole contract.
+  the project's `plot-spec.schema.json` (written by `new`) is the plot grammar's whole
+  contract. `where` and `{ "input": ... }` are foldkit-dash's, not the grammar's: they are
+  removed or filled in before a spec reaches it, so an editor validating a fence against
+  that schema flags them, and `check` is the judge.
 - `"data"` is a name in `data/` (`"sales.json"`), or the rows themselves.
 - A channel is a field name, or `{ "value": ... }` for a constant.
 - Scales are inferred: numbers give linear axes, strings bands, ISO dates time axes.
@@ -123,8 +126,10 @@ choices }`.
 - There is no number format for ticks: put units in the axis `label`.
 - Keep `width` about 720 for a full-width chart; the page scales it down on phones.
 - `"where"` keeps the rows a chart draws: `{ "region": "North" }` keeps rows whose
-  `region` is `"North"`, `{ "sales": { "min": 100, "max": 500 } }` rows in that range
-  (either end may be left out). Every condition must hold. It works on any page, so one
+  `region` is `"North"`, `{ "sales": { "min": 100, "max": 500 } }` rows from 100 to 500,
+  both included (either end may be left out). Every condition must hold. Filtered rows
+  are gone, not blank: a line joins across the weeks a filter drops, so draw dots or
+  bars when a filter can leave gaps. It works on any page, so one
   loader can feed a chart per part: `"where": { "region": "Wales" }` on a Wales page.
 
 ## Inputs
@@ -151,7 +156,8 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
 ````
 
 - `select` and `radio`: `options` lists the choices, or takes every value of a `field`
-  in a `data` file (in the order they first appear). `all` adds a first choice, labelled
+  in a `data` file (in the order they first appear). A choice is shown as it is written:
+  there is no separate label, so write readable values (`"Revenue (£)"`). `all` adds a first choice, labelled
   with its text, whose value is `null`: in `where`, a `null` condition keeps every row.
   `value` is the default: the first option, or `all` when there is one.
 - `range`: `min`, `max`, `step` (default 1) and `value` (default `min`); use it in
@@ -161,13 +167,27 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
 - Names start with a letter and are unique on a page; `label` is what readers see
   (default: the name). Inputs belong to their page.
 - When a filter changes which series a chart shows, its colours are reassigned: set
-  `color.domain` to every series so each keeps its colour, as above.
-- `check` draws every chart at every choice of each input it uses (one input at a time,
-  the others at their defaults) and reports a choice that breaks it or keeps no rows.
-  `describe` describes charts at the defaults only: to describe another choice, change
-  the default, check, and change it back.
+  `color.domain` to every series so each keeps its colour, as above. With a fixed
+  `color.domain`, `describe` names every group in it, drawn or not.
+- `where` filters fixed fields: an input can choose a value, not which field is
+  filtered. For one threshold on whichever measure is shown, make the data long in the
+  loader (`{ week, measure, value }`, a row per measure) and filter `value`, with the
+  range's `min` and `max` covering every measure; or put each measure's threshold on its
+  own input. A threshold suits measures on similar scales: otherwise give each its own.
+- `check` draws every chart at each choice of each input it uses, one input at a time,
+  the others at their defaults: every option of a select or radio, `all`, both states
+  of a checkbox, and a range's `min`, `max` and default (not every step;
+  `inputs[].choices` counts what it tries). It reports a choice that breaks a chart or
+  keeps no rows. Combinations are not tried: Scotland with a high threshold can still
+  keep nothing. Then the reader sees a note where the chart would be (`Chart at line 57:
+  where ... keeps no rows`), not an empty chart; say so in the prose if it is likely.
+- `describe` describes charts at the defaults only: to describe another choice, change
+  the default, check, and change it back. It writes `all` for what the JSON gives as
+  `null`.
 - A page with inputs carries its charts' rows in the page, so readers' choices need no
-  server: keep a page's data to what its charts need (summarise in the loader). Its
+  server: keep a page's data to what its charts need (summarise in the loader). For
+  scale, 260 rows of six fields made a 91 KB page; aim for thousands of rows, not
+  hundreds of thousands. Its
   script works from a folder (`file://`) as well as a host. Without JavaScript the
   page shows the defaults.
 

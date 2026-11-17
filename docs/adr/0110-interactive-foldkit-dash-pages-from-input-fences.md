@@ -80,6 +80,20 @@ change.
 - **A module script.** Blocked on `file://` pages by the browser; the classic script
   works from a folder and from a host alike.
 
+## Acceptance (2026-11-17)
+
+A fresh agent, given only the skill and asked for "an interactive dashboard of this
+CSV's weekly sales: pick a region (or all of them), switch between orders and revenue,
+and see only weeks above a threshold", built one page of four inputs (a region select
+with `all`, a measure radio, two ranges) and two charts over one loader. Its first
+`check` exited 0, and `describe` matched its prose at the defaults; build exited 0. It
+had to guess what this ADR's text and the skill left unsaid, now in the skill: a
+threshold on whichever measure is shown (filter a long-format `value`, or one range per
+measure), that a range is checked at its ends and default only, that combinations are
+not checked and what a reader then sees, that `where` bounds are inclusive, that choices
+have no separate labels, that the plot schema does not know `where` or `{ "input" }`,
+that lines join across filtered-out rows, and how much data a page can carry.
+
 ## Not in stage 2
 
 Cross-filtering by clicking a chart, inputs kept in the URL, a custom app per page, a

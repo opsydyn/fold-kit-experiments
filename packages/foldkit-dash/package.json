@@ -37,7 +37,8 @@
   "dependencies": {
     "@effect/platform-bun": "catalog:",
     "@opsydyn/foldkit-viz": "workspace:*",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "foldkit": "catalog:"
   },
   "devDependencies": {
     "bun-types": "catalog:",

@@ -5,11 +5,13 @@
  */
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
-import { Console, Effect, FileSystem, Match, type PlatformError, Stdio } from 'effect';
+import { Console, Effect, FileSystem, Match, type PlatformError, Result, Stdio } from 'effect';
 import { Argument, CliError, Command, Flag } from 'effect/cli';
 
 import manifest from '../package.json';
 import type { DataOptions } from './data';
+import { startDev } from './dev';
+import { shown } from './inputs';
 import {
   type Chart,
   DashInvocationError,
@@ -20,9 +22,11 @@ import {
   protocol,
 } from './problems';
 import { analyse, type Report } from './project';
+import { renderSite } from './site';
 import { schemaFile, starter } from './template';
 
-export { analyse, readPages, type BuiltPage, type Report } from './project';
+export { analyse, readPages, type PagePlan, type Report } from './project';
+export { renderSite, type SiteFile } from './site';
 export { dataReader, cacheDirectory, Rows, type DataOptions } from './data';
 export { bodyOf, documentOf, fencesOf, hrefFrom, outputOf, titleOf } from './page';
 export * from './problems';
@@ -54,18 +58,26 @@ type Command = Envelope['command'];
 
 const envelope = (
   command: Command,
-  report: Pick<Report, 'problems'> & { readonly pages: ReadonlyArray<string> },
-  charts: ReadonlyArray<Chart>,
+  report: Pick<Report, 'problems' | 'charts' | 'inputs'> & {
+    readonly pages: ReadonlyArray<string>;
+  },
   written: ReadonlyArray<string>,
 ): Envelope => ({
   protocol,
   command,
   status: report.problems.length === 0 ? 'ok' : 'problems',
   pages: report.pages,
-  charts,
+  charts: report.charts,
+  inputs: report.inputs,
   problems: report.problems,
   written,
 });
+
+/** A chart as a line: where, the input values it is drawn at, and what it shows. */
+const chartLine = (chart: Chart): string => {
+  const values = Object.entries(chart.at).map(([name, value]) => `${name} = ${shown(value)}`);
+  return `${chart.file}:${chart.line}${values.length === 0 ? '' : ` [${values.join(', ')}]`} ${chart.summary}`;
+};
 
 /** A problem as a line: where, what kind, and the message (which names any spec path). */
 const problemLine = (problem: Problem): string =>
@@ -99,7 +111,7 @@ const optionsOf = (config: ReadOptions): DataOptions => ({
 const summary = (report: Report): string => {
   const problems =
     report.problems.length === 0 ? 'no problems' : plural(report.problems.length, 'problem');
-  const charts = plural(report.charts.length + report.problems.length, 'chart');
+  const charts = plural(report.chartCount, 'chart');
   return `${plural(report.pages.length, 'page')}, ${charts}, ${problems}.`;
 };
 
@@ -108,12 +120,7 @@ const pagesOf = (report: Report): ReadonlyArray<string> => report.pages.map((pag
 function checked(config: ReadOptions & { readonly json: boolean }) {
   const running = Effect.gen(function* () {
     const report = yield* Effect.fromResult(analyse(optionsOf(config)));
-    const result = envelope(
-      'check',
-      { pages: pagesOf(report), problems: report.problems },
-      report.charts,
-      [],
-    );
+    const result = envelope('check', { ...report, pages: pagesOf(report) }, []);
     yield* finish(config.json, result, [...report.problems.map(problemLine), summary(report)]);
   });
   return running.pipe(Effect.withSpan('foldkit-dash.check'));
@@ -128,14 +135,9 @@ const check = Command.make('check', { root, fresh, json, loaderTimeout }, checke
 function described(config: ReadOptions & { readonly json: boolean }) {
   const running = Effect.gen(function* () {
     const report = yield* Effect.fromResult(analyse(optionsOf(config)));
-    const result = envelope(
-      'describe',
-      { pages: pagesOf(report), problems: report.problems },
-      report.charts,
-      [],
-    );
+    const result = envelope('describe', { ...report, pages: pagesOf(report) }, []);
     yield* finish(config.json, result, [
-      ...report.charts.map((chart) => `${chart.file}:${chart.line} ${chart.summary}`),
+      ...report.charts.map(chartLine),
       ...report.problems.map(problemLine),
     ]);
   });
@@ -182,14 +184,10 @@ function built(config: ReadOptions & { readonly json: boolean; readonly out: str
     // The folder is the build's alone: what an earlier build wrote and this one does not
     // goes, so a removed page does not linger.
     yield* fs.remove(folder, { recursive: true, force: true });
-    yield* Effect.forEach(report.pages, (page) => writeText(join(folder, page.output), page.html));
-    const written = report.pages.map((page) => relative(options.root, join(folder, page.output)));
-    const result = envelope(
-      'build',
-      { pages: pagesOf(report), problems: report.problems },
-      report.charts,
-      written,
-    );
+    const files = yield* renderSite(report);
+    yield* Effect.forEach(files, (file) => writeText(join(folder, file.path), file.text));
+    const written = files.map((file) => relative(options.root, join(folder, file.path)));
+    const result = envelope('build', { ...report, pages: pagesOf(report) }, written);
     yield* finish(config.json, result, [
       ...report.problems.map(problemLine),
       `${summary(report)} Wrote ${relative(options.root, folder)}/.`,
@@ -221,7 +219,11 @@ function started(config: { readonly dir: string; readonly json: boolean }) {
     );
     yield* writeText(join(folder, schemaFile), schema);
     const written = [...starter.map(([path]) => path), schemaFile];
-    const result = envelope('new', { pages: ['pages/index.md'], problems: [] }, [], written);
+    const result = envelope(
+      'new',
+      { pages: ['pages/index.md'], problems: [], charts: [], inputs: [] },
+      written,
+    );
     yield* finish(config.json, result, [
       `Started ${config.dir}: ${written.join(', ')}.`,
       `Next: cd ${config.dir} && bunx foldkit-dash check, then build. AGENTS.md has the loop.`,
@@ -236,11 +238,60 @@ const create = Command.make('new', { dir, json }, started).pipe(
   Command.withDescription('Start a project: a page, a data loader and AGENTS.md.'),
 );
 
+const port = Flag.Int('port').pipe(
+  Flag.withDefault(4400),
+  Flag.withDescription('The port dev serves on (0 picks a free one).'),
+);
+const host = Flag.String('host').pipe(
+  Flag.withDefault('127.0.0.1'),
+  Flag.withDescription('The address dev serves on.'),
+);
+
+/** A dev build, as `check` would report it, or why it failed. */
+const devLog = (built: Parameters<Parameters<typeof startDev>[2]>[0]): void => {
+  if (Result.isFailure(built)) {
+    console.error(`foldkit-dash: ${built.failure}`);
+    return;
+  }
+  const { report } = built.success;
+  console.log([...report.problems.map(problemLine), summary(report)].join('\n'));
+};
+
+/** Waits until the process is asked to stop (Ctrl+C, or a signal from a supervisor). */
+const stopRequested = Effect.callback<void>((resume) => {
+  const stop = () => resume(Effect.void);
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+});
+
+function served(config: ReadOptions & { readonly port: number; readonly host: string }) {
+  const starting = Effect.tryPromise({
+    try: () => startDev(optionsOf(config), { host: config.host, port: config.port }, devLog),
+    catch: (error) =>
+      new DashInvocationError({ message: error instanceof Error ? error.message : String(error) }),
+  });
+  const running = Effect.gen(function* () {
+    const server = yield* starting;
+    yield* Console.log(
+      `Serving ${server.url} (rebuilds when pages/ or data/ change; Ctrl+C stops).`,
+    );
+    yield* stopRequested;
+    server.stop();
+  });
+  return running.pipe(Effect.withSpan('foldkit-dash.dev'));
+}
+
+const dev = Command.make('dev', { root, port, host, fresh, loaderTimeout }, served).pipe(
+  Command.withDescription(
+    'Serve the site and rebuild it when pages/ or data/ change; open pages reload. Problems print here.',
+  ),
+);
+
 export const foldkitDash = Command.make('foldkit-dash').pipe(
   Command.withDescription(
     'Static dashboards from Markdown pages, foldkit-viz plot specs and build-time data loaders.',
   ),
-  Command.withSubcommands([create, check, describe, build]),
+  Command.withSubcommands([create, check, describe, build, dev]),
 );
 
 /** Says why the command cannot run, then fails with exit 2. */

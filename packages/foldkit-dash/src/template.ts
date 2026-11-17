@@ -76,7 +76,16 @@ The loop:
    Fix them all; exit 0 means none.
 3. \`bunx foldkit-dash describe\`: what each chart shows, in words. Check that it says
    what the prose around it claims.
-4. \`bunx foldkit-dash build\`: writes \`dist/\`, static HTML with no JavaScript.
+4. \`bunx foldkit-dash build\`: writes \`dist/\`, static HTML (JavaScript only on pages
+   with inputs).
+
+Inputs: an \`input\` fence (\`select\`, \`radio\`, \`range\` or \`checkbox\`) puts a control
+on the page, and a plot spec uses its value with \`{ "input": "name" }\`, most often in
+\`"where": { "region": { "input": "region" } }\`, which keeps the rows a chart draws.
+\`where\` works without inputs too: \`"where": { "region": "North" }\`.
+
+\`bunx foldkit-dash dev\` serves the site and rebuilds it as files change, for a person
+watching.
 `;
 
 const gitignore = `dist/

@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a static data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, built to HTML with no JavaScript. Covers starting a project, writing pages, specs and loaders, and the check, describe and build loop. Interactive pages, a dev server and non-TypeScript loaders are not part of it yet.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders, filtering with where, and the check, describe, build and dev loop. Non-TypeScript loaders and an MCP server are not part of it yet.
 ---
 
 # foldkit-dash
@@ -8,14 +8,17 @@ description: Use when building or changing a static data dashboard with @opsydyn
 A dashboard is a folder: Markdown pages in `pages/`, data in `data/`. Each
 ```` ```plot ```` fence in a page holds one JSON plot spec (foldkit-viz's grammar of
 marks); `foldkit-dash build` turns every page into static HTML with each chart drawn
-as accessible SVG, with a summary and its data table, and ships no JavaScript.
+as accessible SVG, with a summary and its data table. A page with an
+```` ```input ```` fence also gets a small script, so readers can choose a region, a
+measure or a range and see its charts change; a page without one ships no JavaScript.
 
 You write Markdown and JSON, never chart code, and you verify your work in text:
 `check` names every problem by file, line and spec path, and `describe` says what
 each chart shows. Do not open a browser to find out whether a chart is right.
 
 Requires Bun 1.4 or newer. `@opsydyn/foldkit-dash@0.1.0` is private to its repository
-until stage 1 qualifies ([ADR 0109](../../docs/adr/0109-build-agent-first-static-dashboards-with-foldkit-dash.md));
+([ADR 0109](../../docs/adr/0109-build-agent-first-static-dashboards-with-foldkit-dash.md),
+inputs and `dev` in [ADR 0110](../../docs/adr/0110-interactive-foldkit-dash-pages-from-input-fences.md));
 in the repository, run it as `bun packages/foldkit-dash/src/bin.ts` instead of
 `bunx foldkit-dash`.
 
@@ -44,9 +47,14 @@ your own; delete what you do not use.
    in July" against the data with a script, or make one chart per series.
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
+For a person watching, `bunx foldkit-dash dev` serves the site (on
+`http://127.0.0.1:4400/`, `--port` to change), rebuilds when `pages/` or `data/` change,
+reloads open pages, and prints problems as `check` does. An agent does not need it: the
+loop above is the check.
+
 Exit codes: 0 done, 1 problems found (a build still writes its pages, each problem
 shown where its chart would be), 2 the command could not run (no `pages/` folder, a
-bad flag, `new` into a folder in use, `--out` outside the project).
+bad flag, `new` into a folder in use, `--out` outside the project, a port in use).
 
 `--json` answers with a `foldkit-dash/v1` envelope on stdout:
 
@@ -57,6 +65,7 @@ bad flag, `new` into a folder in use, `--out` outside the project).
   "status": "problems",
   "pages": ["pages/index.md"],
   "charts": [],
+  "inputs": [],
   "problems": [
     {
       "kind": "spec",
@@ -71,10 +80,16 @@ bad flag, `new` into a folder in use, `--out` outside the project).
 ```
 
 `kind` is `json` (the fence is not one JSON object), `spec` (the plot grammar refused
-it; `path` says where), `data` (no such file or loader), `loader` (it failed or ran
-past `--loader-timeout`, 60 s by default) or `rows` (the data is not an array of
-objects of plain values). `line` is the fence's opening line. `charts` lists every
-chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
+it; `path` says where), `data` (no such file or loader, or a `where` that keeps no
+rows), `loader` (it failed or ran past `--loader-timeout`, 60 s by default), `rows`
+(the data is not an array of objects of plain values) or `input` (an input fence is
+wrong, or a spec refers to no input). `line` is the fence's opening line. A problem that
+only some choices of an input cause says which: `with region = "West": ...`.
+
+`charts` lists every chart that drew, `{ file, line, summary, at }`, the summary as
+`describe` prints it, drawn at `at`: its inputs' defaults (`describe` prints them as
+`[region = "North"]`). `inputs` lists every input, `{ file, line, name, type, value,
+choices }`.
 
 ## Pages
 
@@ -107,6 +122,54 @@ chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
   to choose the order, and `color.domain` to order a legend.
 - There is no number format for ticks: put units in the axis `label`.
 - Keep `width` about 720 for a full-width chart; the page scales it down on phones.
+- `"where"` keeps the rows a chart draws: `{ "region": "North" }` keeps rows whose
+  `region` is `"North"`, `{ "sales": { "min": 100, "max": 500 } }` rows in that range
+  (either end may be left out). Every condition must hold. It works on any page, so one
+  loader can feed a chart per part: `"where": { "region": "Wales" }` on a Wales page.
+
+## Inputs
+
+An ```` ```input ```` fence puts a control on the page; a plot spec refers to its value
+with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title.
+
+````md
+```input
+{ "type": "select", "name": "region", "label": "Region",
+  "options": { "data": "sales.json", "field": "region" }, "all": "All regions" }
+```
+
+```plot
+{
+  "width": 720,
+  "height": 300,
+  "data": "sales.json",
+  "where": { "region": { "input": "region" } },
+  "color": { "domain": ["North", "South", "East", "West"] },
+  "marks": [{ "mark": "line", "x": "week", "y": "sales", "stroke": "region" }]
+}
+```
+````
+
+- `select` and `radio`: `options` lists the choices, or takes every value of a `field`
+  in a `data` file (in the order they first appear). `all` adds a first choice, labelled
+  with its text, whose value is `null`: in `where`, a `null` condition keeps every row.
+  `value` is the default: the first option, or `all` when there is one.
+- `range`: `min`, `max`, `step` (default 1) and `value` (default `min`); use it in
+  `where` as `{ "min": { "input": "floor" } }`.
+- `checkbox`: `value` true or false (default false); use it to filter a boolean field,
+  or as a value in the spec.
+- Names start with a letter and are unique on a page; `label` is what readers see
+  (default: the name). Inputs belong to their page.
+- When a filter changes which series a chart shows, its colours are reassigned: set
+  `color.domain` to every series so each keeps its colour, as above.
+- `check` draws every chart at every choice of each input it uses (one input at a time,
+  the others at their defaults) and reports a choice that breaks it or keeps no rows.
+  `describe` describes charts at the defaults only: to describe another choice, change
+  the default, check, and change it back.
+- A page with inputs carries its charts' rows in the page, so readers' choices need no
+  server: keep a page's data to what its charts need (summarise in the loader). Its
+  script works from a folder (`file://`) as well as a host. Without JavaScript the
+  page shows the defaults.
 
 ## Data and loaders
 
@@ -118,11 +181,11 @@ chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
   (`await Bun.file('../export.csv').text()`). Read a database, an API or a CSV there,
   and keep the rows the page needs: summarise in the loader (totals, rankings), not in
   the chart. One loader per shape of data; several fences can share one.
-- A fence has no filter, so a chart of part of the data needs a loader that returns just
-  that part: one chart per region means a `data/<region>.json.ts` each. Put the shared
-  reading code in a module and import it (`import { loadRows } from '../lib/rows.ts'`):
-  imports resolve from the loader's file, any `.ts` beside it in `data/` is only a loader
-  if a fence names it, and `Bun.file` paths resolve from the project folder.
+- For a chart of part of the data, filter with `where` rather than writing a loader per
+  part. When loaders share reading code, put it in a module and import it
+  (`import { loadRows } from '../lib/rows.ts'`): imports resolve from the loader's file,
+  any `.ts` beside it in `data/` is only a loader if a fence names it, and `Bun.file`
+  paths resolve from the project folder.
 - A loader's output is cached in `node_modules/.cache/foldkit-dash/` until the loader
   changes. `--fresh` runs every loader again: use it when the data behind a loader
   changed but the loader did not.
@@ -132,6 +195,7 @@ chart that drew, `{ file, line, summary }`, the summary as `describe` prints it.
 
 ## Not yet
 
-Pages are static: no inputs, filters or hover. There is no dev server (run `build`
-and open `dist/index.html`), and loaders are TypeScript only. Stages 2
-and 3 of ADR 0109 add those.
+No hover or clicking a chart to filter others, no inputs kept in the page's URL, and
+loaders are TypeScript only. `dev` watches `pages/` and `data/` only: when a loader's
+source (a CSV elsewhere) changes, run with `--fresh`. Stage 3 of ADR 0109 adds an MCP
+server and loaders in other languages.

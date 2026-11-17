@@ -50,4 +50,5 @@ Marks that fill their panel instead: `treemap`, `sunburst`, `sankey`, `parallel`
 or violin counts once), each axis (a band axis with its categories in order when
 there are six or fewer; a continuous axis from its lowest to highest value, bars
 from 0), and what colour shows. Whole numbers print exactly; others round to four
-significant figures, so 509,206.5 prints as 509,200.
+significant figures, so 509,206.5 prints as 509,200. On a page with inputs, a chart is
+described at its inputs' defaults, named first: `[region = "North"] Shows 1 line.`

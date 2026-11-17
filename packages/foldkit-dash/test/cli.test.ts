@@ -115,3 +115,43 @@ describe('foldkit-dash', () => {
     expect(existsSync(join(root, 'node_modules/.cache/foldkit-dash/units.json'))).toBe(true);
   });
 });
+
+describe('interactive pages', () => {
+  const page = [
+    '# Units\n',
+    '```input\n{ "type": "select", "name": "region", "options": ["north", "south"] }\n```\n',
+    fence({ ...bars('units.json'), where: { region: { input: 'region' } } }),
+  ].join('\n');
+
+  test('build writes the page script once, named by its hash, and builds byte for byte the same', () => {
+    const root = project({ 'pages/index.md': page, 'data/units.json': JSON.stringify(rows) });
+    const built = run('build', '-C', root, '--json');
+    expect(built.code).toBe(0);
+    const written = envelopeOf(built.out).written;
+    expect(written[0]).toBe('dist/index.html');
+    expect(written[1]).toMatch(/^dist\/_dash\/client-[0-9a-f]{12}\.js$/);
+    const html = readFileSync(join(root, 'dist/index.html'), 'utf8');
+    const script = written[1]?.replace('dist/', '') ?? '';
+    expect(html).toContain(`<script defer src="${script}"></script>`);
+    expect(html).toContain('data-foldkit-app');
+    expect(html).toContain(`data-foldkit-build="${/client-([0-9a-f]+)/.exec(script)?.[1]}"`);
+    expect(run('build', '-C', root).code).toBe(0);
+    expect(readFileSync(join(root, 'dist/index.html'), 'utf8')).toBe(html);
+  });
+
+  test('describe names the input values a chart is drawn at, and the envelope lists inputs', () => {
+    const root = project({ 'pages/index.md': page, 'data/units.json': JSON.stringify(rows) });
+    const text = run('describe', '-C', root);
+    expect(text.out).toStartWith('pages/index.md:7 [region = "north"] Shows 2 bars.');
+    expect(envelopeOf(run('check', '-C', root, '--json').out).inputs).toEqual([
+      {
+        file: 'pages/index.md',
+        line: 3,
+        name: 'region',
+        type: 'select',
+        value: 'north',
+        choices: 2,
+      },
+    ]);
+  });
+});

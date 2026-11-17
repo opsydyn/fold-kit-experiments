@@ -5,10 +5,13 @@ import { join } from 'node:path';
 import { Result } from 'effect';
 
 import { fencesOf } from '../src/page';
-import { analyse, type Report } from '../src/project';
-import { bars, fence, project, rows } from './support';
+import { analyse, type PagePlan, type Report } from '../src/project';
+import { bars, fence, type Json, project, rows } from './support';
 
 const options = (root: string, fresh = false, timeout = 60_000) => ({ root, fresh, timeout });
+
+/** A static page's document (an interactive page has Flags instead). */
+const htmlOf = (page: PagePlan | undefined): string => (page?._tag === 'Static' ? page.html : '');
 
 const reportOf = (root: string, fresh = false, timeout = 60_000): Report => {
   const result = analyse(options(root, fresh, timeout));
@@ -38,7 +41,7 @@ describe('analyse', () => {
     expect(report.charts.map((chart) => chart.line)).toEqual(lines);
     expect(report.charts.every((chart) => chart.file === 'pages/index.md')).toBe(true);
     expect(report.charts[0]?.summary).toStartWith('Shows 3 bars.');
-    const html = report.pages[0]?.html ?? '';
+    const html = htmlOf(report.pages[0]) ?? '';
     expect(html.match(/<figure class="chart">/g)?.length).toBe(2);
     expect(html).not.toContain('<script');
   });
@@ -79,7 +82,7 @@ describe('analyse', () => {
     expect(problems[5]?.message).toBe('loader data/broken.json.ts exited with 3: no database');
     expect(problems.every((problem) => problem.file === 'pages/index.md')).toBe(true);
     // The page is still built, each problem shown where its chart would be.
-    const html = reportOf(root).pages[0]?.html ?? '';
+    const html = htmlOf(reportOf(root).pages[0]) ?? '';
     expect(html.match(/class="problem"/g)?.length).toBe(7);
   });
 
@@ -144,10 +147,10 @@ describe('analyse', () => {
       ['pages/index.md', 'index.html', 'Home'],
       ['pages/teams/north.md', 'teams/north.html', 'North'],
     ]);
-    expect(first.pages[0]?.html).toContain('href="teams/north.html"');
-    expect(first.pages[1]?.html).toContain('<a href="../index.html">Home</a>');
+    expect(htmlOf(first.pages[0])).toContain('href="teams/north.html"');
+    expect(htmlOf(first.pages[1])).toContain('<a href="../index.html">Home</a>');
     const second = reportOf(root, true);
-    expect(second.pages.map((page) => page.html)).toEqual(first.pages.map((page) => page.html));
+    expect(second.pages.map(htmlOf)).toEqual(first.pages.map(htmlOf));
   });
 
   test('a folder with no pages/ is not a project', () => {
@@ -160,6 +163,68 @@ describe('analyse', () => {
     writeFileSync(join(root, 'secret.json'), JSON.stringify(rows));
     expect(reportOf(root).problems.map((problem) => problem.message)).toEqual([
       '"/etc/passwd" is not a file name inside data/',
+    ]);
+  });
+});
+
+describe('interactive pages', () => {
+  const select = (extra: { readonly [key: string]: Json } = {}) =>
+    `\`\`\`input\n${JSON.stringify({ type: 'select', name: 'region', options: { data: 'units.json', field: 'region' }, all: 'All', ...extra })}\n\`\`\`\n`;
+  const filtered = (where: Json = { region: { input: 'region' } }) =>
+    fence({ ...bars('units.json'), where });
+
+  test('a page with an input is planned as an app, carrying only the rows its charts use', () => {
+    const root = project({
+      'pages/index.md': `# Units\n\nPick one.\n\n${select()}\n${filtered()}`,
+      'pages/static.md': `# Still\n\n${fence(bars(rows))}`,
+      'data/units.json': JSON.stringify(rows),
+      'data/unused.json': JSON.stringify(rows),
+    });
+    const report = reportOf(root);
+    expect(report.problems).toEqual([]);
+    const [app, still] = report.pages;
+    expect(still?._tag).toBe('Static');
+    expect(app?._tag).toBe('App');
+    const flags = app?._tag === 'App' ? app.flags : undefined;
+    expect(Object.keys(flags?.data ?? {})).toEqual(['units.json']);
+    expect(flags?.sections.map((section) => section._tag)).toEqual(['Prose', 'Control', 'Chart']);
+    expect(report.inputs).toEqual([
+      { file: 'pages/index.md', line: 5, name: 'region', type: 'select', value: null, choices: 3 },
+    ]);
+    expect(report.charts[0]).toMatchObject({ file: 'pages/index.md', at: { region: null } });
+    expect(report.charts[0]?.summary).toStartWith('Shows 3 bars.');
+    expect(report.chartCount).toBe(2);
+  });
+
+  test('where works on a static page too: one loader, a chart per part', () => {
+    const root = project({
+      'pages/index.md': `# North\n\n${filtered({ region: 'north' })}`,
+      'data/units.json': JSON.stringify(rows),
+    });
+    const report = reportOf(root);
+    expect(report.pages[0]?._tag).toBe('Static');
+    expect(report.charts[0]?.summary).toStartWith('Shows 2 bars.');
+  });
+
+  test('input problems, references to no input, and choices that draw nothing are reported', () => {
+    const page = [
+      '# Bad\n',
+      select({ options: ['north', 'south', 'west'] }),
+      select({ options: ['north'] }),
+      '```input\n{ "type": "radio", "name": "metric", "options": ["units"], "value": "profit" }\n```\n',
+      filtered(),
+      filtered({ region: { input: 'area' } }),
+    ].join('\n');
+    const root = project({
+      'pages/index.md': page,
+      'data/units.json': JSON.stringify(rows),
+    });
+    const problems = reportOf(root).problems;
+    expect(problems.map((problem) => [problem.kind, problem.message])).toEqual([
+      ['input', 'name: another input on this page is already called "region"'],
+      ['input', 'value: "profit" is not one of the options'],
+      ['data', 'with region = "west": where {"region":"west"} keeps no rows'],
+      ['input', 'refers to no input "area" on this page'],
     ]);
   });
 });

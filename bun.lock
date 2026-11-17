@@ -421,6 +421,7 @@
         "@effect/platform-bun": "catalog:",
         "@opsydyn/foldkit-viz": "workspace:*",
         "effect": "catalog:",
+        "foldkit": "catalog:",
       },
       "devDependencies": {
         "bun-types": "catalog:",
@@ -468,7 +469,7 @@
     },
     "packages/foldkit-zloz": {
       "name": "@opsydyn/foldkit-zloz",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@types/node": "^22.0.0",
@@ -540,7 +541,7 @@
     },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "dependencies": {
         "elkjs": "0.12.1",
       },
@@ -554,12 +555,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.5.0",
+        "@opsydyn/foldkit-zloz": "0.6.1",
       },
     },
     "packages/foldkit-zloz-force": {
       "name": "@opsydyn/foldkit-zloz-force",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
@@ -573,12 +574,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.5.0",
+        "@opsydyn/foldkit-zloz": "0.6.1",
       },
     },
     "packages/foldkit-zloz-mermaid": {
       "name": "@opsydyn/foldkit-zloz-mermaid",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -592,7 +593,7 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.5.0",
+        "@opsydyn/foldkit-zloz": "0.6.1",
         "foldkit": "0.170.0",
       },
       "optionalPeers": [

@@ -73,3 +73,121 @@ for (const [name, viewport] of [
     });
   }
 }
+
+// INTERACTIVE PAGES (ADR 0110)
+
+const sales = [
+  { month: 'Jan', units: 12, revenue: 120, region: 'north', promo: true },
+  { month: 'Feb', units: 9, revenue: 95, region: 'south', promo: false },
+  { month: 'Mar', units: 15, revenue: 160, region: 'north', promo: false },
+  { month: 'Apr', units: 6, revenue: 70, region: 'south', promo: true },
+];
+
+const interactive = [
+  '# Sales\n',
+  '```input\n{ "type": "select", "name": "region", "label": "Region", "options": { "data": "shop.json", "field": "region" }, "all": "All regions" }\n```\n',
+  '```input\n{ "type": "radio", "name": "metric", "label": "Measure", "options": ["units", "revenue"] }\n```\n',
+  '```input\n{ "type": "range", "name": "floor", "label": "At least", "min": 0, "max": 15, "step": 1 }\n```\n',
+  '```input\n{ "type": "checkbox", "name": "promo", "label": "Promotion weeks", "value": false }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "where": { "region": { "input": "region" }, "units": { "min": { "input": "floor" } } }, "marks": [{ "mark": "bar", "x": "month", "y": { "input": "metric" } }] }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "where": { "promo": { "input": "promo" } }, "marks": [{ "mark": "bar", "x": "month", "y": "units" }] }\n```\n',
+].join('\n');
+
+/** An interactive page, built, opened from its folder. */
+async function interactivePage(javaScriptEnabled = true) {
+  const dir = join(mkdtempSync(join(tmpdir(), 'foldkit-dash-')), 'site');
+  for (const args of [
+    ['new', dir],
+    ['build', '-C', dir],
+  ]) {
+    expect(Bun.spawnSync(['bun', bin, ...args]).exitCode).toBe(0);
+  }
+  await Bun.write(join(dir, 'pages/sales.md'), interactive);
+  await Bun.write(join(dir, 'data/shop.json'), JSON.stringify(sales));
+  expect(Bun.spawnSync(['bun', bin, 'build', '-C', dir]).exitCode).toBe(0);
+  const { browser } = await ready;
+  const context = await browser.newContext({
+    javaScriptEnabled,
+    viewport: { width: 390, height: 900 },
+  });
+  const page = await context.newPage();
+  const errors: Array<string> = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  page.on('pageerror', (error) => errors.push(error.message));
+  // Before the script runs: note on the document whether the server's SVG is ever
+  // removed, to see whether hydration adopts the server's nodes or draws new ones.
+  await page.addInitScript(() => {
+    new MutationObserver((_, first) => {
+      const svg = document.querySelector('figure.chart svg');
+      if (svg === null) return;
+      first.disconnect();
+      new MutationObserver(() => {
+        if (!document.contains(svg)) document.documentElement.dataset['svgReplaced'] = 'yes';
+      }).observe(document, { childList: true, subtree: true });
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto(`file://${join(dir, 'dist', 'sales.html')}`);
+  return { page, errors, context };
+}
+
+const barsShown = (page: Awaited<ReturnType<typeof interactivePage>>['page'], chart: number) =>
+  page.evaluate(
+    (at) =>
+      document.querySelectorAll('figure.chart')[at]?.querySelectorAll('svg rect').length ?? -1,
+    chart,
+  );
+
+const labelOf = (page: Awaited<ReturnType<typeof interactivePage>>['page']) =>
+  page.evaluate(() => document.querySelector('figure.chart svg desc')?.textContent ?? '');
+
+test('an interactive page hydrates the HTML it was built as, and every kind of input redraws', async () => {
+  const { page, errors, context } = await interactivePage();
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  // Hydration adopted the server's SVG rather than drawing a new one.
+  expect(
+    await page.evaluate(() => document.documentElement.dataset['svgReplaced']),
+  ).toBeUndefined();
+  expect(await barsShown(page, 0)).toBe(4);
+  await page.selectOption('select', { label: 'north' });
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 2 bars'),
+  );
+  await page.getByLabel('revenue').check();
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.includes('revenue'),
+  );
+  expect(await labelOf(page)).toContain('revenue from 0 to 160');
+  await page.locator('input[type=range]').fill('13');
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 1 bar'),
+  );
+  expect(await page.locator('output').textContent()).toBe('13');
+  expect(await barsShown(page, 1)).toBe(2);
+  await page.getByLabel('Promotion weeks').check();
+  await page.waitForFunction(() =>
+    document
+      .querySelectorAll('figure.chart')[1]
+      ?.querySelector('desc')
+      ?.textContent?.includes('Jan, Apr'),
+  );
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test('without JavaScript the page shows its defaults, charts and inputs alike', async () => {
+  const { page, errors, context } = await interactivePage(false);
+  expect(await barsShown(page, 0)).toBe(4);
+  expect(await barsShown(page, 1)).toBe(2);
+  expect(await page.locator('select option').allTextContents()).toEqual([
+    'All regions',
+    'north',
+    'south',
+  ]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+  ).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+  await context.close();
+});

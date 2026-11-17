@@ -5,6 +5,8 @@
  */
 import { Data, Runtime, Schema } from 'effect';
 
+import { InputValue, Values } from './inputs';
+
 /** The envelope's protocol; a change that breaks readers gets a new version. */
 export const protocol = 'foldkit-dash/v1';
 
@@ -12,7 +14,7 @@ export const protocol = 'foldkit-dash/v1';
  * What went wrong: a fence that is not JSON, a spec `compilePlot` refuses, data that is
  * missing, a loader that fails or runs too long, or rows that do not decode.
  */
-export const ProblemKind = Schema.Literals(['json', 'spec', 'data', 'loader', 'rows']);
+export const ProblemKind = Schema.Literals(['json', 'spec', 'data', 'loader', 'rows', 'input']);
 export type ProblemKind = typeof ProblemKind.Type;
 
 /** A problem, at a page's line (the fence's opening line), with its spec path when known. */
@@ -25,13 +27,28 @@ export const Problem = Schema.Struct({
 });
 export type Problem = typeof Problem.Type;
 
-/** A chart as `describe` reports it: where it is, and what `describePlot` says it shows. */
+/**
+ * A chart as `describe` reports it: where it is, what `describePlot` says it shows, and
+ * the input values it was drawn at (its inputs' defaults; empty for a static chart).
+ */
 export const Chart = Schema.Struct({
   file: Schema.String,
   line: Schema.Int,
   summary: Schema.String,
+  at: Values,
 });
 export type Chart = typeof Chart.Type;
+
+/** An input as the envelope lists it: where, its kind, its default and how many choices. */
+export const InputEntry = Schema.Struct({
+  file: Schema.String,
+  line: Schema.Int,
+  name: Schema.String,
+  type: Schema.Literals(['select', 'radio', 'range', 'checkbox']),
+  value: InputValue,
+  choices: Schema.Int,
+});
+export type InputEntry = typeof InputEntry.Type;
 
 /** What a command answers with `--json`. */
 export const Envelope = Schema.Struct({
@@ -40,6 +57,7 @@ export const Envelope = Schema.Struct({
   status: Schema.Literals(['ok', 'problems']),
   pages: Schema.Array(Schema.String),
   charts: Schema.Array(Chart),
+  inputs: Schema.Array(InputEntry),
   problems: Schema.Array(Problem),
   written: Schema.Array(Schema.String),
 });
@@ -47,9 +65,7 @@ export type Envelope = typeof Envelope.Type;
 
 export const encodeEnvelope = Schema.encodeSync(Schema.fromJsonString(Envelope));
 
-/** The spec path at the start of a `compilePlot` message, such as `marks[0].y`. */
-export const specPathOf = (message: string): string | null =>
-  /^((?:[A-Za-z_$][\w$]*|\[\d+\])(?:\.[A-Za-z_$][\w$]*|\[\d+\])*):\s/.exec(message)?.[1] ?? null;
+export { specPathOf } from './chart';
 
 /** The project has problems: exit 1. They have been reported already. */
 export class DashProblems extends Data.TaggedError('DashProblems')<{ readonly count: number }> {

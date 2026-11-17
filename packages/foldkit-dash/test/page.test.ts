@@ -5,10 +5,10 @@ import { bodyOf, documentOf, fencesOf, hrefFrom, outputOf, titleOf } from '../sr
 describe('pages', () => {
   test('fences are found with the line they open on', () => {
     const text =
-      '# Title\n\nText.\n\n```plot\n{ "a": 1 }\n```\n\n```js\nnot a plot\n```\n\n```plot\n{}\n```\n';
+      '# Title\n\nText.\n\n```plot\n{ "a": 1 }\n```\n\n```js\nnot a plot\n```\n\n```input\n{}\n```\n';
     expect(fencesOf(text)).toEqual([
-      { source: '{ "a": 1 }\n', line: 5 },
-      { source: '{}\n', line: 13 },
+      { kind: 'plot', source: '{ "a": 1 }\n', line: 5 },
+      { kind: 'input', source: '{}\n', line: 13 },
     ]);
   });
 

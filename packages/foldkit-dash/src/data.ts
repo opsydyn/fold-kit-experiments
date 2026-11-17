@@ -10,12 +10,9 @@ import { join, posix } from 'node:path';
 
 import { Result, Schema } from 'effect';
 
-/** One value in a row. */
-const Value = Schema.Union([Schema.Number, Schema.String, Schema.Boolean, Schema.Null]);
+import { Rows } from './rows';
 
-/** What data holds: rows of plain values, by field name. */
-export const Rows = Schema.Array(Schema.Record(Schema.String, Value));
-export type Rows = typeof Rows.Type;
+export { Rows } from './rows';
 
 const RowsText = Schema.fromJsonString(Rows);
 

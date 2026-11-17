@@ -112,11 +112,12 @@ peak falls, and showing part of the data on a page takes a loader per part.
 
 ## Follow-up work
 
-- A per-series summary in `describe` (each series' high and low, with where), and a
-  parameterised loader or a filter on a fence, from the second acceptance run.
-
-- Stage 2 (its own ADR): `dev` with reload, and interactive pages as Foldkit apps,
-  prerendered by `@foldkit/vite-plugin` and hydrated.
+- A per-series summary in `describe` (each series' high and low, with where), from the
+  second acceptance run.
+- ✅ A filter on a fence: `where`, in stage 2.
+- ✅ Stage 2 ([ADR 0110](0110-interactive-foldkit-dash-pages-from-input-fences.md)):
+  `dev` with reload, and interactive pages from input fences, rendered by Foldkit's
+  server renderer and hydrated, without `@foldkit/vite-plugin` or app code.
 - Stage 3: an MCP server over `check`, `describe` and a per-chart `preview`; loaders in
   other languages by extension, CSV and Parquet data, DuckDB and Polars summaries.
 

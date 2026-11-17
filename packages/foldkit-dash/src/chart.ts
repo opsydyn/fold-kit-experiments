@@ -8,7 +8,11 @@ import { compilePlot, type PlotGeometry, type PlotSpec } from '@opsydyn/foldkit-
 import { Result, Schema } from 'effect';
 
 import { filterRows, type Values, withValues } from './inputs';
-import { type Json, type JsonObject, Rows } from './rows';
+import { type Json, type JsonObject, Rows, Value } from './rows';
+
+type Row = Rows[number];
+
+const isRecord = Schema.is(Schema.Record(Schema.String, Schema.Unknown));
 
 /** Why a chart did not draw: its data, or its spec (with the path at fault when known). */
 export type ChartProblem = {
@@ -17,8 +21,57 @@ export type ChartProblem = {
   readonly message: string;
 };
 
-/** A chart drawn: its spec as compiled, and its geometry. */
-export type Drawn = { readonly plot: PlotSpec; readonly geometry: PlotGeometry };
+/** A chart drawn: its spec as compiled, its geometry, and its series. */
+export type Drawn = {
+  readonly plot: PlotSpec;
+  readonly geometry: PlotGeometry;
+  readonly series: ReadonlyArray<Series>;
+};
+
+/** One series of a chart, as `describe` reports it: its points, and its low and high. */
+export const Series = Schema.Struct({
+  name: Schema.String,
+  count: Schema.Int,
+  low: Schema.Struct({ x: Value, y: Schema.Finite }),
+  high: Schema.Struct({ x: Value, y: Schema.Finite }),
+});
+export type Series = typeof Series.Type;
+
+const isNumber = Schema.is(Schema.Finite);
+
+/** The marks whose rows are series of points along x. */
+const seriesMarks = new Set(['line', 'area', 'dot']);
+
+/**
+ * The series a chart's first mark draws (`line`, `area` or `dot` with a `stroke`, `fill`
+ * or `z` field, or one series without), each with its lowest and highest `y` and the `x`
+ * each falls at (the first, on a tie). Empty for other marks, or when x or y is not a
+ * field.
+ */
+const seriesOf = (spec: JsonObject, rows: Rows): ReadonlyArray<Series> => {
+  const marks = spec['marks'];
+  const first = Array.isArray(marks) ? marks[0] : undefined;
+  if (first === undefined || first === null || !isRecord(first)) return [];
+  const { mark, x, y } = first;
+  if (!isText(mark) || !seriesMarks.has(mark) || !isText(x) || !isText(y)) return [];
+  const by = [first['stroke'], first['fill'], first['z']].find(isText);
+  const groups = new Map<string, Array<Row>>();
+  for (const row of rows) {
+    const name = by === undefined ? y : String(row[by] ?? '');
+    groups.set(name, [...(groups.get(name) ?? []), row]);
+  }
+  return [...groups].flatMap(([name, members]) => {
+    const points = members.flatMap((row) => {
+      const value = row[y];
+      return isNumber(value) ? [{ x: row[x] ?? null, y: value }] : [];
+    });
+    const [start] = points;
+    if (start === undefined) return [];
+    const low = points.reduce((best, point) => (point.y < best.y ? point : best), start);
+    const high = points.reduce((best, point) => (point.y > best.y ? point : best), start);
+    return [{ name, count: points.length, low, high }];
+  });
+};
 
 /** The spec path at the start of a `compilePlot` message, such as `marks[0].y`. */
 export const specPathOf = (message: string): string | null =>
@@ -79,7 +132,7 @@ export const drawSpec = (
         // SAFETY: compilePlot validates the whole spec and throws a RangeError naming the
         // path at fault, which becomes a `spec` problem; nothing reads it unchecked.
         const plot = spec as PlotSpec;
-        return { plot, geometry: compilePlot(plot) };
+        return { plot, geometry: compilePlot(plot), series: seriesOf(spec, kept.success) };
       },
       catch: (error) => problem('spec', error instanceof Error ? error.message : String(error)),
     });

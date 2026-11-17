@@ -12,17 +12,19 @@ import manifest from '../package.json';
 import type { DataOptions } from './data';
 import { startDev } from './dev';
 import { shown } from './inputs';
+import { serveMcp } from './mcp';
 import {
   type Chart,
   DashInvocationError,
   DashProblems,
   encodeEnvelope,
   type Envelope,
+  envelopeOf,
   type Problem,
   protocol,
 } from './problems';
 import { analyse, type Report } from './project';
-import { renderSite } from './site';
+import { isOutputFolder, renderSite } from './site';
 import { schemaFile, starter } from './template';
 
 export { analyse, readPages, type PagePlan, type Report } from './project';
@@ -54,30 +56,21 @@ const out = Flag.String('out').pipe(
   Flag.withDescription('Where build writes the site, inside the project.'),
 );
 
-type Command = Envelope['command'];
-
-const envelope = (
-  command: Command,
-  report: Pick<Report, 'problems' | 'charts' | 'inputs'> & {
-    readonly pages: ReadonlyArray<string>;
-  },
-  written: ReadonlyArray<string>,
-): Envelope => ({
-  protocol,
-  command,
-  status: report.problems.length === 0 ? 'ok' : 'problems',
-  pages: report.pages,
-  charts: report.charts,
-  inputs: report.inputs,
-  problems: report.problems,
-  written,
-});
-
 /** A chart as a line: where, the input values it is drawn at, and what it shows. */
 const chartLine = (chart: Chart): string => {
   const values = Object.entries(chart.at).map(([name, value]) => `${name} = ${shown(value)}`);
   return `${chart.file}:${chart.line}${values.length === 0 ? '' : ` [${values.join(', ')}]`} ${chart.summary}`;
 };
+
+/** A series as a line under its chart: its points, and where its low and high fall. */
+const seriesLine = (series: Chart['series'][number]): string =>
+  `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${String(series.low.x)}, high ${series.high.y} at ${String(series.high.x)}`;
+
+/** A chart with its series beneath it. */
+const describedChart = (chart: Chart): ReadonlyArray<string> => [
+  chartLine(chart),
+  ...chart.series.map(seriesLine),
+];
 
 /** A problem as a line: where, what kind, and the message (which names any spec path). */
 const problemLine = (problem: Problem): string =>
@@ -120,7 +113,7 @@ const pagesOf = (report: Report): ReadonlyArray<string> => report.pages.map((pag
 function checked(config: ReadOptions & { readonly json: boolean }) {
   const running = Effect.gen(function* () {
     const report = yield* Effect.fromResult(analyse(optionsOf(config)));
-    const result = envelope('check', { ...report, pages: pagesOf(report) }, []);
+    const result = envelopeOf('check', { ...report, pages: pagesOf(report) }, []);
     yield* finish(config.json, result, [...report.problems.map(problemLine), summary(report)]);
   });
   return running.pipe(Effect.withSpan('foldkit-dash.check'));
@@ -132,33 +125,40 @@ const check = Command.make('check', { root, fresh, json, loaderTimeout }, checke
   ),
 );
 
-function described(config: ReadOptions & { readonly json: boolean }) {
+function described(
+  config: ReadOptions & {
+    readonly json: boolean;
+    readonly at: Readonly<Record<string, string>>;
+  },
+) {
   const running = Effect.gen(function* () {
-    const report = yield* Effect.fromResult(analyse(optionsOf(config)));
-    const result = envelope('describe', { ...report, pages: pagesOf(report) }, []);
+    const asked = new Map(Object.entries(config.at));
+    const report = yield* Effect.fromResult(analyse(optionsOf(config), asked));
+    const result = envelopeOf('describe', { ...report, pages: pagesOf(report) }, []);
     yield* finish(config.json, result, [
-      ...report.charts.map(chartLine),
+      ...report.charts.flatMap(describedChart),
       ...report.problems.map(problemLine),
     ]);
   });
   return running.pipe(Effect.withSpan('foldkit-dash.describe'));
 }
 
-const describe = Command.make('describe', { root, fresh, json, loaderTimeout }, described).pipe(
-  Command.withDescription('Say what each chart shows, in words, by page and line.'),
+const atValues = Flag.KeyValuePair('at').pipe(
+  Flag.withDefault({}),
+  Flag.withDescription(
+    "Describe charts with an input set: --at region=North (repeatable; all for a select's all).",
+  ),
 );
 
-/** Whether `out` is a safe folder to replace: inside the project, and not a source. */
-const isOutputFolder = (projectRoot: string, folder: string): boolean => {
-  const inside = relative(projectRoot, folder);
-  const top = inside.split(/[\\/]/)[0] ?? '';
-  return (
-    inside !== '' &&
-    !inside.startsWith('..') &&
-    !isAbsolute(inside) &&
-    !['pages', 'data', 'node_modules'].includes(top)
-  );
-};
+const describe = Command.make(
+  'describe',
+  { root, fresh, json, loaderTimeout, at: atValues },
+  described,
+).pipe(
+  Command.withDescription(
+    "Say what each chart shows, in words, by page and line, with each series' low and high.",
+  ),
+);
 
 /** Writes `text` at `target`, making its folder first. */
 function writeText(target: string, text: string) {
@@ -187,7 +187,7 @@ function built(config: ReadOptions & { readonly json: boolean; readonly out: str
     const files = yield* renderSite(report);
     yield* Effect.forEach(files, (file) => writeText(join(folder, file.path), file.text));
     const written = files.map((file) => relative(options.root, join(folder, file.path)));
-    const result = envelope('build', { ...report, pages: pagesOf(report) }, written);
+    const result = envelopeOf('build', { ...report, pages: pagesOf(report) }, written);
     yield* finish(config.json, result, [
       ...report.problems.map(problemLine),
       `${summary(report)} Wrote ${relative(options.root, folder)}/.`,
@@ -219,7 +219,7 @@ function started(config: { readonly dir: string; readonly json: boolean }) {
     );
     yield* writeText(join(folder, schemaFile), schema);
     const written = [...starter.map(([path]) => path), schemaFile];
-    const result = envelope(
+    const result = envelopeOf(
       'new',
       { pages: ['pages/index.md'], problems: [], charts: [], inputs: [] },
       written,
@@ -287,11 +287,26 @@ const dev = Command.make('dev', { root, port, host, fresh, loaderTimeout }, serv
   ),
 );
 
+function servedMcp() {
+  const serving = Effect.tryPromise({
+    try: serveMcp,
+    catch: (error) =>
+      new DashInvocationError({ message: error instanceof Error ? error.message : String(error) }),
+  });
+  return serving.pipe(Effect.withSpan('foldkit-dash.mcp'));
+}
+
+const mcp = Command.make('mcp', {}, servedMcp).pipe(
+  Command.withDescription(
+    'Serve the commands as MCP tools over stdio (dash_check, dash_describe, dash_preview, dash_build, dash_new).',
+  ),
+);
+
 export const foldkitDash = Command.make('foldkit-dash').pipe(
   Command.withDescription(
     'Static dashboards from Markdown pages, foldkit-viz plot specs and build-time data loaders.',
   ),
-  Command.withSubcommands([create, check, describe, build, dev]),
+  Command.withSubcommands([create, check, describe, build, dev, mcp]),
 );
 
 /** Says why the command cannot run, then fails with exit 2. */

@@ -62,8 +62,10 @@ This is a foldkit-dash project: Markdown pages in \`pages/\`, data in \`data/\`.
   (look up \`definitions.LineMark\`, \`BarMark\` and the rest, and \`PositionScaleSpec\`
   for axes). It is also published at ${schemaUrl}.
 - \`"data": "name.json"\` reads \`data/name.json\`, or the output of the loader
-  \`data/name.json.ts\`: a program Bun runs from this folder, which prints JSON rows (top-level
+  \`data/name.json.ts\`: a program run from this folder that prints JSON rows (top-level
   \`await\` and Bun's APIs work; it may read files anywhere, such as \`../export.csv\`).
+  A \`.csv\` or \`.tsv\` name is read as CSV or TSV, and a loader may be \`.py\`, \`.sh\` or
+  \`.R\` as well as \`.ts\` or \`.js\`.
   Rows are objects of plain values; ISO date strings make time axes.
 - A band axis shows its categories in the order they first appear in the rows; set the
   axis's \`domain\` to order them yourself.
@@ -74,7 +76,8 @@ The loop:
 1. Write or change a page or a loader.
 2. \`bunx foldkit-dash check --json\`: every problem with its file, line and spec path.
    Fix them all; exit 0 means none.
-3. \`bunx foldkit-dash describe\`: what each chart shows, in words. Check that it says
+3. \`bunx foldkit-dash describe\`: what each chart shows, in words, with each series' low
+   and high (\`--at name=value\` to see other input values). Check that it says
    what the prose around it claims.
 4. \`bunx foldkit-dash build\`: writes \`dist/\`, static HTML (JavaScript only on pages
    with inputs).

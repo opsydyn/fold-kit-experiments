@@ -3,6 +3,8 @@
  * inputs. `build` writes these files; `dev` serves them.
  * @module Site
  */
+import { isAbsolute, relative } from 'node:path';
+
 import { Effect } from 'effect';
 
 import { documentOf, hrefFrom } from './page';
@@ -55,5 +57,17 @@ export const renderSite = (report: Report) => {
       (error) => new DashInvocationError({ message: `could not build the site: ${String(error)}` }),
     ),
     Effect.withSpan('foldkit-dash.site'),
+  );
+};
+
+/** Whether `folder` is safe for a build to replace: inside the project, and not a source. */
+export const isOutputFolder = (projectRoot: string, folder: string): boolean => {
+  const inside = relative(projectRoot, folder);
+  const top = inside.split(/[\\/]/)[0] ?? '';
+  return (
+    inside !== '' &&
+    !inside.startsWith('..') &&
+    !isAbsolute(inside) &&
+    !['pages', 'data', 'node_modules'].includes(top)
   );
 };

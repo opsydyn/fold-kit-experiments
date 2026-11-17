@@ -77,7 +77,7 @@ describe('analyse', () => {
     ]);
     expect(problems[2]?.message).toBe('marks[0].y: field "revenue" is missing from the data');
     expect(problems[3]?.message).toContain(
-      'no data/missing.json, and no loader data/missing.json.ts',
+      'no data/missing.json, and no loader (data/missing.json.ts, .js, .py, .sh or .R)',
     );
     expect(problems[5]?.message).toBe('loader data/broken.json.ts exited with 3: no database');
     expect(problems.every((problem) => problem.file === 'pages/index.md')).toBe(true);
@@ -226,5 +226,86 @@ describe('interactive pages', () => {
       ['data', 'with region = "west": where {"region":"west"} keeps no rows'],
       ['input', 'refers to no input "area" on this page'],
     ]);
+  });
+});
+
+describe('loaders in any language, and CSV', () => {
+  const csv = 'month,units,region\nJan,12,north\nFeb,9,south\nMar,15,north\n';
+
+  test('a CSV file, and a Python or shell loader that prints CSV or JSON, all draw', () => {
+    const root = project({
+      'pages/index.md': `# A\n\n${fence(bars('units.csv'))}\n${fence(bars('py.json'))}\n${fence(bars('sh.tsv'))}`,
+      'data/units.csv': csv,
+      'data/py.json.py': `import json\nprint(json.dumps(${JSON.stringify(rows)}))\n`,
+      'data/sh.tsv.sh': "printf 'month\\tunits\\nJan\\t12\\nFeb\\t9\\n'\n",
+    });
+    const report = reportOf(root);
+    expect(report.problems).toEqual([]);
+    expect(report.charts.map((chart) => chart.summary.split('.')[0])).toEqual([
+      'Shows 3 bars',
+      'Shows 3 bars',
+      'Shows 2 bars',
+    ]);
+  });
+
+  test('two loaders for one name, and a loader whose program is missing, are problems', () => {
+    const root = project({
+      'pages/index.md': `# A\n\n${fence(bars('twice.json'))}\n${fence(bars('r.json'))}`,
+      'data/twice.json.ts': 'console.log("[]")\n',
+      'data/twice.json.py': 'print("[]")\n',
+      'data/r.json.R': 'cat("[]")\n',
+    });
+    const messages = reportOf(root).problems.map((problem) => [problem.kind, problem.message]);
+    expect(messages[0]).toEqual([
+      'loader',
+      'data/twice.json.ts and data/twice.json.py both make twice.json: keep one',
+    ]);
+    // Rscript is not installed here; where it is, this loader prints an empty array.
+    if (Bun.which('Rscript') === null) {
+      expect(messages[1]).toEqual([
+        'loader',
+        'loader data/r.json.R runs with Rscript, which is not on the PATH',
+      ]);
+    }
+  });
+});
+
+describe('describe at other values, and each series', () => {
+  test('a series is reported with its points, low and high, and where each falls', () => {
+    const root = project({
+      'pages/index.md': `# A\n\n${fence({ width: 400, height: 240, data: 'units.json', marks: [{ mark: 'line', x: 'month', y: 'units', stroke: 'region' }] })}`,
+      'data/units.json': JSON.stringify(rows),
+    });
+    expect(reportOf(root).charts[0]?.series).toEqual([
+      { name: 'north', count: 2, low: { x: 'Jan', y: 12 }, high: { x: 'Mar', y: 15 } },
+      { name: 'south', count: 1, low: { x: 'Feb', y: 9 }, high: { x: 'Feb', y: 9 } },
+    ]);
+  });
+
+  test('values asked for are used for description only, and are checked', () => {
+    const page = `# A\n\n\`\`\`input\n{ "type": "select", "name": "region", "options": ["north", "south"] }\n\`\`\`\n\n${fence({ ...bars('units.json'), where: { region: { input: 'region' } } })}`;
+    const root = project({ 'pages/index.md': page, 'data/units.json': JSON.stringify(rows) });
+    const at = (values: ReadonlyArray<readonly [string, string]>) =>
+      analyse(options(root), new Map(values));
+    const south = at([['region', 'south']]);
+    expect(Result.isSuccess(south) && south.success.charts[0]).toMatchObject({
+      at: { region: 'south' },
+    });
+    expect(Result.isSuccess(south) && south.success.charts[0]?.summary).toStartWith('Shows 1 bar.');
+    // The built page keeps its default.
+    const plan = Result.isSuccess(south) ? south.success.pages[0] : undefined;
+    expect(
+      plan?._tag === 'App' && plan.flags.sections.find((each) => each._tag === 'Control'),
+    ).toMatchObject({
+      input: { value: 'north' },
+    });
+    const wrong = at([['region', 'west']]);
+    expect(
+      Result.isSuccess(wrong) && wrong.success.problems.map((problem) => problem.message),
+    ).toEqual(['--at region=west: west is not one of its choices']);
+    const unknown = at([['zone', '1']]);
+    expect(Result.isFailure(unknown) && unknown.failure.message).toBe(
+      '--at zone: no page has an input of that name',
+    );
   });
 });

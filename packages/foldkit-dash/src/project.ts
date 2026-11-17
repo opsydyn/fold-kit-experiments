@@ -9,16 +9,17 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, posix } from 'node:path';
 
 import { describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
-import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
+import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
 import { Result, Schema } from 'effect';
 
 import type { Flags, Section } from './app';
-import { type ChartProblem, drawSpec } from './chart';
+import { type ChartProblem, drawSpec, type Series } from './chart';
 import { type DataOptions, dataReader } from './data';
 import {
   choicesOf,
   defaultsOf,
   type Input,
+  type InputValue,
   readInput,
   referencesIn,
   shown,
@@ -207,11 +208,35 @@ const checkChoices = (
   });
 };
 
+/** Input values asked for by name (`describe --at name=value`), as text. */
+export type AskedValues = ReadonlyMap<string, string>;
+
+/** The value `text` names for `input`, or why it names none. */
+const valueFor = (input: Input, text: string): Result.Result<InputValue, string> => {
+  if (input._tag === 'Choose') {
+    if (text === 'all' && input.all !== null) return Result.succeed(null);
+    const choice = input.choices.find((each) => String(each) === text);
+    return choice === undefined
+      ? Result.fail(`${text} is not one of its choices`)
+      : Result.succeed(choice);
+  }
+  if (input._tag === 'Toggle') {
+    return text === 'true' || text === 'false'
+      ? Result.succeed(text === 'true')
+      : Result.fail(`${text} is not true or false`);
+  }
+  const value = Number(text);
+  return Number.isFinite(value) && value >= input.min && value <= input.max
+    ? Result.succeed(value)
+    : Result.fail(`${text} is not a number from ${input.min} to ${input.max}`);
+};
+
 /** Reads, draws and checks one page. */
 function analysePage(
   page: PageSource,
   nav: ReadonlyArray<NavEntry>,
   read: ReturnType<typeof dataReader>,
+  asked: AskedValues,
 ): PageResult {
   const fences: ReadonlyArray<Fence> = fencesOf(page.text);
   const whereOf = (fence: Fence): Where => ({ file: page.file, line: fence.line });
@@ -237,6 +262,32 @@ function analysePage(
     }
   }
   const defaults = defaultsOf([...inputs.values()]);
+  // Charts are described at the values asked for, where this page has those inputs;
+  // checks and the built page keep the defaults.
+  const overrides = new Map<string, InputValue>();
+  for (const [name, text] of asked) {
+    const input = inputs.get(name);
+    if (input === undefined) continue;
+    const value = valueFor(input, text);
+    if (Result.isSuccess(value)) overrides.set(name, value.success);
+    else {
+      const fence = [...readInputs].find(
+        ([, each]) => each._tag === 'Read' && each.input === input,
+      )?.[0];
+      problems.push(
+        at(
+          { file: page.file, line: fence?.line ?? 0 },
+          {
+            kind: 'input',
+            path: null,
+            message: `--at ${name}=${text}: ${value.failure}`,
+          },
+        ),
+      );
+    }
+  }
+
+  const shownAt = { ...defaults, ...Object.fromEntries(overrides) };
 
   const data = new Map<string, Rows>();
   const charts: Array<Chart> = [];
@@ -272,14 +323,21 @@ function analysePage(
       continue;
     }
     const used = Object.fromEntries(
-      referencesIn(spec).map((name) => [name, defaults[name] ?? null]),
+      referencesIn(spec).map((name) => [name, shownAt[name] ?? null]),
     );
-    const drawn = Result.map(drawSpec(spec, data, defaults), ({ plot, geometry }) => ({
+    const drawn = Result.map(drawSpec(spec, data, shownAt), ({ plot, geometry, series }) => ({
       figure: `<figure class="chart">${plotHtml(geometry, { table: plotTable(plot), summary: true })}</figure>`,
       summary: describePlot(geometry),
+      series,
     }));
     if (Result.isFailure(drawn)) problems.push(at(where, problemOfChart(drawn.failure)));
-    else charts.push({ ...where, summary: drawn.success.summary, at: used });
+    else
+      charts.push({
+        ...where,
+        summary: drawn.success.summary,
+        at: used,
+        series: drawn.success.series,
+      });
     problems.push(...checkChoices(where, spec, data, inputs, defaults));
     readCharts.set(fence, { _tag: 'Chart', spec, drawn, at: used });
   }
@@ -327,15 +385,37 @@ function analysePage(
 }
 
 /** Reads, draws and checks every page of the project at `options.root`. */
-export function analyse(options: DataOptions): Result.Result<Report, DashInvocationError> {
-  return Result.map(readPages(options.root), (sources) => {
+export function analyse(
+  options: DataOptions,
+  asked: AskedValues = new Map(),
+): Result.Result<Report, DashInvocationError> {
+  return Result.flatMap(readPages(options.root), (sources) => {
+    // An input asked for by name must be on some page: a misspelt name is the command's
+    // mistake, not the project's.
+    const names = new Set(
+      sources.flatMap((page) =>
+        fencesOf(page.text).flatMap((fence) => {
+          if (fence.kind !== 'input') return [];
+          const name = /"name"\s*:\s*"([^"]+)"/.exec(fence.source)?.[1];
+          return name === undefined ? [] : [name];
+        }),
+      ),
+    );
+    const unknown = [...asked.keys()].filter((name) => !names.has(name));
+    if (unknown.length > 0) {
+      return Result.fail(
+        new DashInvocationError({
+          message: `--at ${unknown.join(', ')}: no page has an input of that name`,
+        }),
+      );
+    }
     const read = dataReader(options);
     const nav: ReadonlyArray<NavEntry> = sources.map((page) => ({
       output: outputOf(page.file),
       title: titleOf(page),
     }));
-    const results = sources.map((page) => analysePage(page, nav, read));
-    return {
+    const results = sources.map((page) => analysePage(page, nav, read, asked));
+    return Result.succeed({
       pages: results.map((each) => each.plan),
       nav,
       charts: results.flatMap((each) => each.charts),
@@ -346,6 +426,79 @@ export function analyse(options: DataOptions): Result.Result<Report, DashInvocat
           count + fencesOf(page.text).filter((fence) => fence.kind === 'plot').length,
         0,
       ),
-    };
+    });
+  });
+}
+
+/** One chart drawn on its own: a standalone SVG, what it shows, and its values. */
+export type Preview = {
+  readonly svg: string;
+  readonly summary: string;
+  readonly series: ReadonlyArray<Series>;
+  readonly at: Values;
+};
+
+/**
+ * The chart whose fence opens on `line` of `file`, drawn as a standalone SVG at its
+ * inputs' defaults, or at the values `asked` names; or why it cannot be.
+ */
+export function previewChart(
+  options: DataOptions,
+  file: string,
+  line: number,
+  asked: AskedValues = new Map(),
+): Result.Result<Preview, string> {
+  const pages = readPages(options.root);
+  if (Result.isFailure(pages)) return Result.fail(pages.failure.message);
+  const page = pages.success.find((each) => each.file === file);
+  if (page === undefined) {
+    return Result.fail(
+      `${file} is not a page (pages: ${pages.success.map((each) => each.file).join(', ')})`,
+    );
+  }
+  const read = dataReader(options);
+  const readData = (name: string) => Result.mapError(read(name), (problem) => problem.message);
+  const fences = fencesOf(page.text);
+  const inputs = new Map<string, Input>();
+  for (const fence of fences.filter((each) => each.kind === 'input')) {
+    const input = readInput(fence.source, readData);
+    if (Result.isSuccess(input)) inputs.set(input.success.name, input.success);
+  }
+  const overrides = new Map<string, InputValue>();
+  for (const [name, text] of asked) {
+    const input = inputs.get(name);
+    if (input === undefined) return Result.fail(`${file} has no input named ${name}`);
+    const value = valueFor(input, text);
+    if (Result.isFailure(value)) return Result.fail(`${name}=${text}: ${value.failure}`);
+    overrides.set(name, value.success);
+  }
+  const values = { ...defaultsOf([...inputs.values()]), ...Object.fromEntries(overrides) };
+  const fence = fences.find((each) => each.kind === 'plot' && each.line === line);
+  if (fence === undefined) {
+    const lines = fences.filter((each) => each.kind === 'plot').map((each) => each.line);
+    return Result.fail(
+      `no chart opens on ${file}:${line} (charts open on lines ${lines.join(', ')})`,
+    );
+  }
+  const spec = decodeSpec(fence.source);
+  if (Result.isFailure(spec))
+    return Result.fail(`a plot fence holds one JSON object: ${spec.failure.message}`);
+  const data = new Map<string, Rows>();
+  for (const name of dataNamesOf(spec.success, inputs)) {
+    const rows = read(name);
+    if (Result.isFailure(rows)) return Result.fail(rows.failure.message);
+    data.set(name, rows.success);
+  }
+  const at = Object.fromEntries(
+    referencesIn(spec.success).map((name) => [name, values[name] ?? null]),
+  );
+  return Result.mapBoth(drawSpec(spec.success, data, values), {
+    onFailure: (problem) => problem.message,
+    onSuccess: ({ geometry, series }) => ({
+      svg: plotSvg(geometry),
+      summary: describePlot(geometry),
+      series,
+      at,
+    }),
   });
 }

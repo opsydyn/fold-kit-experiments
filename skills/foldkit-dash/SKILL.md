@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders, filtering with where, and the check, describe, build and dev loop. Non-TypeScript loaders and an MCP server are not part of it yet.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, at any input values), build and dev loop, and the same commands as MCP tools.
 ---
 
 # foldkit-dash
@@ -18,7 +18,8 @@ each chart shows. Do not open a browser to find out whether a chart is right.
 
 Requires Bun 1.4 or newer. `@opsydyn/foldkit-dash@0.1.0` is private to its repository
 ([ADR 0109](../../docs/adr/0109-build-agent-first-static-dashboards-with-foldkit-dash.md),
-inputs and `dev` in [ADR 0110](../../docs/adr/0110-interactive-foldkit-dash-pages-from-input-fences.md));
+inputs and `dev` in [ADR 0110](../../docs/adr/0110-interactive-foldkit-dash-pages-from-input-fences.md),
+the MCP server, loaders by extension and CSV in [ADR 0111](../../docs/adr/0111-foldkit-dash-mcp-server-loaders-in-any-language-and-csv.md));
 in the repository, run it as `bun packages/foldkit-dash/src/bin.ts` instead of
 `bunx foldkit-dash`.
 
@@ -42,9 +43,12 @@ your own; delete what you do not use.
    categories in the order you claim, the ranges you expect. A chart can compile and
    still show the wrong thing. Check the numbers in your prose against the data too:
    `describe` rounds (see [marks and scales](references/marks.md#what-describe-says)).
-   It gives each axis's range and, for a colour, its groups, but not where a peak or a
-   dip falls or what each series' own range is: check a claim such as "every region dips
-   in July" against the data with a script, or make one chart per series.
+   Under a line, area or dot chart it lists each series: its points, its low and high,
+   and the `x` each falls at (`- North: 12 points, low 120 at 2026-01-05, high 163 at
+   2026-02-02`), exact, so check claims about one series there. It does not say what
+   happens between the low and the high: for "dips in July, then climbs", look at the
+   data. `describe --at region=North` (repeatable) describes charts with inputs set
+   instead of their defaults.
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
 For a person watching, `bunx foldkit-dash dev` serves the site (on
@@ -54,7 +58,8 @@ loop above is the check.
 
 Exit codes: 0 done, 1 problems found (a build still writes its pages, each problem
 shown where its chart would be), 2 the command could not run (no `pages/` folder, a
-bad flag, `new` into a folder in use, `--out` outside the project, a port in use).
+bad flag, `new` into a folder in use, `--out` outside the project, a port in use, an
+`--at` input no page has).
 
 `--json` answers with a `foldkit-dash/v1` envelope on stdout:
 
@@ -86,9 +91,10 @@ rows), `loader` (it failed or ran past `--loader-timeout`, 60 s by default), `ro
 wrong, or a spec refers to no input). `line` is the fence's opening line. A problem that
 only some choices of an input cause says which: `with region = "West": ...`.
 
-`charts` lists every chart that drew, `{ file, line, summary, at }`, the summary as
-`describe` prints it, drawn at `at`: its inputs' defaults (`describe` prints them as
-`[region = "North"]`). `inputs` lists every input, `{ file, line, name, type, value,
+`charts` lists every chart that drew, `{ file, line, summary, at, series }`, the
+summary as `describe` prints it, drawn at `at`: its inputs' defaults, or the `--at`
+values (`describe` prints them as `[region = "North"]`); `series` holds each series'
+`name`, `count`, `low` and `high` (`{ x, y }`). `inputs` lists every input, `{ file, line, name, type, value,
 choices }`.
 
 ## Pages
@@ -181,8 +187,9 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   keeps no rows. Combinations are not tried: Scotland with a high threshold can still
   keep nothing. Then the reader sees a note where the chart would be (`Chart at line 57:
   where ... keeps no rows`), not an empty chart; say so in the prose if it is likely.
-- `describe` describes charts at the defaults only: to describe another choice, change
-  the default, check, and change it back. It writes `all` for what the JSON gives as
+- `describe` describes charts at the defaults, or at the values `--at` names
+  (`--at region=West --at floor=300`; `all` for a select's `all`): that is how to look
+  at a combination `check` does not try. It writes `all` for what the JSON gives as
   `null`.
 - A page with inputs carries its charts' rows in the page, so readers' choices need no
   server: keep a page's data to what its charts need (summarise in the loader). For
@@ -193,14 +200,22 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
 
 ## Data and loaders
 
-- A data file is JSON: an array of objects whose values are numbers, strings,
-  booleans or null. ISO date strings become time axes.
-- A loader is `data/<name>.ts`, making `<name>`: `data/sales.json.ts` makes
-  `sales.json`. It is a program Bun runs from the project folder, printing that JSON
-  to stdout. Top-level `await` and Bun's APIs work, and it may read files anywhere
-  (`await Bun.file('../export.csv').text()`). Read a database, an API or a CSV there,
-  and keep the rows the page needs: summarise in the loader (totals, rankings), not in
-  the chart. One loader per shape of data; several fences can share one.
+- A data name's extension says how it is read: `.csv` and `.tsv` as a header row and
+  records (each value a number, `true`/`false`, `null` when empty, or a string), anything
+  else as JSON (an array of objects of numbers, strings, booleans or null). ISO date
+  strings become time axes.
+- A loader is `data/<name>.<ext>`, making `<name>`: `data/sales.json.ts` makes
+  `sales.json`, `data/sales.csv.py` makes `sales.csv`. It runs from the project folder
+  with the program its extension names: `.ts` and `.js` with Bun (top-level `await` and
+  Bun's APIs work), `.py` with `python3`, `.sh` with `sh`, `.R` with `Rscript`; it
+  prints the data to stdout. It may read files anywhere (`../export.csv`). Read a
+  database, an API, a CSV or a Parquet file there, and keep the rows the page needs:
+  summarise in the loader (totals, rankings), not in the chart. One loader per shape of
+  data; several fences can share one. [Loader recipes](references/loaders.md) has DuckDB
+  and Polars over Parquet.
+- Two loaders for one name (`sales.json.ts` and `sales.json.py`) are a problem; so is a
+  loader whose program is not installed. The machine that builds needs every language
+  the loaders use.
 - For a chart of part of the data, filter with `where` rather than writing a loader per
   part. When loaders share reading code, put it in a module and import it
   (`import { loadRows } from '../lib/rows.ts'`): imports resolve from the loader's file,
@@ -213,9 +228,20 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
 - A deleted loader's cached output stays in the cache, unused; it does no harm.
 - Loaders run arbitrary code at build time. Treat `data/` as code.
 
+## As MCP tools
+
+`foldkit-dash mcp` serves the same commands over stdio to an agent that calls tools:
+`dash_new { dir }`, `dash_check { root }`, `dash_describe { root, at? }`,
+`dash_build { root, out? }`, each answering with the `--json` envelope, and
+`dash_preview { root, file, line, at? }`, one chart (by the line its fence opens on) as
+a standalone SVG with its summary and series. `at` is an object of input values:
+`{ "region": "North", "floor": 300 }`, `null` for `all`. A call that cannot be done
+answers as an error with the reason. In this repository, `.mcp.json` registers it as
+`foldkit-dash`.
+
 ## Not yet
 
-No hover or clicking a chart to filter others, no inputs kept in the page's URL, and
-loaders are TypeScript only. `dev` watches `pages/` and `data/` only: when a loader's
-source (a CSV elsewhere) changes, run with `--fresh`. Stage 3 of ADR 0109 adds an MCP
-server and loaders in other languages.
+No hover or clicking a chart to filter others, no inputs kept in the page's URL, no
+Parquet or database reading without a loader, and no streaming loaders. `dev` watches
+`pages/` and `data/` only: when a loader's source (a CSV elsewhere) changes, run with
+`--fresh`.

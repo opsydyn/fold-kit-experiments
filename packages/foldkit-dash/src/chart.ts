@@ -32,8 +32,9 @@ export type Drawn = {
 export const Series = Schema.Struct({
   name: Schema.String,
   count: Schema.Int,
-  low: Schema.Struct({ x: Value, y: Schema.Finite }),
-  high: Schema.Struct({ x: Value, y: Schema.Finite }),
+  /** The lowest `y`, and every `x` it falls at, in the order the rows give them. */
+  low: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
+  high: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
 });
 export type Series = typeof Series.Type;
 
@@ -67,9 +68,14 @@ const seriesOf = (spec: JsonObject, rows: Rows): ReadonlyArray<Series> => {
     });
     const [start] = points;
     if (start === undefined) return [];
-    const low = points.reduce((best, point) => (point.y < best.y ? point : best), start);
-    const high = points.reduce((best, point) => (point.y > best.y ? point : best), start);
-    return [{ name, count: points.length, low, high }];
+    const ys = points.map((point) => point.y);
+    const extreme = (y: number) => ({
+      y,
+      x: points.filter((point) => point.y === y).map((point) => point.x),
+    });
+    return [
+      { name, count: points.length, low: extreme(Math.min(...ys)), high: extreme(Math.max(...ys)) },
+    ];
   });
 };
 

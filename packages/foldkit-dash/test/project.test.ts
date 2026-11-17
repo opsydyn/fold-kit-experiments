@@ -274,11 +274,12 @@ describe('describe at other values, and each series', () => {
   test('a series is reported with its points, low and high, and where each falls', () => {
     const root = project({
       'pages/index.md': `# A\n\n${fence({ width: 400, height: 240, data: 'units.json', marks: [{ mark: 'line', x: 'month', y: 'units', stroke: 'region' }] })}`,
-      'data/units.json': JSON.stringify(rows),
+      'data/units.json': JSON.stringify([...rows, { month: 'Apr', units: 12, region: 'north' }]),
     });
+    // A low reached twice names both places, in the order the rows give them.
     expect(reportOf(root).charts[0]?.series).toEqual([
-      { name: 'north', count: 2, low: { x: 'Jan', y: 12 }, high: { x: 'Mar', y: 15 } },
-      { name: 'south', count: 1, low: { x: 'Feb', y: 9 }, high: { x: 'Feb', y: 9 } },
+      { name: 'north', count: 3, low: { y: 12, x: ['Jan', 'Apr'] }, high: { y: 15, x: ['Mar'] } },
+      { name: 'south', count: 1, low: { y: 9, x: ['Feb'] }, high: { y: 9, x: ['Feb'] } },
     ]);
   });
 

@@ -63,8 +63,16 @@ const chartLine = (chart: Chart): string => {
 };
 
 /** A series as a line under its chart: its points, and where its low and high fall. */
+/** Where a low or high falls: every `x` it is reached at, `a, b and c`. */
+const places = (xs: ReadonlyArray<Chart['series'][number]['low']['x'][number]>): string => {
+  const shownXs = xs.map(String);
+  return shownXs.length < 2
+    ? (shownXs[0] ?? '')
+    : `${shownXs.slice(0, -1).join(', ')} and ${shownXs.at(-1) ?? ''}`;
+};
+
 const seriesLine = (series: Chart['series'][number]): string =>
-  `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${String(series.low.x)}, high ${series.high.y} at ${String(series.high.x)}`;
+  `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${places(series.low.x)}, high ${series.high.y} at ${places(series.high.x)}`;
 
 /** A chart with its series beneath it. */
 const describedChart = (chart: Chart): ReadonlyArray<string> => [

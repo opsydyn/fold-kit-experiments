@@ -54,5 +54,5 @@ from 0), and what colour shows. Whole numbers print exactly; others round to fou
 significant figures, so 509,206.5 prints as 509,200. On a page with inputs, a chart is
 described at its inputs' defaults, or the `--at` values, named first:
 `[region = "North"] Shows 1 line.` A line, area or dot chart then lists each series
-(by its `stroke`, `fill` or `z` field) with its points, exact low and high, and the `x`
-each falls at.
+(by its `stroke`, `fill` or `z` field) with its points, exact low and high, and every
+`x` each is reached at (two, when a low is reached in two weeks).

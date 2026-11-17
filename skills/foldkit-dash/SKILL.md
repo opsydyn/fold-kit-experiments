@@ -44,8 +44,9 @@ your own; delete what you do not use.
    still show the wrong thing. Check the numbers in your prose against the data too:
    `describe` rounds (see [marks and scales](references/marks.md#what-describe-says)).
    Under a line, area or dot chart it lists each series: its points, its low and high,
-   and the `x` each falls at (`- North: 12 points, low 120 at 2026-01-05, high 163 at
-   2026-02-02`), exact, so check claims about one series there. It does not say what
+   and every `x` each is reached at (`- Wales: 26 points, low 259 at 2026-07-27 and
+   2026-08-03, high 369 at 2026-10-12`), exact, so check claims about one series there;
+   a low reached in two weeks names both. It does not say what
    happens between the low and the high: for "dips in July, then climbs", look at the
    data. `describe --at region=North` (repeatable) describes charts with inputs set
    instead of their defaults.
@@ -94,7 +95,7 @@ only some choices of an input cause says which: `with region = "West": ...`.
 `charts` lists every chart that drew, `{ file, line, summary, at, series }`, the
 summary as `describe` prints it, drawn at `at`: its inputs' defaults, or the `--at`
 values (`describe` prints them as `[region = "North"]`); `series` holds each series'
-`name`, `count`, `low` and `high` (`{ x, y }`). `inputs` lists every input, `{ file, line, name, type, value,
+`name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached). `inputs` lists every input, `{ file, line, name, type, value,
 choices }`.
 
 ## Pages

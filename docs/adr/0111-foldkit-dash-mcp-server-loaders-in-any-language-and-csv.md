@@ -19,7 +19,7 @@ August") from it; and it describes charts only at their inputs' defaults.
 1. **`describe` says what each series does, at any input values.** For a chart whose
    first mark draws series (`line`, `area` or `dot` with a `stroke`, `fill` or `z`
    field), `describe` adds a line per series: how many points, its lowest and highest
-   value and the `x` where each falls. `--at name=value` (repeatable) describes charts
+   value, and every `x` each is reached at (a tie names all of them). `--at name=value` (repeatable) describes charts
    with those inputs set instead of their defaults (`all` for a select's `all`). The
    envelope's charts gain `series`.
 2. **`foldkit-dash mcp` is an MCP server over stdio**, for agents that call tools rather

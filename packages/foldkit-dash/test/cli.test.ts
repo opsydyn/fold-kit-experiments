@@ -1,5 +1,5 @@
 /** The executable as an agent runs it: exit codes, the JSON envelope, and what it writes. */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +10,11 @@ import { Envelope } from '../src/problems';
 import { bars, fence, project, rows } from './support';
 
 const bin = join(import.meta.dir, '..', 'src', 'bin.ts');
+
+// Each test starts the executable several times, about 0.4 s each on a quiet machine
+// (seven in one test); CI runs other tasks beside these, so 5 s, bun's default, is
+// not enough.
+setDefaultTimeout(30_000);
 
 const run = (...args: ReadonlyArray<string>) => {
   const done = Bun.spawnSync(['bun', bin, ...args], { stdout: 'pipe', stderr: 'pipe' });

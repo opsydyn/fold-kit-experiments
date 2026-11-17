@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@effect/platform-bun": "catalog:",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@opsydyn/foldkit-viz": "workspace:*",
     "effect": "catalog:",
     "foldkit": "catalog:"

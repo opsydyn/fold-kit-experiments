@@ -10,6 +10,7 @@ import { join, posix } from 'node:path';
 
 import { Result, Schema } from 'effect';
 
+import { delimiterOf, parseDelimited } from './csv';
 import { Rows } from './rows';
 
 export { Rows } from './rows';
@@ -38,20 +39,44 @@ const isDataName = (name: string): boolean =>
   posix.normalize(name) === name &&
   !name.split('/').some((part) => part === '..' || part.startsWith('.'));
 
-const decodeRows = (text: string, name: string): Result.Result<Rows, DataProblem> =>
-  Result.mapError(Schema.decodeUnknownResult(RowsText)(text), (error) => ({
+/** Rows from a data file or loader's text: CSV or TSV by the name's extension, else JSON. */
+const decodeRows = (text: string, name: string): Result.Result<Rows, DataProblem> => {
+  const delimiter = delimiterOf(name);
+  if (delimiter !== undefined) return Result.succeed(parseDelimited(text, delimiter));
+  return Result.mapError(Schema.decodeUnknownResult(RowsText)(text), (error) => ({
     kind: 'rows' as const,
     message: `${name} is not rows of plain values: ${error.message}`,
   }));
+};
+
+/**
+ * The program each loader extension runs with, as Observable Framework's loaders do:
+ * JavaScript and TypeScript with Bun, Python, shell and R with their own.
+ */
+export const interpreters: ReadonlyArray<readonly [extension: string, program: string]> = [
+  ['ts', 'bun'],
+  ['js', 'bun'],
+  ['py', 'python3'],
+  ['sh', 'sh'],
+  ['R', 'Rscript'],
+];
+
+/** A loader found for a data name: its file and the program that runs it. */
+type Loader = { readonly file: string; readonly program: string; readonly shown: string };
 
 /** Runs a loader, keeping its output; a failure or a run past `timeout` is a problem. */
 const runLoader = (
   options: DataOptions,
-  name: string,
-  loader: string,
+  loader: Loader,
   cached: string,
 ): Result.Result<string, DataProblem> => {
-  const run = Bun.spawnSync(['bun', loader], {
+  if (Bun.which(loader.program) === null) {
+    return Result.fail({
+      kind: 'loader',
+      message: `loader ${loader.shown} runs with ${loader.program}, which is not on the PATH`,
+    });
+  }
+  const run = Bun.spawnSync([loader.program, loader.file], {
     cwd: options.root,
     stdout: 'pipe',
     stderr: 'pipe',
@@ -60,14 +85,14 @@ const runLoader = (
   if (run.exitedDueToTimeout === true) {
     return Result.fail({
       kind: 'loader',
-      message: `loader data/${name}.ts ran past ${options.timeout / 1000} s`,
+      message: `loader ${loader.shown} ran past ${options.timeout / 1000} s`,
     });
   }
   if (run.exitCode !== 0) {
     const said = run.stderr.toString().trim().split('\n').slice(-5).join('\n');
     return Result.fail({
       kind: 'loader',
-      message: `loader data/${name}.ts exited with ${run.exitCode}${said === '' ? '' : `: ${said}`}`,
+      message: `loader ${loader.shown} exited with ${run.exitCode}${said === '' ? '' : `: ${said}`}`,
     });
   }
   mkdirSync(posix.dirname(cached), { recursive: true });
@@ -78,6 +103,24 @@ const runLoader = (
 /** Whether a loader's cached output is still its output. */
 const isFresh = (options: DataOptions, loader: string, cached: string): boolean =>
   !options.fresh && existsSync(cached) && statSync(cached).mtimeMs >= statSync(loader).mtimeMs;
+
+/** The one loader that makes `name`, none, or why there are too many. */
+const loaderFor = (
+  options: DataOptions,
+  name: string,
+): Result.Result<Loader | undefined, DataProblem> => {
+  const found = interpreters.flatMap(([extension, program]) => {
+    const file = join(options.root, 'data', `${name}.${extension}`);
+    return existsSync(file) ? [{ file, program, shown: `data/${name}.${extension}` }] : [];
+  });
+  if (found.length > 1) {
+    return Result.fail({
+      kind: 'loader',
+      message: `${found.map((each) => each.shown).join(' and ')} both make ${name}: keep one`,
+    });
+  }
+  return Result.succeed(found[0]);
+};
 
 /** The text a name stands for: its data file, else its loader's (cached) output. */
 const textOf = (
@@ -90,20 +133,21 @@ const textOf = (
   }
   const file = join(options.root, 'data', name);
   if (existsSync(file)) return Result.succeed(readFileSync(file, 'utf8'));
-  const loader = `${file}.ts`;
-  if (!existsSync(loader)) {
-    return Result.fail({
-      kind: 'data',
-      message: `no data/${name}, and no loader data/${name}.ts to make it`,
-    });
-  }
-  const cached = join(cacheDirectory(options.root), name);
-  // `--fresh` runs each loader once per build, however many fences use it.
-  if (isFresh(options, loader, cached) || ran.has(name)) {
-    return Result.succeed(readFileSync(cached, 'utf8'));
-  }
-  ran.add(name);
-  return runLoader(options, name, loader, cached);
+  return Result.flatMap(loaderFor(options, name), (loader) => {
+    if (loader === undefined) {
+      return Result.fail({
+        kind: 'data',
+        message: `no data/${name}, and no loader (data/${name}.ts, .js, .py, .sh or .R) to make it`,
+      });
+    }
+    const cached = join(cacheDirectory(options.root), name);
+    // `--fresh` runs each loader once per build, however many fences use it.
+    if (isFresh(options, loader.file, cached) || ran.has(name)) {
+      return Result.succeed(readFileSync(cached, 'utf8'));
+    }
+    ran.add(name);
+    return runLoader(options, loader, cached);
+  });
 };
 
 /**

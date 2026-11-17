@@ -5,7 +5,8 @@ Agent-first static dashboards: Markdown pages whose ` ```plot ` fences hold
 at build time, built to HTML with no JavaScript. In the manner of Observable Framework,
 made for coding agents first: the format is Markdown and JSON, and every check answers
 in text. Stage 1 of [ADR 0109](../../docs/adr/0109-build-agent-first-static-dashboards-with-foldkit-dash.md),
-with inputs and `dev` from [ADR 0110](../../docs/adr/0110-interactive-foldkit-dash-pages-from-input-fences.md).
+with inputs and `dev` from [ADR 0110](../../docs/adr/0110-interactive-foldkit-dash-pages-from-input-fences.md),
+and the MCP server, loaders in any language and CSV from [ADR 0111](../../docs/adr/0111-foldkit-dash-mcp-server-loaders-in-any-language-and-csv.md).
 
 Private. Runs on Bun 1.4+.
 
@@ -15,7 +16,11 @@ foldkit-dash check   [-C dir] [--json] [--fresh] [--loader-timeout 60]
 foldkit-dash describe [-C dir] [--json]
 foldkit-dash build   [-C dir] [--out dist] [--json] [--fresh]
 foldkit-dash dev     [-C dir] [--port 4400] [--host 127.0.0.1] [--fresh]
+foldkit-dash mcp     # the commands as MCP tools over stdio
 ```
+
+`describe --at name=value` (repeatable) describes charts at other input values; under
+each line, area or dot chart it lists every series' points, low and high.
 
 In this repository: `bun packages/foldkit-dash/src/bin.ts <command>`.
 
@@ -27,7 +32,8 @@ In this repository: `bun packages/foldkit-dash/src/bin.ts <command>`.
   control; a spec uses its value as `{ "input": "name" }`, and `"where"` keeps the rows a
   chart draws (with or without inputs). A page with inputs is a Foldkit app: the build
   renders it to HTML, and `dist/_dash/client-<hash>.js` hydrates it.
-- **Loaders** print JSON rows; their output is cached under
+- **Data** is JSON, CSV or TSV, by the name's extension.
+- **Loaders** run by extension (`.ts`/`.js` with Bun, `.py`, `.sh`, `.R`) and print rows; their output is cached under
   `node_modules/.cache/foldkit-dash/` until the loader changes (`--fresh` reruns).
 - **Output** is deterministic: the same inputs build byte-identical pages and script.
 - **`dev`** serves the site from memory, rebuilds when `pages/` or `data/` change, and

@@ -7,6 +7,10 @@
     "effect-three-scenes": {
       "command": "bun",
       "args": ["packages/effect-three-samples/scripts/scene-mcp.ts"]
+    },
+    "foldkit-dash": {
+      "command": "bun",
+      "args": ["packages/foldkit-dash/src/bin.ts", "mcp"]
     }
   }
 }

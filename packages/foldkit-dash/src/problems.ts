@@ -5,6 +5,7 @@
  */
 import { Data, Runtime, Schema } from 'effect';
 
+import { Series } from './chart';
 import { InputValue, Values } from './inputs';
 
 /** The envelope's protocol; a change that breaks readers gets a new version. */
@@ -36,6 +37,8 @@ export const Chart = Schema.Struct({
   line: Schema.Int,
   summary: Schema.String,
   at: Values,
+  /** Each series of a line, area or dot chart: its points, low and high, and where. */
+  series: Schema.Array(Series),
 });
 export type Chart = typeof Chart.Type;
 
@@ -80,3 +83,27 @@ export class DashInvocationError extends Data.TaggedError('DashInvocationError')
   readonly [Runtime.errorExitCode] = 2;
   readonly [Runtime.errorReported] = false;
 }
+
+/** The parts of a report an envelope carries. */
+type Reported = {
+  readonly pages: ReadonlyArray<string>;
+  readonly charts: ReadonlyArray<Chart>;
+  readonly inputs: ReadonlyArray<InputEntry>;
+  readonly problems: ReadonlyArray<Problem>;
+};
+
+/** A command's answer, as `--json` and the MCP server give it. */
+export const envelopeOf = (
+  command: Envelope['command'],
+  report: Reported,
+  written: ReadonlyArray<string>,
+): Envelope => ({
+  protocol,
+  command,
+  status: report.problems.length === 0 ? 'ok' : 'problems',
+  pages: report.pages,
+  charts: report.charts,
+  inputs: report.inputs,
+  problems: report.problems,
+  written,
+});

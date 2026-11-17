@@ -52,4 +52,11 @@ or violin counts once), each axis (a band axis with its categories in order when
 there are six or fewer; a continuous axis from its lowest to highest value, bars
 from 0), and what colour shows. Whole numbers print exactly; others round to four
 significant figures, so 509,206.5 prints as 509,200. On a page with inputs, a chart is
-described at its inputs' defaults, named first: `[region = "North"] Shows 1 line.`
+described at its inputs' defaults, or the `--at` values, named first:
+`[region = "North"] Shows 1 line.` A line, area, dot or bar chart then lists each
+series (by its `stroke`, `fill` or `z` field, unless that field is the category axis
+itself, as when bars are coloured by their own category) with its points, exact low and
+high, and every `x` each is reached at (two, when a low is reached in two weeks). For
+bars, those are the highest and lowest categories; horizontal bars (numbers on `x`) are
+measured along `x`. One series is named by its field and the `where` that chose its rows;
+several follow `color.domain` when the spec sets one, else the data's order.

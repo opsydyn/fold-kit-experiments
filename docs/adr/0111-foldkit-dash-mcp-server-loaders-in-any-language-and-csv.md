@@ -17,11 +17,13 @@ August") from it; and it describes charts only at their inputs' defaults.
 ## Decision
 
 1. **`describe` says what each series does, at any input values.** For a chart whose
-   first mark draws series (`line`, `area` or `dot` with a `stroke`, `fill` or `z`
-   field), `describe` adds a line per series: how many points, its lowest and highest
-   value, and every `x` each is reached at (a tie names all of them). `--at name=value` (repeatable) describes charts
-   with those inputs set instead of their defaults (`all` for a select's `all`). The
-   envelope's charts gain `series`.
+   first mark is a `line`, `area`, `dot` or `bar`, `describe` adds a line per series (by
+   its `stroke`, `fill` or `z` field, unless that is the category axis itself): how
+   many points, its lowest and highest value, and every `x` each is reached at (a tie
+   names all of them; for bars, the categories). One series is named by its field and
+   the `where` that chose its rows; several follow `color.domain` when the spec sets
+   one. `--at name=value` (repeatable) describes charts with those inputs set instead of
+   their defaults (`all` for a select's `all`). The envelope's charts gain `series`.
 2. **`foldkit-dash mcp` is an MCP server over stdio**, for agents that call tools rather
    than run commands. Its tools take a project folder and answer with the same envelope
    as `--json`: `dash_check`, `dash_describe` (with `at`), `dash_build`, `dash_new`, and
@@ -50,6 +52,21 @@ August") from it; and it describes charts only at their inputs' defaults.
   two cannot disagree.
 - CSV has no types: a column of codes such as `007` reads as the number 7, as in d3.
   Quote nothing differently; use JSON from a loader when that matters.
+
+## Acceptance (2026-11-17)
+
+A fresh agent, given only the skill and asked for "a dashboard of this CSV's weekly sales
+with a page per region and an overview", using Python loaders and confirming every claim
+with the tool's own output, built six pages and fourteen charts over two `.py` loaders
+sharing a module. Its first `check` exited 0, `describe` confirmed every claim it kept,
+and build exited 0. It cut two claims `describe` could not confirm, and named three gaps,
+all fixed before merging and re-checked against its site: a bar chart's series did not
+say which category was highest or lowest (bars are now series); a filtered page's one
+series was named only by its field, so a page filtered to the wrong region looked right
+(it now names its `where`); and series followed the data's order, not `color.domain`.
+The skill now says how Python loaders share code and that `--fresh` is needed when an
+imported module changes. Still open: `describe` does not rank the bars between the
+highest and lowest, or say what a series does between its low and high (a dip).
 
 ## Not in stage 3
 

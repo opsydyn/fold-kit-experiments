@@ -76,7 +76,7 @@ test('an agent starts, checks, describes at other values, previews and builds a 
   );
   const chart = described.charts.find((each) => each.file === 'pages/region.md');
   expect(chart?.at).toEqual({ region: 'West' });
-  expect(chart?.series.map((series) => series.name)).toEqual(['sales']);
+  expect(chart?.series.map((series) => series.name)).toEqual(['sales where region = West']);
 
   const preview = await call('dash_preview', {
     root: site,

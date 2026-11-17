@@ -283,6 +283,47 @@ describe('describe at other values, and each series', () => {
     ]);
   });
 
+  test('bars are a series too: which category is highest and lowest, either way up', () => {
+    const totals = [
+      { region: 'north', units: 30 },
+      { region: 'south', units: 12 },
+      { region: 'east', units: 30 },
+    ];
+    const chart = (mark: Json) =>
+      project({
+        'pages/index.md': `# A\n\n${fence({ width: 400, height: 240, data: 'totals.json', marks: [mark] })}`,
+        'data/totals.json': JSON.stringify(totals),
+      });
+    // A fill on the category axis colours bars; it does not split them into series.
+    const upright = chart({ mark: 'bar', x: 'region', y: 'units', fill: 'region' });
+    const highest = { y: 30, x: ['north', 'east'] };
+    expect(reportOf(upright).charts[0]?.series).toEqual([
+      { name: 'units', count: 3, low: { y: 12, x: ['south'] }, high: highest },
+    ]);
+    const sideways = chart({ mark: 'bar', x: 'units', y: 'region' });
+    expect(reportOf(sideways).charts[0]?.series).toEqual([
+      { name: 'units', count: 3, low: { y: 12, x: ['south'] }, high: highest },
+    ]);
+  });
+
+  test('one series names the where that chose it; series follow color.domain', () => {
+    const filtered = project({
+      'pages/index.md': `# A\n\n${fence({ ...bars('units.json'), where: { region: 'north', units: { min: 10 } } })}`,
+      'data/units.json': JSON.stringify(rows),
+    });
+    expect(reportOf(filtered).charts[0]?.series.map((series) => series.name)).toEqual([
+      'units where region = north and units at least 10',
+    ]);
+    const ordered = project({
+      'pages/index.md': `# A\n\n${fence({ width: 400, height: 240, data: 'units.json', color: { domain: ['south', 'north'] }, marks: [{ mark: 'line', x: 'month', y: 'units', stroke: 'region' }] })}`,
+      'data/units.json': JSON.stringify(rows),
+    });
+    expect(reportOf(ordered).charts[0]?.series.map((series) => series.name)).toEqual([
+      'south',
+      'north',
+    ]);
+  });
+
   test('values asked for are used for description only, and are checked', () => {
     const page = `# A\n\n\`\`\`input\n{ "type": "select", "name": "region", "options": ["north", "south"] }\n\`\`\`\n\n${fence({ ...bars('units.json'), where: { region: { input: 'region' } } })}`;
     const root = project({ 'pages/index.md': page, 'data/units.json': JSON.stringify(rows) });

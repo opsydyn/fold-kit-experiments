@@ -43,12 +43,16 @@ your own; delete what you do not use.
    categories in the order you claim, the ranges you expect. A chart can compile and
    still show the wrong thing. Check the numbers in your prose against the data too:
    `describe` rounds (see [marks and scales](references/marks.md#what-describe-says)).
-   Under a line, area or dot chart it lists each series: its points, its low and high,
-   and every `x` each is reached at (`- Wales: 26 points, low 259 at 2026-07-27 and
-   2026-08-03, high 369 at 2026-10-12`), exact, so check claims about one series there;
-   a low reached in two weeks names both. It does not say what
-   happens between the low and the high: for "dips in July, then climbs", look at the
-   data. `describe --at region=North` (repeatable) describes charts with inputs set
+   Under a line, area, dot or bar chart it lists each series: its points, its low and
+   high, and every `x` each is reached at (`- Wales: 26 points, low 259 at 2026-07-27
+   and 2026-08-03, high 369 at 2026-10-12`), exact, so check claims about one series
+   there; a low reached in two weeks names both. For bars, that is which category is
+   highest and which lowest (`- revenue: 5 points, low 200560.5 at Scotland, high 509206.5
+   at South East`); it does not rank the bars between. A chart of one series names it
+   by its field and the `where` that chose its rows (`orders where region = Scotland`),
+   so a page filtered to the wrong part shows it. Series follow `color.domain` when the
+   spec sets one. `describe` does not say what happens between the low and the high:
+   for "dips in July, then climbs", look at the data. `describe --at region=North` (repeatable) describes charts with inputs set
    instead of their defaults.
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
@@ -221,10 +225,13 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   part. When loaders share reading code, put it in a module and import it
   (`import { loadRows } from '../lib/rows.ts'`): imports resolve from the loader's file,
   any `.ts` beside it in `data/` is only a loader if a fence names it, and `Bun.file`
-  paths resolve from the project folder.
+  paths resolve from the project folder. In Python, keep shared modules in `lib/`
+  (outside `data/`) and add it to the path from the loader's own file:
+  `sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))`. Paths
+  built from `__file__` work whatever the working folder.
 - A loader's output is cached in `node_modules/.cache/foldkit-dash/` until the loader
-  changes. `--fresh` runs every loader again: use it when the data behind a loader
-  changed but the loader did not.
+  changes. `--fresh` runs every loader again: use it when the data behind a loader, or
+  a module it imports, changed but the loader did not.
 - A data file of the same name wins over a loader. Names cannot leave `data/`.
 - A deleted loader's cached output stays in the cache, unused; it does no harm.
 - Loaders run arbitrary code at build time. Treat `data/` as code.

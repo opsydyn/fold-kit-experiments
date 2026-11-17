@@ -32,7 +32,10 @@ export type Drawn = {
 export const Series = Schema.Struct({
   name: Schema.String,
   count: Schema.Int,
-  /** The lowest `y`, and every `x` it falls at, in the order the rows give them. */
+  /**
+   * The lowest value, and every place it falls at (its `x`, or its category for
+   * horizontal bars), in the order the rows give them.
+   */
   low: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
   high: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
 });
@@ -40,43 +43,87 @@ export type Series = typeof Series.Type;
 
 const isNumber = Schema.is(Schema.Finite);
 
-/** The marks whose rows are series of points along x. */
-const seriesMarks = new Set(['line', 'area', 'dot']);
+/** The marks whose rows are series of points along an axis. */
+const seriesMarks = new Set(['line', 'area', 'dot', 'bar']);
+
+/** A `where` in words, its conditions that filter (`region = Scotland`), or `''`. */
+const conditionsText = (where: Json): string => {
+  if (where === null || !isRecord(where)) return '';
+  return Object.entries(where)
+    .flatMap(([field, test]) => {
+      if (test === null || test === undefined) return [];
+      if (!isRecord(test)) return [`${field} = ${String(test)}`];
+      const { min = null, max = null } = test;
+      if (min !== null && max !== null) return [`${field} from ${String(min)} to ${String(max)}`];
+      if (min !== null) return [`${field} at least ${String(min)}`];
+      return max === null ? [] : [`${field} at most ${String(max)}`];
+    })
+    .join(' and ');
+};
+
+/** Where a group falls in `color.domain`, when the spec sets one; the rest after it. */
+const domainOrder = (spec: JsonObject): ((name: string) => number) => {
+  const color = spec['color'];
+  const domain = isRecord(color) && Array.isArray(color['domain']) ? color['domain'] : [];
+  const names = domain.map(String);
+  return (name) => {
+    const at = names.indexOf(name);
+    return at === -1 ? names.length : at;
+  };
+};
 
 /**
- * The series a chart's first mark draws (`line`, `area` or `dot` with a `stroke`, `fill`
- * or `z` field, or one series without), each with its lowest and highest `y` and the `x`
- * each falls at (the first, on a tie). Empty for other marks, or when x or y is not a
- * field.
+ * The series a chart's first mark draws (`line`, `area`, `dot` or `bar`, by its `stroke`,
+ * `fill` or `z` field when that is not the axis it runs along, or one series), each with
+ * its lowest and highest value and every place it is reached. A bar chart with its
+ * numbers on x (horizontal bars) is measured along x. One series is named by its field
+ * and the `where` that chose its rows (`orders where region = Scotland`). In
+ * `color.domain` order when the spec sets one, else the rows' order. Empty for other
+ * marks, or when x or y is not a field.
  */
-const seriesOf = (spec: JsonObject, rows: Rows): ReadonlyArray<Series> => {
+const seriesOf = (spec: JsonObject, rows: Rows, where: Json): ReadonlyArray<Series> => {
   const marks = spec['marks'];
   const first = Array.isArray(marks) ? marks[0] : undefined;
   if (first === undefined || first === null || !isRecord(first)) return [];
   const { mark, x, y } = first;
   if (!isText(mark) || !seriesMarks.has(mark) || !isText(x) || !isText(y)) return [];
-  const by = [first['stroke'], first['fill'], first['z']].find(isText);
+  const horizontal =
+    mark === 'bar' && !rows.some((row) => isNumber(row[y])) && rows.some((row) => isNumber(row[x]));
+  const [along, measure] = horizontal ? [y, x] : [x, y];
+  const by = [first['stroke'], first['fill'], first['z']].find(
+    (field) => isText(field) && field !== along,
+  );
+  const filtered = conditionsText(where);
+  const single = filtered === '' ? measure : `${measure} where ${filtered}`;
   const groups = new Map<string, Array<Row>>();
   for (const row of rows) {
-    const name = by === undefined ? y : String(row[by] ?? '');
+    const name = isText(by) ? String(row[by] ?? '') : single;
     groups.set(name, [...(groups.get(name) ?? []), row]);
   }
-  return [...groups].flatMap(([name, members]) => {
-    const points = members.flatMap((row) => {
-      const value = row[y];
-      return isNumber(value) ? [{ x: row[x] ?? null, y: value }] : [];
+  const order = domainOrder(spec);
+  return [...groups]
+    .toSorted(([a], [b]) => order(a) - order(b))
+    .flatMap(([name, members]) => {
+      const points = members.flatMap((row) => {
+        const value = row[measure];
+        return isNumber(value) ? [{ x: row[along] ?? null, y: value }] : [];
+      });
+      const [start] = points;
+      if (start === undefined) return [];
+      const ys = points.map((point) => point.y);
+      const extreme = (y: number) => ({
+        y,
+        x: points.filter((point) => point.y === y).map((point) => point.x),
+      });
+      return [
+        {
+          name,
+          count: points.length,
+          low: extreme(Math.min(...ys)),
+          high: extreme(Math.max(...ys)),
+        },
+      ];
     });
-    const [start] = points;
-    if (start === undefined) return [];
-    const ys = points.map((point) => point.y);
-    const extreme = (y: number) => ({
-      y,
-      x: points.filter((point) => point.y === y).map((point) => point.x),
-    });
-    return [
-      { name, count: points.length, low: extreme(Math.min(...ys)), high: extreme(Math.max(...ys)) },
-    ];
-  });
 };
 
 /** The spec path at the start of a `compilePlot` message, such as `marks[0].y`. */
@@ -138,7 +185,7 @@ export const drawSpec = (
         // SAFETY: compilePlot validates the whole spec and throws a RangeError naming the
         // path at fault, which becomes a `spec` problem; nothing reads it unchecked.
         const plot = spec as PlotSpec;
-        return { plot, geometry: compilePlot(plot), series: seriesOf(spec, kept.success) };
+        return { plot, geometry: compilePlot(plot), series: seriesOf(spec, kept.success, where) };
       },
       catch: (error) => problem('spec', error instanceof Error ? error.message : String(error)),
     });

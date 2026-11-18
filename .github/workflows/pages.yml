@@ -1,4 +1,4 @@
-name: Deploy Storybook + TypeDoc + Viz, Three and Zloz promos + docs to GitHub Pages
+name: Deploy Storybook + TypeDoc + Viz, Three and Zloz promos + docs + dashboard demo to GitHub Pages
 
 on:
   push:
@@ -74,6 +74,11 @@ jobs:
           ZLOZ_PROMO_BASE_PATH: /fold-kit-experiments/zloz/
           ZLOZ_WORKBENCH_URL: https://zloz.opsydyn.xyz/
 
+      # foldkit-dash pages link relatively, so they serve from any sub-path as built.
+      # A problem in the demo (check's exit 1) fails the deploy rather than shipping it.
+      - name: Build foldkit-dash demo
+        run: bun packages/foldkit-dash/src/bin.ts build -C packages/foldkit-dash/examples/sales
+
       - name: Verify promo deployment paths
         run: bun test apps/promo/test/pages-build.test.ts
         env:
@@ -86,7 +91,7 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/api _site/zloz/api _site/viz _site/three _site/zloz _site/docs
+          mkdir -p _site/api _site/zloz/api _site/viz _site/three _site/zloz _site/docs _site/dash
           cp -r apps/web/storybook-static/. _site/
           cp -r packages/foldkit-viz/docs/. _site/api/
           cp -r packages/foldkit-zloz/docs/. _site/zloz/api/
@@ -94,6 +99,7 @@ jobs:
           cp -r apps/three-promo/dist/. _site/three/
           cp -r apps/zloz-promo/dist/. _site/zloz/
           cp -r apps/docs/dist/. _site/docs/
+          cp -r packages/foldkit-dash/examples/sales/dist/. _site/dash/
           # Retain the old API entry URL for existing bookmarks.
           mkdir -p _site/flow/api
           cp -r packages/foldkit-zloz/docs/. _site/flow/api/

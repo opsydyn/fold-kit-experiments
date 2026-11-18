@@ -24,6 +24,12 @@ each line, area or dot chart it lists every series' points, low and high.
 
 In this repository: `bun packages/foldkit-dash/src/bin.ts <command>`.
 
+**Demo:** [`examples/sales`](examples/sales) is a three-page dashboard of a season's
+weekly sales: bars to click, regions to compare, a period to brush. It is published at
+<https://opsydyn.github.io/fold-kit-experiments/dash/> by the Pages workflow, and `check`
+runs on it with the package's tests. Build it locally with
+`bun packages/foldkit-dash/src/bin.ts build -C packages/foldkit-dash/examples/sales`.
+
 - **Pages:** `pages/**/*.md` → `dist/**/*.html`, linked to one another, titled by their
   first heading. Raw HTML in Markdown is escaped.
 - **Charts:** a ` ```plot ` fence holds one JSON plot spec; `"data": "name.json"`

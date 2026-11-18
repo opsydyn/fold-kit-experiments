@@ -61,4 +61,6 @@ high, and every `x` each is reached at (two, when a low is reached in two weeks)
 bars, those are the highest and lowest categories; horizontal bars (numbers on `x`) are
 measured along `x`. A chart drawing one series (no `stroke`, `fill` or `z` field) names
 it by its field and the `where` that chose its rows;
-several follow `color.domain` when the spec sets one, else the data's order.
+several follow `color.domain` when the spec sets one, else the data's order. A line, area or dot
+series ends with its largest fall and largest rise, read in `x` order (sorted when every
+`x` is a number or an ISO date, the data's order otherwise).

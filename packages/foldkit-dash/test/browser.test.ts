@@ -105,6 +105,7 @@ async function interactivePage(javaScriptEnabled = true) {
   }
   await Bun.write(join(dir, 'pages/sales.md'), interactive);
   await Bun.write(join(dir, 'data/shop.json'), JSON.stringify(sales));
+  await Bun.write(join(dir, 'pages/trend.md'), trend);
   await Bun.write(
     join(dir, 'data/regions.json'),
     JSON.stringify([
@@ -231,6 +232,58 @@ test('clicking a bar chooses its category, and the address keeps the choice', as
   );
   expect(await labelOf(page)).toStartWith('Shows 2 bars');
   expect(await page.locator('input[type=range]').inputValue()).toBe('0');
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+// SEVERAL VALUES AT ONCE, AND CHOOSING A SERIES (ADR 0117)
+
+const trend = [
+  '# Trend\n',
+  '```input\n{ "type": "checkboxes", "name": "regions", "label": "Regions", "options": { "data": "shop.json", "field": "region" } }\n```\n',
+  '```input\n{ "type": "select", "name": "focus", "label": "Focus", "options": ["north", "south"], "all": "Both" }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "select": "focus", "where": { "region": { "input": "regions" } }, "marks": [{ "mark": "dot", "x": "month", "y": "units", "stroke": "region", "r": { "value": 8 } }] }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "where": { "region": { "input": "focus" } }, "marks": [{ "mark": "bar", "x": "month", "y": "units" }] }\n```\n',
+].join('\n');
+
+test('checkboxes filter to several values, and clicking a point chooses its series', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  await page.goto(url.replace('sales.html', 'trend.html'));
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  const descOf = (at: number) =>
+    page.evaluate(
+      (index) =>
+        document.querySelectorAll('figure.chart')[index]?.querySelector('desc')?.textContent ?? '',
+      at,
+    );
+  expect(await descOf(0)).toStartWith('Shows 4 points');
+  await page.getByRole('checkbox', { name: 'south' }).uncheck();
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart desc')?.textContent?.startsWith('Shows 2 points'),
+  );
+  expect(new URL(page.url()).search).toBe('?regions=north');
+  // A press on a north point chooses north for the select the chart names.
+  // A grid line crosses the hollow dot's centre; the press lands on the chart either way.
+  await page.locator('figure.chart').nth(0).locator('svg circle').first().click({ force: true });
+  await page.waitForFunction(() =>
+    document
+      .querySelectorAll('figure.chart')[1]
+      ?.querySelector('desc')
+      ?.textContent?.startsWith('Shows 2 bars'),
+  );
+  expect(await page.locator('select option:checked').textContent()).toBe('north');
+  expect(new URL(page.url()).search).toBe('?regions=north&focus=north');
+  // The address carries both, the checkboxes as one parameter per ticked choice.
+  await page.goto(
+    `${url.replace('sales.html', 'trend.html')}?regions=south&regions=north&focus=south`,
+  );
+  await page.waitForFunction(() =>
+    document
+      .querySelectorAll('figure.chart')[1]
+      ?.querySelector('desc')
+      ?.textContent?.includes('Feb, Apr'),
+  );
+  expect(await page.getByRole('checkbox', { name: 'south' }).isChecked()).toBe(true);
   expect(errors).toEqual([]);
   await context.close();
 });

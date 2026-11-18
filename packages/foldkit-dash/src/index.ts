@@ -59,7 +59,7 @@ const out = Flag.String('out').pipe(
 /** A chart as a line: where, the input values it is drawn at, and what it shows. */
 const chartLine = (chart: Chart): string => {
   const values = Object.entries(chart.at).map(([name, value]) => `${name} = ${shown(value)}`);
-  const selects = chart.selects === null ? '' : ` Clicking a category sets ${chart.selects}.`;
+  const selects = chart.selects === null ? '' : ` Clicking it sets ${chart.selects}.`;
   return `${chart.file}:${chart.line}${values.length === 0 ? '' : ` [${values.join(', ')}]`} ${chart.summary}${selects}`;
 };
 
@@ -71,13 +71,20 @@ const places = (xs: ReadonlyArray<Chart['series'][number]['low']['x'][number]>):
     : `${shownXs.slice(0, -1).join(', ')} and ${shownXs.at(-1) ?? ''}`;
 };
 
-/** A series as a line under its chart: its points, where its low and high fall, and bars ranked. */
+/**
+ * A series as a line under its chart: its points, where its low and high fall, bars
+ * ranked, and a line's largest fall and rise.
+ */
 const seriesLine = (series: Chart['series'][number]): string => {
   const ranked =
     series.ranked === undefined
       ? ''
       : `; highest first: ${series.ranked.map((bar) => `${String(bar.x)} ${bar.y}`).join(', ')}`;
-  return `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${places(series.low.x)}, high ${series.high.y} at ${places(series.high.x)}${ranked}`;
+  const move = (word: string, step: Chart['series'][number]['fall']) =>
+    step === undefined
+      ? ''
+      : `; largest ${word} ${step.from.y} at ${String(step.from.x)} to ${step.to.y} at ${String(step.to.x)}`;
+  return `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${places(series.low.x)}, high ${series.high.y} at ${places(series.high.x)}${ranked}${move('fall', series.fall)}${move('rise', series.rise)}`;
 };
 
 /** A chart with its series beneath it. */

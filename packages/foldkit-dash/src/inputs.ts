@@ -12,8 +12,11 @@ import type { Json, JsonObject, Rows } from './rows';
 export const Choice = Schema.Union([Schema.String, Schema.Finite, Schema.Boolean]);
 export type Choice = typeof Choice.Type;
 
-/** An input's value: a choice, or `null` for a select's or radio's `all`. */
-export const InputValue = Schema.NullOr(Choice);
+/**
+ * An input's value: a choice, `null` for a select's or radio's `all`, or the choices a
+ * reader ticked in a group of checkboxes (ADR 0117).
+ */
+export const InputValue = Schema.Union([Schema.NullOr(Choice), Schema.Array(Choice)]);
 export type InputValue = typeof InputValue.Type;
 
 const Name = Schema.String.check(Schema.isPattern(/^[A-Za-z_][\w-]*$/));
@@ -32,7 +35,15 @@ export const InputFence = Schema.Union([
     options: Schema.Union([Schema.Array(Choice), FromData]),
     /** A first choice meaning "no filter", labelled with this text. */
     all: Schema.optionalKey(Schema.String),
-    value: Schema.optionalKey(InputValue),
+    value: Schema.optionalKey(Schema.NullOr(Choice)),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('checkboxes'),
+    name: Name,
+    label: Label,
+    options: Schema.Union([Schema.Array(Choice), FromData]),
+    /** The choices ticked at first; every one when not given. */
+    value: Schema.optionalKey(Schema.Array(Choice)),
   }),
   Schema.Struct({
     type: Schema.Literal('range'),
@@ -60,7 +71,13 @@ export const Input = Schema.Union([
     label: Schema.String,
     choices: Schema.Array(Choice),
     all: Schema.NullOr(Schema.String),
-    value: InputValue,
+    value: Schema.NullOr(Choice),
+  }),
+  Schema.TaggedStruct('Pick', {
+    name: Schema.String,
+    label: Schema.String,
+    choices: Schema.Array(Choice),
+    value: Schema.Array(Choice),
   }),
   Schema.TaggedStruct('Range', {
     name: Schema.String,
@@ -87,9 +104,13 @@ const decodeFence = Schema.decodeUnknownResult(Schema.fromJsonString(InputFence)
 const isText = Schema.is(Schema.String);
 const isFromData = Schema.is(FromData);
 
-/** A choice as messages and labels show it: strings quoted. */
-export const shown = (value: InputValue): string =>
-  value === null ? 'all' : isText(value) ? JSON.stringify(value) : String(value);
+const isChoices = Schema.is(Schema.Array(Choice));
+
+/** A choice as messages and labels show it: strings quoted, a list in brackets. */
+export const shown = (value: InputValue): string => {
+  if (isChoices(value)) return value.length === 0 ? 'none' : `[${value.map(shown).join(', ')}]`;
+  return value === null ? 'all' : isText(value) ? JSON.stringify(value) : String(value);
+};
 
 /** Every distinct value of `field`, in the order they first appear, or why not. */
 const valuesOf = (
@@ -109,6 +130,23 @@ const valuesOf = (
 };
 
 type FenceOf<T extends InputFence['type']> = Extract<InputFence, { readonly type: T }>;
+
+const picker = (
+  fence: FenceOf<'checkboxes'>,
+  choices: ReadonlyArray<Choice>,
+): Result.Result<Input, string> => {
+  if (choices.length === 0) return Result.fail('options: an input needs at least one choice');
+  const ticked = fence.value ?? choices;
+  const stray = ticked.find((each) => !choices.includes(each));
+  if (stray !== undefined) return Result.fail(`value: ${shown(stray)} is not one of the options`);
+  return Result.succeed({
+    _tag: 'Pick',
+    name: fence.name,
+    label: fence.label ?? fence.name,
+    choices,
+    value: choices.filter((choice) => ticked.includes(choice)),
+  });
+};
 
 const chooser = (
   fence: FenceOf<'select' | 'radio'>,
@@ -173,11 +211,13 @@ export const readInput = (
     });
   }
   const options = fence.options;
-  if (!isFromData(options)) return chooser(fence, options);
+  const make = (choices: ReadonlyArray<Choice>) =>
+    fence.type === 'checkboxes' ? picker(fence, choices) : chooser(fence, choices);
+  if (!isFromData(options)) return make(options);
   const fromData = options;
   return Result.flatMap(
     Result.flatMap(read(fromData.data), (rows) => valuesOf(rows, fromData.field, fromData.data)),
-    (choices) => chooser(fence, choices),
+    make,
   );
 };
 
@@ -187,6 +227,14 @@ export const defaultsOf = (inputs: ReadonlyArray<Input>): Values =>
 
 /** The value `text` names for `input` (`all` for a select's `all`), or why it names none. */
 export const valueFor = (input: Input, text: string): Result.Result<InputValue, string> => {
+  if (input._tag === 'Pick') {
+    // A list, comma-separated (`North,South`); empty for none ticked.
+    const parts = text === '' ? [] : text.split(',').map((part) => part.trim());
+    const stray = parts.find((part) => !input.choices.some((each) => String(each) === part));
+    return stray === undefined
+      ? Result.succeed(input.choices.filter((choice) => parts.includes(String(choice))))
+      : Result.fail(`${stray} is not one of its choices`);
+  }
   if (input._tag === 'Choose') {
     if (text === 'all' && input.all !== null) return Result.succeed(null);
     const choice = input.choices.find((each) => String(each) === text);
@@ -205,6 +253,9 @@ export const valueFor = (input: Input, text: string): Result.Result<InputValue, 
     : Result.fail(`${text} is not a number from ${input.min} to ${input.max}`);
 };
 
+const sameChoices = (a: ReadonlyArray<Choice>, b: ReadonlyArray<Choice>): boolean =>
+  a.length === b.length && a.every((each, i) => each === b[i]);
+
 /**
  * A page's query string for `values` (ADR 0116): each input not at its default, as
  * `name=value` (`all` for a select's `all`), in the inputs' order; `''` at the defaults.
@@ -213,7 +264,15 @@ export const queryOf = (inputs: ReadonlyArray<Input>, values: Values): string =>
   const params = new URLSearchParams();
   for (const input of inputs) {
     const value = values[input.name] ?? null;
-    if (value !== input.value) params.set(input.name, value === null ? 'all' : String(value));
+    if (input._tag === 'Pick') {
+      // One parameter per ticked choice; an empty one when none is ticked.
+      const ticked = isChoices(value) ? value : [];
+      if (sameChoices(ticked, input.value)) continue;
+      if (ticked.length === 0) params.append(input.name, '');
+      for (const choice of ticked) params.append(input.name, String(choice));
+    } else if (value !== input.value) {
+      params.set(input.name, value === null ? 'all' : String(value));
+    }
   }
   const text = params.toString();
   return text === '' ? '' : `?${text}`;
@@ -228,6 +287,12 @@ export const valuesFromQuery = (inputs: ReadonlyArray<Input>, query: string): Va
   const params = new URLSearchParams(query);
   return Object.fromEntries(
     inputs.flatMap((input) => {
+      if (input._tag === 'Pick') {
+        if (!params.has(input.name)) return [];
+        const texts = params.getAll(input.name);
+        const ticked = input.choices.filter((choice) => texts.includes(String(choice)));
+        return [[input.name, ticked]];
+      }
       const text = params.get(input.name);
       if (text === null) return [];
       const value = valueFor(input, text);
@@ -236,9 +301,14 @@ export const valuesFromQuery = (inputs: ReadonlyArray<Input>, query: string): Va
   );
 };
 
-/** Every value an input can take: each choice (and `all`), both ends of a range, both states. */
+/**
+ * The values `check` draws an input's charts at: each choice (and `all`), both ends of a
+ * range and its default, both states, and for checkboxes each choice alone and the
+ * default (not every combination, and not none ticked, which keeps no rows).
+ */
 export const choicesOf = (input: Input): ReadonlyArray<InputValue> => {
   if (input._tag === 'Choose') return input.all === null ? input.choices : [null, ...input.choices];
+  if (input._tag === 'Pick') return [input.value, ...input.choices.map((choice) => [choice])];
   if (input._tag === 'Toggle') return [false, true];
   return [...new Set([input.min, input.value, input.max])];
 };
@@ -280,9 +350,13 @@ export const withValues = (json: Json, values: Values): Json => {
   return json;
 };
 
-/** Whether a row's value meets a condition: equal to it, or between `min` and `max`. */
+/**
+ * Whether a row's value meets a condition: equal to it, one of a list (ADR 0117), or
+ * between `min` and `max`.
+ */
 const meets = (value: Json | undefined, condition: Json): boolean => {
   if (condition === null) return true;
+  if (Array.isArray(condition)) return condition.some((each) => each === value);
   if (!isObject(condition)) return value === condition;
   const { min = null, max = null } = condition;
   if (value === null || value === undefined) return false;
@@ -290,8 +364,8 @@ const meets = (value: Json | undefined, condition: Json): boolean => {
 };
 
 /**
- * The rows `where` keeps: for each field, rows whose value equals the condition, or
- * lies between its `min` and `max` (inclusive). A `null` condition (an input at `all`)
+ * The rows `where` keeps: for each field, rows whose value equals the condition, is
+ * one of a list of values, or lies between its `min` and `max` (inclusive). A `null` condition (an input at `all`)
  * keeps every row. Fails naming a field no row has.
  */
 export const filterRows = (rows: Rows, where: Json): Result.Result<Rows, string> => {

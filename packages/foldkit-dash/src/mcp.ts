@@ -28,8 +28,13 @@ const fresh = { type: 'boolean', description: 'Run every data loader again (defa
 const at = {
   type: 'object',
   description:
-    'Input values by name, instead of their defaults: { "region": "North", "floor": 10 }; null or "all" for a select\'s all.',
-  additionalProperties: { type: ['string', 'number', 'boolean', 'null'] },
+    'Input values by name, instead of their defaults: { "region": "North", "floor": 10 }; null or "all" for a select\'s all; a list for checkboxes: { "regions": ["North", "Wales"] }.',
+  additionalProperties: {
+    anyOf: [
+      { type: ['string', 'number', 'boolean', 'null'] },
+      { type: 'array', items: { type: ['string', 'number', 'boolean'] } },
+    ],
+  },
 };
 
 /** The tools, as MCP lists them. */
@@ -110,10 +115,13 @@ const optionsFor = (args: { readonly root: string; readonly fresh?: boolean }) =
   timeout: 60_000,
 });
 
-/** `at` as the text `--at` would give: `all` for a select's `all`. */
+/** `at` as the text `--at` would give: `all` for a select's `all`, a list comma-separated. */
 const askedOf = (values: Readonly<Record<string, InputValue>> = {}): AskedValues =>
   new Map(
-    Object.entries(values).map(([name, value]) => [name, value === null ? 'all' : String(value)]),
+    Object.entries(values).map(([name, value]) => [
+      name,
+      value === null ? 'all' : Array.isArray(value) ? value.map(String).join(',') : String(value),
+    ]),
   );
 
 const pagesOf = (report: Report) => report.pages.map((page) => page.file);

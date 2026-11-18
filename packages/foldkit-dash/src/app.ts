@@ -8,15 +8,15 @@
  * @module App
  */
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
-import { invertPlot, plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { Effect, Option, Result, Schema } from 'effect';
 import { Command, Navigation } from 'foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
-import { type Drawn, drawSpec } from './chart';
-import { defaultsOf, Input, InputValue, queryOf, Values, valuesFromQuery } from './inputs';
+import { choiceAt as pressedChoice, type Drawn, drawSpec } from './chart';
+import { Choice, defaultsOf, Input, InputValue, queryOf, Values, valuesFromQuery } from './inputs';
 import { JsonRecord, Rows } from './rows';
 
 /** A part of a page: prose, an input, a chart, or a fence the build found broken. */
@@ -102,7 +102,9 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
 
 /** A select's or radio's option value: the choice's index, `-1` for `all`. */
 const indexOf = (input: Extract<Input, { readonly _tag: 'Choose' }>, value: InputValue): string =>
-  value === null ? '-1' : String(input.choices.indexOf(value));
+  value === null || isChoices(value) ? '-1' : String(input.choices.indexOf(value));
+
+const isChoices = Schema.is(Schema.Array(Choice));
 
 const choiceAt = (input: Extract<Input, { readonly _tag: 'Choose' }>, index: string): InputValue =>
   input.choices[Number(index)] ?? null;
@@ -117,6 +119,35 @@ const options = (input: Extract<Input, { readonly _tag: 'Choose' }>) => [
 
 const control = (h: HtmlBuilder<Message>, input: Input, value: InputValue): Html => {
   const id = `input-${input.name}`;
+  if (input._tag === 'Pick') {
+    // A group of checkboxes (ADR 0117): ticking one adds it to the list, in the choices'
+    // order; unticking removes it.
+    const ticked = isChoices(value) ? value : [];
+    return h.fieldset(
+      [h.Class('control')],
+      [
+        h.legend([], [input.label]),
+        ...input.choices.map((choice, i) => {
+          const on = ticked.includes(choice);
+          const next = input.choices.filter((each) =>
+            each === choice ? !on : ticked.includes(each),
+          );
+          return h.label(
+            [],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Name(`${id}-${i}`),
+                h.Checked(on),
+                h.OnChange(() => changed(input.name, next)),
+              ]),
+              String(choice),
+            ],
+          );
+        }),
+      ],
+    );
+  }
   if (input._tag === 'Toggle') {
     const on = value === true;
     return h.div(
@@ -239,11 +270,13 @@ const clicked =
       return Option.none();
     }
     const point = pointerToPlot({ x: clientX, y: clientY }, svg.getBoundingClientRect(), geometry);
-    const category = invertPlot(geometry, point.x, point.y)?.[selects.axis];
-    const choice = input.choices.find((each) => String(each) === String(category));
-    if (category === undefined || choice === undefined) return Option.none();
+    const category = pressedChoice(drawn, point.x, point.y);
+    const choice = Option.flatMap(category, (name) =>
+      Option.fromUndefinedOr(input.choices.find((each) => String(each) === name)),
+    );
+    if (Option.isNone(choice)) return Option.none();
     const current = model.values[input.name] ?? null;
-    const value = current === choice && input.all !== null ? null : choice;
+    const value = current === choice.value && input.all !== null ? null : choice.value;
     return Option.some(Message.ClickedChart({ name: input.name, value }));
   };
 

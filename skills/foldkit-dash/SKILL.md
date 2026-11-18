@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, charts a reader clicks to choose an input, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, at any input values), build and dev loop, and the same commands as MCP tools.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, checkboxes, range, checkbox) that filter and change charts, charts (bars or series) a reader clicks to choose an input, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, largest falls and rises, at any input values), build and dev loop, and the same commands as MCP tools.
 ---
 
 # foldkit-dash
@@ -55,8 +55,12 @@ your own; delete what you do not use.
    field and the `where` that chose its rows (`orders where region = Scotland`), so a
    page filtered to the wrong part shows it; a chart with a `stroke` field names each
    series by its value (`Scotland`), filtered or not. Series follow `color.domain` when the
-   spec sets one. `describe` does not say what happens between the low and the high:
-   for "dips in July, then climbs", look at the data. `describe --at region=North` (repeatable) describes charts with inputs set
+   spec sets one. A line, area or dot series also gives its largest fall (a high to a
+   later low) and largest rise (a low to a later high), in `x` order: `largest fall 312
+   at 2026-06-01 to 202 at 2026-08-03; largest rise 202 at 2026-08-03 to 312 at
+   2026-10-19` confirms "dips into August, then climbs". A smaller dip than the largest
+   fall cannot be confirmed: claim only what those lines say, or chart the part you mean
+   (a `where` on the weeks) and describe that. `describe --at region=North` (repeatable) describes charts with inputs set
    instead of their defaults.
 4. `bunx foldkit-dash build`. Writes `dist/`, replacing what an earlier build wrote.
 
@@ -104,7 +108,9 @@ only some choices of an input cause says which: `with region = "West": ...`.
 summary as `describe` prints it, drawn at `at`: its inputs' defaults, or the `--at`
 values (`describe` prints them as `[region = "North"]`); `series` holds each series'
 `name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached),
-and for a bar chart of up to 24 bars `ranked` (`[{ x, y }]`, highest first); `selects`
+and for a bar chart of up to 24 bars `ranked` (`[{ x, y }]`, highest first), for a line,
+area or dot series `fall` and `rise` (`{ from: { x, y }, to: { x, y } }`, absent when it
+never falls or rises); `selects`
 is the input a reader sets by clicking the chart, or `null`. `inputs` lists every input,
 `{ file, line, name, type, value, choices }`.
 
@@ -181,6 +187,12 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   `where` as `{ "min": { "input": "floor" } }`.
 - `checkbox`: `value` true or false (default false); use it to filter a boolean field,
   or as a value in the spec.
+- `checkboxes`: several values at once. `options` as a select's; `value` is the list
+  ticked at first (default: every option). Its value is the list ticked, and in `where`
+  a list keeps rows matching any of it (`"where": { "region": { "input": "regions" } }`;
+  a list written by hand works too). With none ticked, the chart keeps no rows and the
+  page says so. `check` tries the default and each option alone, not every
+  combination. In `--at`, a comma-separated list: `--at regions=North,Wales`.
 - Names start with a letter and are unique on a page; `label` is what readers see
   (default: the name). Inputs belong to their page.
 - When a filter changes which series a chart shows, its colours are reassigned: set
@@ -206,7 +218,10 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
 - `"select": "region"` on a plot spec lets a reader click the chart to choose: a press
   on a bar (any category on the chart's axis of categories) sets the `region` select or
   radio to that category, and pressing it again goes back to `all` when the input has
-  one. The chosen bar stands out; the others dim. Put `select` on a chart of the
+  one. On a line, area or dot chart of several series (a `stroke`, `fill` or `z`
+  field), a press near a point chooses its series instead (within 24 pixels; on linear,
+  time or band axes). The chosen bar or dot stands out and the others dim; lines are
+  not dimmed. `select` names a select or radio, not checkboxes. Put `select` on a chart of the
   categories themselves (totals per region) and `where` with the input on the charts it
   should filter; a chart that selects usually does not filter itself, or it would show
   one bar. `check` requires the input to be a select or radio on the page, and every
@@ -271,8 +286,7 @@ answers as an error with the reason. In this repository, `.mcp.json` registers i
 
 ## Not yet
 
-No hover read-outs, no brushing a range, no clicking lines, dots or legend entries
-(`select` works on categories), no Parquet or database reading without a loader, and no
+No hover read-outs, no brushing a range, no clicking legend entries, no Parquet or database reading without a loader, and no
 streaming loaders. `dev` watches
 `pages/` and `data/` only: when a loader's source (a CSV elsewhere) changes, run with
 `--fresh`.

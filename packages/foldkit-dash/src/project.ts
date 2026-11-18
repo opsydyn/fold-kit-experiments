@@ -174,7 +174,14 @@ type PageResult = {
 const entryOf = (where: Where, input: Input): InputEntry => ({
   ...where,
   name: input.name,
-  type: input._tag === 'Choose' ? input.style : input._tag === 'Range' ? 'range' : 'checkbox',
+  type:
+    input._tag === 'Choose'
+      ? input.style
+      : input._tag === 'Pick'
+        ? 'checkboxes'
+        : input._tag === 'Range'
+          ? 'range'
+          : 'checkbox',
   value: input.value,
   choices: choicesOf(input).length,
 });

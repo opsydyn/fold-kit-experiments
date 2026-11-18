@@ -2,6 +2,8 @@ import { gridSpacing } from './geometry';
 import type { BrowserInput, ZlozPortAnchorSnapBypassModifier } from './input-message';
 import type { Endpoint, Point } from './types';
 
+const mouseReleaseGraceMs = 100;
+
 function edgeVelocity(position: number, extent: number): number {
   const band = Math.min(48, extent / 3);
   if (band <= 0) return 0;
@@ -17,6 +19,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   // A new binding has no pointer capture, including after DevTools resumes live input.
   emit({ type: 'GestureCancelled' });
   let captured: number | null = null;
+  let stopWaitingForMouseRelease: (() => void) | null = null;
   const touches = new Map<number, Point>();
   // Native geometry can retain its original surface frame when live controls reflow.
   let gestureSurface: Point | null = null;
@@ -223,6 +226,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   const stopSingleDrag = () => {
     const pointer = captured;
     captured = null;
+    stopWaitingForMouseRelease?.();
+    stopWaitingForMouseRelease = null;
     middlePanning = false;
     anchorDragging = false;
     waypointDragging = false;
@@ -513,7 +518,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         return;
       }
     }
-    if (event.pointerId !== captured) return;
+    if (event.pointerId !== captured || stopWaitingForMouseRelease) return;
     movePointer(event);
     // A mouse chord reports middle release in a move while another button is held.
     if (middlePanning && (event.buttons & 4) === 0) {
@@ -523,7 +528,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     trackAutoPan(event);
   });
-  listen('pointerup', (event) => {
+  const released: EventListener = (event) => {
     if (!(event instanceof window.PointerEvent)) return;
     if (touches.delete(event.pointerId) && pinching) {
       pinching = false;
@@ -545,7 +550,14 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       emit({ type: 'PointerReleased', pointer: event.pointerId });
     }
     releaseCapture();
+  };
+  listen('pointerup', (event) => {
+    if (!stopWaitingForMouseRelease) released(event);
   });
+  const cancelSingleDrag = () => {
+    releaseCapture();
+    emit({ type: 'GestureCancelled' });
+  };
   const cancelled: EventListener = (event) => {
     if (!(event instanceof window.PointerEvent)) return;
     if (touches.delete(event.pointerId) && pinching) {
@@ -554,12 +566,44 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       return;
     }
     if (event.pointerId !== captured) return;
-    releaseCapture();
-    emit({ type: 'GestureCancelled' });
+    cancelSingleDrag();
   };
   listen('pointercancel', cancelled);
+  const waitForMouseRelease = () => {
+    if (stopWaitingForMouseRelease) return;
+    // Chrome can process a zero-button move before pointerup and release capture.
+    // Wait for the actual drop, which can now be delivered outside the surface.
+    panPointer = null;
+    const finish: EventListener = (event) => {
+      if (!(event instanceof window.PointerEvent)) return;
+      if (event.type === 'pointerdown') {
+        cancelSingleDrag();
+      } else if (event.pointerId === captured) {
+        if (event.type === 'pointercancel' || !element.isConnected) cancelSingleDrag();
+        else if (event.pointerType === 'mouse' && event.button === 0 && event.buttons === 0)
+          released(event);
+      }
+    };
+    const events = ['pointerup', 'pointercancel', 'pointerdown'] as const;
+    for (const event of events) window.addEventListener(event, finish, true);
+    const timer = window.setTimeout(cancelSingleDrag, mouseReleaseGraceMs);
+    stopWaitingForMouseRelease = () => {
+      for (const event of events) window.removeEventListener(event, finish, true);
+      window.clearTimeout(timer);
+    };
+  };
   listen('lostpointercapture', (event) => {
-    if (event.target === element) cancelled(event);
+    if (!(event instanceof window.PointerEvent) || event.target !== element) return;
+    if (
+      event.pointerId === captured &&
+      nodeDragOrigin !== null &&
+      event.pointerType === 'mouse' &&
+      event.buttons === 0
+    ) {
+      waitForMouseRelease();
+      return;
+    }
+    cancelled(event);
   });
   listen('auxclick', (event) => {
     if (event instanceof window.MouseEvent && event.button === 1 && middlePanBackground(event))

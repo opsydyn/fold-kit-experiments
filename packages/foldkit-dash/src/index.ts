@@ -84,7 +84,7 @@ const seriesLine = (series: Chart['series'][number]): string => {
     step === undefined
       ? ''
       : `; largest ${word} ${step.from.y} at ${String(step.from.x)} to ${step.to.y} at ${String(step.to.x)}`;
-  return `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${places(series.low.x)}, high ${series.high.y} at ${places(series.high.x)}${ranked}${move('fall', series.fall)}${move('rise', series.rise)}`;
+  return `  - ${series.name}: ${plural(series.count, 'point')}, low ${series.low.y} at ${places(series.low.x)}, high ${series.high.y} at ${places(series.high.x)}${ranked}${move('fall', series.fall)}${series.recovery === undefined ? '' : `, then up to ${series.recovery.to.y} at ${String(series.recovery.to.x)}`}${move('rise', series.rise)}`;
 };
 
 /** A chart with its series beneath it. */

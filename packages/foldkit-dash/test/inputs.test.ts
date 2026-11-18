@@ -258,6 +258,11 @@ describe('choosing a series, and how a series moves (ADR 0117)', () => {
       from: { x: '2026-05-18', y: 4 },
       to: { x: '2026-05-25', y: 12 },
     });
+    // The climb after the largest fall: from its low to the highest point after it.
+    expect(north?.recovery).toEqual({
+      from: { x: '2026-05-18', y: 4 },
+      to: { x: '2026-05-25', y: 12 },
+    });
     // A series that only climbs has no fall.
     expect(south?.fall).toBeUndefined();
     expect(south?.rise).toEqual({

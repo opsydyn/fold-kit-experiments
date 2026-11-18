@@ -353,10 +353,11 @@ describe('describe at other values, and each series', () => {
     ).toMatchObject({
       input: { value: 'north' },
     });
+    // A value the input cannot take is refused like a misspelt name: exit 2, no charts.
     const wrong = at([['region', 'west']]);
-    expect(
-      Result.isSuccess(wrong) && wrong.success.problems.map((problem) => problem.message),
-    ).toEqual(['--at region=west: west is not one of its choices']);
+    expect(Result.isFailure(wrong) && wrong.failure.message).toBe(
+      '--at region=west: west is not one of its choices',
+    );
     const unknown = at([['zone', '1']]);
     expect(Result.isFailure(unknown) && unknown.failure.message).toBe(
       '--at zone: no page has an input of that name',

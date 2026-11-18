@@ -82,7 +82,7 @@ The loop:
 4. \`bunx foldkit-dash build\`: writes \`dist/\`, static HTML (JavaScript only on pages
    with inputs).
 
-Inputs: an \`input\` fence (\`select\`, \`radio\`, \`range\` or \`checkbox\`) puts a control
+Inputs: an \`input\` fence (\`select\`, \`radio\`, \`checkboxes\`, \`range\` or \`checkbox\`) puts a control
 on the page, and a plot spec uses its value with \`{ "input": "name" }\`, most often in
 \`"where": { "region": { "input": "region" } }\`, which keeps the rows a chart draws.
 \`where\` works without inputs too: \`"where": { "region": "North" }\`.

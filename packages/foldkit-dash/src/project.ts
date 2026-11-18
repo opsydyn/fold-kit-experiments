@@ -169,6 +169,8 @@ type PageResult = {
   readonly charts: ReadonlyArray<Chart>;
   readonly inputs: ReadonlyArray<InputEntry>;
   readonly problems: ReadonlyArray<Problem>;
+  /** `--at` values this page's inputs cannot take: the command's mistake, not the page's. */
+  readonly refused: ReadonlyArray<string>;
 };
 
 const entryOf = (where: Where, input: Input): InputEntry => ({
@@ -271,26 +273,14 @@ function analysePage(
   // Charts are described at the values asked for, where this page has those inputs;
   // checks and the built page keep the defaults.
   const overrides = new Map<string, InputValue>();
+  const refused: Array<string> = [];
   for (const [name, text] of asked) {
     const input = inputs.get(name);
     if (input === undefined) continue;
     const value = valueFor(input, text);
+    // A value the input cannot take is the command's mistake, as a misspelt name is.
     if (Result.isSuccess(value)) overrides.set(name, value.success);
-    else {
-      const fence = [...readInputs].find(
-        ([, each]) => each._tag === 'Read' && each.input === input,
-      )?.[0];
-      problems.push(
-        at(
-          { file: page.file, line: fence?.line ?? 0 },
-          {
-            kind: 'input',
-            path: null,
-            message: `--at ${name}=${text}: ${value.failure}`,
-          },
-        ),
-      );
-    }
+    else refused.push(`--at ${name}=${text}: ${value.failure}`);
   }
 
   const shownAt = { ...defaults, ...Object.fromEntries(overrides) };
@@ -364,6 +354,7 @@ function analysePage(
     result._tag === 'Read' ? [entryOf(whereOf(fence), result.input)] : [],
   );
   const result = {
+    refused,
     charts,
     inputs: entries,
     problems: problems.toSorted((a, b) => a.line - b.line),
@@ -431,6 +422,10 @@ export function analyse(
       title: titleOf(page),
     }));
     const results = sources.map((page) => analysePage(page, nav, read, asked));
+    const refused = [...new Set(results.flatMap((each) => each.refused))];
+    if (refused.length > 0) {
+      return Result.fail(new DashInvocationError({ message: refused.join('; ') }));
+    }
     return Result.succeed({
       pages: results.map((each) => each.plan),
       nav,

@@ -74,6 +74,12 @@ export const Series = Schema.Struct({
    */
   fall: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
   rise: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
+  /**
+   * The climb after the largest fall: from its low to the highest point after it (the
+   * first, on a tie); absent when nothing after the low is higher. "Dips, then climbs"
+   * is the fall and this, not the largest rise, which can start before the dip.
+   */
+  recovery: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
 });
 export type Series = typeof Series.Type;
 
@@ -191,13 +197,13 @@ const inXOrder = (points: ReadonlyArray<Point>): ReadonlyArray<Point> => {
 type Move = { from: Point; to: Point };
 
 /** A series' largest fall and rise, each only when it has one. */
-type Moves = { fall?: Move; rise?: Move };
+type Moves = { fall?: Move; rise?: Move; recovery?: Move };
 
 /**
  * A series' largest fall (from the highest point so far to a later lower one) and its
  * largest rise (from the lowest so far to a later higher one). On a tie, the first.
  */
-const movesOf = (points: ReadonlyArray<Point>): Pick<Series, 'fall' | 'rise'> => {
+const movesOf = (points: ReadonlyArray<Point>): Pick<Series, 'fall' | 'rise' | 'recovery'> => {
   const [first] = points;
   if (first === undefined) return {};
   let peak = first;
@@ -217,6 +223,15 @@ const movesOf = (points: ReadonlyArray<Point>): Pick<Series, 'fall' | 'rise'> =>
   const moves: Moves = {};
   if (fall !== undefined) moves.fall = fall;
   if (rise !== undefined) moves.rise = rise;
+  const low = fall?.to;
+  const after = low === undefined ? [] : points.slice(points.indexOf(low) + 1);
+  const top = after.reduce<Point | undefined>(
+    (best, point) => (best === undefined || point.y > best.y ? point : best),
+    undefined,
+  );
+  if (low !== undefined && top !== undefined && top.y > low.y) {
+    moves.recovery = { from: low, to: top };
+  }
   return moves;
 };
 

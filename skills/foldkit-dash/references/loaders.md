@@ -79,6 +79,20 @@ import polars as pl, sys
 duckdb -csv -c "SELECT region, sum(revenue_gbp) AS revenue FROM '../sales.parquet' GROUP BY region"
 ```
 
+## A CSV file elsewhere, unchanged
+
+A file outside the project can be served as it is by a one-line loader,
+`data/weekly.csv.sh`:
+
+```sh
+cat ../weekly-sales.csv
+```
+
+It runs from the project folder, so the path is from there. Its output is cached until
+the loader changes, not the CSV: after the CSV changes, build with `--fresh`. To learn
+its columns, run the loader (`sh data/weekly.csv.sh | head -3`); `check` then names any
+field a spec uses that is missing.
+
 ## From a CSV file, with no loader
 
 A `data/sales.csv` file is read as it is: a header row, then one row per record, each

@@ -57,7 +57,10 @@ be the first and last weeks, so it cannot confirm the dip. The run then cuts the
    number or an ISO date, and is the rows' order otherwise (month names). An example:
    `largest fall 312 at 2026-06-01 to 202 at 2026-08-03; largest rise 202 at 2026-08-03
 to 312 at 2026-10-19`. The envelope's series gain `fall` and `rise`. A series that
-   never falls has no `fall`.
+   never falls has no `fall`. The climb after the largest fall (`then up to 312 at
+   2026-10-19`, the envelope's `recovery`) runs from its low to the highest point after
+   it, so "dips, then climbs" is the fall and this, not the largest rise, which can
+   start before the dip.
 
 ## Consequences
 
@@ -77,6 +80,40 @@ to 312 at 2026-10-19`. The envelope's series gain `fall` and `rise`. A series th
   rise are each one fact, and the ones a sentence about a trend usually means.
 - **Clicking legend entries.** It still waits: foldkit-viz draws the legend as HTML, and
   making its entries clickable means changing that package's API.
+
+## Acceptance (2026-11-18)
+
+A fresh agent, given only the skill, built the dashboard it was asked for:
+
+- tick boxes to compare regions on a weekly orders line chart;
+- clicking a line to pick a focus region, which filters a revenue chart;
+- prose on when each region fell and climbed most.
+
+It used a one-line shell loader. `check` exited 0 on both runs, and `describe` confirmed
+every claim it kept, five regions' falls and rises among them. In Chromium, from
+`file://`:
+
+- unticking two regions redrew the chart (`3 of 5 groups drawn`) and set
+  `?regions=Scotland&regions=London&regions=South+East`;
+- clicking London's line set the focus to London and filtered the revenue chart to it;
+- reopening that address showed the same state;
+- the console showed no errors.
+
+It found two problems, both fixed before merging:
+
+- **Largest rise can start before the dip.** For Scotland it runs from the first week
+  to October, so it could not confirm "climbed back from August". `describe` now gives
+  the climb after the largest fall (`recovery`), and Scotland's line reads `largest
+fall 255 at 2026-06-08 to 202 at 2026-08-03, then up to 312 at 2026-10-19`.
+- **A bad `--at` value exited 1.** It printed every chart at its defaults, with the
+  error last. It now exits 2, as a misspelt input name does.
+
+The skill now covers:
+
+- a one-line loader for a CSV elsewhere, and its `--fresh` caveat;
+- that pressing a chosen category again keeps it when the input has no `all`;
+- that a focus select can name a region the checkboxes untick;
+- that the series lines are `describe`'s alone, not in the chart's summary.
 
 ## Not in stage 5
 

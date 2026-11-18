@@ -149,7 +149,11 @@ export type Highlight = Readonly<{
 
 type CommonMark = Readonly<{
   data?: PlotData;
-  /** Dims rows that do not match. Applies to dot, bar, cell, link and text marks. */
+  /**
+   * Dims rows that do not match. Applies to dot, bar, cell, link and text marks, and to
+   * line and area marks a series at a time: a series stays lit when any of its rows
+   * matches.
+   */
   highlight?: Highlight;
   /** Field giving each row a stable identity. Default: the row's position. */
   key?: string;

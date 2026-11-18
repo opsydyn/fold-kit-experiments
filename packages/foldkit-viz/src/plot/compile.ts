@@ -1179,6 +1179,11 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
             'currentColor',
           )[0] ?? 'currentColor';
         const title = titlesOf(series.slice(0, 1), mark.title, `${path}.title`)[0];
+        // A highlight dims a line or area as a whole: lit when any of its rows matches.
+        const lit =
+          mark.highlight === undefined
+            ? 1
+            : Math.max(...highlightFactors(series, mark.highlight, path));
         const curve = mark.curve === undefined ? {} : { curve: mark.curve };
         if (mark.mark === 'line') {
           const d = line(points, { ...curve, defined: (pt) => pt.every(Number.isFinite) }) ?? '';
@@ -1190,7 +1195,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
               fill: 'none',
               stroke: color,
               strokeWidth: mark.strokeWidth ?? 1.5,
-              opacity,
+              opacity: opacity * lit,
               ...withTitle(title),
             });
         } else {
@@ -1211,7 +1216,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
               fill: color,
               stroke: 'none',
               strokeWidth: 0,
-              opacity: mark.opacity ?? 0.8,
+              opacity: (mark.opacity ?? 0.8) * lit,
               ...withTitle(title),
             });
         }

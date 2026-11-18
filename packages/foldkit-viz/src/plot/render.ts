@@ -24,6 +24,7 @@ type ElementName =
   | 'caption'
   | 'circle'
   | 'desc'
+  | 'div'
   | 'figure'
   | 'g'
   | 'li'
@@ -164,37 +165,44 @@ export const descriptionOf = (geometry: PlotGeometry, options: AccessibleOptions
 function dataTable<A, N>(h: PlotBuilder<A, N>, table: PlotTable | undefined): ReadonlyArray<N> {
   if (table === undefined || table.headers.length === 0) return [];
   const more = table.total - table.rows.length;
+  // The hiding is on a wrapper: a table does not shrink to 1px, so hidden on its own it
+  // keeps its full height and lengthens the page by every row.
   return [
-    h.table(
-      [h.Class('plot-data'), h.Style(VISUALLY_HIDDEN)],
+    h.div(
+      [h.Class('plot-data-wrap'), h.Style(VISUALLY_HIDDEN)],
       [
-        h.caption(
-          [],
+        h.table(
+          [h.Class('plot-data')],
           [
-            more > 0
-              ? `${table.caption} (first ${table.rows.length} of ${table.total} rows)`
-              : table.caption,
-          ],
-        ),
-        h.thead(
-          [],
-          [
-            h.tr(
+            h.caption(
               [],
-              table.headers.map((header) => h.th([h.Attribute('scope', 'col')], [header])),
+              [
+                more > 0
+                  ? `${table.caption} (first ${table.rows.length} of ${table.total} rows)`
+                  : table.caption,
+              ],
             ),
-          ],
-        ),
-        h.tbody(
-          [],
-          table.rows.map((row) =>
-            h.tr(
+            h.thead(
               [],
-              row.map((value, i) =>
-                i === 0 ? h.th([h.Attribute('scope', 'row')], [value]) : h.td([], [value]),
+              [
+                h.tr(
+                  [],
+                  table.headers.map((header) => h.th([h.Attribute('scope', 'col')], [header])),
+                ),
+              ],
+            ),
+            h.tbody(
+              [],
+              table.rows.map((row) =>
+                h.tr(
+                  [],
+                  row.map((value, i) =>
+                    i === 0 ? h.th([h.Attribute('scope', 'row')], [value]) : h.td([], [value]),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
     ),

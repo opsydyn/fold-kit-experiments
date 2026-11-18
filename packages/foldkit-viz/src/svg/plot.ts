@@ -78,6 +78,7 @@ const markupBuilder: PlotBuilder<MarkupAttribute, Markup> = {
   caption: element('caption'),
   circle: element('circle'),
   desc: element('desc'),
+  div: element('div'),
   figure: element('figure'),
   g: element('g'),
   li: element('li'),

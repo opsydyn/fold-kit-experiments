@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, checkboxes, range, checkbox) that filter and change charts, charts (bars or series) a reader clicks to choose an input, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, largest falls and rises, at any input values), build and dev loop, and the same commands as MCP tools.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, checkboxes, range, checkbox) that filter and change charts, charts (bars, series or legend entries) a reader clicks or steps through with keys to choose an input, read-outs of the value pointed at, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, largest falls and rises, at any input values), build and dev loop, and the same commands as MCP tools.
 ---
 
 # foldkit-dash
@@ -46,7 +46,8 @@ your own; delete what you do not use.
    Under a line, area, dot or bar chart it lists each series: its points, its low and
    high, and every `x` each is reached at (`- Wales: 26 points, low 259 at 2026-07-27
    and 2026-08-03, high 369 at 2026-10-12`), exact, so check claims about one series
-   there; a low reached in two weeks names both. For bars, that is which category is
+   there, and claims across series ("South East peaked first") by comparing their
+   lines; a low reached in two weeks names both. For bars, that is which category is
    highest and which lowest (`- revenue: 5 points, low 200560.5 at Scotland, high 509206.5
    at South East`), then every bar, highest first, up to 24 bars (`highest first: South
    East 509206.5, London 400000, ...`): check a ranking there. To claim a ranking or a
@@ -224,8 +225,8 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   radio to that category, and pressing it again goes back to `all` when the input has
   one (without `all`, it stays chosen). On a line, area or dot chart of several series (a `stroke`, `fill` or `z`
   field), a press near a point chooses its series instead (within 24 pixels; on linear,
-  time or band axes). The chosen bar or dot stands out and the others dim; lines are
-  not dimmed. `select` names a select or radio, not checkboxes. Put `select` on a chart of the
+  time or band axes), and a press on a legend entry chooses what it names. The chosen
+  bar, dot, line or area stands out and the others dim. `select` names a select or radio, not checkboxes. Put `select` on a chart of the
   categories themselves (totals per region) and `where` with the input on the charts it
   should filter; a chart that selects usually does not filter itself, or it would show
   one bar. `check` requires the input to be a select or radio on the page, and every
@@ -235,6 +236,25 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   each other: a focus select can name a region a `checkboxes` input has unticked, and
   a chart filtered by the focus still shows it. Say so in the prose, or let one chart
   use both (`"where": { "region": { "input": "focus" } }` on the detail chart only).
+- On a page with inputs, every chart reads out the value under the pointer in a line
+  beneath it, announced to screen readers: the series, then `x` and `y` by their axis
+  labels, numbers grouped by thousands (`Wales, Week starting 2026-07-27: Orders 259`).
+  Set the labels on the spec's axes: `"x": { "label": "Week starting" }, "y": { "label":
+  "Orders" }` (without them, the field names). It points at the bar under the pointer,
+  or the nearest point within 24 pixels.
+- Each chart on such a page takes a tab stop, named "interactive chart". Its keys:
+  Right or Down steps forward (the first press reads the first value), Left or Up back,
+  Page Down and Page Up ten at a time, Home and End to the first and last value, and
+  Escape stops. Values are read one series at a time, each along `x`, and stepping past
+  the last wraps to the first; there is no key to jump to the next series. On a chart
+  that selects, Enter or Space chooses the value read out (again, to go back to `all`).
+  The page shows no hint of these keys: say them in the prose near the chart.
+- Legend entries choose with a pointer only; the select and the chart's keys are the
+  keyboard's way. A legend lists every group in `color.domain`, drawn or not.
+- Read-outs and choices update after the event, on the page's next draw: a script that
+  checks them waits for the text (Playwright's `waitForFunction`), not the next line.
+- Static pages have none of this; their figures keep their summary and a data table
+  (headed by field names) for screen readers.
 - A page's inputs live in its address: choosing North and 300 makes it
   `sales.html?region=North&floor=300`, and that link opens the page with them. Values
   a page cannot take are ignored. Prose can link to a view of any page, its own
@@ -293,7 +313,7 @@ answers as an error with the reason. In this repository, `.mcp.json` registers i
 
 ## Not yet
 
-No hover read-outs, no brushing a range, no clicking legend entries, no Parquet or database reading without a loader, and no
+No brushing a range, no read-outs on static pages, no Parquet or database reading without a loader, and no
 streaming loaders. `dev` watches
 `pages/` and `data/` only: when a loader's source (a CSV elsewhere) changes, run with
 `--fresh`.

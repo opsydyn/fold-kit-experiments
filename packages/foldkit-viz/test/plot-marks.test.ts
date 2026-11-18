@@ -176,3 +176,32 @@ it('draws a mark of constants once, even when the plot has data', () => {
   });
   expect(plot.facets[0]?.marks[1]?.graphics).toHaveLength(1);
 });
+
+describe('highlight on lines and areas', () => {
+  const data = [
+    { t: 1, v: 3, g: 'a' },
+    { t: 2, v: 4, g: 'a' },
+    { t: 1, v: 1, g: 'b' },
+    { t: 2, v: 2, g: 'b' },
+  ];
+  const opacities = (mark: 'line' | 'area') =>
+    compilePlot({
+      width: 300,
+      height: 200,
+      data,
+      marks: [
+        {
+          mark,
+          x: 't',
+          y: 'v',
+          ...(mark === 'line' ? { stroke: 'g' } : { fill: 'g' }),
+          highlight: { field: 'g', values: ['b'] },
+        },
+      ],
+    }).facets[0]?.marks[0]?.graphics.map((g) => g.opacity);
+
+  it('dims a whole series that no row of matches', () => {
+    expect(opacities('line')).toEqual([0.15, 1]);
+    expect(opacities('area')).toEqual([0.8 * 0.15, 0.8]);
+  });
+});

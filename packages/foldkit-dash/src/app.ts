@@ -8,14 +8,22 @@
  * @module App
  */
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import { plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { Effect, Option, Result, Schema } from 'effect';
-import { Command, Navigation } from 'foldkit';
+import { Command, CustomElement, Mount, Navigation } from 'foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
-import { choiceAt as pressedChoice, type Drawn, drawSpec } from './chart';
+import {
+  choiceAt as pressedChoice,
+  type Drawn,
+  drawSpec,
+  pointedAt,
+  type Target,
+  targetsOf,
+} from './chart';
 import { Choice, defaultsOf, Input, InputValue, queryOf, Values, valuesFromQuery } from './inputs';
 import { JsonRecord, Rows } from './rows';
 
@@ -36,7 +44,18 @@ export const Flags = Schema.Struct({
 });
 export type Flags = typeof Flags.Type;
 
-export const Model = Schema.Struct({ ...Flags.fields, values: Values });
+/** A chart key's command, as foldkit-viz's keyboard contract gives it. */
+const ChartKey = Schema.Union([
+  Schema.TaggedStruct('Step', { by: Schema.Int }),
+  Schema.TaggedStruct('Jump', { to: Schema.Literals(['first', 'last']) }),
+  Schema.TaggedStruct('Clear', {}),
+  Schema.TaggedStruct('Select', {}),
+]);
+
+/** The value a reader points at (ADR 0118): the chart, by its fence's line, and the target. */
+const Pointed = Schema.NullOr(Schema.Struct({ line: Schema.Int, index: Schema.Int }));
+
+export const Model = Schema.Struct({ ...Flags.fields, values: Values, pointed: Pointed });
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
@@ -48,6 +67,12 @@ export const Message = defineMessageUnion({
   OpenedWithQuery: { query: Schema.String },
   /** The query string now holds the inputs' values. */
   CompletedWriteQuery: {},
+  /** A reader pointed at a chart's value, or away from every one (`index` null). */
+  PointedChart: { line: Schema.Int, index: Schema.NullOr(Schema.Int) },
+  /** A chart's pointer forwarding is in place. */
+  CompletedForwardPointer: {},
+  /** A reader pressed one of a chart's keys (ADR 0118). */
+  PressedChartKey: { line: Schema.Int, command: ChartKey },
 });
 export type Message = typeof Message.Type;
 
@@ -74,7 +99,7 @@ const inputsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Input> =>
 
 /** The page at its inputs' defaults, as the build rendered it; then the query is read. */
 export const init = (flags: Flags): Return<Model, Message> => ({
-  model: { ...flags, values: defaultsOf(inputsOf(flags.sections)) },
+  model: { ...flags, values: defaultsOf(inputsOf(flags.sections)), pointed: null },
   commands: [ReadQuery()],
 });
 
@@ -98,7 +123,41 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       },
     }),
     CompletedWriteQuery: () => ({ model }),
+    PointedChart: ({ line, index }) => ({
+      model: { ...model, pointed: index === null ? null : { line, index } },
+    }),
+    CompletedForwardPointer: () => ({ model }),
+    PressedChartKey: ({ line, command }) => pressedKey(model, line, command),
   });
+
+/**
+ * A chart key, applied to the model as it is now (not as it was drawn), so keys pressed
+ * faster than the page redraws each act on the one before: End then Enter chooses what
+ * End pointed at.
+ */
+const pressedKey = (
+  model: Model,
+  line: number,
+  command: typeof ChartKey.Type,
+): Return<Model, Message> => {
+  const section = model.sections.find((each) => each._tag === 'Chart' && each.line === line);
+  if (section?._tag !== 'Chart') return { model };
+  const drawn = drawSpec(section.spec, new Map(Object.entries(model.data)), model.values);
+  if (Result.isFailure(drawn)) return { model };
+  const targets = targetsOf(drawn.success, section.spec);
+  const current = model.pointed?.line === line ? model.pointed.index : undefined;
+  if (command._tag !== 'Select') {
+    const next = targets.length === 0 ? undefined : targetAfter(targets.length, current, command);
+    return { model: { ...model, pointed: next === undefined ? null : { line, index: next } } };
+  }
+  const target = current === undefined ? undefined : targets[current];
+  const input = inputsOf(model.sections).find((each) => each.name === drawn.success.selects?.input);
+  if (target?.choice == null || input?._tag !== 'Choose') return { model };
+  const choice = input.choices.find((each) => String(each) === target.choice);
+  if (choice === undefined) return { model };
+  const now = model.values[input.name] ?? null;
+  return choose(model, input.name, now === choice && input.all !== null ? null : choice);
+};
 
 /** A select's or radio's option value: the choice's index, `-1` for `all`. */
 const indexOf = (input: Extract<Input, { readonly _tag: 'Choose' }>, value: InputValue): string =>
@@ -225,6 +284,62 @@ const control = (h: HtmlBuilder<Message>, input: Input, value: InputValue): Html
 const note = (h: HtmlBuilder<Message>, line: number, message: string): Html =>
   h.p([h.Class('problem'), h.Role('note')], [`Chart at line ${line}: ${message}`]);
 
+/** A pointer over a chart, already in the chart's own pixels. */
+const PointerFact = Schema.Struct({ x: Schema.Number, y: Schema.Number });
+
+const POINTER_EVENT = 'dash-chart-pointer';
+
+/** The chart's own DOM event, so pointer moves reach the dispatcher as typed facts. */
+const chartEvents = CustomElement.define({
+  tag: 'foldkit-dash-chart',
+  properties: {},
+  events: { [POINTER_EVENT]: PointerFact },
+});
+
+/**
+ * Forwards pointer moves over a chart as plot-pixel facts. A move carries only screen
+ * positions in Foldkit's handlers, so this reads the client position and the drawing's
+ * rendered size where the event happens, as the web app's plot panel does.
+ */
+const ForwardPointer = Mount.define('ForwardDashChartPointer', {
+  args: { width: Schema.Number, height: Schema.Number },
+  messages: [Message.CompletedForwardPointer],
+  execute: ({ element, width, height }) => {
+    const listen = Effect.sync(() => {
+      const listener = (event: Event) => {
+        if (!(event instanceof PointerEvent)) return;
+        const drawn = element.querySelector('svg') ?? element;
+        const point = pointerToPlot(
+          { x: event.clientX, y: event.clientY },
+          drawn.getBoundingClientRect(),
+          { width, height },
+        );
+        element.dispatchEvent(new CustomEvent(POINTER_EVENT, { detail: point }));
+      };
+      element.addEventListener('pointermove', listener);
+      return listener;
+    });
+    return Effect.acquireRelease(listen, (listener) =>
+      Effect.sync(() => element.removeEventListener('pointermove', listener)),
+    ).pipe(
+      Effect.map(() => Message.CompletedForwardPointer()),
+      Effect.withSpan('ForwardDashChartPointer'),
+    );
+  },
+});
+
+/**
+ * A chart's keys (ADR 0118): arrows, Page Up and Down, Home and End step through its
+ * values, Escape stops pointing, and Enter or Space chooses the value pointed at on a
+ * chart that selects. Other keys keep their default. The update applies them.
+ */
+const chartKeys =
+  (line: number) =>
+  (key: string, modifiers: Parameters<typeof chartCommandOf>[1]): Option.Option<Message> =>
+    Option.map(Option.fromUndefinedOr(chartCommandOf(key, modifiers)), (command) =>
+      Message.PressedChartKey({ line, command }),
+    );
+
 const chart = (
   h: HtmlBuilder<Message>,
   model: Model,
@@ -233,18 +348,52 @@ const chart = (
 ): Html =>
   Result.match(drawSpec(section.spec, data, model.values), {
     onFailure: (problem) => note(h, section.line, problem.message),
-    onSuccess: (drawn) =>
-      h.figure(
+    onSuccess: (drawn) => {
+      const events = chartEvents.withMessage(h);
+      const targets = targetsOf(drawn, section.spec);
+      const index = model.pointed?.line === section.line ? model.pointed.index : undefined;
+      const target = index === undefined ? undefined : targets[index];
+      const overlay =
+        target === undefined ? {} : { overlay: { ring: { x: target.x, y: target.y, r: 6 } } };
+      return h.figure(
         [
           h.Class(drawn.selects === null ? 'chart' : 'chart selects'),
+          h.Tabindex(0),
+          // Its name says what the chart answers; the drawing keeps its own summary.
+          h.Attribute('aria-roledescription', 'interactive chart'),
+          h.AriaLabel(
+            drawn.selects === null
+              ? 'Chart: arrow keys read its values'
+              : `Chart: arrow keys read its values, Enter chooses one for ${drawn.selects.input}`,
+          ),
+          h.OnMount(ForwardPointer({ width: drawn.geometry.width, height: drawn.geometry.height })),
+          events.OnDashChartPointer(({ x, y }) =>
+            Message.PointedChart({
+              line: section.line,
+              index: pointedAt(drawn, targets, x, y) ?? null,
+            }),
+          ),
+          h.OnPointerLeave(() =>
+            Option.some(Message.PointedChart({ line: section.line, index: null })),
+          ),
+          h.OnKeyDownPreventDefault(chartKeys(section.line)),
           ...(drawn.selects === null ? [] : [h.OnPointerDown(clicked(model, drawn))]),
         ],
-        [plotChart(h, drawn.geometry, { table: plotTable(drawn.plot), summary: true })],
-      ),
+        [
+          plotChart(h, drawn.geometry, {
+            table: plotTable(drawn.plot),
+            summary: true,
+            ...overlay,
+          }),
+          h.p([h.Class('readout'), h.AriaLive('polite')], [target?.text ?? '']),
+        ],
+      );
+    },
   });
 
 /**
- * The category a press on a chart lands on, as the input it selects (ADR 0116): the
+ * The category a press on a chart lands on, or the legend entry pressed (ADR 0118), as
+ * the input it selects (ADR 0116): the
  * pointer in the chart's own pixels, then the band there. Pressing the chosen category
  * again goes back to `all` when the input has one. Off a band, or for another button,
  * nothing happens.
@@ -269,8 +418,14 @@ const clicked =
     if (button !== 0 || selects === null || svg == null || input?._tag !== 'Choose') {
       return Option.none();
     }
+    // A press on a legend entry chooses what it names (ADR 0118); elsewhere, what is
+    // drawn under the pointer.
+    const entry = target instanceof Element ? target.closest('.plot-legend li') : null;
     const point = pointerToPlot({ x: clientX, y: clientY }, svg.getBoundingClientRect(), geometry);
-    const category = pressedChoice(drawn, point.x, point.y);
+    const category =
+      entry === null
+        ? pressedChoice(drawn, point.x, point.y)
+        : Option.some((entry.textContent ?? '').trim());
     const choice = Option.flatMap(category, (name) =>
       Option.fromUndefinedOr(input.choices.find((each) => String(each) === name)),
     );

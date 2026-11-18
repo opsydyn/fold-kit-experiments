@@ -121,7 +121,9 @@ table{border-collapse:collapse}th,td{padding:4px 8px;border-bottom:1px solid var
 .control{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:1rem 0;padding:0;border:0}
 .control legend{float:left;margin-right:12px;padding:0}.control label{display:inline-flex;align-items:center;gap:6px}
 .control select,.control input[type=range]{font:inherit;min-width:0;max-width:100%}
-.chart.selects svg{cursor:pointer}
+.chart.selects svg,.chart.selects .plot-legend li{cursor:pointer}
+.chart:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+.readout{min-height:1.5em;margin:.25rem 0 0;font-variant-numeric:tabular-nums}
 .control select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
 .control output{font-variant-numeric:tabular-nums}`;
 

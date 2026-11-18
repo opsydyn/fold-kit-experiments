@@ -126,6 +126,9 @@ peak falls, and showing part of the data on a page takes a loader per part.
 - ✅ Stage 5 ([ADR 0117](0117-foldkit-dash-several-values-choosing-series-and-how-series-move.md)):
   a `checkboxes` input of several values, clicking a series to choose it, and each
   series' largest fall and rise in `describe`.
+- ✅ Stage 6 ([ADR 0118](0118-foldkit-dash-read-outs-keys-legend-and-chosen-lines.md)):
+  read-outs of the value pointed at, chart keys, legend entries that choose, and a
+  chosen line that stands out.
 
 ## Review date
 

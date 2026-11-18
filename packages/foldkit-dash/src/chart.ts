@@ -49,6 +49,19 @@ export type Drawn = {
   readonly selects: Selects | null;
   /** The rows drawn, after `where`. */
   readonly rows: Rows;
+  /** The first mark's fields and the axes' labels, for read-outs (ADR 0118). */
+  readonly fields: Fields | null;
+};
+
+/** What a chart's first mark plots, and how its axes are labelled. */
+export type Fields = {
+  readonly mark: string;
+  readonly x: string;
+  readonly y: string;
+  /** The series field (`stroke`, `fill` or `z`), unless it is the category axis's. */
+  readonly by: string | null;
+  readonly xLabel: string;
+  readonly yLabel: string;
 };
 
 /** A point of a series: its `x` (or category) and its value. */
@@ -247,8 +260,8 @@ const bandOf = (
     : Option.some({ axis, categories: scale.domain.map(String) });
 };
 
-/** The marks foldkit-viz's `highlight` dims (lines and areas are not among them). */
-const highlightMarks = new Set(['bar', 'dot', 'cell', 'text']);
+/** The marks foldkit-viz's `highlight` dims (lines and areas a series at a time). */
+const highlightMarks = new Set(['bar', 'dot', 'cell', 'text', 'line', 'area']);
 
 /**
  * The spec with its first mark dimmed except where `field` is `chosen` (foldkit-viz's
@@ -391,8 +404,16 @@ export const drawSpec = (
       }),
       ({ spec, plot, geometry }): Result.Result<Drawn, ChartProblem> => {
         const series = seriesOf(spec, kept.success, where);
+        const fields = Option.getOrNull(fieldsOf(spec));
         if (select === undefined)
-          return Result.succeed({ plot, geometry, series, selects: null, rows: kept.success });
+          return Result.succeed({
+            plot,
+            geometry,
+            series,
+            selects: null,
+            rows: kept.success,
+            fields,
+          });
         const chosen = selectsOf(select, spec, kept.success, geometry);
         if (Option.isNone(chosen)) {
           return Result.fail(
@@ -404,7 +425,7 @@ export const drawSpec = (
           highlightOf(spec, field, values[select] ?? null),
         );
         if (Option.isNone(highlighted)) {
-          return Result.succeed({ plot, geometry, series, selects, rows: kept.success });
+          return Result.succeed({ plot, geometry, series, selects, rows: kept.success, fields });
         }
         // SAFETY: the spec compiled above; a highlight on its first mark's own field is one
         // compilePlot accepts.
@@ -415,17 +436,138 @@ export const drawSpec = (
           series,
           selects,
           rows: kept.success,
+          fields,
         });
       },
     );
   });
 };
 
+/** An axis's label as the spec gives it, or the field it plots. */
+const labelOf = (spec: JsonObject, axis: 'x' | 'y', field: string): string => {
+  const scale = spec[axis];
+  const label = isRecord(scale) ? scale['label'] : undefined;
+  return isText(label) && label !== '' ? label : field;
+};
+
+/** The first mark's fields, when its `x` and `y` are fields. */
+const fieldsOf = (spec: JsonObject): Option.Option<Fields> => {
+  const marks = spec['marks'];
+  const first = Array.isArray(marks) ? marks[0] : undefined;
+  if (first === undefined || first === null || !isRecord(first)) return Option.none();
+  const { mark, x, y } = first;
+  if (!isText(mark) || !isText(x) || !isText(y)) return Option.none();
+  const by = [first['stroke'], first['fill'], first['z']].find(
+    (each) => isText(each) && each !== x && each !== y,
+  );
+  return Option.some({
+    mark,
+    x,
+    y,
+    by: isText(by) ? by : null,
+    xLabel: labelOf(spec, 'x', x),
+    yLabel: labelOf(spec, 'y', y),
+  });
+};
+
+/** Every digit, grouped by thousands for a reader (`14,764.5`); anything else as it is. */
+const grouped = new Intl.NumberFormat('en', { maximumFractionDigits: 20 });
+const readable = (value: Json | undefined): string =>
+  isNumber(value) ? grouped.format(value) : String(value ?? '');
+
+/**
+ * A value a reader can point at (ADR 0118): where it is drawn, in the chart's pixels,
+ * what it reads as, and what choosing it picks on a chart that selects.
+ */
+export type Target = {
+  readonly x: number;
+  readonly y: number;
+  readonly text: string;
+  readonly choice: string | null;
+};
+
+/**
+ * The values a reader can point at or step through with the keyboard, in reading
+ * order: series by series (in `color.domain` order, else as they first appear), each
+ * along `x` (sorted for numbers and ISO dates); bars as the rows give them.
+ */
+export const targetsOf = (drawn: Drawn, spec: JsonObject): ReadonlyArray<Target> => {
+  const { fields, geometry, rows, selects } = drawn;
+  const facet = geometry.facets[0];
+  const xAxis = facet?.x ?? null;
+  const yAxis = facet?.y ?? null;
+  if (fields === null || xAxis === null || yAxis === null) return [];
+  const { by } = fields;
+  const order = domainOrder(spec);
+  const firstSeen = [...new Set(rows.map((row) => String(by === null ? '' : (row[by] ?? ''))))];
+  const rank = (row: Row) => {
+    const name = String(by === null ? '' : (row[by] ?? ''));
+    return order(name) * rows.length + firstSeen.indexOf(name);
+  };
+  const along = (row: Row): number => {
+    const value = row[fields.x];
+    return isNumber(value) ? value : isText(value) && isoDate.test(value) ? Date.parse(value) : 0;
+  };
+  const sorted =
+    fields.mark === 'bar'
+      ? rows
+      : rows.toSorted((a, b) => rank(a) - rank(b) || along(a) - along(b));
+  const choiceField =
+    selects === null
+      ? undefined
+      : selects.by._tag === 'Series'
+        ? selects.by.field
+        : selects.by.axis === 'x'
+          ? fields.x
+          : fields.y;
+  const choiceOf = (row: Row): string | null =>
+    choiceField === undefined ? null : String(row[choiceField] ?? '');
+  return sorted.flatMap((row) => {
+    const px = pixelOf(xAxis, row[fields.x]);
+    const py = pixelOf(yAxis, row[fields.y]);
+    if (px === undefined || py === undefined) return [];
+    const series = by === null ? '' : `${String(row[by] ?? '')}, `;
+    const text = `${series}${fields.xLabel} ${readable(row[fields.x])}: ${fields.yLabel} ${readable(row[fields.y])}`;
+    return [{ x: px, y: py, text, choice: choiceOf(row) }];
+  });
+};
+
+/**
+ * The target a pointer at a plot pixel points at: on a bar chart, the bar of the
+ * category under it; otherwise the nearest target within `seriesReach` pixels.
+ */
+export const pointedAt = (
+  drawn: Drawn,
+  targets: ReadonlyArray<Target>,
+  x: number,
+  y: number,
+): number | undefined => {
+  const facet = drawn.geometry.facets[0];
+  if (drawn.fields?.mark === 'bar' && facet !== undefined) {
+    const location = invertPlot(drawn.geometry, x, y);
+    const axis = facet.x?.type === 'band' ? 'x' : 'y';
+    const category = location?.[axis];
+    if (category === undefined) return undefined;
+    const centre = pixelOf(axis === 'x' ? facet.x : facet.y, category);
+    const index = targets.findIndex((target) => (axis === 'x' ? target.x : target.y) === centre);
+    return index === -1 ? undefined : index;
+  }
+  let nearest: { readonly index: number; readonly distance: number } | undefined;
+  targets.forEach((target, index) => {
+    const distance = Math.hypot(target.x - x, target.y - y);
+    if (distance <= seriesReach && (nearest === undefined || distance < nearest.distance)) {
+      nearest = { index, distance };
+    }
+  });
+  return nearest?.index;
+};
+
 /** How near, in the chart's pixels, a press must be to a point to choose its series. */
 export const seriesReach = 24;
 
 /** Where `value` sits on `axis`, in pixels: its band's centre, or along a linear or time scale. */
-const pixelOf = (axis: PlotAxis, value: Json | undefined): number | undefined => {
+const pixelOf = (axis: PlotAxis | null, value: Json | undefined): number | undefined => {
+  if (axis === null) return undefined;
   if (axis.type === 'band') {
     return axis.ticks.find((tick) => String(tick.value) === String(value))?.position;
   }

@@ -3,7 +3,8 @@
 The parts of the plot spec a dashboard uses most. The project's
 `plot-spec.schema.json` is the plot grammar's whole contract (look up
 `definitions.<Name>Mark`, `PositionScaleSpec` and `ColorScaleSpec`); this is the short
-version. foldkit-dash adds `where` and `{ "input": ... }`, which that schema does not know.
+version. foldkit-dash adds `where`, `select` and `{ "input": ... }`, which that schema does
+not know.
 
 A channel is a field name (`"sales"`) or a constant (`{ "value": 4 }`). Every mark
 also takes `title` (a channel shown on hover and in the data table), `opacity` and

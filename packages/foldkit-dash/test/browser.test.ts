@@ -91,6 +91,7 @@ const interactive = [
   '```input\n{ "type": "checkbox", "name": "promo", "label": "Promotion weeks", "value": false }\n```\n',
   '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "where": { "region": { "input": "region" }, "units": { "min": { "input": "floor" } } }, "marks": [{ "mark": "bar", "x": "month", "y": { "input": "metric" } }] }\n```\n',
   '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "where": { "promo": { "input": "promo" } }, "marks": [{ "mark": "bar", "x": "month", "y": "units" }] }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "regions.json", "select": "region", "marks": [{ "mark": "bar", "x": "region", "y": "units" }] }\n```\n',
 ].join('\n');
 
 /** An interactive page, built, opened from its folder. */
@@ -104,6 +105,13 @@ async function interactivePage(javaScriptEnabled = true) {
   }
   await Bun.write(join(dir, 'pages/sales.md'), interactive);
   await Bun.write(join(dir, 'data/shop.json'), JSON.stringify(sales));
+  await Bun.write(
+    join(dir, 'data/regions.json'),
+    JSON.stringify([
+      { region: 'north', units: 27 },
+      { region: 'south', units: 15 },
+    ]),
+  );
   expect(Bun.spawnSync(['bun', bin, 'build', '-C', dir]).exitCode).toBe(0);
   const { browser } = await ready;
   const context = await browser.newContext({
@@ -128,8 +136,9 @@ async function interactivePage(javaScriptEnabled = true) {
       }).observe(document, { childList: true, subtree: true });
     }).observe(document, { childList: true, subtree: true });
   });
-  await page.goto(`file://${join(dir, 'dist', 'sales.html')}`);
-  return { page, errors, context };
+  const url = `file://${join(dir, 'dist', 'sales.html')}`;
+  await page.goto(url);
+  return { page, errors, context, url };
 }
 
 const barsShown = (page: Awaited<ReturnType<typeof interactivePage>>['page'], chart: number) =>
@@ -188,6 +197,40 @@ test('without JavaScript the page shows its defaults, charts and inputs alike', 
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
   ).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+// CLICKING A CHART, AND INPUTS IN THE URL (ADR 0116)
+
+test('clicking a bar chooses its category, and the address keeps the choice', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  const regionBars = page.locator('figure.chart').nth(2).locator('svg rect');
+  await regionBars.nth(1).click();
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 2 bars'),
+  );
+  expect(await page.locator('select option:checked').textContent()).toBe('south');
+  expect(new URL(page.url()).search).toBe('?region=south');
+  // The chosen bar stands out: the other is dimmed.
+  const opacities = await regionBars.evaluateAll((rects) =>
+    rects.map((rect) => Number(getComputedStyle(rect).opacity)),
+  );
+  expect(opacities[0]).toBeLessThan(opacities[1] ?? 0);
+  // The chosen bar again: back to all regions, and a plain address.
+  await regionBars.nth(1).click();
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.startsWith('Shows 4 bars'),
+  );
+  expect(new URL(page.url()).search).toBe('');
+  // A shared address opens the page with its values; what it cannot take is ignored.
+  await page.goto(`${url}?region=north&metric=revenue&floor=99`);
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart svg desc')?.textContent?.includes('revenue'),
+  );
+  expect(await labelOf(page)).toStartWith('Shows 2 bars');
+  expect(await page.locator('input[type=range]').inputValue()).toBe('0');
   expect(errors).toEqual([]);
   await context.close();
 });

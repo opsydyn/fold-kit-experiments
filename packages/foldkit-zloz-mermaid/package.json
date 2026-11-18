@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-zloz-mermaid",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Optional, loss-aware Mermaid export for Foldkit Zloz.",
   "keywords": [
     "diagram",
@@ -67,7 +67,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@opsydyn/foldkit-zloz": "0.6.1",
+    "@opsydyn/foldkit-zloz": "0.6.2",
     "foldkit": "0.170.0"
   },
   "peerDependenciesMeta": {

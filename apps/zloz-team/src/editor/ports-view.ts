@@ -10,6 +10,7 @@ export function createPortsView<Message>(): ZlozPortRenderer<Message> {
     owner: string,
     id: string,
     kind: Port['kind'],
+    connectionEnd: 'source' | 'target',
     label: string,
     x: number,
     y: number,
@@ -26,6 +27,7 @@ export function createPortsView<Message>(): ZlozPortRenderer<Message> {
         h.Style({ left: `${x * 100}%`, top: `${y * 100}%` }),
         h.DataAttribute('flow-port', id),
         h.DataAttribute('flow-port-kind', kind),
+        h.DataAttribute('flow-connection-end', connectionEnd),
         h.DataAttribute('flow-owner', owner),
         h.Disabled(disabled),
         ...(reason === null ? [] : [h.DataAttribute('flow-port-locked', ''), h.Title(reason)]),
@@ -35,7 +37,7 @@ export function createPortsView<Message>(): ZlozPortRenderer<Message> {
       [kind === 'output' ? '+' : '−'],
     );
   return (context, h) => {
-    const { node, port, anchor, active, target, disabledReason } = context;
+    const { node, port, connectionEnd, anchor, active, target, disabledReason } = context;
     const ports = slots.get(node) ?? new Map<string, ReturnType<typeof createLazy>>();
     slots.set(node, ports);
     const slot = ports.get(port.id) ?? createLazy();
@@ -45,7 +47,8 @@ export function createPortsView<Message>(): ZlozPortRenderer<Message> {
       node.id,
       port.id,
       port.kind,
-      `${port.kind === 'output' ? 'Connect from' : 'Connect to'} ${node.label}: ${context.label}`,
+      connectionEnd,
+      `${connectionEnd === 'source' ? 'Connect from' : 'Connect to'} ${node.label}: ${context.label}`,
       anchor.x,
       anchor.y,
       active,

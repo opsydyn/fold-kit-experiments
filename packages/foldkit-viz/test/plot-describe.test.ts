@@ -94,9 +94,10 @@ describe('describePlot', () => {
 
 describe('plotTable', () => {
   it('lists the fields the first mark reads, title first, with readable numbers', () => {
+    // A field plotted on a labelled scale is headed by the label (y is "Units").
     expect(plotTable(sales)).toEqual({
       caption: 'Sales',
-      headers: ['month', 'units', 'region'],
+      headers: ['month', 'Units', 'region'],
       rows: [
         ['Jan', '1,200', 'north'],
         ['Feb', '980.5', 'south'],
@@ -120,7 +121,7 @@ describe('plotTable', () => {
       ...sales,
       marks: [{ mark: 'rule', y: { value: 1000 } }, ...sales.marks],
     });
-    expect(table.headers).toEqual(['month', 'units', 'region']);
+    expect(table.headers).toEqual(['month', 'Units', 'region']);
   });
 });
 
@@ -131,7 +132,7 @@ describe('rendering', () => {
     );
     expect(html).toContain('<desc>Shows 3 bars.');
     expect(html).toContain('class="plot-data"');
-    expect(html).toContain('<th scope="col">units</th>');
+    expect(html).toContain('<th scope="col">Units</th>');
     expect(html).toContain('<th scope="row">Feb</th>');
   });
 

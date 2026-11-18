@@ -1,0 +1,60 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "a",
+        "label": "Alpha",
+        "position": { "x": 10, "y": 20 },
+        "size": { "width": 120, "height": 80 },
+        "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }],
+        "data": { "host": { "retain": [1, "two", true] } },
+        "architecture": { "family": "c4", "role": "container", "technology": "TypeScript" },
+        "appearance": { "shape": "rounded-rectangle" }
+      },
+      {
+        "id": "b",
+        "label": "Beta",
+        "position": { "x": 300, "y": 20 },
+        "size": { "width": 120, "height": 80 },
+        "ports": [{ "id": "in", "kind": "input", "side": "left", "anchor": { "x": 0, "y": 0.5 } }]
+      },
+      {
+        "id": "g",
+        "label": "Boundary",
+        "kind": "group",
+        "position": { "x": 0, "y": 200 },
+        "size": { "width": 400, "height": 200 },
+        "ports": [],
+        "data": { "group": true }
+      },
+      {
+        "id": "c",
+        "label": "Child",
+        "position": { "x": 30, "y": 230 },
+        "size": { "width": 120, "height": 80 },
+        "parentId": "g",
+        "extent": "parent",
+        "ports": [{ "id": "out", "kind": "output", "side": "right", "offset": 0.5 }]
+      }
+    ],
+    "edges": [
+      {
+        "id": "ab",
+        "source": { "node": "a", "port": "out" },
+        "target": { "node": "b", "port": "in" },
+        "label": "Calls",
+        "data": { "keep": "edge metadata" }
+      },
+      {
+        "id": "cb",
+        "source": { "node": "c", "port": "out" },
+        "target": { "node": "b", "port": "in" }
+      }
+    ]
+  },
+  "move": "{\"version\":1,\"operationId\":\"move-a\",\"operation\":{\"type\":\"MoveNodes\",\"nodes\":[{\"id\":\"a\",\"expected\":0,\"position\":{\"x\":70,\"y\":90}}]}}",
+  "rename": "{\"version\":1,\"operationId\":\"rename-b\",\"operation\":{\"type\":\"RenameNode\",\"id\":\"a\",\"expected\":0,\"label\":\"Teammate name\"}}",
+  "undoMove": "{\"version\":1,\"operationId\":\"undo-a\",\"operation\":{\"type\":\"Undo\",\"operationId\":\"move-a\"}}",
+  "deleteGroup": "{\"version\":1,\"operationId\":\"delete-group\",\"operation\":{\"type\":\"Delete\",\"expectedVersion\":0,\"nodeIds\":[\"g\"],\"edgeIds\":[]}}",
+  "removePort": "{\"version\":1,\"operationId\":\"remove-port\",\"operation\":{\"type\":\"RemovePort\",\"expectedVersion\":0,\"endpoint\":{\"node\":\"b\",\"port\":\"in\"}}}"
+}

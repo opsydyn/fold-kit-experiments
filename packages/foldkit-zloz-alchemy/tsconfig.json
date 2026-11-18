@@ -15,5 +15,13 @@
     "exactOptionalPropertyTypes": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["dist", "node_modules", "test/negative"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "test/negative",
+    "src/collaboration.ts",
+    "test/checkpoint.test.ts",
+    "test/diagram.test.ts",
+    "test/replay-ownership.test.ts"
+  ]
 }

@@ -1,0 +1,9 @@
+tasks:
+  build:
+    script: 'tsdown'
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'tsc --noEmit'
+  test:
+    script: 'bun test ./test'
+    deps: ['build']

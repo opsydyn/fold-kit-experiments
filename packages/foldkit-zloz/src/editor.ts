@@ -1451,7 +1451,11 @@ export function updateEditor(
       const reason = movementReason(gesture.before, moving, policy.canMoveNode);
       if (reason !== undefined) return { ...cancel(state), notice: reason };
       const zoom = state.viewport.zoom;
-      const raw = { x: delta.x / zoom, y: delta.y / zoom };
+      const dragging = Math.hypot(delta.x, delta.y) >= 4;
+      const raw =
+        dragging || !policy.suppressClickDrift
+          ? { x: delta.x / zoom, y: delta.y / zoom }
+          : { x: 0, y: 0 };
       const fallback = { ...raw };
       const anchor =
         state.snapToGrid && gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
@@ -1460,7 +1464,6 @@ export function updateEditor(
         fallback.x = snap(anchor.position.x + raw.x) - anchor.position.x;
         fallback.y = snap(anchor.position.y + raw.y) - anchor.position.y;
       }
-      const dragging = Math.hypot(delta.x, delta.y) >= 4;
       const { nodes } = presentEditorGroups(state, gesture.before);
       const { offset, guides } =
         dragging && state.snapToAlignment

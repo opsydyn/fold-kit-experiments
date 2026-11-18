@@ -1,0 +1,115 @@
+{
+  "assessment": {
+    "format": "foldkit-zloz-coupling",
+    "version": 1,
+    "modelVersion": "balanced-coupling-binary/v1",
+    "target": {
+      "documentId": "diagram-a",
+      "graphVersion": 7,
+      "relationshipId": "ab",
+      "sourceNodeId": "a",
+      "targetNodeId": "b"
+    },
+    "scope": { "abstraction": "C4 containers", "horizon": "Next quarter" },
+    "inputs": {
+      "integrationType": {
+        "status": "known",
+        "value": "model",
+        "basis": "declared",
+        "rationale": "Synthetic fixture: shared order model."
+      },
+      "strength": {
+        "status": "known",
+        "value": "high",
+        "basis": "observed",
+        "rationale": "Synthetic fixture: changes require coordination."
+      },
+      "distance": {
+        "status": "known",
+        "value": "low",
+        "basis": "declared",
+        "rationale": "Synthetic fixture: one delivery team."
+      },
+      "volatility": {
+        "status": "known",
+        "value": "high",
+        "basis": "derived",
+        "rationale": "Synthetic fixture: approved roadmap changes next quarter."
+      }
+    }
+  },
+  "cases": [
+    {
+      "strength": "low",
+      "distance": "low",
+      "volatility": "high",
+      "state": "imbalance",
+      "status": "imbalanced",
+      "pattern": "low-cohesion",
+      "basis": "matching-dimensions"
+    },
+    {
+      "strength": "low",
+      "distance": "high",
+      "volatility": "high",
+      "state": "complementary-balance",
+      "status": "balanced",
+      "pattern": "loose-coupling",
+      "basis": "complementary-dimensions"
+    },
+    {
+      "strength": "high",
+      "distance": "low",
+      "volatility": "high",
+      "state": "complementary-balance",
+      "status": "balanced",
+      "pattern": "high-cohesion",
+      "basis": "complementary-dimensions"
+    },
+    {
+      "strength": "high",
+      "distance": "high",
+      "volatility": "high",
+      "state": "imbalance",
+      "status": "imbalanced",
+      "pattern": "tight-coupling",
+      "basis": "matching-dimensions"
+    },
+    {
+      "strength": "low",
+      "distance": "low",
+      "volatility": "low",
+      "state": "low-volatility-balance",
+      "status": "balanced",
+      "pattern": "low-cohesion",
+      "basis": "low-volatility"
+    },
+    {
+      "strength": "low",
+      "distance": "high",
+      "volatility": "low",
+      "state": "complementary-balance",
+      "status": "balanced",
+      "pattern": "loose-coupling",
+      "basis": "complementary-dimensions"
+    },
+    {
+      "strength": "high",
+      "distance": "low",
+      "volatility": "low",
+      "state": "complementary-balance",
+      "status": "balanced",
+      "pattern": "high-cohesion",
+      "basis": "complementary-dimensions"
+    },
+    {
+      "strength": "high",
+      "distance": "high",
+      "volatility": "low",
+      "state": "low-volatility-balance",
+      "status": "balanced",
+      "pattern": "tight-coupling",
+      "basis": "low-volatility"
+    }
+  ]
+}

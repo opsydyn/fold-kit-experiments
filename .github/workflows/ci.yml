@@ -46,6 +46,10 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install Playwright Chromium for Teams
+        working-directory: apps/zloz-team
+        run: bunx --no-install playwright install --with-deps --only-shell chromium
+
       - name: Lint, typecheck, test, build, API reports, size budgets, then integration tests
         run: bun run ci:check
 

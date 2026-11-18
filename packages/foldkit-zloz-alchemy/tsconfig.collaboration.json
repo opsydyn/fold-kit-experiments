@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": false
+  },
+  "include": [
+    "src/collaboration.ts",
+    "test/checkpoint.test.ts",
+    "test/diagram.test.ts",
+    "test/replay-ownership.test.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

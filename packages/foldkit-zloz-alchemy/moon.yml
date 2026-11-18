@@ -5,13 +5,13 @@ tasks:
     deps: ['^:build']
     outputs: ['dist/**/*']
   typecheck:
-    script: 'tsc --noEmit'
+    script: 'tsc --noEmit && tsc --noEmit -p tsconfig.collaboration.json'
     deps: ['^:build']
   test:
-    script: "bun test ./test --path-ignore-patterns='**/package.test.ts'"
+    script: "bun test ./test --path-ignore-patterns='**/*package.test.ts'"
     deps: ['build', '^:build']
   integration:
-    script: 'bun test ./test/package.test.ts'
+    script: 'bun test ./test/package.test.ts ./test/collaboration-package.test.ts'
     deps: ['build']
     inputs: ['/packages/foldkit-zloz*/**/*', '/tools/pack-zloz.ts']
     options:

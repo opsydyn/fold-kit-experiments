@@ -1,0 +1,39 @@
+---
+import Shell from '../../../../../layouts/Shell.astro';
+import { recoveryPage } from '../../../../../server/recovery';
+import { loginPath } from '../../../../../server/continuation';
+const teamId = Astro.params.teamId ?? '';
+const diagramId = Astro.params.diagramId ?? '';
+const base = `/app/${teamId}/diagrams/${diagramId}`;
+const outcome = await recoveryPage(Astro.request, teamId, diagramId);
+if (outcome.status === 401) return Astro.redirect(loginPath(`${base}/recovery`), 303);
+Astro.response.status = outcome.status;
+---
+<Shell title="Checkpoint recovery" wide>
+  <nav><a href={base}>Back to diagram</a></nav>
+  <h1>Backup and recovery</h1>
+  {outcome.message && <p role={outcome.status >= 400 ? 'alert' : 'status'}>{outcome.message}</p>}
+  {outcome.status !== 401 && outcome.status !== 403 && <>
+    <p>Download a checkpoint before important changes. Keep it in your team's protected backup location.</p>
+    <p><a href={`/api/zloz/diagrams/${teamId}/${diagramId}/checkpoint`}>Download current checkpoint</a></p>
+    <p>Recovery replaces the graph with the checkpoint as a new version. It clears prior Undo. A concurrent edit makes the preview expire.</p>
+    <form method="post" enctype="multipart/form-data">
+      <label>Checkpoint file<input type="file" name="file" accept=".json,application/json" required /></label>
+      <button name="action" value="preview" type="submit">Preview recovery</button>
+    </form>
+    {outcome.preview && <section aria-label="Recovery preview">
+      <h2>Review recovery</h2>
+      <p>Checkpoint version {outcome.preview.checkpoint.documentVersion}; apply against current version {outcome.preview.expectedVersion}.</p>
+      <p>{outcome.preview.checkpoint.graph.nodes.length} nodes and {outcome.preview.checkpoint.graph.edges.length} connections will be restored.</p>
+      <details><summary>Checkpoint integrity digest</summary><code>{outcome.preview.checkpoint.digest}</code></details>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="operationId" value={outcome.preview.operationId} />
+        <input type="hidden" name="expectedVersion" value={outcome.preview.expectedVersion} />
+        <textarea name="checkpoint" hidden>{outcome.preview.text}</textarea>
+        <button name="action" value="apply" type="submit" disabled={outcome.status === 409}>Apply checkpoint as a new version</button>
+        <button name="action" value="preview" type="submit" class="secondary">Refresh preview</button>
+      </form>
+    </section>}
+  </>}
+</Shell>
+<style>form { display: grid; gap: 16px; margin: 24px 0; } button { justify-self: start; } code { overflow-wrap: anywhere; }</style>

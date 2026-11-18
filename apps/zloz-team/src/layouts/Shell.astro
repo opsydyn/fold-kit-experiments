@@ -1,0 +1,23 @@
+---
+import '../styles/workspace.css';
+import Appearance from '../appearance/app';
+import { themeCookie, themePreference } from '../appearance/preferences';
+interface Props { title: string; wide?: boolean }
+const { title, wide = false } = Astro.props;
+const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
+---
+<!doctype html>
+<html lang="en" data-team-theme={preference}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | Zloz teams</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="/" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span><strong>ZLOZ</strong><small>Team architecture workspace</small></span></a>
+      <Appearance client:load noMeta preference={preference} />
+    </header>
+    <main class:list={['page-content', { wide }]}><slot /></main>
+  </body>
+</html>

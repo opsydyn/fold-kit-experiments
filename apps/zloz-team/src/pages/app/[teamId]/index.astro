@@ -1,0 +1,69 @@
+---
+import Shell from '../../../layouts/Shell.astro';
+import { loadTeam, teamAction, teamNotice, expiresLabel } from '../../../server/onboarding';
+import { loginPath } from '../../../server/continuation';
+
+const teamId = Astro.params.teamId ?? '';
+const outcome = await teamAction(Astro.request, teamId);
+if (outcome._tag === 'Redirect') return outcome.response;
+const loaded = await loadTeam(Astro.request, teamId);
+const signInRedirect = loaded._tag === 'Failure' && loaded.status === 401 ? Astro.redirect(loginPath(`/app/${teamId}`), 303) : undefined;
+if (signInRedirect) return signInRedirect;
+if (loaded._tag === 'Failure') Astro.response.status = loaded.status;
+else if (outcome._tag === 'Rejected') Astro.response.status = outcome.status;
+const notice = teamNotice(Astro.url.searchParams.get('notice'));
+---
+<Shell title={loaded._tag === 'Ready' ? loaded.value.team.name : 'Team unavailable'} wide>
+  <nav aria-label="Workspace"><a href="/app">Your teams</a></nav>
+  {loaded._tag === 'Failure' ? <><h1>Team unavailable</h1><p role="alert">{loaded.message}</p></> : <>
+    <h1>{loaded.value.team.name}</h1>
+    <p>Your role: <strong>{loaded.value.role}</strong></p>
+    {notice && <p role="status">{notice}</p>}
+    {outcome._tag === 'Rejected' && <p class="error" role="alert">{outcome.message}</p>}
+    <section aria-labelledby="diagrams-heading">
+      <h2 id="diagrams-heading">Diagrams</h2>
+      {loaded.value.role !== 'viewer' && <p><a href={`/app/${teamId}/diagrams/new`}>Create or import a diagram</a></p>}
+      {loaded.value.diagrams.length === 0 ? <p>No diagrams yet.</p> : <ul>{loaded.value.diagrams.map((diagram) => <li><a href={`/app/${teamId}/diagrams/${diagram.id}`}>{diagram.name}</a></li>)}</ul>}
+    </section>
+    {loaded.value.role === 'owner' && <>
+      <section aria-labelledby="invite-heading">
+        <h2 id="invite-heading">Invite a teammate</h2>
+        <p>Invite their Google email address, then share the link.</p>
+        <form method="post" class="invite-form">
+          <input type="hidden" name="action" value="invite" />
+          <label>Email address<input type="email" name="email" required maxlength="254" autocomplete="email" value={outcome._tag === 'Rejected' ? outcome.email : ''} /></label>
+          <label>Team role<select name="role">
+            {(['editor', 'viewer', 'owner'] as const).map((role) => <option value={role} selected={(outcome._tag === 'Rejected' ? outcome.role : 'editor') === role}>{role}</option>)}
+          </select></label>
+          <button type="submit">Create invitation link</button>
+        </form>
+      </section>
+      <section aria-labelledby="invitations-heading">
+        <h2 id="invitations-heading">Pending invitations</h2>
+        {loaded.value.invitations.length === 0 ? <p>No pending invitations.</p> : <ul class="entries">{loaded.value.invitations.map((invitation) => <li>
+          <p><strong>{invitation.email}</strong> — {invitation.role}</p>
+          <p>{invitation.expiresAt <= Date.now() ? 'Expired' : 'Expires'} {expiresLabel(invitation.expiresAt)}</p>
+          {invitation.expiresAt > Date.now() && <label>Invitation link for {invitation.email}<input type="text" readonly value={new URL(`/join/${invitation.id}`, Astro.url.origin).href} aria-label={`Invitation link for ${invitation.email}`} /></label>}
+          <form method="post"><input type="hidden" name="action" value="cancel" /><input type="hidden" name="invitationId" value={invitation.id} /><button type="submit" class="secondary" aria-label={`Cancel invitation for ${invitation.email}`}>Cancel invitation</button></form>
+        </li>)}</ul>}
+      </section>
+      <section aria-labelledby="members-heading">
+        <h2 id="members-heading">Members</h2>
+        <p>Roles apply to every diagram in this team. Owners also manage membership.</p>
+        <ul class="entries">{loaded.value.members.map((member) => {
+          const lastOwner = member.role === 'owner' && loaded.value.members.filter((item) => item.role === 'owner').length === 1;
+          return <li>
+            <p><strong>{member.name}</strong> {member.userId === loaded.value.currentUserId && '(you)'}<br />{member.email}</p>
+            <form method="post" class="member-form">
+              <input type="hidden" name="memberId" value={member.id} />
+              <label>Team role<select name="role" aria-label={`Role for ${member.email}`} disabled={lastOwner}>{(['owner', 'editor', 'viewer'] as const).map((role) => <option value={role} selected={member.role === role}>{role}</option>)}</select></label>
+              <button type="submit" name="action" value="role" aria-label={`Save role for ${member.email}`} disabled={lastOwner}>Save role</button>
+              <button type="submit" name="action" value="remove" class="secondary" aria-label={`Remove ${member.email}`} disabled={lastOwner}>Remove member</button>
+            </form>
+            {lastOwner && <p>Add another owner before changing or removing the last owner.</p>}
+          </li>;
+        })}</ul>
+      </section>
+    </>}
+  </>}
+</Shell>

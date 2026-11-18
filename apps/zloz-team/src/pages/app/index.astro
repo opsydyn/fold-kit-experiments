@@ -1,0 +1,17 @@
+---
+import Shell from '../../layouts/Shell.astro';
+import { sessionFor, teamsFor } from '../../server/backend';
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+const session = await sessionFor(Astro.request);
+if (session === null) return Astro.redirect('/login', 303);
+const teams = await teamsFor(Astro.request);
+---
+<Shell title="Your workspace">
+  <h1>Hello, {session.user.name}.</h1>
+  <p>You’re signed in as {session.user.email}.</p>
+  {teams.length === 0
+    ? <p>Ask your team owner for an invitation to a workspace.</p>
+    : <><h2>Your teams</h2><ul>{teams.map((team) => <li><a href={`/app/${team.id}`}>{team.name}</a></li>)}</ul></>}
+  <form action="/logout" method="post"><button type="submit">Sign out</button></form>
+</Shell>

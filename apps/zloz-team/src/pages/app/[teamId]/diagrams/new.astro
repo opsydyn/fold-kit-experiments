@@ -1,0 +1,28 @@
+---
+import Shell from '../../../../layouts/Shell.astro';
+import { loadTeam } from '../../../../server/onboarding';
+import { createDiagram } from '../../../../server/create-diagram';
+import { loginPath } from '../../../../server/continuation';
+const teamId = Astro.params.teamId ?? '';
+const loaded = await loadTeam(Astro.request, teamId);
+if (loaded._tag === 'Failure' && loaded.status === 401) return Astro.redirect(loginPath(`/app/${teamId}/diagrams/new`), 303);
+if (loaded._tag === 'Failure' || loaded.value.role === 'viewer') return new Response('Diagram creation unavailable', { status: loaded._tag === 'Failure' ? loaded.status : 403 });
+const outcome = await createDiagram(Astro.request, teamId);
+if (outcome.status === 303) return Astro.redirect(`/app/${teamId}/diagrams/${outcome.id}`, 303);
+Astro.response.status = outcome.status;
+---
+<Shell title="Create a diagram" wide>
+  <nav><a href={`/app/${teamId}`}>Back to {loaded.value.team.name}</a></nav>
+  <h1>Create a diagram</h1>
+  <p>Start blank or import an exported Zloz graph. Every import creates a new diagram.</p>
+  {outcome.error && <p role="alert">{outcome.error}</p>}
+  <form method="post" enctype="multipart/form-data" class="create-diagram">
+    <input type="hidden" name="creationId" value={outcome.id} />
+    <label>Diagram name<input name="name" required maxlength="120" value={outcome.name} /></label>
+    <label>Import graph file (optional)<input type="file" name="file" accept=".json,application/json" /></label>
+    <label>Or paste exported graph JSON<textarea name="graph" rows="7">{outcome.graphText}</textarea></label>
+    <p>Up to 250 nodes, 500 edges and 1 MiB per request.</p>
+    <button type="submit">Create diagram</button>
+  </form>
+</Shell>
+<style>.create-diagram { display: grid; gap: 20px; } textarea { width: 100%; font: inherit; padding: 10px; } button { justify-self: start; }</style>

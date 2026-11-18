@@ -23,14 +23,38 @@
       "types": "./dist/domain.d.mts",
       "import": "./dist/domain.mjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./collaboration": {
+      "types": "./dist/collaboration.d.mts",
+      "import": "./dist/collaboration.mjs"
+    },
+    "./assessment": {
+      "types": "./dist/assessment.d.mts",
+      "import": "./dist/assessment.mjs"
+    },
+    "./checkpoint": {
+      "types": "./dist/checkpoint.d.mts",
+      "import": "./dist/checkpoint.mjs"
+    },
+    "./delta": {
+      "types": "./dist/delta.d.mts",
+      "import": "./dist/delta.mjs"
+    },
+    "./hash": {
+      "types": "./dist/hash.d.mts",
+      "import": "./dist/hash.mjs"
+    },
+    "./session": {
+      "types": "./dist/session.d.mts",
+      "import": "./dist/session.mjs"
+    }
   },
   "scripts": {
     "build": "bun run --filter @opsydyn/foldkit-zloz build && tsdown",
-    "typecheck": "bun run --filter @opsydyn/foldkit-zloz build && tsc --noEmit",
+    "typecheck": "bun run --filter @opsydyn/foldkit-zloz build && tsc --noEmit && tsc --noEmit -p tsconfig.collaboration.json",
     "test": "bun run test:unit && bun run test:package",
-    "test:unit": "bun run build && bun test ./test --path-ignore-patterns='**/package.test.ts'",
-    "test:package": "bun test ./test/package.test.ts",
+    "test:unit": "bun run build && bun test ./test --path-ignore-patterns='**/*package.test.ts'",
+    "test:package": "bun test ./test/package.test.ts ./test/collaboration-package.test.ts",
     "pack:check": "bun run build && publint && bun pm pack --destination dist/pack"
   },
   "devDependencies": {

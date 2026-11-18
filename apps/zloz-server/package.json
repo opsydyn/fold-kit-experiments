@@ -1,0 +1,28 @@
+{
+  "name": "@opsydyn/zloz-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:auth-schema": "bun tools/generate-auth-schema.ts",
+    "typecheck": "bun run --filter @opsydyn/foldkit-zloz-alchemy build && tsc --noEmit",
+    "test": "bun test ./test"
+  },
+  "dependencies": {
+    "@alchemy.run/better-auth": "catalog:infra",
+    "@alchemy.run/cloudflare": "catalog:infra",
+    "@alchemy.run/domain": "catalog:infra",
+    "@alchemy.run/sql": "catalog:infra",
+    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
+    "alchemy": "catalog:infra",
+    "better-auth": "1.7.5",
+    "effect": "catalog:",
+    "kysely": "0.29.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "bun-types": "catalog:",
+    "miniflare": "5.20261110.1-beta",
+    "typescript": "catalog:"
+  }
+}

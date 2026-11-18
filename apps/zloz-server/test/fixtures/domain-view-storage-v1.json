@@ -1,0 +1,44 @@
+{
+  "snapshot": {
+    "state": { "total": 10 },
+    "version": 3,
+    "seq": 4,
+    "checkpoints": { "ProofSource/board": 4 }
+  },
+  "delivery": {
+    "target": { "kind": "view", "name": "ProofView" },
+    "key": "board",
+    "source": "ProofSource/board",
+    "seq": 5,
+    "origin": "ProofSource",
+    "tag": "ProofStepped",
+    "event": { "_tag": "ProofStepped", "amount": 2, "copies": 1 },
+    "envelope": {
+      "id": "board",
+      "stream": "ProofSource/board",
+      "seq": 5,
+      "at": 1700000000000,
+      "commandId": "literal-5",
+      "correlationId": "correlation-5"
+    }
+  },
+  "expectedSnapshot": {
+    "state": { "total": 12 },
+    "version": 4,
+    "seq": 5,
+    "checkpoints": { "ProofSource/board": 5 }
+  },
+  "expectedEntry": {
+    "seq": 5,
+    "event": { "_tag": "ProofTick", "total": 12, "index": 0 },
+    "envelope": {
+      "id": "board",
+      "stream": "ProofView/board",
+      "seq": 5,
+      "at": 1700000000000,
+      "commandId": "literal-5",
+      "correlationId": "correlation-5"
+    },
+    "state": { "total": 12 }
+  }
+}

@@ -6,10 +6,9 @@
 
 ## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.6.2...foldkit-zloz-force-v0.7.0) (2026-11-18)
 
-
 ### Miscellaneous Chores
 
-* **foldkit-zloz-force:** Synchronize foldkit-zloz versions
+- **foldkit-zloz-force:** Synchronize foldkit-zloz versions
 
 ## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.6.1...foldkit-zloz-force-v0.6.2) (2026-11-18)
 

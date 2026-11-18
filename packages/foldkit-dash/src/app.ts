@@ -21,10 +21,10 @@ import {
   type Drawn,
   drawSpec,
   pointedAt,
+  snappedAt,
   spanPixels,
   type Target,
   targetsOf,
-  valueAtPixel,
 } from './chart';
 import {
   Choice,
@@ -81,6 +81,14 @@ export const Model = Schema.Struct({
   drag: Drag,
   /** The chart that has keyboard focus, by its fence's line, so it can show its keys. */
   focused: Schema.NullOr(Schema.Int),
+  /** One end of a `between` input as typed so far, not yet applied (ADR 0119). */
+  draft: Schema.NullOr(
+    Schema.Struct({
+      name: Schema.String,
+      which: Schema.Literals(['min', 'max']),
+      text: Schema.String,
+    }),
+  ),
 });
 export type Model = typeof Model.Type;
 
@@ -107,6 +115,14 @@ export const Message = defineMessageUnion({
   },
   /** A chart took keyboard focus, or gave it up (`line` null). */
   FocusedChart: { line: Schema.NullOr(Schema.Int) },
+  /** A reader typed into one end of a `between` input: a draft until committed. */
+  EditedSpanEnd: {
+    name: Schema.String,
+    which: Schema.Literals(['min', 'max']),
+    text: Schema.String,
+  },
+  /** The end being typed lost focus, or Enter was pressed: apply its draft. */
+  CommittedSpanEnd: { name: Schema.String },
 });
 export type Message = typeof Message.Type;
 
@@ -139,6 +155,7 @@ export const init = (flags: Flags): Return<Model, Message> => ({
     pointed: null,
     drag: null,
     focused: null,
+    draft: null,
   },
   commands: [ReadQuery()],
 });
@@ -170,7 +187,39 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     PressedChartKey: ({ line, command }) => pressedKey(model, line, command),
     DraggedChart: ({ line, phase, x }) => dragged(model, line, phase, x),
     FocusedChart: ({ line }) => ({ model: { ...model, focused: line } }),
+    EditedSpanEnd: (draft) => ({
+      model: { ...model, draft: { name: draft.name, which: draft.which, text: draft.text } },
+    }),
+    CommittedSpanEnd: ({ name }) => committed(model, name),
   });
+
+/**
+ * A typed end of a `between` input, applied (ADR 0119): a whole date or number within
+ * the input's ends sets that end (swapping them if it passes the other); anything else
+ * leaves the span as it was.
+ */
+const committed = (model: Model, name: string): Return<Model, Message> => {
+  const draft = model.draft;
+  const settled = { ...model, draft: null };
+  const input = inputsOf(model.sections).find((each) => each.name === name);
+  if (draft === null || draft.name !== name || input?._tag !== 'Between') {
+    return { model: settled };
+  }
+  const value = model.values[name];
+  const span = isSpan(value) ? value : input.value;
+  const text = draft.text.trim();
+  const at: End | undefined =
+    input.kind === 'date'
+      ? /^\d{4}-\d{2}-\d{2}$/.test(text)
+        ? text
+        : undefined
+      : text !== '' && Number.isFinite(Number(text))
+        ? Number(text)
+        : undefined;
+  if (at === undefined || at < input.min || at > input.max) return { model: settled };
+  const next = draft.which === 'min' ? { min: at, max: span.max } : { min: span.min, max: at };
+  return choose(settled, name, next.min > next.max ? { min: next.max, max: next.min } : next);
+};
 
 /** A chart's drawing as the model draws it now, with its spec. */
 const drawnAt = (model: Model, line: number) => {
@@ -207,7 +256,7 @@ const dragged = (
     return choose(settled, input.name, { min: input.min, max: input.max });
   }
   const end = (px: number): End | undefined => {
-    const at = Option.getOrUndefined(valueAtPixel(found.drawn, px));
+    const at = Option.getOrUndefined(snappedAt(found.drawn, px));
     if (at === undefined) return undefined;
     const stepped = isNumber(at) ? Math.round(at / input.step) * input.step : at;
     return stepped < input.min ? input.min : stepped > input.max ? input.max : stepped;
@@ -275,14 +324,11 @@ const betweenControl = (
 ): Html => {
   const id = `input-${input.name}`;
   const span = isSpan(value) ? value : input.value;
-  const read = (text: string): End =>
-    input.kind === 'date' ? text : Number.isFinite(Number(text)) ? Number(text) : input.min;
-  const end = (which: 'min' | 'max', text: string) => {
-    const at = read(text);
-    const next = which === 'min' ? { min: at, max: span.max } : { min: span.min, max: at };
-    return changed(input.name, next.min > next.max ? { min: next.max, max: next.min } : next);
-  };
   const whole = span.min === input.min && span.max === input.max;
+  const commit = Message.CommittedSpanEnd({ name: input.name });
+  // What is typed is a draft until the field loses focus or Enter is pressed: a date
+  // field reports a whole but meaningless date after each part typed (year 2, 20, 202).
+  // The field's value stays the span's, so a redraw never overwrites what is half typed.
   const field = (which: 'min' | 'max', word: string) =>
     h.label(
       [],
@@ -295,7 +341,11 @@ const betweenControl = (
           h.Max(String(input.max)),
           ...(input.kind === 'number' ? [h.Step(String(input.step))] : []),
           h.Value(String(span[which])),
-          h.OnChange((text) => end(which, text)),
+          h.OnChange((text) => Message.EditedSpanEnd({ name: input.name, which, text })),
+          h.OnBlur(commit),
+          h.OnKeyDownPreventDefault((key) =>
+            key === 'Enter' ? Option.some(commit) : Option.none(),
+          ),
         ]),
       ],
     );

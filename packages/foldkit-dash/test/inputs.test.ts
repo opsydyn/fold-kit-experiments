@@ -336,9 +336,15 @@ describe('a span between two ends (ADR 0119)', () => {
     expect(queryOf([weeks], { weeks: span })).toBe('?weeks=2026-05-11..2026-05-18');
     expect(queryOf([weeks], { weeks: weeks._tag === 'Between' ? weeks.value : span })).toBe('');
     expect(valuesFromQuery([weeks], '?weeks=2026-05-11..2026-05-18')).toEqual({ weeks: span });
-    expect(valuesFromQuery([weeks], '?weeks=2026-01-01..2026-05-18')).toEqual({});
+    // Ends past the data's are brought to them; a span that misses it is refused.
+    expect(valuesFromQuery([weeks], '?weeks=2026-01-01..2026-05-18')).toEqual({
+      weeks: { min: '2026-05-04', max: '2026-05-18' },
+    });
+    expect(valuesFromQuery([weeks], '?weeks=2026-01-01..2026-02-01')).toEqual({});
     expect(valueFor(weeks, '2026-05-18..2026-05-11')).toEqual(
-      Result.fail('2026-05-18..2026-05-11 is not a span from..to within 2026-05-04..2026-05-25'),
+      Result.fail(
+        '2026-05-18..2026-05-11 is not a span from..to that meets 2026-05-04..2026-05-25',
+      ),
     );
   });
 
@@ -367,5 +373,39 @@ describe('a span between two ends (ADR 0119)', () => {
     expect(Result.isFailure(bars) && bars.failure.message).toBe(
       'brush: the chart needs an x axis of numbers or dates to drag across',
     );
+  });
+});
+
+describe('totals of stacked bars (ADR 0119)', () => {
+  test('a bar chart stacked by a field ranks each category by its total, first', () => {
+    const stacked = [
+      { region: 'north', week: 'w1', units: 3 },
+      { region: 'north', week: 'w2', units: 4 },
+      { region: 'south', week: 'w1', units: 5 },
+      { region: 'south', week: 'w2', units: 1 },
+    ];
+    const drawn = Result.getOrThrow(
+      drawSpec(
+        {
+          width: 400,
+          height: 240,
+          data: 'stacked.json',
+          marks: [{ mark: 'bar', x: 'region', y: 'units', z: 'week', stack: 'zero' }],
+        },
+        new Map([['stacked.json', stacked]]),
+        {},
+      ),
+    );
+    expect(drawn.series[0]).toEqual({
+      name: 'total units',
+      count: 2,
+      low: { y: 6, x: ['south'] },
+      high: { y: 7, x: ['north'] },
+      ranked: [
+        { x: 'north', y: 7 },
+        { x: 'south', y: 6 },
+      ],
+    });
+    expect(drawn.series.slice(1).map((series) => series.name)).toEqual(['w1', 'w2']);
   });
 });

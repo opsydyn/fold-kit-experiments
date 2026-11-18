@@ -162,7 +162,7 @@ const seriesOf = (spec: JsonObject, rows: Rows, where: Json): ReadonlyArray<Seri
     groups.set(name, [...(groups.get(name) ?? []), row]);
   }
   const order = domainOrder(spec);
-  return [...groups]
+  const each = [...groups]
     .toSorted(([a], [b]) => order(a) - order(b))
     .flatMap(([name, members]) => {
       const points = members.flatMap((row) => {
@@ -191,9 +191,45 @@ const seriesOf = (spec: JsonObject, rows: Rows, where: Json): ReadonlyArray<Seri
       }
       return [{ ...series, ...movesOf(inXOrder(points)) }];
     });
+  // A grouped or stacked bar chart also gives each category's total, first.
+  const totals = mark === 'bar' && isText(by) ? barTotals(rows, along, measure) : [];
+  return [...totals, ...each];
 };
 
 const isoDate = /^\d{4}-\d{2}-\d{2}/;
+
+/**
+ * A grouped or stacked bar chart's total per category (ADR 0119): the sum of every
+ * group's value in it, ranked, as a series named `total <field>`. It confirms "South
+ * East had the most orders in July and August" when the bars stack a week each.
+ */
+const barTotals = (rows: Rows, along: string, measure: string): ReadonlyArray<Series> => {
+  const sums = new Map<string, { readonly x: Value; readonly y: number }>();
+  for (const row of rows) {
+    const value = row[measure];
+    if (!isNumber(value)) continue;
+    const key = String(row[along] ?? '');
+    sums.set(key, { x: row[along] ?? null, y: (sums.get(key)?.y ?? 0) + value });
+  }
+  const points = [...sums.values()].map(({ x, y }) => ({ x, y: Math.round(y * 1e9) / 1e9 }));
+  if (points.length === 0) return [];
+  const ys = points.map((point) => point.y);
+  const extreme = (y: number) => ({
+    y,
+    x: points.filter((point) => point.y === y).map((point) => point.x),
+  });
+  const series = {
+    name: `total ${measure}`,
+    count: points.length,
+    low: extreme(Math.min(...ys)),
+    high: extreme(Math.max(...ys)),
+  };
+  return [
+    points.length <= rankedBars
+      ? { ...series, ranked: points.toSorted((a, b) => b.y - a.y) }
+      : series,
+  ];
+};
 
 /**
  * Points sorted by `x` when every `x` is a number, or every `x` an ISO date; otherwise
@@ -482,6 +518,26 @@ export const spanPixels = (
   return from === undefined || to === undefined
     ? Option.none()
     : Option.some([clamp(Math.min(from, to)), clamp(Math.max(from, to))] as const);
+};
+
+/**
+ * The value a drag end at a pixel picks (ADR 0119): the chart's own `x` value nearest it
+ * (a week start on weekly data), or the value at the pixel when the rows give none.
+ */
+export const snappedAt = (drawn: Drawn, px: number): Option.Option<number | string> => {
+  const axis = drawn.geometry.facets[0]?.x ?? null;
+  const field = drawn.fields?.x;
+  if (axis === null || field === undefined) return valueAtPixel(drawn, px);
+  let nearest: { readonly value: number | string; readonly distance: number } | undefined;
+  for (const row of drawn.rows) {
+    const value = row[field];
+    if (!isNumber(value) && !(isText(value) && isoDate.test(value))) continue;
+    const at = pixelOf(axis, value);
+    if (at === undefined) continue;
+    const distance = Math.abs(at - px);
+    if (nearest === undefined || distance < nearest.distance) nearest = { value, distance };
+  }
+  return nearest === undefined ? valueAtPixel(drawn, px) : Option.some(nearest.value);
 };
 
 /**

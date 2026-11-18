@@ -330,13 +330,18 @@ export const valueFor = (input: Input, text: string): Result.Result<InputValue, 
       const number = Number(trimmed);
       return trimmed !== '' && Number.isFinite(number) ? number : undefined;
     };
+    // Ends past the input's are brought to them (`..2026-10-31` for data ending on the
+    // 26th), so a period can be named by its calendar; a span that misses it is refused.
     const min = end(from);
     const max = end(to);
-    return min === undefined || max === undefined || min > max || min < input.min || max > input.max
+    return min === undefined || max === undefined || min > max || max < input.min || min > input.max
       ? Result.fail(
-          `${text} is not a span from..to within ${String(input.min)}..${String(input.max)}`,
+          `${text} is not a span from..to that meets ${String(input.min)}..${String(input.max)}`,
         )
-      : Result.succeed({ min, max });
+      : Result.succeed({
+          min: min < input.min ? input.min : min,
+          max: max > input.max ? input.max : max,
+        });
   }
   if (input._tag === 'Pick') {
     // A list, comma-separated (`North,South`); empty for none ticked.

@@ -445,14 +445,33 @@ test('dragging across a chart sets a span, a click clears it, and the fields set
     () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
   await page.locator('input[type=date]').nth(0).fill('2026-05-04');
-  await page.locator('input[type=date]').nth(0).dispatchEvent('change');
+  // What is typed applies when the field loses focus or Enter is pressed.
+  expect(new URL(page.url()).search).toBe('');
+  await page.keyboard.press('Enter');
   await page.waitForFunction(() => location.search === '?days=2026-05-04..2026-05-06');
+  // While a year is typed, a date field reports whole dates such as 0202-05-05: they
+  // are a draft, applied only when the field is left or Enter is pressed.
+  const toField = page.locator('input[type=date]').nth(1);
+  await toField.focus();
+  await toField.evaluate((field) => {
+    if (!(field instanceof HTMLInputElement)) return;
+    field.value = '0202-05-05';
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+  expect(new URL(page.url()).search).toBe('?days=2026-05-04..2026-05-06');
+  await toField.fill('2026-05-05');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => location.search === '?days=2026-05-04..2026-05-05');
+  expect(await page.locator('input[type=date]').nth(0).inputValue()).toBe('2026-05-04');
   await page.waitForFunction(
     () =>
       document
         .querySelectorAll('figure.chart')[1]
         ?.querySelector('desc')
-        ?.textContent?.startsWith('Shows 6 points') === true,
+        ?.textContent?.startsWith('Shows 4 points') === true,
   );
   expect(errors).toEqual([]);
   await context.close();

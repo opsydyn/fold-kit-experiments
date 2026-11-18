@@ -40,8 +40,8 @@ draws a `brush` band.
    - The chart's `x` must be numbers or dates (a `spec` problem otherwise). The input
      must be a `between` of the same kind: dates on a time axis, numbers on a linear one
      (an `input` problem, path `brush`).
-   - A release sets the span to the ends dragged across: days on a time axis, the
-     input's `step` on a number axis, kept within the input's ends.
+   - A release sets the span to the ends dragged across, each snapped to the nearest
+     `x` the chart draws, kept within the input's ends.
    - A click (a release within 4 pixels of the press) sets the whole span back.
    - The chart shows the span chosen as a band, and the drag as it happens. Pointer
      capture keeps a drag going outside the chart.
@@ -77,6 +77,40 @@ Down changes series; Enter chooses region; drag across to choose weeks.` The cha
   number fields are native, and a brush gives the pointer its quick path.
 - **Brushing that filters the brushed chart itself.** It would collapse the chart to the
   span and lose the context to drag in. The band shows the span instead.
+
+## Acceptance (2026-11-18)
+
+A fresh agent, given only the skill, built the dashboard it was asked for: a weekly
+orders line chart a reader drags across to choose a period of weeks (or types the
+dates), and a bar chart of each region's orders in it, with prose comparing summer with
+autumn. `check` exited 0 on both runs. In Chromium, from `file://`:
+
+- dragging across the chart set `?weeks=…`, the fields and the bar chart;
+- a click set the whole span back;
+- the chart keys read values and moved between series;
+- links to a period opened on it;
+- the console showed no errors.
+
+It found one defect and three gaps, all fixed before merging:
+
+- **Typing a date into To emptied From.** A date field reports an empty value while a
+  date is half typed, and whole but meaningless dates (year 2, 20, 202) as the year is
+  typed; each was applied as it came. Typed ends are now a draft, applied when the field
+  is left or Enter is pressed, and only if whole and within the input's ends.
+- **Totals over a chosen period could not be confirmed.** A per-region total over a
+  period the reader picks needs bars stacked by week, and `describe` listed only the
+  pieces. A grouped or stacked bar chart now leads with each category's total, ranked
+  (`total orders: … highest first: South East 4172, London 3576, …`), so the agent's cut
+  claim, which region had most orders in July and August, can be checked.
+- **`--at` refused a calendar period.** `2026-09-01..2026-10-31` failed because the data
+  ends on 26 October. Ends past the input's are now brought to them, and only a span that
+  misses them is refused.
+- **A drag picked arbitrary days** (`2026-06-26..2026-08-23` on weekly data). Its ends
+  now snap to the nearest `x` the chart draws.
+
+The skill now gives the stacked-totals recipe and says how typed dates apply. It also
+says how `--at` treats ends past the data, and that `head -1` shows a loader's columns
+without its values.
 
 ## Not in stage 7
 

@@ -65,7 +65,11 @@
       "wrangler": "^4.125.0",
       "elkjs": "0.12.1",
       "typedoc": "^0.28.19",
-      "axe-core": "4.14.1"
+      "axe-core": "4.14.1",
+      "@cloudflare/workers-types": "5.20261026.1",
+      "@phosphor-icons/core": "2.1.1",
+      "@types/sax": "1.2.7",
+      "sax": "1.6.1"
     },
     "catalogs": {
       "strict": {
@@ -76,7 +80,9 @@
         "@alchemy.run/cloudflare": "2.0.0-beta.85",
         "@alchemy.run/frontend-frameworks": "2.0.0-beta.85",
         "alchemy": "2.0.0-beta.85",
-        "@alchemy.run/domain": "2.0.0-beta.85"
+        "@alchemy.run/domain": "2.0.0-beta.85",
+        "@alchemy.run/better-auth": "2.0.0-beta.85",
+        "@alchemy.run/sql": "2.0.0-beta.85"
       }
     }
   },
@@ -103,7 +109,8 @@
     "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e foldkit-dash:e2e",
     "ci:foldkit-zloz": "moon run web:e2e-zloz web:e2e-zloz-native",
     "ci:astro-compat": "moon run astro-foldkit:compat",
-    "ci:clean": "bun tools/ci-local.ts --fresh"
+    "ci:clean": "bun tools/ci-local.ts --fresh",
+    "dev:zloz-team": "bun run --filter @opsydyn/zloz-team dev"
   },
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",

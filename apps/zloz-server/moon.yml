@@ -1,0 +1,15 @@
+tasks:
+  # The frontend build consumes the server source. Mirror its dependency hash.
+  build:
+    script: 'mkdir -p dist && echo "$MOON_TASK_HASH" > dist/moon-pass-through'
+    deps: ['^:build']
+    outputs: ['dist/moon-pass-through']
+  typecheck:
+    script: 'tsc --noEmit'
+    deps: ['^:build']
+  test:
+    script: 'bun test ./test'
+    deps: ['^:build']
+    inputs:
+      - '**/*'
+      - '/packages/foldkit-zloz/test/fixtures/*.json'

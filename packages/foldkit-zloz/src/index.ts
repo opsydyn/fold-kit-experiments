@@ -1099,3 +1099,27 @@ export type {
   ZlozEventStormingC4ApplyPolicyV3,
   ZlozEventStormingC4ApplyResultV3,
 } from './event-storming-c4-apply';
+
+// Additive authored-operation protocol; provider/auth runtimes belong in optional adapters.
+export type * from './operation-types';
+export {
+  parseOperationRequest,
+  serializeOperationRequest,
+  canonicalOperationValue,
+  isOperationRequest,
+} from './operation-codec';
+export {
+  createOperationDocument,
+  decideOperation,
+  applyOperationChange,
+  applyOperationChangeShared,
+  isOperationDocument,
+  isOperationReceipt,
+  isOperationChange,
+} from './operations';
+export { applyEditorOperation } from './operation-editor';
+export { recoverOperationDocument } from './recovery';
+export type { ZlozRecoveryDecision } from './recovery';
+
+export { projectAggregate } from './aggregate';
+export type { ZlozAggregateLink, ZlozAggregateProjection } from './aggregate';

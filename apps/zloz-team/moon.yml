@@ -1,0 +1,16 @@
+tasks:
+  build:
+    script: 'bun tools/build.ts'
+    deps: ['^:build']
+    outputs: ['dist/**/*']
+  typecheck:
+    script: 'astro check && tsc --noEmit -p tsconfig.infra.json'
+    deps: ['^:build']
+  test:
+    script: 'tsc --noEmit -p tsconfig.test.json && bun test ./test'
+    deps: ['^:build']
+    inputs:
+      - '**/*'
+      - '/apps/zloz-server/**/*'
+      - '/packages/foldkit-zloz/test/fixtures/*.json'
+      - '/packages/foldkit-zloz-alchemy/test/fixtures/*.json'

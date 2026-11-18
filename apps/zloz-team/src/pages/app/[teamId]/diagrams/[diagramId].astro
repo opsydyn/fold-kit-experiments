@@ -1,0 +1,20 @@
+---
+import { Schema } from 'effect';
+import Editor from '../../../../editor/app';
+import Shell from '../../../../layouts/Shell.astro';
+import { forward, sessionFor } from '../../../../server/backend';
+import { loginPath } from '../../../../server/continuation';
+const teamId = Astro.params.teamId ?? '';
+const diagramId = Astro.params.diagramId ?? '';
+const userSession = await sessionFor(Astro.request);
+if (!userSession) return Astro.redirect(loginPath(`/app/${teamId}/diagrams/${diagramId}`), 303);
+const response = await forward(new Request(new URL(`/api/zloz/diagrams/${teamId}/${diagramId}`, Astro.request.url), { headers: { cookie: Astro.request.headers.get('cookie') ?? '' } }));
+if (!response.ok) return new Response('Diagram unavailable', { status: response.status });
+const opened = Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String, role: Schema.Literals(['owner', 'editor', 'viewer']) }))(await response.json());
+---
+<Shell title={opened.name} wide>
+  <nav aria-label="Diagram"><a href={`/app/${teamId}`}>Back to team</a> {opened.role === 'owner' && <a href={`/app/${teamId}/diagrams/${diagramId}/recovery`}>Backup and recovery</a>}</nav>
+  <h1>{opened.name}</h1>
+  <Editor client:load teamId={teamId} diagramId={diagramId} actorId={userSession.user.id} role={opened.role} name={opened.name} />
+  <noscript>Enable JavaScript to edit this shared diagram.</noscript>
+</Shell>

@@ -179,3 +179,11 @@ unchanged; existing finding requests resolve current geometry after layout/resto
 The portable adapter still imports neither ELK nor the Domain SDK. The workbench
 loads ELK through a Command only after opt-in, and discards stale or cancelled work.
 See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).
+
+## Teams collaboration
+
+The private `/collaboration` entry exposes the Teams diagram aggregate and its
+authorization hooks. The Teams server supplies session identity and role policy.
+The browser uses the separate `/session` and `/delta` entries to consume
+confirmed diagram updates and reconcile operation receipts. The portable
+descriptor entry and `/domain` declaration inspection remain independent.

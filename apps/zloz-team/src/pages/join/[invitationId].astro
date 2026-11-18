@@ -1,0 +1,31 @@
+---
+import Shell from '../../layouts/Shell.astro';
+import { acceptInvitation, expiresLabel, invitationMessage, loadInvitation } from '../../server/onboarding';
+import { loginPath } from '../../server/continuation';
+
+const invitationId = Astro.params.invitationId ?? '';
+const outcome = await acceptInvitation(Astro.request, invitationId);
+if (outcome._tag === 'Redirect') return outcome.response;
+const loaded = await loadInvitation(Astro.request, invitationId);
+const signInRedirect = loaded._tag === 'Failure' && loaded.status === 401 ? Astro.redirect(loginPath(`/join/${invitationId}`), 303) : undefined;
+if (signInRedirect) return signInRedirect;
+if (loaded._tag === 'Failure') Astro.response.status = loaded.status;
+else if (outcome._tag === 'Rejected') Astro.response.status = outcome.status;
+---
+<Shell title="Team invitation">
+  {outcome._tag === 'Rejected' && <p role="alert" class="error">{outcome.message}</p>}
+  {loaded._tag === 'Failure' ? <>
+    <h1>Invitation unavailable</h1><p role="alert">{loaded.message}</p>
+    <form action="/logout" method="post"><input type="hidden" name="returnTo" value={`/join/${invitationId}`} /><button type="submit">Sign out to change account</button></form>
+  </> : loaded.value._tag === 'Pending' ? <>
+    <h1>Join {loaded.value.team.name}</h1>
+    <p>This invitation is for <strong>{loaded.value.email}</strong>.</p>
+    <p>Your team role will be <strong>{loaded.value.role}</strong>. The link expires {expiresLabel(loaded.value.expiresAt)}.</p>
+    <form method="post"><input type="hidden" name="action" value="accept" /><button type="submit">Accept invitation</button></form>
+  </> : loaded.value._tag === 'Joined' ? <>
+    <h1>You’re already a member</h1><p>Your account belongs to {loaded.value.team.name}.</p>
+    <a href={`/app/${loaded.value.team.id}`}>Open team workspace</a>
+  </> : <>
+    <h1>Invitation unavailable</h1><p>{invitationMessage(loaded.value)}</p><a href="/app">Your teams</a>
+  </>}
+</Shell>

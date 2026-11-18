@@ -615,6 +615,8 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     minimap?: boolean;
     /** Mount only canvas items near the measured viewport. Disabled by default. */
     viewportCulling?: ZlozViewportCulling;
+    /** Keep pointer coordinates stable if the host moves the surface mid-gesture. */
+    stablePointerOrigin?: boolean;
     viewportControls?: boolean;
     /** Include Fit selection in the viewport controls. */
     fitSelectionControl?: boolean;
@@ -2426,6 +2428,7 @@ export function zlozView<M>(
       h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
       h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
       h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
+      h.DataAttribute('flow-stable-pointer-origin', String(options.stablePointerOrigin ?? false)),
       h.DataAttribute('flow-connection-drop-radius', String(connectionDropRadius)),
       h.DataAttribute('flow-reconnection-drop-radius', String(reconnectionDropRadius)),
       h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
@@ -3110,3 +3113,5 @@ export type { ZlozGroupWorkbenchViewOptionsV3 } from './group-workbench-v3-view'
 export { zlozGroupClipboardV3 } from './group-workbench-v3-view';
 
 export * from './group-workbench-interactions-v3';
+
+export { zlozAggregateView } from './aggregate-view';

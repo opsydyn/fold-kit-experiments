@@ -1,0 +1,40 @@
+{
+  "format": "foldkit-zloz-coupling",
+  "version": 1,
+  "modelVersion": "balanced-coupling-binary/v1",
+  "target": {
+    "documentId": "diagram-a",
+    "graphVersion": 0,
+    "relationshipId": "ab",
+    "sourceNodeId": "a",
+    "targetNodeId": "b"
+  },
+  "scope": {
+    "abstraction": "Bounded contexts",
+    "horizon": "Next six months"
+  },
+  "inputs": {
+    "integrationType": {
+      "status": "known",
+      "value": "model",
+      "basis": "observed",
+      "rationale": "Shared order schema"
+    },
+    "strength": {
+      "status": "known",
+      "value": "high",
+      "basis": "declared",
+      "rationale": "Changes require joint releases"
+    },
+    "distance": {
+      "status": "known",
+      "value": "high",
+      "basis": "declared",
+      "rationale": "Separate teams and release cadence"
+    },
+    "volatility": {
+      "status": "unknown",
+      "reason": "Roadmap review pending"
+    }
+  }
+}

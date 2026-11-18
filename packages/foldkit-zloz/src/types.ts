@@ -439,6 +439,8 @@ export type EditorPolicy = Readonly<{
   canDelete?: (candidate: DeletionCandidate, graph: ZlozGraph) => string | null;
   /** Return a reason to block movement or null to allow it. Group moves check every descendant. */
   canMoveNode?: (node: ZlozNode, graph: ZlozGraph) => string | null;
+  /** Ignore node drag movement below the existing four CSS pixel alignment threshold. */
+  suppressClickDrift?: boolean;
   /** Return a reason to block a resize, or null to allow it. Checks any ancestors grown by that edit. */
   canResizeNode?: (node: ZlozNode, graph: ZlozGraph) => string | null;
   /** Return a reason to exclude this node from direct and marquee selection, or null to allow it. */

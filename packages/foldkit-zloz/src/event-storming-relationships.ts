@@ -129,11 +129,24 @@ export function resolveEventStormingRelationship(
   edge: ZlozEdge,
   options: ZlozEventStormingRelationshipOptions = {},
 ): ZlozEventStormingRelationshipDecision {
+  return resolveEventStormingEndpoints(
+    edge,
+    graph.nodes.find((node) => node.id === edge.source.node),
+    graph.nodes.find((node) => node.id === edge.target.node),
+    options,
+  );
+}
+
+/** @internal Shared resolution for a caller with indexed graph endpoints. */
+export function resolveEventStormingEndpoints(
+  edge: ZlozEdge,
+  source: ZlozNode | undefined,
+  target: ZlozNode | undefined,
+  options: ZlozEventStormingRelationshipOptions = {},
+): ZlozEventStormingRelationshipDecision {
   const rules = checkedEventStormingRelationshipRules(options);
   if (edge.architecture && edge.architecture.family !== 'event-storming')
     return { type: 'unrelated' };
-  const source = graph.nodes.find((node) => node.id === edge.source.node),
-    target = graph.nodes.find((node) => node.id === edge.target.node);
   if (!source || !target)
     return {
       type: 'blocked',

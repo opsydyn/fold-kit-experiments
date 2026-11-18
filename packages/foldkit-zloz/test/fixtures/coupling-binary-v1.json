@@ -1,0 +1,39 @@
+{
+  "format": "foldkit-zloz-coupling",
+  "version": 1,
+  "modelVersion": "balanced-coupling-binary/v1",
+  "target": {
+    "documentId": "orders-model",
+    "graphVersion": 7,
+    "relationshipId": "a-b",
+    "sourceNodeId": "a",
+    "targetNodeId": "b"
+  },
+  "scope": { "abstraction": "C4 containers", "horizon": "Next business quarter" },
+  "inputs": {
+    "integrationType": {
+      "status": "known",
+      "value": "model",
+      "basis": "declared",
+      "rationale": "Both components share the same order model."
+    },
+    "strength": {
+      "status": "known",
+      "value": "high",
+      "basis": "declared",
+      "rationale": "Model changes require coordinated updates."
+    },
+    "distance": {
+      "status": "known",
+      "value": "low",
+      "basis": "observed",
+      "rationale": "One delivery team changes and releases both together."
+    },
+    "volatility": {
+      "status": "known",
+      "value": "high",
+      "basis": "derived",
+      "rationale": "The approved roadmap changes order rules next quarter."
+    }
+  }
+}

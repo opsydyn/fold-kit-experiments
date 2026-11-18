@@ -4,6 +4,7 @@
     "src/index.ts",
     "src/foldkit.ts",
     "src/png-browser.ts",
+    "src/coupling.ts",
     "../foldkit-zloz-elk/src/index.ts",
     "../foldkit-zloz-force/src/index.ts",
     "../foldkit-zloz-force/src/eligibility.ts",

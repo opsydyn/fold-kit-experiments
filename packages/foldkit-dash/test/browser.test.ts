@@ -2,7 +2,7 @@
  * The starter, built, in Chromium: charts drawn, no script, no console errors, and usable
  * at phone width in light and dark. Run by `bun run test:browser`.
  */
-import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from 'bun:test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +10,10 @@ import { join } from 'node:path';
 import { type Browser, chromium } from 'playwright';
 
 const bin = join(import.meta.dir, '..', 'src', 'bin.ts');
+
+// Each test builds a site and drives a browser through several redraws; 5 s, bun's
+// default, is too little on a busy machine.
+setDefaultTimeout(30_000);
 /** The starter, built, and a browser to read it in. */
 async function setUp(): Promise<{ readonly browser: Browser; readonly site: string }> {
   const dir = join(mkdtempSync(join(tmpdir(), 'foldkit-dash-')), 'site');
@@ -107,6 +111,8 @@ async function interactivePage(javaScriptEnabled = true) {
   await Bun.write(join(dir, 'data/shop.json'), JSON.stringify(sales));
   await Bun.write(join(dir, 'pages/trend.md'), trend);
   await Bun.write(join(dir, 'pages/lines.md'), lines);
+  await Bun.write(join(dir, 'pages/span.md'), span);
+  await Bun.write(join(dir, 'data/days.json'), JSON.stringify(daily));
   await Bun.write(
     join(dir, 'data/regions.json'),
     JSON.stringify([
@@ -241,6 +247,19 @@ const lines = [
   '# Lines\n',
   '```input\n{ "type": "select", "name": "focus", "label": "Focus", "options": ["north", "south"], "all": "Both" }\n```\n',
   '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "select": "focus", "marks": [{ "mark": "line", "x": "month", "y": "units", "stroke": "region" }] }\n```\n',
+].join('\n');
+
+const days = ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06'];
+const daily = days.flatMap((day, i) => [
+  { day, units: 10 + i, region: 'north' },
+  { day, units: 20 - i, region: 'south' },
+]);
+
+const span = [
+  '# Span\n',
+  '```input\n{ "type": "between", "name": "days", "label": "Days", "options": { "data": "days.json", "field": "day" } }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "days.json", "brush": "days", "x": { "label": "Day" }, "y": { "label": "Units" }, "marks": [{ "mark": "line", "x": "day", "y": "units", "stroke": "region" }] }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "days.json", "where": { "day": { "input": "days" } }, "marks": [{ "mark": "dot", "x": "day", "y": "units", "stroke": "region" }] }\n```\n',
 ].join('\n');
 
 // SEVERAL VALUES AT ONCE, AND CHOOSING A SERIES (ADR 0117)
@@ -380,6 +399,87 @@ test('a chosen line stands out and the others dim', async () => {
     ['#4e79a7', 0.15],
     ['#f28e2c', 1],
   ]);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+// A SPAN BETWEEN TWO ENDS, DRAGGED OR TYPED, AND SERIES KEYS (ADR 0119)
+
+test('dragging across a chart sets a span, a click clears it, and the fields set it too', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  const spanUrl = url.replace('sales.html', 'span.html');
+  await page.goto(spanUrl);
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  const filtered = () =>
+    page.evaluate(
+      () => document.querySelectorAll('figure.chart')[1]?.querySelector('desc')?.textContent ?? '',
+    );
+  expect(await filtered()).toStartWith('Shows 12 points');
+  const box = await page.locator('figure.chart').nth(0).locator('svg').boundingBox();
+  if (box === null) throw new Error('no chart');
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width * 0.35, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.55, y, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction(() => new URL(location.href).search.startsWith('?days='));
+  const [from, to] = decodeURIComponent(new URL(page.url()).search.slice('?days='.length)).split(
+    '..',
+  );
+  // The span is whole days inside the data, and the other chart keeps only them.
+  expect(from! < to!).toBe(true);
+  expect(from! >= days[0]! && to! <= days.at(-1)!).toBe(true);
+  await page.waitForFunction(
+    (start) => document.querySelector<HTMLInputElement>('input[type=date]')?.value === start,
+    from!,
+  );
+  expect(await filtered()).not.toStartWith('Shows 12 points');
+  // A click where the drag would start sets the whole span back.
+  await page.mouse.click(box.x + box.width * 0.5, y);
+  await page.waitForFunction(() => location.search === '');
+  // The fields set the span too. Focus moves from the chart first, and the page redraws
+  // for that, as it does before a person types; then the value is typed.
+  await page.mouse.move(0, 0);
+  await page.locator('input[type=date]').nth(0).focus();
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  );
+  await page.locator('input[type=date]').nth(0).fill('2026-05-04');
+  await page.locator('input[type=date]').nth(0).dispatchEvent('change');
+  await page.waitForFunction(() => location.search === '?days=2026-05-04..2026-05-06');
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelectorAll('figure.chart')[1]
+        ?.querySelector('desc')
+        ?.textContent?.startsWith('Shows 6 points') === true,
+  );
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test('a focused chart shows its keys, and Shift with Down moves to the next series', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  await page.goto(url.replace('sales.html', 'span.html'));
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  const readout = () =>
+    page.evaluate(() => document.querySelector('figure.chart .readout')?.textContent ?? '');
+  await page.locator('figure.chart').nth(0).focus();
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart .readout')?.textContent?.startsWith('Arrow keys'),
+  );
+  expect(await readout()).toBe(
+    'Arrow keys read values; Shift with Up or Down changes series; drag across to choose days.',
+  );
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart .readout')?.textContent?.startsWith('north'),
+  );
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.waitForFunction(() =>
+    document.querySelector('figure.chart .readout')?.textContent?.startsWith('south'),
+  );
+  expect(await readout()).toBe('south, Day 2026-05-01: Units 20');
   expect(errors).toEqual([]);
   await context.close();
 });

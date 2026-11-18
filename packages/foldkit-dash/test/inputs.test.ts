@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { Option, Result } from 'effect';
 
-import { choiceAt, drawSpec, pointedAt, targetsOf } from '../src/chart';
+import { choiceAt, drawSpec, pointedAt, spanPixels, targetsOf, valueAtPixel } from '../src/chart';
 import {
   choicesOf,
   defaultsOf,
@@ -288,5 +288,84 @@ describe('choosing a series, and how a series moves (ADR 0117)', () => {
       from: { x: '2026-05-04', y: 30 },
       to: { x: '2026-05-25', y: 33 },
     });
+  });
+});
+
+describe('a span between two ends (ADR 0119)', () => {
+  const weekly = [
+    { week: '2026-05-11', units: 9 },
+    { week: '2026-05-04', units: 10 },
+    { week: '2026-05-25', units: 12 },
+  ];
+  const fromData = (name: string): Result.Result<Rows, string> =>
+    name === 'weekly.json' ? Result.succeed(weekly) : Result.fail(`no data/${name}`);
+  const weeks = input(
+    { type: 'between', name: 'weeks', options: { data: 'weekly.json', field: 'week' } },
+    fromData,
+  );
+
+  test('takes its ends from the data, or as written, and starts at the whole span', () => {
+    expect(weeks).toEqual({
+      _tag: 'Between',
+      name: 'weeks',
+      label: 'weeks',
+      kind: 'date',
+      min: '2026-05-04',
+      max: '2026-05-25',
+      step: 1,
+      value: { min: '2026-05-04', max: '2026-05-25' },
+    });
+    expect(refused({ type: 'between', name: 'n', min: 1, max: '2026-01-01' })).toBe(
+      'min: the ends must both be numbers, or both ISO dates',
+    );
+    expect(
+      refused({ type: 'between', name: 'n', min: 0, max: 10, value: { min: 5, max: 20 } }),
+    ).toBe('value: 5 to 20 is not within 0 to 10');
+  });
+
+  test('a span in where keeps rows between its ends, both included', () => {
+    const kept = Result.map(
+      filterRows(weekly, { week: { min: '2026-05-05', max: '2026-05-25' } }),
+      (each) => each.map((row) => row['week']),
+    );
+    expect(kept).toEqual(Result.succeed(['2026-05-11', '2026-05-25']));
+  });
+
+  test('the address and --at write a span as from..to', () => {
+    const span = { min: '2026-05-11', max: '2026-05-18' };
+    expect(queryOf([weeks], { weeks: span })).toBe('?weeks=2026-05-11..2026-05-18');
+    expect(queryOf([weeks], { weeks: weeks._tag === 'Between' ? weeks.value : span })).toBe('');
+    expect(valuesFromQuery([weeks], '?weeks=2026-05-11..2026-05-18')).toEqual({ weeks: span });
+    expect(valuesFromQuery([weeks], '?weeks=2026-01-01..2026-05-18')).toEqual({});
+    expect(valueFor(weeks, '2026-05-18..2026-05-11')).toEqual(
+      Result.fail('2026-05-18..2026-05-11 is not a span from..to within 2026-05-04..2026-05-25'),
+    );
+  });
+
+  test('a brush needs an x of numbers or dates; its input is checked on the page', () => {
+    const spec = (x: string) => ({
+      width: 400,
+      height: 240,
+      data: 'weekly.json',
+      brush: 'weeks',
+      marks: [{ mark: x === 'week' ? 'line' : 'bar', x, y: 'units' }],
+    });
+    const data = new Map([['weekly.json', weekly]]);
+    const lines = Result.getOrThrow(drawSpec(spec('week'), data, {}));
+    expect(lines.brushes).toBe('weeks');
+    // The pixels at the span's ends read back as the same days.
+    const [x0 = 0, x1 = 0] = Option.getOrThrow(
+      spanPixels(lines, { min: '2026-05-11', max: '2026-05-18' }),
+    );
+    expect(Option.getOrThrow(valueAtPixel(lines, x0))).toBe('2026-05-11');
+    expect(Option.getOrThrow(valueAtPixel(lines, x1))).toBe('2026-05-18');
+    const bars = drawSpec(
+      { ...spec('week'), marks: [{ mark: 'bar', x: 'week', y: 'units' }], x: { type: 'band' } },
+      data,
+      {},
+    );
+    expect(Result.isFailure(bars) && bars.failure.message).toBe(
+      'brush: the chart needs an x axis of numbers or dates to drag across',
+    );
   });
 });

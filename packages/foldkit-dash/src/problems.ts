@@ -41,6 +41,8 @@ export const Chart = Schema.Struct({
   series: Schema.Array(Series),
   /** The input a reader sets by clicking one of the chart's categories, if any (ADR 0116). */
   selects: Schema.NullOr(Schema.String),
+  /** The `between` input a reader sets by dragging across the chart, if any (ADR 0119). */
+  brushes: Schema.NullOr(Schema.String),
 });
 export type Chart = typeof Chart.Type;
 
@@ -49,7 +51,7 @@ export const InputEntry = Schema.Struct({
   file: Schema.String,
   line: Schema.Int,
   name: Schema.String,
-  type: Schema.Literals(['select', 'radio', 'checkboxes', 'range', 'checkbox']),
+  type: Schema.Literals(['select', 'radio', 'checkboxes', 'between', 'range', 'checkbox']),
   value: InputValue,
   choices: Schema.Int,
 });

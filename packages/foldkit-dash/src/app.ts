@@ -7,7 +7,7 @@
  * the page as it was shared.
  * @module App
  */
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { plotChart, type PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
 import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import { plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { Effect, Option, Result, Schema } from 'effect';
@@ -21,10 +21,22 @@ import {
   type Drawn,
   drawSpec,
   pointedAt,
+  spanPixels,
   type Target,
   targetsOf,
+  valueAtPixel,
 } from './chart';
-import { Choice, defaultsOf, Input, InputValue, queryOf, Values, valuesFromQuery } from './inputs';
+import {
+  Choice,
+  defaultsOf,
+  type End,
+  Input,
+  InputValue,
+  queryOf,
+  Span,
+  Values,
+  valuesFromQuery,
+} from './inputs';
 import { JsonRecord, Rows } from './rows';
 
 /** A part of a page: prose, an input, a chart, or a fence the build found broken. */
@@ -50,12 +62,26 @@ const ChartKey = Schema.Union([
   Schema.TaggedStruct('Jump', { to: Schema.Literals(['first', 'last']) }),
   Schema.TaggedStruct('Clear', {}),
   Schema.TaggedStruct('Select', {}),
+  /** Shift with Down or Up: the next or previous series (ADR 0119). */
+  Schema.TaggedStruct('Series', { by: Schema.Int }),
 ]);
 
 /** The value a reader points at (ADR 0118): the chart, by its fence's line, and the target. */
 const Pointed = Schema.NullOr(Schema.Struct({ line: Schema.Int, index: Schema.Int }));
 
-export const Model = Schema.Struct({ ...Flags.fields, values: Values, pointed: Pointed });
+/** A drag across a chart (ADR 0119): the chart, and where it started and is now, in pixels. */
+const Drag = Schema.NullOr(
+  Schema.Struct({ line: Schema.Int, from: Schema.Number, to: Schema.Number }),
+);
+
+export const Model = Schema.Struct({
+  ...Flags.fields,
+  values: Values,
+  pointed: Pointed,
+  drag: Drag,
+  /** The chart that has keyboard focus, by its fence's line, so it can show its keys. */
+  focused: Schema.NullOr(Schema.Int),
+});
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
@@ -73,6 +99,14 @@ export const Message = defineMessageUnion({
   CompletedForwardPointer: {},
   /** A reader pressed one of a chart's keys (ADR 0118). */
   PressedChartKey: { line: Schema.Int, command: ChartKey },
+  /** A press, move or release while dragging across a chart, at an x in its pixels. */
+  DraggedChart: {
+    line: Schema.Int,
+    phase: Schema.Literals(['down', 'move', 'up']),
+    x: Schema.Number,
+  },
+  /** A chart took keyboard focus, or gave it up (`line` null). */
+  FocusedChart: { line: Schema.NullOr(Schema.Int) },
 });
 export type Message = typeof Message.Type;
 
@@ -99,7 +133,13 @@ const inputsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Input> =>
 
 /** The page at its inputs' defaults, as the build rendered it; then the query is read. */
 export const init = (flags: Flags): Return<Model, Message> => ({
-  model: { ...flags, values: defaultsOf(inputsOf(flags.sections)), pointed: null },
+  model: {
+    ...flags,
+    values: defaultsOf(inputsOf(flags.sections)),
+    pointed: null,
+    drag: null,
+    focused: null,
+  },
   commands: [ReadQuery()],
 });
 
@@ -128,7 +168,56 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     }),
     CompletedForwardPointer: () => ({ model }),
     PressedChartKey: ({ line, command }) => pressedKey(model, line, command),
+    DraggedChart: ({ line, phase, x }) => dragged(model, line, phase, x),
+    FocusedChart: ({ line }) => ({ model: { ...model, focused: line } }),
   });
+
+/** A chart's drawing as the model draws it now, with its spec. */
+const drawnAt = (model: Model, line: number) => {
+  const section = model.sections.find((each) => each._tag === 'Chart' && each.line === line);
+  if (section?._tag !== 'Chart') return undefined;
+  const drawn = drawSpec(section.spec, new Map(Object.entries(model.data)), model.values);
+  return Result.isSuccess(drawn) ? { drawn: drawn.success, spec: section.spec } : undefined;
+};
+
+/** How far, in pixels, a press must move to be a drag rather than a click. */
+const dragSlop = 4;
+
+/**
+ * A drag across a chart that brushes (ADR 0119): a press starts it, moves stretch it, and
+ * the release sets the `between` input to the span dragged across, its ends read from
+ * the chart's `x` (rounded to the input's step, or to the day). A release where it
+ * started, a click, sets the whole span back.
+ */
+const dragged = (
+  model: Model,
+  line: number,
+  phase: 'down' | 'move' | 'up',
+  x: number,
+): Return<Model, Message> => {
+  if (phase === 'down') return { model: { ...model, drag: { line, from: x, to: x } } };
+  const drag = model.drag;
+  if (drag === null || drag.line !== line) return { model };
+  if (phase === 'move') return { model: { ...model, drag: { ...drag, to: x } } };
+  const settled = { ...model, drag: null };
+  const found = drawnAt(model, line);
+  const input = inputsOf(model.sections).find((each) => each.name === found?.drawn.brushes);
+  if (found === undefined || input?._tag !== 'Between') return { model: settled };
+  if (Math.abs(x - drag.from) < dragSlop) {
+    return choose(settled, input.name, { min: input.min, max: input.max });
+  }
+  const end = (px: number): End | undefined => {
+    const at = Option.getOrUndefined(valueAtPixel(found.drawn, px));
+    if (at === undefined) return undefined;
+    const stepped = isNumber(at) ? Math.round(at / input.step) * input.step : at;
+    return stepped < input.min ? input.min : stepped > input.max ? input.max : stepped;
+  };
+  const min = end(Math.min(drag.from, x));
+  const max = end(Math.max(drag.from, x));
+  return min === undefined || max === undefined
+    ? { model: settled }
+    : choose(settled, input.name, { min, max });
+};
 
 /**
  * A chart key, applied to the model as it is now (not as it was drawn), so keys pressed
@@ -146,6 +235,15 @@ const pressedKey = (
   if (Result.isFailure(drawn)) return { model };
   const targets = targetsOf(drawn.success, section.spec);
   const current = model.pointed?.line === line ? model.pointed.index : undefined;
+  if (command._tag === 'Series') {
+    // The first value of the next (or previous) series, round the ends.
+    const names = [...new Set(targets.map((target) => target.series))];
+    const here = current === undefined ? undefined : targets[current]?.series;
+    const at = here === undefined ? (command.by > 0 ? -1 : 0) : names.indexOf(here);
+    const name = names[(at + command.by + names.length) % Math.max(names.length, 1)];
+    const index = targets.findIndex((target) => target.series === name);
+    return { model: { ...model, pointed: index === -1 ? null : { line, index } } };
+  }
   if (command._tag !== 'Select') {
     const next = targets.length === 0 ? undefined : targetAfter(targets.length, current, command);
     return { model: { ...model, pointed: next === undefined ? null : { line, index: next } } };
@@ -161,9 +259,63 @@ const pressedKey = (
 
 /** A select's or radio's option value: the choice's index, `-1` for `all`. */
 const indexOf = (input: Extract<Input, { readonly _tag: 'Choose' }>, value: InputValue): string =>
-  value === null || isChoices(value) ? '-1' : String(input.choices.indexOf(value));
+  value === null || isChoices(value) || isSpan(value) ? '-1' : String(input.choices.indexOf(value));
 
 const isChoices = Schema.is(Schema.Array(Choice));
+const isSpan = Schema.is(Span);
+
+/**
+ * A `between` input (ADR 0119): a from and a to, as date or number fields, and a button
+ * back to the whole span. A change that would put from after to moves the other end.
+ */
+const betweenControl = (
+  h: HtmlBuilder<Message>,
+  input: Extract<Input, { readonly _tag: 'Between' }>,
+  value: InputValue,
+): Html => {
+  const id = `input-${input.name}`;
+  const span = isSpan(value) ? value : input.value;
+  const read = (text: string): End =>
+    input.kind === 'date' ? text : Number.isFinite(Number(text)) ? Number(text) : input.min;
+  const end = (which: 'min' | 'max', text: string) => {
+    const at = read(text);
+    const next = which === 'min' ? { min: at, max: span.max } : { min: span.min, max: at };
+    return changed(input.name, next.min > next.max ? { min: next.max, max: next.min } : next);
+  };
+  const whole = span.min === input.min && span.max === input.max;
+  const field = (which: 'min' | 'max', word: string) =>
+    h.label(
+      [],
+      [
+        word,
+        h.input([
+          h.Id(`${id}-${which}`),
+          h.Type(input.kind === 'date' ? 'date' : 'number'),
+          h.Min(String(input.min)),
+          h.Max(String(input.max)),
+          ...(input.kind === 'number' ? [h.Step(String(input.step))] : []),
+          h.Value(String(span[which])),
+          h.OnChange((text) => end(which, text)),
+        ]),
+      ],
+    );
+  return h.fieldset(
+    [h.Class('control')],
+    [
+      h.legend([], [input.label]),
+      field('min', 'From'),
+      field('max', 'to'),
+      h.button(
+        [
+          h.Type('button'),
+          h.Disabled(whole),
+          h.OnClick(changed(input.name, { min: input.min, max: input.max })),
+        ],
+        ['All'],
+      ),
+    ],
+  );
+};
 
 const choiceAt = (input: Extract<Input, { readonly _tag: 'Choose' }>, index: string): InputValue =>
   input.choices[Number(index)] ?? null;
@@ -178,6 +330,7 @@ const options = (input: Extract<Input, { readonly _tag: 'Choose' }>) => [
 
 const control = (h: HtmlBuilder<Message>, input: Input, value: InputValue): Html => {
   const id = `input-${input.name}`;
+  if (input._tag === 'Between') return betweenControl(h, input, value);
   if (input._tag === 'Pick') {
     // A group of checkboxes (ADR 0117): ticking one adds it to the list, in the choices'
     // order; unticking removes it.
@@ -285,7 +438,11 @@ const note = (h: HtmlBuilder<Message>, line: number, message: string): Html =>
   h.p([h.Class('problem'), h.Role('note')], [`Chart at line ${line}: ${message}`]);
 
 /** A pointer over a chart, already in the chart's own pixels. */
-const PointerFact = Schema.Struct({ x: Schema.Number, y: Schema.Number });
+const PointerFact = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
+  phase: Schema.Literals(['down', 'move', 'up']),
+});
 
 const POINTER_EVENT = 'dash-chart-pointer';
 
@@ -314,13 +471,25 @@ const ForwardPointer = Mount.define('ForwardDashChartPointer', {
           drawn.getBoundingClientRect(),
           { width, height },
         );
-        element.dispatchEvent(new CustomEvent(POINTER_EVENT, { detail: point }));
+        const phase =
+          event.type === 'pointerdown' ? 'down' : event.type === 'pointerup' ? 'up' : 'move';
+        // Keep receiving moves while a drag goes outside the chart.
+        if (phase === 'down' && element instanceof HTMLElement) {
+          element.setPointerCapture?.(event.pointerId);
+        }
+        element.dispatchEvent(new CustomEvent(POINTER_EVENT, { detail: { ...point, phase } }));
       };
-      element.addEventListener('pointermove', listener);
+      for (const type of ['pointermove', 'pointerdown', 'pointerup']) {
+        element.addEventListener(type, listener);
+      }
       return listener;
     });
     return Effect.acquireRelease(listen, (listener) =>
-      Effect.sync(() => element.removeEventListener('pointermove', listener)),
+      Effect.sync(() => {
+        for (const type of ['pointermove', 'pointerdown', 'pointerup']) {
+          element.removeEventListener(type, listener);
+        }
+      }),
     ).pipe(
       Effect.map(() => Message.CompletedForwardPointer()),
       Effect.withSpan('ForwardDashChartPointer'),
@@ -335,10 +504,39 @@ const ForwardPointer = Mount.define('ForwardDashChartPointer', {
  */
 const chartKeys =
   (line: number) =>
-  (key: string, modifiers: Parameters<typeof chartCommandOf>[1]): Option.Option<Message> =>
-    Option.map(Option.fromUndefinedOr(chartCommandOf(key, modifiers)), (command) =>
+  (key: string, modifiers: Parameters<typeof chartCommandOf>[1]): Option.Option<Message> => {
+    const shifted = modifiers?.shiftKey === true;
+    if (shifted && (key === 'ArrowDown' || key === 'ArrowUp')) {
+      const by = key === 'ArrowDown' ? 1 : -1;
+      return Option.some(Message.PressedChartKey({ line, command: { _tag: 'Series', by } }));
+    }
+    return Option.map(Option.fromUndefinedOr(chartCommandOf(key, modifiers)), (command) =>
       Message.PressedChartKey({ line, command }),
     );
+  };
+
+/**
+ * The span a chart that brushes shows as a band (ADR 0119): the drag under way, or the
+ * input's value when it is not the whole span; in the chart's pixels.
+ */
+const bandOf = (
+  model: Model,
+  drawn: Drawn,
+  line: number,
+): { readonly x0: number; readonly x1: number } | undefined => {
+  if (drawn.brushes === null) return undefined;
+  if (model.drag?.line === line) {
+    return {
+      x0: Math.min(model.drag.from, model.drag.to),
+      x1: Math.max(model.drag.from, model.drag.to),
+    };
+  }
+  const input = inputsOf(model.sections).find((each) => each.name === drawn.brushes);
+  const value = model.values[drawn.brushes];
+  if (input?._tag !== 'Between' || !isSpan(value)) return undefined;
+  if (value.min === input.min && value.max === input.max) return undefined;
+  return Option.getOrUndefined(Option.map(spanPixels(drawn, value), ([x0, x1]) => ({ x0, x1 })));
+};
 
 const chart = (
   h: HtmlBuilder<Message>,
@@ -353,25 +551,45 @@ const chart = (
       const targets = targetsOf(drawn, section.spec);
       const index = model.pointed?.line === section.line ? model.pointed.index : undefined;
       const target = index === undefined ? undefined : targets[index];
-      const overlay =
-        target === undefined ? {} : { overlay: { ring: { x: target.x, y: target.y, r: 6 } } };
+      const band = bandOf(model, drawn, section.line);
+      const marked: PlotOverlay = {
+        ...(target === undefined ? undefined : { ring: { x: target.x, y: target.y, r: 6 } }),
+        ...(band === undefined ? undefined : { brush: band }),
+      };
+      const overlay = { overlay: marked };
+      const dragging = model.drag?.line === section.line;
+      const hint = [
+        'Arrow keys read values',
+        'Shift with Up or Down changes series',
+        ...(drawn.selects === null ? [] : [`Enter chooses ${drawn.selects.input}`]),
+        ...(drawn.brushes === null ? [] : [`drag across to choose ${drawn.brushes}`]),
+      ].join('; ');
+      const readout = target?.text ?? (model.focused === section.line ? `${hint}.` : '');
       return h.figure(
         [
-          h.Class(drawn.selects === null ? 'chart' : 'chart selects'),
+          h.Class(
+            [
+              'chart',
+              drawn.selects === null ? '' : 'selects',
+              drawn.brushes === null ? '' : 'brushes',
+            ]
+              .filter((name) => name !== '')
+              .join(' '),
+          ),
+          h.OnFocus(Message.FocusedChart({ line: section.line })),
+          h.OnBlur(Message.FocusedChart({ line: null })),
           h.Tabindex(0),
           // Its name says what the chart answers; the drawing keeps its own summary.
           h.Attribute('aria-roledescription', 'interactive chart'),
-          h.AriaLabel(
-            drawn.selects === null
-              ? 'Chart: arrow keys read its values'
-              : `Chart: arrow keys read its values, Enter chooses one for ${drawn.selects.input}`,
-          ),
+          h.AriaLabel(`Chart: ${hint}`),
           h.OnMount(ForwardPointer({ width: drawn.geometry.width, height: drawn.geometry.height })),
-          events.OnDashChartPointer(({ x, y }) =>
-            Message.PointedChart({
-              line: section.line,
-              index: pointedAt(drawn, targets, x, y) ?? null,
-            }),
+          events.OnDashChartPointer(({ x, y, phase }) =>
+            drawn.brushes !== null && (phase !== 'move' || dragging)
+              ? Message.DraggedChart({ line: section.line, phase, x })
+              : Message.PointedChart({
+                  line: section.line,
+                  index: pointedAt(drawn, targets, x, y) ?? null,
+                }),
           ),
           h.OnPointerLeave(() =>
             Option.some(Message.PointedChart({ line: section.line, index: null })),
@@ -385,7 +603,7 @@ const chart = (
             summary: true,
             ...overlay,
           }),
-          h.p([h.Class('readout'), h.AriaLive('polite')], [target?.text ?? '']),
+          h.p([h.Class('readout'), h.AriaLive('polite')], [readout]),
         ],
       );
     },

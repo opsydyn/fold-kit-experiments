@@ -17,7 +17,7 @@ import {
 import { Effect, Result, Schema } from 'effect';
 
 import manifest from '../package.json';
-import { InputValue } from './inputs';
+import { InputValue, Span } from './inputs';
 import { encodeEnvelope, envelopeOf } from './problems';
 import { analyse, type AskedValues, previewChart, type Report } from './project';
 import { isOutputFolder, renderSite } from './site';
@@ -28,11 +28,16 @@ const fresh = { type: 'boolean', description: 'Run every data loader again (defa
 const at = {
   type: 'object',
   description:
-    'Input values by name, instead of their defaults: { "region": "North", "floor": 10 }; null or "all" for a select\'s all; a list for checkboxes: { "regions": ["North", "Wales"] }.',
+    'Input values by name, instead of their defaults: { "region": "North", "floor": 10 }; null or "all" for a select\'s all; a list for checkboxes: { "regions": ["North", "Wales"] }; a span for between: { "weeks": { "min": "2026-06-01", "max": "2026-08-31" } }.',
   additionalProperties: {
     anyOf: [
       { type: ['string', 'number', 'boolean', 'null'] },
       { type: 'array', items: { type: ['string', 'number', 'boolean'] } },
+      {
+        type: 'object',
+        properties: { min: { type: ['string', 'number'] }, max: { type: ['string', 'number'] } },
+        required: ['min', 'max'],
+      },
     ],
   },
 };
@@ -84,6 +89,7 @@ export const tools = [
 ] as const;
 
 const Asked = Schema.optionalKey(Schema.Record(Schema.String, InputValue));
+const isSpan = Schema.is(Span);
 const Fresh = Schema.optionalKey(Schema.Boolean);
 
 const Arguments = {
@@ -120,7 +126,13 @@ const askedOf = (values: Readonly<Record<string, InputValue>> = {}): AskedValues
   new Map(
     Object.entries(values).map(([name, value]) => [
       name,
-      value === null ? 'all' : Array.isArray(value) ? value.map(String).join(',') : String(value),
+      value === null
+        ? 'all'
+        : Array.isArray(value)
+          ? value.map(String).join(',')
+          : isSpan(value)
+            ? `${String(value.min)}..${String(value.max)}`
+            : String(value),
     ]),
   );
 

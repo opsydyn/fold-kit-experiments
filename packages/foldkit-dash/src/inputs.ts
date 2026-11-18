@@ -12,11 +12,19 @@ import type { Json, JsonObject, Rows } from './rows';
 export const Choice = Schema.Union([Schema.String, Schema.Finite, Schema.Boolean]);
 export type Choice = typeof Choice.Type;
 
+/** One end of a span: a number, or an ISO date. */
+export const End = Schema.Union([Schema.Finite, Schema.String]);
+export type End = typeof End.Type;
+
+/** A `between` input's value (ADR 0119): from `min` to `max`, both included. */
+export const Span = Schema.Struct({ min: End, max: End });
+export type Span = typeof Span.Type;
+
 /**
  * An input's value: a choice, `null` for a select's or radio's `all`, or the choices a
  * reader ticked in a group of checkboxes (ADR 0117).
  */
-export const InputValue = Schema.Union([Schema.NullOr(Choice), Schema.Array(Choice)]);
+export const InputValue = Schema.Union([Schema.NullOr(Choice), Schema.Array(Choice), Span]);
 export type InputValue = typeof InputValue.Type;
 
 const Name = Schema.String.check(Schema.isPattern(/^[A-Za-z_][\w-]*$/));
@@ -44,6 +52,18 @@ export const InputFence = Schema.Union([
     options: Schema.Union([Schema.Array(Choice), FromData]),
     /** The choices ticked at first; every one when not given. */
     value: Schema.optionalKey(Schema.Array(Choice)),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('between'),
+    name: Name,
+    label: Label,
+    /** The ends, numbers or ISO dates; or every value of a data field, its least and greatest. */
+    min: Schema.optionalKey(End),
+    max: Schema.optionalKey(End),
+    options: Schema.optionalKey(FromData),
+    step: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))),
+    /** The span chosen at first; the whole of it when not given. */
+    value: Schema.optionalKey(Span),
   }),
   Schema.Struct({
     type: Schema.Literal('range'),
@@ -79,6 +99,15 @@ export const Input = Schema.Union([
     choices: Schema.Array(Choice),
     value: Schema.Array(Choice),
   }),
+  Schema.TaggedStruct('Between', {
+    name: Schema.String,
+    label: Schema.String,
+    kind: Schema.Literals(['number', 'date']),
+    min: End,
+    max: End,
+    step: Schema.Finite,
+    value: Span,
+  }),
   Schema.TaggedStruct('Range', {
     name: Schema.String,
     label: Schema.String,
@@ -105,9 +134,13 @@ const isText = Schema.is(Schema.String);
 const isFromData = Schema.is(FromData);
 
 const isChoices = Schema.is(Schema.Array(Choice));
+const isSpan = Schema.is(Span);
+const isEnd = Schema.is(Schema.Finite);
+const isoDay = /^\d{4}-\d{2}-\d{2}/;
 
 /** A choice as messages and labels show it: strings quoted, a list in brackets. */
 export const shown = (value: InputValue): string => {
+  if (isSpan(value)) return `${String(value.min)} to ${String(value.max)}`;
   if (isChoices(value)) return value.length === 0 ? 'none' : `[${value.map(shown).join(', ')}]`;
   return value === null ? 'all' : isText(value) ? JSON.stringify(value) : String(value);
 };
@@ -173,6 +206,55 @@ const chooser = (
   });
 };
 
+/** Whether two ends are of one kind: both numbers, or both ISO dates. */
+const kindOf = (end: End): 'number' | 'date' | undefined =>
+  isEnd(end) ? 'number' : isoDay.test(end) ? 'date' : undefined;
+
+/** The least and greatest of a data field's values, numbers or ISO dates. */
+const extentOf = (
+  rows: Rows,
+  field: string,
+  from: string,
+): Result.Result<{ readonly min: End; readonly max: End }, string> => {
+  const values = rows.flatMap((row) => {
+    const value = row[field];
+    return isEnd(value) || (isText(value) && isoDay.test(value)) ? [value] : [];
+  });
+  if (values.length === 0) {
+    return Result.fail(`options.field: "${field}" in ${from} has no numbers or ISO dates`);
+  }
+  const sorted = values.toSorted((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return Result.succeed({ min: sorted[0] ?? 0, max: sorted.at(-1) ?? 0 });
+};
+
+const betweener = (
+  fence: FenceOf<'between'>,
+  extent: { readonly min: End; readonly max: End },
+): Result.Result<Input, string> => {
+  const kind = kindOf(extent.min);
+  if (kind === undefined || kind !== kindOf(extent.max)) {
+    return Result.fail('min: the ends must both be numbers, or both ISO dates');
+  }
+  if (!(extent.min < extent.max)) return Result.fail('min: must be less than max');
+  const value = fence.value ?? extent;
+  const inside = (end: End) => kindOf(end) === kind && end >= extent.min && end <= extent.max;
+  if (!inside(value.min) || !inside(value.max) || value.min > value.max) {
+    return Result.fail(
+      `value: ${String(value.min)} to ${String(value.max)} is not within ${String(extent.min)} to ${String(extent.max)}`,
+    );
+  }
+  return Result.succeed({
+    _tag: 'Between',
+    name: fence.name,
+    label: fence.label ?? fence.name,
+    kind,
+    min: extent.min,
+    max: extent.max,
+    step: fence.step ?? 1,
+    value: { min: value.min, max: value.max },
+  });
+};
+
 const ranger = (fence: FenceOf<'range'>): Result.Result<Input, string> => {
   if (!(fence.min < fence.max)) return Result.fail('min: must be less than max');
   const value = fence.value ?? fence.min;
@@ -202,6 +284,18 @@ export const readInput = (
   if (Result.isFailure(decoded)) return Result.fail(decoded.failure.message);
   const fence = decoded.success;
   if (fence.type === 'range') return ranger(fence);
+  if (fence.type === 'between') {
+    const { min, max, options: field } = fence;
+    if (field !== undefined) {
+      return Result.flatMap(
+        Result.flatMap(read(field.data), (rows) => extentOf(rows, field.field, field.data)),
+        (extent) => betweener(fence, extent),
+      );
+    }
+    return min === undefined || max === undefined
+      ? Result.fail('min: give min and max, or options: { "data", "field" }')
+      : betweener(fence, { min, max });
+  }
   if (fence.type === 'checkbox') {
     return Result.succeed({
       _tag: 'Toggle',
@@ -227,6 +321,23 @@ export const defaultsOf = (inputs: ReadonlyArray<Input>): Values =>
 
 /** The value `text` names for `input` (`all` for a select's `all`), or why it names none. */
 export const valueFor = (input: Input, text: string): Result.Result<InputValue, string> => {
+  if (input._tag === 'Between') {
+    // `from..to`, each end as the input's kind.
+    const [from = '', to = ''] = text.split('..');
+    const end = (part: string): End | undefined => {
+      const trimmed = part.trim();
+      if (input.kind === 'date') return isoDay.test(trimmed) ? trimmed : undefined;
+      const number = Number(trimmed);
+      return trimmed !== '' && Number.isFinite(number) ? number : undefined;
+    };
+    const min = end(from);
+    const max = end(to);
+    return min === undefined || max === undefined || min > max || min < input.min || max > input.max
+      ? Result.fail(
+          `${text} is not a span from..to within ${String(input.min)}..${String(input.max)}`,
+        )
+      : Result.succeed({ min, max });
+  }
   if (input._tag === 'Pick') {
     // A list, comma-separated (`North,South`); empty for none ticked.
     const parts = text === '' ? [] : text.split(',').map((part) => part.trim());
@@ -270,6 +381,11 @@ export const queryOf = (inputs: ReadonlyArray<Input>, values: Values): string =>
       if (sameChoices(ticked, input.value)) continue;
       if (ticked.length === 0) params.append(input.name, '');
       for (const choice of ticked) params.append(input.name, String(choice));
+    } else if (input._tag === 'Between') {
+      const span = isSpan(value) ? value : input.value;
+      if (span.min !== input.value.min || span.max !== input.value.max) {
+        params.set(input.name, `${String(span.min)}..${String(span.max)}`);
+      }
     } else if (value !== input.value) {
       params.set(input.name, value === null ? 'all' : String(value));
     }
@@ -309,6 +425,12 @@ export const valuesFromQuery = (inputs: ReadonlyArray<Input>, query: string): Va
 export const choicesOf = (input: Input): ReadonlyArray<InputValue> => {
   if (input._tag === 'Choose') return input.all === null ? input.choices : [null, ...input.choices];
   if (input._tag === 'Pick') return [input.value, ...input.choices.map((choice) => [choice])];
+  if (input._tag === 'Between') {
+    const whole = { min: input.min, max: input.max };
+    return input.value.min === whole.min && input.value.max === whole.max
+      ? [input.value]
+      : [input.value, whole];
+  }
   if (input._tag === 'Toggle') return [false, true];
   return [...new Set([input.min, input.value, input.max])];
 };

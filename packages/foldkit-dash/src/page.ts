@@ -123,6 +123,8 @@ table{border-collapse:collapse}th,td{padding:4px 8px;border-bottom:1px solid var
 .control select,.control input[type=range]{font:inherit;min-width:0;max-width:100%}
 .chart.selects svg,.chart.selects .plot-legend li{cursor:pointer}
 .chart:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+.chart.brushes svg{cursor:crosshair;touch-action:pan-y}
+.control input[type=date],.control input[type=number]{font:inherit;max-width:11em}
 .readout{min-height:1.5em;margin:.25rem 0 0;font-variant-numeric:tabular-nums}
 .control select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
 .control output{font-variant-numeric:tabular-nums}`;

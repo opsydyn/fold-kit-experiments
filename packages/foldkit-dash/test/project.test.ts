@@ -279,7 +279,15 @@ describe('describe at other values, and each series', () => {
     });
     // A low reached twice names both places, in the order the rows give them.
     expect(reportOf(root).charts[0]?.series).toEqual([
-      { name: 'north', count: 3, low: { y: 12, x: ['Jan', 'Apr'] }, high: { y: 15, x: ['Mar'] } },
+      {
+        name: 'north',
+        count: 3,
+        low: { y: 12, x: ['Jan', 'Apr'] },
+        high: { y: 15, x: ['Mar'] },
+        // Month names keep the rows' order; the largest moves read along it.
+        fall: { from: { x: 'Mar', y: 15 }, to: { x: 'Apr', y: 12 } },
+        rise: { from: { x: 'Jan', y: 12 }, to: { x: 'Mar', y: 15 } },
+      },
       { name: 'south', count: 1, low: { y: 9, x: ['Feb'] }, high: { y: 9, x: ['Feb'] } },
     ]);
   });
@@ -345,10 +353,11 @@ describe('describe at other values, and each series', () => {
     ).toMatchObject({
       input: { value: 'north' },
     });
+    // A value the input cannot take is refused like a misspelt name: exit 2, no charts.
     const wrong = at([['region', 'west']]);
-    expect(
-      Result.isSuccess(wrong) && wrong.success.problems.map((problem) => problem.message),
-    ).toEqual(['--at region=west: west is not one of its choices']);
+    expect(Result.isFailure(wrong) && wrong.failure.message).toBe(
+      '--at region=west: west is not one of its choices',
+    );
     const unknown = at([['zone', '1']]);
     expect(Result.isFailure(unknown) && unknown.failure.message).toBe(
       '--at zone: no page has an input of that name',
@@ -398,7 +407,7 @@ describe('clicking a chart sets an input (ADR 0116)', () => {
     ]);
     const line = { select: 'region', marks: [{ mark: 'line', x: 'units', y: 'units' }] };
     expect(messages(page(regions(['north', 'south']), line))).toEqual([
-      ['spec', 'select: the chart has no axis of categories for a reader to click'],
+      ['spec', 'select: the chart has no categories or series for a reader to click'],
     ]);
   });
 });

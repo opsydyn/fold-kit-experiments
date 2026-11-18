@@ -49,7 +49,7 @@ export const InputEntry = Schema.Struct({
   file: Schema.String,
   line: Schema.Int,
   name: Schema.String,
-  type: Schema.Literals(['select', 'radio', 'range', 'checkbox']),
+  type: Schema.Literals(['select', 'radio', 'checkboxes', 'range', 'checkbox']),
   value: InputValue,
   choices: Schema.Int,
 });

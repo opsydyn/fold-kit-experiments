@@ -1,15 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 
-import { Result } from 'effect';
+import { Option, Result } from 'effect';
 
-import { drawSpec } from '../src/chart';
+import { choiceAt, drawSpec } from '../src/chart';
 import {
   choicesOf,
   defaultsOf,
   filterRows,
   type Input,
+  queryOf,
   readInput,
   referencesIn,
+  valueFor,
+  valuesFromQuery,
   withValues,
 } from '../src/inputs';
 import type { Json, Rows } from '../src/rows';
@@ -147,5 +150,124 @@ describe('inputs', () => {
     expect(months('west')).toEqual(
       Result.fail({ kind: 'data', path: null, message: 'where {"region":"west"} keeps no rows' }),
     );
+  });
+});
+
+describe('several values at once (ADR 0117)', () => {
+  const regions = input(
+    { type: 'checkboxes', name: 'regions', options: { data: 'units.json', field: 'region' } },
+    withData,
+  );
+
+  test('checkboxes start with every choice ticked unless told, and refuse a stray value', () => {
+    expect(regions).toEqual({
+      _tag: 'Pick',
+      name: 'regions',
+      label: 'regions',
+      choices: ['north', 'south'],
+      value: ['north', 'south'],
+    });
+    const some = input({
+      type: 'checkboxes',
+      name: 'r',
+      options: ['a', 'b', 'c'],
+      value: ['c', 'a'],
+    });
+    // Ticked choices keep the options' order.
+    expect(some._tag === 'Pick' && some.value).toEqual(['a', 'c']);
+    expect(refused({ type: 'checkboxes', name: 'r', options: ['a'], value: ['z'] })).toBe(
+      'value: "z" is not one of the options',
+    );
+    // check tries the default and each choice alone, not none.
+    expect(choicesOf(regions)).toEqual([['north', 'south'], ['north'], ['south']]);
+  });
+
+  test('a list in where keeps rows matching any of it; an empty list keeps none', () => {
+    const kept = (where: Json) =>
+      Result.map(filterRows(rows, where), (each) => each.map((row) => row['month']));
+    expect(kept({ region: ['north', 'south'] })).toEqual(Result.succeed(['Jan', 'Feb', 'Mar']));
+    expect(kept({ region: ['south'] })).toEqual(Result.succeed(['Feb']));
+    expect(kept({ region: [] })).toEqual(Result.succeed([]));
+  });
+
+  test('the address holds a parameter per ticked choice, and an empty one for none', () => {
+    const inputs = [regions];
+    expect(queryOf(inputs, { regions: ['north', 'south'] })).toBe('');
+    expect(queryOf(inputs, { regions: ['south'] })).toBe('?regions=south');
+    expect(queryOf(inputs, { regions: [] })).toBe('?regions=');
+    expect(valuesFromQuery(inputs, '?regions=south&regions=west')).toEqual({ regions: ['south'] });
+    expect(valuesFromQuery(inputs, '?regions=')).toEqual({ regions: [] });
+    expect(valuesFromQuery(inputs, '?other=1')).toEqual({});
+    // --at takes a comma-separated list.
+    expect(valueFor(regions, 'south, north')).toEqual(Result.succeed(['north', 'south']));
+    expect(valueFor(regions, 'west')).toEqual(Result.fail('west is not one of its choices'));
+  });
+});
+
+describe('choosing a series, and how a series moves (ADR 0117)', () => {
+  const weekly = [
+    { week: '2026-05-11', units: 9, region: 'north' },
+    { week: '2026-05-04', units: 10, region: 'north' },
+    { week: '2026-05-18', units: 4, region: 'north' },
+    { week: '2026-05-25', units: 12, region: 'north' },
+    { week: '2026-05-04', units: 30, region: 'south' },
+    { week: '2026-05-11', units: 31, region: 'south' },
+    { week: '2026-05-18', units: 32, region: 'south' },
+    { week: '2026-05-25', units: 33, region: 'south' },
+  ];
+  const lines = {
+    width: 400,
+    height: 240,
+    data: 'weekly.json',
+    select: 'region',
+    marks: [{ mark: 'line', x: 'week', y: 'units', stroke: 'region' }],
+  };
+  const drawn = Result.getOrThrow(drawSpec(lines, new Map([['weekly.json', weekly]]), {}));
+
+  test('a line chart of several series selects by series', () => {
+    expect(drawn.selects).toEqual({
+      input: 'region',
+      categories: ['north', 'south'],
+      by: { _tag: 'Series', field: 'region', x: 'week', y: 'units' },
+    });
+  });
+
+  test('a press chooses the series of the nearest point, and nothing far from every point', () => {
+    const facet = drawn.geometry.facets[0];
+    const xAxis = facet?.x ?? null;
+    const yAxis = facet?.y ?? null;
+    expect(xAxis?.type).toBe('time');
+    if (xAxis === null || yAxis === null) return;
+    const along = (axis: typeof xAxis, value: number) => {
+      const [d0 = 0, d1 = 1] = axis.domain.map(Number);
+      return axis.range[0] + ((value - d0) / (d1 - d0)) * (axis.range[1] - axis.range[0]);
+    };
+    const x = along(xAxis, Date.parse('2026-05-18'));
+    expect(choiceAt(drawn, x, along(yAxis, 32) + 3)).toEqual(Option.some('south'));
+    expect(choiceAt(drawn, x, along(yAxis, 4) - 3)).toEqual(Option.some('north'));
+    expect(choiceAt(drawn, x, along(yAxis, 18))).toEqual(Option.none());
+  });
+
+  test('a series reports its largest fall and rise in date order, not the rows order', () => {
+    const [north, south] = drawn.series;
+    expect(north?.fall).toEqual({
+      from: { x: '2026-05-04', y: 10 },
+      to: { x: '2026-05-18', y: 4 },
+    });
+    expect(north?.rise).toEqual({
+      from: { x: '2026-05-18', y: 4 },
+      to: { x: '2026-05-25', y: 12 },
+    });
+    // The climb after the largest fall: from its low to the highest point after it.
+    expect(north?.recovery).toEqual({
+      from: { x: '2026-05-18', y: 4 },
+      to: { x: '2026-05-25', y: 12 },
+    });
+    // A series that only climbs has no fall.
+    expect(south?.fall).toBeUndefined();
+    expect(south?.rise).toEqual({
+      from: { x: '2026-05-04', y: 30 },
+      to: { x: '2026-05-25', y: 33 },
+    });
   });
 });

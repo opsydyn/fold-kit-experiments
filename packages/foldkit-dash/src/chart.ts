@@ -4,7 +4,13 @@
  * the same way.
  * @module Chart
  */
-import { compilePlot, type PlotGeometry, type PlotSpec } from '@opsydyn/foldkit-viz/plot';
+import {
+  compilePlot,
+  invertPlot,
+  type PlotAxis,
+  type PlotGeometry,
+  type PlotSpec,
+} from '@opsydyn/foldkit-viz/plot';
 import { Option, Result, Schema } from 'effect';
 
 import { filterRows, type Values, withValues } from './inputs';
@@ -22,13 +28,17 @@ export type ChartProblem = {
 };
 
 /**
- * The input a chart sets when a reader clicks one of its categories (ADR 0116): the
- * input's name, the axis of categories, and those categories as the axis names them.
+ * The input a chart sets when a reader clicks it: its name, and the categories a click
+ * can choose. A chart of bars (or any chart with an axis of categories) chooses the
+ * category on that `axis` (ADR 0116); a line, area or dot chart of several series
+ * chooses the series nearest the press, by its `field` (ADR 0117).
  */
 export type Selects = {
   readonly input: string;
-  readonly axis: 'x' | 'y';
   readonly categories: ReadonlyArray<string>;
+  readonly by:
+    | { readonly _tag: 'Band'; readonly axis: 'x' | 'y' }
+    | { readonly _tag: 'Series'; readonly field: string; readonly x: string; readonly y: string };
 };
 
 /** A chart drawn: its spec as compiled, its geometry, its series, and what it selects. */
@@ -37,7 +47,13 @@ export type Drawn = {
   readonly geometry: PlotGeometry;
   readonly series: ReadonlyArray<Series>;
   readonly selects: Selects | null;
+  /** The rows drawn, after `where`. */
+  readonly rows: Rows;
 };
+
+/** A point of a series: its `x` (or category) and its value. */
+const Point = Schema.Struct({ x: Value, y: Schema.Finite });
+type Point = typeof Point.Type;
 
 /** One series of a chart, as `describe` reports it: its points, and its low and high. */
 export const Series = Schema.Struct({
@@ -50,7 +66,20 @@ export const Series = Schema.Struct({
   low: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
   high: Schema.Struct({ y: Schema.Finite, x: Schema.Array(Value) }),
   /** A bar chart's bars, highest first, when there are at most `rankedBars` (ADR 0116). */
-  ranked: Schema.optionalKey(Schema.Array(Schema.Struct({ x: Value, y: Schema.Finite }))),
+  ranked: Schema.optionalKey(Schema.Array(Point)),
+  /**
+   * A line, area or dot series' largest fall, from a high to a later low, and largest
+   * rise, from a low to a later high, in `x` order (ADR 0117); absent when it never falls
+   * (or rises).
+   */
+  fall: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
+  rise: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
+  /**
+   * The climb after the largest fall: from its low to the highest point after it (the
+   * first, on a tie); absent when nothing after the low is higher. "Dips, then climbs"
+   * is the fall and this, not the largest rise, which can start before the dip.
+   */
+  recovery: Schema.optionalKey(Schema.Struct({ from: Point, to: Point })),
 });
 export type Series = typeof Series.Type;
 
@@ -137,16 +166,79 @@ const seriesOf = (spec: JsonObject, rows: Rows, where: Json): ReadonlyArray<Seri
         low: extreme(Math.min(...ys)),
         high: extreme(Math.max(...ys)),
       };
-      return [
-        mark === 'bar' && points.length <= rankedBars
-          ? { ...series, ranked: points.toSorted((a, b) => b.y - a.y) }
-          : series,
-      ];
+      if (mark === 'bar') {
+        return [
+          points.length <= rankedBars
+            ? { ...series, ranked: points.toSorted((a, b) => b.y - a.y) }
+            : series,
+        ];
+      }
+      return [{ ...series, ...movesOf(inXOrder(points)) }];
     });
 };
 
+const isoDate = /^\d{4}-\d{2}-\d{2}/;
+
+/**
+ * Points sorted by `x` when every `x` is a number, or every `x` an ISO date; otherwise
+ * (categories such as month names) in the rows' order.
+ */
+const inXOrder = (points: ReadonlyArray<Point>): ReadonlyArray<Point> => {
+  if (points.every((point) => isNumber(point.x))) {
+    return points.toSorted((a, b) => Number(a.x) - Number(b.x));
+  }
+  if (points.every((point) => isText(point.x) && isoDate.test(point.x))) {
+    return points.toSorted((a, b) => String(a.x).localeCompare(String(b.x)));
+  }
+  return points;
+};
+
+/** A move from one point to a later one. */
+type Move = { from: Point; to: Point };
+
+/** A series' largest fall and rise, each only when it has one. */
+type Moves = { fall?: Move; rise?: Move; recovery?: Move };
+
+/**
+ * A series' largest fall (from the highest point so far to a later lower one) and its
+ * largest rise (from the lowest so far to a later higher one). On a tie, the first.
+ */
+const movesOf = (points: ReadonlyArray<Point>): Pick<Series, 'fall' | 'rise' | 'recovery'> => {
+  const [first] = points;
+  if (first === undefined) return {};
+  let peak = first;
+  let trough = first;
+  let fall: Move | undefined;
+  let rise: Move | undefined;
+  for (const point of points) {
+    if (point.y > peak.y) peak = point;
+    if (point.y < trough.y) trough = point;
+    if (peak.y - point.y > (fall === undefined ? 0 : fall.from.y - fall.to.y)) {
+      fall = { from: peak, to: point };
+    }
+    if (point.y - trough.y > (rise === undefined ? 0 : rise.to.y - rise.from.y)) {
+      rise = { from: trough, to: point };
+    }
+  }
+  const moves: Moves = {};
+  if (fall !== undefined) moves.fall = fall;
+  if (rise !== undefined) moves.rise = rise;
+  const low = fall?.to;
+  const after = low === undefined ? [] : points.slice(points.indexOf(low) + 1);
+  const top = after.reduce<Point | undefined>(
+    (best, point) => (best === undefined || point.y > best.y ? point : best),
+    undefined,
+  );
+  if (low !== undefined && top !== undefined && top.y > low.y) {
+    moves.recovery = { from: low, to: top };
+  }
+  return moves;
+};
+
 /** A chart's axis of categories, if it has one: the first facet's band axis. */
-const bandOf = (geometry: PlotGeometry): Option.Option<Omit<Selects, 'input'>> => {
+const bandOf = (
+  geometry: PlotGeometry,
+): Option.Option<{ readonly axis: 'x' | 'y'; readonly categories: ReadonlyArray<string> }> => {
   const facet = geometry.facets[0];
   const axis = (['x', 'y'] as const).find((each) => facet?.[each]?.type === 'band');
   const scale = axis === undefined ? undefined : facet?.[axis];
@@ -155,26 +247,79 @@ const bandOf = (geometry: PlotGeometry): Option.Option<Omit<Selects, 'input'>> =
     : Option.some({ axis, categories: scale.domain.map(String) });
 };
 
+/** The marks foldkit-viz's `highlight` dims (lines and areas are not among them). */
+const highlightMarks = new Set(['bar', 'dot', 'cell', 'text']);
+
 /**
- * The spec with its first mark dimmed except where its field on the `axis` of categories
- * is `chosen` (foldkit-viz's `highlight`), so a reader sees what they clicked. None
- * when nothing is chosen, or the mark already has a highlight of its own.
+ * The spec with its first mark dimmed except where `field` is `chosen` (foldkit-viz's
+ * `highlight`), so a reader sees what they clicked. None when nothing is chosen, the
+ * mark cannot be highlighted, or it has a highlight of its own.
  */
-const highlightOf = (
-  spec: JsonObject,
-  axis: 'x' | 'y',
-  chosen: Json,
-): Option.Option<JsonObject> => {
+const highlightOf = (spec: JsonObject, field: string, chosen: Json): Option.Option<JsonObject> => {
   const marks = spec['marks'];
   const [first, ...others] = Array.isArray(marks) ? marks : [];
   const mark = first !== undefined && first !== null && isRecord(first) ? first : undefined;
-  const field = mark?.[axis];
-  return chosen === null || mark === undefined || !isText(field) || mark['highlight'] !== undefined
+  const kind = mark?.['mark'];
+  return chosen === null ||
+    Array.isArray(chosen) ||
+    mark === undefined ||
+    !isText(kind) ||
+    !highlightMarks.has(kind) ||
+    mark['highlight'] !== undefined
     ? Option.none()
     : Option.some({
         ...spec,
         marks: [{ ...mark, highlight: { field, values: [chosen] } }, ...others],
       });
+};
+
+/** The series, x and y fields of a line, area or dot chart's first mark, if it draws several. */
+const seriesFieldOf = (
+  spec: JsonObject,
+): Option.Option<{ readonly field: string; readonly x: string; readonly y: string }> => {
+  const marks = spec['marks'];
+  const first = Array.isArray(marks) ? marks[0] : undefined;
+  if (first === undefined || first === null || !isRecord(first)) return Option.none();
+  const { mark, x, y } = first;
+  if (!isText(mark) || mark === 'bar' || !seriesMarks.has(mark)) return Option.none();
+  if (!isText(x) || !isText(y)) return Option.none();
+  const field = [first['stroke'], first['fill'], first['z']].find(
+    (each) => isText(each) && each !== x,
+  );
+  return isText(field) ? Option.some({ field, x, y }) : Option.none();
+};
+
+/**
+ * What a chart's `select` chooses: a series, for a line, area or dot chart of several,
+ * else the category on its axis of categories. None when it has neither.
+ */
+const selectsOf = (
+  input: string,
+  spec: JsonObject,
+  rows: Rows,
+  geometry: PlotGeometry,
+): Option.Option<Selects> => {
+  const series = seriesFieldOf(spec);
+  if (Option.isSome(series)) {
+    const { field } = series.value;
+    const categories = [...new Set(rows.map((row) => String(row[field] ?? '')))];
+    return Option.some({ input, categories, by: { _tag: 'Series', ...series.value } });
+  }
+  return Option.map(bandOf(geometry), ({ axis, categories }) => ({
+    input,
+    categories,
+    by: { _tag: 'Band', axis },
+  }));
+};
+
+/** The field a chart's choice is made on: the series field, or the category axis's. */
+const choiceFieldOf = (spec: JsonObject, selects: Selects): Option.Option<string> => {
+  if (selects.by._tag === 'Series') return Option.some(selects.by.field);
+  const marks = spec['marks'];
+  const first = Array.isArray(marks) ? marks[0] : undefined;
+  const field =
+    first !== undefined && first !== null && isRecord(first) ? first[selects.by.axis] : undefined;
+  return isText(field) ? Option.some(field) : Option.none();
 };
 
 /** The spec path at the start of a `compilePlot` message, such as `marks[0].y`. */
@@ -246,21 +391,78 @@ export const drawSpec = (
       }),
       ({ spec, plot, geometry }): Result.Result<Drawn, ChartProblem> => {
         const series = seriesOf(spec, kept.success, where);
-        if (select === undefined) return Result.succeed({ plot, geometry, series, selects: null });
-        const band = bandOf(geometry);
-        if (Option.isNone(band)) {
+        if (select === undefined)
+          return Result.succeed({ plot, geometry, series, selects: null, rows: kept.success });
+        const chosen = selectsOf(select, spec, kept.success, geometry);
+        if (Option.isNone(chosen)) {
           return Result.fail(
-            problem('spec', 'select: the chart has no axis of categories for a reader to click'),
+            problem('spec', 'select: the chart has no categories or series for a reader to click'),
           );
         }
-        const selects = { input: select, ...band.value };
-        const highlighted = highlightOf(spec, band.value.axis, values[select] ?? null);
-        if (Option.isNone(highlighted)) return Result.succeed({ plot, geometry, series, selects });
+        const selects = chosen.value;
+        const highlighted = Option.flatMap(choiceFieldOf(spec, selects), (field) =>
+          highlightOf(spec, field, values[select] ?? null),
+        );
+        if (Option.isNone(highlighted)) {
+          return Result.succeed({ plot, geometry, series, selects, rows: kept.success });
+        }
         // SAFETY: the spec compiled above; a highlight on its first mark's own field is one
         // compilePlot accepts.
         const lit = highlighted.value as PlotSpec;
-        return Result.succeed({ plot: lit, geometry: compilePlot(lit), series, selects });
+        return Result.succeed({
+          plot: lit,
+          geometry: compilePlot(lit),
+          series,
+          selects,
+          rows: kept.success,
+        });
       },
     );
   });
+};
+
+/** How near, in the chart's pixels, a press must be to a point to choose its series. */
+export const seriesReach = 24;
+
+/** Where `value` sits on `axis`, in pixels: its band's centre, or along a linear or time scale. */
+const pixelOf = (axis: PlotAxis, value: Json | undefined): number | undefined => {
+  if (axis.type === 'band') {
+    return axis.ticks.find((tick) => String(tick.value) === String(value))?.position;
+  }
+  const [d0, d1] = axis.domain.map(Number);
+  const [r0, r1] = axis.range;
+  const at = isNumber(value) ? value : isText(value) ? Date.parse(value) : Number.NaN;
+  if (d0 === undefined || d1 === undefined || d0 === d1 || !Number.isFinite(at)) return undefined;
+  if (axis.type !== 'linear' && axis.type !== 'time') return undefined;
+  return r0 + ((at - d0) / (d1 - d0)) * (r1 - r0);
+};
+
+/**
+ * What a press at a plot pixel chooses on a chart that selects: the category under it
+ * on the axis of categories, or the series of the nearest point within `seriesReach`
+ * pixels. None off every band, or far from every point.
+ */
+export const choiceAt = (drawn: Drawn, x: number, y: number): Option.Option<string> => {
+  const { selects, geometry, rows } = drawn;
+  if (selects === null) return Option.none();
+  if (selects.by._tag === 'Band') {
+    const category = invertPlot(geometry, x, y)?.[selects.by.axis];
+    return category === undefined ? Option.none() : Option.some(String(category));
+  }
+  const facet = geometry.facets[0];
+  const xAxis = facet?.x ?? null;
+  const yAxis = facet?.y ?? null;
+  if (xAxis === null || yAxis === null) return Option.none();
+  const { field } = selects.by;
+  let nearest: { readonly name: string; readonly distance: number } | undefined;
+  for (const row of rows) {
+    const px = pixelOf(xAxis, row[selects.by.x]);
+    const py = pixelOf(yAxis, row[selects.by.y]);
+    if (px === undefined || py === undefined) continue;
+    const distance = Math.hypot(px - x, py - y);
+    if (distance <= seriesReach && (nearest === undefined || distance < nearest.distance)) {
+      nearest = { name: String(row[field] ?? ''), distance };
+    }
+  }
+  return nearest === undefined ? Option.none() : Option.some(nearest.name);
 };

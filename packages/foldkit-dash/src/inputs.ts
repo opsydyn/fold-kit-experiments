@@ -185,6 +185,57 @@ export const readInput = (
 export const defaultsOf = (inputs: ReadonlyArray<Input>): Values =>
   Object.fromEntries(inputs.map((input) => [input.name, input.value]));
 
+/** The value `text` names for `input` (`all` for a select's `all`), or why it names none. */
+export const valueFor = (input: Input, text: string): Result.Result<InputValue, string> => {
+  if (input._tag === 'Choose') {
+    if (text === 'all' && input.all !== null) return Result.succeed(null);
+    const choice = input.choices.find((each) => String(each) === text);
+    return choice === undefined
+      ? Result.fail(`${text} is not one of its choices`)
+      : Result.succeed(choice);
+  }
+  if (input._tag === 'Toggle') {
+    return text === 'true' || text === 'false'
+      ? Result.succeed(text === 'true')
+      : Result.fail(`${text} is not true or false`);
+  }
+  const value = Number(text);
+  return Number.isFinite(value) && value >= input.min && value <= input.max
+    ? Result.succeed(value)
+    : Result.fail(`${text} is not a number from ${input.min} to ${input.max}`);
+};
+
+/**
+ * A page's query string for `values` (ADR 0116): each input not at its default, as
+ * `name=value` (`all` for a select's `all`), in the inputs' order; `''` at the defaults.
+ */
+export const queryOf = (inputs: ReadonlyArray<Input>, values: Values): string => {
+  const params = new URLSearchParams();
+  for (const input of inputs) {
+    const value = values[input.name] ?? null;
+    if (value !== input.value) params.set(input.name, value === null ? 'all' : String(value));
+  }
+  const text = params.toString();
+  return text === '' ? '' : `?${text}`;
+};
+
+/**
+ * The values a query string sets: each parameter naming an input with a value it can
+ * take. Anything else in the query (another site's parameters, a stale choice) is left
+ * alone, so an old link still opens the page.
+ */
+export const valuesFromQuery = (inputs: ReadonlyArray<Input>, query: string): Values => {
+  const params = new URLSearchParams(query);
+  return Object.fromEntries(
+    inputs.flatMap((input) => {
+      const text = params.get(input.name);
+      if (text === null) return [];
+      const value = valueFor(input, text);
+      return Result.isSuccess(value) ? [[input.name, value.success]] : [];
+    }),
+  );
+};
+
 /** Every value an input can take: each choice (and `all`), both ends of a range, both states. */
 export const choicesOf = (input: Input): ReadonlyArray<InputValue> => {
   if (input._tag === 'Choose') return input.all === null ? input.choices : [null, ...input.choices];

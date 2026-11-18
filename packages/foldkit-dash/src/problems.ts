@@ -37,8 +37,10 @@ export const Chart = Schema.Struct({
   line: Schema.Int,
   summary: Schema.String,
   at: Values,
-  /** Each series of a line, area or dot chart: its points, low and high, and where. */
+  /** Each series of a line, area, dot or bar chart: its points, low and high, and where. */
   series: Schema.Array(Series),
+  /** The input a reader sets by clicking one of the chart's categories, if any (ADR 0116). */
+  selects: Schema.NullOr(Schema.String),
 });
 export type Chart = typeof Chart.Type;
 

@@ -13,7 +13,7 @@ import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
 import { Result, Schema } from 'effect';
 
 import type { Flags, Section } from './app';
-import { type ChartProblem, drawSpec, type Series } from './chart';
+import { type ChartProblem, drawSpec, type Selects, type Series } from './chart';
 import { type DataOptions, dataReader } from './data';
 import {
   choicesOf,
@@ -23,6 +23,7 @@ import {
   readInput,
   referencesIn,
   shown,
+  valueFor,
   type Values,
 } from './inputs';
 import {
@@ -211,24 +212,22 @@ const checkChoices = (
 /** Input values asked for by name (`describe --at name=value`), as text. */
 export type AskedValues = ReadonlyMap<string, string>;
 
-/** The value `text` names for `input`, or why it names none. */
-const valueFor = (input: Input, text: string): Result.Result<InputValue, string> => {
-  if (input._tag === 'Choose') {
-    if (text === 'all' && input.all !== null) return Result.succeed(null);
-    const choice = input.choices.find((each) => String(each) === text);
-    return choice === undefined
-      ? Result.fail(`${text} is not one of its choices`)
-      : Result.succeed(choice);
+/**
+ * Why a chart cannot set the input it names when a reader clicks it, or `null`: the
+ * input must be a select or radio on the page, with every category the chart shows as
+ * one of its choices.
+ */
+const selectProblem = (selects: Selects, inputs: ReadonlyMap<string, Input>): string | null => {
+  const input = inputs.get(selects.input);
+  if (input === undefined) return `select: no input "${selects.input}" on this page`;
+  if (input._tag !== 'Choose') {
+    return `select: "${selects.input}" is not a select or radio, so a click cannot choose it`;
   }
-  if (input._tag === 'Toggle') {
-    return text === 'true' || text === 'false'
-      ? Result.succeed(text === 'true')
-      : Result.fail(`${text} is not true or false`);
-  }
-  const value = Number(text);
-  return Number.isFinite(value) && value >= input.min && value <= input.max
-    ? Result.succeed(value)
-    : Result.fail(`${text} is not a number from ${input.min} to ${input.max}`);
+  const choices = new Set(input.choices.map(String));
+  const missing = selects.categories.filter((category) => !choices.has(category));
+  return missing.length === 0
+    ? null
+    : `select: ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not ${missing.length === 1 ? 'a choice' : 'choices'} of "${selects.input}"`;
 };
 
 /** Reads, draws and checks one page. */
@@ -325,19 +324,29 @@ function analysePage(
     const used = Object.fromEntries(
       referencesIn(spec).map((name) => [name, shownAt[name] ?? null]),
     );
-    const drawn = Result.map(drawSpec(spec, data, shownAt), ({ plot, geometry, series }) => ({
-      figure: `<figure class="chart">${plotHtml(geometry, { table: plotTable(plot), summary: true })}</figure>`,
-      summary: describePlot(geometry),
-      series,
-    }));
+    const drawn = Result.map(
+      drawSpec(spec, data, shownAt),
+      ({ plot, geometry, series, selects }) => ({
+        figure: `<figure class="chart">${plotHtml(geometry, { table: plotTable(plot), summary: true })}</figure>`,
+        summary: describePlot(geometry),
+        series,
+        selects,
+      }),
+    );
     if (Result.isFailure(drawn)) problems.push(at(where, problemOfChart(drawn.failure)));
-    else
+    else {
+      const { selects } = drawn.success;
+      const wrong = selects === null ? null : selectProblem(selects, inputs);
+      if (wrong !== null)
+        problems.push(at(where, { kind: 'input', path: 'select', message: wrong }));
       charts.push({
         ...where,
         summary: drawn.success.summary,
         at: used,
         series: drawn.success.series,
+        selects: selects?.input ?? null,
       });
+    }
     problems.push(...checkChoices(where, spec, data, inputs, defaults));
     readCharts.set(fence, { _tag: 'Chart', spec, drawn, at: used });
   }

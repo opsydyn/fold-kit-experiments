@@ -86,6 +86,8 @@ Inputs: an \`input\` fence (\`select\`, \`radio\`, \`range\` or \`checkbox\`) pu
 on the page, and a plot spec uses its value with \`{ "input": "name" }\`, most often in
 \`"where": { "region": { "input": "region" } }\`, which keeps the rows a chart draws.
 \`where\` works without inputs too: \`"where": { "region": "North" }\`.
+\`"select": "region"\` on a chart of regions lets a reader click a bar to choose it. A
+page's address keeps its inputs (\`sales.html?region=North\`), so a link can open a view.
 
 \`bunx foldkit-dash dev\` serves the site and rebuilds it as files change, for a person
 watching.

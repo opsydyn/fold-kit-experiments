@@ -26,6 +26,21 @@ describe('describePlot', () => {
     );
   });
 
+  it('says which colour groups are drawn when a fixed domain names more', () => {
+    const one: PlotSpec = {
+      ...sales,
+      data: [{ month: 'Jan', units: 1200, region: 'north' }],
+      color: { domain: ['north', 'south', 'east'] },
+    };
+    expect(describePlot(compilePlot(one))).toEndWith(
+      'Colour shows region (1 of 3 groups drawn: north).',
+    );
+    const all: PlotSpec = { ...sales, color: { domain: ['north', 'south'] } };
+    expect(describePlot(compilePlot(all))).toEndWith(
+      'Colour shows region (2 groups: north, south).',
+    );
+  });
+
   it('counts packed points one by one, and notes log scales and panels', () => {
     const summary = describePlot(
       compilePlot({

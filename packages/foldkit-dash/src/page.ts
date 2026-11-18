@@ -56,14 +56,17 @@ const markerIndex = new RegExp(`^<p>${PRIVATE}fence-(\\d+)${PRIVATE}</p>$`);
 
 /**
  * A page's Markdown as HTML, raw HTML escaped (a page cannot run script), links to other
- * pages' `.md` pointed at their `.html`, and each fence left as its own marker paragraph.
+ * pages' `.md` pointed at their `.html` (keeping any query and hash), and each fence left as its own marker paragraph.
  */
 const markedHtml = (text: string): string => {
   let index = -1;
   const marked = text.replace(dashFence, () => `\n${marker((index += 1))}\n`);
   return Bun.markdown
     .html(marked, { noHtmlBlocks: true, noHtmlSpans: true })
-    .replace(/href="(?![a-z][a-z0-9+.-]*:|\/\/)([^"#]*?)\.md(#[^"]*)?"/gi, 'href="$1.html$2"');
+    .replace(
+      /href="(?![a-z][a-z0-9+.-]*:|\/\/)([^"#?]*?)\.md((?:\?[^"#]*)?(?:#[^"]*)?)"/gi,
+      'href="$1.html$2"',
+    );
 };
 
 /** A page as prose and fences, in order: the HTML between fences, and each fence's index. */
@@ -118,6 +121,7 @@ table{border-collapse:collapse}th,td{padding:4px 8px;border-bottom:1px solid var
 .control{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:1rem 0;padding:0;border:0}
 .control legend{float:left;margin-right:12px;padding:0}.control label{display:inline-flex;align-items:center;gap:6px}
 .control select,.control input[type=range]{font:inherit;min-width:0;max-width:100%}
+.chart.selects svg{cursor:pointer}
 .control select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
 .control output{font-variant-numeric:tabular-nums}`;
 

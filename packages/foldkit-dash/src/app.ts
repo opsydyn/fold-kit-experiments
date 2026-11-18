@@ -1,18 +1,22 @@
 /**
  * An interactive page as a Foldkit app (ADR 0110): its Flags are the page (prose, inputs,
  * chart specs and the rows those charts use), its Model adds each input's value, and a
- * reader changing an input is its one Message. The build renders it to HTML; the page's
- * script hydrates that HTML with the same `init`, `update` and `view`.
+ * reader changing an input, or clicking a chart's category (ADR 0116), sets one. The
+ * build renders it to HTML; the page's script hydrates that HTML with the same `init`,
+ * `update` and `view`. The inputs also live in the page's query string, so a link opens
+ * the page as it was shared.
  * @module App
  */
 import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
-import { plotTable } from '@opsydyn/foldkit-viz/plot';
-import { Result, Schema } from 'effect';
+import { invertPlot, plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { Effect, Option, Result, Schema } from 'effect';
+import { Command, Navigation } from 'foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return } from 'foldkit/update';
 
-import { drawSpec } from './chart';
-import { defaultsOf, Input, InputValue, Values } from './inputs';
+import { type Drawn, drawSpec } from './chart';
+import { defaultsOf, Input, InputValue, queryOf, Values, valuesFromQuery } from './inputs';
 import { JsonRecord, Rows } from './rows';
 
 /** A part of a page: prose, an input, a chart, or a fence the build found broken. */
@@ -38,23 +42,62 @@ export type Model = typeof Model.Type;
 export const Message = defineMessageUnion({
   /** A reader chose a value for an input (`null`: a select's or radio's `all`). */
   ChangedInput: { name: Schema.String, value: InputValue },
+  /** A reader clicked a chart's category, choosing it for the input the chart selects. */
+  ClickedChart: { name: Schema.String, value: InputValue },
+  /** The page's query string when it opened: the values a shared link carries. */
+  OpenedWithQuery: { query: Schema.String },
+  /** The query string now holds the inputs' values. */
+  CompletedWriteQuery: {},
 });
 export type Message = typeof Message.Type;
+
+/** Reads the query string the page opened with. */
+const ReadQuery = Command.define('ReadQuery', {
+  messages: [Message.OpenedWithQuery],
+  execute: Effect.sync(() => Message.OpenedWithQuery({ query: window.location.search })),
+});
+
+/** Puts the inputs' values in the query string, replacing the entry rather than adding one. */
+const WriteQuery = Command.define('WriteQuery', {
+  args: { query: Schema.String },
+  messages: [Message.CompletedWriteQuery],
+  execute: ({ query }) =>
+    Effect.suspend(() =>
+      Navigation.replaceUrl(`${window.location.pathname}${query}${window.location.hash}`),
+    ).pipe(Effect.map(() => Message.CompletedWriteQuery())),
+});
 
 const isNumber = Schema.is(Schema.Finite);
 
 const inputsOf = (sections: ReadonlyArray<Section>): ReadonlyArray<Input> =>
   sections.flatMap((section) => (section._tag === 'Control' ? [section.input] : []));
 
-export const init = (flags: Flags) => ({
+/** The page at its inputs' defaults, as the build rendered it; then the query is read. */
+export const init = (flags: Flags): Return<Model, Message> => ({
   model: { ...flags, values: defaultsOf(inputsOf(flags.sections)) },
+  commands: [ReadQuery()],
 });
 
-export const update = (model: Model, message: Message) =>
+/** The model with one input set, and the query string written to match. */
+const choose = (model: Model, name: string, value: InputValue): Return<Model, Message> => {
+  const values = { ...model.values, [name]: value };
+  return {
+    model: { ...model, values },
+    commands: [WriteQuery({ query: queryOf(inputsOf(model.sections), values) })],
+  };
+};
+
+export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
-    ChangedInput: ({ name, value }) => ({
-      model: { ...model, values: { ...model.values, [name]: value } },
+    ChangedInput: ({ name, value }) => choose(model, name, value),
+    ClickedChart: ({ name, value }) => choose(model, name, value),
+    OpenedWithQuery: ({ query }) => ({
+      model: {
+        ...model,
+        values: { ...model.values, ...valuesFromQuery(inputsOf(model.sections), query) },
+      },
     }),
+    CompletedWriteQuery: () => ({ model }),
   });
 
 /** A select's or radio's option value: the choice's index, `-1` for `all`. */
@@ -159,12 +202,50 @@ const chart = (
 ): Html =>
   Result.match(drawSpec(section.spec, data, model.values), {
     onFailure: (problem) => note(h, section.line, problem.message),
-    onSuccess: ({ plot, geometry }) =>
+    onSuccess: (drawn) =>
       h.figure(
-        [h.Class('chart')],
-        [plotChart(h, geometry, { table: plotTable(plot), summary: true })],
+        [
+          h.Class(drawn.selects === null ? 'chart' : 'chart selects'),
+          ...(drawn.selects === null ? [] : [h.OnPointerDown(clicked(model, drawn))]),
+        ],
+        [plotChart(h, drawn.geometry, { table: plotTable(drawn.plot), summary: true })],
       ),
   });
+
+/**
+ * The category a press on a chart lands on, as the input it selects (ADR 0116): the
+ * pointer in the chart's own pixels, then the band there. Pressing the chosen category
+ * again goes back to `all` when the input has one. Off a band, or for another button,
+ * nothing happens.
+ */
+const clicked =
+  (model: Model, drawn: Drawn) =>
+  (
+    _pointerType: string,
+    button: number,
+    _screenX: number,
+    _screenY: number,
+    _timeStamp: number,
+    clientX: number,
+    clientY: number,
+    _pointerId: number,
+    target: EventTarget | null,
+  ): Option.Option<Message> => {
+    const { selects, geometry } = drawn;
+    const svg =
+      target instanceof Element ? target.closest('figure.chart')?.querySelector('svg') : null;
+    const input = inputsOf(model.sections).find((each) => each.name === selects?.input);
+    if (button !== 0 || selects === null || svg == null || input?._tag !== 'Choose') {
+      return Option.none();
+    }
+    const point = pointerToPlot({ x: clientX, y: clientY }, svg.getBoundingClientRect(), geometry);
+    const category = invertPlot(geometry, point.x, point.y)?.[selects.axis];
+    const choice = input.choices.find((each) => String(each) === String(category));
+    if (category === undefined || choice === undefined) return Option.none();
+    const current = model.values[input.name] ?? null;
+    const value = current === choice && input.all !== null ? null : choice;
+    return Option.some(Message.ClickedChart({ name: input.name, value }));
+  };
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const data = new Map(Object.entries(model.data));

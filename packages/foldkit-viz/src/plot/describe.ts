@@ -65,13 +65,39 @@ function axisPhrase(name: string, axis: PlotAxis | null): string | undefined {
   return `${label} from ${readable(lo)} to ${readable(hi)}${axis.type === 'log' ? ' on a log scale' : ''}`;
 }
 
-function legendPhrase(legend: Legend): string {
+/**
+ * Every colour the plot paints, or undefined when it cannot say (packed points paint
+ * from a palette per point, so every colour counts as drawn).
+ */
+function paintedColours(geometry: PlotGeometry): ReadonlySet<string> | undefined {
+  const colours = new Set<string>();
+  for (const facet of geometry.facets)
+    for (const mark of facet.marks)
+      for (const g of mark.graphics) {
+        if (g.kind === 'points') return undefined;
+        if (g.kind !== 'line') colours.add(g.fill);
+        if (g.kind !== 'text') colours.add(g.stroke);
+      }
+  return colours;
+}
+
+function legendPhrase(legend: Legend, painted: ReadonlySet<string> | undefined): string {
   const label = legend.label === '' ? 'colour' : legend.label;
   if (legend.kind === 'continuous')
     return `colour shows ${label} from ${readable(legend.domain[0])} to ${readable(legend.domain[1])}`;
-  const names = legend.entries.map((e) => e.label);
-  const listed = names.length <= 6 ? `: ${names.join(', ')}` : '';
   const shown = legend.kind === 'symbol' ? 'symbol' : 'colour';
+  const names = legend.entries.map((e) => e.label);
+  // A legend with a fixed domain names groups a filter left out: say which are drawn, so
+  // a reader is not told of five lines when one is shown.
+  const drawn =
+    legend.kind === 'categorical' && painted !== undefined
+      ? legend.entries.filter((e) => painted.has(e.color)).map((e) => e.label)
+      : names;
+  if (drawn.length > 0 && drawn.length < names.length) {
+    const listed = drawn.length <= 6 ? `: ${drawn.join(', ')}` : '';
+    return `${shown} shows ${label} (${drawn.length} of ${plural(names.length, ['group', 'groups'])} drawn${listed})`;
+  }
+  const listed = names.length <= 6 ? `: ${names.join(', ')}` : '';
   return `${shown} shows ${label} (${plural(names.length, ['group', 'groups'])}${listed})`;
 }
 
@@ -120,7 +146,9 @@ export function describePlot(geometry: PlotGeometry): string {
     if (facet.polar.label !== '') axes.push(`radius shows ${facet.polar.label}`);
   }
   if (axes.length > 0) sentences.push(`${capitalise(axes.join('; '))}.`);
-  for (const legend of geometry.legends) sentences.push(`${capitalise(legendPhrase(legend))}.`);
+  const painted = paintedColours(geometry);
+  for (const legend of geometry.legends)
+    sentences.push(`${capitalise(legendPhrase(legend, painted))}.`);
   return sentences.join(' ');
 }
 

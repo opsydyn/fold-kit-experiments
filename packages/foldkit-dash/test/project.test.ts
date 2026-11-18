@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { Result } from 'effect';
 
+import { type Input, queryOf, valuesFromQuery } from '../src/inputs';
 import { fencesOf } from '../src/page';
 import { analyse, type PagePlan, type Report } from '../src/project';
 import { bars, fence, type Json, project, rows } from './support';
@@ -297,13 +298,16 @@ describe('describe at other values, and each series', () => {
     // A fill on the category axis colours bars; it does not split them into series.
     const upright = chart({ mark: 'bar', x: 'region', y: 'units', fill: 'region' });
     const highest = { y: 30, x: ['north', 'east'] };
-    expect(reportOf(upright).charts[0]?.series).toEqual([
-      { name: 'units', count: 3, low: { y: 12, x: ['south'] }, high: highest },
-    ]);
+    // Every bar, highest first; a tie keeps the rows' order.
+    const ranked = [
+      { x: 'north', y: 30 },
+      { x: 'east', y: 30 },
+      { x: 'south', y: 12 },
+    ];
+    const units = { name: 'units', count: 3, low: { y: 12, x: ['south'] }, high: highest, ranked };
+    expect(reportOf(upright).charts[0]?.series).toEqual([units]);
     const sideways = chart({ mark: 'bar', x: 'units', y: 'region' });
-    expect(reportOf(sideways).charts[0]?.series).toEqual([
-      { name: 'units', count: 3, low: { y: 12, x: ['south'] }, high: highest },
-    ]);
+    expect(reportOf(sideways).charts[0]?.series).toEqual([units]);
   });
 
   test('one series names the where that chose it; series follow color.domain', () => {
@@ -349,5 +353,80 @@ describe('describe at other values, and each series', () => {
     expect(Result.isFailure(unknown) && unknown.failure.message).toBe(
       '--at zone: no page has an input of that name',
     );
+  });
+});
+
+describe('clicking a chart sets an input (ADR 0116)', () => {
+  const regions = (choices: ReadonlyArray<string>) =>
+    `\`\`\`input\n${JSON.stringify({ type: 'select', name: 'region', options: choices, all: 'All', value: null })}\n\`\`\`\n\n`;
+  const totals = [
+    { region: 'north', units: 27 },
+    { region: 'south', units: 9 },
+  ];
+  const selecting = (spec: Readonly<Record<string, Json>>) =>
+    fence({ width: 400, height: 240, data: 'totals.json', ...spec });
+  const bySelect = { select: 'region', marks: [{ mark: 'bar', x: 'region', y: 'units' }] };
+
+  test('a chart that selects an input says so, and highlights the chosen category', () => {
+    const root = project({
+      'pages/index.md': `# A\n\n${regions(['north', 'south'])}${selecting(bySelect)}`,
+      'data/totals.json': JSON.stringify(totals),
+    });
+    const report = reportOf(root);
+    expect(report.problems).toEqual([]);
+    expect(report.charts[0]?.selects).toBe('region');
+    const south = analyse(options(root), new Map([['region', 'south']]));
+    expect(Result.isSuccess(south) && south.success.problems).toEqual([]);
+  });
+
+  test('select must name a select or radio whose choices hold every category', () => {
+    const page = (input: string, spec: Readonly<Record<string, Json>>) => ({
+      'pages/index.md': `# A\n\n${input}${selecting(spec)}`,
+      'data/totals.json': JSON.stringify(totals),
+    });
+    const messages = (files: Record<string, string>) =>
+      reportOf(project(files)).problems.map((problem) => [problem.kind, problem.message]);
+    expect(messages(page(regions(['north']), bySelect))).toEqual([
+      ['input', 'select: south is not a choice of "region"'],
+    ]);
+    const toggle = '```input\n{ "type": "checkbox", "name": "region", "value": false }\n```\n\n';
+    expect(messages(page(toggle, bySelect))).toEqual([
+      ['input', 'select: "region" is not a select or radio, so a click cannot choose it'],
+    ]);
+    expect(messages(page('', bySelect))).toEqual([
+      ['input', 'select: no input "region" on this page'],
+    ]);
+    const line = { select: 'region', marks: [{ mark: 'line', x: 'units', y: 'units' }] };
+    expect(messages(page(regions(['north', 'south']), line))).toEqual([
+      ['spec', 'select: the chart has no axis of categories for a reader to click'],
+    ]);
+  });
+});
+
+describe('inputs in the query string (ADR 0116)', () => {
+  const inputs: ReadonlyArray<Input> = [
+    {
+      _tag: 'Choose',
+      name: 'region',
+      label: 'Region',
+      style: 'select',
+      choices: ['north', 'south'],
+      all: 'All',
+      value: null,
+    },
+    { _tag: 'Range', name: 'min', label: 'Min', min: 0, max: 10, step: 1, value: 0 },
+    { _tag: 'Toggle', name: 'smooth', label: 'Smooth', value: false },
+  ];
+
+  test('only values away from their defaults are written, and read back the same', () => {
+    expect(queryOf(inputs, { region: null, min: 0, smooth: false })).toBe('');
+    const query = queryOf(inputs, { region: 'south', min: 4, smooth: true });
+    expect(query).toBe('?region=south&min=4&smooth=true');
+    expect(valuesFromQuery(inputs, query)).toEqual({ region: 'south', min: 4, smooth: true });
+  });
+
+  test('anything a page cannot take is ignored, so an old link still opens it', () => {
+    expect(valuesFromQuery(inputs, '?region=west&min=40&smooth=yes&utm_source=mail')).toEqual({});
+    expect(valuesFromQuery(inputs, '?region=all&min=10')).toEqual({ region: null, min: 10 });
   });
 });

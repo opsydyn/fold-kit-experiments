@@ -120,6 +120,9 @@ peak falls, and showing part of the data on a page takes a loader per part.
 - ✅ Stage 3 ([ADR 0111](0111-foldkit-dash-mcp-server-loaders-in-any-language-and-csv.md)):
   the MCP server (`check`, `describe`, `preview`, `build`, `new`), loaders by extension,
   CSV and TSV, and Parquet through DuckDB or Polars in loaders.
+- ✅ Stage 4 ([ADR 0116](0116-foldkit-dash-charts-that-choose-inputs-and-inputs-in-the-url.md)):
+  clicking a chart's category to choose an input, inputs in the page's address, and
+  `describe` ranking every bar.
 
 ## Review date
 

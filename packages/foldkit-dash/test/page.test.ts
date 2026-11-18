@@ -27,13 +27,15 @@ describe('pages', () => {
 
   test('figures replace their fences, raw HTML is escaped, and .md links go to .html', () => {
     const text =
-      '# T\n\n<script>alert(1)</script>\n\nSee [north](teams/north.md#top), [site](https://x.dev/a.md).\n\n```plot\n{}\n```\n\nAfter.\n';
+      '# T\n\n<script>alert(1)</script>\n\nSee [north](teams/north.md#top), [south](teams/south.md?region=south#chart), [site](https://x.dev/a.md).\n\n```plot\n{}\n```\n\nAfter.\n';
     const body = bodyOf(text, ['<figure>F</figure>']);
     expect(body).not.toContain('<script>');
     expect(body).toContain('&lt;script&gt;');
     expect(body).toContain('<figure>F</figure>');
     expect(body.indexOf('<figure>')).toBeLessThan(body.indexOf('After.'));
     expect(body).toContain('href="teams/north.html#top"');
+    // A link to a view of a page keeps its query (ADR 0116).
+    expect(body).toContain('href="teams/south.html?region=south#chart"');
     expect(body).toContain('href="https://x.dev/a.md"');
   });
 

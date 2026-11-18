@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, at any input values), build and dev loop, and the same commands as MCP tools.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, range, checkbox) that filter and change charts, charts a reader clicks to choose an input, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, at any input values), build and dev loop, and the same commands as MCP tools.
 ---
 
 # foldkit-dash
@@ -48,9 +48,13 @@ your own; delete what you do not use.
    and 2026-08-03, high 369 at 2026-10-12`), exact, so check claims about one series
    there; a low reached in two weeks names both. For bars, that is which category is
    highest and which lowest (`- revenue: 5 points, low 200560.5 at Scotland, high 509206.5
-   at South East`); it does not rank the bars between. A chart of one series names it
-   by its field and the `where` that chose its rows (`orders where region = Scotland`),
-   so a page filtered to the wrong part shows it. Series follow `color.domain` when the
+   at South East`), then every bar, highest first, up to 24 bars (`highest first: South
+   East 509206.5, London 400000, ...`): check a ranking there. To claim a ranking or a
+   total, chart it (a bar per category from a totals loader), so `describe` can confirm
+   it. A chart drawing one series (no `stroke`, `fill` or `z` field) names it by its
+   field and the `where` that chose its rows (`orders where region = Scotland`), so a
+   page filtered to the wrong part shows it; a chart with a `stroke` field names each
+   series by its value (`Scotland`), filtered or not. Series follow `color.domain` when the
    spec sets one. `describe` does not say what happens between the low and the high:
    for "dips in July, then climbs", look at the data. `describe --at region=North` (repeatable) describes charts with inputs set
    instead of their defaults.
@@ -99,8 +103,10 @@ only some choices of an input cause says which: `with region = "West": ...`.
 `charts` lists every chart that drew, `{ file, line, summary, at, series }`, the
 summary as `describe` prints it, drawn at `at`: its inputs' defaults, or the `--at`
 values (`describe` prints them as `[region = "North"]`); `series` holds each series'
-`name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached). `inputs` lists every input, `{ file, line, name, type, value,
-choices }`.
+`name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached),
+and for a bar chart of up to 24 bars `ranked` (`[{ x, y }]`, highest first); `selects`
+is the input a reader sets by clicking the chart, or `null`. `inputs` lists every input,
+`{ file, line, name, type, value, choices }`.
 
 ## Pages
 
@@ -126,7 +132,7 @@ choices }`.
 - One JSON object per fence, the whole spec. [Marks and scales](references/marks.md)
   lists the marks a dashboard uses most, their channels, and how axes are ordered;
   the project's `plot-spec.schema.json` (written by `new`) is the plot grammar's whole
-  contract. `where` and `{ "input": ... }` are foldkit-dash's, not the grammar's: they are
+  contract. `where`, `select` and `{ "input": ... }` are foldkit-dash's, not the grammar's: they are
   removed or filled in before a spec reaches it, so an editor validating a fence against
   that schema flags them, and `check` is the judge.
 - `"data"` is a name in `data/` (`"sales.json"`), or the rows themselves.
@@ -179,7 +185,8 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   (default: the name). Inputs belong to their page.
 - When a filter changes which series a chart shows, its colours are reassigned: set
   `color.domain` to every series so each keeps its colour, as above. With a fixed
-  `color.domain`, `describe` names every group in it, drawn or not.
+  `color.domain`, the summary (`describe`, and what a screen reader hears) says which
+  groups are drawn: `Colour shows region (1 of 5 groups drawn: Wales)`.
 - `where` filters fixed fields: an input can choose a value, not which field is
   filtered. For one threshold on whichever measure is shown, make the data long in the
   loader (`{ week, measure, value }`, a row per measure) and filter `value`, with the
@@ -196,6 +203,21 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   (`--at region=West --at floor=300`; `all` for a select's `all`): that is how to look
   at a combination `check` does not try. It writes `all` for what the JSON gives as
   `null`.
+- `"select": "region"` on a plot spec lets a reader click the chart to choose: a press
+  on a bar (any category on the chart's axis of categories) sets the `region` select or
+  radio to that category, and pressing it again goes back to `all` when the input has
+  one. The chosen bar stands out; the others dim. Put `select` on a chart of the
+  categories themselves (totals per region) and `where` with the input on the charts it
+  should filter; a chart that selects usually does not filter itself, or it would show
+  one bar. `check` requires the input to be a select or radio on the page, and every
+  category the chart shows at the defaults to be one of its choices: list the same
+  values (`"options": { "data": "totals.json", "field": "region" }` does that). The
+  select stays on the page: it is the keyboard's way to choose.
+- A page's inputs live in its address: choosing North and 300 makes it
+  `sales.html?region=North&floor=300`, and that link opens the page with them. Values
+  a page cannot take are ignored. Prose can link to a view of any page, its own
+  included: `[North in detail](sales.md?region=North)`. A link cannot hold a space:
+  write `South%20East` (the page writes `South+East`; both work).
 - A page with inputs carries its charts' rows in the page, so readers' choices need no
   server: keep a page's data to what its charts need (summarise in the loader). For
   scale, 260 rows of six fields made a 91 KB page; aim for thousands of rows, not
@@ -249,7 +271,8 @@ answers as an error with the reason. In this repository, `.mcp.json` registers i
 
 ## Not yet
 
-No hover or clicking a chart to filter others, no inputs kept in the page's URL, no
-Parquet or database reading without a loader, and no streaming loaders. `dev` watches
+No hover read-outs, no brushing a range, no clicking lines, dots or legend entries
+(`select` works on categories), no Parquet or database reading without a loader, and no
+streaming loaders. `dev` watches
 `pages/` and `data/` only: when a loader's source (a CSV elsewhere) changes, run with
 `--fresh`.

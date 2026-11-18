@@ -25,7 +25,7 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "bun test ./test"
+    "test": "bun run build && bun test ./test"
   },
   "dependencies": {
     "sax": "catalog:"

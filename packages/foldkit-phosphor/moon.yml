@@ -6,3 +6,4 @@ tasks:
     script: 'tsc --noEmit'
   test:
     script: 'bun test ./test'
+    deps: ['build']

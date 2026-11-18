@@ -28,7 +28,6 @@ test('a packed consumer imports both entries in Node/Bun and resolves public typ
   const directory = await mkdtemp(path.join(tmpdir(), 'foldkit-phosphor-consumer-'));
   // oxlint-disable-next-line linteffect/no-try-catch -- Native fixture cleanup must also run when external verification rejects.
   try {
-    await exec('bun', ['run', 'build'], { cwd: workspace });
     await exec('bun', ['pm', 'pack', '--destination', directory], { cwd: workspace });
     const archive = path.join(directory, 'opsydyn-foldkit-phosphor-0.1.0.tgz');
     await writeFile(

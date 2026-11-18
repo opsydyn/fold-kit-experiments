@@ -74,6 +74,12 @@
 - Add typed tactical and strategic DDD relationship contracts, pure resolution and opt-in editor policy.
 - Preserve DDD descriptors across codecs, Undo and history; protect them from causal-only controls and audits.
 
+## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.6.1...foldkit-zloz-v0.6.2) (2026-11-18)
+
+### Bug Fixes
+
+- **zloz:** preserve mouse drops after early pointer capture loss ([8137923](https://github.com/opsydyn/fold-kit-experiments/commit/81379239d8a3b84459438649b7bc634dea9fcee5))
+
 ## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.6.0...foldkit-zloz-v0.6.1) (2026-11-16)
 
 ### Bug Fixes

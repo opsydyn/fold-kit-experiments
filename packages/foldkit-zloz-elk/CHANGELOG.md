@@ -8,6 +8,12 @@
 
 - Reserve caller-declared composite edge-label bounds in compound layouts and return validated world-coordinate boxes, including custom badges on unlabeled edges.
 
+## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-elk-v0.6.1...foldkit-zloz-elk-v0.6.2) (2026-11-18)
+
+### Miscellaneous Chores
+
+- **foldkit-zloz-elk:** Synchronize foldkit-zloz versions
+
 ## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-elk-v0.6.0...foldkit-zloz-elk-v0.6.1) (2026-11-16)
 
 ### Bug Fixes

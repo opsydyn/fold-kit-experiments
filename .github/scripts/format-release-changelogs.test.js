@@ -359,10 +359,13 @@ test('root tests include the hook while strict checks and workspace tests stay i
   );
   // The job's checks are the root ci:check script; tools/ci-parity.test.ts pins it.
   const ci = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/ci.yml')).text());
-  expect(ci.jobs.check.steps.filter((step) => step.run).map((step) => step.run)).toEqual([
+  const commands = ci.jobs.check.steps.filter((step) => step.run);
+  expect(commands.map((step) => step.run)).toEqual([
     'bun install --frozen-lockfile',
+    'bunx --no-install playwright install --with-deps --only-shell chromium',
     'bun run ci:check',
   ]);
+  expect(commands[1]['working-directory']).toBe('apps/zloz-team');
 });
 
 test('trusted formatter allowlist matches all configured release components', async () => {

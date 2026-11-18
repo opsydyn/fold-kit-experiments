@@ -74,6 +74,13 @@
 - Add typed tactical and strategic DDD relationship contracts, pure resolution and opt-in editor policy.
 - Preserve DDD descriptors across codecs, Undo and history; protect them from causal-only controls and audits.
 
+## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.6.2...foldkit-zloz-v0.7.0) (2026-11-18)
+
+
+### Features
+
+* **zloz:** add the Teams workspace and collaboration server ([#170](https://github.com/opsydyn/fold-kit-experiments/issues/170)) ([6d306d9](https://github.com/opsydyn/fold-kit-experiments/commit/6d306d988222d800f7a3c19c66a19988bfe1c807))
+
 ## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.6.1...foldkit-zloz-v0.6.2) (2026-11-18)
 
 ### Bug Fixes

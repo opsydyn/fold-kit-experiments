@@ -87,7 +87,8 @@ on the page, and a plot spec uses its value with \`{ "input": "name" }\`, most o
 \`"where": { "region": { "input": "region" } }\`, which keeps the rows a chart draws.
 \`where\` works without inputs too: \`"where": { "region": "North" }\`.
 \`"select": "region"\` on a chart of regions lets a reader click a bar (or a line's point)
-to choose it. A \`checkboxes\` input chooses several values at once. A
+to choose it. A \`checkboxes\` input chooses several values at once. Charts on a page
+with inputs read out the value under the pointer, using the axis labels: set them. A
 page's address keeps its inputs (\`sales.html?region=North\`), so a link can open a view.
 
 \`bunx foldkit-dash dev\` serves the site and rebuilds it as files change, for a person

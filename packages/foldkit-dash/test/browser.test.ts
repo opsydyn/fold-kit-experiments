@@ -106,6 +106,7 @@ async function interactivePage(javaScriptEnabled = true) {
   await Bun.write(join(dir, 'pages/sales.md'), interactive);
   await Bun.write(join(dir, 'data/shop.json'), JSON.stringify(sales));
   await Bun.write(join(dir, 'pages/trend.md'), trend);
+  await Bun.write(join(dir, 'pages/lines.md'), lines);
   await Bun.write(
     join(dir, 'data/regions.json'),
     JSON.stringify([
@@ -236,6 +237,12 @@ test('clicking a bar chooses its category, and the address keeps the choice', as
   await context.close();
 });
 
+const lines = [
+  '# Lines\n',
+  '```input\n{ "type": "select", "name": "focus", "label": "Focus", "options": ["north", "south"], "all": "Both" }\n```\n',
+  '```plot\n{ "width": 400, "height": 240, "data": "shop.json", "select": "focus", "marks": [{ "mark": "line", "x": "month", "y": "units", "stroke": "region" }] }\n```\n',
+].join('\n');
+
 // SEVERAL VALUES AT ONCE, AND CHOOSING A SERIES (ADR 0117)
 
 const trend = [
@@ -284,6 +291,88 @@ test('checkboxes filter to several values, and clicking a point chooses its seri
       ?.textContent?.includes('Feb, Apr'),
   );
   expect(await page.getByRole('checkbox', { name: 'south' }).isChecked()).toBe(true);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+// POINTING AT VALUES, KEYS AND THE LEGEND (ADR 0118)
+
+test('a read-out follows the pointer and the keys, and the legend chooses a series', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  await page.goto(url.replace('sales.html', 'trend.html'));
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  const readout = (at: number) =>
+    page.evaluate(
+      (index) =>
+        document.querySelectorAll('figure.chart')[index]?.querySelector('.readout')?.textContent ??
+        '',
+      at,
+    );
+  const readsOut = (at: number, text: string) =>
+    page.waitForFunction(
+      ([index, expected]) =>
+        document.querySelectorAll('figure.chart')[Number(index)]?.querySelector('.readout')
+          ?.textContent === expected,
+      [String(at), text] as const,
+    );
+  // Hovering a bar reads it out; leaving clears it.
+  const bars = page.locator('figure.chart').nth(1).locator('svg rect');
+  await bars.nth(2).hover({ force: true });
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('figure.chart')[1]?.querySelector('.readout')?.textContent !== '',
+  );
+  expect(await readout(1)).toBe('month Mar: units 15');
+  await page.mouse.move(0, 0);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('figure.chart')[1]?.querySelector('.readout')?.textContent === '',
+  );
+  // Keys step through the dot chart series by series; Enter chooses the series.
+  await page.locator('figure.chart').nth(0).focus();
+  await page.keyboard.press('ArrowRight');
+  await readsOut(0, 'north, month Jan: units 12');
+  await page.keyboard.press('ArrowRight');
+  await readsOut(0, 'north, month Mar: units 15');
+  await page.keyboard.press('End');
+  await readsOut(0, 'south, month Apr: units 6');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(
+    () => document.querySelector('select option:checked')?.textContent === 'south',
+  );
+  // A legend entry chooses what it names.
+  await page
+    .locator('figure.chart')
+    .nth(0)
+    .locator('.plot-legend li', { hasText: 'north' })
+    .click();
+  await page.waitForFunction(
+    () => document.querySelector('select option:checked')?.textContent === 'north',
+  );
+  expect(new URL(page.url()).search).toBe('?focus=north');
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test('a chosen line stands out and the others dim', async () => {
+  const { page, errors, context, url } = await interactivePage();
+  await page.goto(`${url.replace('sales.html', 'lines.html')}?focus=south`);
+  await page.waitForFunction(() => document.querySelector('[data-foldkit-app]') === null);
+  await page.waitForFunction(
+    () => document.querySelector('select option:checked')?.textContent === 'south',
+  );
+  const opacities = await page
+    .locator('figure.chart')
+    .nth(0)
+    .locator('svg path[fill="none"]')
+    .evaluateAll((paths) =>
+      paths.map((path) => [path.getAttribute('stroke'), Number(path.getAttribute('opacity'))]),
+    );
+  // North dims; south, the chosen series, stays lit.
+  expect(opacities).toEqual([
+    ['#4e79a7', 0.15],
+    ['#f28e2c', 1],
+  ]);
   expect(errors).toEqual([]);
   await context.close();
 });

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import { Option, Result } from 'effect';
 
-import { choiceAt, drawSpec } from '../src/chart';
+import { choiceAt, drawSpec, pointedAt, targetsOf } from '../src/chart';
 import {
   choicesOf,
   defaultsOf,
@@ -246,6 +246,25 @@ describe('choosing a series, and how a series moves (ADR 0117)', () => {
     expect(choiceAt(drawn, x, along(yAxis, 32) + 3)).toEqual(Option.some('south'));
     expect(choiceAt(drawn, x, along(yAxis, 4) - 3)).toEqual(Option.some('north'));
     expect(choiceAt(drawn, x, along(yAxis, 18))).toEqual(Option.none());
+  });
+
+  test('read-outs walk each series along x, and a pointer finds the nearest one', () => {
+    const targets = targetsOf(drawn, lines);
+    expect(targets.map((target) => target.text)).toEqual([
+      'north, week 2026-05-04: units 10',
+      'north, week 2026-05-11: units 9',
+      'north, week 2026-05-18: units 4',
+      'north, week 2026-05-25: units 12',
+      'south, week 2026-05-04: units 30',
+      'south, week 2026-05-11: units 31',
+      'south, week 2026-05-18: units 32',
+      'south, week 2026-05-25: units 33',
+    ]);
+    expect(targets[5]?.choice).toBe('south');
+    const sixth = targets[5];
+    if (sixth === undefined) return;
+    expect(pointedAt(drawn, targets, sixth.x + 3, sixth.y - 3)).toBe(5);
+    expect(pointedAt(drawn, targets, sixth.x, sixth.y + 60)).toBeUndefined();
   });
 
   test('a series reports its largest fall and rise in date order, not the rows order', () => {

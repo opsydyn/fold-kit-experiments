@@ -59,5 +59,6 @@ series (by its `stroke`, `fill` or `z` field, unless that field is the category 
 itself, as when bars are coloured by their own category) with its points, exact low and
 high, and every `x` each is reached at (two, when a low is reached in two weeks). For
 bars, those are the highest and lowest categories; horizontal bars (numbers on `x`) are
-measured along `x`. One series is named by its field and the `where` that chose its rows;
+measured along `x`. A chart drawing one series (no `stroke`, `fill` or `z` field) names
+it by its field and the `where` that chose its rows;
 several follow `color.domain` when the spec sets one, else the data's order.

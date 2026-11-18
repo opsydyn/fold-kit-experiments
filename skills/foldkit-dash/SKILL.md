@@ -49,9 +49,12 @@ your own; delete what you do not use.
    there; a low reached in two weeks names both. For bars, that is which category is
    highest and which lowest (`- revenue: 5 points, low 200560.5 at Scotland, high 509206.5
    at South East`), then every bar, highest first, up to 24 bars (`highest first: South
-   East 509206.5, London 400000, ...`): check a ranking there. A chart of one series names it
-   by its field and the `where` that chose its rows (`orders where region = Scotland`),
-   so a page filtered to the wrong part shows it. Series follow `color.domain` when the
+   East 509206.5, London 400000, ...`): check a ranking there. To claim a ranking or a
+   total, chart it (a bar per category from a totals loader), so `describe` can confirm
+   it. A chart drawing one series (no `stroke`, `fill` or `z` field) names it by its
+   field and the `where` that chose its rows (`orders where region = Scotland`), so a
+   page filtered to the wrong part shows it; a chart with a `stroke` field names each
+   series by its value (`Scotland`), filtered or not. Series follow `color.domain` when the
    spec sets one. `describe` does not say what happens between the low and the high:
    for "dips in July, then climbs", look at the data. `describe --at region=North` (repeatable) describes charts with inputs set
    instead of their defaults.
@@ -100,8 +103,10 @@ only some choices of an input cause says which: `with region = "West": ...`.
 `charts` lists every chart that drew, `{ file, line, summary, at, series }`, the
 summary as `describe` prints it, drawn at `at`: its inputs' defaults, or the `--at`
 values (`describe` prints them as `[region = "North"]`); `series` holds each series'
-`name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached). `inputs` lists every input, `{ file, line, name, type, value,
-choices }`.
+`name`, `count`, `low` and `high` (`{ y, x }`, `x` listing every place `y` is reached),
+and for a bar chart of up to 24 bars `ranked` (`[{ x, y }]`, highest first); `selects`
+is the input a reader sets by clicking the chart, or `null`. `inputs` lists every input,
+`{ file, line, name, type, value, choices }`.
 
 ## Pages
 
@@ -180,7 +185,8 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   (default: the name). Inputs belong to their page.
 - When a filter changes which series a chart shows, its colours are reassigned: set
   `color.domain` to every series so each keeps its colour, as above. With a fixed
-  `color.domain`, `describe` names every group in it, drawn or not.
+  `color.domain`, the summary (`describe`, and what a screen reader hears) says which
+  groups are drawn: `Colour shows region (1 of 5 groups drawn: Wales)`.
 - `where` filters fixed fields: an input can choose a value, not which field is
   filtered. For one threshold on whichever measure is shown, make the data long in the
   loader (`{ week, measure, value }`, a row per measure) and filter `value`, with the
@@ -209,8 +215,9 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   select stays on the page: it is the keyboard's way to choose.
 - A page's inputs live in its address: choosing North and 300 makes it
   `sales.html?region=North&floor=300`, and that link opens the page with them. Values
-  a page cannot take are ignored. Prose can link to a view: `[North in
-  detail](sales.md?region=North)`.
+  a page cannot take are ignored. Prose can link to a view of any page, its own
+  included: `[North in detail](sales.md?region=North)`. A link cannot hold a space:
+  write `South%20East` (the page writes `South+East`; both work).
 - A page with inputs carries its charts' rows in the page, so readers' choices need no
   server: keep a page's data to what its charts need (summarise in the loader). For
   scale, 260 rows of six fields made a 91 KB page; aim for thousands of rows, not

@@ -71,6 +71,35 @@ changes the address without adding a history entry.
 - **The hash instead of the query.** The query is what servers and analytics read, and
   `file://` pages keep it too; the hash stays free for headings.
 
+## Acceptance (2026-11-18)
+
+A fresh agent, given only the skill, built the dashboard it was asked for: "a bar chart of
+each region's season revenue that a reader can click to pick a region, which filters a
+weekly orders line chart below it; a select for the region too", with the regions in
+order and a link to the page showing Scotland. It used two Python loaders. `check`
+exited 0 on both runs, `describe` confirmed the full ranking from its `highest first`
+list, and `describe --at region=Scotland` confirmed what the link shows. In Chromium,
+from `file://`:
+
+- clicking the Wales bar chose Wales in the select, filtered the line chart, dimmed the
+  other bars and set the address to `?region=Wales`;
+- clicking it again restored all regions and a plain address;
+- choosing in the select highlighted the bar;
+- the Scotland link opened the page on Scotland;
+- the console showed no errors.
+
+It found one defect, fixed before merging. With a fixed `color.domain`, a chart filtered
+to one region told screen readers "Colour shows region (5 groups: ...)". foldkit-viz's
+summary now says which groups are drawn: `(1 of 5 groups drawn: Wales)`.
+
+The skill now:
+
+- lists the envelope's `ranked` and `selects`;
+- says when a single series is named by its `where`;
+- says to chart a ranking or total in order to claim it;
+- says how to link to a view of a page, including the page itself and values with
+  spaces.
+
 ## Not in stage 4
 
 Hover read-outs, brushing a range to set a `range` input, clicking lines, dots or legend

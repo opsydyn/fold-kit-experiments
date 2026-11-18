@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 
 import { Window } from 'happy-dom';
 
+import { createEditor, updateEditor } from '../src/editor';
 import { bindInput, bindMinimapInput } from '../src/input';
 import type { EditorEvent } from '../src/types';
 
@@ -879,3 +880,107 @@ test('native opt-in pointer origin survives surface reflow while legacy coordina
     window.happyDOM.abort();
   }
 });
+
+function mouseDragFixture() {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: window.PointerEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  document.body.innerHTML =
+    '<div data-flow-surface><button data-flow-handle="a">Alpha</button></div><div id="outside"></div>';
+  const surface = document.querySelector<HTMLElement>('[data-flow-surface]')!;
+  const handle = surface.querySelector('button')!;
+  const outside = document.getElementById('outside')!;
+  surface.setPointerCapture = () => {};
+  surface.hasPointerCapture = () => false;
+  surface.getBoundingClientRect = () => new window.DOMRect(0, 0, 400, 300);
+  let editor = createEditor({
+    nodes: [
+      {
+        id: 'a',
+        label: 'Alpha',
+        position: { x: 10, y: 20 },
+        size: { width: 100, height: 50 },
+        ports: [],
+      },
+    ],
+    edges: [],
+  });
+  const events: EditorEvent[] = [];
+  const input = {
+    [Symbol.dispose]: bindInput(surface, (event) => {
+      events.push(event);
+      editor = updateEditor(editor, event);
+    }),
+  };
+  events.length = 0;
+  const pointer = (
+    target: EventTarget,
+    type: string,
+    clientX: number,
+    buttons: number,
+    button = 0,
+  ) =>
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: 7,
+        pointerType: 'mouse',
+        clientX,
+        clientY: 35,
+        button,
+        buttons,
+        bubbles: true,
+      }),
+    );
+  pointer(handle, 'pointerdown', 30, 1);
+  pointer(surface, 'pointermove', 60, 1);
+  return {
+    window,
+    input,
+    surface,
+    outside,
+    pointer,
+    get editor() {
+      return editor;
+    },
+    outcomes: () =>
+      events.filter(({ type }) => type === 'PointerReleased' || type === 'GestureCancelled'),
+  };
+}
+
+test('a mouse drop after early capture loss commits at the real release position once', () => {
+  const drag = mouseDragFixture();
+  const { surface, outside, pointer } = drag;
+  using _input = drag.input;
+  pointer(surface, 'lostpointercapture', 65, 0);
+  pointer(outside, 'pointermove', 65, 0);
+  pointer(outside, 'pointerup', 70, 0);
+  pointer(surface, 'pointerup', 70, 0);
+
+  expect(drag.editor.graph.nodes[0]?.position).toEqual({ x: 50, y: 20 });
+  expect(drag.editor.past).toHaveLength(1);
+  expect(drag.outcomes()).toEqual([{ type: 'PointerReleased', pointer: 7 }]);
+});
+
+test.each(['button held', 'pointercancel', 'blur', 'new press', 'no release'] as const)(
+  'capture loss followed by %s cancels without committing',
+  async (reason) => {
+    const drag = mouseDragFixture();
+    const { surface, outside, pointer, window } = drag;
+    using _input = drag.input;
+    pointer(surface, 'lostpointercapture', 65, reason === 'button held' ? 1 : 0);
+    if (reason === 'pointercancel') pointer(outside, 'pointercancel', 65, 0);
+    if (reason === 'blur') window.dispatchEvent(new window.Event('blur'));
+    if (reason === 'new press') pointer(outside, 'pointerdown', 65, 1);
+    if (reason === 'no release') {
+      pointer(surface, 'pointerup', 65, 0, 2);
+      await Bun.sleep(160);
+    }
+    pointer(outside, 'pointerup', 70, 0);
+    expect(drag.editor.graph.nodes[0]?.position).toEqual({ x: 10, y: 20 });
+    expect(drag.editor.past).toEqual([]);
+    expect(drag.outcomes()).toEqual([{ type: 'GestureCancelled' }]);
+  },
+);

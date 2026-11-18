@@ -121,6 +121,17 @@ describe('foldkit-dash', () => {
   });
 });
 
+describe('the published demo', () => {
+  test('examples/sales checks clean, so the Pages build cannot ship a broken page', () => {
+    const demo = join(import.meta.dir, '..', 'examples', 'sales');
+    const checked = run('check', '-C', demo, '--json');
+    expect(checked.code).toBe(0);
+    const envelope = envelopeOf(checked.out);
+    expect(envelope.pages).toEqual(['pages/compare.md', 'pages/index.md', 'pages/period.md']);
+    expect(envelope.charts.length).toBe(6);
+  });
+});
+
 describe('interactive pages', () => {
   const page = [
     '# Units\n',

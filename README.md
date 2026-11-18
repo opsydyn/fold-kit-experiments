@@ -289,6 +289,7 @@ bun run --filter @opsydyn/web dev
 - **[effect-three](https://opsydyn.github.io/fold-kit-experiments/three/)** — live 3D examples, their source and a guide
 - **[Charts](https://opsydyn-web.opsydyn.workers.dev/charts)** — live demo app (Cloudflare Workers)
 - **[Tech radar](https://techradar.opsydyn.xyz/)** — the 3D tech radar and its full pages, from markdown (Cloudflare Workers)
+- **[Dashboard demo](https://opsydyn.github.io/fold-kit-experiments/dash/)** — a foldkit-dash site of weekly sales: click, compare, brush a period (GitHub Pages)
 - **[Docs](https://opsydyn.github.io/fold-kit-experiments/docs/)** — decisions, spikes, releases and working notes, from `docs/` (GitHub Pages)
 - **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer (GitHub Pages)
 - **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc (GitHub Pages)

@@ -36,7 +36,11 @@ Nested frame identity and light/dark styling follow the Viz and Three family.
   APIs; its compatibility panel lists adapter and interaction limits.
 - **Read:** [API/type contracts](https://opsydyn.github.io/fold-kit-experiments/zloz/api/),
   [workbench guide](apps/zloz-demo/README.md),
-  [promo guide](apps/zloz-promo/README.md) and [hosting](infra/zloz/README.md).
+  [promo guide](apps/zloz-promo/README.md) and [workbench hosting](infra/zloz/README.md).
+- **Teams:** The private [Teams workspace](apps/zloz-team/README.md) provides shared
+  editing, team roles and checkpoint recovery. The [Teams server](apps/zloz-server/README.md)
+  owns authentication and authoritative diagram operations. Start locally with
+  `bun run dev:zloz-team` after following the workspace setup.
 
 The package family is `@opsydyn/foldkit-zloz*`. Preferred public types and views use
 `Zloz*` and `zloz*`; deprecated aliases preserve existing code.
@@ -52,7 +56,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 | [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                         |
 | [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid projections, portable review packets and conversion-loss reporting                           |
 | [`@opsydyn/foldkit-zloz-cli`](packages/foldkit-zloz-cli/)         | Private Effect CLI: model validation, causal audits, review packets, Mermaid bundles and JSON diagnostics |
-| [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private read-only Domain inspection and SDK-free portable projection; compatibility gates retained        |
+| [`@opsydyn/foldkit-zloz-alchemy`](packages/foldkit-zloz-alchemy/) | Private Domain inspection, portable projection and the Teams collaboration adapter                        |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import remains separate work. See the
@@ -115,32 +119,37 @@ for checks and limitations.
 ```text
 fold-kit-experiments/
 ├── apps/
-│   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
-│   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
-│   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
-│   ├── zloz-promo/        — Zloz promo: shared family identity, native Compose example, highlighted source
-│   ├── zloz-demo/       — Zloz architecture workbench: persistent canvas and left controls
-│   ├── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
-│   ├── polars-summary/    — Bun server: Polars bins a million rows per request; only the summary is plotted
-│   └── docs/              — docs/ as a Starlight site: decisions, spikes, releases, working notes
+│   ├── web/                   — Astro examples, visualisation workbenches and Storybook
+│   ├── promo/                 — FoldKit Viz promo site
+│   ├── three-promo/           — effect-three promo site and live 3D examples
+│   ├── zloz-promo/            — Zloz promo and native Compose example
+│   ├── zloz-demo/             — standalone Zloz architecture workbench
+│   ├── zloz-team/             — private multiplayer workspace and its staging stack
+│   ├── zloz-server/           — private Teams Worker for auth, roles and shared diagrams
+│   ├── tech-radar/            — tech radar site and 3D radar
+│   ├── polars-summary/        — Bun server for Polars aggregation
+│   └── docs/                  — Starlight site for repository documentation
 ├── infra/
-│   ├── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
-│   └── zloz/              — independent Alchemy stack for zloz.opsydyn.xyz; no npm release
+│   ├── tech-radar/            — Cloudflare deployment for the tech radar
+│   └── zloz/                  — Cloudflare deployment for the standalone Zloz workbench
 └── packages/
-    ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
-    ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
-    ├── dataset-explorer/ — private shared KeyedQuery example for both apps
-    ├── foldkit-zloz/      — Zloz graph core and optional Foldkit views (published to npm)
-    ├── foldkit-zloz-elk/  — Zloz ELK layout adapter (published to npm)
-    ├── foldkit-zloz-force/ — Zloz force layout/routing adapter (published to npm)
-    ├── foldkit-zloz-mermaid/ — Zloz loss-aware Mermaid export (published to npm)
-    ├── foldkit-zloz-cli/  — Standalone Effect CLI and agent JSON contracts (private)
-    ├── foldkit-zloz-alchemy/ — Domain inspection and portable projection (private)
-    ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
-    ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
-    ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)
-    ├── effect-three-troika/  — @opsydyn/effect-three-troika  (for npm; troika label engine)
-    └── effect-three-samples/ — private effect-three samples shared by apps/web and three-promo
+    ├── astro-foldkit/         — Astro renderer for FoldKit islands and SSR/SSG pages
+    ├── foldkit-viz/           — visualisation primitives for FoldKit
+    ├── foldkit-viz-py/        — Python and Jupyter widget for Viz plots
+    ├── foldkit-dash/          — private Markdown and Viz dashboard builder
+    ├── dataset-explorer/      — private shared KeyedQuery example
+    ├── foldkit-phosphor/      — private FoldKit Phosphor renderer and SVG compiler
+    ├── foldkit-zloz/          — Zloz graph and editor core with optional FoldKit views
+    ├── foldkit-zloz-elk/      — optional ELK layout adapter
+    ├── foldkit-zloz-force/    — optional force layout and routing adapter
+    ├── foldkit-zloz-mermaid/  — Mermaid projection and conversion-loss reporting
+    ├── foldkit-zloz-cli/      — private Effect CLI and portable JSON contracts
+    ├── foldkit-zloz-alchemy/  — private Domain inspection, projection and Teams collaboration
+    ├── effect-three/          — Effect-native declarative Three.js core
+    ├── effect-three-foldkit/  — FoldKit adapter for effect-three
+    ├── effect-three-rapier/   — Rapier physics for effect-three
+    ├── effect-three-troika/   — Troika labels for effect-three
+    └── effect-three-samples/  — private 3D samples shared by the demo and promo sites
 ```
 
 ## Prerequisites
@@ -225,6 +234,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run dev:tech-radar`     | Start the tech radar at `localhost:4326`              |
 | `bun run dev:docs`           | Start the docs site at `localhost:4327`               |
 | `bun run dev:polars-summary` | Start the Polars summary server at `localhost:4330`   |
+| `bun run dev:zloz-team`      | Start the local Teams workspace at `localhost:4331`   |
 | `bun run test`               | Run all workspace test scripts sequentially           |
 | `bun typecheck`              | Typecheck all workspaces                              |
 | `bun run check`              | oxlint + oxfmt format check                           |

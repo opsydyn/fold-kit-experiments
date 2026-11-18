@@ -39,6 +39,7 @@ test('packed adapter has portable declarations and executes recovery on Node and
       'effect@4.1.0',
       'foldkit@0.170.0',
       '@effect/platform-browser@4.1.0',
+      '@alchemy.run/domain@2.0.0-beta.85',
       'alchemy@2.0.0-beta.85',
     ],
     {

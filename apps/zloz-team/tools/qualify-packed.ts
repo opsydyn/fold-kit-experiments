@@ -33,6 +33,7 @@ async function qualifyPacked() {
     artifacts.core,
     artifacts.adapter,
     '@alchemy.run/cloudflare@2.0.0-beta.85',
+    '@alchemy.run/domain@2.0.0-beta.85',
     'alchemy@2.0.0-beta.85',
     'effect@4.1.0',
     'foldkit@0.170.0',

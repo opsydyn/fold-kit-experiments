@@ -75,6 +75,48 @@ fact.
   be mapped to the drawing without the client position; the Mount reads it where the
   event happens.
 
+## Acceptance (2026-11-18)
+
+A fresh agent, given only the skill, built the dashboard it was asked for:
+
+- a weekly orders line chart of all regions, where choosing a region (by its line, its
+  legend entry or the keyboard) highlights it and filters a revenue chart;
+- exact values readable from the charts;
+- prose naming the regions that peaked earliest and latest.
+
+`check` exited 0 on every run, and `describe` confirmed every claim it kept. In
+Chromium, from `file://`, using the keyboard only:
+
+- two Tabs reached the chart;
+- arrows read `Scotland, Week starting 2026-05-04: Orders 200` and on;
+- End then Enter chose South East, highlighted its line and filtered the revenue chart.
+
+With the mouse, hovering read out values, clicking a legend entry and clicking a line
+both chose a region, and the other lines dimmed to 0.15. The console showed no errors.
+
+It found one defect and one layout bug, both fixed before merging:
+
+- **Enter could choose the wrong region.** Pressed straight after End, Enter chose the
+  value pointed at before End: the key handler read the model the page was last drawn
+  with. Chart keys are now a Message, applied in `update` to the model as it is.
+- **Pages were thousands of pixels too tall.** foldkit-viz's visually hidden data table
+  kept its full height, because a table does not shrink to 1px. The hiding is now on a
+  wrapper, in foldkit-viz, for static pages too.
+
+Also changed or documented:
+
+- A chart's tab stop is now named ("interactive chart", with its keys).
+- Read-outs group thousands.
+- The skill now gives:
+  - the full key list;
+  - where axis labels go;
+  - that read-outs update after the event;
+  - that the legend is pointer-only and lists every group;
+  - that claims across series are checked by comparing their `describe` lines.
+
+Still open: a key to jump between series, a visible key hint, legend entries for the
+keyboard, and data tables headed by axis labels.
+
 ## Not in stage 6
 
 Brushing a range, read-outs on static pages, reading every series at one `x` together,

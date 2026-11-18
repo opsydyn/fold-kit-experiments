@@ -44,6 +44,14 @@ export const Flags = Schema.Struct({
 });
 export type Flags = typeof Flags.Type;
 
+/** A chart key's command, as foldkit-viz's keyboard contract gives it. */
+const ChartKey = Schema.Union([
+  Schema.TaggedStruct('Step', { by: Schema.Int }),
+  Schema.TaggedStruct('Jump', { to: Schema.Literals(['first', 'last']) }),
+  Schema.TaggedStruct('Clear', {}),
+  Schema.TaggedStruct('Select', {}),
+]);
+
 /** The value a reader points at (ADR 0118): the chart, by its fence's line, and the target. */
 const Pointed = Schema.NullOr(Schema.Struct({ line: Schema.Int, index: Schema.Int }));
 
@@ -63,6 +71,8 @@ export const Message = defineMessageUnion({
   PointedChart: { line: Schema.Int, index: Schema.NullOr(Schema.Int) },
   /** A chart's pointer forwarding is in place. */
   CompletedForwardPointer: {},
+  /** A reader pressed one of a chart's keys (ADR 0118). */
+  PressedChartKey: { line: Schema.Int, command: ChartKey },
 });
 export type Message = typeof Message.Type;
 
@@ -117,7 +127,37 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       model: { ...model, pointed: index === null ? null : { line, index } },
     }),
     CompletedForwardPointer: () => ({ model }),
+    PressedChartKey: ({ line, command }) => pressedKey(model, line, command),
   });
+
+/**
+ * A chart key, applied to the model as it is now (not as it was drawn), so keys pressed
+ * faster than the page redraws each act on the one before: End then Enter chooses what
+ * End pointed at.
+ */
+const pressedKey = (
+  model: Model,
+  line: number,
+  command: typeof ChartKey.Type,
+): Return<Model, Message> => {
+  const section = model.sections.find((each) => each._tag === 'Chart' && each.line === line);
+  if (section?._tag !== 'Chart') return { model };
+  const drawn = drawSpec(section.spec, new Map(Object.entries(model.data)), model.values);
+  if (Result.isFailure(drawn)) return { model };
+  const targets = targetsOf(drawn.success, section.spec);
+  const current = model.pointed?.line === line ? model.pointed.index : undefined;
+  if (command._tag !== 'Select') {
+    const next = targets.length === 0 ? undefined : targetAfter(targets.length, current, command);
+    return { model: { ...model, pointed: next === undefined ? null : { line, index: next } } };
+  }
+  const target = current === undefined ? undefined : targets[current];
+  const input = inputsOf(model.sections).find((each) => each.name === drawn.success.selects?.input);
+  if (target?.choice == null || input?._tag !== 'Choose') return { model };
+  const choice = input.choices.find((each) => String(each) === target.choice);
+  if (choice === undefined) return { model };
+  const now = model.values[input.name] ?? null;
+  return choose(model, input.name, now === choice && input.all !== null ? null : choice);
+};
 
 /** A select's or radio's option value: the choice's index, `-1` for `all`. */
 const indexOf = (input: Extract<Input, { readonly _tag: 'Choose' }>, value: InputValue): string =>
@@ -288,38 +328,17 @@ const ForwardPointer = Mount.define('ForwardDashChartPointer', {
   },
 });
 
-/** The message for choosing what a target picks, as a press on it would. */
-const chooseTarget = (
-  model: Model,
-  drawn: Drawn,
-  target: Target | undefined,
-): Option.Option<Message> => {
-  const input = inputsOf(model.sections).find((each) => each.name === drawn.selects?.input);
-  if (target?.choice == null || input?._tag !== 'Choose') return Option.none();
-  const choice = input.choices.find((each) => String(each) === target.choice);
-  if (choice === undefined) return Option.none();
-  const current = model.values[input.name] ?? null;
-  const value = current === choice && input.all !== null ? null : choice;
-  return Option.some(Message.ClickedChart({ name: input.name, value }));
-};
-
 /**
  * A chart's keys (ADR 0118): arrows, Page Up and Down, Home and End step through its
  * values, Escape stops pointing, and Enter or Space chooses the value pointed at on a
- * chart that selects. Other keys keep their default.
+ * chart that selects. Other keys keep their default. The update applies them.
  */
 const chartKeys =
-  (model: Model, drawn: Drawn, line: number, targets: ReadonlyArray<Target>) =>
-  (key: string, modifiers: Parameters<typeof chartCommandOf>[1]): Option.Option<Message> => {
-    const command = chartCommandOf(key, modifiers);
-    if (command === undefined || targets.length === 0) return Option.none();
-    const current = model.pointed?.line === line ? model.pointed.index : undefined;
-    if (command._tag === 'Select') {
-      return current === undefined ? Option.none() : chooseTarget(model, drawn, targets[current]);
-    }
-    const next = targetAfter(targets.length, current, command);
-    return Option.some(Message.PointedChart({ line, index: next ?? null }));
-  };
+  (line: number) =>
+  (key: string, modifiers: Parameters<typeof chartCommandOf>[1]): Option.Option<Message> =>
+    Option.map(Option.fromUndefinedOr(chartCommandOf(key, modifiers)), (command) =>
+      Message.PressedChartKey({ line, command }),
+    );
 
 const chart = (
   h: HtmlBuilder<Message>,
@@ -340,6 +359,13 @@ const chart = (
         [
           h.Class(drawn.selects === null ? 'chart' : 'chart selects'),
           h.Tabindex(0),
+          // Its name says what the chart answers; the drawing keeps its own summary.
+          h.Attribute('aria-roledescription', 'interactive chart'),
+          h.AriaLabel(
+            drawn.selects === null
+              ? 'Chart: arrow keys read its values'
+              : `Chart: arrow keys read its values, Enter chooses one for ${drawn.selects.input}`,
+          ),
           h.OnMount(ForwardPointer({ width: drawn.geometry.width, height: drawn.geometry.height })),
           events.OnDashChartPointer(({ x, y }) =>
             Message.PointedChart({
@@ -350,7 +376,7 @@ const chart = (
           h.OnPointerLeave(() =>
             Option.some(Message.PointedChart({ line: section.line, index: null })),
           ),
-          h.OnKeyDownPreventDefault(chartKeys(model, drawn, section.line, targets)),
+          h.OnKeyDownPreventDefault(chartKeys(section.line)),
           ...(drawn.selects === null ? [] : [h.OnPointerDown(clicked(model, drawn))]),
         ],
         [

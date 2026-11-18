@@ -470,6 +470,11 @@ const fieldsOf = (spec: JsonObject): Option.Option<Fields> => {
   });
 };
 
+/** Every digit, grouped by thousands for a reader (`14,764.5`); anything else as it is. */
+const grouped = new Intl.NumberFormat('en', { maximumFractionDigits: 20 });
+const readable = (value: Json | undefined): string =>
+  isNumber(value) ? grouped.format(value) : String(value ?? '');
+
 /**
  * A value a reader can point at (ADR 0118): where it is drawn, in the chart's pixels,
  * what it reads as, and what choosing it picks on a chart that selects.
@@ -522,7 +527,7 @@ export const targetsOf = (drawn: Drawn, spec: JsonObject): ReadonlyArray<Target>
     const py = pixelOf(yAxis, row[fields.y]);
     if (px === undefined || py === undefined) return [];
     const series = by === null ? '' : `${String(row[by] ?? '')}, `;
-    const text = `${series}${fields.xLabel} ${String(row[fields.x] ?? '')}: ${fields.yLabel} ${String(row[fields.y] ?? '')}`;
+    const text = `${series}${fields.xLabel} ${readable(row[fields.x])}: ${fields.yLabel} ${readable(row[fields.y])}`;
     return [{ x: px, y: py, text, choice: choiceOf(row) }];
   });
 };

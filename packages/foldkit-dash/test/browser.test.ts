@@ -334,9 +334,10 @@ test('a read-out follows the pointer and the keys, and the legend chooses a seri
   await readsOut(0, 'north, month Jan: units 12');
   await page.keyboard.press('ArrowRight');
   await readsOut(0, 'north, month Mar: units 15');
+  // End then Enter at once: Enter chooses what End pointed at, not what was drawn.
   await page.keyboard.press('End');
-  await readsOut(0, 'south, month Apr: units 6');
   await page.keyboard.press('Enter');
+  await readsOut(0, 'south, month Apr: units 6');
   await page.waitForFunction(
     () => document.querySelector('select option:checked')?.textContent === 'south',
   );
@@ -350,6 +351,12 @@ test('a read-out follows the pointer and the keys, and the legend chooses a seri
     () => document.querySelector('select option:checked')?.textContent === 'north',
   );
   expect(new URL(page.url()).search).toBe('?focus=north');
+  // Hidden data tables do not lengthen the page.
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight - document.body.getBoundingClientRect().height,
+    ),
+  ).toBeLessThan(100);
   expect(errors).toEqual([]);
   await context.close();
 });

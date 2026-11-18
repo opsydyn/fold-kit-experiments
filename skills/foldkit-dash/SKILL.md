@@ -1,6 +1,6 @@
 ---
 name: foldkit-dash
-description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, checkboxes, range, checkbox) that filter and change charts, charts (bars, series or legend entries) a reader clicks or steps through with keys to choose an input, read-outs of the value pointed at, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, largest falls and rises, at any input values), build and dev loop, and the same commands as MCP tools.
+description: Use when building or changing a data dashboard with @opsydyn/foldkit-dash, Markdown pages whose ```plot fences hold foldkit-viz plot specs as JSON, fed by build-time data loaders, with ```input fences (select, radio, checkboxes, between, range, checkbox) that filter and change charts, charts (bars, series or legend entries) a reader clicks or steps through with keys to choose an input, read-outs of the value pointed at, brushing a span of dates or numbers, page addresses that keep the inputs, built to static HTML that only ships JavaScript where a page has inputs. Covers starting a project, writing pages, specs, inputs and loaders (TypeScript, JavaScript, Python, shell or R; JSON, CSV or TSV; Parquet through DuckDB or Polars), filtering with where, the check, describe (per series, bars ranked, largest falls and rises, at any input values), build and dev loop, and the same commands as MCP tools.
 ---
 
 # foldkit-dash
@@ -52,7 +52,10 @@ your own; delete what you do not use.
    at South East`), then every bar, highest first, up to 24 bars (`highest first: South
    East 509206.5, London 400000, ...`): check a ranking there. To claim a ranking or a
    total, chart it (a bar per category from a totals loader), so `describe` can confirm
-   it. A chart drawing one series (no `stroke`, `fill` or `z` field) names it by its
+   it. For totals over a period the reader chooses, stack bars by the period's unit (`x`
+   the category, `z` the week, `"stack": "zero"`, `where` with the span): `describe` then
+   leads with `total orders: ... highest first: South East 4172, London 3576, ...`, each
+   category's sum within the span, before a line per stacked piece. A chart drawing one series (no `stroke`, `fill` or `z` field) names it by its
    field and the `where` that chose its rows (`orders where region = Scotland`), so a
    page filtered to the wrong part shows it; a chart with a `stroke` field names each
    series by its value (`Scotland`), filtered or not. Series follow `color.domain` when the
@@ -191,6 +194,19 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   `where` as `{ "min": { "input": "floor" } }`.
 - `checkbox`: `value` true or false (default false); use it to filter a boolean field,
   or as a value in the spec.
+- `between`: a span from one end to another, of numbers or ISO dates: `{ "type":
+  "between", "name": "weeks", "label": "Weeks", "options": { "data": "weekly.json",
+  "field": "week" } }` takes the field's least and greatest values (or give `min` and
+  `max`; `step` for numbers). Its value is `{ "min", "max" }`, the whole span by default;
+  the page shows From and to fields and an All button; what is typed applies when the
+  field is left or Enter is pressed. Use it in `where` as the condition
+  itself: `"where": { "week": { "input": "weeks" } }` keeps the rows between the ends,
+  both included. Dates compare as text, so keep them one form (`2026-06-01`). In `--at`
+  and the address, `from..to`: `--at weeks=2026-06-01..2026-08-31`; ends past the input's
+  are brought to them, so a calendar period works (`..2026-10-31` for data ending on the
+  26th), and a span that misses them is refused. Both ends are always given. `check`
+  draws its charts at the default and the whole span (one draw, `choices: 1`, when the
+  default is the whole span).
 - `checkboxes`: several values at once. `options` as a select's; `value` is the list
   ticked at first (default: every option). Its value is the list ticked, and in `where`
   a list keeps rows matching any of it (`"where": { "region": { "input": "regions" } }`;
@@ -236,6 +252,12 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   each other: a focus select can name a region a `checkboxes` input has unticked, and
   a chart filtered by the focus still shows it. Say so in the prose, or let one chart
   use both (`"where": { "region": { "input": "focus" } }` on the detail chart only).
+- `"brush": "weeks"` on a plot spec lets a reader drag across the chart to set the
+  `weeks` span: the ends dragged across, each snapped to the nearest `x` the chart draws
+  (a week start on weekly data). A click sets the whole span back, and the chart shows the span chosen
+  as a band. `check` requires an `x` of numbers or dates and a `between` input of the
+  same kind. Put `brush` on a chart of the whole period and `where` with the input on the
+  charts it should narrow; the brushed chart keeps its whole period, to drag in.
 - On a page with inputs, every chart reads out the value under the pointer in a line
   beneath it, announced to screen readers: the series, then `x` and `y` by their axis
   labels, numbers grouped by thousands (`Wales, Week starting 2026-07-27: Orders 259`).
@@ -244,17 +266,17 @@ with `{ "input": "name" }`, anywhere: in `where`, as a field to plot, in a title
   or the nearest point within 24 pixels.
 - Each chart on such a page takes a tab stop, named "interactive chart". Its keys:
   Right or Down steps forward (the first press reads the first value), Left or Up back,
-  Page Down and Page Up ten at a time, Home and End to the first and last value, and
-  Escape stops. Values are read one series at a time, each along `x`, and stepping past
-  the last wraps to the first; there is no key to jump to the next series. On a chart
-  that selects, Enter or Space chooses the value read out (again, to go back to `all`).
-  The page shows no hint of these keys: say them in the prose near the chart.
+  Shift with Down or Up to the next or previous series, Page Down and Page Up ten at a
+  time, Home and End to the first and last value, and Escape stops. Values are read one
+  series at a time, each along `x`, and stepping past the last wraps to the first. On a
+  chart that selects, Enter or Space chooses the value read out (again, to go back to
+  `all`). A focused chart shows its keys in the read-out line until a value is read.
 - Legend entries choose with a pointer only; the select and the chart's keys are the
   keyboard's way. A legend lists every group in `color.domain`, drawn or not.
 - Read-outs and choices update after the event, on the page's next draw: a script that
   checks them waits for the text (Playwright's `waitForFunction`), not the next line.
-- Static pages have none of this; their figures keep their summary and a data table
-  (headed by field names) for screen readers.
+- Static pages have none of this; their figures keep their summary and a data table for
+  screen readers, headed by the axis and colour labels (else the field names).
 - A page's inputs live in its address: choosing North and 300 makes it
   `sales.html?region=North&floor=300`, and that link opens the page with them. Values
   a page cannot take are ignored. Prose can link to a view of any page, its own
@@ -313,7 +335,7 @@ answers as an error with the reason. In this repository, `.mcp.json` registers i
 
 ## Not yet
 
-No brushing a range, no read-outs on static pages, no Parquet or database reading without a loader, and no
+No brushing on `y` or in two dimensions, no read-outs on static pages, no Parquet or database reading without a loader, and no
 streaming loaders. `dev` watches
 `pages/` and `data/` only: when a loader's source (a CSV elsewhere) changes, run with
 `--fresh`.

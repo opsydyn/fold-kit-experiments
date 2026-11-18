@@ -186,6 +186,22 @@ const TABLE_CHANNELS: ReadonlyArray<ChannelName> = [
   'r',
 ];
 
+/**
+ * A column's heading: the label of the scale its field is plotted on (`x` or `y` for
+ * positions, `color` for fill and stroke), when the spec gives one; else the field.
+ */
+function headingOf(spec: PlotSpec, field: string, channel: ChannelName): string {
+  const scale = channel.startsWith('x')
+    ? spec.x
+    : channel.startsWith('y')
+      ? spec.y
+      : channel === 'fill' || channel === 'stroke'
+        ? spec.color
+        : undefined;
+  const label = scale?.label ?? '';
+  return label === '' ? field : label;
+}
+
 const cell = (value: Value | undefined): string =>
   value === null || value === undefined ? '' : isNumber(value) ? readable(value) : String(value);
 
@@ -194,7 +210,8 @@ const rowsOf = (spec: PlotSpec, mark: MarkSpec): ReadonlyArray<Row> =>
 
 /**
  * The data a spec plots, as a table: the first mark that reads fields, with a
- * column for each field it reads, in a reading order (title first, then
+ * column for each field it reads (headed by its axis or colour label when the
+ * spec gives one), in a reading order (title first, then
  * positions, then values and colours). At most `limit` rows (default 200);
  * `total` says how many there are.
  */
@@ -202,18 +219,26 @@ export function plotTable(spec: PlotSpec, options: Readonly<{ limit?: number }> 
   const caption = spec.title ?? 'Chart data';
   for (const mark of spec.marks) {
     const fields: string[] = [];
+    const headers: string[] = [];
     for (const name of TABLE_CHANNELS) {
       const field = fieldOf(channelOf(mark, name));
-      if (field !== undefined && !fields.includes(field)) fields.push(field);
+      if (field !== undefined && !fields.includes(field)) {
+        fields.push(field);
+        headers.push(headingOf(spec, field, name));
+      }
     }
     if (mark.mark === 'parallel')
-      for (const d of mark.dimensions) if (!fields.includes(d)) fields.push(d);
+      for (const d of mark.dimensions)
+        if (!fields.includes(d)) {
+          fields.push(d);
+          headers.push(d);
+        }
     if (fields.length === 0) continue;
     const rows = rowsOf(spec, mark);
     const limit = Math.max(1, Math.floor(options.limit ?? 200));
     return {
       caption,
-      headers: fields,
+      headers,
       rows: rows.slice(0, limit).map((row) => fields.map((field) => cell(row[field]))),
       total: rows.length,
     };

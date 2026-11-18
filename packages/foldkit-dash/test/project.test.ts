@@ -439,3 +439,31 @@ describe('inputs in the query string (ADR 0116)', () => {
     expect(valuesFromQuery(inputs, '?region=all&min=10')).toEqual({ region: null, min: 10 });
   });
 });
+
+describe('dragging across a chart sets a span (ADR 0119)', () => {
+  const weekly = [
+    { week: '2026-05-04', units: 10 },
+    { week: '2026-05-11', units: 9 },
+  ];
+  const page = (input: string) => ({
+    'pages/index.md': `# A\n\n${input}${fence({ width: 400, height: 240, data: 'weekly.json', brush: 'weeks', marks: [{ mark: 'line', x: 'week', y: 'units' }] })}`,
+    'data/weekly.json': JSON.stringify(weekly),
+  });
+  const messages = (files: Record<string, string>) =>
+    reportOf(project(files)).problems.map((problem) => [problem.kind, problem.message]);
+
+  test('brush names a between input of the axis kind; describe says so', () => {
+    const dates =
+      '```input\n{ "type": "between", "name": "weeks", "options": { "data": "weekly.json", "field": "week" } }\n```\n\n';
+    const ok = reportOf(project(page(dates)));
+    expect(ok.problems).toEqual([]);
+    expect(ok.charts[0]?.brushes).toBe('weeks');
+    const numbers =
+      '```input\n{ "type": "between", "name": "weeks", "min": 0, "max": 10 }\n```\n\n';
+    expect(messages(page(numbers))).toEqual([
+      ['input', 'brush: "weeks" holds numbers, but the chart\'s x axis is of dates'],
+    ]);
+    const select = '```input\n{ "type": "select", "name": "weeks", "options": ["a"] }\n```\n\n';
+    expect(messages(page(select))).toEqual([['input', 'brush: "weeks" is not a between input']]);
+  });
+});

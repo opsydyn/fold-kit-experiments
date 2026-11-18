@@ -129,6 +129,9 @@ peak falls, and showing part of the data on a page takes a loader per part.
 - ✅ Stage 6 ([ADR 0118](0118-foldkit-dash-read-outs-keys-legend-and-chosen-lines.md)):
   read-outs of the value pointed at, chart keys, legend entries that choose, and a
   chosen line that stands out.
+- ✅ Stage 7 ([ADR 0119](0119-foldkit-dash-spans-brushing-series-keys-and-labelled-tables.md)):
+  a `between` input of dates or numbers, brushing a chart to set it, series keys, a key
+  hint, and data tables headed by labels.
 
 ## Review date
 

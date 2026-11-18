@@ -60,7 +60,8 @@ const out = Flag.String('out').pipe(
 const chartLine = (chart: Chart): string => {
   const values = Object.entries(chart.at).map(([name, value]) => `${name} = ${shown(value)}`);
   const selects = chart.selects === null ? '' : ` Clicking it sets ${chart.selects}.`;
-  return `${chart.file}:${chart.line}${values.length === 0 ? '' : ` [${values.join(', ')}]`} ${chart.summary}${selects}`;
+  const brushes = chart.brushes === null ? '' : ` Dragging across it sets ${chart.brushes}.`;
+  return `${chart.file}:${chart.line}${values.length === 0 ? '' : ` [${values.join(', ')}]`} ${chart.summary}${selects}${brushes}`;
 };
 
 /** Where a low or high falls: every `x` it is reached at, `a, b and c`. */

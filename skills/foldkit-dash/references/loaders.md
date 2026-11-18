@@ -90,7 +90,7 @@ cat ../weekly-sales.csv
 
 It runs from the project folder, so the path is from there. Its output is cached until
 the loader changes, not the CSV: after the CSV changes, build with `--fresh`. To learn
-its columns, run the loader (`sh data/weekly.csv.sh | head -3`); `check` then names any
+its columns, run the loader for its header (`sh data/weekly.csv.sh | head -1`); `check` then names any
 field a spec uses that is missing.
 
 ## From a CSV file, with no loader

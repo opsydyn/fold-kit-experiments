@@ -181,9 +181,11 @@ const entryOf = (where: Where, input: Input): InputEntry => ({
       ? input.style
       : input._tag === 'Pick'
         ? 'checkboxes'
-        : input._tag === 'Range'
-          ? 'range'
-          : 'checkbox',
+        : input._tag === 'Between'
+          ? 'between'
+          : input._tag === 'Range'
+            ? 'range'
+            : 'checkbox',
   value: input.value,
   choices: choicesOf(input).length,
 });
@@ -237,6 +239,25 @@ const selectProblem = (selects: Selects, inputs: ReadonlyMap<string, Input>): st
   return missing.length === 0
     ? null
     : `select: ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not ${missing.length === 1 ? 'a choice' : 'choices'} of "${selects.input}"`;
+};
+
+/**
+ * Why a drag across a chart cannot set the input it names, or `null` (ADR 0119): the
+ * input must be a `between` input on the page, of dates on a time axis and of numbers on
+ * a linear one.
+ */
+const brushProblem = (
+  name: string,
+  xType: string | null,
+  inputs: ReadonlyMap<string, Input>,
+): string | null => {
+  const input = inputs.get(name);
+  if (input === undefined) return `brush: no input "${name}" on this page`;
+  if (input._tag !== 'Between') return `brush: "${name}" is not a between input`;
+  const wanted = xType === 'time' ? 'date' : 'number';
+  return input.kind === wanted
+    ? null
+    : `brush: "${name}" holds ${input.kind}s, but the chart's x axis is of ${wanted}s`;
 };
 
 /** Reads, draws and checks one page. */
@@ -323,11 +344,13 @@ function analysePage(
     );
     const drawn = Result.map(
       drawSpec(spec, data, shownAt),
-      ({ plot, geometry, series, selects }) => ({
+      ({ plot, geometry, series, selects, brushes }) => ({
         figure: `<figure class="chart">${plotHtml(geometry, { table: plotTable(plot), summary: true })}</figure>`,
         summary: describePlot(geometry),
         series,
         selects,
+        brushes,
+        xType: geometry.facets[0]?.x?.type ?? null,
       }),
     );
     if (Result.isFailure(drawn)) problems.push(at(where, problemOfChart(drawn.failure)));
@@ -336,12 +359,18 @@ function analysePage(
       const wrong = selects === null ? null : selectProblem(selects, inputs);
       if (wrong !== null)
         problems.push(at(where, { kind: 'input', path: 'select', message: wrong }));
+      const { brushes, xType } = drawn.success;
+      const unbrushable = brushes === null ? null : brushProblem(brushes, xType, inputs);
+      if (unbrushable !== null) {
+        problems.push(at(where, { kind: 'input', path: 'brush', message: unbrushable }));
+      }
       charts.push({
         ...where,
         summary: drawn.success.summary,
         at: used,
         series: drawn.success.series,
         selects: selects?.input ?? null,
+        brushes: drawn.success.brushes,
       });
     }
     problems.push(...checkChoices(where, spec, data, inputs, defaults));

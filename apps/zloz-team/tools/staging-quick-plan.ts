@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type { WorkerProps } from '@alchemy.run/cloudflare/Workers';
 import type { StackPlan } from 'alchemy/Alchemist';
-import { Data, Predicate } from 'effect';
+import { Context, Data, Effect, Predicate } from 'effect';
 
 import { STAGING_STACK } from './staging-config';
 
@@ -65,6 +65,45 @@ const normalizeEnvironment = (value: WorkerProps['env']) =>
     ? { ...value, ZLOZ_BACKEND: 'existing service binding' }
     : value;
 
+const defaultRuntimeHandlers = [
+  'fetch',
+  'tail',
+  'trace',
+  'tailStream',
+  'scheduled',
+  'test',
+  'email',
+  'queue',
+];
+
+// Alchemy's persisted descriptors omit runtime constructors and handlers.
+// Compare export names and stored metadata, including captured SQL migrations.
+const normalizeWorkerExports = (value: WorkerProps['exports']) =>
+  value &&
+  Object.fromEntries(
+    Object.entries(value).map(([name, descriptor]) => [
+      name,
+      Predicate.isObject(descriptor)
+        ? Object.fromEntries(
+            Object.entries(descriptor).filter(([field, entry]) => {
+              if (name === 'default' && descriptor.kind === undefined)
+                return !defaultRuntimeHandlers.includes(field) || !Predicate.isFunction(entry);
+              if (descriptor.kind === 'durableObject')
+                return !(
+                  (field === 'constructor' && Effect.isEffect(entry)) ||
+                  (field === 'services' && Context.isContext(entry))
+                );
+              return !(
+                descriptor.kind === 'workflow' &&
+                field === 'make' &&
+                Predicate.isFunction(entry)
+              );
+            }),
+          )
+        : descriptor,
+    ]),
+  );
+
 type WorkerSettings = WorkerProps & { readonly rootDir?: string };
 
 export function changedWorkerSettings(
@@ -79,6 +118,11 @@ export function changedWorkerSettings(
       return !isDeepStrictEqual(checkoutPath(previous[key]), checkoutPath(next[key]));
     if (key === 'source')
       return !isDeepStrictEqual(normalizeSource(previous[key]), normalizeSource(next[key]));
+    if (key === 'exports')
+      return !isDeepStrictEqual(
+        normalizeWorkerExports(previous[key]),
+        normalizeWorkerExports(next[key]),
+      );
     // The persisted service value and the live Alchemy reference have different
     // representations. The plan independently checks the binding is a no-op.
     if (key === 'env' && existingBackendBinding)

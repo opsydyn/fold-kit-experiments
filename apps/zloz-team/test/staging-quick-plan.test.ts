@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import type { StackPlan } from 'alchemy/Alchemist';
+import { Context, Effect } from 'effect';
 
 import { changedWorkerSettings, rejectQuickStagingPlan } from '../tools/staging-quick-plan';
 
@@ -97,4 +98,54 @@ test('the current service binding is compared by the plan while other environmen
     'env',
   ]);
   expect(changedWorkerSettings(previous, { env: { SOMETHING: 'staging' } }, true)).toEqual(['env']);
+});
+
+test('the quick deploy accepts live implementations of the same persisted Worker exports', () => {
+  const database: NonNullable<Parameters<typeof changedWorkerSettings>[0]['exports']>[string] = {
+    kind: 'sqlMigrations',
+    snapshot: { _tag: 'Cloudflare.SqlMigrations', table: 'migrations', records: [] },
+  };
+  const diagram = {
+    kind: 'durableObject',
+    constructor: Effect.void,
+    services: Context.empty(),
+  } as const;
+  const replay = { kind: 'workflow', make: () => Effect.void } as const;
+  // SAFETY: The persisted state uses this descriptor shape without runtime fields.
+  const persisted = {
+    exports: {
+      default: {},
+      Diagram: { kind: 'durableObject' },
+      Replay: { kind: 'workflow' },
+      Database: database,
+    },
+  } as Parameters<typeof changedWorkerSettings>[0];
+  // SAFETY: The live plan also carries a default export, omitted from WorkerProps' type.
+  const live = {
+    exports: {
+      ...persisted.exports,
+      default: { fetch: () => new Response() },
+      Diagram: diagram,
+      Replay: replay,
+    },
+  } as Parameters<typeof changedWorkerSettings>[0];
+
+  expect(changedWorkerSettings(persisted, live)).toEqual([]);
+  expect(
+    changedWorkerSettings(persisted, { exports: { ...live.exports, Added: diagram } }),
+  ).toEqual(['exports']);
+  expect(
+    changedWorkerSettings(persisted, { exports: { ...live.exports, Diagram: replay } }),
+  ).toEqual(['exports']);
+  expect(
+    changedWorkerSettings(persisted, {
+      exports: {
+        ...live.exports,
+        Database: {
+          kind: 'sqlMigrations',
+          snapshot: { ...database.snapshot, table: 'changed' },
+        },
+      },
+    }),
+  ).toEqual(['exports']);
 });

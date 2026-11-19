@@ -13,5 +13,6 @@ const teams = await teamsFor(Astro.request);
   {teams.length === 0
     ? <p>Ask your team owner for an invitation to a workspace.</p>
     : <><h2>Your teams</h2><ul>{teams.map((team) => <li><a href={`/app/${team.id}`}>{team.name}</a></li>)}</ul></>}
+  <p><a href="/app/clef-demo">Clef evidence demo</a></p>
   <form action="/logout" method="post"><button type="submit">Sign out</button></form>
 </Shell>

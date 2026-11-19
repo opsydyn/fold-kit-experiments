@@ -59,7 +59,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           ZLOZ_OPERATOR_TOKEN: ${{ secrets.ZLOZ_OPERATOR_TOKEN }}
         run: |
-          bun node_modules/alchemy/bin/cli.js provider check-env --no-input
+          bun node_modules/alchemy/bin/cli.js provider check-env --config staging.alchemy.ts --no-input
           test -n "$ZLOZ_OPERATOR_TOKEN"
           bun tools/staging-quick.ts apply
       - name: Verify hosted build, backend and sign-in

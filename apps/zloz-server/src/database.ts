@@ -1,7 +1,6 @@
-import { fileURLToPath } from 'node:url';
-
 import * as Cloudflare from '@alchemy.run/cloudflare';
 
 export const AuthDb = Cloudflare.D1.Database('ZlozTeamAuth', {
-  migrations: fileURLToPath(new URL('../migrations', import.meta.url)),
+  // Both Teams Alchemy launchers run from apps/zloz-team.
+  migrations: '../zloz-server/migrations',
 });

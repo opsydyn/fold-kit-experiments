@@ -4,6 +4,19 @@ This runbook covers the approved M4 staging candidate at
 `https://teams-staging.opsydyn.xyz`. Production and real pilot invitations need
 separate authority. Existing `zloz.opsydyn.xyz` stays on its own stack.
 
+## Quick staging deploy from GitHub
+
+Run **Deploy Teams staging** from **Actions** on `main`. The workflow builds the
+dispatched commit, runs focused Teams checks and applies the guarded Alchemy
+plan. It supports code and asset updates to the two staging Workers. Use the
+reviewed commands below for changes to bindings, migrations or other resources.
+
+The `teams-staging` environment restricts deployment to `main` and supplies the
+staging Google client and operator token. The workflow uses the existing
+Cloudflare deployment credentials and keeps bootstrap disabled and OPY enabled.
+The run summary reports the verified commit and dispatch-to-smoke time. The
+workflow's build marker contains the public commit and Actions run IDs.
+
 ## Identity, state and release boundary
 
 | Item                          | Staging candidate                                                                 |

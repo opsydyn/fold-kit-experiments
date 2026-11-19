@@ -174,18 +174,16 @@ globalStyle('.brand', {
 globalStyle('.brand-mark', {
   width: 36,
   height: 36,
-  display: 'grid',
-  placeItems: 'center',
-  border: `1px solid ${theme.accent}`,
-  color: theme.accent,
-  fontFamily: mono,
-  fontWeight: 700,
-  clipPath: cut,
+  flexShrink: 0,
+});
+globalStyle('.brand-mark svg', {
+  display: 'block',
+  width: '100%',
+  height: '100%',
 });
 globalStyle('.brand strong', {
   fontFamily: mono,
   fontSize: 16,
-  letterSpacing: '.12em',
   fontWeight: 700,
 });
 globalStyle('.brand small', {

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 
+import type { WorkerProps } from '@alchemy.run/cloudflare/Workers';
 import type { StackPlan } from 'alchemy/Alchemist';
 import { Context, Effect } from 'effect';
 
@@ -101,7 +102,7 @@ test('the current service binding is compared by the plan while other environmen
 });
 
 test('the quick deploy accepts live implementations of the same persisted Worker exports', () => {
-  const database: NonNullable<Parameters<typeof changedWorkerSettings>[0]['exports']>[string] = {
+  const database: NonNullable<WorkerProps['exports']>[string] = {
     kind: 'sqlMigrations',
     snapshot: { _tag: 'Cloudflare.SqlMigrations', table: 'migrations', records: [] },
   };
@@ -111,7 +112,6 @@ test('the quick deploy accepts live implementations of the same persisted Worker
     services: Context.empty(),
   } as const;
   const replay = { kind: 'workflow', make: () => Effect.void } as const;
-  // SAFETY: The persisted state uses this descriptor shape without runtime fields.
   const persisted = {
     exports: {
       default: {},
@@ -119,8 +119,7 @@ test('the quick deploy accepts live implementations of the same persisted Worker
       Replay: { kind: 'workflow' },
       Database: database,
     },
-  } as Parameters<typeof changedWorkerSettings>[0];
-  // SAFETY: The live plan also carries a default export, omitted from WorkerProps' type.
+  } satisfies Parameters<typeof changedWorkerSettings>[0];
   const live = {
     exports: {
       ...persisted.exports,
@@ -128,7 +127,7 @@ test('the quick deploy accepts live implementations of the same persisted Worker
       Diagram: diagram,
       Replay: replay,
     },
-  } as Parameters<typeof changedWorkerSettings>[0];
+  };
 
   expect(changedWorkerSettings(persisted, live)).toEqual([]);
   expect(

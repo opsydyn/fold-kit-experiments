@@ -74,11 +74,21 @@ const defaultRuntimeHandlers = [
   'test',
   'email',
   'queue',
-];
+] as const;
+
+type LiveExport = NonNullable<WorkerProps['exports']>[string];
+type DefaultHandlers = Partial<
+  Record<(typeof defaultRuntimeHandlers)[number], (...args: never[]) => object>
+>;
+type ExportDescriptor = LiveExport | Pick<LiveExport, 'kind'> | DefaultHandlers;
+type WorkerSettings = Omit<WorkerProps, 'exports'> & {
+  readonly rootDir?: string;
+  readonly exports?: Readonly<Record<string, ExportDescriptor>>;
+};
 
 // Alchemy's persisted descriptors omit runtime constructors and handlers.
 // Compare export names and stored metadata, including captured SQL migrations.
-const normalizeWorkerExports = (value: WorkerProps['exports']) =>
+const normalizeWorkerExports = (value: WorkerSettings['exports']) =>
   value &&
   Object.fromEntries(
     Object.entries(value).map(([name, descriptor]) => [
@@ -86,25 +96,23 @@ const normalizeWorkerExports = (value: WorkerProps['exports']) =>
       Predicate.isObject(descriptor)
         ? Object.fromEntries(
             Object.entries(descriptor).filter(([field, entry]) => {
-              if (name === 'default' && descriptor.kind === undefined)
-                return !defaultRuntimeHandlers.includes(field) || !Predicate.isFunction(entry);
-              if (descriptor.kind === 'durableObject')
+              const kind = 'kind' in descriptor ? descriptor.kind : undefined;
+              if (name === 'default' && kind === undefined)
+                return !(
+                  defaultRuntimeHandlers.some((handler) => handler === field) &&
+                  Predicate.isFunction(entry)
+                );
+              if (kind === 'durableObject')
                 return !(
                   (field === 'constructor' && Effect.isEffect(entry)) ||
                   (field === 'services' && Context.isContext(entry))
                 );
-              return !(
-                descriptor.kind === 'workflow' &&
-                field === 'make' &&
-                Predicate.isFunction(entry)
-              );
+              return !(kind === 'workflow' && field === 'make' && Predicate.isFunction(entry));
             }),
           )
         : descriptor,
     ]),
   );
-
-type WorkerSettings = WorkerProps & { readonly rootDir?: string };
 
 export function changedWorkerSettings(
   previous: WorkerSettings,

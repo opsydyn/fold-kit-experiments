@@ -85,6 +85,9 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
     const qualificationProbe = yield* Config.Boolean('ZLOZ_QUALIFICATION_PROBE').pipe(
       Config.withDefault(false),
     );
+    const decisionAuthoring = yield* Config.Boolean('ZLOZ_DECISION_AUTHORING').pipe(
+      Config.withDefault(false),
+    );
     const operatorToken = yield* Config.Redacted('ZLOZ_OPERATOR_TOKEN').pipe(
       Config.withDefault(Redacted.make('')),
     );
@@ -260,6 +263,11 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
                   Effect.runPromise(diagram.runtime.bootstrap(...args).pipe(Effect.result)).then(
                     unwrap,
                   ),
+                decisionAuthoring,
+                saveRelationshipDecision: (...args) =>
+                  Effect.runPromise(
+                    diagram.runtime.saveRelationshipDecision(...args).pipe(Effect.result),
+                  ).then(unwrap),
                 saveAssessment: (...args) =>
                   Effect.runPromise(
                     diagram.runtime.saveAssessment(...args).pipe(Effect.result),

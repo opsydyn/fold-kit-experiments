@@ -61,6 +61,7 @@ import {
   otherSlot,
 } from './feed-state';
 import { createNodesView } from './nodes-view';
+import * as Opy from './opy';
 import { geometryGraph, pendingGeometryGraph } from './pending-geometry';
 import { createPortsView } from './ports-view';
 import { deltaStream, liveStream, pathFor } from './protocol';
@@ -77,7 +78,7 @@ export { slow } from './diagnostics';
 
 const Role = Schema.Literals(['owner', 'editor', 'viewer']);
 const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'neutral']);
-const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate']);
+const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate', 'opy']);
 export const Props = Schema.Struct({
   teamId: Schema.String,
   diagramId: Schema.String,
@@ -118,6 +119,8 @@ export const Model = Schema.Struct({
   assessment: Assessment.Model,
   coupling: Coupling.Model,
   inspector: Inspector,
+  opy: Opy.Model,
+  decisionAuthoring: Schema.Boolean,
   session: DiagramSessionSchema,
   queuedMove: Schema.NullOr(QueuedMove),
   moveSaveIssue: Schema.NullOr(Schema.Literals(['conflict', 'rejected'])),
@@ -162,6 +165,7 @@ export const Message = defineMessageUnion({
     role: Role,
     run: Schema.optionalKey(Schema.Number),
     feed: Schema.optionalKey(Schema.Unknown),
+    decisionAuthoring: Schema.optionalKey(Schema.Boolean),
   },
   FailedSnapshot: { room: Room, status: Schema.Number, run: Schema.optionalKey(Schema.Number) },
   ObservedDelta: { room: Room, run: Schema.Number, cursor: Schema.Number, delta: Schema.Unknown },
@@ -191,6 +195,10 @@ export const Message = defineMessageUnion({
   GotAssessmentMessage: { room: Room, message: Assessment.Message },
   SelectedCanvasEmphasis: { emphasis: CanvasEmphasis },
   SelectedInspector: { inspector: Inspector },
+  OpenedOpy: {},
+  ClosedOpy: {},
+  GotOpyMessage: { room: Room, message: Opy.Message },
+  CompletedOpyFocus: {},
   GotCouplingMessage: { room: Room, message: CouplingMessage },
   CompletedInspectorFocus: {},
 });
@@ -213,6 +221,16 @@ const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
     Effect.catchTag('ElementNotFound', () => Effect.void),
     Effect.map(() => Message.CompletedInspectorFocus()),
   ),
+});
+const FocusOpy = Command.define('FocusOpy', {
+  args: { selector: Schema.String },
+  messages: [Message.CompletedOpyFocus],
+  execute: ({ selector }) =>
+    Render.afterCommit.pipe(
+      Effect.andThen(Dom.focus(selector, { makeFocusable: true })),
+      Effect.catchTag('ElementNotFound', () => Effect.void),
+      Effect.map(() => Message.CompletedOpyFocus()),
+    ),
 });
 const sharedConnections = createConnectionsView<Message>((id) =>
   Message.ObservedEditorInput({ event: { type: 'EdgeSelected', id, additive: false } }),
@@ -242,6 +260,7 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
           frame: Schema.Unknown.pipe(Schema.refine(isDiagramFrame)),
           role: Role,
           feed: Schema.optionalKey(Schema.Unknown),
+          decisionAuthoring: Schema.optionalKey(Schema.Boolean),
         }),
       )(await response.json());
       return Message.SucceededSnapshot({
@@ -250,6 +269,7 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
         frame: body.frame,
         role: body.role,
         feed: body.feed,
+        decisionAuthoring: body.decisionAuthoring ?? false,
       });
     }).pipe(Effect.orElseSucceed(() => Message.FailedSnapshot({ room, run, status: 0 }))),
 });
@@ -345,6 +365,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         assessment,
         coupling,
         inspector: 'selection',
+        opy: Opy.init(),
+        decisionAuthoring: false,
       }),
       folds: {
         assessment: {
@@ -373,6 +395,7 @@ function install(model: Model, state: DiagramSession, receipt?: ZlozOperationRec
     ? {
         ...model,
         assessment: Assessment.observe(model.assessment, state.confirmed, model.room.actorId),
+        opy: Opy.observe(model.opy, state.confirmed, model.room.actorId),
         coupling:
           model.inspector === 'coupling'
             ? observeCoupling(model.coupling, state.confirmed)
@@ -533,6 +556,25 @@ function enqueue(model: Model, operation: ZlozGraphOperation): Return<Model, Mes
     commands: [PrepareSharedEdit({ room: model.room, request })],
   };
 }
+const opyContext = (model: Model) => ({
+  room: model.room,
+  frame: session(model).confirmed,
+  relationshipId: editor(model).selectedEdges[0],
+  isOwner: model.role === 'owner',
+  actorLabel: (id: string) =>
+    id === model.room.actorId
+      ? 'you'
+      : (model.peers.find((peer) => peer.actorId === id)?.name ?? id),
+  authoring:
+    model.decisionAuthoring &&
+    model.role !== 'viewer' &&
+    isLiveConnection(model.connection) &&
+    Boolean(model.room.generation),
+});
+const opyAvailable = (model: Model) =>
+  model.connection._tag !== 'Denied' &&
+  (model.decisionAuthoring || Boolean(session(model).confirmed?.relationshipDecisions?.length));
+
 export function update(model: Model, message: Message): Return<Model, Message> {
   // Re-authentication starts a new page generation; late work cannot reopen this one.
   if (model.connection._tag === 'Denied' && message._tag !== 'SelectedCanvasEmphasis')
@@ -545,6 +587,28 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             model: install({ ...model, queuedMove: null, error: '' }, session(model)),
           },
     CompletedInspectorFocus: () => ({ model }),
+    CompletedOpyFocus: () => ({ model }),
+    OpenedOpy: () =>
+      opyAvailable(model)
+        ? {
+            model: { ...model, inspector: 'opy' as const },
+            commands: [FocusOpy({ selector: '#opy-inspector' })],
+          }
+        : { model },
+    ClosedOpy: () => ({
+      model: { ...model, inspector: 'selection' as const },
+      commands: [FocusOpy({ selector: '#ask-opy' })],
+    }),
+    GotOpyMessage: ({ room, message: childMessage }) =>
+      current(model, room)
+        ? foldChild({
+            update: (opy: Opy.Model, child: Opy.Message) =>
+              Opy.update(opy, child, opyContext(model)),
+            read: (parent: Model) => Option.some(parent.opy),
+            write: (parent, opy) => ({ ...parent, opy }),
+            toParentMessage: (message) => Message.GotOpyMessage({ room, message }),
+          })(model, childMessage)
+        : { model },
     SelectedInspector: ({ inspector }) => {
       if (inspector === model.inspector) return { model };
       const next = {
@@ -655,7 +719,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedIdentity: () => ({
       model: { ...model, error: 'Could not prepare an editing session. Reload to retry.' },
     }),
-    SucceededSnapshot: ({ room, frame, role, run, feed }) => {
+    SucceededSnapshot: ({ room, frame, role, run, feed, decisionAuthoring }) => {
       if (
         !current(model, room) ||
         !isDiagramFrame(frame) ||
@@ -676,6 +740,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const next = {
         ...model,
         role,
+        decisionAuthoring: decisionAuthoring === true,
         error: '',
         feedMode: validFeed ? ('delta' as const) : ('legacy' as const),
         feedSeeds:
@@ -1040,6 +1105,7 @@ function hasUncommittedEdit(model: Model): boolean {
   );
   return (
     session(model).pending !== null ||
+    (model.opy.pending !== null && model.connection._tag !== 'Denied') ||
     model.queuedMove !== null ||
     gesture === 'node-drag' ||
     gesture === 'node-resize' ||
@@ -1208,6 +1274,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [h.Class('tool-rail'), h.AriaLabel('Diagram tools')],
           [
             h.h2([h.Class('rail-heading')], ['Diagram tools']),
+            ...(opyAvailable(model)
+              ? [
+                  h.button(
+                    [
+                      h.Id('ask-opy'),
+                      h.Type('button'),
+                      h.Class('opy-launcher'),
+                      h.OnClick(Message.OpenedOpy()),
+                    ],
+                    ['Ask OPY'],
+                  ),
+                ]
+              : []),
             h.div(
               [h.Class('editor-actions')],
               [
@@ -1379,24 +1458,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     h.option([h.Value('selection')], ['Selection and authoring']),
                     h.option([h.Value('aggregate')], ['Aggregate']),
                     h.option([h.Value('coupling')], ['Balanced Coupling map']),
+                    ...(opyAvailable(model) ? [h.option([h.Value('opy')], ['OPY'])] : []),
                   ],
                 ),
               ],
             ),
-            ...(model.inspector === 'aggregate'
-              ? [
-                  model.connection._tag === 'Denied'
-                    ? h.p([], ['Access ended.'])
-                    : state.confirmed
-                      ? aggregateInspector(aggregateView, [
-                          h,
-                          state.confirmed.document.graph,
-                          currentEditor.selectedNodes.length === 1
-                            ? (currentEditor.selectedNodes[0] ?? null)
-                            : null,
-                        ])
-                      : h.p([], ['Opening diagram…']),
-                ]
+            ...((model.inspector === 'opy' && opyAvailable(model)) ||
+            model.inspector === 'aggregate'
+              ? model.inspector === 'opy'
+                ? [
+                    h.button([h.Type('button'), h.OnClick(Message.ClosedOpy())], ['Close OPY']),
+                    Opy.view(model.opy, opyContext(model), h, (message) =>
+                      Message.GotOpyMessage({ room: model.room, message }),
+                    ),
+                  ]
+                : [
+                    model.connection._tag === 'Denied'
+                      ? h.p([], ['Access ended.'])
+                      : state.confirmed
+                        ? aggregateInspector(aggregateView, [
+                            h,
+                            state.confirmed.document.graph,
+                            currentEditor.selectedNodes.length === 1
+                              ? (currentEditor.selectedNodes[0] ?? null)
+                              : null,
+                          ])
+                        : h.p([], ['Opening diagram…']),
+                  ]
               : model.inspector === 'coupling'
                 ? [
                     ...(model.assessment.status === 'editing'

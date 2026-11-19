@@ -17,6 +17,12 @@ import {
 } from '@opsydyn/foldkit-zloz-alchemy/checkpoint';
 import type { DiagramActor, DiagramTarget } from '@opsydyn/foldkit-zloz-alchemy/collaboration';
 import type { DiagramFeed } from '@opsydyn/foldkit-zloz-alchemy/delta';
+import {
+  decisionRecordLimit,
+  parseRelationshipDecisionRequest,
+  type RelationshipDecisionRequest,
+  type RelationshipDecisionOutcome,
+} from '@opsydyn/foldkit-zloz-alchemy/relationship-decision';
 import type { DiagramFrame, DiagramReply } from '@opsydyn/foldkit-zloz-alchemy/session';
 import type { Auth as BetterAuth } from 'better-auth';
 import { Data, Schema } from 'effect';
@@ -43,6 +49,12 @@ type NativeAuth = Readonly<{
   api: Pick<BetterAuth<ReturnType<typeof authOptions>>['api'], 'getSession'>;
 }>;
 export interface DiagramService {
+  readonly decisionAuthoring?: boolean;
+  readonly saveRelationshipDecision?: (
+    actor: DiagramActor,
+    target: DiagramTarget,
+    request: RelationshipDecisionRequest,
+  ) => Promise<RelationshipDecisionOutcome>;
   readonly bootstrap?: (
     actor: DiagramActor,
     target: DiagramTarget,
@@ -121,7 +133,7 @@ export async function handleDiagramRequest(
   trace?: (phase: string) => void,
 ): Promise<Response> {
   const match = new URL(request.url).pathname.match(
-    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments))?$/,
+    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments|decisions))?$/,
   );
   if (!match) return json({ error: 'Missing' }, 404);
   const target = { teamId: match[1]!, diagramId: match[2]! };
@@ -240,6 +252,12 @@ export async function handleDiagramRequest(
         await service.recover(actor, target, input.operationId, input.expectedVersion, saved),
       );
     }
+    if (request.method === 'POST' && action === 'decisions') {
+      if (!service.decisionAuthoring || !service.saveRelationshipDecision)
+        return json({ error: 'Missing' }, 404);
+      const input = await readInput(request, parseRelationshipDecisionRequest, decisionRecordLimit);
+      return json(await service.saveRelationshipDecision(actor, target, input));
+    }
     if (request.method === 'POST' && action === 'assessments') {
       const input = await readInput(request, parseAssessmentRequest, 65_536);
       return json(await service.saveAssessment(actor, target, input));
@@ -303,7 +321,19 @@ export async function handleDiagramRequest(
       : { frame: await service.frame(actor, target) };
     const frame = bootstrap.frame;
     if (!frame) return json({ error: 'Initializing' }, 503);
-    return json({ ...bootstrap, name: directory.name, role: access.role });
+    if (service.decisionAuthoring || frame.relationshipDecisions?.length)
+      return json({
+        frame: { ...frame, relationshipDecisions: frame.relationshipDecisions ?? [] },
+        decisionAuthoring: service.decisionAuthoring === true,
+        name: directory.name,
+        role: access.role,
+      });
+    const {
+      relationshipDecisionRecoveryVersion: _decisionRecoveryVersion,
+      relationshipDecisions: _decisions,
+      ...graphFrame
+    } = frame;
+    return json({ ...bootstrap, frame: graphFrame, name: directory.name, role: access.role });
   } catch (error) {
     if (error instanceof InvalidDiagramInput) return json({ error: 'InvalidDiagramInput' }, 400);
     if (error instanceof BodyRejected) return json({ error: 'BodyRejected' }, error.status);

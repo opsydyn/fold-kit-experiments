@@ -703,3 +703,43 @@ globalStyle('.zloz-aggregate-view', { overflowWrap: 'anywhere', fontSize: 13 });
 globalStyle('.zloz-aggregate-view h2', { fontFamily: mono, fontSize: 16 });
 globalStyle('.zloz-aggregate-view h3', { fontSize: 13, margin: '20px 0 6px' });
 globalStyle('.zloz-aggregate-view ul', { paddingInlineStart: 20 });
+
+globalStyle('.opy-launcher', { width: '100%', marginBottom: 8, color: theme.outputPort });
+globalStyle('.opy-inspector', {
+  display: 'grid',
+  minWidth: 0,
+  gap: 10,
+  marginTop: 10,
+  padding: 12,
+  clipPath: cut,
+  border: `1px solid ${theme.rule}`,
+  background: theme.paper,
+});
+globalStyle('.opy-header', {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  paddingBottom: 8,
+  borderBottom: `1px solid ${theme.outputPort}`,
+  color: theme.outputPort,
+  fontFamily: mono,
+});
+globalStyle('.opy-header h2', { margin: 0, fontSize: 14 });
+globalStyle('.opy-lens', {
+  flex: '0 0 24px',
+  height: 24,
+  border: `1px solid ${theme.danger}`,
+  borderRadius: '50%',
+  boxShadow: `0 0 7px color-mix(in srgb, ${theme.danger} 35%, transparent)`,
+  background: `radial-gradient(circle, ${theme.danger} 22%, ${theme.raised} 43%, transparent 45%)`,
+});
+globalStyle('.opy-composer, .opy-card', {
+  display: 'grid',
+  gap: 8,
+  paddingTop: 8,
+  borderTop: `1px solid ${theme.rule}`,
+  overflowWrap: 'anywhere',
+});
+globalStyle('.opy-composer textarea', { minHeight: 66, resize: 'vertical' });
+globalStyle('.opy-card h3, .opy-card p, .opy-card blockquote, .opy-composer > p', { margin: 0 });
+globalStyle('.opy-status', { color: theme.accent, fontWeight: 700 });

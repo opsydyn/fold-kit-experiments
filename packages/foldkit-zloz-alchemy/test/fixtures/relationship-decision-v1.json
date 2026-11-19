@@ -1,0 +1,377 @@
+{
+  "historicalFrame": {
+    "target": {
+      "teamId": "team-a",
+      "diagramId": "diagram-a"
+    },
+    "sourceVersion": 8,
+    "document": {
+      "version": 0,
+      "graph": {
+        "nodes": [
+          {
+            "id": "a",
+            "label": "Alpha",
+            "position": {
+              "x": 10,
+              "y": 20
+            },
+            "size": {
+              "width": 120,
+              "height": 80
+            },
+            "ports": [
+              {
+                "id": "out",
+                "kind": "output",
+                "side": "right",
+                "offset": 0.5
+              }
+            ],
+            "architecture": {
+              "family": "c4",
+              "role": "container",
+              "technology": "TypeScript"
+            }
+          },
+          {
+            "id": "b",
+            "label": "Beta",
+            "position": {
+              "x": 300,
+              "y": 20
+            },
+            "size": {
+              "width": 120,
+              "height": 80
+            },
+            "ports": [
+              {
+                "id": "in",
+                "kind": "input",
+                "side": "left",
+                "offset": 0.5
+              }
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "ab",
+            "label": "Calls",
+            "source": {
+              "node": "a",
+              "port": "out"
+            },
+            "target": {
+              "node": "b",
+              "port": "in"
+            }
+          }
+        ]
+      },
+      "nodes": [
+        {
+          "id": "a",
+          "present": true,
+          "version": 0,
+          "geometry": 0,
+          "label": 0,
+          "ports": 0
+        },
+        {
+          "id": "b",
+          "present": true,
+          "version": 0,
+          "geometry": 0,
+          "label": 0,
+          "ports": 0
+        }
+      ],
+      "edges": [
+        {
+          "id": "ab",
+          "present": true,
+          "version": 0
+        }
+      ],
+      "undo": []
+    },
+    "coverage": [],
+    "assessments": [
+      {
+        "revision": 1,
+        "authoredBy": "alice",
+        "operationId": "assessment-1",
+        "assessment": {
+          "format": "foldkit-zloz-coupling",
+          "version": 1,
+          "modelVersion": "balanced-coupling-binary/v1",
+          "target": {
+            "documentId": "diagram-a",
+            "graphVersion": 0,
+            "relationshipId": "ab",
+            "sourceNodeId": "a",
+            "targetNodeId": "b"
+          },
+          "scope": {
+            "abstraction": "Bounded contexts",
+            "horizon": "Next six months"
+          },
+          "inputs": {
+            "integrationType": {
+              "status": "known",
+              "value": "model",
+              "basis": "observed",
+              "rationale": "Shared order schema"
+            },
+            "strength": {
+              "status": "known",
+              "value": "high",
+              "basis": "declared",
+              "rationale": "Changes require joint releases"
+            },
+            "distance": {
+              "status": "known",
+              "value": "high",
+              "basis": "declared",
+              "rationale": "Separate teams and release cadence"
+            },
+            "volatility": {
+              "status": "unknown",
+              "reason": "Roadmap review pending"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "shareRequest": {
+    "version": 1,
+    "operationId": "decision-share-1",
+    "command": {
+      "type": "ShareProposal",
+      "proposalId": "proposal-1",
+      "relationshipId": "ab",
+      "contextFingerprint": "4a5806e3182ce7830ec804f2d3de7ee4960227a9da28b2cc6d356bbc341fc374",
+      "draft": {
+        "kind": "manual",
+        "content": {
+          "statement": "Record the order before calling Beta.",
+          "rationale": "The brief requires accepted orders to survive a Beta outage.",
+          "evidence": [
+            {
+              "kind": "excerpt",
+              "text": "An accepted order must survive an outage in Beta."
+            }
+          ],
+          "openQuestion": "How will retries avoid duplicate orders?"
+        }
+      }
+    }
+  },
+  "acceptRequest": {
+    "version": 1,
+    "operationId": "decision-accept-1",
+    "command": {
+      "type": "AcceptProposal",
+      "proposalId": "proposal-1",
+      "revision": 1
+    }
+  },
+  "expectedProposed": {
+    "version": 1,
+    "proposalId": "proposal-1",
+    "revision": 1,
+    "relationshipId": "ab",
+    "context": {
+      "recoveryVersion": 0,
+      "relationship": {
+        "id": "ab",
+        "label": "Calls",
+        "architecture": null
+      },
+      "source": {
+        "nodeId": "a",
+        "portId": "out",
+        "label": "Alpha",
+        "architecture": {
+          "family": "c4",
+          "role": "container",
+          "technology": "TypeScript"
+        }
+      },
+      "target": {
+        "nodeId": "b",
+        "portId": "in",
+        "label": "Beta",
+        "architecture": null
+      }
+    },
+    "contextFingerprint": "4a5806e3182ce7830ec804f2d3de7ee4960227a9da28b2cc6d356bbc341fc374",
+    "content": {
+      "statement": "Record the order before calling Beta.",
+      "rationale": "The brief requires accepted orders to survive a Beta outage.",
+      "evidence": [
+        {
+          "kind": "excerpt",
+          "text": "An accepted order must survive an outage in Beta."
+        }
+      ],
+      "openQuestion": "How will retries avoid duplicate orders?"
+    },
+    "requestedBy": "alice",
+    "proposer": {
+      "kind": "manual"
+    },
+    "status": "proposed"
+  },
+  "acceptedEvent": {
+    "version": 1,
+    "target": {
+      "teamId": "team-a",
+      "diagramId": "diagram-a"
+    },
+    "operationId": "decision-accept-1",
+    "actorId": "bob",
+    "requestHash": "fcfd9365d3b2626c9bf9c56be20f4d9811c67bab12296cbb25bd53b35f7bee83",
+    "outcome": {
+      "status": "recorded",
+      "record": {
+        "version": 1,
+        "proposalId": "proposal-1",
+        "revision": 1,
+        "relationshipId": "ab",
+        "context": {
+          "recoveryVersion": 0,
+          "relationship": {
+            "id": "ab",
+            "label": "Calls",
+            "architecture": null
+          },
+          "source": {
+            "nodeId": "a",
+            "portId": "out",
+            "label": "Alpha",
+            "architecture": {
+              "family": "c4",
+              "role": "container",
+              "technology": "TypeScript"
+            }
+          },
+          "target": {
+            "nodeId": "b",
+            "portId": "in",
+            "label": "Beta",
+            "architecture": null
+          }
+        },
+        "contextFingerprint": "4a5806e3182ce7830ec804f2d3de7ee4960227a9da28b2cc6d356bbc341fc374",
+        "content": {
+          "statement": "Record the order before calling Beta.",
+          "rationale": "The brief requires accepted orders to survive a Beta outage.",
+          "evidence": [
+            {
+              "kind": "excerpt",
+              "text": "An accepted order must survive an outage in Beta."
+            }
+          ],
+          "openQuestion": "How will retries avoid duplicate orders?"
+        },
+        "requestedBy": "alice",
+        "proposer": {
+          "kind": "manual"
+        },
+        "status": "accepted",
+        "acceptedBy": "bob"
+      }
+    }
+  },
+  "legacyDeltas": [
+    {
+      "format": "foldkit-zloz-delta",
+      "version": 1,
+      "target": {
+        "teamId": "team-a",
+        "diagramId": "diagram-a"
+      },
+      "previousSourceVersion": 8,
+      "sourceVersion": 9,
+      "payload": {
+        "kind": "noop"
+      }
+    },
+    {
+      "format": "foldkit-zloz-delta",
+      "version": 1,
+      "target": {
+        "teamId": "team-a",
+        "diagramId": "diagram-a"
+      },
+      "previousSourceVersion": 9,
+      "sourceVersion": 10,
+      "payload": {
+        "kind": "noop"
+      }
+    }
+  ],
+  "graphScenarios": {
+    "drag": {
+      "request": {
+        "version": 1,
+        "operationId": "move-a",
+        "operation": {
+          "type": "MoveNodes",
+          "nodes": [
+            {
+              "id": "a",
+              "expected": 0,
+              "position": {
+                "x": 70,
+                "y": 90
+              }
+            }
+          ]
+        }
+      },
+      "expectedPosition": {
+        "x": 70,
+        "y": 90
+      },
+      "expectedFingerprint": "4a5806e3182ce7830ec804f2d3de7ee4960227a9da28b2cc6d356bbc341fc374",
+      "expectedAcceptance": "recorded"
+    },
+    "changedEvidence": {
+      "request": {
+        "version": 1,
+        "operationId": "rename-b",
+        "operation": {
+          "type": "RenameNode",
+          "id": "b",
+          "expected": 0,
+          "label": "Beta archive"
+        }
+      },
+      "expectedFingerprint": "a0c49bcf668cbaeb600a541e80e3b5b0b36a35ff715b5eacf79cde76904a186b",
+      "expectedAcceptance": "ContextChanged"
+    },
+    "removedRelationship": {
+      "request": {
+        "version": 1,
+        "operationId": "remove-ab",
+        "operation": {
+          "type": "Delete",
+          "expectedVersion": 0,
+          "nodeIds": [],
+          "edgeIds": ["ab"]
+        }
+      },
+      "expectedAcceptance": "RelationshipMissing"
+    },
+    "recoveredGraph": {
+      "recoveryVersion": 2,
+      "expectedFingerprint": "170cae400744aac47279b30386dc0f13aabc4531eb05690193b02bc85f10244b",
+      "expectedAcceptance": "ContextChanged"
+    }
+  }
+}

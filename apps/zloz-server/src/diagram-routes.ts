@@ -20,6 +20,7 @@ import type { DiagramFeed } from '@opsydyn/foldkit-zloz-alchemy/delta';
 import {
   decisionRecordLimit,
   parseRelationshipDecisionRequest,
+  type RelationshipDecision,
   type RelationshipDecisionRequest,
   type RelationshipDecisionOutcome,
 } from '@opsydyn/foldkit-zloz-alchemy/relationship-decision';
@@ -28,6 +29,7 @@ import type { Auth as BetterAuth } from 'better-auth';
 import { Data, Schema } from 'effect';
 
 import type { authOptions } from './auth-options';
+import { ClefReference, type ClefAdvice } from './clef-contract';
 import { epochSql } from './date-sql';
 import { BodyRejected, bodyText } from './http-body';
 import type { DiagramPeer } from './presence';
@@ -50,6 +52,15 @@ type NativeAuth = Readonly<{
 }>;
 export interface DiagramService {
   readonly decisionAuthoring?: boolean;
+  readonly clefShadow?: {
+    readonly read: (
+      actor: DiagramActor,
+      target: DiagramTarget,
+      reference: ClefReference,
+    ) => Promise<RelationshipDecision | null>;
+    readonly admit: (actor: DiagramActor) => Promise<boolean>;
+    readonly review: (proposal: RelationshipDecision) => Promise<ClefAdvice>;
+  };
   readonly saveRelationshipDecision?: (
     actor: DiagramActor,
     target: DiagramTarget,
@@ -117,6 +128,9 @@ async function readInput<Value>(
 }
 const json = <Value>(value: Value, status = 200) =>
   Response.json(value, { status, headers: { 'cache-control': 'private, no-store' } });
+const parseClefReference = Schema.decodeUnknownSync(Schema.fromJsonString(ClefReference), {
+  onExcessProperty: 'error',
+});
 
 // Directory ordering is a best-effort, one-second projection. Canonical edits and
 // receipts retain their full durable version history; this guard avoids repeated
@@ -133,7 +147,7 @@ export async function handleDiagramRequest(
   trace?: (phase: string) => void,
 ): Promise<Response> {
   const match = new URL(request.url).pathname.match(
-    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments|decisions))?$/,
+    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments|decisions|clef-review))?$/,
   );
   if (!match) return json({ error: 'Missing' }, 404);
   const target = { teamId: match[1]!, diagramId: match[2]! };
@@ -252,6 +266,18 @@ export async function handleDiagramRequest(
         await service.recover(actor, target, input.operationId, input.expectedVersion, saved),
       );
     }
+    if (request.method === 'POST' && action === 'clef-review') {
+      const shadow = service.clefShadow;
+      if (!service.decisionAuthoring || !shadow) return json({ error: 'Missing' }, 404);
+      const reference = await readInput(request, parseClefReference, 512);
+      const proposal = await shadow.read(actor, target, reference);
+      if (!proposal) return json({ error: 'ProposalChanged' }, 409);
+      if (!(await shadow.admit(actor))) return json({ error: 'ReviewRateLimited' }, 429);
+      const advice = await shadow.review(proposal);
+      if (!(await shadow.read(actor, target, reference)))
+        return json({ error: 'ProposalChanged' }, 409);
+      return json(advice);
+    }
     if (request.method === 'POST' && action === 'decisions') {
       if (!service.decisionAuthoring || !service.saveRelationshipDecision)
         return json({ error: 'Missing' }, 404);
@@ -321,13 +347,19 @@ export async function handleDiagramRequest(
       : { frame: await service.frame(actor, target) };
     const frame = bootstrap.frame;
     if (!frame) return json({ error: 'Initializing' }, 503);
-    if (service.decisionAuthoring || frame.relationshipDecisions?.length)
-      return json({
+    if (service.decisionAuthoring || frame.relationshipDecisions?.length) {
+      const decisionFrame = {
         frame: { ...frame, relationshipDecisions: frame.relationshipDecisions ?? [] },
         decisionAuthoring: service.decisionAuthoring === true,
         name: directory.name,
         role: access.role,
-      });
+      };
+      return json(
+        service.clefShadow && access.role !== 'viewer'
+          ? { ...decisionFrame, clefShadow: true }
+          : decisionFrame,
+      );
+    }
     const {
       relationshipDecisionRecoveryVersion: _decisionRecoveryVersion,
       relationshipDecisions: _decisions,

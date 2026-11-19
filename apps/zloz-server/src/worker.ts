@@ -7,11 +7,12 @@ import {
   makeDiagramDomain,
 } from '@opsydyn/foldkit-zloz-alchemy/collaboration';
 import { RuntimeContext } from 'alchemy';
-import { Clock, Config, Effect, Layer, Redacted, Schema, type Result } from 'effect';
+import { Clock, Config, Effect, Layer, Option, Redacted, Schema, type Result } from 'effect';
 import { HttpServerResponse, HttpServerRequest as HttpRequest } from 'effect/http';
 import { HttpServerRequest } from 'effect/http/HttpServerRequest';
 
 import { Auth, AuthLive } from './auth';
+import { reviewWithClef } from './clef-review';
 import { AuthDb } from './database';
 import { epochSql } from './date-sql';
 import { deltaRead } from './delta-read';
@@ -88,6 +89,17 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
     const decisionAuthoring = yield* Config.Boolean('ZLOZ_DECISION_AUTHORING').pipe(
       Config.withDefault(false),
     );
+    const clefShadow = yield* Config.Boolean('ZLOZ_CLEF_SHADOW').pipe(Config.withDefault(true));
+    const clef =
+      clefShadow && decisionAuthoring && origin === 'https://teams-staging.opsydyn.xyz'
+        ? yield* Cloudflare.Workers.AI('ZLOZ_CLEF')
+        : undefined;
+    const clefLimit = clef
+      ? yield* Cloudflare.Workers.RateLimit('ZLOZ_CLEF_LIMIT', {
+          namespaceId: '2026111901',
+          simple: { limit: 5, period: 60 },
+        })
+      : undefined;
     const operatorToken = yield* Config.Redacted('ZLOZ_OPERATOR_TOKEN').pipe(
       Config.withDefault(Redacted.make('')),
     );
@@ -264,6 +276,30 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
                     unwrap,
                   ),
                 decisionAuthoring,
+                clefShadow:
+                  clef && clefLimit
+                    ? {
+                        read: (...args) =>
+                          Effect.runPromise(
+                            diagram.runtime
+                              .readOpenRelationshipDecision(...args)
+                              .pipe(Effect.map(Option.getOrNull), Effect.result),
+                          ).then(unwrap),
+                        admit: (actor) =>
+                          Effect.runPromise(
+                            clefLimit.limit({ key: `zloz-clef:${actor.userId}` }).pipe(
+                              Effect.map(({ success }) => success),
+                              Effect.provide(RuntimeContext.phantom),
+                            ),
+                          ),
+                        review: (proposal) =>
+                          Effect.runPromise(
+                            reviewWithClef(clef, proposal).pipe(
+                              Effect.provide(RuntimeContext.phantom),
+                            ),
+                          ),
+                      }
+                    : undefined,
                 saveRelationshipDecision: (...args) =>
                   Effect.runPromise(
                     diagram.runtime.saveRelationshipDecision(...args).pipe(Effect.result),
@@ -351,5 +387,7 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
     Effect.provide(AuthLive),
     Effect.provide(CloudflareD1(AuthDb)),
     Effect.provide(Cloudflare.D1.QueryDatabaseBinding),
+    Effect.provide(Cloudflare.Workers.AIBinding),
+    Effect.provide(Cloudflare.Workers.RateLimitBinding),
   ),
 ) {}

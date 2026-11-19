@@ -21,7 +21,7 @@ import type {
   ZlozOperationRequest,
   ZlozOperationDocument,
 } from '@opsydyn/foldkit-zloz';
-import { Cause, Data, Effect, Layer, Schema } from 'effect';
+import { Cause, Data, Effect, Layer, Option, Schema } from 'effect';
 import { RpcMiddleware } from 'effect/rpc';
 
 import {
@@ -50,6 +50,8 @@ import {
   decideRelationship,
   installRelationshipDecision,
   parseRelationshipDecisionRequest,
+  relationshipContext,
+  type RelationshipDecision,
   type RelationshipDecisionRequest,
   type RelationshipDecisionOutcome,
 } from './relationship-decision';
@@ -132,6 +134,15 @@ export interface DiagramRecovery {
  * generated class graph (which cannot be emitted as a portable declaration). */
 /* oxlint-disable linteffect/no-manual-effect-channels */
 export interface DiagramRuntime {
+  readonly readOpenRelationshipDecision: (
+    actor: DiagramActor,
+    target: DiagramTarget,
+    reference: {
+      readonly proposalId: string;
+      readonly revision: number;
+      readonly contextFingerprint: string;
+    },
+  ) => Effect.Effect<Option.Option<RelationshipDecision>, DiagramAccessDenied>;
   readonly saveRelationshipDecision: (
     actor: DiagramActor,
     target: DiagramTarget,
@@ -862,6 +873,36 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
       return state.document;
     });
   }
+  function readOpenRelationshipDecision(
+    identity: DiagramActor,
+    resource: DiagramTarget,
+    reference: Parameters<DiagramRuntime['readOpenRelationshipDecision']>[2],
+  ) {
+    return Effect.gen(function* () {
+      const actor = Schema.decodeUnknownSync(Actor)({ ...identity });
+      const target = Schema.decodeUnknownSync(Target)({ ...resource });
+      yield* host.authorize(actor, target, true);
+      const diagrams = yield* Diagram;
+      const state = yield* diagrams.state(targetKey(target));
+      const proposal = state.relationshipDecisions?.find(
+        (record) =>
+          record.proposalId === reference.proposalId &&
+          record.revision === reference.revision &&
+          record.contextFingerprint === reference.contextFingerprint &&
+          record.status === 'proposed',
+      );
+      if (!proposal || !state.document) return Option.none();
+      const current = relationshipContext(
+        state.document.graph,
+        proposal.relationshipId,
+        state.relationshipDecisionRecoveryVersion ?? 0,
+      );
+      if (Option.isNone(current)) return Option.none();
+      if (canonicalOperationValue(current.value) !== canonicalOperationValue(proposal.context))
+        return Option.none();
+      return Option.some(proposal);
+    });
+  }
   function checkpoint(identity: DiagramActor, resource: DiagramTarget) {
     return Effect.gen(function* () {
       const actor = Schema.decodeUnknownSync(Actor)({ ...identity });
@@ -940,6 +981,8 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
         ),
       saveRelationshipDecision: (...args: Parameters<typeof saveRelationshipDecision>) =>
         saveRelationshipDecision(...args).pipe(Effect.provideService(Diagram, diagrams)),
+      readOpenRelationshipDecision: (...args: Parameters<typeof readOpenRelationshipDecision>) =>
+        readOpenRelationshipDecision(...args).pipe(Effect.provideService(Diagram, diagrams)),
       saveAssessment: (...args: Parameters<typeof saveAssessment>) =>
         saveAssessment(...args).pipe(Effect.provideService(Diagram, diagrams)),
       checkpoint: (...args: Parameters<typeof checkpoint>) =>

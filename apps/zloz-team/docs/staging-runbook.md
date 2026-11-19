@@ -17,6 +17,10 @@ Cloudflare deployment credentials and keeps bootstrap disabled and OPY enabled.
 The run summary reports the verified commit and dispatch-to-smoke time. The
 workflow's build marker contains the public commit and Actions run IDs.
 
+Teams Alchemy commands run from `apps/zloz-team`. The D1 migrations directory
+is relative to this working directory so local and hosted checkouts agree on
+the same persisted configuration.
+
 ## Identity, state and release boundary
 
 | Item                          | Staging candidate                                                                 |

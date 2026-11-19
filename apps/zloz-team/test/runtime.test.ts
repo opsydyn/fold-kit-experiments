@@ -26,6 +26,7 @@ import type { WebSocketRoute } from 'playwright';
 import { expect as browserExpect } from 'playwright/test';
 
 import assessmentFixture from '../../../packages/foldkit-zloz-alchemy/test/fixtures/assessment-v1.json';
+import decisionWire from '../../../packages/foldkit-zloz-alchemy/test/fixtures/relationship-decision-v1.json';
 import operationFixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import orderWire from '../../../packages/foldkit-zloz/test/fixtures/order-aggregate-v1.json';
 import { deltaEntries, liveFrames } from '../src/editor/protocol';
@@ -79,6 +80,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           ZLOZ_OPERATIONS_PORT: String(operationsPort),
           ZLOZ_OPERATOR_TOKEN: operatorToken,
           ZLOZ_QUALIFICATION_PROBE: String(qualificationProbe),
+          ZLOZ_DECISION_AUTHORING: String(globalThis.process.env.ZLOZ_RUN_OPY_CONTRACT === '1'),
           GOOGLE_CLIENT_ID: '',
           GOOGLE_CLIENT_SECRET: '',
         },
@@ -1213,6 +1215,285 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browser.close();
     }
   }, 90_000);
+
+  test.skipIf(process.env.ZLOZ_RUN_OPY_CONTRACT !== '1')(
+    'OPY relationship decision contract binds exact acceptance to authenticated evidence',
+    async () => {
+      const data = await fixture();
+      const {
+        historicalFrame,
+        shareRequest,
+        acceptRequest,
+        expectedProposed,
+        acceptedEvent,
+        graphScenarios,
+      } = decisionWire;
+      type BoardWrite =
+        | {
+            operationId: string;
+            name: string;
+            graph: { version: 1; graph: typeof historicalFrame.document.graph };
+          }
+        | typeof shareRequest
+        | typeof acceptRequest
+        | typeof graphScenarios.drag.request
+        | typeof graphScenarios.changedEvidence.request
+        | typeof graphScenarios.removedRelationship.request
+        | {
+            operationId: string;
+            expectedVersion: number;
+            checkpoint: Awaited<ReturnType<typeof parseDiagramCheckpoint>>;
+          };
+      const open = async () => {
+        const id = crypto.randomUUID();
+        const path = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+        const call = (suffix: string, cookie: string, body?: BoardWrite) =>
+          fetch(path + suffix, {
+            method: body === undefined ? 'GET' : 'POST',
+            headers: { origin, cookie, 'content-type': 'application/json' },
+            body: body === undefined ? undefined : JSON.stringify(body),
+          });
+        expect(
+          (
+            await call('', data.owner.cookie, {
+              operationId: id,
+              name: 'Relationship decision v1',
+              graph: { version: 1, graph: historicalFrame.document.graph },
+            })
+          ).status,
+        ).toBe(200);
+        const read = async (cookie: string) => {
+          const response = await call('', cookie);
+          expect(response.status).toBe(200);
+          return response.json();
+        };
+        const exportGraph = async () => {
+          const response = await call('/export', data.viewer.cookie);
+          expect(response.status).toBe(200);
+          return response.text();
+        };
+        expect(await read(data.editor.cookie)).toMatchObject({
+          frame: { document: { version: 0, graph: historicalFrame.document.graph } },
+        });
+        return { id, call, read, exportGraph };
+      };
+
+      const board = await open();
+      const baseline = await board.exportGraph();
+      expect<unknown>(parseGraph(baseline)).toEqual(historicalFrame.document.graph);
+      const checkpointResponse = await board.call('/checkpoint', data.owner.cookie);
+      expect(checkpointResponse.status).toBe(200);
+      const checkpoint = await parseDiagramCheckpoint(await checkpointResponse.text());
+      const spoofed = { ...shareRequest, actorId: data.owner.userId };
+      expect((await board.call('/decisions', data.editor.cookie, spoofed)).status).toBe(400);
+      const shared = await board.call('/decisions', data.editor.cookie, shareRequest);
+      expect(shared.status).toBe(200);
+      const proposed = { ...expectedProposed, requestedBy: data.editor.userId };
+      expect(await shared.json()).toEqual({ status: 'recorded', record: proposed });
+      expect(await board.read(data.owner.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [proposed] },
+      });
+      expect(await board.exportGraph()).toBe(baseline);
+      expect((await board.call('/decisions', data.viewer.cookie, acceptRequest)).status).toBe(403);
+      expect((await board.call('/decisions', data.outsider.cookie, acceptRequest)).status).toBe(
+        403,
+      );
+      expect(
+        (await board.call('/operations', data.editor.cookie, graphScenarios.drag.request)).status,
+      ).toBe(200);
+
+      const movedGraph = await board.exportGraph();
+      const accepted = {
+        ...acceptedEvent.outcome.record,
+        requestedBy: data.editor.userId,
+        acceptedBy: data.owner.userId,
+      };
+      const accepting = await board.call('/decisions', data.owner.cookie, acceptRequest);
+      expect(accepting.status).toBe(200);
+      expect(await accepting.json()).toEqual({
+        status: graphScenarios.drag.expectedAcceptance,
+        record: accepted,
+      });
+      const retried = await board.call('/decisions', data.owner.cookie, acceptRequest);
+      expect(retried.status).toBe(200);
+      expect(await retried.json()).toEqual({ status: 'recorded', record: accepted });
+      const differentRevision = {
+        ...acceptRequest,
+        command: { ...acceptRequest.command, revision: acceptRequest.command.revision + 1 },
+      };
+      const rebound = await board.call('/decisions', data.owner.cookie, differentRevision);
+      expect(rebound.status).toBe(200);
+      expect(await rebound.json()).toEqual({ status: 'rejected', code: 'OperationIdMismatch' });
+      expect(await board.read(data.viewer.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [accepted] },
+      });
+      expect(await board.exportGraph()).toBe(movedGraph);
+
+      const socketUrl = new URL('/api/zloz/live', origin.replace('http:', 'ws:'));
+      socketUrl.searchParams.set(
+        'read',
+        JSON.stringify({
+          id: '1',
+          tag: 'ZlozDiagramDeltaV1.events',
+          payload: { key: JSON.stringify([data.organizationId, board.id]), after: 0 },
+        }),
+      );
+      const socket = new NativeWebSocket(socketUrl, {
+        headers: { cookie: data.viewer.cookie, origin },
+      });
+      const messages: string[] = [];
+      socket.addEventListener('message', (event) => messages.push(String(event.data)));
+      try {
+        const entries = () => messages.flatMap(deltaEntries);
+        await browserExpect
+          .poll(() => entries().some((entry) => entry.kind === 'caught-up'))
+          .toBe(true);
+        expect(
+          entries().flatMap((entry) => (entry.kind === 'delta' ? [entry.delta.payload.kind] : [])),
+        ).toEqual(['reset', 'noop', 'graph', 'noop']);
+        expect(messages.join('')).not.toContain(accepted.content.statement);
+      } finally {
+        socket.close();
+      }
+
+      const restored = await board.call('/restore', data.owner.cookie, {
+        operationId: 'opy-restore',
+        expectedVersion: 1,
+        checkpoint,
+      });
+      expect(restored.status).toBe(200);
+      expect(await restored.json()).toMatchObject({ status: 'restored', documentVersion: 2 });
+      expect(await board.read(data.viewer.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [accepted], relationshipDecisionRecoveryVersion: 2 },
+      });
+      expect(await board.exportGraph()).toBe(baseline);
+
+      const race = await open();
+      expect((await race.call('/decisions', data.editor.cookie, shareRequest)).status).toBe(200);
+      const concurrentReviews = await Promise.all([
+        race.call('/decisions', data.owner.cookie, acceptRequest),
+        race.call('/decisions', data.editor.cookie, acceptRequest),
+      ]);
+      const outcomes = await Promise.all(concurrentReviews.map((response) => response.json()));
+      expect(outcomes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: 'recorded',
+            record: expect.objectContaining({ status: 'accepted' }),
+          }),
+          { status: 'rejected', code: 'ProposalNotOpen' },
+        ]),
+      );
+
+      for (const scenario of [graphScenarios.changedEvidence, graphScenarios.removedRelationship]) {
+        const concurrent = await open();
+        expect((await concurrent.call('/decisions', data.editor.cookie, shareRequest)).status).toBe(
+          200,
+        );
+        expect(
+          (await concurrent.call('/operations', data.editor.cookie, scenario.request)).status,
+        ).toBe(200);
+        const response = await concurrent.call('/decisions', data.owner.cookie, acceptRequest);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          status: 'rejected',
+          code: scenario.expectedAcceptance,
+        });
+        expect(await concurrent.read(data.editor.cookie)).toMatchObject({
+          frame: { relationshipDecisions: [proposed] },
+        });
+      }
+    },
+    30_000,
+  );
+
+  test.skipIf(process.env.ZLOZ_RUN_OPY_CONTRACT !== '1')(
+    'OPY relationship decision UI shares with a second editor and reconnects without editing the graph',
+    async () => {
+      const data = await fixture();
+      const id = crypto.randomUUID();
+      const path = `/api/zloz/diagrams/${data.organizationId}/${id}`;
+      const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+      const create = await fetch(origin + path, {
+        method: 'POST',
+        headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name: 'OPY shared review',
+          graph: { version: 1, graph: decisionWire.historicalFrame.document.graph },
+        }),
+      });
+      expect(create.status).toBe(200);
+      const exported = async () => {
+        const response = await fetch(origin + path + '/export', {
+          headers: { cookie: data.owner.cookie },
+        });
+        expect(response.status).toBe(200);
+        return response.text();
+      };
+      const original = await exported();
+      const browser = await chromium.launch();
+      await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      const open = async (cookie: string, colorScheme: 'light' | 'dark') => {
+        const context = await browser.newContext({
+          colorScheme,
+          viewport: { width: 1440, height: 1000 },
+        });
+        const equals = cookie.indexOf('=');
+        await context.addCookies([
+          { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+        ]);
+        const page = await context.newPage();
+        await page.goto(room);
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        return page;
+      };
+      const [editor, owner] = await Promise.all([
+        open(data.editor.cookie, 'dark'),
+        open(data.owner.cookie, 'light'),
+      ]);
+      const openOpy = async (page: Page) => {
+        const launcher = page.getByRole('button', { name: 'Ask OPY', exact: true });
+        await browserExpect(launcher).toBeVisible();
+        await launcher.click();
+        const panel = page.getByRole('region', { name: 'OPY relationship decisions' });
+        await browserExpect(panel).toBeFocused();
+        return panel;
+      };
+      await editor.getByRole('button', { name: 'Calls — Alpha → Beta', exact: true }).click();
+      const draft = await openOpy(editor);
+      await draft
+        .getByLabel('Decision', { exact: true })
+        .fill('Keep the order before calling Beta.');
+      await draft
+        .getByLabel('Rationale', { exact: true })
+        .fill('An accepted order should survive a Beta outage.');
+      await draft.getByRole('button', { name: 'Share proposal', exact: true }).click();
+      const review = await openOpy(owner);
+      await browserExpect(review.getByText('Keep the order before calling Beta.')).toBeVisible();
+      await review.getByRole('button', { name: 'Accept decision', exact: true }).click();
+      for (const page of [owner, editor]) {
+        const panel = page.getByRole('region', { name: 'OPY relationship decisions' });
+        await browserExpect(panel.getByText('Accepted · implementation unverified')).toBeVisible();
+        await page.reload();
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        await browserExpect(
+          (await openOpy(page)).getByText('Accepted · implementation unverified'),
+        ).toBeVisible();
+      }
+      await editor.bringToFront();
+      await editor.getByRole('button', { name: 'Close OPY', exact: true }).press('Enter');
+      const launcher = editor.getByRole('button', { name: 'Ask OPY', exact: true });
+      await browserExpect(launcher).toBeFocused();
+      await launcher.press('Enter');
+      await editor.setViewportSize({ width: 390, height: 844 });
+      await browserExpect(
+        editor.getByRole('region', { name: 'OPY relationship decisions' }),
+      ).toBeVisible();
+      expect(await exported()).toBe(original);
+    },
+    45_000,
+  );
 
   test('public delta history replays beyond receipt coverage with exact canonical parity and current authorization', async () => {
     const data = await fixture();

@@ -2903,6 +2903,52 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     }
   }, 30_000);
 
+  test('signed-in readers can inspect the recorded Clef demo without client JavaScript', async () => {
+    const demoPath = '/app/clef-demo';
+    const anonymous = await fetch(origin + demoPath, { redirect: 'manual' });
+    expect(anonymous.status).toBe(303);
+    expect(anonymous.headers.get('location')).toBe('/login?returnTo=%2Fapp%2Fclef-demo');
+    expect(await anonymous.text()).not.toContain('98.86%');
+
+    const data = await fixture();
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 844 },
+    });
+    const equals = data.viewer.cookie.indexOf('=');
+    await context.addCookies([
+      {
+        name: data.viewer.cookie.slice(0, equals),
+        value: data.viewer.cookie.slice(equals + 1),
+        url: origin,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    const page = await context.newPage();
+    await page.goto(origin + '/app');
+    const link = page.getByRole('link', { name: 'Clef evidence demo' });
+    await browserExpect(link).toBeVisible();
+    const [response] = await Promise.all([page.waitForResponse(origin + demoPath), link.click()]);
+    expect(response.headers()['cache-control']).toBe('private, no-store');
+    await browserExpect(page.getByRole('heading', { name: 'Clef evidence demo' })).toBeVisible();
+    for (const [name, score] of [
+      ['Measured evidence', '1.07%'],
+      ['Missing measurements', '98.86%'],
+      ['Conflicting reports', '98.83%'],
+    ]) {
+      const example = page.getByRole('article', { name });
+      await browserExpect(example.getByText(score, { exact: true })).toBeVisible();
+    }
+    const measured = page.getByRole('article', { name: 'Measured evidence' });
+    const evidence = measured.getByText(/Load run Q-41 tested 10,000 events\/minute/);
+    await browserExpect(evidence).toBeHidden();
+    await measured.getByText('Evidence and model response', { exact: true }).press('Enter');
+    await browserExpect(evidence).toBeVisible();
+  }, 25_000);
+
   test('private SSR redirects anonymous requests and renders a real signed session', async () => {
     const anonymous = await fetch(`${origin}/app`, { redirect: 'manual' });
     expect(anonymous.status).toBe(303);

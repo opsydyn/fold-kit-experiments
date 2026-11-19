@@ -9,6 +9,11 @@ import {
   type RelationshipDecisionRequest,
 } from '@opsydyn/foldkit-zloz-alchemy/relationship-decision';
 import type { DiagramFrame, DiagramRoom } from '@opsydyn/foldkit-zloz-alchemy/session';
+import {
+  ClefAdvice,
+  ClefReference,
+  sameClefReference,
+} from '@opsydyn/zloz-server/src/clef-contract';
 import { Effect, Option, Schema } from 'effect';
 import { Command } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -44,11 +49,21 @@ const Pending = Schema.Struct({
   write: Write,
   status: Schema.Literals(['sending', 'uncertain', 'awaiting-frame']),
 });
+const ClefOutcome = Schema.Union([
+  ClefAdvice,
+  Schema.Literals(['unavailable', 'changed', 'limited']),
+]);
+const ClefReview = Schema.Struct({
+  serial: Schema.Number,
+  reference: ClefReference,
+  result: Schema.NullOr(ClefOutcome),
+});
 export const Model = Schema.Struct({
   draft: Draft,
   pending: Schema.NullOr(Pending),
   serial: Schema.Number,
   notice: Schema.String,
+  clefReview: Schema.NullOr(ClefReview),
 });
 export type Model = typeof Model.Type;
 const emptyDraft: typeof Draft.Type = {
@@ -58,7 +73,13 @@ const emptyDraft: typeof Draft.Type = {
   evidence: '',
   openQuestion: '',
 };
-export const init = (): Model => ({ draft: emptyDraft, pending: null, serial: 0, notice: '' });
+export const init = (): Model => ({
+  draft: emptyDraft,
+  pending: null,
+  serial: 0,
+  notice: '',
+  clefReview: null,
+});
 export const Message = defineMessageUnion({
   ChangedDraft: {
     field: Schema.Literals(['statement', 'rationale', 'evidence', 'openQuestion']),
@@ -69,6 +90,8 @@ export const Message = defineMessageUnion({
   ClickedAccept: { proposalId: Schema.String, revision: Schema.Number },
   ClickedWithdraw: { proposalId: Schema.String, revision: Schema.Number },
   ClickedRetry: {},
+  ClickedClefReview: { reference: ClefReference },
+  SettledClefReview: { serial: Schema.Number, result: ClefOutcome },
   SettledWrite: {
     operationId: Schema.String,
     result: Schema.Union([
@@ -83,6 +106,7 @@ interface Context {
   readonly frame: DiagramFrame | null;
   readonly relationshipId: string | undefined;
   readonly authoring: boolean;
+  readonly clefShadow: boolean;
   readonly isOwner: boolean;
   readonly actorLabel: (id: string) => string;
 }
@@ -99,6 +123,41 @@ const sameContext = (
   right: typeof RelationshipContextSchema.Type,
 ) => left !== null && canonicalOperationValue(left) === canonicalOperationValue(right);
 const reviews = (frame: DiagramFrame | null) => frame?.relationshipDecisions ?? [];
+const liveClefProposal = (context: Context, record: RelationshipDecision) => {
+  if (!context.clefShadow || !context.authoring || record.status !== 'proposed') return false;
+  const target = contextFor(context, record.relationshipId);
+  return Option.isSome(target) && sameContext(record.context, target.value);
+};
+const ReviewWithClef = Command.define('ReviewWithClef', {
+  args: { path: Schema.String, serial: Schema.Number, reference: ClefReference },
+  messages: [Message.SettledClefReview],
+  execute: ({ path, serial, reference }) => {
+    const settled = (result: typeof ClefOutcome.Type) =>
+      Message.SettledClefReview({ serial, result });
+    return Effect.tryPromise(async (signal) => {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(reference),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(22_000)]),
+      });
+      if (response.status === 409) return settled('changed');
+      if (response.status === 429) return settled('limited');
+      if (!response.ok) return settled('unavailable');
+      const advice = Schema.decodeUnknownSync(ClefAdvice)(await response.json());
+      return settled(sameClefReference(reference, advice) ? advice : 'unavailable');
+    }).pipe(Effect.orElseSucceed(() => settled('unavailable')));
+  },
+});
+const reviewNotice = {
+  changed: 'The proposal changed before the review finished.',
+  limited: 'Clef is receiving too many requests. Try again shortly.',
+  unavailable: 'Clef review is temporarily unavailable.',
+};
+const probability = new Intl.NumberFormat('en', {
+  style: 'percent',
+  maximumFractionDigits: 2,
+});
 
 function confirmed(pending: typeof Pending.Type, frame: DiagramFrame | null, actorId: string) {
   const input = pending.write.command;
@@ -255,6 +314,23 @@ export function update(model: Model, message: Message, context: Context): Return
           }
         : { model };
     },
+    ClickedClefReview: ({ reference }) => {
+      if (model.clefReview?.result === null) return { model };
+      const record = reviews(context.frame).find((item) => sameClefReference(item, reference));
+      if (!record || !liveClefProposal(context, record)) return { model };
+      const serial = model.serial + 1;
+      return {
+        model: { ...model, serial, clefReview: { serial, reference, result: null } },
+        commands: [
+          ReviewWithClef({ path: pathFor(context.room) + '/clef-review', serial, reference }),
+        ],
+      };
+    },
+    SettledClefReview: ({ serial, result }) => {
+      const review = model.clefReview;
+      if (review?.serial !== serial) return { model };
+      return { model: { ...model, clefReview: { ...review, result } } };
+    },
     SettledWrite: ({ operationId, result }) => {
       const pending = model.pending;
       if (pending?.write.operationId !== operationId) return { model };
@@ -313,6 +389,21 @@ export function view<M>(
           : 'Proposal withdrawn';
     const button = (text: string, message: Message) =>
       h.button([h.Type('button'), h.OnClick(emit(message))], [text]);
+    const reference = {
+      proposalId: record.proposalId,
+      revision: record.revision,
+      contextFingerprint: record.contextFingerprint,
+    };
+    const reviewing = model.clefReview?.result === null;
+    const shadow = model.clefReview;
+    const shadowNotice =
+      shadow && sameClefReference(shadow.reference, reference)
+        ? shadow.result === null
+          ? 'Clef is reviewing the evidence…'
+          : Schema.is(ClefAdvice)(shadow.result)
+            ? `Clef estimates a ${probability.format(shadow.result.needsEvidenceProbability)} chance that more evidence is needed.`
+            : reviewNotice[shadow.result]
+        : '';
     return h.article(
       [h.Class('opy-card'), h.Key(record.proposalId)],
       [
@@ -333,6 +424,25 @@ export function view<M>(
         ),
         ...(record.status === 'accepted'
           ? [h.p([], [`Accepted by ${context.actorLabel(record.acceptedBy)}`])]
+          : []),
+        ...(liveClefProposal(context, record)
+          ? [
+              h.p(
+                [],
+                [
+                  'Send this proposal’s text and evidence to Cloudflare for an advisory shown only in this session.',
+                ],
+              ),
+              h.button(
+                [
+                  h.Type('button'),
+                  h.Disabled(reviewing),
+                  h.OnClick(emit(Message.ClickedClefReview({ reference }))),
+                ],
+                ['Run Clef review'],
+              ),
+              h.p([h.Role('status')], [shadowNotice]),
+            ]
           : []),
         ...(record.status === 'proposed' && available && fresh
           ? [

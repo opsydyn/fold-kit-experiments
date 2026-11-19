@@ -5,6 +5,7 @@ import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types'
 import { createOperationDocument, decideOperation } from '@opsydyn/foldkit-zloz';
 import type { ZlozOperationRequest } from '@opsydyn/foldkit-zloz';
 import { operationHash } from '@opsydyn/foldkit-zloz-alchemy/hash';
+import { RelationshipDecisionsSchema } from '@opsydyn/foldkit-zloz-alchemy/relationship-decision';
 import { betterAuth } from 'better-auth';
 import { getCookies } from 'better-auth/cookies';
 import { makeSignature } from 'better-auth/crypto';
@@ -13,8 +14,10 @@ import { organization as organizationPlugin } from 'better-auth/plugins';
 import { Data, Schema } from 'effect';
 import { convertV4MiniflareOptions, Miniflare } from 'miniflare';
 
+import decisionFixture from '../../../packages/foldkit-zloz-alchemy/test/fixtures/relationship-decision-v1.json';
 import { authOptions } from '../src/auth-options';
 import { bootstrapTeam } from '../src/bootstrap';
+import type { ClefReference } from '../src/clef-contract';
 import { handleDiagramRequest, type DiagramService } from '../src/diagram-routes';
 
 class FixtureRejected extends Data.TaggedError('FixtureRejected')<{ message: string }> {}
@@ -87,6 +90,110 @@ describe('Better Auth organization contract on real local D1', () => {
       throw new FixtureRejected({ message: 'Server-side organization bootstrap failed' });
     return organization;
   };
+
+  test('Clef shadow requests preserve editor authority and discard changed proposals', async () => {
+    const owner = await user('clef-owner');
+    const editor = await user('clef-editor');
+    const viewer = await user('clef-viewer');
+    const organization = await team(owner);
+    const db = await database;
+    const nativeAuth = await auth;
+    const target = { teamId: organization.id, diagramId: crypto.randomUUID() };
+    for (const [actor, role] of [
+      [editor, 'editor'],
+      [viewer, 'viewer'],
+    ] as const) {
+      await db
+        .prepare(
+          'INSERT INTO member (id, organizationId, userId, role, createdAt) VALUES (?, ?, ?, ?, ?)',
+        )
+        .bind(crypto.randomUUID(), target.teamId, actor.user.id, role, Date.now())
+        .run();
+    }
+    await db
+      .prepare(
+        'INSERT INTO diagramDirectory (organizationId, diagramId, name, updatedAt) VALUES (?, ?, ?, ?)',
+      )
+      .bind(target.teamId, target.diagramId, 'Clef qualification', Date.now())
+      .run();
+    const proposal = Schema.decodeUnknownSync(RelationshipDecisionsSchema)([
+      decisionFixture.expectedProposed,
+    ])[0]!;
+    const { proposalId, revision, contextFingerprint } = proposal;
+    const reference: ClefReference = { proposalId, revision, contextFingerprint };
+    const advice = { ...reference, needsEvidenceProbability: 0.87 };
+    let allowed = true;
+    let open = true;
+    let changedDuringInference = false;
+    let calls = 0;
+    const unexpected = async (): Promise<never> => {
+      throw new FixtureRejected({ message: 'Clef must not mutate the diagram or decisions' });
+    };
+    const service: DiagramService = {
+      decisionAuthoring: true,
+      saveRelationshipDecision: unexpected,
+      saveAssessment: unexpected,
+      defer: unexpected,
+      checkpoint: unexpected,
+      recover: unexpected,
+      graph: unexpected,
+      execute: unexpected,
+      heartbeat: unexpected,
+      initialize: unexpected,
+      frame: unexpected,
+      clefShadow: {
+        read: async (actor, scope, input) => {
+          expect([owner.user.id, editor.user.id]).toContain(actor.userId);
+          expect(scope).toEqual(target);
+          return open &&
+            input.proposalId === proposalId &&
+            input.revision === revision &&
+            input.contextFingerprint === contextFingerprint
+            ? proposal
+            : null;
+        },
+        admit: async () => allowed,
+        review: async (record) => {
+          expect(record).toEqual(proposal);
+          calls += 1;
+          if (changedDuringInference) open = false;
+          return advice;
+        },
+      },
+    };
+    const call = (cookie: string, body: ClefReference & { content?: string } = reference) =>
+      handleDiagramRequest(
+        new Request(
+          `${origin}/api/zloz/diagrams/${target.teamId}/${target.diagramId}/clef-review`,
+          {
+            method: 'POST',
+            headers: { cookie, origin, 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          },
+        ),
+        db,
+        nativeAuth,
+        service,
+      );
+    expect((await call('')).status).toBe(401);
+    expect((await call(viewer.cookie)).status).toBe(403);
+    expect((await call(editor.cookie, { ...reference, content: 'body override' })).status).toBe(
+      400,
+    );
+    expect((await call(owner.cookie, { ...reference, revision: 2 })).status).toBe(409);
+    expect(calls).toBe(0);
+    const response = await call(editor.cookie);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toEqual(advice);
+    allowed = false;
+    expect((await call(owner.cookie)).status).toBe(429);
+    expect(calls).toBe(1);
+    allowed = true;
+    changedDuringInference = true;
+    expect((await call(owner.cookie)).status).toBe(409);
+    expect(calls).toBe(2);
+  });
 
   test('creation waits for its own live-view receipt before publishing the directory entry', async () => {
     const owner = await user('creation-view-lag');

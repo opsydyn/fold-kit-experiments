@@ -19,6 +19,7 @@ import {
 import { applyDiagramDelta, DiagramFeedSchema } from '@opsydyn/foldkit-zloz-alchemy/delta';
 import { isDiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
 import type { DiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
+import { ClefReference } from '@opsydyn/zloz-server/src/clef-contract';
 import { Actor, Fixture } from '@opsydyn/zloz-server/test/fixture-contract';
 import { Schema } from 'effect';
 import { chromium, errors as playwrightErrors, type BrowserContext, type Page } from 'playwright';
@@ -1434,6 +1435,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       const original = await exported();
       const browser = await chromium.launch();
       await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      let clefCalls = 0;
       const open = async (cookie: string, colorScheme: 'light' | 'dark') => {
         const context = await browser.newContext({
           colorScheme,
@@ -1444,6 +1446,32 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
         ]);
         const page = await context.newPage();
+        // Keep sessions, proposal writes and live frames native. Substitute only the
+        // staging capability and model result in this isolated browser qualification.
+        await page.route(origin + path, async (route) => {
+          if (route.request().method() !== 'GET') return route.continue();
+          const response = await route.fetch();
+          const body = await response.json();
+          await route.fulfill({ response, json: { ...body, clefShadow: true } });
+        });
+        await page.route(origin + path + '/clef-review', async (route) => {
+          expect(route.request().method()).toBe('POST');
+          const current = Schema.decodeUnknownSync(ClefReference, { onExcessProperty: 'error' })(
+            route.request().postDataJSON(),
+          );
+          const confirmed = await fetch(origin + path, { headers: { cookie } });
+          const body = Schema.decodeUnknownSync(
+            Schema.Struct({
+              frame: Schema.Unknown.pipe(Schema.refine(isDiagramFrame)),
+            }),
+          )(await confirmed.json());
+          expect(body.frame.relationshipDecisions?.[0]).toMatchObject({
+            ...current,
+            status: 'proposed',
+          });
+          clefCalls++;
+          await route.fulfill({ json: { ...current, needsEvidenceProbability: 0.87 } });
+        });
         await page.goto(room);
         await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
         return page;
@@ -1471,10 +1499,21 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await draft.getByRole('button', { name: 'Share proposal', exact: true }).click();
       const review = await openOpy(owner);
       await browserExpect(review.getByText('Keep the order before calling Beta.')).toBeVisible();
+      expect(clefCalls).toBe(0);
+      await review.getByRole('button', { name: 'Run Clef review', exact: true }).click();
+      const advisory = 'Clef estimates a 87% chance that more evidence is needed.';
+      await browserExpect(review.getByText(advisory, { exact: true })).toBeVisible();
+      await browserExpect(draft.getByText(advisory, { exact: true })).toHaveCount(0);
+      for (const panel of [review, draft])
+        await browserExpect(
+          panel.getByText('Proposal awaiting review', { exact: true }),
+        ).toBeVisible();
+      expect(clefCalls).toBe(1);
       await review.getByRole('button', { name: 'Accept decision', exact: true }).click();
       for (const page of [owner, editor]) {
         const panel = page.getByRole('region', { name: 'OPY relationship decisions' });
         await browserExpect(panel.getByText('Accepted · implementation unverified')).toBeVisible();
+        await browserExpect(panel.getByText(advisory, { exact: true })).toHaveCount(0);
         await page.reload();
         await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
         await browserExpect(

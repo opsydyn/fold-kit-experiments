@@ -121,6 +121,7 @@ export const Model = Schema.Struct({
   inspector: Inspector,
   opy: Opy.Model,
   decisionAuthoring: Schema.Boolean,
+  clefShadow: Schema.Boolean,
   session: DiagramSessionSchema,
   queuedMove: Schema.NullOr(QueuedMove),
   moveSaveIssue: Schema.NullOr(Schema.Literals(['conflict', 'rejected'])),
@@ -166,6 +167,7 @@ export const Message = defineMessageUnion({
     run: Schema.optionalKey(Schema.Number),
     feed: Schema.optionalKey(Schema.Unknown),
     decisionAuthoring: Schema.optionalKey(Schema.Boolean),
+    clefShadow: Schema.optionalKey(Schema.Boolean),
   },
   FailedSnapshot: { room: Room, status: Schema.Number, run: Schema.optionalKey(Schema.Number) },
   ObservedDelta: { room: Room, run: Schema.Number, cursor: Schema.Number, delta: Schema.Unknown },
@@ -261,6 +263,7 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
           role: Role,
           feed: Schema.optionalKey(Schema.Unknown),
           decisionAuthoring: Schema.optionalKey(Schema.Boolean),
+          clefShadow: Schema.optionalKey(Schema.Boolean),
         }),
       )(await response.json());
       return Message.SucceededSnapshot({
@@ -270,6 +273,7 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
         role: body.role,
         feed: body.feed,
         decisionAuthoring: body.decisionAuthoring ?? false,
+        clefShadow: body.clefShadow ?? false,
       });
     }).pipe(Effect.orElseSucceed(() => Message.FailedSnapshot({ room, run, status: 0 }))),
 });
@@ -367,6 +371,7 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         inspector: 'selection',
         opy: Opy.init(),
         decisionAuthoring: false,
+        clefShadow: false,
       }),
       folds: {
         assessment: {
@@ -561,6 +566,7 @@ const opyContext = (model: Model) => ({
   frame: session(model).confirmed,
   relationshipId: editor(model).selectedEdges[0],
   isOwner: model.role === 'owner',
+  clefShadow: model.clefShadow,
   actorLabel: (id: string) =>
     id === model.room.actorId
       ? 'you'
@@ -719,7 +725,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedIdentity: () => ({
       model: { ...model, error: 'Could not prepare an editing session. Reload to retry.' },
     }),
-    SucceededSnapshot: ({ room, frame, role, run, feed, decisionAuthoring }) => {
+    SucceededSnapshot: ({ room, frame, role, run, feed, decisionAuthoring, clefShadow }) => {
       if (
         !current(model, room) ||
         !isDiagramFrame(frame) ||
@@ -741,6 +747,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ...model,
         role,
         decisionAuthoring: decisionAuthoring === true,
+        clefShadow: clefShadow === true,
         error: '',
         feedMode: validFeed ? ('delta' as const) : ('legacy' as const),
         feedSeeds:

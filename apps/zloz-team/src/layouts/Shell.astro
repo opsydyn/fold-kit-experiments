@@ -2,6 +2,7 @@
 import '../styles/workspace.css';
 import Appearance from '../appearance/app';
 import { themeCookie, themePreference } from '../appearance/preferences';
+import mark from '../../../../docs/assets/zloz/final/mark.svg?raw';
 interface Props { title: string; wide?: boolean }
 const { title, wide = false } = Astro.props;
 const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
@@ -15,7 +16,7 @@ const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
   </head>
   <body>
     <header class="site-header">
-      <a href="/" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span><strong>ZLOZ</strong><small>Team architecture workspace</small></span></a>
+      <a href="/" class="brand"><span class="brand-mark" aria-hidden="true" set:html={mark} /><span><strong>Foldkit Zloz</strong><small>Team architecture workspace</small></span></a>
       <Appearance client:load noMeta preference={preference} />
     </header>
     <main class:list={['page-content', { wide }]}><slot /></main>

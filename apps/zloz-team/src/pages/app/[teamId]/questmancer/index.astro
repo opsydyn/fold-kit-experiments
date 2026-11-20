@@ -1,0 +1,82 @@
+---
+import { bodyText, BodyRejected } from '@opsydyn/zloz-server/src/http-body';
+import { Schema } from 'effect';
+
+import Shell from '../../../../layouts/Shell.astro';
+import { InviteSeats, seatNames, seats } from '../../../../questmancer/contracts';
+import { loginPath } from '../../../../server/continuation';
+import { loadTeam } from '../../../../server/onboarding';
+import { questmancerEnabled, questmancerParticipant, questmancerPath, questmancerRequest } from '../../../../server/questmancer';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const teamId = Astro.params.teamId ?? '';
+const path = questmancerPath(teamId);
+if (!questmancerEnabled(teamId)) return new Response('Questmancer unavailable', { status: 404 });
+const team = await loadTeam(Astro.request, teamId);
+if (team._tag !== 'Ready') return team.status === 401
+  ? Astro.redirect(loginPath(path), 303)
+  : new Response('Questmancer unavailable', { status: team.status });
+const { role, members, currentUserId } = team.value;
+const participant = await questmancerParticipant(teamId, currentUserId);
+if (!participant && role !== 'owner') return new Response('Invitation unavailable', { status: 404 });
+const choices = members.filter((member) => member.userId !== currentUserId);
+async function submit(request: Request, origin: string) {
+  if (request.method !== 'POST') return;
+  if (request.headers.get('origin') !== origin)
+    return new Response('Request origin denied', { status: 403 });
+  if (request.headers.get('content-type')?.split(';')[0] !== 'application/x-www-form-urlencoded')
+    return new Response('Expected the Questmancer form', { status: 415 });
+  // The native Astro form reader reports malformed request bodies through exceptions.
+  // oxlint-disable-next-line linteffect/no-try-catch
+  try {
+    const form = new URLSearchParams(await bodyText(request));
+    const action = form.get('action');
+    if (action === 'join' && participant?.role === 'player') {
+      const joined = await questmancerRequest(teamId, currentUserId, 'join', '{}');
+      if (joined.ok) return new Response(null, { status: 303, headers: { Location: path + '/table' } });
+      return { status: joined.status, message: 'The invitation is unavailable.' };
+    }
+    if (action !== 'host' || participant || role !== 'owner')
+      return { status: 403, message: 'This action is unavailable for your seat.' };
+    const players = seats.map((seat) => form.get(seat));
+    if (!Schema.is(InviteSeats)(players) || new Set(players).size !== 3 ||
+        players.some((id) => !choices.some((member) => member.userId === id)))
+      return { status: 400, message: 'Choose three different teammates.' };
+    const hosted = await questmancerRequest(teamId, currentUserId, 'host', JSON.stringify(players));
+    if (hosted.ok) return new Response(null, { status: 303, headers: { Location: path + '/table' } });
+    return { status: hosted.status, message: 'This team already has a Moonwell table or the service is unavailable.' };
+  } catch (caught) {
+    if (!(caught instanceof BodyRejected)) throw caught;
+    return { status: caught.status, message: 'The Questmancer form could not be read.' };
+  }
+}
+const outcome = await submit(Astro.request, Astro.url.origin);
+if (outcome instanceof Response) {
+  outcome.headers.set('Cache-Control', 'private, no-store');
+  return outcome;
+}
+if (outcome) Astro.response.status = outcome.status;
+---
+<Shell title="Questmancer · Moonwell Observatory">
+  <nav aria-label="Workspace"><a href="/app">Your workspace</a></nav>
+  <p>Questmancer</p>
+  <h1>The Moonwell Observatory</h1>
+  {outcome && <p role="alert" class="error">{outcome.message}</p>}
+  {participant?.joined ? <p><a href={path + '/table'}>Resume session</a></p>
+    : participant?.role === 'player' ? <>
+      <p>Your seat is <strong>{seatNames[participant.seat]}</strong>.</p>
+      <form method="post"><button name="action" value="join">Join party</button></form>
+    </> : choices.length >= 3 ? <>
+      <p>Choose three teammates for the party. Their invitations will appear on the workspace home.</p>
+      <form method="post" class="invite-form">
+        {seats.map((seat) => <div>
+          <label for={'quest-seat-' + seat}>{seatNames[seat]}</label>
+          <select id={'quest-seat-' + seat} name={seat} required>
+            <option value="">Choose a teammate</option>
+            {choices.map((member) => <option value={member.userId}>{member.name} · {member.email}</option>)}
+          </select>
+        </div>)}
+        <button name="action" value="host">Host Moonwell</button>
+      </form>
+    </> : <p>Invite three teammates from the <a href={`/app/${teamId}`}>team workspace</a>, then return here to choose their seats.</p>}
+</Shell>

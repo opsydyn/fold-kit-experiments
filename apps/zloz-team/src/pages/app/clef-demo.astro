@@ -1,0 +1,76 @@
+---
+import Shell from '../../layouts/Shell.astro';
+import { sessionFor } from '../../server/backend';
+import { loginPath } from '../../server/continuation';
+import { demo, relationship, score } from '../../styles/clef-demo.css';
+
+Astro.response.headers.set('cache-control', 'private, no-store');
+if ((await sessionFor(Astro.request)) === null) return Astro.redirect(loginPath('/app/clef-demo'), 303);
+
+// Recorded Workers AI responses from the 2026-11-19 synthetic OPY trial.
+const examples = [
+  {
+    id: 'measured',
+    title: 'Measured evidence',
+    probability: 0.0107,
+    summary: 'Load, outage recovery, and rollback have recorded results.',
+    evidence: [
+      'Load run Q-41 tested 10,000 events/minute for 60 minutes. End-to-end p99 was 2.1 seconds.',
+      'Fault run Q-42 paused the consumer for 10 minutes. Producer IDs were reconciled with the delivered notifications after recovery: zero missing IDs, zero duplicate deliveries.',
+      'Rollback drill Q-43 stopped queue publishing, drained the queue, and restored direct delivery. Reconciliation again found zero missing or duplicate notifications.',
+    ],
+    openQuestion: null,
+  },
+  {
+    id: 'missing',
+    title: 'Missing measurements',
+    probability: 0.9886,
+    summary: 'The rationale lists requirements. Load, retries, and rollback are untested.',
+    evidence: [],
+    openQuestion: 'Will this queue meet the latency and recovery requirements? The team has no load run, outage drill, or rollback test.',
+  },
+  {
+    id: 'conflicting',
+    title: 'Conflicting reports',
+    probability: 0.9883,
+    summary: 'Two reports disagree on delivery time and missing notifications.',
+    evidence: [
+      'One report claims a run at 10,000 events/minute had p99 delivery of 2 seconds and no missing IDs after recovery. It supplies no raw samples or run ID.',
+      'Another report claims the same run had p99 delivery of 19 seconds and 43 missing IDs after recovery. Its clock and reconciliation method are undocumented.',
+    ],
+    openQuestion: 'Which report measures real end-to-end delivery? Link the raw logs to the run and repeat the rollback drill before deciding.',
+  },
+];
+const format = new Intl.NumberFormat('en', {
+  style: 'percent',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+---
+<Shell title="Clef evidence demo">
+  <div class={demo}>
+    <nav aria-label="Workspace"><a href="/app">Your workspace</a></nav>
+    <h1>Clef evidence demo</h1>
+    <p>Three recorded Clef judgments on the same synthetic OPY relationship proposal.</p>
+    <p class={relationship}><strong>Order service</strong> → <strong>Notification service</strong></p>
+    <p>Replace the synchronous call with an asynchronous queue. The pilot calls for p99 delivery under 5 seconds at 10,000 events per minute, zero lost or duplicate notifications after a 10-minute outage, and a tested switch back to direct delivery.</p>
+    <h2>Does the reviewer need more evidence to judge this proposal?</h2>
+    {examples.map((example) => (
+      <article aria-labelledby={example.id}>
+        <h3 id={example.id}>{example.title}</h3>
+        <strong class={score}>{format.format(example.probability)}</strong>
+        <p>{example.summary}</p>
+        <meter min="0" max="1" value={example.probability} aria-label={`${example.title} probability that more evidence is needed`} />
+        <details>
+          <summary>Evidence and model response</summary>
+          {example.evidence.length
+            ? <ul>{example.evidence.map((item) => <li>{item}</li>)}</ul>
+            : <p>No evidence excerpts supplied.</p>}
+          {example.openQuestion && <p><strong>Open question</strong> {example.openQuestion}</p>}
+          <p>Clef returned <code>{example.probability}</code> for the probability that more evidence is needed.</p>
+        </details>
+      </article>
+    ))}
+    <p>Recorded from Cloudflare Workers AI on <time datetime="2026-11-19">19 November 2026</time>. Editors decide whether to accept a proposal.</p>
+  </div>
+</Shell>

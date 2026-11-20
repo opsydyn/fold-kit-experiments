@@ -647,20 +647,25 @@ export function view<P>(
                 : 'Draft ready for review.'),
         ],
       ),
-      button(
-        'Save shared assessment',
-        Message.ClickedSave(),
-        disabled || stale || conflict || Option.isNone(authoredAssessment(draft)),
+      h.div(
+        [h.Class('inspector-primary')],
+        [
+          button(
+            'Save shared assessment',
+            Message.ClickedSave(),
+            disabled || stale || conflict || Option.isNone(authoredAssessment(draft)),
+          ),
+          ...(model.delivery.status === 'uncertain'
+            ? [
+                button(
+                  'Retry assessment request',
+                  Message.ClickedRetry(),
+                  !context.editable || context.graphPending,
+                ),
+              ]
+            : []),
+        ],
       ),
-      ...(model.delivery.status === 'uncertain'
-        ? [
-            button(
-              'Retry assessment request',
-              Message.ClickedRetry(),
-              !context.editable || context.graphPending,
-            ),
-          ]
-        : []),
       button('Load shared assessment (discard draft)', Message.ClickedLoadShared(), busy),
       button('Discard draft and close assessment', Message.ClickedClose(), busy),
       h.p(

@@ -5,6 +5,7 @@ export default defineConfig({
     domain: 'src/domain.ts',
     collaboration: 'src/collaboration.ts',
     assessment: 'src/assessment.ts',
+    'relationship-decision': 'src/relationship-decision.ts',
     checkpoint: 'src/checkpoint.ts',
     delta: 'src/delta.ts',
     hash: 'src/hash.ts',

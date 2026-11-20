@@ -1,0 +1,94 @@
+name: Deploy Teams staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy-teams-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: teams-staging
+      url: https://teams-staging.opsydyn.xyz
+    env:
+      ZLOZ_ORIGIN: https://teams-staging.opsydyn.xyz
+      ZLOZ_DECISION_AUTHORING: 'true'
+      ZLOZ_STAGING_BOOTSTRAP: 'false'
+      ZLOZ_QUALIFICATION_PROBE: 'false'
+      ALCHEMY_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install frozen dependencies
+        run: bun install --frozen-lockfile
+      - name: Check Teams types and focused behavior
+        run: |
+          bun run --filter @opsydyn/zloz-team typecheck
+          bun test apps/zloz-team/test/staging*.test.ts apps/zloz-team/test/bridge.test.ts apps/zloz-team/test/editor.test.ts packages/foldkit-zloz-alchemy/test/relationship-decision-contract.test.ts
+          bun run --filter @opsydyn/zloz-server test
+      - name: Build Teams from the dispatched commit
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          jq -n --arg sha "$GITHUB_SHA" --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            '{commit:$sha,run:$run,attempt:$attempt}' > apps/zloz-team/public/teams-staging-build.json
+          bun run --filter @opsydyn/zloz-team build
+      - name: Apply the guarded Teams staging plan
+        working-directory: apps/zloz-team
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.TECH_RADAR_CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.TECH_RADAR_CLOUDFLARE_ACCOUNT_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ZLOZ_OPERATOR_TOKEN: ${{ secrets.ZLOZ_OPERATOR_TOKEN }}
+        run: |
+          bun node_modules/alchemy/bin/cli.js provider check-env --config staging.alchemy.ts --no-input
+          test -n "$ZLOZ_OPERATOR_TOKEN"
+          bun tools/staging-quick.ts apply
+      - name: Verify hosted build, backend and sign-in
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          expected="apps/zloz-team/public/teams-staging-build.json"
+          observed="$RUNNER_TEMP/teams-staging-build.json"
+          for attempt in {1..12}; do
+            if curl -fsS --max-time 8 "$ZLOZ_ORIGIN/teams-staging-build.json?run=$GITHUB_RUN_ID&attempt=$GITHUB_RUN_ATTEMPT&probe=$attempt" -o "$observed" &&
+              jq -e --slurpfile expected "$expected" '. == $expected[0]' "$observed" >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo 'Teams staging did not serve the dispatched build.'
+              exit 1
+            fi
+            sleep 3
+          done
+          test "$(curl -fsS --max-time 8 "$ZLOZ_ORIGIN/api/zloz/session")" = 'null'
+          curl -fsS --max-time 8 "$ZLOZ_ORIGIN/api/zloz/capabilities" | jq -e '.google == true' >/dev/null
+          curl -fsS --max-time 8 "$ZLOZ_ORIGIN/login" > "$RUNNER_TEMP/teams-staging-login.html"
+          grep -Fq 'class="brand-mark"' "$RUNNER_TEMP/teams-staging-login.html"
+          grep -Fq '<title>Foldkit Zloz — Nested frame</title>' "$RUNNER_TEMP/teams-staging-login.html"
+          smoke_finished=$(date -u +%s)
+          dispatched=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
+          elapsed=$(( smoke_finished - $(date -u -d "$dispatched" +%s) ))
+          {
+            echo '### Teams staging verified'
+            printf '\n- Commit `%s`\n- Run %s attempt %s\n- Dispatch to hosted smoke %ss\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$elapsed"
+            echo '- Hosted build marker, anonymous session, Google configuration and sign-in shell passed.'
+          } | tee -a "$GITHUB_STEP_SUMMARY"

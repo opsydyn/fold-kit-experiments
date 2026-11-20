@@ -32,6 +32,10 @@
       "types": "./dist/assessment.d.mts",
       "import": "./dist/assessment.mjs"
     },
+    "./relationship-decision": {
+      "types": "./dist/relationship-decision.d.mts",
+      "import": "./dist/relationship-decision.mjs"
+    },
     "./checkpoint": {
       "types": "./dist/checkpoint.d.mts",
       "import": "./dist/checkpoint.mjs"

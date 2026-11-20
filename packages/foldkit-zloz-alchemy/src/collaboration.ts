@@ -21,7 +21,7 @@ import type {
   ZlozOperationRequest,
   ZlozOperationDocument,
 } from '@opsydyn/foldkit-zloz';
-import { Cause, Data, Effect, Layer, Schema } from 'effect';
+import { Cause, Data, Effect, Layer, Option, Schema } from 'effect';
 import { RpcMiddleware } from 'effect/rpc';
 
 import {
@@ -41,7 +41,20 @@ import {
   type DiagramCheckpoint,
 } from './checkpoint';
 import { DiagramDeltaSchema, type DiagramDelta, type DiagramFeed } from './delta';
+import { sha256Text } from './digest';
 import { operationHash } from './hash';
+import {
+  RelationshipDecisionRequestSchema,
+  RelationshipDecisionOutcomeSchema,
+  RelationshipDecisionsSchema,
+  decideRelationship,
+  installRelationshipDecision,
+  parseRelationshipDecisionRequest,
+  relationshipContext,
+  type RelationshipDecision,
+  type RelationshipDecisionRequest,
+  type RelationshipDecisionOutcome,
+} from './relationship-decision';
 import { DiagramFrameSchema, type DiagramFrame, type DiagramReply } from './session';
 
 export class DiagramAccessDenied extends Domain.Rejection('DiagramAccessDenied') {}
@@ -98,7 +111,7 @@ const targetFromKey = (key: string): DiagramTarget => {
   return { teamId, diagramId };
 };
 const internalId = (
-  kind: 'initialize' | 'execute' | 'recover' | 'assessment',
+  kind: 'initialize' | 'execute' | 'recover' | 'assessment' | 'relationship-decision',
   actor: DiagramActor,
   id: string,
 ) => canonicalOperationValue([kind, actor.userId, id]);
@@ -121,6 +134,23 @@ export interface DiagramRecovery {
  * generated class graph (which cannot be emitted as a portable declaration). */
 /* oxlint-disable linteffect/no-manual-effect-channels */
 export interface DiagramRuntime {
+  readonly readOpenRelationshipDecision: (
+    actor: DiagramActor,
+    target: DiagramTarget,
+    reference: {
+      readonly proposalId: string;
+      readonly revision: number;
+      readonly contextFingerprint: string;
+    },
+  ) => Effect.Effect<Option.Option<RelationshipDecision>, DiagramAccessDenied>;
+  readonly saveRelationshipDecision: (
+    actor: DiagramActor,
+    target: DiagramTarget,
+    request: RelationshipDecisionRequest,
+  ) => Effect.Effect<
+    RelationshipDecisionOutcome,
+    DiagramAccessDenied | DiagramUnavailable | Domain.AlreadyExecuted
+  >;
   readonly bootstrap: (
     actor: DiagramActor,
     target: DiagramTarget,
@@ -187,6 +217,7 @@ type WithDiagramService<F> = F extends (...args: infer Args) => Effect.Effect<in
   : never;
 export interface DiagramDomain {
   readonly model: ModelClass<'ZlozDiagramsV1', DiagramServices, never>;
+  readonly saveRelationshipDecision: WithDiagramService<DiagramRuntime['saveRelationshipDecision']>;
   readonly bootstrap: WithDiagramService<DiagramRuntime['bootstrap']>;
   readonly deltaApi: Domain.Api.Any & Effect.Effect<ApiServer, never, Internals | DiagramSession>;
   readonly api: Domain.Api.Any & Effect.Effect<ApiServer, never, Internals | DiagramSession>;
@@ -207,6 +238,30 @@ export interface DiagramDomain {
  * that resolves trusted identity; never expose native command RPCs to a browser.
  */
 export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
+  const DecisionReply = Schema.Struct({
+    requestHash: Schema.String,
+    outcome: RelationshipDecisionOutcomeSchema,
+  });
+  class RelationshipDecisionDecided extends Domain.Event('RelationshipDecisionDecided', {
+    version: Schema.Literal(1),
+    target: Target,
+    operationId: Identifier,
+    actorId: Identifier,
+    ...DecisionReply.fields,
+  }) {}
+  class SaveRelationshipDecision extends Domain.Command('SaveRelationshipDecision', {
+    target: Schema.String,
+    middleware: [DiagramSession],
+    input: { request: RelationshipDecisionRequestSchema },
+    events: [RelationshipDecisionDecided],
+    reply: DecisionReply.fields,
+    rejects: [DiagramAccessDenied, DiagramUnavailable],
+  }) {}
+  const decisionHash = (
+    target: DiagramTarget,
+    actorId: string,
+    request: RelationshipDecisionRequest,
+  ) => sha256Text(canonicalOperationValue([target, actorId, request]));
   class AssessmentDecided extends Domain.Event('AssessmentDecided', {
     binding: Schema.String,
     decision: AssessmentDecisionSchema,
@@ -270,10 +325,55 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
     state: Schema.Struct({
       document: Schema.NullOr(Document),
       assessments: Schema.optionalKey(AssessmentRecordsSchema),
+      relationshipDecisions: Schema.optionalKey(RelationshipDecisionsSchema),
+      relationshipDecisionRecoveryVersion: Schema.optionalKey(Schema.Number),
     }),
     initial: { document: null },
-    commands: [InitializeDiagram, SubmitOperation, RecoverDiagram, SaveAssessment],
+    commands: [
+      InitializeDiagram,
+      SubmitOperation,
+      RecoverDiagram,
+      SaveAssessment,
+      SaveRelationshipDecision,
+    ],
     decide: {
+      SaveRelationshipDecision: (state, command, context) =>
+        Effect.gen(function* () {
+          const actor = yield* CurrentDiagramActor;
+          const target = targetFromKey(context.id);
+          yield* host.authorize(actor, target, true);
+          const document = state.document;
+          if (!document) return yield* new DiagramUnavailable();
+          const records = state.relationshipDecisions ?? [];
+          const input = command.request.command;
+          if (input.type === 'WithdrawProposal') {
+            const proposal = records.find(({ proposalId }) => proposalId === input.proposalId);
+            if (proposal && proposal.requestedBy !== actor.userId)
+              yield* authorizeRecovery(actor, target);
+          }
+          const requestHash = yield* Effect.promise(() =>
+            decisionHash(target, actor.userId, command.request),
+          );
+          const outcome = yield* Effect.promise(() =>
+            decideRelationship(
+              document.graph,
+              state.relationshipDecisionRecoveryVersion ?? 0,
+              records,
+              actor.userId,
+              input,
+            ),
+          );
+          return [
+            new RelationshipDecisionDecided({
+              version: 1,
+              target,
+              operationId: command.request.operationId,
+              actorId: actor.userId,
+              requestHash,
+              outcome,
+            }),
+          ];
+        }),
       SaveAssessment: (state, command, context) =>
         Effect.gen(function* () {
           const actor = yield* CurrentDiagramActor;
@@ -355,6 +455,16 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
         }),
     },
     evolve: {
+      RelationshipDecisionDecided: (state, event) =>
+        event.outcome.status === 'recorded'
+          ? {
+              ...state,
+              relationshipDecisions: installRelationshipDecision(
+                state.relationshipDecisions ?? [],
+                event.outcome.record,
+              ),
+            }
+          : state,
       AssessmentDecided: (state, event) =>
         event.decision.status === 'accepted'
           ? {
@@ -363,7 +473,13 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
             }
           : state,
       RecoveryDecided: (state, event) =>
-        event.document ? { ...state, document: event.document } : state,
+        event.document
+          ? {
+              ...state,
+              document: event.document,
+              relationshipDecisionRecoveryVersion: event.documentVersion,
+            }
+          : state,
       DiagramInitialized: (_state, event) => ({ document: event.document }),
       InitializationRefused: (state) => state,
       OperationDecided: (state, event) => {
@@ -379,6 +495,12 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
       },
     },
     reply: {
+      SaveRelationshipDecision: (_state, events) => {
+        const event = events[0];
+        if (!event || event._tag !== 'RelationshipDecisionDecided')
+          throw new AdapterInvariant({ message: 'Relationship command has no decision event' });
+        return { requestHash: event.requestHash, outcome: event.outcome };
+      },
       SaveAssessment: (_state, events) => {
         const event = events[0];
         if (!event || event._tag !== 'AssessmentDecided')
@@ -398,7 +520,8 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
 
       InitializeDiagram: (_state, events) => {
         const event = events[0];
-        if (!event) throw new AdapterInvariant({ message: 'Initialization has no decision event' });
+        if (event?._tag !== 'DiagramInitialized' && event?._tag !== 'InitializationRefused')
+          throw new AdapterInvariant({ message: 'Initialization has no decision event' });
         return { binding: event.binding, created: event._tag === 'DiagramInitialized' };
       },
       SubmitOperation: (_state, events) => {
@@ -418,6 +541,19 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
     initial: null,
     events: [PublicChanged],
     evolve: {
+      RelationshipDecisionDecided: (state, event, context) => {
+        if (!state) return state;
+        const next = { ...state, sourceVersion: context.envelope.seq };
+        return event.outcome.status === 'recorded'
+          ? {
+              ...next,
+              relationshipDecisions: installRelationshipDecision(
+                state.relationshipDecisions ?? [],
+                event.outcome.record,
+              ),
+            }
+          : next;
+      },
       AssessmentDecided: (state, event, context) =>
         state && {
           ...state,
@@ -433,6 +569,9 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
           sourceVersion: context.envelope.seq,
           document: event.document ? { ...event.document, undo: [] } : state.document,
           undoResetVersion: event.document ? event.documentVersion : (state.undoResetVersion ?? 0),
+          relationshipDecisionRecoveryVersion: event.document
+            ? event.documentVersion
+            : (state.relationshipDecisionRecoveryVersion ?? 0),
         },
 
       DiagramInitialized: (_state, event, context) => ({
@@ -470,6 +609,8 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
       },
     },
     emit: {
+      RelationshipDecisionDecided: (_event, context) =>
+        new PublicChanged({ version: context.after?.document.version ?? 0 }),
       AssessmentDecided: (_event, context) =>
         new PublicChanged({ version: context.after?.document.version ?? 0 }),
       RecoveryDecided: (_event, context) =>
@@ -544,6 +685,8 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
           receipt: event.receipt,
           requestHash: event.requestHash ?? '',
         }),
+      RelationshipDecisionDecided: (_event, context) =>
+        publicDelta(context.key.id, context.envelope.seq, { kind: 'noop' }),
       AssessmentDecided: (event, context) =>
         publicDelta(
           context.key.id,
@@ -648,6 +791,28 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
       };
     });
   }
+  function saveRelationshipDecision(
+    identity: DiagramActor,
+    resource: DiagramTarget,
+    input: RelationshipDecisionRequest,
+  ) {
+    return Effect.gen(function* () {
+      const actor = Schema.decodeUnknownSync(Actor)({ ...identity });
+      const target = Schema.decodeUnknownSync(Target)({ ...resource });
+      const request = parseRelationshipDecisionRequest(JSON.stringify(input));
+      yield* host.authorize(actor, target, true);
+      const requestHash = yield* Effect.promise(() => decisionHash(target, actor.userId, request));
+      const diagrams = yield* Diagram;
+      const result = yield* diagrams
+        .send(targetKey(target), new SaveRelationshipDecision({ request }), {
+          commandId: internalId('relationship-decision', actor, request.operationId),
+        })
+        .pipe(Effect.provideService(CurrentDiagramActor, actor));
+      if (result.reply.requestHash !== requestHash)
+        return { status: 'rejected', code: 'OperationIdMismatch' } as const;
+      return result.reply.outcome;
+    });
+  }
   function saveAssessment(
     identity: DiagramActor,
     resource: DiagramTarget,
@@ -706,6 +871,36 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
       const diagrams = yield* Diagram;
       const state = yield* diagrams.state(targetKey(target));
       return state.document;
+    });
+  }
+  function readOpenRelationshipDecision(
+    identity: DiagramActor,
+    resource: DiagramTarget,
+    reference: Parameters<DiagramRuntime['readOpenRelationshipDecision']>[2],
+  ) {
+    return Effect.gen(function* () {
+      const actor = Schema.decodeUnknownSync(Actor)({ ...identity });
+      const target = Schema.decodeUnknownSync(Target)({ ...resource });
+      yield* host.authorize(actor, target, true);
+      const diagrams = yield* Diagram;
+      const state = yield* diagrams.state(targetKey(target));
+      const proposal = state.relationshipDecisions?.find(
+        (record) =>
+          record.proposalId === reference.proposalId &&
+          record.revision === reference.revision &&
+          record.contextFingerprint === reference.contextFingerprint &&
+          record.status === 'proposed',
+      );
+      if (!proposal || !state.document) return Option.none();
+      const current = relationshipContext(
+        state.document.graph,
+        proposal.relationshipId,
+        state.relationshipDecisionRecoveryVersion ?? 0,
+      );
+      if (Option.isNone(current)) return Option.none();
+      if (canonicalOperationValue(current.value) !== canonicalOperationValue(proposal.context))
+        return Option.none();
+      return Option.some(proposal);
     });
   }
   function checkpoint(identity: DiagramActor, resource: DiagramTarget) {
@@ -784,6 +979,10 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
           Effect.provideService(DiagramLive, live),
           Effect.provideService(DiagramDeltaView, delta),
         ),
+      saveRelationshipDecision: (...args: Parameters<typeof saveRelationshipDecision>) =>
+        saveRelationshipDecision(...args).pipe(Effect.provideService(Diagram, diagrams)),
+      readOpenRelationshipDecision: (...args: Parameters<typeof readOpenRelationshipDecision>) =>
+        readOpenRelationshipDecision(...args).pipe(Effect.provideService(Diagram, diagrams)),
       saveAssessment: (...args: Parameters<typeof saveAssessment>) =>
         saveAssessment(...args).pipe(Effect.provideService(Diagram, diagrams)),
       checkpoint: (...args: Parameters<typeof checkpoint>) =>
@@ -805,6 +1004,7 @@ export function makeDiagramDomain(host: DiagramHost): DiagramDomain {
     bootstrap,
     deltaApi: DiagramDeltaApi,
     saveAssessment,
+    saveRelationshipDecision,
     checkpoint,
     recover,
     api: DiagramApi,

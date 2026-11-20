@@ -1,11 +1,13 @@
 ---
 import Shell from '../../layouts/Shell.astro';
 import { sessionFor, teamsFor } from '../../server/backend';
+import { dashboardQuestmancer } from '../../server/questmancer';
 
 Astro.response.headers.set('cache-control', 'private, no-store');
 const session = await sessionFor(Astro.request);
 if (session === null) return Astro.redirect('/login', 303);
 const teams = await teamsFor(Astro.request);
+const questmancer = await dashboardQuestmancer(Astro.request, teams, session.user.id).catch(() => []);
 ---
 <Shell title="Your workspace">
   <h1>Hello, {session.user.name}.</h1>
@@ -13,5 +15,37 @@ const teams = await teamsFor(Astro.request);
   {teams.length === 0
     ? <p>Ask your team owner for an invitation to a workspace.</p>
     : <><h2>Your teams</h2><ul>{teams.map((team) => <li><a href={`/app/${team.id}`}>{team.name}</a></li>)}</ul></>}
+  {questmancer.length > 0 && <section class="questmancer-card" aria-labelledby="questmancer-heading">
+    <img src="/questmancer-art/aurora-gate.jpg" alt="" />
+    <div>
+      <h2 id="questmancer-heading">Questmancer</h2>
+      <p>Explore the Moonwell Observatory.</p>
+      <ul>{questmancer.map(({ team, path, label }) => <li><a href={path}>{label}</a> <span>· {team.name}</span></li>)}</ul>
+    </div>
+  </section>}
+  <p><a href="/app/clef-demo">Clef evidence demo</a></p>
   <form action="/logout" method="post"><button type="submit">Sign out</button></form>
 </Shell>
+
+<style>
+  .questmancer-card {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid #685647;
+    border-radius: 0.65rem;
+    background: #211f32;
+    color: #f3e9db;
+    margin-block: 1.5rem;
+  }
+  .questmancer-card img { width: 100%; height: 100%; object-fit: cover; }
+  .questmancer-card div { padding: 1.25rem; }
+  .questmancer-card h2 { font-family: Georgia, serif; color: #f5d5a5; margin-top: 0; }
+  .questmancer-card p { color: #e5d9cd; }
+  .questmancer-card ul { padding-inline-start: 1.25rem; }
+  .questmancer-card a { color: #9fe9e3; }
+  @media (max-width: 38rem) {
+    .questmancer-card { grid-template-columns: 1fr; }
+    .questmancer-card img { max-height: 9rem; }
+  }
+</style>

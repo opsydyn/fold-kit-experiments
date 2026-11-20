@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { openSync, closeSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,7 @@ import {
 import { applyDiagramDelta, DiagramFeedSchema } from '@opsydyn/foldkit-zloz-alchemy/delta';
 import { isDiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
 import type { DiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
+import { ClefReference } from '@opsydyn/zloz-server/src/clef-contract';
 import { Actor, Fixture } from '@opsydyn/zloz-server/test/fixture-contract';
 import { Schema } from 'effect';
 import { chromium, errors as playwrightErrors, type BrowserContext, type Page } from 'playwright';
@@ -26,6 +27,7 @@ import type { WebSocketRoute } from 'playwright';
 import { expect as browserExpect } from 'playwright/test';
 
 import assessmentFixture from '../../../packages/foldkit-zloz-alchemy/test/fixtures/assessment-v1.json';
+import decisionWire from '../../../packages/foldkit-zloz-alchemy/test/fixtures/relationship-decision-v1.json';
 import operationFixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import orderWire from '../../../packages/foldkit-zloz/test/fixtures/order-aggregate-v1.json';
 import { deltaEntries, liveFrames } from '../src/editor/protocol';
@@ -79,6 +81,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           ZLOZ_OPERATIONS_PORT: String(operationsPort),
           ZLOZ_OPERATOR_TOKEN: operatorToken,
           ZLOZ_QUALIFICATION_PROBE: String(qualificationProbe),
+          ZLOZ_DECISION_AUTHORING: String(globalThis.process.env.ZLOZ_RUN_OPY_CONTRACT === '1'),
           GOOGLE_CLIENT_ID: '',
           GOOGLE_CLIENT_SECRET: '',
         },
@@ -177,6 +180,18 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
   afterAll(async () => {
     await stopLocalStack(child);
   }, 30_000);
+
+  const canvasCamera = (page: Page) =>
+    page.locator('[data-flow-surface]').evaluate((element) => {
+      const world = element.querySelector('[style*="transform-origin"]');
+      if (!world) throw new Error('Canvas world is missing');
+      const matrix = new DOMMatrix(getComputedStyle(world).transform);
+      return {
+        x: Math.round(((element.clientWidth / 2 - matrix.e) / matrix.a) * 10) / 10,
+        y: Math.round(((element.clientHeight / 2 - matrix.f) / matrix.d) * 10) / 10,
+        zoom: matrix.a,
+      };
+    });
 
   test('real app creates, opens, streams, edits and exports a private diagram with fresh role checks', async () => {
     const data = await fixture();
@@ -562,6 +577,59 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const paper = (page: Page) =>
       page.locator('body').evaluate((body) => getComputedStyle(body).backgroundColor);
     const surface = pageA.locator('[data-flow-surface]');
+    const fitsWindow = (page: Page) =>
+      page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && scrollY === 0);
+    await pageA.setViewportSize({ width: 1366, height: 768 });
+    expect(await fitsWindow(pageA)).toBe(true);
+    await pageA.getByRole('button', { name: 'Select Product team', exact: true }).click();
+    const beforeFocus = (await surface.boundingBox())!;
+    const camera = () => canvasCamera(pageA);
+    const pointBeforeFocus = await camera();
+    const tools = pageA.getByRole('button', { name: 'Tools', exact: true });
+    const inspector = pageA.getByRole('button', { name: 'Inspector', exact: true });
+    await inspector.click();
+    await browserExpect(inspector).toHaveAttribute('aria-expanded', 'false');
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'true');
+    await pageA.getByRole('button', { name: 'Focus board', exact: true }).click();
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'false');
+    expect((await surface.boundingBox())!.width).toBeGreaterThan(beforeFocus.width);
+    await browserExpect.poll(camera).toEqual(pointBeforeFocus);
+    const find = pageA.getByRole('button', { name: 'Find', exact: true });
+    await find.click();
+    const query = pageA.getByRole('searchbox', { name: 'Find on board' });
+    await browserExpect(query).toBeFocused();
+    await query.press('Escape');
+    await browserExpect(find).toBeFocused();
+    await find.press('Enter');
+    await query.fill('product team');
+    await pageA.getByRole('button', { name: /^Reveal Product team/ }).click();
+    await browserExpect(surface).toBeFocused();
+    await browserExpect(pageA.locator('[data-flow-status]')).toHaveText('Revealed Product team.');
+    await find.click();
+    await query.fill('plans and manages');
+    await pageA.getByRole('button', { name: /^Reveal connection Plans and manages/ }).click();
+    await browserExpect(pageA.locator('[data-flow-status]')).toHaveText(
+      'Revealed connection Plans and manages.',
+    );
+    await pageA.screenshot({ path: join(tmpdir(), 'zloz-teams-focus-board.png') });
+    await pageA.getByRole('button', { name: 'Exit focus', exact: true }).click();
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'true');
+    await browserExpect(inspector).toHaveAttribute('aria-expanded', 'false');
+    await inspector.click();
+    await browserExpect(pageA.getByLabel('Node label', { exact: true })).toHaveValue(
+      'Product team',
+    );
+    await pageA.setViewportSize({ width: 390, height: 844 });
+    await tools.click();
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'true');
+    await browserExpect(inspector).toHaveAttribute('aria-expanded', 'false');
+    await inspector.click();
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'false');
+    await browserExpect(inspector).toHaveAttribute('aria-expanded', 'true');
+    await browserExpect(pageA.getByLabel('Inspector view', { exact: true })).toBeInViewport();
+    expect(await fitsWindow(pageA)).toBe(true);
+    await pageA.setViewportSize({ width: 1440, height: 1000 });
+    await browserExpect(tools).toHaveAttribute('aria-expanded', 'true');
     const version = await pageA
       .locator('[data-confirmed-version]')
       .getAttribute('data-confirmed-version');
@@ -669,6 +737,818 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     );
     expect(operations).toBe(0);
     expect(errors).toEqual([]);
+  }, 60_000);
+
+  test('board navigation is local to editor and viewer cameras and preserves shared Undo', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+    const graph = {
+      nodes: seed.nodes
+        .filter(({ id }) => id === 'a' || id === 'b')
+        .map((node) => (node.id === 'b' ? { ...node, position: { x: 1800, y: 200 } } : node)),
+      edges: seed.edges.filter(({ id }) => id === 'ab'),
+    };
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Navigation qualification',
+        graph: { version: 1, graph },
+      }),
+    });
+    expect(created.status).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string, viewport: { width: number; height: number }) => {
+      const context = await browser.newContext({
+        viewport,
+        colorScheme: viewport.width >= 1000 ? 'dark' : 'light',
+      });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      const page = await context.newPage();
+      await page.goto(room);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const editor = await open(data.editor.cookie, { width: 1366, height: 768 });
+    const viewer = await open(data.viewer.cookie, { width: 390, height: 844 });
+    const undo = editor.getByRole('button', { name: 'Undo my last edit', exact: true });
+    await editor.getByRole('button', { name: 'Select Alpha', exact: true }).press('Enter');
+    await editor.getByLabel('Node label', { exact: true }).fill('Reviewed Alpha');
+    await editor.getByRole('button', { name: 'Rename node', exact: true }).click();
+    await browserExpect(undo).toBeEnabled();
+    await browserExpect(
+      viewer.getByRole('button', { name: 'Select Reviewed Alpha', exact: true }),
+    ).toBeVisible();
+    const exported = async () =>
+      parseGraph(await (await editor.request.get(`${api}/export`)).text());
+    const confirmed = await exported();
+    const writes: string[] = [];
+    for (const page of [editor, viewer])
+      page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url() === `${api}/operations`)
+          writes.push(request.url());
+      });
+
+    for (const [page, peer] of [
+      [editor, viewer],
+      [viewer, editor],
+    ] as const) {
+      await page.bringToFront();
+      const peerCamera = await canvasCamera(peer);
+      const fit = page.getByRole('button', { name: 'Fit selection', exact: true });
+      const back = page.getByRole('button', { name: 'Back to previous view', exact: true });
+      const overview = page.getByRole('button', { name: 'Overview', exact: true });
+      const minimap = page.getByRole('button', { name: 'Diagram overview', exact: true });
+      for (const control of [fit, back, overview])
+        await browserExpect(control).toBeInViewport({ ratio: 1 });
+      await browserExpect(minimap).toHaveCount(0);
+      await browserExpect(back).toBeDisabled();
+      await page.getByRole('button', { name: 'Select Reviewed Alpha', exact: true }).press('Enter');
+      await browserExpect(fit).toBeEnabled();
+      const original = await canvasCamera(page);
+      await fit.press('Enter');
+      await browserExpect.poll(() => canvasCamera(page)).not.toEqual(original);
+      await browserExpect
+        .poll(async () => (await canvasCamera(page)).x)
+        .toBeCloseTo(10 + graph.nodes[0]!.size.width / 2, 0);
+      const fitted = await canvasCamera(page);
+      await page.getByRole('button', { name: 'Focus board', exact: true }).click();
+      await browserExpect.poll(() => canvasCamera(page)).toEqual(fitted);
+      await back.press('Enter');
+      await browserExpect.poll(() => canvasCamera(page)).toEqual(original);
+
+      await page.getByRole('button', { name: 'Find', exact: true }).click();
+      await page.getByRole('searchbox', { name: 'Find on board' }).fill('Beta');
+      await page.getByRole('button', { name: /^Reveal Beta/ }).click();
+      await browserExpect.poll(async () => (await canvasCamera(page)).x).toBeGreaterThan(1800);
+      await back.press('Enter');
+      await browserExpect.poll(() => canvasCamera(page)).toEqual(original);
+      await browserExpect(back).toBeDisabled();
+
+      await overview.press('Enter');
+      await browserExpect(overview).toHaveAttribute('aria-expanded', 'true');
+      await browserExpect(minimap).toBeFocused();
+      await browserExpect(minimap).toBeInViewport({ ratio: 1 });
+      await minimap.press('ArrowRight');
+      await browserExpect
+        .poll(async () => (await canvasCamera(page)).x)
+        .toBeGreaterThan(original.x);
+      const nudged = await canvasCamera(page);
+      await minimap.click({ position: { x: 8, y: 8 } });
+      await browserExpect.poll(() => canvasCamera(page)).not.toEqual(nudged);
+      if (page === editor) {
+        await minimap.press('Home');
+        await browserExpect(
+          page.getByRole('button', { name: 'Select Beta', exact: true }),
+        ).toBeInViewport();
+        await page.screenshot({ path: join(tmpdir(), 'zloz-teams-overview.png') });
+      }
+      await minimap.press('Escape');
+      await browserExpect(overview).toBeFocused();
+      await browserExpect(overview).toHaveAttribute('aria-expanded', 'false');
+      await browserExpect(minimap).toHaveCount(0);
+      await overview.press('Enter');
+      await browserExpect(minimap).toBeFocused();
+      const centerBeforeExit = await canvasCamera(page);
+      await page.getByRole('button', { name: 'Exit focus', exact: true }).click();
+      await browserExpect(minimap).toHaveCount(0);
+      await browserExpect.poll(() => canvasCamera(page)).toEqual(centerBeforeExit);
+      expect(
+        await page.evaluate(
+          () =>
+            scrollX === 0 &&
+            scrollY === 0 &&
+            document.documentElement.scrollHeight <= innerHeight &&
+            document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      expect(await canvasCamera(peer)).toEqual(peerCamera);
+    }
+    expect(writes).toEqual([]);
+    expect(await exported()).toEqual(confirmed);
+    await browserExpect(undo).toBeEnabled();
+    await undo.click();
+    await browserExpect.poll(exported).toEqual(graph);
+    await browserExpect(undo).toBeDisabled();
+  }, 60_000);
+
+  test.each([
+    ['ELK', 'elk'],
+    ['Align left', 'align-left'],
+    ['Distribute horizontally', 'distribute-horizontal'],
+  ] as const)(
+    '%s selection preview stays local and applies as one guarded shared move',
+    async (_name, method) => {
+      const data = await fixture();
+      const id = crypto.randomUUID();
+      const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+      const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+      const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+      const distributedFrames = new Map<string, Partial<ZlozGraph['nodes'][number]>>([
+        ['b', { position: { x: 150, y: 20 } }],
+        ['g', { position: { x: 320, y: 200 }, size: { width: 150, height: 200 } }],
+        ['c', { position: { x: 350, y: 230 } }],
+      ]);
+      const graph: ZlozGraph =
+        method === 'distribute-horizontal'
+          ? {
+              ...seed,
+              nodes: seed.nodes.map((node) => ({ ...node, ...distributedFrames.get(node.id) })),
+            }
+          : seed;
+      const post = (
+        cookie: string,
+        path: string,
+        body:
+          | ZlozOperationRequest
+          | { operationId: string; name: string; graph: { version: 1; graph: ZlozGraph } },
+      ) =>
+        fetch(path, {
+          method: 'POST',
+          headers: { cookie, origin, 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      const created = await post(data.owner.cookie, api, {
+        operationId: id,
+        name: 'Selection layout qualification',
+        graph: { version: 1, graph },
+      });
+      expect(created.status).toBe(200);
+      const browser = await chromium.launch();
+      await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      const open = async (cookie: string, colorScheme: 'dark' | 'light') => {
+        const context = await browser.newContext({
+          viewport: { width: 1440, height: 900 },
+          colorScheme,
+        });
+        const equals = cookie.indexOf('=');
+        await context.addCookies([
+          { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+        ]);
+        const page = await context.newPage();
+        await page.goto(room);
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        return page;
+      };
+      const editor = await open(data.owner.cookie, 'dark');
+      const peer = await open(data.editor.cookie, 'light');
+      const writes: ZlozOperationRequest[] = [];
+      const release = Promise.withResolvers<void>();
+      const intercepted = Promise.withResolvers<void>();
+      let pauseApply = false;
+      await editor.route(`${api}/operations`, async (route) => {
+        writes.push(parseOperationRequest(route.request().postData() ?? ''));
+        if (pauseApply) {
+          intercepted.resolve();
+          await release.promise;
+        }
+        await route.continue();
+      });
+      const read = async () => parseGraph(await (await peer.request.get(`${api}/export`)).text());
+      const version = (page: Page, value: number) =>
+        browserExpect(page.locator('[data-confirmed-version]')).toHaveAttribute(
+          'data-confirmed-version',
+          String(value),
+        );
+      const panel = editor.getByRole('region', { name: 'Selection layout preview' });
+      const apply = panel.getByRole('button', { name: 'Apply layout', exact: true });
+      const undo = editor.getByRole('button', { name: 'Undo my last edit', exact: true });
+      const ghosts = (page: Page) => page.locator('[data-layout-ghost]');
+      await editor.bringToFront();
+      const action = editor.getByRole('combobox', { name: 'Layout action' });
+      await browserExpect(action).toHaveValue('elk');
+      if (method !== 'elk') await action.selectOption(method);
+      await editor.getByRole('button', { name: 'Select Alpha', exact: true }).press('Enter');
+      for (const name of ['Beta', 'Boundary']) {
+        const node = editor.getByRole('button', { name: `Select ${name}`, exact: true });
+        await node.press('Shift+Enter');
+        await browserExpect(node).toHaveAttribute('aria-pressed', 'true');
+      }
+      await browserExpect(editor.locator('[data-save-status]')).toHaveText('Saved');
+      await browserExpect(editor.getByLabel('Node label', { exact: true })).toHaveValue('Alpha');
+      const preview = async () => {
+        const launcher = editor.getByRole('button', {
+          name: 'Preview selection layout',
+          exact: true,
+        });
+        await browserExpect(launcher).toBeVisible();
+        await launcher.click();
+        await browserExpect(apply).toBeEnabled();
+        await browserExpect(ghosts(editor)).toHaveCount(4);
+      };
+      await preview();
+      if (method === 'elk')
+        await editor.screenshot({ path: join(tmpdir(), 'zloz-teams-layout-preview.png') });
+      const reviewed = new Map(
+        await ghosts(editor).evaluateAll((items) =>
+          items.map(
+            (node) =>
+              [
+                node.getAttribute('data-layout-ghost'),
+                {
+                  x: Number(node.getAttribute('data-layout-x')),
+                  y: Number(node.getAttribute('data-layout-y')),
+                },
+              ] as const,
+          ),
+        ),
+      );
+      if (method === 'align-left')
+        expect(reviewed).toEqual(
+          new Map([
+            ['a', { x: 0, y: 20 }],
+            ['b', { x: 0, y: 20 }],
+            ['g', { x: 0, y: 200 }],
+            ['c', { x: 30, y: 230 }],
+          ]),
+        );
+      if (method === 'distribute-horizontal')
+        expect(reviewed).toEqual(
+          new Map([
+            ['a', { x: 10, y: 20 }],
+            ['b', { x: 165, y: 20 }],
+            ['g', { x: 320, y: 200 }],
+            ['c', { x: 350, y: 230 }],
+          ]),
+        );
+      expect(writes).toEqual([]);
+      expect(await read()).toEqual(graph);
+      await browserExpect(undo).toBeDisabled();
+      await browserExpect(ghosts(peer)).toHaveCount(0);
+      await apply.click();
+      await Promise.all([version(editor, 1), version(peer, 1)]);
+      expect(writes).toHaveLength(1);
+      expect(writes[0]?.operation).toMatchObject({ type: 'MoveNodes' });
+      const applied = await read();
+      expect(applied).toEqual({
+        ...graph,
+        nodes: graph.nodes.map((node) => {
+          const position = reviewed.get(node.id);
+          if (!position) throw new Error(`Missing reviewed position for ${node.id}`);
+          return { ...node, position };
+        }),
+      });
+      for (const node of applied.nodes.filter(({ kind }) => kind !== 'group'))
+        await browserExpect(peer.locator(`[data-flow-node="${node.id}"]`)).toHaveAttribute(
+          'data-flow-x',
+          String(node.position.x),
+        );
+      await browserExpect(undo).toBeEnabled();
+      await undo.click();
+      await Promise.all([version(editor, 2), version(peer, 2)]);
+      expect(await read()).toEqual(graph);
+      expect(writes[1]?.operation).toEqual({ type: 'Undo', operationId: writes[0]?.operationId });
+
+      const peerMove = async (id: 'a' | 'b', position: { x: number; y: number }, next: number) => {
+        const response = await post(data.editor.cookie, `${api}/operations`, {
+          version: 1,
+          operationId: crypto.randomUUID(),
+          operation: { type: 'MoveNodes', nodes: [{ id, expected: 2, position }] },
+        });
+        expect(await response.json()).toMatchObject({
+          receipt: { status: 'accepted', documentVersion: next },
+        });
+      };
+      await preview();
+      const b = { x: method === 'distribute-horizontal' ? 150 : 300, y: 75 };
+      await peerMove('b', b, 3);
+      await version(editor, 3);
+      await browserExpect(panel).toContainText(/selected geometry changed/i);
+      await browserExpect(apply).toBeDisabled();
+      await browserExpect(ghosts(editor)).toHaveCount(0);
+      expect(writes).toHaveLength(2);
+      await panel.getByRole('button', { name: 'Discard layout', exact: true }).click();
+      await preview();
+      pauseApply = true;
+      const a = { x: 30, y: 45 };
+      const rejected = editor.waitForResponse(
+        (response) =>
+          response.url() === `${api}/operations` && response.request().method() === 'POST',
+      );
+      try {
+        await apply.click();
+        await intercepted.promise;
+        await peerMove('a', a, 4);
+      } finally {
+        release.resolve();
+      }
+      expect(await (await rejected).json()).toMatchObject({
+        receipt: { status: 'rejected', code: 'Conflict', documentVersion: 4 },
+      });
+      await version(editor, 4);
+      expect(writes).toHaveLength(3);
+      await browserExpect(undo).toBeDisabled();
+      expect(await read()).toEqual({
+        ...graph,
+        nodes: graph.nodes.map((node) => ({
+          ...node,
+          position: node.id === 'a' ? a : node.id === 'b' ? b : node.position,
+        })),
+      });
+    },
+    60_000,
+  );
+
+  test('Mermaid export reviews confirmed versions and reports losses before download', async () => {
+    const data = await fixture();
+    const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+    const create = async (graph: ZlozGraph) => {
+      const id = crypto.randomUUID();
+      const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+      const created = await fetch(api, {
+        method: 'POST',
+        headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name: 'Mermaid export qualification',
+          graph: { version: 1, graph },
+        }),
+      });
+      expect(created.status).toBe(200);
+      return { api, page: `${origin}/app/${data.organizationId}/diagrams/${id}` };
+    };
+    const diagram = await create({
+      nodes: seed.nodes.filter(({ id }) => id === 'a' || id === 'b'),
+      edges: seed.edges.filter(({ id }) => id === 'ab'),
+    });
+    const rejected = await create({
+      nodes: seed.nodes.filter(({ id }) => id === 'g'),
+      edges: [],
+    });
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string, width: number) => {
+      const context = await browser.newContext({
+        viewport: { width, height: 844 },
+        acceptDownloads: true,
+      });
+      const separator = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+      ]);
+      const page = await context.newPage();
+      await page.goto(diagram.page);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const editor = await open(data.editor.cookie, 1366);
+    const viewer = await open(data.viewer.cookie, 390);
+    const writes: string[] = [];
+    for (const page of [editor, viewer])
+      page.on('request', (request) => {
+        if (request.method() === 'POST' && !request.url().endsWith('/presence'))
+          writes.push(request.url());
+      });
+    const preview = (page: Page) => page.getByRole('region', { name: 'Mermaid export preview' });
+    const launcher = (page: Page) =>
+      page.getByRole('button', { name: 'Export Mermaid', exact: true });
+    await editor.getByRole('button', { name: 'Select Alpha', exact: true }).press('Enter');
+    await editor.getByLabel('Node label', { exact: true }).fill('Speculative label');
+    await browserExpect(launcher(editor)).toBeVisible();
+    await launcher(editor).click();
+    await browserExpect(preview(editor)).toBeFocused();
+    await browserExpect(preview(editor).locator('pre')).toContainText('Alpha');
+    await browserExpect(preview(editor).locator('pre')).not.toContainText('Speculative label');
+    await editor.screenshot({ path: join(tmpdir(), 'zloz-teams-mermaid-preview.png') });
+    await preview(editor).press('Escape');
+    await browserExpect(launcher(editor)).toBeFocused();
+    await browserExpect(editor.getByLabel('Node label', { exact: true })).toHaveValue(
+      'Speculative label',
+    );
+
+    const showViewerExport = async () => {
+      await viewer.getByRole('button', { name: 'Tools', exact: true }).click();
+      await launcher(viewer).click();
+      return preview(viewer);
+    };
+    const review = await showViewerExport();
+    const source = review.locator('pre');
+    const acknowledge = review.getByRole('checkbox', { name: 'Allow reported conversion losses' });
+    const downloadSource = review.getByRole('button', { name: 'Download Mermaid source' });
+    const downloadBundle = review.getByRole('button', { name: 'Download Mermaid bundle' });
+    await browserExpect(
+      review.getByRole('list', { name: 'Mermaid conversion diagnostics' }),
+    ).toContainText(/layout/i);
+    await browserExpect(downloadSource).toBeInViewport({ ratio: 1 });
+    for (const file of [downloadSource, downloadBundle]) await browserExpect(file).toBeDisabled();
+    await acknowledge.check();
+    await browserExpect(downloadSource).toBeEnabled();
+
+    const saved = await fetch(`${diagram.api}/operations`, {
+      method: 'POST',
+      headers: { cookie: data.editor.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        operationId: crypto.randomUUID(),
+        operation: { type: 'RenameNode', id: 'a', expected: 0, label: 'Confirmed Alpha' },
+      }),
+    });
+    expect(await saved.json()).toMatchObject({
+      receipt: { status: 'accepted', documentVersion: 1 },
+    });
+    await browserExpect(review.getByText(/newer confirmed version/i)).toBeVisible();
+    for (const file of [downloadSource, downloadBundle]) await browserExpect(file).toBeDisabled();
+    await review.getByRole('button', { name: 'Review latest version' }).click();
+    await browserExpect(source).toContainText('Confirmed Alpha');
+    await browserExpect(acknowledge).not.toBeChecked();
+    await browserExpect(downloadSource).toBeDisabled();
+    await acknowledge.check();
+    const text = await source.textContent();
+    if (text === null) throw new Error('Mermaid source preview is missing');
+    const downloaded = async (button: typeof downloadSource) => {
+      const [file] = await Promise.all([viewer.waitForEvent('download'), button.click()]);
+      return {
+        filename: file.suggestedFilename(),
+        bytes: await readFile(await file.path(), 'utf8'),
+      };
+    };
+    const mmd = await downloaded(downloadSource);
+    expect(mmd.filename).toMatch(/\.mmd$/);
+    expect(mmd.bytes).toBe(text);
+    const bundle = await downloaded(downloadBundle);
+    expect(bundle.filename).toMatch(/\.mermaid\.json$/);
+    expect(JSON.parse(bundle.bytes)).toMatchObject({
+      protocol: 'foldkit-flow-mermaid/v1',
+      source: text,
+      identity: { nodes: expect.arrayContaining([expect.objectContaining({ flowId: 'a' })]) },
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: 'layout-omitted', severity: 'loss' }),
+      ]),
+    });
+    expect(
+      await viewer.evaluate(
+        () => scrollY === 0 && document.documentElement.scrollHeight <= innerHeight,
+      ),
+    ).toBe(true);
+    await viewer.goto(rejected.page);
+    await browserExpect(viewer.locator('[data-save-status]')).toHaveText('Saved');
+    const blocked = await showViewerExport();
+    await browserExpect(blocked.getByRole('list')).toContainText(/empty group/i);
+    await browserExpect(blocked.getByRole('checkbox')).toHaveCount(0);
+    await browserExpect(blocked.getByRole('button', { name: /^Download Mermaid/ })).toHaveCount(0);
+    expect(writes).toEqual([]);
+  }, 60_000);
+
+  test('Diagram Evolution records confirmed deletion and Undo with inspectable version counts', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+    const graph: ZlozGraph = {
+      nodes: seed.nodes
+        .filter(({ id }) => id === 'a' || id === 'b')
+        .map((node) => ({
+          ...node,
+          architecture: { family: 'c4', role: node.id === 'a' ? 'person' : 'software-system' },
+        })),
+      edges: seed.edges.filter(({ id }) => id === 'ab'),
+    };
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Evolution qualification',
+        graph: { version: 1, graph },
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string, width: number, colorScheme: 'light' | 'dark') => {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      const tab = await context.newPage();
+      await tab.goto(room);
+      await browserExpect(tab.locator('[data-save-status]')).toHaveText('Saved');
+      return tab;
+    };
+    const page = await open(data.owner.cookie, 1440, 'light');
+    const viewer = await open(data.viewer.cookie, 390, 'dark');
+    await page.bringToFront();
+    const inspector = page.getByLabel('Inspector view', { exact: true });
+    await inspector.selectOption('evolution', { timeout: 5000 });
+    const evolution = (tab: Page) =>
+      tab.getByRole('region', { name: 'Diagram Evolution', exact: true });
+    const panel = evolution(page);
+    const countIs = (version: number, label: string, count: number, tab = page) =>
+      browserExpect(
+        evolution(tab)
+          .getByRole('table', { name: `Counts at version ${version}`, exact: true })
+          .getByRole('row')
+          .filter({ has: tab.getByRole('cell', { name: label, exact: true }) })
+          .getByRole('cell', { name: String(count), exact: true }),
+      ).toBeVisible();
+    await browserExpect(panel).toContainText('This tab');
+    await countIs(0, 'People', 1);
+    await countIs(0, 'Software systems', 1);
+    await countIs(0, 'Relationships', 1);
+
+    const resumed = Promise.withResolvers<void>();
+    await page.route(
+      `${api}/operations`,
+      async (route) => {
+        await resumed.promise;
+        await route.continue();
+      },
+      { times: 1 },
+    );
+    try {
+      await page.getByRole('button', { name: 'Select Beta', exact: true }).press('Enter');
+      await page.getByRole('button', { name: 'Delete selection', exact: true }).click();
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saving…');
+      await countIs(0, 'Software systems', 1);
+      await countIs(0, 'Relationships', 1);
+    } finally {
+      resumed.resolve();
+    }
+    const chart = panel.getByRole('img', { name: /^Diagram Evolution/ });
+    await browserExpect(chart).toBeVisible();
+    await countIs(1, 'People', 1);
+    await countIs(1, 'Software systems', 0);
+    await countIs(1, 'Relationships', 0);
+    await browserExpect(panel).toContainText('Versions 0–1');
+    await browserExpect(chart).toHaveCSS('color', 'rgb(25, 44, 40)');
+
+    await viewer.bringToFront();
+    await viewer.getByRole('button', { name: 'Inspector', exact: true }).click();
+    await viewer.getByLabel('Inspector view', { exact: true }).selectOption('evolution');
+    await countIs(1, 'Relationships', 0, viewer);
+    const mobile = evolution(viewer);
+    await browserExpect(mobile).toContainText('Versions 0–1');
+    const mobileChart = mobile.getByRole('img', { name: /^Diagram Evolution/ });
+    await browserExpect(mobileChart).toHaveCSS('color', 'rgb(231, 238, 232)');
+    expect(
+      await viewer.evaluate(
+        () => scrollX === 0 && document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+
+    await page.bringToFront();
+    await page.getByRole('button', { name: 'Undo my last edit', exact: true }).click();
+    await countIs(2, 'Software systems', 1);
+    await countIs(2, 'Relationships', 1);
+    await countIs(2, 'Relationships', 1, viewer);
+    await browserExpect(panel).toContainText('Versions 0–2');
+    const inspect = panel.getByLabel('Inspect version', { exact: true });
+    await inspect.selectOption('1');
+    await countIs(1, 'Relationships', 0);
+    await expect(
+      page.request.get(`${api}/export`).then(async (response) => parseGraph(await response.text())),
+    ).resolves.toEqual(graph);
+
+    await page.reload();
+    await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+    await inspector.selectOption('evolution');
+    await browserExpect(panel).toContainText('Version 2');
+    await countIs(2, 'Relationships', 1);
+    await browserExpect(chart).toHaveCount(0);
+  }, 60_000);
+
+  test('SVG export reviews five C4 symbols and omissions before downloading the confirmed bytes', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    const graph: ZlozGraph = {
+      nodes: (
+        [
+          {
+            id: 'person',
+            label: 'Buyer <team> & guest',
+            architecture: { family: 'c4', role: 'person' },
+            ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+          },
+          {
+            id: 'system',
+            label: 'Ordering',
+            architecture: { family: 'c4', role: 'software-system' },
+            ports: [{ id: 'in', kind: 'input', side: 'left', offset: 0.5 }],
+          },
+          {
+            id: 'external',
+            label: 'Card processor',
+            architecture: { family: 'c4', role: 'software-system', scope: 'external' },
+            ports: [],
+          },
+          {
+            id: 'container',
+            label: 'Order service',
+            architecture: { family: 'c4', role: 'container', technology: 'Bun' },
+            ports: [],
+          },
+          {
+            id: 'component',
+            label: 'Order store',
+            architecture: { family: 'c4', role: 'component' },
+            ports: [],
+          },
+        ] as const
+      ).map((node, index) => ({
+        ...node,
+        position: { x: index * 250, y: 20 },
+        size: { width: 220, height: 104 },
+      })),
+      edges: [
+        {
+          id: 'places',
+          source: { node: 'person', port: 'out' },
+          target: { node: 'system', port: 'in' },
+          label: 'Places order',
+        },
+      ],
+    };
+    const post = (
+      path: string,
+      body:
+        | ZlozOperationRequest
+        | { operationId: string; name: string; graph: { version: 1; graph: ZlozGraph } },
+    ) =>
+      fetch(path, {
+        method: 'POST',
+        headers: { cookie: data.editor.cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (await post(api, { operationId: id, name: 'Order topology', graph: { version: 1, graph } }))
+        .status,
+    ).toBe(200);
+
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      acceptDownloads: true,
+    });
+    const cookie = data.viewer.cookie;
+    const equals = cookie.indexOf('=');
+    await context.addCookies([
+      { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+    ]);
+    const page = await context.newPage();
+    const writes: string[] = [];
+    page.on('request', (req) => {
+      if (req.method() === 'POST' && req.url().startsWith(api) && !req.url().endsWith('/presence'))
+        writes.push(req.url());
+    });
+    await page.goto(room);
+    await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+    await page.getByRole('button', { name: 'Tools', exact: true }).click();
+    await page.getByRole('button', { name: 'Export SVG', exact: true }).click({ timeout: 6000 });
+
+    const review = page.getByRole('region', { name: 'SVG export preview', exact: true });
+    const img = review.getByRole('img', { name: 'SVG export preview', exact: true });
+    const download = review.getByRole('button', { name: 'Download SVG', exact: true });
+    const consent = review.getByRole('checkbox', { name: 'Accept the reported SVG losses' });
+    await browserExpect(review).toBeFocused();
+    await browserExpect(review.getByRole('list', { name: 'SVG findings' })).toContainText(
+      /Phosphor/,
+    );
+    await browserExpect(download).toBeDisabled();
+    await browserExpect(download).toBeInViewport({ ratio: 1 });
+    await browserExpect
+      .poll(() => img.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(0);
+
+    const xml = async () => {
+      const src = await img.getAttribute('src');
+      if (!src?.startsWith('data:image/svg+xml;charset=utf-8,'))
+        throw new Error('SVG preview is missing');
+      return decodeURIComponent(src.slice(src.indexOf(',') + 1));
+    };
+    const nodes = await page.evaluate(
+      (source) => {
+        const svg = new DOMParser().parseFromString(source, 'image/svg+xml');
+        return Array.from(svg.querySelectorAll('[data-zloz-export-node]'), (node) => ({
+          id: node.getAttribute('data-zloz-export-node'),
+          labels: Array.from(node.querySelectorAll('text'), (label) => label.textContent),
+          glyph: Array.from(node.children).find((item) => item.localName === 'g')?.innerHTML,
+        }));
+      },
+      await xml(),
+    );
+    expect(nodes).toEqual([
+      {
+        id: 'person',
+        labels: ['Buyer <team> & guest', 'C4 · person', 'out'],
+        glyph: expect.stringContaining('<circle'),
+      },
+      {
+        id: 'system',
+        labels: ['Ordering', 'C4 · software system', 'in'],
+        glyph: expect.stringContaining('<rect'),
+      },
+      {
+        id: 'external',
+        labels: ['Card processor', 'C4 · external system'],
+        glyph: expect.stringContaining('<circle'),
+      },
+      {
+        id: 'container',
+        labels: ['Order service', 'C4 · container', 'Bun'],
+        glyph: expect.stringContaining('<polygon'),
+      },
+      {
+        id: 'component',
+        labels: ['Order store', 'C4 · component'],
+        glyph: expect.stringContaining('<polygon'),
+      },
+    ]);
+    expect(new Set(nodes.map(({ glyph }) => glyph)).size).toBe(5);
+    expect(await xml()).toContain('Places order');
+    expect(await xml()).toContain('data-zloz-export-edge="places"');
+    await consent.check();
+    await browserExpect(download).toBeEnabled();
+    const light = await xml();
+    const svgTheme = review.getByLabel('SVG theme', { exact: true });
+    await svgTheme.selectOption('dark');
+    await browserExpect(consent).not.toBeChecked();
+    await browserExpect(download).toBeDisabled();
+    expect(await xml()).not.toBe(light);
+    await consent.check();
+
+    const renamed = await post(`${api}/operations`, {
+      version: 1,
+      operationId: crypto.randomUUID(),
+      operation: {
+        type: 'RenameNode',
+        id: 'system',
+        expected: 0,
+        label: 'Confirmed ordering platform',
+      },
+    });
+    expect(await renamed.json()).toMatchObject({
+      receipt: { status: 'accepted', documentVersion: 1 },
+    });
+    await browserExpect(review.getByText(/newer confirmed version/i)).toBeVisible();
+    await browserExpect(download).toBeDisabled();
+    expect(await xml()).not.toContain('Confirmed ordering platform');
+    await review.getByRole('button', { name: 'Review latest version' }).click();
+    await browserExpect(svgTheme).toHaveValue('dark');
+    await browserExpect(consent).not.toBeChecked();
+    await browserExpect(download).toBeDisabled();
+    expect(await xml()).toContain('Confirmed ordering platform');
+    await consent.check();
+    const [file] = await Promise.all([page.waitForEvent('download'), download.click()]);
+    expect(file.suggestedFilename()).toBe('zloz-v1.svg');
+    expect(await readFile(await file.path(), 'utf8')).toBe(await xml());
+    await file.delete();
+    await review.press('Escape');
+    await browserExpect(review).toHaveCount(0);
+    expect(writes).toEqual([]);
   }, 60_000);
 
   test('a Teams viewer inspects the confirmed Order aggregate and follows peer changes without authoring', async () => {
@@ -895,9 +1775,11 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
             };
           }),
       ).toEqual({ padding: '6px 9px', wrap: 'anywhere', whitespace: 'normal' });
+      await pageA.getByText('Browse relationships', { exact: true }).click();
       const connectionButton = pageA.locator('[data-flow-connections] button').first();
       await connectionButton.click();
       await poll(async () => (await connectionButton.getAttribute('aria-pressed')) === 'true');
+      await pageA.getByText('Browse relationships', { exact: true }).click();
       const beforeSelection = await exportedGraph();
       const beforeSelectionVersion = await pageA
         .locator('[data-confirmed-version]')
@@ -1064,12 +1946,14 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           (await pageA.getByRole('button', { name: 'Select Peer label', exact: true }).count()) ===
           1,
       );
+      await pageA.getByText('Browse relationships', { exact: true }).click();
       await poll(
         async () =>
           (await pageA
             .getByRole('button', { name: 'Calls — Peer label → Beta', exact: true })
             .count()) === 1,
       );
+      await pageA.getByText('Browse relationships', { exact: true }).click();
       await saved(pageB);
       await pageA.getByRole('button', { name: 'Undo my last edit', exact: true }).click();
       await poll(async () => (await alpha(pageB).getAttribute('data-flow-x')) === originalX);
@@ -1191,6 +2075,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await pageA.getByRole('button', { name: 'Undo my last edit', exact: true }).click();
       await poll(async () => (await exportedGraph()).edges.some((edge) => edge.id === 'ab'));
       await saved(pageA);
+      await pageA.getByText('Browse relationships', { exact: true }).click();
       const restoredConnection = pageA.getByRole('button', {
         name: 'Calls — Peer label → Beta',
         exact: true,
@@ -1213,6 +2098,337 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browser.close();
     }
   }, 90_000);
+
+  test.skipIf(process.env.ZLOZ_RUN_OPY_CONTRACT !== '1')(
+    'OPY relationship decision contract binds exact acceptance to authenticated evidence',
+    async () => {
+      const data = await fixture();
+      const {
+        historicalFrame,
+        shareRequest,
+        acceptRequest,
+        expectedProposed,
+        acceptedEvent,
+        graphScenarios,
+      } = decisionWire;
+      type BoardWrite =
+        | {
+            operationId: string;
+            name: string;
+            graph: { version: 1; graph: typeof historicalFrame.document.graph };
+          }
+        | typeof shareRequest
+        | typeof acceptRequest
+        | typeof graphScenarios.drag.request
+        | typeof graphScenarios.changedEvidence.request
+        | typeof graphScenarios.removedRelationship.request
+        | {
+            operationId: string;
+            expectedVersion: number;
+            checkpoint: Awaited<ReturnType<typeof parseDiagramCheckpoint>>;
+          };
+      const open = async () => {
+        const id = crypto.randomUUID();
+        const path = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+        const call = (suffix: string, cookie: string, body?: BoardWrite) =>
+          fetch(path + suffix, {
+            method: body === undefined ? 'GET' : 'POST',
+            headers: { origin, cookie, 'content-type': 'application/json' },
+            body: body === undefined ? undefined : JSON.stringify(body),
+          });
+        expect(
+          (
+            await call('', data.owner.cookie, {
+              operationId: id,
+              name: 'Relationship decision v1',
+              graph: { version: 1, graph: historicalFrame.document.graph },
+            })
+          ).status,
+        ).toBe(200);
+        const read = async (cookie: string) => {
+          const response = await call('', cookie);
+          expect(response.status).toBe(200);
+          return response.json();
+        };
+        const exportGraph = async () => {
+          const response = await call('/export', data.viewer.cookie);
+          expect(response.status).toBe(200);
+          return response.text();
+        };
+        expect(await read(data.editor.cookie)).toMatchObject({
+          frame: { document: { version: 0, graph: historicalFrame.document.graph } },
+        });
+        return { id, call, read, exportGraph };
+      };
+
+      const board = await open();
+      const baseline = await board.exportGraph();
+      expect<unknown>(parseGraph(baseline)).toEqual(historicalFrame.document.graph);
+      const checkpointResponse = await board.call('/checkpoint', data.owner.cookie);
+      expect(checkpointResponse.status).toBe(200);
+      const checkpoint = await parseDiagramCheckpoint(await checkpointResponse.text());
+      const spoofed = { ...shareRequest, actorId: data.owner.userId };
+      expect((await board.call('/decisions', data.editor.cookie, spoofed)).status).toBe(400);
+      const shared = await board.call('/decisions', data.editor.cookie, shareRequest);
+      expect(shared.status).toBe(200);
+      const proposed = { ...expectedProposed, requestedBy: data.editor.userId };
+      expect(await shared.json()).toEqual({ status: 'recorded', record: proposed });
+      expect(await board.read(data.owner.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [proposed] },
+      });
+      expect(await board.exportGraph()).toBe(baseline);
+      expect((await board.call('/decisions', data.viewer.cookie, acceptRequest)).status).toBe(403);
+      expect((await board.call('/decisions', data.outsider.cookie, acceptRequest)).status).toBe(
+        403,
+      );
+      expect(
+        (await board.call('/operations', data.editor.cookie, graphScenarios.drag.request)).status,
+      ).toBe(200);
+
+      const movedGraph = await board.exportGraph();
+      const accepted = {
+        ...acceptedEvent.outcome.record,
+        requestedBy: data.editor.userId,
+        acceptedBy: data.owner.userId,
+      };
+      const accepting = await board.call('/decisions', data.owner.cookie, acceptRequest);
+      expect(accepting.status).toBe(200);
+      expect(await accepting.json()).toEqual({
+        status: graphScenarios.drag.expectedAcceptance,
+        record: accepted,
+      });
+      const retried = await board.call('/decisions', data.owner.cookie, acceptRequest);
+      expect(retried.status).toBe(200);
+      expect(await retried.json()).toEqual({ status: 'recorded', record: accepted });
+      const differentRevision = {
+        ...acceptRequest,
+        command: { ...acceptRequest.command, revision: acceptRequest.command.revision + 1 },
+      };
+      const rebound = await board.call('/decisions', data.owner.cookie, differentRevision);
+      expect(rebound.status).toBe(200);
+      expect(await rebound.json()).toEqual({ status: 'rejected', code: 'OperationIdMismatch' });
+      expect(await board.read(data.viewer.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [accepted] },
+      });
+      expect(await board.exportGraph()).toBe(movedGraph);
+
+      const socketUrl = new URL('/api/zloz/live', origin.replace('http:', 'ws:'));
+      socketUrl.searchParams.set(
+        'read',
+        JSON.stringify({
+          id: '1',
+          tag: 'ZlozDiagramDeltaV1.events',
+          payload: { key: JSON.stringify([data.organizationId, board.id]), after: 0 },
+        }),
+      );
+      const socket = new NativeWebSocket(socketUrl, {
+        headers: { cookie: data.viewer.cookie, origin },
+      });
+      const messages: string[] = [];
+      socket.addEventListener('message', (event) => messages.push(String(event.data)));
+      try {
+        const entries = () => messages.flatMap(deltaEntries);
+        await browserExpect
+          .poll(() => entries().some((entry) => entry.kind === 'caught-up'))
+          .toBe(true);
+        expect(
+          entries().flatMap((entry) => (entry.kind === 'delta' ? [entry.delta.payload.kind] : [])),
+        ).toEqual(['reset', 'noop', 'graph', 'noop']);
+        expect(messages.join('')).not.toContain(accepted.content.statement);
+      } finally {
+        socket.close();
+      }
+
+      const restored = await board.call('/restore', data.owner.cookie, {
+        operationId: 'opy-restore',
+        expectedVersion: 1,
+        checkpoint,
+      });
+      expect(restored.status).toBe(200);
+      expect(await restored.json()).toMatchObject({ status: 'restored', documentVersion: 2 });
+      expect(await board.read(data.viewer.cookie)).toMatchObject({
+        frame: { relationshipDecisions: [accepted], relationshipDecisionRecoveryVersion: 2 },
+      });
+      expect(await board.exportGraph()).toBe(baseline);
+
+      const race = await open();
+      expect((await race.call('/decisions', data.editor.cookie, shareRequest)).status).toBe(200);
+      const concurrentReviews = await Promise.all([
+        race.call('/decisions', data.owner.cookie, acceptRequest),
+        race.call('/decisions', data.editor.cookie, acceptRequest),
+      ]);
+      const outcomes = await Promise.all(concurrentReviews.map((response) => response.json()));
+      expect(outcomes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: 'recorded',
+            record: expect.objectContaining({ status: 'accepted' }),
+          }),
+          { status: 'rejected', code: 'ProposalNotOpen' },
+        ]),
+      );
+
+      for (const scenario of [graphScenarios.changedEvidence, graphScenarios.removedRelationship]) {
+        const concurrent = await open();
+        expect((await concurrent.call('/decisions', data.editor.cookie, shareRequest)).status).toBe(
+          200,
+        );
+        expect(
+          (await concurrent.call('/operations', data.editor.cookie, scenario.request)).status,
+        ).toBe(200);
+        const response = await concurrent.call('/decisions', data.owner.cookie, acceptRequest);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          status: 'rejected',
+          code: scenario.expectedAcceptance,
+        });
+        expect(await concurrent.read(data.editor.cookie)).toMatchObject({
+          frame: { relationshipDecisions: [proposed] },
+        });
+      }
+    },
+    30_000,
+  );
+
+  test.skipIf(process.env.ZLOZ_RUN_OPY_CONTRACT !== '1')(
+    'OPY relationship decision UI shares with a second editor and reconnects without editing the graph',
+    async () => {
+      const data = await fixture();
+      const id = crypto.randomUUID();
+      const path = `/api/zloz/diagrams/${data.organizationId}/${id}`;
+      const room = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+      const create = await fetch(origin + path, {
+        method: 'POST',
+        headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name: 'OPY shared review',
+          graph: { version: 1, graph: decisionWire.historicalFrame.document.graph },
+        }),
+      });
+      expect(create.status).toBe(200);
+      const exported = async () => {
+        const response = await fetch(origin + path + '/export', {
+          headers: { cookie: data.owner.cookie },
+        });
+        expect(response.status).toBe(200);
+        return response.text();
+      };
+      const original = await exported();
+      const browser = await chromium.launch();
+      await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      let clefCalls = 0;
+      const open = async (cookie: string, colorScheme: 'light' | 'dark') => {
+        const context = await browser.newContext({
+          colorScheme,
+          viewport: { width: 1440, height: 1000 },
+        });
+        const equals = cookie.indexOf('=');
+        await context.addCookies([
+          { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+        ]);
+        const page = await context.newPage();
+        // Keep sessions, proposal writes and live frames native. Substitute only the
+        // staging capability and model result in this isolated browser qualification.
+        await page.route(origin + path, async (route) => {
+          if (route.request().method() !== 'GET') return route.continue();
+          const response = await route.fetch();
+          const body = await response.json();
+          await route.fulfill({ response, json: { ...body, clefShadow: true } });
+        });
+        await page.route(origin + path + '/clef-review', async (route) => {
+          expect(route.request().method()).toBe('POST');
+          const current = Schema.decodeUnknownSync(ClefReference, { onExcessProperty: 'error' })(
+            route.request().postDataJSON(),
+          );
+          const confirmed = await fetch(origin + path, { headers: { cookie } });
+          const body = Schema.decodeUnknownSync(
+            Schema.Struct({
+              frame: Schema.Unknown.pipe(Schema.refine(isDiagramFrame)),
+            }),
+          )(await confirmed.json());
+          expect(body.frame.relationshipDecisions?.[0]).toMatchObject({
+            ...current,
+            status: 'proposed',
+          });
+          clefCalls++;
+          await route.fulfill({ json: { ...current, needsEvidenceProbability: 0.87 } });
+        });
+        await page.goto(room);
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        return page;
+      };
+      const [editor, owner] = await Promise.all([
+        open(data.editor.cookie, 'dark'),
+        open(data.owner.cookie, 'light'),
+      ]);
+      const openOpy = async (page: Page) => {
+        const launcher = page.getByRole('button', { name: 'Ask OPY', exact: true });
+        await browserExpect(launcher).toBeVisible();
+        await launcher.click();
+        const panel = page.getByRole('region', { name: 'OPY relationship decisions' });
+        await browserExpect(panel).toBeFocused();
+        return panel;
+      };
+      await editor.getByText('Browse relationships', { exact: true }).click();
+      await editor.getByRole('button', { name: 'Calls — Alpha → Beta', exact: true }).click();
+      await editor.getByText('Browse relationships', { exact: true }).click();
+      const draft = await openOpy(editor);
+      await editor.setViewportSize({ width: 1280, height: 720 });
+      await browserExpect(draft.getByRole('button', { name: 'Share proposal' })).toBeInViewport();
+      await draft
+        .getByLabel('Decision', { exact: true })
+        .fill('Keep the order before calling Beta.');
+      await draft
+        .getByLabel('Rationale', { exact: true })
+        .fill('An accepted order should survive a Beta outage.');
+      const inspector = editor.getByRole('button', { name: 'Inspector', exact: true });
+      await inspector.click();
+      await browserExpect(draft).toBeHidden();
+      await inspector.click();
+      await browserExpect(draft.getByLabel('Decision', { exact: true })).toHaveValue(
+        'Keep the order before calling Beta.',
+      );
+      await browserExpect(draft.getByLabel('Rationale', { exact: true })).toHaveValue(
+        'An accepted order should survive a Beta outage.',
+      );
+      await draft.getByRole('button', { name: 'Share proposal', exact: true }).click();
+      const review = await openOpy(owner);
+      await browserExpect(review.getByText('Keep the order before calling Beta.')).toBeVisible();
+      expect(clefCalls).toBe(0);
+      await review.getByRole('button', { name: 'Run Clef review', exact: true }).click();
+      const advisory = 'Clef estimates a 87% chance that more evidence is needed.';
+      await browserExpect(review.getByText(advisory, { exact: true })).toBeVisible();
+      await browserExpect(draft.getByText(advisory, { exact: true })).toHaveCount(0);
+      for (const panel of [review, draft])
+        await browserExpect(
+          panel.getByText('Proposal awaiting review', { exact: true }),
+        ).toBeVisible();
+      expect(clefCalls).toBe(1);
+      await review.getByRole('button', { name: 'Accept decision', exact: true }).click();
+      for (const page of [owner, editor]) {
+        const panel = page.getByRole('region', { name: 'OPY relationship decisions' });
+        await browserExpect(panel.getByText('Accepted · implementation unverified')).toBeVisible();
+        await browserExpect(panel.getByText(advisory, { exact: true })).toHaveCount(0);
+        await page.reload();
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        await browserExpect(
+          (await openOpy(page)).getByText('Accepted · implementation unverified'),
+        ).toBeVisible();
+      }
+      await editor.bringToFront();
+      await editor.getByRole('button', { name: 'Close OPY', exact: true }).press('Enter');
+      const launcher = editor.getByRole('button', { name: 'Ask OPY', exact: true });
+      await browserExpect(launcher).toBeFocused();
+      await launcher.press('Enter');
+      await editor.setViewportSize({ width: 390, height: 844 });
+      await browserExpect(
+        editor.getByRole('region', { name: 'OPY relationship decisions' }),
+      ).toBeVisible();
+      expect(await exported()).toBe(original);
+    },
+    45_000,
+  );
 
   test('public delta history replays beyond receipt coverage with exact canonical parity and current authorization', async () => {
     const data = await fixture();
@@ -2062,11 +3278,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect(await rename.json()).toMatchObject({
       receipt: { status: 'accepted', documentVersion: 1 },
     });
+    await page.getByText('Browse relationships', { exact: true }).click();
     await poll(
       async () =>
         (await page.getByRole('button', { name: 'near → Updated far', exact: true }).count()) === 1,
     );
     expect(await page.locator('[data-flow-node="far"]').count()).toBe(0);
+    await page.getByText('Browse relationships', { exact: true }).click();
     await page.getByRole('button', { name: 'Fit view', exact: true }).focus();
     await page.keyboard.press('Enter');
     await poll(async () => (await page.locator('[data-flow-node]').count()) === 3);
@@ -2622,6 +3840,52 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     }
   }, 30_000);
 
+  test('signed-in readers can inspect the recorded Clef demo without client JavaScript', async () => {
+    const demoPath = '/app/clef-demo';
+    const anonymous = await fetch(origin + demoPath, { redirect: 'manual' });
+    expect(anonymous.status).toBe(303);
+    expect(anonymous.headers.get('location')).toBe('/login?returnTo=%2Fapp%2Fclef-demo');
+    expect(await anonymous.text()).not.toContain('98.86%');
+
+    const data = await fixture();
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 390, height: 844 },
+    });
+    const equals = data.viewer.cookie.indexOf('=');
+    await context.addCookies([
+      {
+        name: data.viewer.cookie.slice(0, equals),
+        value: data.viewer.cookie.slice(equals + 1),
+        url: origin,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    const page = await context.newPage();
+    await page.goto(origin + '/app');
+    const link = page.getByRole('link', { name: 'Clef evidence demo' });
+    await browserExpect(link).toBeVisible();
+    const [response] = await Promise.all([page.waitForResponse(origin + demoPath), link.click()]);
+    expect(response.headers()['cache-control']).toBe('private, no-store');
+    await browserExpect(page.getByRole('heading', { name: 'Clef evidence demo' })).toBeVisible();
+    for (const [name, score] of [
+      ['Measured evidence', '1.07%'],
+      ['Missing measurements', '98.86%'],
+      ['Conflicting reports', '98.83%'],
+    ]) {
+      const example = page.getByRole('article', { name });
+      await browserExpect(example.getByText(score, { exact: true })).toBeVisible();
+    }
+    const measured = page.getByRole('article', { name: 'Measured evidence' });
+    const evidence = measured.getByText(/Load run Q-41 tested 10,000 events\/minute/);
+    await browserExpect(evidence).toBeHidden();
+    await measured.getByText('Evidence and model response', { exact: true }).press('Enter');
+    await browserExpect(evidence).toBeVisible();
+  }, 25_000);
+
   test('private SSR redirects anonymous requests and renders a real signed session', async () => {
     const anonymous = await fetch(`${origin}/app`, { redirect: 'manual' });
     expect(anonymous.status).toBe(303);
@@ -2644,6 +3908,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const login = await fetch(`${origin}/login`);
     const page = await login.text();
     expect(page).toContain('Google sign-in isn’t configured');
+    expect(page).not.toContain('Continue with email');
+    expect((await fetch(`${origin}/login/email`)).status).toBe(404);
     expect(page).toMatch(/<button[^>]*\sdisabled[\s>]/);
   });
 
@@ -2846,6 +4112,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       const page = await context.newPage();
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+      if (index === 2) await page.getByRole('button', { name: 'Inspector', exact: true }).click();
       await page.getByLabel('Assess relationship', { exact: true }).selectOption('ab');
       pages.push(page);
     }
@@ -2853,6 +4120,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     if (!owner || !editor || !viewer) throw new Error('Missing collaboration page');
     const panel = (page: Page) =>
       page.getByRole('region', { name: 'Balanced Coupling assessment', exact: true });
+    await browserExpect(
+      viewer.getByRole('button', { name: 'Save shared assessment', exact: true }),
+    ).toBeInViewport();
     await editor.getByLabel('Expected-change horizon', { exact: true }).fill('My unsaved horizon');
     await owner.getByLabel('Abstraction scope', { exact: true }).fill('Bounded contexts');
     await owner.getByLabel('Abstraction scope', { exact: true }).press('Tab');
@@ -3117,6 +4387,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           writes.push(request.url());
       });
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+      if (index === 2) await page.getByRole('button', { name: 'Inspector', exact: true }).click();
       await page.getByLabel('Inspector view', { exact: true }).selectOption('coupling');
       pages.push(page);
     }

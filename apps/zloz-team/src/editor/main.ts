@@ -11,6 +11,7 @@ import type {
   ZlozGraphOperation,
   ZlozOperationReceipt,
   ZlozOperationRequest,
+  ZlozSvgReviewRequest,
 } from '@opsydyn/foldkit-zloz';
 import { applyDiagramDelta, DiagramFeedSchema } from '@opsydyn/foldkit-zloz-alchemy/delta';
 import { operationHash } from '@opsydyn/foldkit-zloz-alchemy/hash';
@@ -33,6 +34,8 @@ import {
   zlozAggregateView,
   zlozDragHandle,
   zlozGroupFrame,
+  zlozSvgReview,
+  zlozSvgReviewSelect,
   zlozView,
   zlozWorldOverlayItem,
 } from '@opsydyn/foldkit-zloz/foldkit';
@@ -52,6 +55,8 @@ import { Message as CouplingMessage, OutMessage as CouplingOutMessage } from './
 import * as Coupling from './coupling/model';
 import { observe as observeCoupling, update as updateCoupling } from './coupling/update';
 import { view as couplingView } from './coupling/view';
+import * as Evolution from './evolution';
+import { view as evolutionView } from './evolution-view';
 import {
   Connection,
   ReconnectDelay,
@@ -60,7 +65,10 @@ import {
   isLiveConnection,
   otherSlot,
 } from './feed-state';
+import { findMatches, FindTarget } from './find';
+import * as Mermaid from './mermaid-export';
 import { createNodesView } from './nodes-view';
+import * as Opy from './opy';
 import { geometryGraph, pendingGeometryGraph } from './pending-geometry';
 import { createPortsView } from './ports-view';
 import { deltaStream, liveStream, pathFor } from './protocol';
@@ -71,13 +79,17 @@ import {
   isGeometryOperation,
   QueuedMove,
 } from './queued-move';
+import * as Layout from './selection-layout';
 import { shareFrame } from './share-frame';
+import * as Svg from './svg-export';
 
 export { slow } from './diagnostics';
 
 const Role = Schema.Literals(['owner', 'editor', 'viewer']);
 const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'neutral']);
-const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate']);
+const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate', 'evolution', 'opy']);
+const Rail = Schema.Literals(['tools', 'inspector']);
+const compactBoardQuery = '(max-width: 1080px)';
 export const Props = Schema.Struct({
   teamId: Schema.String,
   diagramId: Schema.String,
@@ -117,7 +129,23 @@ export const Model = Schema.Struct({
   room: Room,
   assessment: Assessment.Model,
   coupling: Coupling.Model,
+  evolution: Evolution.History,
   inspector: Inspector,
+  rails: Schema.Struct({ tools: Schema.Boolean, inspector: Schema.Boolean }),
+  compactBoard: Schema.Boolean,
+  drawer: Schema.NullOr(Rail),
+  focusedBoard: Schema.Boolean,
+  overviewOpen: Schema.Boolean,
+  find: Schema.NullOr(Schema.String),
+  mermaid: Schema.NullOr(Mermaid.Review),
+  svg: Schema.Unknown,
+  svgRun: Schema.Number,
+  layout: Layout.Task,
+  layoutMethod: Layout.Method,
+  layoutRun: Schema.Number,
+  opy: Opy.Model,
+  decisionAuthoring: Schema.Boolean,
+  clefShadow: Schema.Boolean,
   session: DiagramSessionSchema,
   queuedMove: Schema.NullOr(QueuedMove),
   moveSaveIssue: Schema.NullOr(Schema.Literals(['conflict', 'rejected'])),
@@ -139,7 +167,8 @@ export const Model = Schema.Struct({
   error: Schema.String,
   emphasis: CanvasEmphasis,
 });
-export type Model = Omit<typeof Model.Type, 'coupling'> & Readonly<{ coupling: Coupling.Model }>;
+export type Model = Omit<typeof Model.Type, 'coupling' | 'svg'> &
+  Readonly<{ coupling: Coupling.Model; svg: Svg.Review | null }>;
 const session = (model: Model) => model.session;
 // SAFETY: createEditor and bridgeEvent exclusively maintain this editor field.
 const editor = (model: Model) => model.editor as EditorState;
@@ -162,6 +191,8 @@ export const Message = defineMessageUnion({
     role: Role,
     run: Schema.optionalKey(Schema.Number),
     feed: Schema.optionalKey(Schema.Unknown),
+    decisionAuthoring: Schema.optionalKey(Schema.Boolean),
+    clefShadow: Schema.optionalKey(Schema.Boolean),
   },
   FailedSnapshot: { room: Room, status: Schema.Number, run: Schema.optionalKey(Schema.Number) },
   ObservedDelta: { room: Room, run: Schema.Number, cursor: Schema.Number, delta: Schema.Unknown },
@@ -191,6 +222,32 @@ export const Message = defineMessageUnion({
   GotAssessmentMessage: { room: Room, message: Assessment.Message },
   SelectedCanvasEmphasis: { emphasis: CanvasEmphasis },
   SelectedInspector: { inspector: Inspector },
+  SelectedEvolutionVersion: { value: Schema.String },
+  ChangedBoardWidth: { compact: Schema.Boolean },
+  ToggledBoardRail: { rail: Rail },
+  ToggledBoardFocus: {},
+  ToggledOverview: {},
+  OpenedFind: {},
+  ClosedFind: {},
+  ChangedFind: { query: Schema.String },
+  ChoseFindResult: { target: Schema.Literals(FindTarget), id: Schema.String },
+  OpenedMermaid: {},
+  ClosedMermaid: {},
+  ChangedMermaidConsent: { version: Schema.Number, accepted: Schema.Boolean },
+  ClickedMermaidDownload: { version: Schema.Number, format: Mermaid.Format },
+  CompletedMermaidDownload: { version: Schema.Number, started: Schema.Boolean },
+  OpenedSvg: {},
+  ClosedSvg: {},
+  ObservedSvgReview: { request: Schema.Unknown },
+  SelectedLayoutMethod: { method: Layout.Method },
+  ClickedLayoutPreview: {},
+  DiscardedLayoutPreview: {},
+  ClickedApplyLayout: { run: Schema.Number },
+  SettledLayoutPreview: { room: Room, run: Schema.Number, result: Layout.Task },
+  OpenedOpy: {},
+  ClosedOpy: {},
+  GotOpyMessage: { room: Room, message: Opy.Message },
+  CompletedBoardFocus: {},
   GotCouplingMessage: { room: Room, message: CouplingMessage },
   CompletedInspectorFocus: {},
 });
@@ -213,6 +270,100 @@ const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
     Effect.catchTag('ElementNotFound', () => Effect.void),
     Effect.map(() => Message.CompletedInspectorFocus()),
   ),
+});
+const FocusBoardControl = Command.define('FocusBoardControl', {
+  args: { selector: Schema.String },
+  messages: [Message.CompletedBoardFocus],
+  execute: ({ selector }) =>
+    Render.afterCommit.pipe(
+      Effect.andThen(Dom.focus(selector, { makeFocusable: true })),
+      Effect.catchTag('ElementNotFound', () => Effect.void),
+      Effect.map(() => Message.CompletedBoardFocus()),
+    ),
+});
+const DownloadMermaid = Command.define('DownloadMermaid', {
+  args: { version: Schema.Number, format: Mermaid.Format, contents: Schema.String },
+  messages: [Message.CompletedMermaidDownload],
+  execute: ({ version, format, contents }) =>
+    Effect.try(() => {
+      const source = format === 'source';
+      handoffDownload(
+        contents,
+        source ? 'text/plain;charset=utf-8' : 'application/json',
+        `zloz-v${version}.${source ? 'mmd' : 'mermaid.json'}`,
+      );
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedMermaidDownload({ version, started: true }),
+        onFailure: () => Message.CompletedMermaidDownload({ version, started: false }),
+      }),
+    ),
+});
+function handoffDownload(contents: string, mediaType: string, fileName: string) {
+  const url = URL.createObjectURL(new Blob([contents], { type: mediaType }));
+  globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
+  link.click();
+}
+const DownloadSvg = Command.define('DownloadSvg', {
+  args: {
+    svg: Schema.String,
+    fileName: Schema.String,
+    scope: Schema.String,
+    generation: Schema.Number,
+    key: Schema.String,
+    run: Schema.Number,
+  },
+  messages: [Message.ObservedSvgReview],
+  execute: ({ svg, fileName, scope, generation, key, run }) => {
+    const settled = (outcome: 'succeeded' | 'failed') =>
+      Message.ObservedSvgReview({
+        request: {
+          type: 'SvgDownloadSettled',
+          scope,
+          generation,
+          key,
+          run,
+          outcome,
+        } satisfies ZlozSvgReviewRequest,
+      });
+    return Effect.try(() => handoffDownload(svg, 'image/svg+xml;charset=utf-8', fileName)).pipe(
+      Effect.match({ onSuccess: () => settled('succeeded'), onFailure: () => settled('failed') }),
+    );
+  },
+});
+const PrepareLayoutPreview = Command.define('PrepareLayoutPreview', {
+  args: {
+    room: Room,
+    run: Schema.Number,
+    document: DiagramDocumentSchema,
+    selection: Schema.Array(Schema.String),
+    direction: Layout.Direction,
+    method: Layout.Method,
+  },
+  messages: [Message.SettledLayoutPreview],
+  execute: ({ room, run, document, selection, direction, method }) =>
+    Effect.tryPromise({
+      try: () =>
+        Layout.prepare(
+          document,
+          selection,
+          `teams-${room.generation}-layout-${run}`,
+          direction,
+          method,
+        ),
+      catch: (error) =>
+        error instanceof Layout.SelectionLayoutError
+          ? error.message
+          : 'Could not arrange this selection.',
+    }).pipe(
+      Effect.match({
+        onSuccess: (proposal) =>
+          Message.SettledLayoutPreview({ room, run, result: Layout.Task.Ready({ proposal }) }),
+        onFailure: (message) =>
+          Message.SettledLayoutPreview({ room, run, result: Layout.Task.Failed({ message }) }),
+      }),
+    ),
 });
 const sharedConnections = createConnectionsView<Message>((id) =>
   Message.ObservedEditorInput({ event: { type: 'EdgeSelected', id, additive: false } }),
@@ -242,6 +393,8 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
           frame: Schema.Unknown.pipe(Schema.refine(isDiagramFrame)),
           role: Role,
           feed: Schema.optionalKey(Schema.Unknown),
+          decisionAuthoring: Schema.optionalKey(Schema.Boolean),
+          clefShadow: Schema.optionalKey(Schema.Boolean),
         }),
       )(await response.json());
       return Message.SucceededSnapshot({
@@ -250,6 +403,8 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
         frame: body.frame,
         role: body.role,
         feed: body.feed,
+        decisionAuthoring: body.decisionAuthoring ?? false,
+        clefShadow: body.clefShadow ?? false,
       });
     }).pipe(Effect.orElseSucceed(() => Message.FailedSnapshot({ room, run, status: 0 }))),
 });
@@ -345,6 +500,22 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         assessment,
         coupling,
         inspector: 'selection',
+        evolution: Evolution.empty,
+        rails: { tools: true, inspector: true },
+        compactBoard: false,
+        drawer: null,
+        focusedBoard: false,
+        overviewOpen: false,
+        find: null,
+        mermaid: null,
+        svg: null,
+        svgRun: 0,
+        layout: Layout.Task.Closed(),
+        layoutMethod: 'elk',
+        layoutRun: 0,
+        opy: Opy.init(),
+        decisionAuthoring: false,
+        clefShadow: false,
       }),
       folds: {
         assessment: {
@@ -373,10 +544,11 @@ function install(model: Model, state: DiagramSession, receipt?: ZlozOperationRec
     ? {
         ...model,
         assessment: Assessment.observe(model.assessment, state.confirmed, model.room.actorId),
-        coupling:
-          model.inspector === 'coupling'
-            ? observeCoupling(model.coupling, state.confirmed)
-            : model.coupling,
+        opy: Opy.observe(model.opy, state.confirmed, model.room.actorId),
+        evolution: Evolution.observe(model.evolution, state.confirmed.document),
+        coupling: couplingVisible(model)
+          ? observeCoupling(model.coupling, state.confirmed)
+          : model.coupling,
       }
     : model;
   const undoResetVersion = state.confirmed?.undoResetVersion ?? 0;
@@ -533,6 +705,64 @@ function enqueue(model: Model, operation: ZlozGraphOperation): Return<Model, Mes
     commands: [PrepareSharedEdit({ room: model.room, request })],
   };
 }
+const opyContext = (model: Model) => ({
+  room: model.room,
+  frame: session(model).confirmed,
+  relationshipId: editor(model).selectedEdges[0],
+  isOwner: model.role === 'owner',
+  clefShadow: model.clefShadow,
+  actorLabel: (id: string) =>
+    id === model.room.actorId
+      ? 'you'
+      : (model.peers.find((peer) => peer.actorId === id)?.name ?? id),
+  authoring:
+    model.decisionAuthoring &&
+    model.role !== 'viewer' &&
+    isLiveConnection(model.connection) &&
+    Boolean(model.room.generation),
+});
+const opyAvailable = (model: Model) =>
+  model.connection._tag !== 'Denied' &&
+  (model.decisionAuthoring || Boolean(session(model).confirmed?.relationshipDecisions?.length));
+
+const railVisible = (model: Model, rail: typeof Rail.Type) =>
+  !model.focusedBoard && (model.compactBoard ? model.drawer === rail : model.rails[rail]);
+const couplingVisible = (model: Model) =>
+  railVisible(model, 'inspector') && model.inspector === 'coupling';
+const confirmedExportDocument = (model: Model) =>
+  isLiveConnection(model.connection) ? model.session.confirmed?.document : undefined;
+function currentMermaidReview(model: Model, version: number) {
+  const review = model.mermaid;
+  return review?._tag === 'Ready' &&
+    review.version === version &&
+    confirmedExportDocument(model)?.version === version
+    ? review
+    : null;
+}
+const supportedLayoutSelection = (model: Model) =>
+  isLiveConnection(model.connection) &&
+  editor(model).gesture.type === 'idle' &&
+  editor(model).selectedNodes.length >= Layout.methods[model.layoutMethod].minimum;
+const layoutStaleReason = (model: Model, proposal: Layout.Proposal) =>
+  Layout.staleReason(proposal, model.session.confirmed?.document, editor(model).selectedNodes);
+function layoutApplyReason(model: Model, stale: string | null) {
+  if (stale) return Option.some(stale);
+  if (model.role === 'viewer') return Option.some('Editors can apply this layout.');
+  if (!isLiveConnection(model.connection))
+    return Option.some('Reconnect before applying the layout.');
+  if (model.session.pending || model.queuedMove || editor(model).gesture.type !== 'idle')
+    return Option.some('Finish the current edit before applying the layout.');
+  return Option.none();
+}
+function withRailChange(before: Model, next: Model): Model {
+  if (couplingVisible(before) === couplingVisible(next)) return next;
+  const coupling = { ...next.coupling, width: null };
+  return {
+    ...next,
+    coupling: couplingVisible(next) ? observeCoupling(coupling, next.session.confirmed) : coupling,
+  };
+}
+
 export function update(model: Model, message: Message): Return<Model, Message> {
   // Re-authentication starts a new page generation; late work cannot reopen this one.
   if (model.connection._tag === 'Denied' && message._tag !== 'SelectedCanvasEmphasis')
@@ -545,22 +775,277 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             model: install({ ...model, queuedMove: null, error: '' }, session(model)),
           },
     CompletedInspectorFocus: () => ({ model }),
+    CompletedBoardFocus: () => ({ model }),
+    ChangedBoardWidth: ({ compact }) => ({
+      model: withRailChange(model, {
+        ...model,
+        compactBoard: compact,
+        drawer:
+          compact && model.inspector !== 'selection' && railVisible(model, 'inspector')
+            ? 'inspector'
+            : null,
+      }),
+    }),
+    ToggledBoardRail: ({ rail }) => {
+      const open = !railVisible(model, rail);
+      return {
+        model: withRailChange(model, {
+          ...model,
+          focusedBoard: false,
+          ...(model.compactBoard
+            ? { drawer: open ? rail : null }
+            : {
+                rails: {
+                  ...(model.focusedBoard ? { tools: false, inspector: false } : model.rails),
+                  [rail]: open,
+                },
+              }),
+        }),
+        commands: open ? [FocusBoardControl({ selector: `#board-${rail}` })] : [],
+      };
+    },
+    ToggledBoardFocus: () => ({
+      model: withRailChange(model, {
+        ...model,
+        focusedBoard: !model.focusedBoard,
+        overviewOpen: false,
+      }),
+    }),
+    ToggledOverview: () => ({
+      model: { ...model, overviewOpen: !model.overviewOpen },
+      commands: [
+        FocusBoardControl({
+          selector: model.overviewOpen
+            ? '#board-overview-toggle'
+            : '#board-overview [data-flow-minimap-frame]',
+        }),
+      ],
+    }),
+    OpenedFind: () => ({
+      model: { ...model, find: '', mermaid: null, svg: null, layout: Layout.Task.Closed() },
+      commands: [FocusBoardControl({ selector: '#board-find-query' })],
+    }),
+    OpenedMermaid: () => {
+      const confirmed = confirmedExportDocument(model);
+      if (!confirmed) return { model };
+      return {
+        model: {
+          ...model,
+          find: null,
+          mermaid: Mermaid.prepare(confirmed.graph, confirmed.version),
+          svg: null,
+          layout: Layout.Task.Closed(),
+        },
+        commands: [FocusBoardControl({ selector: '#board-mermaid' })],
+      };
+    },
+    ClosedMermaid: () => ({
+      model: { ...model, mermaid: null },
+      commands: [
+        FocusBoardControl({
+          selector:
+            railVisible(model, 'tools') && confirmedExportDocument(model)
+              ? '#board-mermaid-open'
+              : '#shared-diagram-surface',
+        }),
+      ],
+    }),
+    ChangedMermaidConsent: ({ version, accepted }) => {
+      const review = currentMermaidReview(model, version);
+      return { model: review ? { ...model, mermaid: { ...review, accepted } } : model };
+    },
+    ClickedMermaidDownload: ({ version, format }) => {
+      const review = currentMermaidReview(model, version);
+      if (!review || (review.diagnostics.length && !review.accepted)) return { model };
+      return {
+        model,
+        commands: [DownloadMermaid({ version, format, contents: review[format] })],
+      };
+    },
+    CompletedMermaidDownload: ({ version, started }) => {
+      const review = currentMermaidReview(model, version);
+      return {
+        model: review
+          ? {
+              ...model,
+              mermaid: Mermaid.Review.Ready({
+                ...review,
+                download: started ? 'started' : 'failed',
+              }),
+            }
+          : model,
+      };
+    },
+    OpenedSvg: () => {
+      const confirmed = confirmedExportDocument(model);
+      if (!confirmed) return { model };
+      const svgRun = model.svgRun + 1;
+      return {
+        model: withRailChange(model, {
+          ...model,
+          svgRun,
+          svg: Svg.open(
+            confirmed,
+            model.name,
+            `${model.room.generation}/svg/${svgRun}`,
+            model.svg ?? undefined,
+          ),
+          drawer: model.compactBoard ? null : model.drawer,
+          find: null,
+          mermaid: null,
+          layout: Layout.Task.Closed(),
+        }),
+        commands: [FocusBoardControl({ selector: '#board-svg' })],
+      };
+    },
+    ClosedSvg: () => ({
+      model: { ...model, svg: null },
+      commands: [
+        FocusBoardControl({
+          selector:
+            railVisible(model, 'tools') && confirmedExportDocument(model)
+              ? '#board-svg-open'
+              : '#shared-diagram-surface',
+        }),
+      ],
+    }),
+    ObservedSvgReview: ({ request }) => {
+      if (!model.svg || model.connection._tag === 'Denied') return { model };
+      const available = Svg.availability(model.svg, confirmedExportDocument(model));
+      // SAFETY: SDK review controls and the download Command emit only ZlozSvgReviewRequest facts.
+      const next = Svg.update(model.svg, available, request as ZlozSvgReviewRequest);
+      const updated = { ...model, svg: next.review };
+      return next.payload
+        ? { model: updated, commands: [DownloadSvg(next.payload)] }
+        : { model: updated };
+    },
+    SelectedLayoutMethod: ({ method }) => ({
+      model: { ...model, layoutMethod: method, layout: Layout.Task.Closed() },
+    }),
+    ClickedLayoutPreview: () => {
+      const document = session(model).confirmed?.document;
+      if (!document || !supportedLayoutSelection(model) || model.layout._tag === 'Running')
+        return { model };
+      const run = model.layoutRun + 1;
+      const currentEditor = editor(model);
+      return {
+        model: withRailChange(model, {
+          ...model,
+          layoutRun: run,
+          layout: Layout.Task.Running(),
+          drawer: model.compactBoard ? null : model.drawer,
+          find: null,
+          mermaid: null,
+          svg: null,
+        }),
+        commands: [
+          PrepareLayoutPreview({
+            room: model.room,
+            run,
+            document,
+            selection: currentEditor.selectedNodes,
+            direction: (currentEditor.surface?.width ?? 800) < 600 ? 'DOWN' : 'RIGHT',
+            method: model.layoutMethod,
+          }),
+          FocusBoardControl({ selector: '#board-layout-preview' }),
+        ],
+      };
+    },
+    SettledLayoutPreview: ({ room, run, result }) =>
+      current(model, room) && run === model.layoutRun && model.layout._tag === 'Running'
+        ? { model: { ...model, layout: result } }
+        : { model },
+    DiscardedLayoutPreview: () => ({
+      model: { ...model, layout: Layout.Task.Closed() },
+      commands: [
+        FocusBoardControl({
+          selector: railVisible(model, 'tools') ? '#board-layout-open' : '#shared-diagram-surface',
+        }),
+      ],
+    }),
+    ClickedApplyLayout: ({ run }) => {
+      if (run !== model.layoutRun || model.layout._tag !== 'Ready') return { model };
+      const { proposal } = model.layout;
+      if (Option.isSome(layoutApplyReason(model, layoutStaleReason(model, proposal))))
+        return { model };
+      const applied = enqueue(
+        { ...model, layout: Layout.Task.Closed() },
+        { type: 'MoveNodes', nodes: proposal.moves },
+      );
+      return {
+        ...applied,
+        commands: [
+          ...(applied.commands ?? []),
+          FocusBoardControl({ selector: '#shared-diagram-surface' }),
+        ],
+      };
+    },
+    ClosedFind: () => ({
+      model: { ...model, find: null },
+      commands: [FocusBoardControl({ selector: '#board-find-toggle' })],
+    }),
+    ChangedFind: ({ query }) => ({ model: { ...model, find: query } }),
+    ChoseFindResult: ({ target, id }) => {
+      if (model.find === null || editor(model).gesture.type !== 'idle') return { model };
+      const step = update(
+        model,
+        canvasEvent({
+          type: target === 'node' ? 'NodeRevealRequested' : 'EdgeRevealRequested',
+          id,
+        }),
+      );
+      return {
+        model: { ...step.model, find: null },
+        commands: [
+          ...(step.commands ?? []),
+          FocusBoardControl({ selector: '#shared-diagram-surface' }),
+        ],
+      };
+    },
+    OpenedOpy: () =>
+      opyAvailable(model)
+        ? {
+            model: withRailChange(model, {
+              ...model,
+              inspector: 'opy',
+              focusedBoard: false,
+              rails: { ...model.rails, inspector: true },
+              drawer: 'inspector',
+            }),
+            commands: [FocusBoardControl({ selector: '#opy-inspector' })],
+          }
+        : { model },
+    ClosedOpy: () => ({
+      model: {
+        ...model,
+        inspector: 'selection' as const,
+        drawer: 'tools' as const,
+        rails: { ...model.rails, tools: true },
+      },
+      commands: [FocusBoardControl({ selector: '#ask-opy' })],
+    }),
+    GotOpyMessage: ({ room, message: childMessage }) =>
+      current(model, room)
+        ? foldChild({
+            update: (opy: Opy.Model, child: Opy.Message) =>
+              Opy.update(opy, child, opyContext(model)),
+            read: (parent: Model) => Option.some(parent.opy),
+            write: (parent, opy) => ({ ...parent, opy }),
+            toParentMessage: (message) => Message.GotOpyMessage({ room, message }),
+          })(model, childMessage)
+        : { model },
     SelectedInspector: ({ inspector }) => {
       if (inspector === model.inspector) return { model };
-      const next = {
-        ...model,
-        inspector,
-        coupling:
-          inspector === 'coupling'
-            ? observeCoupling({ ...model.coupling, width: null }, model.session.confirmed)
-            : { ...model.coupling, width: null },
-      };
+      const next = withRailChange(model, { ...model, inspector });
       return inspector === 'selection' && model.assessment.status === 'editing'
         ? { model: next, commands: [FocusAssessmentInspector()] }
         : { model: next };
     },
+    SelectedEvolutionVersion: ({ value }) => ({
+      model: { ...model, evolution: Evolution.inspect(model.evolution, value) },
+    }),
     GotCouplingMessage: ({ room, message }) => {
-      if (!current(model, room) || model.inspector !== 'coupling') return { model };
+      if (!current(model, room) || !couplingVisible(model)) return { model };
       return foldChild({
         update: updateCoupling,
         read: (parent: Model) => Option.some(parent.coupling),
@@ -655,7 +1140,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedIdentity: () => ({
       model: { ...model, error: 'Could not prepare an editing session. Reload to retry.' },
     }),
-    SucceededSnapshot: ({ room, frame, role, run, feed }) => {
+    SucceededSnapshot: ({ room, frame, role, run, feed, decisionAuthoring, clefShadow }) => {
       if (
         !current(model, room) ||
         !isDiagramFrame(frame) ||
@@ -676,6 +1161,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const next = {
         ...model,
         role,
+        decisionAuthoring: decisionAuthoring === true,
+        clefShadow: clefShadow === true,
         error: '',
         feedMode: validFeed ? ('delta' as const) : ('legacy' as const),
         feedSeeds:
@@ -926,7 +1413,26 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (event.type === 'SurfaceMeasured') {
         const before = editor(model);
         const next = updateEditor(before, event);
-        return { model: next === before ? model : { ...model, editor: next } };
+        if (next === before) return { model };
+        if (!before.surface || !next.surface) return { model: { ...model, editor: next } };
+        // Both views are surface-relative. Leave an active gesture's camera pinned.
+        const dx = (next.surface.width - before.surface.width) / 2;
+        const dy = (next.surface.height - before.surface.height) / 2;
+        const shift = (viewport: EditorState['viewport']) => ({
+          ...viewport,
+          x: viewport.x + dx,
+          y: viewport.y + dy,
+        });
+        return {
+          model: {
+            ...model,
+            editor: {
+              ...next,
+              viewport: before.gesture.type === 'idle' ? shift(next.viewport) : next.viewport,
+              previousViewport: next.previousViewport ? shift(next.previousViewport) : null,
+            },
+          },
+        };
       }
       const state = session(model);
       if (!state.confirmed) return { model };
@@ -962,10 +1468,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             y: (event.point.y - before.viewport.y) / before.viewport.zoom,
           },
         };
-      if (event.type === 'NodeSelected' || event.type === 'NodeDragStarted')
+      if (
+        event.type === 'NodeDragStarted' ||
+        (event.type === 'NodeSelected' &&
+          (!event.additive || result.editor.selectedNodes[0] !== before.selectedNodes[0]))
+      )
         next = {
           ...next,
-          draft: result.editor.graph.nodes.find((node) => node.id === event.id)?.label ?? '',
+          draft:
+            result.editor.graph.nodes.find((node) => node.id === result.editor.selectedNodes[0])
+              ?.label ?? '',
         };
       if (
         isAuthoredGesture(result.editor.gesture) &&
@@ -1040,6 +1552,7 @@ function hasUncommittedEdit(model: Model): boolean {
   );
   return (
     session(model).pending !== null ||
+    (model.opy.pending !== null && model.connection._tag !== 'Denied') ||
     model.queuedMove !== null ||
     gesture === 'node-drag' ||
     gesture === 'node-resize' ||
@@ -1092,6 +1605,49 @@ function aggregateView(h: HtmlBuilder<Message>, graph: ZlozGraph, selectedId: st
 
 const sharedCanvas = createLazy();
 const canvasEvent = (event: EditorEvent) => Message.ObservedEditorInput({ event });
+function layoutGhosts(
+  h: HtmlBuilder<Message>,
+  state: EditorState,
+  preview: Layout.Proposal | null,
+) {
+  if (!preview) return [];
+  const nodes = new Map(state.graph.nodes.map((node) => [node.id, node]));
+  return preview.moves.flatMap(({ id, position }) => {
+    const node = nodes.get(id);
+    if (!node) return [];
+    return [
+      zlozWorldOverlayItem(
+        h,
+        { position },
+        [
+          h.Key(id),
+          h.Class(node.kind === 'group' ? 'layout-ghost layout-ghost-group' : 'layout-ghost'),
+          h.AriaHidden(true),
+          h.DataAttribute('layout-ghost', id),
+          h.DataAttribute('layout-x', String(position.x)),
+          h.DataAttribute('layout-y', String(position.y)),
+          h.Style({ width: `${node.size.width}px`, height: `${node.size.height}px` }),
+        ],
+        [node.label],
+      ),
+    ];
+  });
+}
+const overviewToggle = createLazy();
+function overviewToggleView(h: HtmlBuilder<Message>, open: boolean, enabled: boolean) {
+  return h.button(
+    [
+      h.Id('board-overview-toggle'),
+      h.Type('button'),
+      h.Disabled(!enabled),
+      h.AriaControls('board-overview'),
+      h.AriaExpanded(open),
+      h.OnClick(Message.ToggledOverview()),
+    ],
+    ['Overview'],
+  );
+}
+
 function canvasView(
   h: HtmlBuilder<Message>,
   state: EditorState,
@@ -1099,8 +1655,12 @@ function canvasView(
   peers: Model['peers'],
   generation: string,
   geometrySaving: boolean,
+  overview: boolean | null,
+  layoutPreview: Layout.Proposal | null,
 ) {
   const onEvent = canvasEvent;
+  const canShowOverview =
+    overview !== null && Boolean(state.surface) && state.graph.nodes.length > 0;
   return zlozView(
     h,
     { ...state, readOnly: disabled },
@@ -1108,7 +1668,7 @@ function canvasView(
       id: 'shared-diagram',
       label: 'Shared team diagram',
       onEvent,
-      height: 560,
+      height: 'fill',
       theme: teamCanvasTheme,
       renderCanvasHelp: (_context, builder) =>
         builder.span(
@@ -1122,11 +1682,57 @@ function canvasView(
       nodeToolbar: false,
       edgeToolbar: false,
       viewportControls: true,
+      fitSelectionControl: true,
+      previousViewControl: true,
       resizeHandles: false,
-      minimap: false,
+      minimap: overview === true && canShowOverview,
       autoPan: false,
       stablePointerOrigin: true,
       viewportCulling: true,
+      renderLayout: ({ canvas, canvasId, controls, status, connections, help, minimap }, builder) =>
+        builder.div(
+          [builder.Class('board-canvas')],
+          [
+            canvas,
+            builder.div(
+              [builder.Class('board-navigation')],
+              [
+                ...(controls ? [controls] : []),
+                overviewToggle(overviewToggleView, [builder, minimap !== null, canShowOverview]),
+                builder.div(
+                  [
+                    builder.Id('board-overview'),
+                    builder.Class('board-popover-content board-overview'),
+                    builder.Hidden(minimap === null),
+                    builder.OnKeyDownPreventDefault((key) =>
+                      key === 'Escape' ? Option.some(Message.ToggledOverview()) : Option.none(),
+                    ),
+                  ],
+                  minimap ? [minimap] : [],
+                ),
+                builder.details(
+                  [builder.Class('board-popover')],
+                  [
+                    builder.summary([], ['Browse relationships']),
+                    builder.div([builder.Class('board-popover-content')], [connections]),
+                  ],
+                ),
+                builder.details(
+                  [builder.Class('board-popover')],
+                  [
+                    builder.summary([], ['Canvas help']),
+                    builder.div([builder.Class('board-popover-content')], [help]),
+                  ],
+                ),
+                builder.a(
+                  [builder.Class('board-skip'), builder.Href(`#${canvasId}`)],
+                  ['Skip to canvas'],
+                ),
+              ],
+            ),
+            status,
+          ],
+        ),
       canResizeNode: (node) =>
         geometrySaving
           ? 'Finish saving this move before resizing'
@@ -1154,18 +1760,303 @@ function canvasView(
       renderWorldOverlay: (_context, builder) =>
         builder.div(
           [],
-          peers
-            .filter((peer) => peer.connectionId !== generation && peer.cursor !== null)
-            .map((peer) =>
-              zlozWorldOverlayItem(
-                builder,
-                { position: peer.cursor!, interactive: false },
-                [builder.Class('peer-cursor')],
-                [`↖ ${peer.name}`],
+          [
+            ...layoutGhosts(builder, state, layoutPreview),
+            ...peers
+              .filter((peer) => peer.connectionId !== generation && peer.cursor !== null)
+              .map((peer) =>
+                zlozWorldOverlayItem(
+                  builder,
+                  { position: peer.cursor!, interactive: false },
+                  [builder.Class('peer-cursor')],
+                  [`↖ ${peer.name}`],
+                ),
               ),
-            ),
+          ],
         ),
     },
+  );
+}
+
+const boardControls = createLazy();
+const layoutLauncher = createLazy();
+function layoutLauncherView(h: HtmlBuilder<Message>, method: Layout.Method, enabled: boolean) {
+  return h.div(
+    [],
+    [
+      h.label(
+        [h.Class('canvas-mode')],
+        [
+          'Layout action',
+          h.select(
+            [
+              h.Value(method),
+              h.OnChange((value) =>
+                Message.SelectedLayoutMethod({
+                  method: Schema.is(Layout.Method)(value) ? value : method,
+                }),
+              ),
+            ],
+            Layout.Method.literals.map((value) =>
+              h.option([h.Value(value)], [Layout.methods[value].label]),
+            ),
+          ),
+        ],
+      ),
+      h.button(
+        [
+          h.Id('board-layout-open'),
+          h.Class('layout-launcher'),
+          h.Type('button'),
+          h.Title(`Select at least ${Layout.methods[method].minimum} sibling nodes or groups`),
+          h.Disabled(!enabled),
+          h.OnClick(Message.ClickedLayoutPreview()),
+        ],
+        ['Preview selection layout'],
+      ),
+    ],
+  );
+}
+
+function layoutPanel(model: Model, h: HtmlBuilder<Message>, reason: string | null) {
+  const ready = model.layout._tag === 'Ready';
+  return h.div(
+    [
+      h.Id('board-layout-preview'),
+      h.Class('board-layout-preview'),
+      h.Role('region'),
+      h.AriaLabel('Selection layout preview'),
+      h.Tabindex(-1),
+      h.OnKeyDownPreventDefault((key) =>
+        key === 'Escape' ? Option.some(Message.DiscardedLayoutPreview()) : Option.none(),
+      ),
+    ],
+    [
+      h.p([], [h.strong([], [Layout.methods[model.layoutMethod].label])]),
+      h.p(
+        [h.Role('status')],
+        [
+          model.layout._tag === 'Failed'
+            ? model.layout.message
+            : model.layout._tag === 'Running'
+              ? 'Preparing selection layout…'
+              : (reason ?? 'Layout preview is visible only to you.'),
+        ],
+      ),
+      h.div(
+        [h.Class('layout-preview-actions')],
+        [
+          ...(ready
+            ? [
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.Disabled(reason !== null),
+                    h.OnClick(Message.ClickedApplyLayout({ run: model.layoutRun })),
+                  ],
+                  ['Apply layout'],
+                ),
+              ]
+            : []),
+          h.button(
+            [h.Type('button'), h.OnClick(Message.DiscardedLayoutPreview())],
+            ['Discard layout'],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+const mermaidPanel = createLazy();
+function mermaidPanelView(
+  h: HtmlBuilder<Message>,
+  review: Mermaid.Review,
+  availability: Mermaid.Availability,
+) {
+  return Mermaid.view(h, review, availability, {
+    close: Message.ClosedMermaid(),
+    refresh: Message.OpenedMermaid(),
+    accept: (accepted) => Message.ChangedMermaidConsent({ version: review.version, accepted }),
+    download: (format) => Message.ClickedMermaidDownload({ version: review.version, format }),
+  });
+}
+
+const mermaidLauncher = createLazy();
+function mermaidLauncherView(h: HtmlBuilder<Message>, available: boolean) {
+  return h.button(
+    [
+      h.Id('board-mermaid-open'),
+      h.Class('mermaid-launcher'),
+      h.Type('button'),
+      h.Disabled(!available),
+      h.OnClick(Message.OpenedMermaid()),
+    ],
+    ['Export Mermaid'],
+  );
+}
+
+const svgLauncher = createLazy();
+function svgLauncherView(h: HtmlBuilder<Message>, available: boolean) {
+  return h.button(
+    [
+      h.Id('board-svg-open'),
+      h.Class('svg-launcher'),
+      h.Type('button'),
+      h.Disabled(!available),
+      h.OnClick(Message.OpenedSvg()),
+    ],
+    ['Export SVG'],
+  );
+}
+
+const evolutionInspector = createLazy();
+function evolutionInspectorView(
+  h: HtmlBuilder<Message>,
+  history: Evolution.History,
+  connection: 'live' | 'offline' | 'denied',
+) {
+  return evolutionView(h, history, connection, (value) =>
+    Message.SelectedEvolutionVersion({ value }),
+  );
+}
+
+const svgPanel = createLazy();
+function svgPanelView(h: HtmlBuilder<Message>, review: Svg.Review, availability: Svg.Availability) {
+  const controls = Svg.resolve(review, availability);
+  const request = (value: ZlozSvgReviewRequest) => Message.ObservedSvgReview({ request: value });
+  return h.div(
+    [
+      h.Id('board-svg'),
+      h.Class('board-svg'),
+      h.Role('region'),
+      h.AriaLabel('SVG export preview'),
+      h.Tabindex(-1),
+      h.OnKeyDownPreventDefault((key) =>
+        key === 'Escape' ? Option.some(Message.ClosedSvg()) : Option.none(),
+      ),
+    ],
+    [
+      h.div(
+        [h.Class('mermaid-review-header')],
+        [
+          h.div([], [h.h2([], ['SVG export']), h.p([], [`Confirmed version ${review.version}`])]),
+          h.button([h.Type('button'), h.OnClick(Message.ClosedSvg())], ['Close SVG preview']),
+        ],
+      ),
+      zlozSvgReview(h, controls, request, {
+        idPrefix: 'team-svg',
+        attributes: [h.Class('svg-review')],
+        diagnostics: { instructions: false, measurements: false },
+        renderSettings: (settings, builder, onRequest) =>
+          builder.div(
+            [builder.Class('svg-review-settings')],
+            [
+              builder.div(
+                [],
+                [
+                  builder.label([builder.For('team-svg-theme')], ['SVG theme']),
+                  zlozSvgReviewSelect(builder, settings, 'themeId', onRequest, [
+                    builder.Id('team-svg-theme'),
+                  ]),
+                ],
+              ),
+              builder.div(
+                [],
+                [
+                  builder.label([builder.For('team-svg-background')], ['SVG background']),
+                  zlozSvgReviewSelect(builder, settings, 'backgroundId', onRequest, [
+                    builder.Id('team-svg-background'),
+                  ]),
+                ],
+              ),
+            ],
+          ),
+        renderAcceptance: () => (availability === 'current' ? undefined : null),
+        renderStatus: (state, builder) =>
+          builder.p(
+            [builder.Role('status')],
+            [state.downloadReason ?? (review.notice || 'SVG is ready to download.')],
+          ),
+        renderLayout: (
+          { settings, preview, findings, acceptance, download, status },
+          _context,
+          builder,
+        ) => [
+          builder.div(
+            [builder.Class('mermaid-review-body')],
+            [
+              ...[settings, preview].flatMap((part) => (part ? [part] : [])),
+              builder.p(
+                [],
+                [
+                  'Exports the confirmed graph. Live board controls, custom backgrounds, presence, assessments, decisions and generic icons on non-C4 nodes are omitted.',
+                ],
+              ),
+              ...(findings ? [findings] : []),
+            ],
+          ),
+          builder.div(
+            [builder.Class('mermaid-review-footer svg-review-footer')],
+            [
+              ...[status, acceptance].flatMap((part) => (part ? [part] : [])),
+              ...(availability === 'newer'
+                ? [
+                    builder.button(
+                      [builder.Type('button'), builder.OnClick(Message.OpenedSvg())],
+                      ['Review latest version'],
+                    ),
+                  ]
+                : []),
+              ...(download ? [download] : []),
+            ],
+          ),
+        ],
+      }),
+    ],
+  );
+}
+
+function boardControlsView(
+  h: HtmlBuilder<Message>,
+  toolsOpen: boolean,
+  inspectorOpen: boolean,
+  findOpen: boolean,
+  focused: boolean,
+  accessEnded: boolean,
+) {
+  const railToggle = (rail: typeof Rail.Type, open: boolean, label: string) =>
+    h.button(
+      [
+        h.Type('button'),
+        h.Disabled(accessEnded),
+        h.AriaControls(`board-${rail}`),
+        h.AriaExpanded(open),
+        h.OnClick(Message.ToggledBoardRail({ rail })),
+      ],
+      [label],
+    );
+  return h.div(
+    [h.Class('board-controls')],
+    [
+      railToggle('tools', toolsOpen, 'Tools'),
+      railToggle('inspector', inspectorOpen, 'Inspector'),
+      h.button(
+        [
+          h.Id('board-find-toggle'),
+          h.Type('button'),
+          h.Disabled(accessEnded),
+          h.AriaControls('board-find'),
+          h.AriaExpanded(findOpen),
+          h.OnClick(findOpen ? Message.ClosedFind() : Message.OpenedFind()),
+        ],
+        ['Find'],
+      ),
+      h.button(
+        [h.Type('button'), h.Disabled(accessEnded), h.OnClick(Message.ToggledBoardFocus())],
+        [focused ? 'Exit focus' : 'Focus board'],
+      ),
+    ],
   );
 }
 
@@ -1194,6 +2085,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const onEvent = canvasEvent;
   const modeName =
     model.emphasis === 'c4' ? 'C4 view' : model.emphasis === 'ddd' ? 'DDD view' : 'Neutral view';
+  const toolsOpen = railVisible(model, 'tools');
+  const inspectorOpen = railVisible(model, 'inspector');
+  const showOpy = model.inspector === 'opy' && opyAvailable(model);
+  const accessEnded = model.connection._tag === 'Denied';
+  const layout = !accessEnded && model.layout._tag === 'Ready' ? model.layout.proposal : null;
+  const layoutStale = layout ? layoutStaleReason(model, layout) : null;
+  const layoutReason = layout ? Option.getOrNull(layoutApplyReason(model, layoutStale)) : null;
+  const exportDocument = confirmedExportDocument(model);
+  const mermaid = accessEnded ? null : model.mermaid;
+  const svg = accessEnded ? null : model.svg;
+  const findOpen = !accessEnded && model.find !== null;
+  const matches = findOpen ? findMatches(currentEditor, model.find ?? '') : [];
+  const findLimit = 20;
   return {
     title: model.name,
     body: h.div(
@@ -1201,85 +2105,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.Class('shared-editor'),
         h.DataAttribute('canvas-emphasis', model.emphasis),
         h.DataAttribute('inspector-mode', model.inspector),
+        h.DataAttribute('tools-open', String(toolsOpen)),
+        h.DataAttribute('inspector-open', String(inspectorOpen)),
         h.DataAttribute('confirmed-version', String(state.confirmed?.document.version ?? -1)),
       ],
       [
-        h.aside(
-          [h.Class('tool-rail'), h.AriaLabel('Diagram tools')],
-          [
-            h.h2([h.Class('rail-heading')], ['Diagram tools']),
-            h.div(
-              [h.Class('editor-actions')],
-              [
-                h.button(
-                  [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
-                  [teamIcon(h, 'plus'), h.span([], ['Add node'])],
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Disabled(disabled || !model.ownEdits.length),
-                    h.OnClick(Message.ClickedUndo()),
-                  ],
-                  [teamIcon(h, 'arrow-counter-clockwise'), h.span([], ['Undo my last edit'])],
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Disabled(
-                      disabled ||
-                        (!currentEditor.selectedNodes.length &&
-                          !currentEditor.selectedEdges.length),
-                    ),
-                    h.OnClick(Message.ClickedDelete()),
-                  ],
-                  [teamIcon(h, 'trash'), h.span([], ['Delete selection'])],
-                ),
-              ],
-            ),
-            h.div([h.Class('tool-divider')], []),
-            h.a(
-              [h.Href(`${pathFor(model.room)}/export`), h.Class('button-link')],
-              [teamIcon(h, 'download-simple'), 'Export confirmed diagram'],
-            ),
-            h.label(
-              [h.Class('canvas-mode')],
-              [
-                'Canvas emphasis',
-                h.select(
-                  [
-                    h.Value(model.emphasis),
-                    h.AriaLabel('Canvas emphasis'),
-                    h.OnChange((value) =>
-                      Message.SelectedCanvasEmphasis({
-                        emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
-                      }),
-                    ),
-                  ],
-                  (['c4', 'ddd', 'neutral'] as const).map((emphasis) =>
-                    h.option(
-                      [h.Value(emphasis)],
-                      [
-                        emphasis === 'c4'
-                          ? 'C4 view'
-                          : emphasis === 'ddd'
-                            ? 'DDD view'
-                            : 'Neutral view',
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            h.p([h.Class('mode-note')], ['Appearance only. Your diagram stays unchanged.']),
-            h.p([h.Class('role-label')], [`Your role · ${model.role}`]),
-          ],
-        ),
         h.div(
-          [h.Class('canvas-column')],
+          [h.Class('canvas-toolbar'), h.Role('group'), h.AriaLabel('Board controls')],
           [
+            boardControls(boardControlsView, [
+              h,
+              toolsOpen,
+              inspectorOpen,
+              findOpen,
+              model.focusedBoard,
+              accessEnded,
+            ]),
             h.div(
-              [h.Class('canvas-toolbar')],
+              [h.Class('board-session')],
               [
                 h.span(
                   [h.Class('mode-badge')],
@@ -1299,8 +2142,221 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       ),
                     ]
                   : []),
+                h.details(
+                  [h.Class('board-popover board-presence')],
+                  [
+                    h.summary([], [`Here now · ${model.peers.length}`]),
+                    h.div(
+                      [
+                        h.Class('board-popover-content presence'),
+                        h.AriaLabel('Teammates in this diagram'),
+                      ],
+                      model.peers.length
+                        ? model.peers.map((peer) =>
+                            h.span(
+                              [],
+                              [
+                                `${peer.name}${peer.connectionId === model.room.generation ? ' (you)' : ''}${peer.selection.length ? ` · ${peer.selection.length} selected` : ''}`,
+                              ],
+                            ),
+                          )
+                        : [h.span([], ['No teammates reported yet.'])],
+                    ),
+                  ],
+                ),
               ],
             ),
+          ],
+        ),
+        h.div(
+          [
+            h.Id('board-find'),
+            h.Class('board-find'),
+            h.Role('search'),
+            h.AriaLabel('Find on board'),
+            h.Hidden(!findOpen),
+            h.OnKeyDownPreventDefault((key) =>
+              key === 'Escape' ? Option.some(Message.ClosedFind()) : Option.none(),
+            ),
+          ],
+          findOpen
+            ? [
+                h.div(
+                  [h.Class('find-controls')],
+                  [
+                    h.label(
+                      [],
+                      [
+                        'Find on board',
+                        h.input([
+                          h.Id('board-find-query'),
+                          h.Type('search'),
+                          h.Value(model.find ?? ''),
+                          h.OnInput((query) => Message.ChangedFind({ query })),
+                        ]),
+                      ],
+                    ),
+                    h.button([h.Type('button'), h.OnClick(Message.ClosedFind())], ['Close Find']),
+                  ],
+                ),
+                h.p(
+                  [h.Role('status')],
+                  [
+                    !model.find?.trim()
+                      ? 'Search nodes or relationships by name or ID.'
+                      : matches.length > findLimit
+                        ? `Showing ${findLimit} of ${matches.length} matches. Refine to narrow results.`
+                        : matches.length === 0
+                          ? 'No matches.'
+                          : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'}.`,
+                  ],
+                ),
+                ...(matches.length
+                  ? [
+                      h.ul(
+                        [h.Class('find-results')],
+                        matches
+                          .slice(0, findLimit)
+                          .map(({ target, id, label }) =>
+                            h.li(
+                              [h.Key(`${target}:${id}`)],
+                              [
+                                h.button(
+                                  [
+                                    h.Type('button'),
+                                    h.OnClick(Message.ChoseFindResult({ target, id })),
+                                  ],
+                                  [
+                                    target === 'node'
+                                      ? `Reveal ${label} (${id})`
+                                      : `Reveal connection ${label}`,
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                      ),
+                    ]
+                  : []),
+              ]
+            : [],
+        ),
+        ...(mermaid
+          ? [
+              mermaidPanel(mermaidPanelView, [
+                h,
+                mermaid,
+                !exportDocument
+                  ? 'offline'
+                  : exportDocument.version === mermaid.version
+                    ? 'current'
+                    : 'newer',
+              ]),
+            ]
+          : []),
+        ...(svg ? [svgPanel(svgPanelView, [h, svg, Svg.availability(svg, exportDocument)])] : []),
+        h.aside(
+          [
+            h.Id('board-tools'),
+            h.Class('tool-rail'),
+            h.AriaLabel('Diagram tools'),
+            h.Hidden(!toolsOpen),
+            h.Tabindex(-1),
+          ],
+          toolsOpen
+            ? [
+                h.h2([h.Class('rail-heading')], ['Diagram tools']),
+                ...(opyAvailable(model)
+                  ? [
+                      h.button(
+                        [
+                          h.Id('ask-opy'),
+                          h.Type('button'),
+                          h.Class('opy-launcher'),
+                          h.OnClick(Message.OpenedOpy()),
+                        ],
+                        ['Ask OPY'],
+                      ),
+                    ]
+                  : []),
+                h.div(
+                  [h.Class('editor-actions')],
+                  [
+                    h.button(
+                      [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
+                      [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                    ),
+                    h.button(
+                      [
+                        h.Type('button'),
+                        h.Disabled(disabled || !model.ownEdits.length),
+                        h.OnClick(Message.ClickedUndo()),
+                      ],
+                      [teamIcon(h, 'arrow-counter-clockwise'), h.span([], ['Undo my last edit'])],
+                    ),
+                    h.button(
+                      [
+                        h.Type('button'),
+                        h.Disabled(
+                          disabled ||
+                            (!currentEditor.selectedNodes.length &&
+                              !currentEditor.selectedEdges.length),
+                        ),
+                        h.OnClick(Message.ClickedDelete()),
+                      ],
+                      [teamIcon(h, 'trash'), h.span([], ['Delete selection'])],
+                    ),
+                  ],
+                ),
+                layoutLauncher(layoutLauncherView, [
+                  h,
+                  model.layoutMethod,
+                  supportedLayoutSelection(model) && model.layout._tag !== 'Running',
+                ]),
+                h.div([h.Class('tool-divider')], []),
+                h.a(
+                  [h.Href(`${pathFor(model.room)}/export`), h.Class('button-link')],
+                  [teamIcon(h, 'download-simple'), 'Export confirmed diagram'],
+                ),
+                mermaidLauncher(mermaidLauncherView, [h, exportDocument !== undefined]),
+                svgLauncher(svgLauncherView, [h, exportDocument !== undefined]),
+                h.label(
+                  [h.Class('canvas-mode')],
+                  [
+                    'Canvas emphasis',
+                    h.select(
+                      [
+                        h.Value(model.emphasis),
+                        h.AriaLabel('Canvas emphasis'),
+                        h.OnChange((value) =>
+                          Message.SelectedCanvasEmphasis({
+                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
+                          }),
+                        ),
+                      ],
+                      (['c4', 'ddd', 'neutral'] as const).map((emphasis) =>
+                        h.option(
+                          [h.Value(emphasis)],
+                          [
+                            emphasis === 'c4'
+                              ? 'C4 view'
+                              : emphasis === 'ddd'
+                                ? 'DDD view'
+                                : 'Neutral view',
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                h.p([h.Class('mode-note')], ['Appearance only. Your diagram stays unchanged.']),
+                h.p([h.Class('role-label')], [`Your role · ${model.role}`]),
+              ]
+            : [],
+        ),
+        h.div(
+          [h.Class('canvas-column')],
+          [
             h.div(
               [h.Class('canvas-alerts')],
               [
@@ -1341,184 +2397,228 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               model.peers,
               model.room.generation,
               waiting,
+              accessEnded ? null : model.overviewOpen,
+              !layoutStale && isLiveConnection(model.connection) ? layout : null,
             ]),
-            h.div(
-              [h.Class('presence'), h.AriaLabel('Teammates in this diagram')],
-              [
-                h.strong([], ['Here now']),
-                ...model.peers.map((peer) =>
-                  h.span(
-                    [],
-                    [
-                      `${peer.name}${peer.connectionId === model.room.generation ? ' (you)' : ''}${peer.selection.length ? ` · ${peer.selection.length} selected` : ''}`,
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            ...(!accessEnded && model.layout._tag !== 'Closed'
+              ? [layoutPanel(model, h, layoutReason)]
+              : []),
           ],
         ),
         h.aside(
-          [h.Class('editor-inspector'), h.AriaLabel('Selection inspector')],
           [
-            h.label(
-              [h.Class('inspector-mode')],
-              [
-                'Inspector view',
-                h.select(
+            h.Id('board-inspector'),
+            h.Class('editor-inspector'),
+            h.AriaLabel('Selection inspector'),
+            h.Hidden(!inspectorOpen),
+            h.Tabindex(-1),
+          ],
+          inspectorOpen
+            ? [
+                h.div(
+                  [],
                   [
-                    h.AriaLabel('Inspector view'),
-                    h.Value(model.inspector),
-                    h.OnChange((value) =>
-                      Message.SelectedInspector({
-                        inspector: Schema.is(Inspector)(value) ? value : model.inspector,
-                      }),
+                    h.label(
+                      [h.Class('inspector-mode')],
+                      [
+                        'Inspector view',
+                        h.select(
+                          [
+                            h.AriaLabel('Inspector view'),
+                            h.Value(model.inspector),
+                            h.OnChange((value) =>
+                              Message.SelectedInspector({
+                                inspector: Schema.is(Inspector)(value) ? value : model.inspector,
+                              }),
+                            ),
+                          ],
+                          [
+                            h.option([h.Value('selection')], ['Selection and authoring']),
+                            h.option([h.Value('aggregate')], ['Aggregate']),
+                            h.option([h.Value('coupling')], ['Balanced Coupling map']),
+                            h.option([h.Value('evolution')], ['Diagram Evolution']),
+                            ...(opyAvailable(model) ? [h.option([h.Value('opy')], ['OPY'])] : []),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                  [
-                    h.option([h.Value('selection')], ['Selection and authoring']),
-                    h.option([h.Value('aggregate')], ['Aggregate']),
-                    h.option([h.Value('coupling')], ['Balanced Coupling map']),
-                  ],
-                ),
-              ],
-            ),
-            ...(model.inspector === 'aggregate'
-              ? [
-                  model.connection._tag === 'Denied'
-                    ? h.p([], ['Access ended.'])
-                    : state.confirmed
-                      ? aggregateInspector(aggregateView, [
-                          h,
-                          state.confirmed.document.graph,
-                          currentEditor.selectedNodes.length === 1
-                            ? (currentEditor.selectedNodes[0] ?? null)
-                            : null,
-                        ])
-                      : h.p([], ['Opening diagram…']),
-                ]
-              : model.inspector === 'coupling'
-                ? [
-                    ...(model.assessment.status === 'editing'
+                    ...(showOpy
                       ? [
-                          h.div(
-                            [h.Class('coupling-notice')],
-                            [
-                              h.p(
-                                [h.Role('status')],
-                                [
-                                  `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
-                                ],
-                              ),
-                              h.button(
-                                [
-                                  h.Type('button'),
-                                  h.OnClick(Message.SelectedInspector({ inspector: 'selection' })),
-                                ],
-                                ['Return to assessment'],
-                              ),
-                            ],
+                          h.button(
+                            [h.Type('button'), h.OnClick(Message.ClosedOpy())],
+                            ['Close OPY'],
                           ),
                         ]
                       : []),
-                    couplingView(
-                      model.coupling,
-                      h,
-                      (message) => Message.GotCouplingMessage({ room: model.room, message }),
-                      {
-                        selectedId: currentEditor.selectedEdges[0] ?? null,
-                        connectionNotice:
-                          model.connection._tag === 'Live' || model.connection._tag === 'Handoff'
-                            ? ''
-                            : 'Showing the last confirmed assessments while the connection is unavailable.',
-                      },
-                    ),
-                  ]
-                : [
-                    h.h2([h.Class('rail-heading')], ['Selection inspector']),
-                    ...(selected
-                      ? [
-                          h.label(
-                            [],
-                            [
-                              'Node label',
-                              h.input([
-                                h.Value(model.draft),
-                                h.Disabled(disabled),
-                                h.Maxlength(500),
-                                h.OnInput((text) => Message.ChangedLabel({ text })),
-                              ]),
-                            ],
-                          ),
-                          h.button(
-                            [
-                              h.Type('button'),
-                              h.Disabled(disabled || !model.draft.trim()),
-                              h.OnClick(Message.ClickedRename()),
-                            ],
-                            ['Rename node'],
-                          ),
-                          ...selected.ports.map((port) =>
-                            h.button(
-                              [
-                                h.Type('button'),
-                                h.Disabled(disabled),
-                                h.OnClick(
-                                  onEvent({
-                                    type: 'PortRemoved',
-                                    endpoint: { node: selected.id, port: port.id },
-                                  }),
-                                ),
-                              ],
-                              [`Remove ${port.id} port`],
+                  ],
+                ),
+                h.div(
+                  [h.Class('inspector-content')],
+                  [
+                    ...(showOpy || model.inspector === 'aggregate'
+                      ? showOpy
+                        ? [
+                            Opy.view(model.opy, opyContext(model), h, (message) =>
+                              Message.GotOpyMessage({ room: model.room, message }),
                             ),
-                          ),
-                        ]
-                      : [
-                          h.p(
-                            [h.Class('inspector-hint')],
-                            [
-                              'Select a node to rename it. Drag to move; use the width handle to resize. Activate an output port, then an input port to connect.',
-                            ],
-                          ),
-                        ]),
-                    h.div(
-                      [h.Id('assessment-inspector'), h.Tabindex(-1)],
-                      [
-                        Assessment.view(
-                          model.assessment,
-                          {
-                            room: model.room,
-                            frame: state.confirmed,
-                            editable: model.role !== 'viewer' && model.connection._tag !== 'Denied',
-                            graphPending: waiting,
-                          },
-                          h,
-                          (message) => Message.GotAssessmentMessage({ room: model.room, message }),
-                        ),
-                      ],
-                    ),
-                    h.div(
-                      [h.Class('board-facts')],
-                      [
-                        h.div(
-                          [],
-                          [
-                            h.strong([], [String(currentEditor.graph.nodes.length)]),
-                            h.span([], ['Nodes']),
-                          ],
-                        ),
-                        h.div(
-                          [],
-                          [
-                            h.strong([], [String(currentEditor.graph.edges.length)]),
-                            h.span([], ['Connections']),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ]),
-          ],
+                          ]
+                        : [
+                            model.connection._tag === 'Denied'
+                              ? h.p([], ['Access ended.'])
+                              : state.confirmed
+                                ? aggregateInspector(aggregateView, [
+                                    h,
+                                    state.confirmed.document.graph,
+                                    currentEditor.selectedNodes.length === 1
+                                      ? (currentEditor.selectedNodes[0] ?? null)
+                                      : null,
+                                  ])
+                                : h.p([], ['Opening diagram…']),
+                          ]
+                      : model.inspector === 'evolution'
+                        ? [
+                            evolutionInspector(evolutionInspectorView, [
+                              h,
+                              model.evolution,
+                              accessEnded
+                                ? 'denied'
+                                : isLiveConnection(model.connection)
+                                  ? 'live'
+                                  : 'offline',
+                            ]),
+                          ]
+                        : model.inspector === 'coupling'
+                          ? [
+                              ...(model.assessment.status === 'editing'
+                                ? [
+                                    h.div(
+                                      [h.Class('coupling-notice')],
+                                      [
+                                        h.p(
+                                          [h.Role('status')],
+                                          [
+                                            `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
+                                          ],
+                                        ),
+                                        h.button(
+                                          [
+                                            h.Type('button'),
+                                            h.OnClick(
+                                              Message.SelectedInspector({ inspector: 'selection' }),
+                                            ),
+                                          ],
+                                          ['Return to assessment'],
+                                        ),
+                                      ],
+                                    ),
+                                  ]
+                                : []),
+                              couplingView(
+                                model.coupling,
+                                h,
+                                (message) =>
+                                  Message.GotCouplingMessage({ room: model.room, message }),
+                                {
+                                  selectedId: currentEditor.selectedEdges[0] ?? null,
+                                  connectionNotice:
+                                    model.connection._tag === 'Live' ||
+                                    model.connection._tag === 'Handoff'
+                                      ? ''
+                                      : 'Showing the last confirmed assessments while the connection is unavailable.',
+                                },
+                              ),
+                            ]
+                          : [
+                              h.h2([h.Class('rail-heading')], ['Selection inspector']),
+                              ...(selected
+                                ? [
+                                    h.label(
+                                      [],
+                                      [
+                                        'Node label',
+                                        h.input([
+                                          h.Value(model.draft),
+                                          h.Disabled(disabled),
+                                          h.Maxlength(500),
+                                          h.OnInput((text) => Message.ChangedLabel({ text })),
+                                        ]),
+                                      ],
+                                    ),
+                                    h.button(
+                                      [
+                                        h.Type('button'),
+                                        h.Disabled(disabled || !model.draft.trim()),
+                                        h.OnClick(Message.ClickedRename()),
+                                      ],
+                                      ['Rename node'],
+                                    ),
+                                    ...selected.ports.map((port) =>
+                                      h.button(
+                                        [
+                                          h.Type('button'),
+                                          h.Disabled(disabled),
+                                          h.OnClick(
+                                            onEvent({
+                                              type: 'PortRemoved',
+                                              endpoint: { node: selected.id, port: port.id },
+                                            }),
+                                          ),
+                                        ],
+                                        [`Remove ${port.id} port`],
+                                      ),
+                                    ),
+                                  ]
+                                : [
+                                    h.p(
+                                      [h.Class('inspector-hint')],
+                                      [
+                                        'Select a node to rename it. Drag to move; use the width handle to resize. Activate an output port, then an input port to connect.',
+                                      ],
+                                    ),
+                                  ]),
+                              h.div(
+                                [h.Id('assessment-inspector'), h.Tabindex(-1)],
+                                [
+                                  Assessment.view(
+                                    model.assessment,
+                                    {
+                                      room: model.room,
+                                      frame: state.confirmed,
+                                      editable:
+                                        model.role !== 'viewer' &&
+                                        model.connection._tag !== 'Denied',
+                                      graphPending: waiting,
+                                    },
+                                    h,
+                                    (message) =>
+                                      Message.GotAssessmentMessage({ room: model.room, message }),
+                                  ),
+                                ],
+                              ),
+                              h.div(
+                                [h.Class('board-facts')],
+                                [
+                                  h.div(
+                                    [],
+                                    [
+                                      h.strong([], [String(currentEditor.graph.nodes.length)]),
+                                      h.span([], ['Nodes']),
+                                    ],
+                                  ),
+                                  h.div(
+                                    [],
+                                    [
+                                      h.strong([], [String(currentEditor.graph.edges.length)]),
+                                      h.span([], ['Connections']),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ]),
+                  ],
+                ),
+              ]
+            : [],
         ),
       ],
     ),
@@ -1641,6 +2741,12 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
       },
     );
   return {
+    compactBoard: Subscription.persistentEntry(
+      Dom.streamFromMediaQuery({
+        query: compactBoardQuery,
+        mapMatches: (compact) => Message.ChangedBoardWidth({ compact }),
+      }),
+    ),
     liveA: feed('a'),
     liveB: feed('b'),
     renewal: entry(

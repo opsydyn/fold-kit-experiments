@@ -13,6 +13,7 @@ import { Data, Schema } from 'effect';
 
 import { AssessmentRecordsJsonSchema, type AssessmentRecord } from './assessment';
 import { structWithExtensions } from './json-struct';
+import { RelationshipDecisionsSchema, type RelationshipDecision } from './relationship-decision';
 
 export type DiagramTarget = Readonly<{ teamId: string; diagramId: string }>;
 export type DiagramRoom = DiagramTarget & Readonly<{ actorId: string; generation: string }>;
@@ -32,6 +33,8 @@ export type DiagramFrame = Readonly<{
   document: ZlozOperationDocument;
   coverage: readonly DiagramCoverage[];
   assessments?: readonly AssessmentRecord[];
+  relationshipDecisions?: readonly RelationshipDecision[];
+  relationshipDecisionRecoveryVersion?: number;
 }>;
 export type DiagramReply = Readonly<{
   receipt: ZlozOperationReceipt;
@@ -83,10 +86,16 @@ const Frame = structWithExtensions({
   undoResetVersion: Schema.optionalKey(Version),
   document: PublicDocument,
   assessments: Schema.optionalKey(AssessmentRecordsJsonSchema),
+  relationshipDecisions: Schema.optionalKey(RelationshipDecisionsSchema),
+  relationshipDecisionRecoveryVersion: Schema.optionalKey(Version),
   coverage: Schema.Array(Coverage).pipe(Schema.check(Schema.isMaxLength(128))),
 }).pipe(
   Schema.check(
-    Schema.makeFilter((frame) => (frame.undoResetVersion ?? 0) <= frame.document.version),
+    Schema.makeFilter(
+      (frame) =>
+        (frame.undoResetVersion ?? 0) <= frame.document.version &&
+        (frame.relationshipDecisionRecoveryVersion ?? 0) <= frame.document.version,
+    ),
   ),
 );
 const Reply = Schema.Struct({

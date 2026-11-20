@@ -1,0 +1,36 @@
+---
+import { loginPath } from '../../../../server/continuation';
+import { loadTeam } from '../../../../server/onboarding';
+import { questmancerPreviewEnabled, questmancerPath } from '../../../../server/questmancer';
+import backdrop from '../../../../questmancer/fixtures/backdrop.png?inline';
+import pip from '../../../../questmancer/fixtures/sprite.png?inline';
+import '../../../../questmancer/scene.css';
+import '../../../../questmancer/live.css';
+
+const headers = { 'Cache-Control': 'private, no-store' };
+Astro.response.headers.set('Cache-Control', headers['Cache-Control']);
+const teamId = Astro.params.teamId ?? '';
+if (!questmancerPreviewEnabled(teamId)) return new Response('Preview unavailable', { status: 404, headers });
+if (Astro.request.method !== 'GET' && Astro.request.method !== 'HEAD')
+  return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET, HEAD' } });
+const team = await loadTeam(Astro.request, teamId);
+if (team._tag !== 'Ready' && team.status === 401) {
+  const destination = loginPath(questmancerPath(teamId) + '/preview');
+  return new Response(null, { status: 303, headers: { ...headers, Location: destination } });
+}
+if (team._tag !== 'Ready' || team.value.role !== 'owner')
+  return new Response('Preview unavailable', { status: 404, headers });
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Moonwell Observatory · Questmancer preview</title>
+  </head>
+  <body>
+    <a class="questmancer-home" href="/app">Your workspace</a>
+    <div id="questmancer-preview" data-backdrop={backdrop} data-pip={pip}></div>
+    <script>import '../../../../questmancer/preview';</script>
+  </body>
+</html>

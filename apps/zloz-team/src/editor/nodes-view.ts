@@ -6,7 +6,8 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 
-import { teamIcon, type TeamIcon } from '../appearance/icons';
+import { c4Appearance } from '../appearance/c4';
+import { teamIcon } from '../appearance/icons';
 import { sharedNodeFrame } from './node-frame';
 
 /** One weak slot per immutable node; native ports and policies resolve before lookup. */
@@ -57,21 +58,13 @@ export function createNodesView<Message>() {
     };
     const architecture = node.architecture;
     const family = architecture?.family ?? 'untyped';
-    const icon: TeamIcon =
-      architecture?.family === 'c4'
-        ? architecture.role === 'person'
-          ? 'user'
-          : architecture.scope === 'external'
-            ? 'cloud'
-            : architecture.role === 'container'
-              ? 'stack'
-              : architecture.role === 'component'
-                ? 'cube'
-                : 'package'
-        : 'cube';
-    const type = architecture
-      ? `${architecture.family === 'c4' ? 'C4' : architecture.family === 'ddd' ? 'DDD' : 'Event storming'} · ${architecture.role.replaceAll('-', ' ')}`
-      : null;
+    const c4 = architecture?.family === 'c4' ? c4Appearance(architecture) : null;
+    const icon = c4?.icon ?? 'cube';
+    const type =
+      c4?.label ??
+      (architecture
+        ? `${architecture.family === 'ddd' ? 'DDD' : 'Event storming'} · ${architecture.role.replaceAll('-', ' ')}`
+        : null);
     return sharedNodeFrame(
       h,
       context,

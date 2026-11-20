@@ -387,8 +387,15 @@ export function view<M>(
         : record.status === 'proposed'
           ? 'Proposal awaiting review'
           : 'Proposal withdrawn';
-    const button = (text: string, message: Message) =>
-      h.button([h.Type('button'), h.OnClick(emit(message))], [text]);
+    const button = (text: string, message: Message, primary = false) =>
+      h.button(
+        [
+          h.Type('button'),
+          h.OnClick(emit(message)),
+          ...(primary ? [h.Class('inspector-primary')] : []),
+        ],
+        [text],
+      );
     const reference = {
       proposalId: record.proposalId,
       revision: record.revision,
@@ -449,6 +456,7 @@ export function view<M>(
               button(
                 'Accept decision',
                 Message.ClickedAccept({ proposalId: record.proposalId, revision: record.revision }),
+                true,
               ),
             ]
           : []),
@@ -526,6 +534,7 @@ export function view<M>(
                   : []),
                 h.button(
                   [
+                    h.Class('inspector-primary'),
                     h.Type('button'),
                     h.Disabled(
                       !available ||

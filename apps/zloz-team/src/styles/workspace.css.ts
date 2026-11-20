@@ -222,10 +222,44 @@ globalStyle('.theme-notice', {
 });
 globalStyle('.page-content', { maxWidth: 720, margin: '9vh auto', padding: '0 28px 64px' });
 globalStyle('.page-content.wide', { maxWidth: 1160, marginTop: 36 });
-globalStyle('body:has(.shared-editor) .page-content.wide', {
-  maxWidth: 1840,
-  marginTop: 24,
-  padding: '0 28px 28px',
+globalStyle('.board-page', {
+  height: '100dvh',
+  overflow: 'hidden',
+  display: 'grid',
+  gridTemplateRows: 'auto minmax(0, 1fr)',
+});
+globalStyle('.board-page .site-header', {
+  minHeight: 0,
+  padding: '8px 16px',
+  gap: 14,
+});
+globalStyle('.board-page .brand small', { display: 'none' });
+globalStyle('.board-page .brand-mark', { width: 26, height: 26 });
+globalStyle('.board-title', { flex: '1 1 0', minWidth: 0 });
+globalStyle('.board-title h1', {
+  fontSize: 'clamp(15px, 2vw, 23px)',
+  margin: '2px 0 0',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+});
+globalStyle('.board-content, .board-content astro-island', { minWidth: 0, minHeight: 0 });
+globalStyle('.board-content', { display: 'grid', gridTemplateRows: 'minmax(0, 1fr)' });
+globalStyle('.board-page .site-header', {
+  '@media': {
+    '(max-width: 680px)': {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      padding: '6px 10px',
+      gap: '6px 10px',
+    },
+  },
+});
+globalStyle('.board-page .brand strong', {
+  '@media': { '(max-width: 680px)': { fontSize: 14 } },
+});
+globalStyle('.board-title', {
+  '@media': { '(max-width: 680px)': { gridRow: 2, gridColumn: '1 / -1' } },
 });
 globalStyle('nav[aria-label="Diagram"], nav[aria-label="Workspace"]', {
   display: 'flex',
@@ -256,11 +290,27 @@ globalStyle('.error, [role="alert"]', {
   background: `color-mix(in srgb, ${theme.danger} 6%, ${theme.panel})`,
 });
 globalStyle('.shared-editor', {
-  vars: { '--emphasis': theme.c4 },
+  vars: { '--emphasis': theme.c4, '--tools-width': '0px', '--inspector-width': '0px' },
+  position: 'relative',
+  width: '100%',
+  height: '100%',
   display: 'grid',
-  gridTemplateColumns: '190px minmax(0, 1fr) 260px',
-  gap: 16,
-  alignItems: 'start',
+  gridTemplateColumns: 'var(--tools-width) minmax(0, 1fr) var(--inspector-width)',
+  gridTemplateRows: 'auto minmax(0, 1fr)',
+  gridTemplateAreas: '"toolbar toolbar toolbar" "tools canvas inspector"',
+  '@media': {
+    '(max-width: 1080px)': {
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      gridTemplateAreas: '"toolbar" "canvas"',
+    },
+  },
+});
+globalStyle('.shared-editor[data-tools-open="true"]', { vars: { '--tools-width': '190px' } });
+globalStyle('.shared-editor[data-inspector-open="true"]', {
+  vars: { '--inspector-width': '290px' },
+});
+globalStyle('.shared-editor[data-inspector-open="true"][data-inspector-mode="coupling"]', {
+  vars: { '--inspector-width': '420px' },
 });
 globalStyle('.shared-editor[data-canvas-emphasis="ddd"]', { vars: { '--emphasis': theme.ddd } });
 globalStyle('.shared-editor[data-canvas-emphasis="neutral"]', {
@@ -271,8 +321,77 @@ globalStyle('.tool-rail, .editor-inspector', {
   padding: 16,
   background: theme.panel,
   border: `1px solid ${theme.rule}`,
-  clipPath: cut,
   minWidth: 0,
+  minHeight: 0,
+  '@media': {
+    '(max-width: 1080px)': {
+      zIndex: 3,
+      position: 'absolute',
+      gridArea: 'canvas',
+      top: 0,
+      bottom: 0,
+      width: 'min(86vw, 330px)',
+      boxShadow: '0 8px 28px #0005',
+    },
+  },
+});
+globalStyle('.tool-rail[hidden], .editor-inspector[hidden]', { display: 'none' });
+globalStyle('.tool-rail', {
+  gridArea: 'tools',
+  overflowY: 'auto',
+  '@media': { '(max-width: 1080px)': { gridArea: 'canvas', left: 0, width: 'min(86vw, 240px)' } },
+});
+globalStyle('.editor-inspector', {
+  gridArea: 'inspector',
+  display: 'grid',
+  gridTemplateRows: 'auto minmax(0, 1fr)',
+  paddingBottom: 0,
+  '@media': { '(max-width: 1080px)': { gridArea: 'canvas', right: 0 } },
+});
+globalStyle('[data-inspector-mode="coupling"] .editor-inspector', {
+  '@media': { '(max-width: 1080px)': { width: 'min(100%, 420px)' } },
+});
+globalStyle('.shared-editor[data-inspector-open="true"][data-inspector-mode="evolution"]', {
+  vars: { '--inspector-width': '390px' },
+});
+globalStyle('.shared-editor[data-inspector-mode="evolution"] .editor-inspector', {
+  '@media': { '(max-width: 1080px)': { width: 'min(100%, 390px)' } },
+});
+globalStyle('.board-evolution', { margin: 0, border: 0, padding: '8px 0', fontSize: 13 });
+globalStyle('.board-evolution .evolution-window', { fontWeight: 600, color: theme.ink });
+globalStyle('.board-evolution .chart-frame', { height: 'auto' });
+globalStyle('.board-evolution .chart-data-table', {
+  width: '100%',
+  marginTop: 12,
+  borderCollapse: 'collapse',
+  textAlign: 'left',
+});
+globalStyle('.board-evolution .chart-data-table caption', {
+  marginBottom: 6,
+  fontWeight: 600,
+  textAlign: 'left',
+});
+globalStyle('.board-evolution .chart-data-table th, .board-evolution .chart-data-table td', {
+  padding: '3px 6px',
+  borderBottom: `1px solid ${theme.rule}`,
+});
+globalStyle('.inspector-content', {
+  minHeight: 0,
+  minWidth: 0,
+  margin: '0 -12px',
+  padding: '4px 12px 16px',
+  overflow: 'auto',
+  overscrollBehavior: 'contain',
+});
+globalStyle('.inspector-primary', {
+  position: 'sticky',
+  bottom: 0,
+  zIndex: 1,
+  background: theme.panel,
+});
+globalStyle('.inspector-content button.inspector-primary', {
+  background: theme.panel,
+  borderColor: theme.accent,
 });
 globalStyle('.rail-heading', {
   margin: '0 0 14px',
@@ -313,17 +432,245 @@ globalStyle('.role-label', {
   borderTop: `1px solid ${theme.rule}`,
   marginTop: 18,
 });
-globalStyle('.canvas-column', { minWidth: 0 });
+globalStyle('.canvas-column', {
+  gridArea: 'canvas',
+  minWidth: 0,
+  minHeight: 0,
+  position: 'relative',
+});
 globalStyle('.canvas-toolbar', {
+  gridArea: 'toolbar',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
   flexWrap: 'wrap',
-  gap: 12,
-  padding: '12px 16px',
+  gap: '4px 12px',
+  padding: '4px 8px',
   border: `1px solid ${theme.rule}`,
   background: theme.panel,
 });
+globalStyle('.board-controls, .board-session, .board-navigation', {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 6,
+  minWidth: 0,
+});
+globalStyle('.board-controls button, .board-session button, .board-navigation button', {
+  minHeight: 36,
+  padding: '5px 8px',
+  fontSize: 11,
+});
+globalStyle(
+  '.board-controls button[aria-expanded="true"], #board-overview-toggle[aria-expanded="true"]',
+  {
+    color: theme.accent,
+    borderColor: theme.accent,
+  },
+);
+globalStyle('.board-session', { gap: 10 });
+globalStyle('.board-canvas', {
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: 0,
+  minHeight: 0,
+  flex: '1 1 0',
+});
+globalStyle('.board-navigation', {
+  position: 'relative',
+  padding: '3px 8px',
+  background: theme.panel,
+  borderTop: `1px solid ${theme.rule}`,
+});
+globalStyle('.board-canvas > [data-flow-status]', {
+  padding: '0 8px',
+  fontSize: 11,
+  color: theme.muted,
+  background: theme.panel,
+});
+globalStyle('.board-popover summary', {
+  minHeight: 36,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '5px 8px',
+  border: `1px solid ${theme.rule}`,
+  background: theme.panel,
+  fontFamily: mono,
+  fontSize: 11,
+  cursor: 'pointer',
+});
+globalStyle('.board-popover summary::before', { content: '"▸"', color: theme.accent });
+globalStyle('.board-popover[open] summary::before', { content: '"▾"' });
+globalStyle('.board-popover summary:focus-visible', {
+  outline: `2px solid ${theme.accent}`,
+  outlineOffset: 2,
+});
+globalStyle('.board-popover-content', {
+  position: 'absolute',
+  zIndex: 2,
+  insetInlineStart: 8,
+  bottom: 'calc(100% + 4px)',
+  width: 'min(calc(100% - 16px), 440px)',
+  maxHeight: 'min(35dvh, 280px)',
+  overflow: 'auto',
+  overscrollBehavior: 'contain',
+  padding: 12,
+  background: theme.panel,
+  border: `1px solid ${theme.rule}`,
+  boxShadow: '0 8px 28px #0005',
+});
+globalStyle('.board-popover-content .shared-connections', { marginTop: 0 });
+globalStyle('.board-popover-content.board-overview', {
+  insetInlineStart: 'auto',
+  insetInlineEnd: 8,
+  width: 'min(calc(100% - 16px), 248px)',
+  padding: 8,
+});
+globalStyle('.board-presence', { position: 'relative' });
+globalStyle('.board-presence .board-popover-content', {
+  zIndex: 5,
+  top: '100%',
+  bottom: 'auto',
+  right: 0,
+  left: 'auto',
+  width: 'min(75vw, 265px)',
+});
+globalStyle('.board-skip:not(:focus)', {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clipPath: 'inset(50%)',
+  whiteSpace: 'nowrap',
+});
+globalStyle('.board-find', {
+  position: 'absolute',
+  gridColumn: '1 / -1',
+  gridRow: '2 / 3',
+  top: 6,
+  zIndex: 4,
+  justifySelf: 'center',
+  width: 'min(calc(100% - 16px), 500px)',
+  maxHeight: 'calc(100% - 12px)',
+  overflow: 'auto',
+  overscrollBehavior: 'contain',
+  padding: 12,
+  background: theme.panel,
+  border: `1px solid ${theme.controlRule}`,
+  boxShadow: '0 8px 28px #0005',
+});
+globalStyle('.board-find > p', { margin: '8px 0', fontSize: 12 });
+globalStyle('.mermaid-launcher, .svg-launcher, .layout-launcher', { width: '100%', marginTop: 8 });
+globalStyle('.board-layout-preview', {
+  position: 'absolute',
+  zIndex: 2,
+  top: 8,
+  right: 8,
+  width: 'min(100% - 16px, 310px)',
+  padding: 10,
+  background: theme.panel,
+  border: `1px solid ${theme.controlRule}`,
+  boxShadow: '0 8px 28px #0005',
+});
+globalStyle('.board-layout-preview p', { margin: '0 0 8px', fontSize: 13 });
+globalStyle('.layout-preview-actions', { display: 'flex', flexWrap: 'wrap', gap: 8 });
+globalStyle('.layout-ghost', {
+  padding: 8,
+  color: theme.ink,
+  border: `2px dashed ${theme.accent}`,
+  background: `color-mix(in srgb, ${theme.panel} 70%, ${theme.accent} 30%)`,
+  fontFamily: mono,
+  fontSize: 12,
+  overflow: 'hidden',
+  overflowWrap: 'anywhere',
+});
+globalStyle('.layout-ghost-group', {
+  background: `color-mix(in srgb, transparent 84%, ${theme.accent})`,
+});
+globalStyle('.board-mermaid, .board-svg', {
+  position: 'absolute',
+  gridColumn: '1 / -1',
+  gridRow: '2 / 3',
+  top: 6,
+  zIndex: 4,
+  justifySelf: 'center',
+  display: 'grid',
+  gridTemplateRows: 'auto minmax(0, 1fr) auto',
+  width: 'min(calc(100% - 16px), 660px)',
+  height: 'min(570px, calc(100% - 12px))',
+  background: theme.panel,
+  border: `1px solid ${theme.controlRule}`,
+  boxShadow: '0 8px 28px #0005',
+});
+globalStyle('.board-svg', { gridTemplateRows: 'auto minmax(0, 1fr)' });
+globalStyle('.svg-review', { minHeight: 0, gridTemplateRows: 'minmax(0, 1fr) auto' });
+globalStyle('.svg-review-settings', {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 8,
+  margin: '8px 0 12px',
+});
+globalStyle('.svg-review-footer', {
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 8,
+});
+globalStyle('.svg-review-footer p', { flexBasis: '100%' });
+globalStyle('.svg-review-footer label', { display: 'flex', alignItems: 'center' });
+globalStyle('.svg-review-footer input', { width: 'auto' });
+globalStyle('.mermaid-review-header, .mermaid-review-footer', {
+  padding: '10px 14px',
+  background: theme.raised,
+});
+globalStyle('.mermaid-review-header', {
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 6,
+  borderBottom: `1px solid ${theme.rule}`,
+});
+globalStyle('.mermaid-review-header h2, .mermaid-review-header p, .mermaid-review-footer p', {
+  margin: 0,
+});
+globalStyle('.mermaid-review-body', {
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  padding: '2px 14px 12px',
+  overflowWrap: 'anywhere',
+});
+globalStyle('.mermaid-review-body pre', {
+  padding: 12,
+  background: theme.paper,
+  border: `1px solid ${theme.rule}`,
+  whiteSpace: 'pre-wrap',
+  fontSize: 12,
+});
+globalStyle('.mermaid-review-footer', { borderTop: `1px solid ${theme.rule}` });
+globalStyle('.mermaid-consent, .mermaid-download-actions', {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+});
+globalStyle('.mermaid-consent input', { width: 'auto' });
+globalStyle('.mermaid-download-actions', { flexWrap: 'wrap', marginTop: 6 });
+globalStyle('.find-controls', {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
+  alignItems: 'end',
+  gap: 8,
+});
+globalStyle('.find-results', {
+  padding: 0,
+  margin: 0,
+  listStyle: 'none',
+  display: 'grid',
+  gap: 4,
+});
+globalStyle('.find-results button', { width: '100%', textAlign: 'left', overflowWrap: 'anywhere' });
 globalStyle('.mode-badge', {
   display: 'inline-flex',
   alignItems: 'center',
@@ -355,14 +702,23 @@ globalStyle(
     background: theme.danger,
   },
 );
-globalStyle('.canvas-alerts', { fontSize: 13 });
-globalStyle('.canvas-alerts p', { margin: '10px 0' });
+globalStyle('.canvas-alerts:not(:empty)', {
+  position: 'absolute',
+  top: 8,
+  left: 8,
+  zIndex: 1,
+  maxWidth: 'calc(100% - 16px)',
+  padding: '0 8px',
+  fontSize: 13,
+  background: theme.panel,
+  border: `1px solid ${theme.rule}`,
+});
+globalStyle('.canvas-alerts p', { margin: '4px 0' });
 globalStyle('.shared-editor [data-flow-surface]', {
   backgroundImage: `radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--emphasis) 13%, transparent), transparent 70%), linear-gradient(color-mix(in srgb, ${theme.grid} 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, ${theme.grid} 45%, transparent) 1px, transparent 1px)`,
   backgroundSize: '100% 100%, 24px 24px, 24px 24px',
 });
-globalStyle('.shared-editor [data-flow-root]', { marginTop: 12 });
-globalStyle('.shared-editor [data-flow-root] > div:first-child', {
+globalStyle('.shared-editor [data-flow-help]', {
   fontSize: 11,
   color: theme.muted,
 });
@@ -469,18 +825,10 @@ globalStyle('.shared-editor .shared-connection', {
   minHeight: 32,
   fontSize: 10,
 });
-globalStyle('.editor-inspector', { minHeight: 320 });
 globalStyle('.editor-inspector input', { marginBottom: 10 });
 globalStyle('.editor-inspector button', { width: '100%', marginBottom: 8 });
 globalStyle('.inspector-hint', { fontSize: 12, marginBottom: 24 });
-globalStyle('.shared-editor[data-inspector-mode="coupling"]', {
-  gridTemplateColumns: '190px minmax(0, 1fr) 420px',
-  '@media': {
-    '(max-width: 1100px)': { gridTemplateColumns: '170px minmax(0, 1fr)' },
-    '(max-width: 680px)': { gridTemplateColumns: 'minmax(0, 1fr)' },
-  },
-});
-globalStyle('.inspector-mode', { marginBottom: 20 });
+globalStyle('.inspector-mode', { marginBottom: 8 });
 globalStyle('.coupling-map', { fontSize: 13, overflowWrap: 'anywhere', minWidth: 0 });
 globalStyle('.coupling-map h2', { fontFamily: mono, fontSize: 16, lineHeight: 1.5 });
 globalStyle('.coupling-map h3', { fontFamily: mono, fontSize: 12, margin: '20px 0 8px' });
@@ -597,16 +945,8 @@ globalStyle('.presence', {
   flexWrap: 'wrap',
   alignItems: 'center',
   gap: 8,
-  padding: '14px 0',
   fontSize: 11,
   color: theme.muted,
-});
-globalStyle('.presence strong', {
-  fontFamily: mono,
-  fontSize: 9,
-  textTransform: 'uppercase',
-  letterSpacing: '.1em',
-  fontWeight: 500,
 });
 globalStyle('.presence span', {
   border: `1px solid ${theme.rule}`,
@@ -626,33 +966,10 @@ globalStyle('.shared-group', {
 });
 globalStyle('.shared-group-title', { padding: '4px 8px' });
 globalStyle('.secondary', { color: theme.accent, background: theme.panel });
-globalStyle('.shared-editor', {
-  '@media': {
-    '(max-width: 1100px)': { gridTemplateColumns: '170px minmax(0, 1fr)' },
-    '(max-width: 680px)': { gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 },
-  },
-});
-globalStyle('.editor-inspector', {
-  '@media': { '(max-width: 1100px)': { gridColumn: '1 / -1', minHeight: 'auto' } },
-});
-globalStyle('.editor-actions', {
-  '@media': { '(max-width: 680px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' } },
-});
-globalStyle('.editor-actions button', {
-  '@media': {
-    '(max-width: 680px)': {
-      padding: 8,
-      fontSize: 10,
-      flexDirection: 'column',
-      justifyContent: 'center',
-      textAlign: 'center',
-    },
-  },
-});
 globalStyle('.site-header', {
   '@media': { '(max-width: 680px)': { padding: '12px 16px', gap: 10, flexWrap: 'wrap' } },
 });
-globalStyle('.page-content, body:has(.shared-editor) .page-content.wide', {
+globalStyle('.page-content', {
   '@media': { '(max-width: 680px)': { paddingLeft: 16, paddingRight: 16, marginTop: 24 } },
 });
 globalStyle('.invite-form button, .member-form button', {
@@ -660,20 +977,6 @@ globalStyle('.invite-form button, .member-form button', {
 });
 globalStyle('*', { '@media': { '(prefers-reduced-motion: reduce)': { scrollBehavior: 'auto' } } });
 
-globalStyle('.tool-rail', {
-  '@media': { '(max-width: 680px)': { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 } },
-});
-globalStyle(
-  '.tool-rail .rail-heading, .tool-rail .editor-actions, .tool-rail .mode-note, .tool-rail .role-label',
-  { '@media': { '(max-width: 680px)': { gridColumn: '1 / -1', margin: 0 } } },
-);
-globalStyle('.tool-rail .tool-divider', {
-  '@media': { '(max-width: 680px)': { display: 'none' } },
-});
-globalStyle('.tool-rail .canvas-mode', { '@media': { '(max-width: 680px)': { marginTop: 0 } } });
-globalStyle('.tool-rail .button-link', {
-  '@media': { '(max-width: 680px)': { alignSelf: 'end', fontSize: 10, padding: 8 } },
-});
 globalStyle('.theme-controls button', { '@media': { '(max-width: 680px)': { minHeight: 44 } } });
 
 globalStyle('.coupling-authoring', {

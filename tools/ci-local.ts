@@ -8,8 +8,8 @@
 // or with --fresh, they run in a fresh checkout of HEAD with an empty moon
 // cache, as in CI, so nothing in this folder can hide a failure.
 //
-// A fresh checkout gets its own cache because moon's cache also holds the
-// project graph with absolute paths, so sharing one between checkouts breaks.
+// Fresh runs opt out of shared task outputs so they verify the build from an
+// empty cache, even when other linked checkouts have built the same commit.
 //
 //   bun tools/ci-local.ts [--fresh] [script...]   (default: ci:check)
 //
@@ -57,7 +57,12 @@ if (!fresh && !inPlace)
 // against the wrong checkout. Drop them, then set what the workflow sets: moon
 // compares against HEAD, as CI's shallow checkout has no main.
 const inherited = Object.entries(process.env).filter(([name]) => !name.startsWith('MOON_'));
-const env = { ...Object.fromEntries(inherited), CI: 'true', MOON_BASE: 'HEAD' };
+const env = {
+  ...Object.fromEntries(inherited),
+  CI: 'true',
+  MOON_BASE: 'HEAD',
+  MOON_CACHE_SHARED_WORKTREE_CACHE: inPlace ? undefined : 'false',
+};
 
 /** Runs one command in a step, reporting how long it took. */
 const run = (label: string, command: string, commandArgs: ReadonlyArray<string>, cwd: string) => {

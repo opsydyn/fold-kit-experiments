@@ -14,6 +14,12 @@ projects:
   sources:
     root: '.'
 
+experiments:
+  casOutputsCache: true
+
+cache:
+  unstable_sharedWorktreeCache: true
+
 hasher:
   # Hash what git sees. Explicit input globs do not consult git, so every path
   # .gitignore ignores is listed here too, each with a leading **/ (moon matches

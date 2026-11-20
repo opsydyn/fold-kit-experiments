@@ -28,7 +28,7 @@ const notice = teamNotice(Astro.url.searchParams.get('notice'));
     {loaded.value.role === 'owner' && <>
       <section aria-labelledby="invite-heading">
         <h2 id="invite-heading">Invite a teammate</h2>
-        <p>Invite their Google email address, then share the link.</p>
+        <p>Invite their email address, then share the link.</p>
         <form method="post" class="invite-form">
           <input type="hidden" name="action" value="invite" />
           <label>Email address<input type="email" name="email" required maxlength="254" autocomplete="email" value={outcome._tag === 'Rejected' ? outcome.email : ''} /></label>

@@ -32,9 +32,13 @@ export const teamsFor = async (request: Request) => {
   return Schema.decodeUnknownSync(Teams)(await response.json());
 };
 
-export const googleConfigured = async (request: Request) => {
+export const signInMethods = async (request: Request) => {
   const response = await forward(new Request(new URL('/api/zloz/capabilities', request.url)));
   if (!response.ok) throw new BackendUnavailable();
-  return Schema.decodeUnknownSync(Schema.Struct({ google: Schema.Boolean }))(await response.json())
-    .google;
+  return Schema.decodeUnknownSync(
+    Schema.Struct({
+      google: Schema.Boolean,
+      emailCode: Schema.optional(Schema.Boolean),
+    }),
+  )(await response.json());
 };

@@ -2,18 +2,19 @@
 import Shell from '../layouts/Shell.astro';
 import { Option } from 'effect';
 import { signIn } from '../server/sign-in';
-import { googleConfigured } from '../server/backend';
+import { signInMethods } from '../server/backend';
 import { continuation } from '../server/continuation';
 
 Astro.response.headers.set('cache-control', 'private, no-store');
 const response = await signIn(Astro.request);
 if (Option.isSome(response)) return response.value;
 const returnTo = continuation(Astro.url.searchParams.get('returnTo'));
-const configured = await googleConfigured(Astro.request);
+const { google, emailCode } = await signInMethods(Astro.request);
 ---
 <Shell title="Sign in">
   <h1>Your team’s diagrams.</h1>
-  <p>Sign in with the Google account named in your team invitation.</p>
-  <form method="post"><input type="hidden" name="returnTo" value={returnTo} /><button type="submit" disabled={!configured}>Continue with Google</button></form>
-  {!configured && <p>Google sign-in isn’t configured for this preview.</p>}
+  <p>Sign in with the email address on your team invitation.</p>
+  <form method="post"><input type="hidden" name="returnTo" value={returnTo} /><button type="submit" disabled={!google}>Continue with Google</button></form>
+  {emailCode && <p><a href={'/login/email?returnTo=' + encodeURIComponent(returnTo)}>Continue with email</a></p>}
+  {!google && !emailCode && <p>Sign-in isn’t configured for this preview.</p>}
 </Shell>

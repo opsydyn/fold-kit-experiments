@@ -3010,6 +3010,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const login = await fetch(`${origin}/login`);
     const page = await login.text();
     expect(page).toContain('Google sign-in isn’t configured');
+    expect(page).not.toContain('Continue with email');
+    expect((await fetch(`${origin}/login/email`)).status).toBe(404);
     expect(page).toMatch(/<button[^>]*\sdisabled[\s>]/);
   });
 

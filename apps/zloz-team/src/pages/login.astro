@@ -16,5 +16,5 @@ const { google, emailCode } = await signInMethods(Astro.request);
   <p>Sign in with the email address on your team invitation.</p>
   <form method="post"><input type="hidden" name="returnTo" value={returnTo} /><button type="submit" disabled={!google}>Continue with Google</button></form>
   {emailCode && <p><a href={'/login/email?returnTo=' + encodeURIComponent(returnTo)}>Continue with email</a></p>}
-  {!google && !emailCode && <p>Sign-in isn’t configured for this preview.</p>}
+  {!google && !emailCode && <p>Google sign-in isn’t configured for this preview.</p>}
 </Shell>

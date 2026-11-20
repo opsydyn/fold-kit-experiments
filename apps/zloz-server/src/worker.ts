@@ -18,6 +18,7 @@ import { epochSql } from './date-sql';
 import { deltaRead } from './delta-read';
 import { diagramHttpResponse } from './diagram-response';
 import { handleDiagramRequest } from './diagram-routes';
+import { emailBindingName, emailSignInConfig } from './email-sign-in';
 import { leaseLiveRead } from './live-lease';
 import { DiagramPresence } from './presence';
 import {
@@ -83,6 +84,13 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
   Effect.gen(function* () {
     const auth = yield* Auth;
     const origin = yield* Config.String('ZLOZ_ORIGIN');
+    const emailSignIn = yield* emailSignInConfig;
+    if (emailSignIn) {
+      const sender = yield* Cloudflare.Email.SendEmail(emailBindingName, {
+        allowedSenderAddresses: [emailSignIn.from],
+      });
+      yield* Cloudflare.Email.Send(sender);
+    }
     const qualificationProbe = yield* Config.Boolean('ZLOZ_QUALIFICATION_PROBE').pipe(
       Config.withDefault(false),
     );
@@ -365,6 +373,7 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
           const native = yield* auth.auth;
           return yield* HttpServerResponse.json({
             google: native.options.socialProviders.google !== undefined,
+            emailCode: emailSignIn !== undefined,
           });
         }
         if (url.pathname === '/api/zloz/session') {
@@ -389,5 +398,6 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
     Effect.provide(Cloudflare.D1.QueryDatabaseBinding),
     Effect.provide(Cloudflare.Workers.AIBinding),
     Effect.provide(Cloudflare.Workers.RateLimitBinding),
+    Effect.provide(Cloudflare.Email.SendBinding),
   ),
 ) {}

@@ -246,6 +246,8 @@
         "@opsydyn/foldkit-viz": "workspace:*",
         "@opsydyn/foldkit-zloz": "workspace:*",
         "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
+        "@opsydyn/foldkit-zloz-elk": "workspace:*",
+        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
         "effect": "catalog:",

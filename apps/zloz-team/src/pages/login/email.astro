@@ -1,0 +1,38 @@
+---
+import Shell from '../../layouts/Shell.astro';
+import { signInMethods } from '../../server/backend';
+import { emailSignIn } from '../../server/email-sign-in';
+
+const headers = { 'cache-control': 'private, no-store' };
+Astro.response.headers.set('cache-control', headers['cache-control']);
+if (!(await signInMethods(Astro.request)).emailCode)
+  return new Response('Email sign-in unavailable', { status: 404, headers });
+const form = await emailSignIn(Astro.request);
+if (form instanceof Response) return form;
+const query = '?returnTo=' + encodeURIComponent(form.returnTo);
+---
+<Shell title="Continue with email">
+  <h1>Continue with email</h1>
+  {form.error && <p role="alert" class="error">{form.error}</p>}
+  {form.step === 'code' ? <>
+    <p>If this address can sign in, we sent a code to <strong>{form.email}</strong>. It expires in five minutes.</p>
+    <form method="post">
+      <input type="hidden" name="returnTo" value={form.returnTo} />
+      <input type="hidden" name="email" value={form.email} />
+      <label for="email-code">Six-digit code</label>
+      <input id="email-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" required />
+      <button name="action" value="verify">Sign in</button>
+      <button name="action" value="send" formnovalidate class="secondary">Send another code</button>
+    </form>
+    <p><a href={'/login/email' + query}>Use a different email address</a></p>
+  </> : <>
+    <p>Enter the email address on your Teams invitation.</p>
+    <form method="post">
+      <input type="hidden" name="returnTo" value={form.returnTo} />
+      <label for="email-address">Email address</label>
+      <input id="email-address" type="email" name="email" autocomplete="email" maxlength="254" value={form.email} required />
+      <button name="action" value="send">Send a code</button>
+    </form>
+  </>}
+  <p><a href={'/login' + query}>Other sign-in options</a></p>
+</Shell>

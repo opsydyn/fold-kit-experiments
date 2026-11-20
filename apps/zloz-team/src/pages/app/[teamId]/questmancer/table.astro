@@ -1,0 +1,32 @@
+---
+import { loginPath } from '../../../../server/continuation';
+import { loadTeam } from '../../../../server/onboarding';
+import { questmancerEnabled, questmancerParticipant, questmancerPath } from '../../../../server/questmancer';
+import '../../../../questmancer/scene.css';
+import '../../../../questmancer/live.css';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const teamId = Astro.params.teamId ?? '';
+if (!questmancerEnabled(teamId)) return new Response('Questmancer unavailable', { status: 404 });
+const path = questmancerPath(teamId);
+const team = await loadTeam(Astro.request, teamId);
+if (team._tag !== 'Ready') return team.status === 401
+  ? Astro.redirect(loginPath(path + '/table'), 303)
+  : new Response('Questmancer unavailable', { status: team.status });
+const participant = await questmancerParticipant(teamId, team.value.currentUserId);
+if (!participant) return new Response('Invitation unavailable', { status: 404 });
+if (!participant.joined) return Astro.redirect(path, 303);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Moonwell Observatory · Questmancer</title>
+  </head>
+  <body>
+    <a class="questmancer-home" href="/app">Your workspace</a>
+    <div id="questmancer" data-api={path + '/api/'} data-seat={participant.role === 'player' ? participant.seat : undefined}></div>
+    <script>import '../../../../questmancer/main';</script>
+  </body>
+</html>

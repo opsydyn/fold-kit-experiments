@@ -4,12 +4,15 @@ This runbook covers the approved M4 staging candidate at
 `https://teams-staging.opsydyn.xyz`. Production and real pilot invitations need
 separate authority. Existing `zloz.opsydyn.xyz` stays on its own stack.
 
+For the invite-only Moonwell pilot, see [Questmancer on Teams staging](questmancer-staging.md).
+
 ## Quick staging deploy from GitHub
 
 Run **Deploy Teams staging** from **Actions** on `main`. The workflow builds the
 dispatched commit, runs focused Teams checks and applies the guarded Alchemy
-plan. It supports code and asset updates to the two staging Workers. Use the
-reviewed commands below for changes to bindings, migrations or other resources.
+plan. It supports code and asset updates to the Teams app and server Workers. Use the
+[direct worktree workflow](#direct-staging-deploy-from-a-worktree) for changes to
+bindings, migrations or other resources.
 
 The `teams-staging` environment restricts deployment to `main` and supplies the
 staging Google client and operator token. The workflow uses the existing
@@ -46,46 +49,131 @@ state includes signing-secret material: keep backups encrypted, outside Git and
 outside review packets. Never include OAuth credentials, cookies, bearer tokens
 or invitations in diagnostic evidence.
 
-## Prepare and inspect
+## Direct staging deploy from a worktree
 
-Use a separate staging Google OAuth client. The operator configures the approved
-Google test accounts and the exact callback above. Put credentials only in ignored
-`apps/zloz-team/.env`:
+Use this path to put a reviewed candidate on Teams staging during development,
+including changes to Worker bindings. Alchemy builds the files in the selected
+worktree, including uncommitted and untracked source. Git history and PR review
+are separate steps. Use an isolated worktree so the build cannot overwrite
+another session’s workspace output.
 
-```dotenv
-ZLOZ_ORIGIN=https://teams-staging.opsydyn.xyz
-GOOGLE_CLIENT_ID=<staging client ID>
-GOOGLE_CLIENT_SECRET=<staging client secret>
-ZLOZ_STAGING_BOOTSTRAP=false
-ZLOZ_OPERATOR_TOKEN=<64 lowercase hex characters, generated locally>
-```
+### Prepare the candidate
 
-From the repository root, run the checks sequentially:
+1. Verify that the `tech-radar` profile targets the approved Cloudflare account
+   and that its existing state store and `zloz-team-staging/staging` namespace
+   are available. Check this before planning because Alchemy can provision a
+   missing state store during plan setup.
+2. Record the branch, base commit and changed files. For an uncommitted
+   candidate, retain the exact reviewed files and record their SHA-256
+   fingerprint. Include untracked source and artwork. Keep credentials and
+   other ignored files out of the snapshot.
+3. Use the existing Teams staging Google OAuth client and callback. See
+   [the dotenv example](../.env.example) for the required settings. Load the
+   approved staging values from an ignored dotenv file, including
+   `ZLOZ_ORIGIN=https://teams-staging.opsydyn.xyz`, `GOOGLE_CLIENT_ID`, and
+   `GOOGLE_CLIENT_SECRET`. Use the same file and values for plan and apply.
+4. Create a temporary `apps/zloz-team/public/teams-staging-build.json` in the
+   reviewed asset build. Set `commit` to the base commit and
+   `candidateSha256` to the recorded fingerprint. Track the marker separately
+   from the source snapshot it identifies. Remove the local marker after
+   deploying. GitHub Actions generates its own marker for a commit deploy.
+
+These commands check and build the candidate from the worktree root.
 
 ```sh
+git branch --show-current
+git rev-parse HEAD
+git status --short --branch --untracked-files=all
 bun install --frozen-lockfile
 bun run check
 bun typecheck
 bun run test
 bun run --filter @opsydyn/zloz-team build
-bun run --filter @opsydyn/zloz-team plan:staging
 ```
 
-The staging entry refuses another stage, another origin or empty Google
-credentials. The default `alchemy.run.ts` still permits local development only.
-Plan output is a review artifact, not deployment evidence. Review actual resource
-names, account, public domain, private service binding, migration additions,
-secret handling and state-store scope. No test fixture Worker belongs in staging. `ZLOZ_QUALIFICATION_PROBE` must remain
-false/absent; staging rejects it, and the backend defaults its old probe API off.
-Record the source commit/tree hash, adapter/core tarball digests and plan output.
+### Plan and review
 
-After that concrete review, run `bun run deploy:staging --yes` from the app
-directory. The wrapper fixes the approved entry, stage and profile. It accepts
-only this confirmation flag for deployment; without it Alchemy refuses a
-non-interactive change. Never use
-`--adopt` or destroy to bypass a mismatch. Capture the deployed Worker version IDs,
-D1 migration history and custom-domain response. A successful build is not proof
-of a successful deployment.
+Set `staging_env` to the absolute path of the approved staging dotenv file,
+then run from the worktree root.
+
+```sh
+staging_env=/absolute/path/to/approved/staging.env
+cd apps/zloz-team
+bun --env-file="$staging_env" run plan:staging
+```
+
+The CLI pins the entry, stage and profile. The staging entry validates the
+Teams staging origin and Google credentials. Preserve the deployed feature
+settings unless the release explicitly changes them. Keep
+`ZLOZ_STAGING_BOOTSTRAP` and `ZLOZ_QUALIFICATION_PROBE` false for ordinary
+releases. Keep fixture Workers in the localhost stack.
+
+Review every resource and binding action and record the plan with the candidate
+fingerprint, adapter and core package digests, and previous serving Worker
+version. Keep any state backups
+encrypted and retain the existing D1 migration history. Stop on unexpected
+replacements, deletions, state-store changes or changes outside Teams staging.
+
+### Apply and verify
+
+Once the plan is approved, use the same worktree and dotenv file.
+
+```sh
+bun --env-file="$staging_env" run deploy:staging --yes
+```
+
+The apply command computes a fresh plan. Keep the candidate and staging inputs
+fixed between review and apply. If the source, configuration or baseline
+deployment changes, regenerate and review the plan before applying. The
+[guarded staging runner](../tools/staging-quick.ts) shows the single-process
+pattern used for Moonwell. Call `Alchemist.plan`, compare the resource and
+binding actions to the approved list, and call `Alchemist.apply` on that
+same plan while the staging lease is held.
+
+After apply, fetch the public marker and verify the staged app.
+
+```sh
+origin=https://teams-staging.opsydyn.xyz
+curl --fail --silent --show-error "$origin/teams-staging-build.json"
+curl --fail --silent --show-error "$origin/api/zloz/session"
+curl --fail --silent --show-error "$origin/api/zloz/capabilities"
+```
+
+Compare the marker to the reviewed fingerprint, check for an empty anonymous
+session and verify Google sign-in is configured. Read serving Worker version
+IDs from Cloudflare and retain them with the plan, D1 migration record and
+browser evidence. Use the feature’s hosted checks to confirm the signed-in
+flow. For Moonwell, the [pilot and owner preview checks](questmancer-staging.md)
+depend on which team flag is enabled.
+
+## Invited email sign-in
+
+Teams staging can offer **Continue with email** alongside Google. To enable it,
+set both `ZLOZ_EMAIL_SIGN_IN_TEAM` to the staging test team's ID and
+`ZLOZ_EMAIL_SIGN_IN_FROM` to a sender on a domain already enabled for
+[Cloudflare Email Sending](https://developers.cloudflare.com/email-service/configuration/send-bindings/).
+Review the backend Worker plan for the `ZLOZ_SIGN_IN_EMAIL` binding and its
+allowed sender address. Keep both settings empty to roll back the email option.
+The regular Teams invitation, member records and Google sign-in remain available.
+
+The owner creates a separate viewer invitation for each QA address. For Gmail
+plus aliases, use the full address, such as `qa+moonwell-1@gmail.com` and
+`qa+moonwell-2@gmail.com`. Each player opens their own link in a separate browser
+profile, types the exact invited address, enters the six-digit code, and
+accepts the invitation. Each alias creates its own Teams identity and role.
+Returning verified members of the configured team can sign in directly by email.
+First-owner bootstrap still requires the existing verified Google account.
+
+Codes expire after five minutes and are single-use. A code has three verification
+attempts. Requests and verifications are rate-limited. Keep codes, live
+invitation URLs, and session cookies out of screenshots, logs, and playtest notes.
+
+Use the Questmancer browser test for simulated delivery on localhost. For a
+manual local run use `ZLOZ_EMAIL_SIGN_IN_TEAM=*` and
+`ZLOZ_EMAIL_SIGN_IN_FROM=qa@example.test`. Alchemy writes local message bodies
+to `.alchemy/local/email/text/` under this workspace. The wildcard is accepted
+only on HTTP localhost. Qualify mailbox receipt and invitation acceptance
+with the approved QA aliases before relying on staging email for the playtest.
 
 ## First owner and provider acceptance
 

@@ -57,7 +57,7 @@ async function invitationFor(db: D1Database, session: Session, invitationId: str
     return problem(
       403,
       'EmailNotVerified',
-      'Use a verified Google account to open this invitation.',
+      'Use a verified email address to open this invitation.',
     );
   const invitation = await db
     .prepare(`SELECT invitation.id, invitation.email, invitation.role, invitation.status, ${epochSql('invitation.expiresAt')} AS expiresAt, invitation.organizationId, organization.name, organization.slug
@@ -69,7 +69,7 @@ async function invitationFor(db: D1Database, session: Session, invitationId: str
     return problem(
       403,
       'WrongRecipient',
-      'This invitation belongs to another account. Sign out and use the invited Google account.',
+      'This invitation belongs to another account. Sign out and use the invited email address.',
     );
   const team = { id: invitation.organizationId, name: invitation.name, slug: invitation.slug };
   const member = await db

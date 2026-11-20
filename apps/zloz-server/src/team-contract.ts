@@ -72,3 +72,7 @@ export const Problem = Schema.Struct({ code: Schema.String, message: Schema.Stri
 export type TeamView = typeof TeamView.Type;
 export type InvitationView = typeof InvitationView.Type;
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+export const emailCodePath = '/email-otp/send-verification-otp';
+export const emailVerifyPath = '/sign-in/email-otp';
+export const emailInvitationHeader = 'x-zloz-invitation';

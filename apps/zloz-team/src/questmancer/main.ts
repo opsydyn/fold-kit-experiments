@@ -1,5 +1,5 @@
 import { updateEditor, type EditorEvent, type EditorState } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema, Stream } from 'effect';
+import { Effect, Schedule, Schema, Stream } from 'effect';
 import { Dom, Render, Runtime } from 'foldkit';
 import * as Command from 'foldkit/command';
 import type { Document, HtmlBuilder } from 'foldkit/html';
@@ -17,6 +17,7 @@ import {
   seatNames,
   type Participant,
   type RoomView,
+  type RoomNotice,
 } from './contracts';
 import {
   initialLedger,
@@ -28,6 +29,7 @@ import {
   type LedgerModel,
 } from './ledger';
 import { partyLedgerView } from './party-ledger';
+import { roomSocket } from './room-socket';
 
 const { authoringUrl, baseArt } = clientPaths();
 const table = document.getElementById('questmancer');
@@ -52,6 +54,7 @@ type BackdropComposer = Readonly<{
 type Model = Readonly<{
   editor: EditorState;
   room: RoomView | null;
+  connection: 'connecting' | 'live' | 'reconnecting' | 'denied';
   prompt: string;
   attempt: StartRequest | null;
   busy: boolean;
@@ -68,6 +71,8 @@ const ModelSchema = Schema.Unknown as Schema.Codec<Model>;
 const Message = defineMessageUnion({
   ObservedBoardInput: { input: Schema.Unknown },
   ObservedRoom: { result: Schema.Unknown },
+  InterruptedRoomConnection: {},
+  LostRoomAccess: {},
   ChangedPrompt: { prompt: Schema.String },
   ClickedGenerate: {},
   ClickedApply: { id: Schema.String },
@@ -125,26 +130,43 @@ const FocusLedger = Command.define('FocusLedger', {
       Effect.map(() => Message.CompletedLedgerFocus()),
     ),
 });
-const subscriptions = Subscription.make<Model, Message>()(() => {
-  const board = Subscription.persistentEntry(
-    Stream.tick(300).pipe(
-      Stream.mapEffect(() => Effect.promise((signal) => request('room', signal))),
-      Stream.map((result) => Message.ObservedRoom({ result })),
-    ),
-  );
-  const partyLedger = Subscription.persistentEntry(
-    Stream.tick(600).pipe(
-      Stream.mapEffect(() => Effect.promise((signal) => request('party-ledger', signal))),
-      Stream.map((result) => Message.ObservedPartyLedger({ result })),
-    ),
-  );
-  return Object.assign({ board }, role === 'player' ? { partyLedger } : undefined);
-});
+const denied = ({ status }: ApiResult) => status === 401 || status === 403 || status === 404;
+function readRoomUpdate(view: RoomNotice | 'access') {
+  const path = view === 'access' ? 'room' : view;
+  const read = Effect.promise((signal) => request(path, signal));
+  return Stream.flatMap(Stream.fromEffect(read), (result): Stream.Stream<Message, number> => {
+    if (denied(result)) return Stream.make(Message.LostRoomAccess());
+    if (view === 'access') return Stream.empty;
+    if (result.status !== 200) return Stream.fail(result.status);
+    return Stream.make(
+      view === 'room' ? Message.ObservedRoom({ result }) : Message.ObservedPartyLedger({ result }),
+    );
+  });
+}
+
+const roomUpdates = roomSocket(authoringUrl).pipe(
+  Stream.flatMap((notice) => {
+    if (notice !== 'connected') return readRoomUpdate(notice);
+    return role === 'player'
+      ? Stream.concat(readRoomUpdate('room'), readRoomUpdate('party-ledger'))
+      : readRoomUpdate('room');
+  }),
+  Stream.catch(() => Stream.empty),
+  Stream.concat(Stream.make(Message.InterruptedRoomConnection())),
+  // Failed browser upgrades do not expose their HTTP status. Check access before retrying.
+  Stream.concat(Stream.catch(readRoomUpdate('access'), () => Stream.empty)),
+  Stream.repeat(Schedule.spaced('1 second')),
+  Stream.takeUntil(({ _tag }) => _tag === 'LostRoomAccess'),
+);
+const subscriptions = Subscription.make<Model, Message>()(() => ({
+  room: Subscription.persistentEntry(roomUpdates),
+}));
 
 const init = (): Return<Model, Message> => ({
   model: {
     editor: boardEditor(initialScene),
     room: null,
+    connection: 'connecting',
     prompt: '',
     attempt: null,
     busy: false,
@@ -186,17 +208,26 @@ const resultError = (value: Schema.Json) =>
 function update(model: Model, message: Message): Return<Model, Message> {
   return Message.match(message, {
     ObservedRoom: ({ result }) => {
-      // SAFETY: Only the local request command or subscription constructs this result.
+      // SAFETY: The subscription emits this message only with a successful room response.
       const reply = result as ApiResult;
-      if (reply.status !== 200)
-        return {
-          model: reply.status === 401 ? { ...model, status: 'Join the room again.' } : model,
-        };
       // SAFETY: The successful room endpoint returns the room projection.
       const room = reply.value as RoomView;
       if (room.version < (model.room?.version ?? -1)) return { model };
-      return { model: reconcile({ ...model, room }) };
+      return { model: reconcile({ ...model, room, connection: 'live' }) };
     },
+    InterruptedRoomConnection: (): Return<Model, Message> => ({
+      model: { ...model, connection: 'reconnecting', partyRefreshFailed: true },
+    }),
+    LostRoomAccess: (): Return<Model, Message> => ({
+      model: {
+        ...model,
+        connection: 'denied',
+        room: null,
+        editor: boardEditor(initialScene),
+        partyEntries: null,
+        ledger: initialLedger,
+      },
+    }),
     ObservedBoardInput: ({ input }) => {
       // SAFETY: The Zloz onEvent callback sends its EditorEvent directly to this message.
       const observed = input as EditorEvent;
@@ -357,18 +388,16 @@ function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     ObservedPartyLedger: ({ result }) => {
-      // SAFETY: Only the local request command or subscription constructs this result.
+      // SAFETY: The subscription emits this message only with a successful party Ledger response.
       const reply = result as ApiResult;
-      return reply.status === 200
-        ? {
-            model: {
-              ...model,
-              // SAFETY: The successful party endpoint returns the array of published entries.
-              partyEntries: reply.value as PartyLedgerEntry[],
-              partyRefreshFailed: false,
-            },
-          }
-        : { model: { ...model, partyRefreshFailed: true } };
+      return {
+        model: {
+          ...model,
+          // SAFETY: The successful party endpoint returns the array of published entries.
+          partyEntries: reply.value as PartyLedgerEntry[],
+          partyRefreshFailed: false,
+        },
+      };
     },
     CompletedLedgerFocus: () => ({ model }),
     SettledAction: ({ action, result }) => {
@@ -413,7 +442,6 @@ function update(model: Model, message: Message): Return<Model, Message> {
       }
       if (reply.status >= 200 && reply.status < 300) {
         if (action === 'jobs')
-          // SAFETY: A successful sprite job submission returns a sprite job.
           return {
             model: {
               ...model,
@@ -421,7 +449,6 @@ function update(model: Model, message: Message): Return<Model, Message> {
               status: '',
               prompt: '',
               attempt: null,
-              room: model.room ? { ...model.room, job: reply.value as RoomView['job'] } : null,
             },
           };
         return { model: { ...model, busy: false, status: 'Sprite applied.' } };
@@ -715,6 +742,16 @@ function view(model: Model, h: HtmlBuilder<Message>): Document {
                   ],
                 ),
                 h.p([h.Role('status'), h.Class('room-status')], [model.status]),
+                h.p(
+                  [h.Role('status'), h.Class('room-status')],
+                  [
+                    model.connection === 'reconnecting'
+                      ? 'Reconnecting to the room…'
+                      : model.connection === 'denied'
+                        ? 'Room access ended. Return to your team to join again.'
+                        : '',
+                  ],
+                ),
                 ...(role === 'dm' && model.room
                   ? [
                       ledgerView(h, model.ledger, backdrop, (message) =>

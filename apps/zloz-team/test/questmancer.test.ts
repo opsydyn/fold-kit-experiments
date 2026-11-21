@@ -9,7 +9,7 @@ import { join } from 'node:path';
 
 import { Actor, Fixture } from '@opsydyn/zloz-server/test/fixture-contract';
 import { Schema } from 'effect';
-import { chromium, type Locator } from 'playwright';
+import { chromium, type Locator, type WebSocketRoute } from 'playwright';
 import { expect as browserExpect } from 'playwright/test';
 
 import type { RoomView } from '../src/questmancer/contracts';
@@ -90,6 +90,8 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         body: new URLSearchParams(fields),
       });
     const read = (path: string, cookie: string) => fetch(origin + path, { headers: { cookie } });
+    const upgrade = (cookie: string, from = origin) =>
+      fetch(origin + api + 'live', { headers: { cookie, origin: from, upgrade: 'websocket' } });
     const write = (action: string, cookie: string, payload: Schema.Json, from = origin) =>
       fetch(origin + api + action, {
         method: 'POST',
@@ -250,6 +252,34 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await dm.getByLabel('Brasswick', { exact: true }).selectOption(brasswick.userId);
       await dm.getByLabel('Wicket', { exact: true }).selectOption(wicket.userId);
       await capture(dm.getByRole('main'), 'dm-assign-seats');
+      const livePath = (url: URL) => url.pathname === api + 'live';
+      const roomReads = new Map<string, number>();
+      const connected = new Set<string>();
+      const playerFrames: string[] = [];
+      for (const [index, page] of [dm, ...invitedPages].entries()) {
+        const id = String(index);
+        page.on('request', (request) => {
+          const path = new URL(request.url()).pathname;
+          if (path === api + 'room' || path === api + 'party-ledger')
+            roomReads.set(id, (roomReads.get(id) ?? 0) + 1);
+        });
+        page.on('websocket', (socket) => {
+          if (!livePath(new URL(socket.url()))) return;
+          connected.add(id);
+          if (index === 1 || index === 2)
+            socket.on('framereceived', ({ payload }) => playerFrames.push(String(payload)));
+        });
+      }
+      let wicketRoute: WebSocketRoute | undefined;
+      let wicketDisconnected = false;
+      let wicketConnections = 0;
+      const wicketPage = invitedPages[2]!;
+      await wicketPage.routeWebSocket(livePath, (socket) => {
+        if (wicketDisconnected) return socket.close({ code: 1012 });
+        wicketRoute = socket;
+        wicketConnections++;
+        socket.connectToServer();
+      });
       expect(
         (
           await form(lobby, party.owner.cookie, {
@@ -265,6 +295,9 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         dm.getByRole('heading', { name: 'Next room', exact: true }),
       ).toBeVisible();
       expect((await read(api + 'room', wicket.cookie)).status).toBe(403);
+      expect((await upgrade(wicket.cookie)).status).toBe(403);
+      expect((await upgrade(party.owner.cookie, 'https://unrelated.invalid')).status).toBe(403);
+      expect((await upgrade(party.outsider.cookie)).status).toBe(404);
       expect((await read(team, party.viewer.cookie)).status).toBe(200);
       expect((await read(lobby, party.viewer.cookie)).status).toBe(404);
       expect((await read(api + 'party-ledger', party.viewer.cookie)).status).toBe(404);
@@ -281,6 +314,13 @@ test('Questmancer opens one private table for a DM and three distinct player sea
           return page;
         }),
       );
+      await browserExpect.poll(() => [...connected].filter((id) => id !== '3').length).toBe(3);
+      await browserExpect.poll(() => wicketConnections).toBe(1);
+      const readsBySeat = () => [0, 1, 2, 3].map((index) => roomReads.get(String(index)));
+      await browserExpect.poll(readsBySeat).toEqual([1, 2, 2, 2]);
+      await Bun.sleep(12_000);
+      expect(readsBySeat()).toEqual([1, 2, 2, 2]);
+
       expect(
         (await write('move', mira.cookie, { id: 'wicket', x: 500, y: 500, expected: 0 })).status,
       ).toBe(403);
@@ -310,6 +350,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
             .map((token) => token.label);
         })
         .toEqual(labels);
+      await browserExpect.poll(() => playerFrames).toEqual(Array(6).fill('room'));
 
       await dm.getByLabel('Room name').fill('The Moonwell Observatory');
       await dm.getByLabel('Describe the backdrop').fill('A moonlit telescope');
@@ -339,14 +380,31 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         return image?.complete && image.naturalWidth === 1024;
       });
       await capture(dm.locator('.backdrop-draft'), 'dm-backdrop-preview');
+      expect(playerFrames).toHaveLength(6);
+      const beforeReveal = wicketRoute;
+      assert(beforeReveal, 'Wicket has an active room socket');
+      wicketDisconnected = true;
+      await beforeReveal.close({ code: 1012 });
+      await browserExpect(wicketPage.getByText('Reconnecting to the room…')).toBeVisible();
+      await capture(wicketPage.getByRole('main'), 'player-reconnecting');
       await dm.getByRole('button', { name: 'Reveal room', exact: true }).click();
       await Promise.all(
-        pages.map((page) =>
-          browserExpect(
-            page.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
-          ).toBeVisible(),
-        ),
+        pages
+          .slice(0, 2)
+          .map((page) =>
+            browserExpect(
+              page.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
+            ).toBeVisible(),
+          ),
       );
+      await browserExpect(
+        wicketPage.getByRole('heading', { name: 'The Aurora Gate' }),
+      ).toBeVisible();
+      wicketDisconnected = false;
+      await browserExpect.poll(() => wicketConnections).toBe(2);
+      await browserExpect(
+        wicketPage.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
+      ).toBeVisible();
 
       const generated = await read(api + 'assets/' + job.assetId, wicket.cookie);
       expect(generated.status).toBe(200);
@@ -390,6 +448,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
           await capture(page.getByRole('main'), 'room-' + labels[index]!.toLowerCase());
         }),
       );
+      const beforePrivateEdit = playerFrames.length;
       await dm.getByRole('button', { name: 'Save room to Ledger', exact: true }).click();
       await dm.getByLabel('Session notes · DM only').fill('The south stair is secret.');
       await dm.getByRole('button', { name: 'Save entry', exact: true }).click();
@@ -412,6 +471,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       for (const actor of actors) {
         expect(await (await read(api + 'party-ledger', actor.cookie)).json()).toEqual([]);
       }
+      expect(playerFrames).toHaveLength(beforePrivateEdit);
       await dm.getByRole('button', { name: 'Publish to party', exact: true }).click();
       await Promise.all(
         pages.map(async (page, index) => {
@@ -445,6 +505,10 @@ test('Questmancer opens one private table for a DM and three distinct player sea
           'south stair',
         );
       }
+      expect(playerFrames).toContain('party-ledger');
+      expect(playerFrames.every((frame) => frame === 'room' || frame === 'party-ledger')).toBe(
+        true,
+      );
       await dm.goto(origin + team);
       await dm.getByRole('button', { name: 'Remove ' + mira.email, exact: true }).click();
       await browserExpect(
@@ -452,6 +516,16 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       ).toHaveCount(0);
       expect((await read(api + 'room', mira.cookie)).status).toBe(404);
       expect((await read(api + 'party-ledger', mira.cookie)).status).toBe(404);
+      expect((await upgrade(mira.cookie)).status).toBe(404);
+      await wicketPage
+        .getByRole('button', { name: 'Select Wicket', exact: true })
+        .press('ArrowRight');
+      await browserExpect(
+        pages[0]!.getByText('Room access ended.', { exact: false }),
+      ).toBeVisible();
+      await browserExpect(pages[0]!.getByRole('heading', { name: 'Moonwell recap' })).toHaveCount(
+        0,
+      );
     } finally {
       await browser.close();
     }

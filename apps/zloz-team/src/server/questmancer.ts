@@ -32,7 +32,10 @@ export function questmancerRequest(
   return env.QUESTMANCER.fetch(
     new Request(`https://questmancer.internal/${teamId}/${action}`, {
       method: body === undefined ? 'GET' : 'POST',
-      headers: { 'x-quest-user': userId, 'content-type': 'application/json' },
+      headers:
+        action === 'live'
+          ? { 'x-quest-user': userId, upgrade: 'websocket' }
+          : { 'x-quest-user': userId, 'content-type': 'application/json' },
       body,
     }),
   );

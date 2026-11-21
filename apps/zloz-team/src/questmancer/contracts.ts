@@ -130,3 +130,5 @@ export const mayMove = (participant: Participant, token: string) =>
 const AccountId = Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/));
 export const InviteSeats = Schema.Tuple([AccountId, AccountId, AccountId]);
 export const isAccountId = Schema.is(AccountId);
+export const RoomNotice = Schema.Literals(['room', 'party-ledger']);
+export type RoomNotice = typeof RoomNotice.Type;

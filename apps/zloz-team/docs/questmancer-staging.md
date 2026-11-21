@@ -30,6 +30,10 @@ dashboard, creates the table, joins three players,
 moves their assigned tokens, previews sample art, reveals the room, applies
 Pip's sprite and publishes the recap. It also checks that outsiders, removed
 members and other player seats cannot read or write beyond their permissions.
+The room WebSocket test checks that all four browsers stop reading room and
+Ledger state while idle. It cuts one player’s socket before reveal and verifies
+that the player catches up on reconnect. The test also inspects player frames
+for private draft and Ledger activity.
 Use `ZLOZ_QUESTMANCER_EVIDENCE` with a local directory to save dashboard and
 published Ledger captures. The fixture app and browser test submit no provider
 inference.

@@ -45,6 +45,7 @@
       "effect": "4.1.0",
       "fast-check": "^4.8.0",
       "foldkit": "0.170.0",
+      "likec4": "1.61.0",
       "happy-dom": "^21.0.4",
       "hast-util-to-html": "^9.0.5",
       "oxlint": "1.79.0",

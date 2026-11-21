@@ -67,7 +67,6 @@ import {
   otherSlot,
 } from './feed-state';
 import { findMatches, FindTarget } from './find';
-import * as Mermaid from './mermaid-export';
 import { createNodesView } from './nodes-view';
 import * as Opy from './opy';
 import { geometryGraph, pendingGeometryGraph } from './pending-geometry';
@@ -82,6 +81,7 @@ import {
 } from './queued-move';
 import * as Layout from './selection-layout';
 import { shareFrame } from './share-frame';
+import * as SourceExport from './source-export';
 import * as Svg from './svg-export';
 
 export { slow } from './diagnostics';
@@ -140,7 +140,8 @@ export const Model = Schema.Struct({
   focusedBoard: Schema.Boolean,
   overviewOpen: Schema.Boolean,
   find: Schema.NullOr(Schema.String),
-  mermaid: Schema.NullOr(Mermaid.Review),
+  sourceExport: Schema.NullOr(SourceExport.Review),
+  sourceExportRun: Schema.Number,
   svg: Schema.Unknown,
   svgRun: Schema.Number,
   layout: Layout.Task,
@@ -234,11 +235,24 @@ export const Message = defineMessageUnion({
   ClosedFind: {},
   ChangedFind: { query: Schema.String },
   ChoseFindResult: { target: Schema.Literals(FindTarget), id: Schema.String },
-  OpenedMermaid: {},
-  ClosedMermaid: {},
-  ChangedMermaidConsent: { version: Schema.Number, accepted: Schema.Boolean },
-  ClickedMermaidDownload: { version: Schema.Number, format: Mermaid.Format },
-  CompletedMermaidDownload: { version: Schema.Number, started: Schema.Boolean },
+  OpenedSourceExport: { kind: SourceExport.Kind },
+  ClosedSourceExport: {},
+  SettledSourceExport: { run: Schema.Number, review: SourceExport.Review },
+  ChangedSourceExportConsent: {
+    kind: SourceExport.Kind,
+    version: Schema.Number,
+    accepted: Schema.Boolean,
+  },
+  ClickedSourceDownload: {
+    kind: SourceExport.Kind,
+    version: Schema.Number,
+    format: SourceExport.Format,
+  },
+  CompletedSourceDownload: {
+    kind: SourceExport.Kind,
+    version: Schema.Number,
+    started: Schema.Boolean,
+  },
   OpenedSvg: {},
   ClosedSvg: {},
   ObservedSvgReview: { request: Schema.Unknown },
@@ -293,21 +307,44 @@ const FocusBoardControl = Command.define('FocusBoardControl', {
       Effect.map(() => Message.CompletedBoardFocus()),
     ),
 });
-const DownloadMermaid = Command.define('DownloadMermaid', {
-  args: { version: Schema.Number, format: Mermaid.Format, contents: Schema.String },
-  messages: [Message.CompletedMermaidDownload],
-  execute: ({ version, format, contents }) =>
+const PrepareLikeC4 = Command.define('PrepareLikeC4', {
+  args: { run: Schema.Number, document: DiagramDocumentSchema },
+  messages: [Message.SettledSourceExport],
+  execute: ({ run, document }) =>
+    Effect.tryPromise(() => SourceExport.prepareLikeC4(document.graph, document.version)).pipe(
+      Effect.orElseSucceed(() =>
+        SourceExport.Review.Rejected({
+          kind: 'likec4',
+          version: document.version,
+          diagnostics: [
+            { severity: 'error', subject: null, message: 'Could not prepare LikeC4 source.' },
+          ],
+        }),
+      ),
+      Effect.map((review) => Message.SettledSourceExport({ run, review })),
+    ),
+});
+const DownloadSource = Command.define('DownloadSource', {
+  args: {
+    kind: SourceExport.Kind,
+    version: Schema.Number,
+    format: SourceExport.Format,
+    contents: Schema.String,
+  },
+  messages: [Message.CompletedSourceDownload],
+  execute: ({ kind, version, format, contents }) =>
     Effect.try(() => {
       const source = format === 'source';
+      const extension = kind === 'likec4' ? 'c4' : source ? 'mmd' : 'mermaid.json';
       handoffDownload(
         contents,
         source ? 'text/plain;charset=utf-8' : 'application/json',
-        `zloz-v${version}.${source ? 'mmd' : 'mermaid.json'}`,
+        `zloz-v${version}.${extension}`,
       );
     }).pipe(
       Effect.match({
-        onSuccess: () => Message.CompletedMermaidDownload({ version, started: true }),
-        onFailure: () => Message.CompletedMermaidDownload({ version, started: false }),
+        onSuccess: () => Message.CompletedSourceDownload({ kind, version, started: true }),
+        onFailure: () => Message.CompletedSourceDownload({ kind, version, started: false }),
       }),
     ),
 });
@@ -521,7 +558,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         focusedBoard: false,
         overviewOpen: false,
         find: null,
-        mermaid: null,
+        sourceExport: null,
+        sourceExportRun: 0,
         svg: null,
         svgRun: 0,
         layout: Layout.Task.Closed(),
@@ -745,9 +783,10 @@ const couplingVisible = (model: Model) =>
   railVisible(model, 'inspector') && model.inspector === 'coupling';
 const confirmedExportDocument = (model: Model) =>
   isLiveConnection(model.connection) ? model.session.confirmed?.document : undefined;
-function currentMermaidReview(model: Model, version: number) {
-  const review = model.mermaid;
+function currentSourceReview(model: Model, kind: SourceExport.Kind, version: number) {
+  const review = model.sourceExport;
   return review?._tag === 'Ready' &&
+    review.kind === kind &&
     review.version === version &&
     confirmedExportDocument(model)?.version === version
     ? review
@@ -837,53 +876,71 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       ],
     }),
     OpenedFind: () => ({
-      model: { ...model, find: '', mermaid: null, svg: null, layout: Layout.Task.Closed() },
+      model: { ...model, find: '', sourceExport: null, svg: null, layout: Layout.Task.Closed() },
       commands: [FocusBoardControl({ selector: '#board-find-query' })],
     }),
-    OpenedMermaid: () => {
+    OpenedSourceExport: ({ kind }) => {
       const confirmed = confirmedExportDocument(model);
       if (!confirmed) return { model };
+      const run = model.sourceExportRun + 1;
+      const review =
+        kind === 'likec4'
+          ? SourceExport.Review.Loading({ kind, version: confirmed.version, run })
+          : SourceExport.prepareMermaid(confirmed.graph, confirmed.version);
       return {
         model: {
           ...model,
           find: null,
-          mermaid: Mermaid.prepare(confirmed.graph, confirmed.version),
+          sourceExport: review,
+          sourceExportRun: run,
           svg: null,
           layout: Layout.Task.Closed(),
         },
-        commands: [FocusBoardControl({ selector: '#board-mermaid' })],
+        commands: [
+          ...(kind === 'likec4' ? [PrepareLikeC4({ run, document: confirmed })] : []),
+          FocusBoardControl({ selector: '#board-mermaid' }),
+        ],
       };
     },
-    ClosedMermaid: () => ({
-      model: { ...model, mermaid: null },
+    ClosedSourceExport: () => ({
+      model: { ...model, sourceExport: null },
       commands: [
         FocusBoardControl({
           selector:
-            railVisible(model, 'tools') && confirmedExportDocument(model)
-              ? '#board-mermaid-open'
+            model.sourceExport && railVisible(model, 'tools') && confirmedExportDocument(model)
+              ? '#' + SourceExport.launcherId(model.sourceExport.kind)
               : '#shared-diagram-surface',
         }),
       ],
     }),
-    ChangedMermaidConsent: ({ version, accepted }) => {
-      const review = currentMermaidReview(model, version);
-      return { model: review ? { ...model, mermaid: { ...review, accepted } } : model };
+    SettledSourceExport: ({ run, review }) =>
+      model.sourceExport?._tag === 'Loading' && model.sourceExport.run === run
+        ? { model: { ...model, sourceExport: review } }
+        : { model },
+    ChangedSourceExportConsent: ({ kind, version, accepted }) => {
+      const review = currentSourceReview(model, kind, version);
+      return { model: review ? { ...model, sourceExport: { ...review, accepted } } : model };
     },
-    ClickedMermaidDownload: ({ version, format }) => {
-      const review = currentMermaidReview(model, version);
-      if (!review || (review.diagnostics.length && !review.accepted)) return { model };
+    ClickedSourceDownload: ({ kind, version, format }) => {
+      const review = currentSourceReview(model, kind, version);
+      if (
+        !review ||
+        (review.diagnostics.length && !review.accepted) ||
+        (kind === 'likec4' && format === 'bundle')
+      )
+        return { model };
       return {
         model,
-        commands: [DownloadMermaid({ version, format, contents: review[format] })],
+        commands: [DownloadSource({ kind, version, format, contents: review[format] })],
       };
     },
-    CompletedMermaidDownload: ({ version, started }) => {
-      const review = currentMermaidReview(model, version);
+    CompletedSourceDownload: ({ kind, version, started }) => {
+      const review = currentSourceReview(model, kind, version);
       return {
         model: review
           ? {
               ...model,
-              mermaid: Mermaid.Review.Ready({
+              sourceExport: SourceExport.Review.Ready({
                 ...review,
                 download: started ? 'started' : 'failed',
               }),
@@ -907,7 +964,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ),
           drawer: model.compactBoard ? null : model.drawer,
           find: null,
-          mermaid: null,
+          sourceExport: null,
           layout: Layout.Task.Closed(),
         }),
         commands: [FocusBoardControl({ selector: '#board-svg' })],
@@ -950,7 +1007,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           layout: Layout.Task.Running(),
           drawer: model.compactBoard ? null : model.drawer,
           find: null,
-          mermaid: null,
+          sourceExport: null,
           svg: null,
         }),
         commands: [
@@ -1950,31 +2007,37 @@ function layoutPanel(model: Model, h: HtmlBuilder<Message>, reason: string | nul
   );
 }
 
-const mermaidPanel = createLazy();
-function mermaidPanelView(
+const sourceExportPanel = createLazy();
+function sourceExportPanelView(
   h: HtmlBuilder<Message>,
-  review: Mermaid.Review,
-  availability: Mermaid.Availability,
+  review: SourceExport.Review,
+  availability: SourceExport.Availability,
 ) {
-  return Mermaid.view(h, review, availability, {
-    close: Message.ClosedMermaid(),
-    refresh: Message.OpenedMermaid(),
-    accept: (accepted) => Message.ChangedMermaidConsent({ version: review.version, accepted }),
-    download: (format) => Message.ClickedMermaidDownload({ version: review.version, format }),
+  const { kind, version } = review;
+  return SourceExport.view(h, review, availability, {
+    close: Message.ClosedSourceExport(),
+    refresh: Message.OpenedSourceExport({ kind }),
+    accept: (accepted) => Message.ChangedSourceExportConsent({ kind, version, accepted }),
+    download: (format) => Message.ClickedSourceDownload({ kind, version, format }),
   });
 }
 
-const mermaidLauncher = createLazy();
-function mermaidLauncherView(h: HtmlBuilder<Message>, available: boolean) {
+const mermaidExportLauncher = createLazy();
+const likeC4ExportLauncher = createLazy();
+function sourceExportLauncherView(
+  h: HtmlBuilder<Message>,
+  kind: SourceExport.Kind,
+  available: boolean,
+) {
   return h.button(
     [
-      h.Id('board-mermaid-open'),
+      h.Id(SourceExport.launcherId(kind)),
       h.Class('mermaid-launcher'),
       h.Type('button'),
       h.Disabled(!available),
-      h.OnClick(Message.OpenedMermaid()),
+      h.OnClick(Message.OpenedSourceExport({ kind })),
     ],
-    ['Export Mermaid'],
+    [`Export ${SourceExport.label(kind)}`],
   );
 }
 
@@ -2175,7 +2238,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const layoutStale = layout ? layoutStaleReason(model, layout) : null;
   const layoutReason = layout ? Option.getOrNull(layoutApplyReason(model, layoutStale)) : null;
   const exportDocument = confirmedExportDocument(model);
-  const mermaid = accessEnded ? null : model.mermaid;
+  const sourceReview = accessEnded ? null : model.sourceExport;
   const svg = accessEnded ? null : model.svg;
   const findOpen = !accessEnded && model.find !== null;
   const matches = findOpen ? findMatches(currentEditor, model.find ?? '') : [];
@@ -2324,14 +2387,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ]
             : [],
         ),
-        ...(mermaid
+        ...(sourceReview
           ? [
-              mermaidPanel(mermaidPanelView, [
+              sourceExportPanel(sourceExportPanelView, [
                 h,
-                mermaid,
+                sourceReview,
                 !exportDocument
                   ? 'offline'
-                  : exportDocument.version === mermaid.version
+                  : exportDocument.version === sourceReview.version
                     ? 'current'
                     : 'newer',
               ]),
@@ -2401,7 +2464,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   [h.Href(`${pathFor(model.room)}/export`), h.Class('button-link')],
                   [teamIcon(h, 'download-simple'), 'Export confirmed diagram'],
                 ),
-                mermaidLauncher(mermaidLauncherView, [h, exportDocument !== undefined]),
+                mermaidExportLauncher(sourceExportLauncherView, [
+                  h,
+                  'mermaid',
+                  exportDocument !== undefined,
+                ]),
+                likeC4ExportLauncher(sourceExportLauncherView, [
+                  h,
+                  'likec4',
+                  exportDocument !== undefined,
+                ]),
                 svgLauncher(svgLauncherView, [h, exportDocument !== undefined]),
                 h.label(
                   [h.Class('canvas-mode')],

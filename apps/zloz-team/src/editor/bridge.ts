@@ -110,7 +110,8 @@ export function bridgeEvent(
   );
   if (edge)
     return {
-      editor: clean,
+      // Keep the gesture result without painting the editor's temporary edge ID.
+      editor: { ...clean, graph: editor.graph, notice: '' },
       operation: {
         type: 'Connect',
         expectedVersion: base.version,

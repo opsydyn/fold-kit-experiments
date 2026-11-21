@@ -2031,6 +2031,7 @@ export function zlozView<M>(
           h.StrokeWidth(context.strokeWidth),
           h.StrokeDasharray(context.dashArray),
           h.MarkerEnd(context.markerEnd),
+          h.DataAttribute('flow-edge-stroke', edge.id),
         ],
         [],
       );

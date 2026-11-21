@@ -50,6 +50,30 @@ test('completed local gestures use observed field clocks and never snapshot Undo
     position: { x: 15, y: 20 },
   });
 });
+test('connect submits the stable edge before putting a stroke on the confirmed canvas', () => {
+  const document = createOperationDocument({ ...graph(), edges: [] });
+  const source = { node: 'a', port: 'out' };
+  const target = { node: 'b', port: 'in' };
+  const started = bridgeEvent(
+    createEditor(document.graph),
+    { type: 'PortActivated', endpoint: source },
+    document,
+    'shared-edge',
+  );
+  const completed = bridgeEvent(
+    started.editor,
+    { type: 'PortActivated', endpoint: target },
+    document,
+    'shared-edge',
+  );
+  expect(completed.operation).toMatchObject({
+    type: 'Connect',
+    edge: { id: 'shared-edge', source, target },
+  });
+  expect(completed.editor.connection).toBeNull();
+  expect(completed.editor.graph.edges).toEqual([]);
+});
+
 test('measurements, layout-like local changes, reparenting and snapshot Undo cannot become shared operations', () => {
   const document = createOperationDocument(graph());
   const editor = createEditor(graph());

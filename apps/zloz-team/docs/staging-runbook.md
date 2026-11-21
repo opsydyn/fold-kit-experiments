@@ -17,8 +17,22 @@ bindings, migrations or other resources.
 The `teams-staging` environment restricts deployment to `main` and supplies the
 staging Google client and operator token. The workflow uses the existing
 Cloudflare deployment credentials and keeps bootstrap disabled and OPY enabled.
+Keep these GitHub Actions variables in the `teams-staging` environment in
+sync with the approved settings on the serving Workers.
+
+| Variable                        | Staging setting                           |
+| ------------------------------- | ----------------------------------------- |
+| `ZLOZ_EMAIL_SIGN_IN_TEAM`       | Team allowed to sign in by email          |
+| `ZLOZ_EMAIL_SIGN_IN_FROM`       | Approved sender for email sign-in         |
+| `ZLOZ_QUESTMANCER_TEAM`         | Team with access to the Questmancer pilot |
+| `ZLOZ_QUESTMANCER_PREVIEW_TEAM` | Team with access to the owner preview     |
+
+For an intentional change, use the reviewed direct deployment first and then
+update the matching GitHub variables. The quick guard rejects binding changes.
+
 The run summary reports the verified commit and dispatch-to-smoke time. The
-workflow's build marker contains the public commit and Actions run IDs.
+workflow's build marker contains the public commit and Actions run IDs. Hosted
+smoke checks both Google and the configured email sign-in capability.
 
 Teams Alchemy commands run from `apps/zloz-team`. The D1 migrations directory
 is relative to this working directory so local and hosted checkouts agree on

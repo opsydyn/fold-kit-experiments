@@ -148,3 +148,87 @@ test('the quick deploy accepts live implementations of the same persisted Worker
     }),
   ).toEqual(['exports']);
 });
+
+test('the quick deploy accepts persisted references to both existing frontend Workers', () => {
+  const previous = {
+    env: {
+      ZLOZ_BACKEND: { id: 'teams-server' },
+      QUESTMANCER: { id: 'room-worker' },
+      QUESTMANCER_TEAM: 'pilot-team',
+      QUESTMANCER_PREVIEW_TEAM: 'pilot-team',
+    },
+  };
+  const candidate = {
+    env: {
+      ...previous.env,
+      ZLOZ_BACKEND: () => 'live backend',
+      QUESTMANCER: () => 'live room worker',
+    },
+  };
+  expect(changedWorkerSettings(previous, candidate, true)).toEqual([]);
+  expect(
+    changedWorkerSettings(
+      previous,
+      {
+        env: { ...candidate.env, QUESTMANCER_PREVIEW_TEAM: '' },
+      },
+      true,
+    ),
+  ).toEqual(['env']);
+  const { QUESTMANCER: _removed, ...withoutRoom } = candidate.env;
+  expect(changedWorkerSettings(previous, { env: withoutRoom }, true)).toEqual(['env']);
+
+  const [app, server, database] = fixture.resources;
+  for (const plan of [
+    {
+      ...fixture,
+      resources: [
+        { ...app, bindings: [...app.bindings, { sid: 'QUESTMANCER', action: 'update' }] },
+        server,
+        database,
+      ],
+    },
+    {
+      ...fixture,
+      resources: [
+        app,
+        {
+          ...server,
+          bindings: [...server.bindings, { sid: 'ZLOZ_SIGN_IN_EMAIL', action: 'delete' }],
+        },
+        database,
+      ],
+    },
+  ] as const satisfies readonly Plan[]) {
+    expect(rejectQuickStagingPlan(plan)).toBeDefined();
+  }
+});
+
+test('the standalone workflow supplies the existing pilot settings from its protected environment', async () => {
+  const path = new URL('../../../.github/workflows/deploy-teams-staging.yml', import.meta.url);
+  const workflow = Bun.YAML.parse(await Bun.file(path).text());
+  expect(workflow).toMatchObject({
+    jobs: {
+      deploy: {
+        environment: { name: 'teams-staging' },
+        steps: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'Apply the guarded Teams staging plan',
+            env: expect.objectContaining({
+              ZLOZ_EMAIL_SIGN_IN_TEAM: '${{ vars.ZLOZ_EMAIL_SIGN_IN_TEAM }}',
+              ZLOZ_EMAIL_SIGN_IN_FROM: '${{ vars.ZLOZ_EMAIL_SIGN_IN_FROM }}',
+              ZLOZ_QUESTMANCER_TEAM: '${{ vars.ZLOZ_QUESTMANCER_TEAM }}',
+              ZLOZ_QUESTMANCER_PREVIEW_TEAM: '${{ vars.ZLOZ_QUESTMANCER_PREVIEW_TEAM }}',
+            }),
+          }),
+          expect.objectContaining({
+            name: 'Verify hosted build, backend and sign-in',
+            env: expect.objectContaining({
+              ZLOZ_EMAIL_SIGN_IN_TEAM: '${{ vars.ZLOZ_EMAIL_SIGN_IN_TEAM }}',
+            }),
+          }),
+        ]),
+      },
+    },
+  });
+});

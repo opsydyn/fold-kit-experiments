@@ -14,7 +14,10 @@ The Zloz npm release train publishes packages independently.
 Add a manual GitHub Actions workflow for the exact `main` commit captured at
 dispatch. Use frozen dependencies, focused Teams checks, and the existing Alchemy
 stack and state. The `teams-staging` GitHub environment admits only `main`.
-Keep deployments serialized and let an active deployment finish.
+Keep deployments serialized and let an active deployment finish. Use
+environment-scoped GitHub Actions variables for the approved email sign-in
+and Questmancer settings. The plan still requires their existing bindings to
+be no-ops.
 
 Inspect Alchemy's structured plan under its stage lease. The quick path allows
 in-place updates to the two existing staging Workers and preserves their

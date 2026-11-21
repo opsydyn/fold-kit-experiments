@@ -60,9 +60,15 @@ const normalizeSource = (source: WorkerProps['source']) => {
   );
 };
 
+const frontendServiceBindings = new Set(['ZLOZ_BACKEND', 'QUESTMANCER']);
 const normalizeEnvironment = (value: WorkerProps['env']) =>
-  Predicate.isObject(value) && 'ZLOZ_BACKEND' in value
-    ? { ...value, ZLOZ_BACKEND: 'existing service binding' }
+  Predicate.isObject(value)
+    ? Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [
+          key,
+          frontendServiceBindings.has(key) ? 'existing service binding' : entry,
+        ]),
+      )
     : value;
 
 const defaultRuntimeHandlers = [
@@ -117,7 +123,7 @@ const normalizeWorkerExports = (value: WorkerSettings['exports']) =>
 export function changedWorkerSettings(
   previous: WorkerSettings,
   next: WorkerSettings,
-  existingBackendBinding = false,
+  frontendWorker = false,
 ): readonly string[] {
   const previousEntries = new Map(Object.entries(previous));
   const nextEntries = new Map(Object.entries(next));
@@ -131,9 +137,9 @@ export function changedWorkerSettings(
         normalizeWorkerExports(previous[key]),
         normalizeWorkerExports(next[key]),
       );
-    // The persisted service value and the live Alchemy reference have different
-    // representations. The plan independently checks the binding is a no-op.
-    if (key === 'env' && existingBackendBinding)
+    // Persisted values and live frontend service references have different
+    // representations. The guard independently requires every binding to be a no-op.
+    if (key === 'env' && frontendWorker)
       return !isDeepStrictEqual(
         normalizeEnvironment(previous[key]),
         normalizeEnvironment(next[key]),

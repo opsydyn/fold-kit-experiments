@@ -58,6 +58,10 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           ZLOZ_OPERATOR_TOKEN: ${{ secrets.ZLOZ_OPERATOR_TOKEN }}
+          ZLOZ_EMAIL_SIGN_IN_TEAM: ${{ vars.ZLOZ_EMAIL_SIGN_IN_TEAM }}
+          ZLOZ_EMAIL_SIGN_IN_FROM: ${{ vars.ZLOZ_EMAIL_SIGN_IN_FROM }}
+          ZLOZ_QUESTMANCER_TEAM: ${{ vars.ZLOZ_QUESTMANCER_TEAM }}
+          ZLOZ_QUESTMANCER_PREVIEW_TEAM: ${{ vars.ZLOZ_QUESTMANCER_PREVIEW_TEAM }}
         run: |
           bun node_modules/alchemy/bin/cli.js provider check-env --config staging.alchemy.ts --no-input
           test -n "$ZLOZ_OPERATOR_TOKEN"
@@ -65,6 +69,7 @@ jobs:
       - name: Verify hosted build, backend and sign-in
         env:
           GH_TOKEN: ${{ github.token }}
+          ZLOZ_EMAIL_SIGN_IN_TEAM: ${{ vars.ZLOZ_EMAIL_SIGN_IN_TEAM }}
         run: |
           expected="apps/zloz-team/public/teams-staging-build.json"
           observed="$RUNNER_TEMP/teams-staging-build.json"
@@ -80,7 +85,10 @@ jobs:
             sleep 3
           done
           test "$(curl -fsS --max-time 8 "$ZLOZ_ORIGIN/api/zloz/session")" = 'null'
-          curl -fsS --max-time 8 "$ZLOZ_ORIGIN/api/zloz/capabilities" | jq -e '.google == true' >/dev/null
+          curl -fsS --max-time 8 "$ZLOZ_ORIGIN/api/zloz/capabilities" |
+            jq -e --arg team "$ZLOZ_EMAIL_SIGN_IN_TEAM" '
+              .google == true and .emailCode == ($team != "")
+            ' >/dev/null
           curl -fsS --max-time 8 "$ZLOZ_ORIGIN/login" > "$RUNNER_TEMP/teams-staging-login.html"
           grep -Fq 'class="brand-mark"' "$RUNNER_TEMP/teams-staging-login.html"
           grep -Fq '<title>Foldkit Zloz — Nested frame</title>' "$RUNNER_TEMP/teams-staging-login.html"
@@ -90,5 +98,5 @@ jobs:
           {
             echo '### Teams staging verified'
             printf '\n- Commit `%s`\n- Run %s attempt %s\n- Dispatch to hosted smoke %ss\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$elapsed"
-            echo '- Hosted build marker, anonymous session, Google configuration and sign-in shell passed.'
+            echo '- Hosted build marker, anonymous session, Google and email sign-in configuration, and sign-in shell passed.'
           } | tee -a "$GITHUB_STEP_SUMMARY"

@@ -9,6 +9,8 @@ export default defineConfig({
   server: { port: 4331 },
   vite: {
     plugins: [vanillaExtractPlugin()],
+    // Prebundle the lazy generator so its first use cannot reload a running dev board.
+    optimizeDeps: { include: ['likec4/generators/likec4'] },
     server: {
       // Native SQLite, bundles and logs are runtime state, never HMR source.
       watch: {

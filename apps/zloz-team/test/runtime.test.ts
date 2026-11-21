@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { openSync, closeSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1196,7 +1196,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     60_000,
   );
 
-  test('Mermaid export reviews confirmed versions and reports losses before download', async () => {
+  test('Mermaid and LikeC4 export review confirmed versions and losses before download', async () => {
     const data = await fixture();
     const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
     const create = async (graph: ZlozGraph) => {
@@ -1215,7 +1215,12 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       return { api, page: `${origin}/app/${data.organizationId}/diagrams/${id}` };
     };
     const diagram = await create({
-      nodes: seed.nodes.filter(({ id }) => id === 'a' || id === 'b'),
+      nodes: seed.nodes
+        .filter(({ id }) => id === 'a' || id === 'b')
+        .map((node) => ({
+          ...node,
+          architecture: { family: 'c4', role: 'software-system' },
+        })),
       edges: seed.edges.filter(({ id }) => id === 'ab'),
     });
     const rejected = await create({
@@ -1327,12 +1332,73 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         () => scrollY === 0 && document.documentElement.scrollHeight <= innerHeight,
       ),
     ).toBe(true);
+    await review.press('Escape');
+    await viewer.getByRole('button', { name: 'Export LikeC4', exact: true }).click();
+    const likec4 = viewer.getByRole('region', { name: 'LikeC4 export preview' });
+    const likec4Source = likec4.getByRole('button', { name: 'Download LikeC4 source' });
+    const likec4Consent = likec4.getByRole('checkbox', {
+      name: 'Allow reported conversion losses',
+    });
+    await browserExpect(likec4).toBeFocused();
+    await browserExpect(likec4.locator('pre')).toContainText('Confirmed Alpha');
+    await browserExpect(likec4.getByRole('list')).toContainText(/geometry/i);
+    await browserExpect(likec4Source).toBeDisabled();
+    await likec4Consent.check();
+
+    const latest = await fetch(`${diagram.api}/operations`, {
+      method: 'POST',
+      headers: { cookie: data.editor.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        operationId: crypto.randomUUID(),
+        operation: { type: 'RenameNode', id: 'a', expected: 1, label: 'Latest Alpha' },
+      }),
+    });
+    expect(await latest.json()).toMatchObject({
+      receipt: { status: 'accepted', documentVersion: 2 },
+    });
+    await browserExpect(likec4.getByText(/newer confirmed version/i)).toBeVisible();
+    await browserExpect(likec4Source).toBeDisabled();
+    await likec4.getByRole('button', { name: 'Review latest version' }).click();
+    await browserExpect(likec4.locator('pre')).toContainText('Latest Alpha');
+    await browserExpect(likec4Consent).not.toBeChecked();
+    await likec4Consent.check();
+    const c4 = await downloaded(likec4Source);
+    expect(c4.filename).toBe('zloz-v2.c4');
+    const c4Preview = await likec4.locator('pre').textContent();
+    if (c4Preview === null) throw new Error('LikeC4 source preview is missing');
+    expect(c4.bytes).toBe(c4Preview);
+    expect(c4.bytes).toContain('view index');
+    expect(c4.bytes).toContain('Calls');
+    const directory = await mkdtemp(join(tmpdir(), 'zloz-teams-likec4-'));
+    // oxlint-disable-next-line linteffect/no-try-catch -- Clean up the browser download fixture after CLI validation.
+    try {
+      await writeFile(join(directory, 'model.c4'), c4.bytes);
+      const cli = fileURLToPath(new URL('../node_modules/likec4/bin/likec4.mjs', import.meta.url));
+      const validation = Bun.spawnSync(
+        ['node', cli, 'validate', directory, '--json', '--max-warnings', '0'],
+        {
+          timeout: 30_000,
+        },
+      );
+      expect(validation.stderr.toString()).not.toContain('Error');
+      expect(validation.exitCode).toBe(0);
+      expect(JSON.parse(validation.stdout.toString())).toMatchObject({ valid: true });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
     await viewer.goto(rejected.page);
     await browserExpect(viewer.locator('[data-save-status]')).toHaveText('Saved');
     const blocked = await showViewerExport();
     await browserExpect(blocked.getByRole('list')).toContainText(/empty group/i);
     await browserExpect(blocked.getByRole('checkbox')).toHaveCount(0);
     await browserExpect(blocked.getByRole('button', { name: /^Download Mermaid/ })).toHaveCount(0);
+    await blocked.press('Escape');
+    await viewer.getByRole('button', { name: 'Export LikeC4', exact: true }).click();
+    await browserExpect(likec4.getByRole('list')).toContainText(
+      'Every element needs an explicit C4 role.',
+    );
+    await browserExpect(likec4Source).toHaveCount(0);
     expect(writes).toEqual([]);
   }, 60_000);
 

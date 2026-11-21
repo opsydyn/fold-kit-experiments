@@ -55,6 +55,7 @@ import { Message as CouplingMessage, OutMessage as CouplingOutMessage } from './
 import * as Coupling from './coupling/model';
 import { observe as observeCoupling, update as updateCoupling } from './coupling/update';
 import { view as couplingView } from './coupling/view';
+import { revealEdgeStrokes, introducedEdges } from './edge-motion';
 import * as Evolution from './evolution';
 import { view as evolutionView } from './evolution-view';
 import {
@@ -126,6 +127,8 @@ export const Model = Schema.Struct({
   feedMode: Schema.Literals(['legacy', 'delta']),
   feedSeeds: Schema.Array(FeedSeed),
   feedProgress: Schema.Array(FeedProgress),
+  edgeMotionRun: Schema.NullOr(Schema.Number),
+  deferredEdgeReveals: Schema.Array(Schema.String),
   room: Room,
   assessment: Assessment.Model,
   coupling: Coupling.Model,
@@ -248,6 +251,7 @@ export const Message = defineMessageUnion({
   ClosedOpy: {},
   GotOpyMessage: { room: Room, message: Opy.Message },
   CompletedBoardFocus: {},
+  CompletedEdgeReveal: {},
   GotCouplingMessage: { room: Room, message: CouplingMessage },
   CompletedInspectorFocus: {},
 });
@@ -263,6 +267,14 @@ export const devTools = {
     'SucceededPresence',
   ] satisfies readonly Message['_tag'][],
 } satisfies DevToolsConfig;
+const RevealEdges = Command.define('RevealEdges', {
+  args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) },
+  messages: [Message.CompletedEdgeReveal],
+  execute: ({ run, edgeIds }) => {
+    const reveal = Effect.sync(() => revealEdgeStrokes(run, edgeIds));
+    return Render.afterCommit.pipe(Effect.andThen(reveal), Effect.map(Message.CompletedEdgeReveal));
+  },
+});
 const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
   messages: [Message.CompletedInspectorFocus],
   execute: Render.afterCommit.pipe(
@@ -481,6 +493,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         feedMode: 'legacy',
         feedSeeds: [],
         feedProgress: [],
+        edgeMotionRun: null,
+        deferredEdgeReveals: [],
         session: newSession(room),
         queuedMove: null,
         moveSaveIssue: null,
@@ -776,6 +790,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           },
     CompletedInspectorFocus: () => ({ model }),
     CompletedBoardFocus: () => ({ model }),
+    CompletedEdgeReveal: () => ({ model }),
     ChangedBoardWidth: ({ compact }) => ({
       model: withRailChange(model, {
         ...model,
@@ -1506,7 +1521,74 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return { model: next };
     },
   });
-  return flushQueuedMove(step);
+  return scheduleEdgeReveal(model, message, flushQueuedMove(step));
+}
+
+function scheduleEdgeReveal(
+  before: Model,
+  message: Message,
+  step: Return<Model, Message>,
+): Return<Model, Message> {
+  const next = step.model;
+  if (next === before) return step;
+
+  const activeRun =
+    next.connection._tag === 'Handoff'
+      ? next.connection.previousRun
+      : next.connection._tag === 'Live'
+        ? next.socketRun
+        : null;
+  // A delta lane can install history before its explicit catch-up marker.
+  // The legacy lane's first frame is its baseline.
+  const reachedLive =
+    (message._tag === 'ObservedCaughtUp' && next.feedMode === 'delta') ||
+    (message._tag === 'ObservedFrame' && next.feedMode === 'legacy');
+  const run =
+    reachedLive && message.run === activeRun
+      ? activeRun
+      : before.edgeMotionRun === activeRun
+        ? before.edgeMotionRun
+        : null;
+
+  if (run !== before.edgeMotionRun)
+    return {
+      ...step,
+      model: { ...next, edgeMotionRun: run, deferredEdgeReveals: [] },
+    };
+
+  if (run === null) return step;
+
+  const previous = before.session.confirmed;
+  const confirmed = next.session.confirmed;
+  const added =
+    previous && confirmed && previous.undoResetVersion === confirmed.undoResetVersion
+      ? introducedEdges(previous.document, confirmed.document)
+      : [];
+  const waiting = next.deferredEdgeReveals;
+  if (!added.length && !waiting.length) return step;
+
+  const visibleGraph = editor(next).graph;
+  if (isAuthoredGesture(editor(next).gesture))
+    return added.length
+      ? { ...step, model: { ...next, deferredEdgeReveals: [...waiting, ...added] } }
+      : step;
+
+  // Reconcile a drag first, then reveal only edges in the resulting canvas graph.
+  const visibleIds = new Set(visibleGraph.edges.map((edge) => edge.id));
+  const confirmedIds = new Set(confirmed?.document.graph.edges.map((edge) => edge.id));
+  const edgeIds: string[] = [];
+  const deferredEdgeReveals: string[] = [];
+  for (const id of [...waiting, ...added]) {
+    if (!confirmedIds.has(id)) continue;
+    if (visibleIds.has(id)) edgeIds.push(id);
+    else deferredEdgeReveals.push(id);
+  }
+  return {
+    model: { ...next, deferredEdgeReveals },
+    commands: edgeIds.length
+      ? [...(step.commands ?? []), RevealEdges({ run, edgeIds })]
+      : step.commands,
+  };
 }
 
 function flushQueuedMove(step: Return<Model, Message>): Return<Model, Message> {
@@ -2108,6 +2190,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.DataAttribute('tools-open', String(toolsOpen)),
         h.DataAttribute('inspector-open', String(inspectorOpen)),
         h.DataAttribute('confirmed-version', String(state.confirmed?.document.version ?? -1)),
+        h.DataAttribute('edge-motion-run', String(model.edgeMotionRun ?? '')),
       ],
       [
         h.div(

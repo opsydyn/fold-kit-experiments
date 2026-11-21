@@ -1709,6 +1709,174 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect(writes).toEqual([]);
   }, 60_000);
 
+  test('a live edge reveals once per editor, survives a peer drag, and stays still on reconnect', async () => {
+    const data = await fixture();
+    const diagramId = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${diagramId}`;
+    const board = `${origin}/app/${data.organizationId}/diagrams/${diagramId}`;
+    const seed = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+    const nodes = ['Alpha', 'Beta', 'Gamma', 'Delta'].map((label, index) => ({
+      ...seed.nodes[0]!,
+      id: ['a', 'b', 'c', 'd'][index]!,
+      label,
+      position: { x: 70 + (index % 2) * 320, y: 90 + Math.floor(index / 2) * 220 },
+      ports: [...seed.nodes[0]!.ports, ...seed.nodes[1]!.ports],
+    }));
+    const write = <Body extends object>(url: string, body: Body) =>
+      fetch(url, {
+        method: 'POST',
+        headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await write(api, {
+          operationId: diagramId,
+          name: 'Edge motion',
+          graph: { version: 1, graph: { nodes, edges: [seed.edges[0]!] } },
+        })
+      ).status,
+    ).toBe(200);
+    const browser = await chromium.launch();
+    try {
+      const session = async (cookie: string) => {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const equals = cookie.indexOf('=');
+        await context.addCookies([
+          { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+        ]);
+        await context.addInitScript(() => {
+          const animate = Element.prototype.animate;
+          Element.prototype.animate = function (keyframes, options) {
+            const edge = this.getAttribute('data-flow-edge-stroke');
+            if (edge)
+              document.documentElement.setAttribute(
+                'data-test-edge-motion',
+                [document.documentElement.getAttribute('data-test-edge-motion'), edge]
+                  .filter(Boolean)
+                  .join(' '),
+              );
+            return animate.call(this, keyframes, options);
+          };
+        });
+        return { context, page: await context.newPage() };
+      };
+      const owner = await session(data.owner.cookie);
+      const editor = await session(data.editor.cookie);
+      let editorSocket: WebSocketRoute | undefined;
+      let disconnected = false;
+      await editor.page.routeWebSocket(/\/api\/zloz\/live(?:\?|$)/, (route) => {
+        if (disconnected) return route.close({ code: 1011 });
+        editorSocket = route;
+        route.connectToServer();
+      });
+      const motions = async (page: Page) =>
+        ((await page.locator('html').getAttribute('data-test-edge-motion')) ?? '')
+          .split(' ')
+          .filter(Boolean);
+      const saved = async (page: Page) => {
+        await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+        await browserExpect(page.locator('[data-edge-motion-run]')).toHaveAttribute(
+          'data-edge-motion-run',
+          /^\d+$/,
+        );
+      };
+      await Promise.all([owner.page.goto(board), editor.page.goto(board)]);
+      await Promise.all([saved(owner.page), saved(editor.page)]);
+      expect(await motions(owner.page)).toEqual([]);
+      expect(await motions(editor.page)).toEqual([]);
+
+      const moving = editor.page.locator('[data-flow-node="d"]');
+      const title = moving.getByRole('button', { name: 'Select Delta', exact: true });
+      const bounds = await title.boundingBox();
+      if (!bounds) throw new Error('Expected a visible drag handle');
+      const x = bounds.x + bounds.width / 2;
+      const y = bounds.y + bounds.height / 2;
+      await editor.page.mouse.move(x, y);
+      await editor.page.mouse.down();
+      await editor.page.mouse.move(x + 28, y + 12, { steps: 3 });
+      const during = await moving.getAttribute('data-flow-x');
+      const version = editor.page.locator('[data-confirmed-version]');
+      await browserExpect(version).toHaveAttribute('data-confirmed-version', '0');
+
+      await owner.page.getByRole('button', { name: 'Connect from Beta: out', exact: true }).click();
+      await owner.page.getByRole('button', { name: 'Connect to Gamma: in', exact: true }).click();
+      await browserExpect.poll(() => motions(owner.page)).toHaveLength(1);
+      const [createdEdge] = await motions(owner.page);
+      await browserExpect(version).toHaveAttribute('data-confirmed-version', '1');
+      expect(await moving.getAttribute('data-flow-x')).toBe(during);
+      expect(await motions(editor.page)).toEqual([]);
+      await editor.page.mouse.move(x + 72, y + 20, { steps: 4 });
+      await browserExpect(moving).not.toHaveAttribute('data-flow-x', during ?? '');
+      const finalX = await moving.getAttribute('data-flow-x');
+      await editor.page.mouse.up();
+      await browserExpect.poll(() => motions(editor.page)).toEqual([createdEdge]);
+      await Promise.all([saved(owner.page), saved(editor.page)]);
+      await browserExpect(owner.page.locator('[data-flow-node="d"]')).toHaveAttribute(
+        'data-flow-x',
+        finalX ?? '',
+      );
+      expect(await motions(owner.page)).toEqual([createdEdge]);
+
+      const connect = async (
+        id: string,
+        source: string,
+        target: string,
+        expectedVersion: number,
+      ) => {
+        const response = await write(api + '/operations', {
+          version: 1,
+          operationId: id,
+          operation: {
+            type: 'Connect',
+            expectedVersion,
+            edge: {
+              id,
+              source: { node: source, port: 'out' },
+              target: { node: target, port: 'in' },
+            },
+          },
+        });
+        expect(await response.json()).toMatchObject({ receipt: { status: 'accepted' } });
+      };
+      await editor.page.emulateMedia({ reducedMotion: 'reduce' });
+      await connect('reduced-edge', 'c', 'd', 2);
+      await browserExpect.poll(() => motions(owner.page)).toEqual([createdEdge, 'reduced-edge']);
+      await browserExpect(
+        editor.page.locator('[data-flow-edge-stroke="reduced-edge"]'),
+      ).toBeVisible();
+      await editor.page.emulateMedia({ reducedMotion: 'no-preference' });
+      expect(await motions(editor.page)).toEqual([createdEdge]);
+
+      disconnected = true;
+      await editor.context.setOffline(true);
+      if (!editorSocket) throw new Error('Expected an established editor feed');
+      await editorSocket.close({ code: 1011 });
+      await browserExpect(editor.page.locator('[data-save-status]')).toHaveText('Reconnecting…');
+      await connect('offline-edge', 'd', 'a', 3);
+      await browserExpect
+        .poll(() => motions(owner.page))
+        .toEqual([createdEdge, 'reduced-edge', 'offline-edge']);
+      disconnected = false;
+      await editor.context.setOffline(false);
+      await saved(editor.page);
+      await browserExpect(
+        editor.page.locator('[data-flow-edge-stroke="offline-edge"]'),
+      ).toBeVisible();
+      expect(await motions(editor.page)).toEqual([createdEdge]);
+      await connect('next-live-edge', 'b', 'd', 4);
+      await browserExpect.poll(() => motions(editor.page)).toEqual([createdEdge, 'next-live-edge']);
+      await editor.page.reload();
+      await saved(editor.page);
+      await browserExpect(
+        editor.page.locator('[data-flow-edge-stroke="next-live-edge"]'),
+      ).toBeVisible();
+      expect(await motions(editor.page)).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  }, 35_000);
+
   test('two Chromium sessions reconcile shared edits, safe Undo, disconnect and unknown replies', async () => {
     const data = await fixture();
     const browser = await chromium.launch();

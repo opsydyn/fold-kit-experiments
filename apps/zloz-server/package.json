@@ -15,7 +15,7 @@
     "@opsydyn/foldkit-zloz": "workspace:*",
     "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
     "alchemy": "catalog:infra",
-    "better-auth": "1.7.5",
+    "better-auth": "1.7.7",
     "effect": "catalog:",
     "kysely": "0.29.4"
   },

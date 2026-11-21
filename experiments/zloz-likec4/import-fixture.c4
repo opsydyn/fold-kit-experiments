@@ -1,0 +1,25 @@
+specification {
+  element person
+  element system
+  element container
+  element component
+  tag external
+}
+model {
+  buyer = person 'Buyer'
+  bank = system 'Bank' { #external }
+  storefront = system 'Store' {
+    web = container 'Web' {
+      technology 'Astro'
+      api = component 'Checkout'
+    }
+  }
+  buyer -> storefront 'Browses'
+  storefront.web.api -> bank 'Authorizes'
+  storefront.web.api -> bank 'Refunds'
+}
+views {
+  view detail { include * , storefront.** }
+  view overview { include * }
+  dynamic view checkout { buyer -> storefront 'Visits' }
+}

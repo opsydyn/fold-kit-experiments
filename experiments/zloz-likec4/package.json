@@ -1,0 +1,11 @@
+{
+  "name": "@opsydyn/zloz-likec4-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test *.test.mjs"
+  },
+  "devDependencies": {
+    "likec4": "1.61.0"
+  }
+}

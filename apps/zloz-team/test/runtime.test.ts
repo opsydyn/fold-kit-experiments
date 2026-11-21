@@ -193,6 +193,105 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       };
     });
 
+  test('LikeC4 import reviews losses, blocks group ports and creates only the reviewed compatible view', async () => {
+    const data = await fixture();
+    const browser = await chromium.launch();
+    const context = await browser.newContext();
+    const equals = data.editor.cookie.indexOf('=');
+    await context.addCookies([
+      {
+        name: data.editor.cookie.slice(0, equals),
+        value: data.editor.cookie.slice(equals + 1),
+        url: origin,
+      },
+    ]);
+    const page = await context.newPage();
+    const writes: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/api/zloz/diagrams/'))
+        writes.push(request.postData() ?? '');
+    });
+    try {
+      await page.goto(`${origin}/app/${data.organizationId}/diagrams/new`);
+      const panel = page.getByRole('region', { name: 'LikeC4 import' });
+      await panel
+        .getByLabel('LikeC4 JSON file')
+        .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+      const view = panel.getByLabel('Static view');
+      await view.selectOption('detail');
+      await browserExpect(
+        panel.getByRole('img', { name: 'Read-only preview of detail' }),
+      ).toBeVisible();
+      await browserExpect(panel.getByText(/Generated likec4-input/).first()).toBeVisible();
+      await browserExpect(panel.getByRole('alert')).toContainText('Group storefront has a port');
+      await browserExpect(panel.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled();
+      const pendingDownload = page.waitForEvent('download');
+      await panel.getByRole('link', { name: 'Download Zloz v3' }).click();
+      const download = await pendingDownload;
+      const file = await download.path();
+      expect(await Bun.file(file).json()).toMatchObject({
+        version: 3,
+        capabilities: { groupPorts: true },
+        graph: {
+          edges: expect.arrayContaining([
+            expect.objectContaining({
+              label: 'Browses',
+              target: { node: 'storefront', port: 'likec4-input' },
+            }),
+            expect.objectContaining({ label: 'Authorizes' }),
+            expect.objectContaining({ label: 'Refunds' }),
+          ]),
+        },
+      });
+      await panel.getByRole('button', { name: 'Cancel preview' }).click();
+      await browserExpect(view).toHaveCount(0);
+      expect(writes).toEqual([]);
+      await panel
+        .getByLabel('LikeC4 JSON file')
+        .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+      await view.selectOption('overview');
+      await browserExpect(panel.getByText(/endpoint is outside the view/)).toHaveCount(2);
+      const name = panel.getByLabel('Imported diagram name');
+      await name.fill('Reviewed LikeC4 overview');
+      const apply = panel.getByRole('button', { name: 'Apply', exact: true });
+      await browserExpect(apply).toBeDisabled();
+      const consent = panel.getByLabel('I reviewed the import losses');
+      await consent.check();
+      await browserExpect(apply).toBeEnabled();
+      await view.selectOption('detail');
+      await view.selectOption('overview');
+      await browserExpect(consent).not.toBeChecked();
+      await browserExpect(apply).toBeDisabled();
+      expect(writes).toEqual([]);
+      await consent.check();
+      await apply.click();
+      await browserExpect(page).toHaveURL(
+        new RegExp(`/app/${data.organizationId}/diagrams/[a-f0-9-]{36}$`),
+      );
+      expect(writes).toHaveLength(1);
+      expect(JSON.parse(writes[0]!)).toMatchObject({
+        name: 'Reviewed LikeC4 overview',
+        graph: {
+          version: 1,
+          graph: {
+            edges: [
+              expect.objectContaining({
+                label: 'Browses',
+                target: { node: 'storefront', port: 'likec4-input' },
+              }),
+            ],
+          },
+        },
+      });
+      const created = page.getByRole('heading', { name: 'Reviewed LikeC4 overview' });
+      await browserExpect(created).toBeVisible();
+      await page.reload();
+      await browserExpect(created).toBeVisible();
+    } finally {
+      await browser.close();
+    }
+  }, 60_000);
+
   test('real app creates, opens, streams, edits and exports a private diagram with fresh role checks', async () => {
     const data = await fixture();
     const blankId = crypto.randomUUID();

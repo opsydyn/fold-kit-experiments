@@ -1,0 +1,569 @@
+{
+  "_stage": "layouted",
+  "projectId": "default",
+  "project": { "id": "default", "title": "default" },
+  "specification": {
+    "tags": { "external": { "color": "tomato" } },
+    "elements": {
+      "person": { "style": {} },
+      "system": { "style": {} },
+      "container": { "style": {} },
+      "component": { "style": {} }
+    },
+    "relationships": {},
+    "deployments": {},
+    "customColors": {}
+  },
+  "elements": {
+    "buyer": { "style": {}, "title": "Buyer", "kind": "person", "id": "buyer" },
+    "bank": { "style": {}, "tags": ["external"], "title": "Bank", "kind": "system", "id": "bank" },
+    "storefront": { "style": {}, "title": "Store", "kind": "system", "id": "storefront" },
+    "storefront.web": {
+      "style": {},
+      "technology": "Astro",
+      "title": "Web",
+      "kind": "container",
+      "id": "storefront.web"
+    },
+    "storefront.web.api": {
+      "style": {},
+      "title": "Checkout",
+      "kind": "component",
+      "id": "storefront.web.api"
+    }
+  },
+  "relations": {
+    "lb3rnd": {
+      "source": { "model": "buyer" },
+      "target": { "model": "storefront" },
+      "id": "lb3rnd",
+      "title": "Browses"
+    },
+    "16e53rd": {
+      "source": { "model": "storefront.web.api" },
+      "target": { "model": "bank" },
+      "id": "16e53rd",
+      "title": "Authorizes"
+    },
+    "qhxyvc": {
+      "source": { "model": "storefront.web.api" },
+      "target": { "model": "bank" },
+      "id": "qhxyvc",
+      "title": "Refunds"
+    }
+  },
+  "globals": { "predicates": {}, "dynamicPredicates": {}, "styles": {} },
+  "views": {
+    "index": {
+      "_stage": "layouted",
+      "_type": "element",
+      "id": "index",
+      "title": "Landscape view",
+      "description": null,
+      "autoLayout": { "direction": "TB" },
+      "hash": "ua3o8ywR-GX5RYB7vZ4Pze9CBkWYl_ZQc5pUBUr3Gnw",
+      "bounds": { "x": 0, "y": 0, "width": 320, "height": 830 },
+      "nodes": [
+        {
+          "id": "buyer",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": [],
+          "outEdges": ["5das19"],
+          "title": "Buyer",
+          "modelRef": "buyer",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "person",
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 132, "y": 76, "width": 56, "height": 24 }
+        },
+        {
+          "id": "storefront",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["5das19"],
+          "outEdges": ["1q78302"],
+          "title": "Store",
+          "modelRef": "storefront",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "system",
+          "x": 0,
+          "y": 325,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 134, "y": 76, "width": 52, "height": 24 }
+        },
+        {
+          "id": "bank",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["1q78302"],
+          "outEdges": [],
+          "title": "Bank",
+          "modelRef": "bank",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": ["external"],
+          "kind": "system",
+          "x": 0,
+          "y": 650,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 135, "y": 76, "width": 50, "height": 24 }
+        }
+      ],
+      "edges": [
+        {
+          "id": "5das19",
+          "source": "buyer",
+          "target": "storefront",
+          "label": "Browses",
+          "points": [
+            [160, 180],
+            [160, 222],
+            [160, 272],
+            [160, 315]
+          ],
+          "labelBBox": { "x": 161, "y": 241, "width": 67, "height": 25 },
+          "parent": null,
+          "relations": ["lb3rnd"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        },
+        {
+          "id": "1q78302",
+          "source": "storefront",
+          "target": "bank",
+          "label": "[...]",
+          "points": [
+            [160, 505],
+            [160, 547],
+            [160, 597],
+            [160, 640]
+          ],
+          "labelBBox": { "x": 161, "y": 566, "width": 33, "height": 25 },
+          "parent": null,
+          "relations": ["16e53rd", "qhxyvc"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        }
+      ]
+    },
+    "detail": {
+      "_type": "element",
+      "tags": null,
+      "links": null,
+      "_stage": "layouted",
+      "sourcePath": "model.c4",
+      "description": null,
+      "title": null,
+      "id": "detail",
+      "autoLayout": { "direction": "TB" },
+      "hash": "jM2lzfbAvvwsZvwSf82AnPyuNxhBFP0YyZSwkiou35Y",
+      "bounds": { "x": 0, "y": 0, "width": 464, "height": 872 },
+      "nodes": [
+        {
+          "id": "storefront",
+          "parent": null,
+          "level": 0,
+          "children": ["storefront.web"],
+          "inEdges": ["5das19"],
+          "outEdges": ["1btgrkq"],
+          "title": "Store",
+          "modelRef": "storefront",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "system",
+          "depth": 2,
+          "x": 8,
+          "y": 249,
+          "width": 448,
+          "height": 350,
+          "labelBBox": { "x": 6, "y": 0, "width": 42, "height": 15 }
+        },
+        {
+          "id": "storefront.web",
+          "parent": "storefront",
+          "level": 1,
+          "children": ["storefront.web.api"],
+          "inEdges": [],
+          "outEdges": ["1btgrkq"],
+          "title": "Web",
+          "modelRef": "storefront.web",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "technology": "Astro",
+          "kind": "container",
+          "depth": 1,
+          "x": 40,
+          "y": 302,
+          "width": 384,
+          "height": 265,
+          "labelBBox": { "x": 6, "y": 0, "width": 30, "height": 15 }
+        },
+        {
+          "id": "buyer",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": [],
+          "outEdges": ["5das19"],
+          "title": "Buyer",
+          "modelRef": "buyer",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "person",
+          "x": 72,
+          "y": 0,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 132, "y": 76, "width": 56, "height": 24 }
+        },
+        {
+          "id": "storefront.web.api",
+          "parent": "storefront.web",
+          "level": 2,
+          "children": [],
+          "inEdges": [],
+          "outEdges": ["1btgrkq"],
+          "title": "Checkout",
+          "modelRef": "storefront.web.api",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "component",
+          "x": 72,
+          "y": 355,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 116, "y": 76, "width": 88, "height": 24 }
+        },
+        {
+          "id": "bank",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["1btgrkq"],
+          "outEdges": [],
+          "title": "Bank",
+          "modelRef": "bank",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": ["external"],
+          "kind": "system",
+          "x": 72,
+          "y": 692,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 135, "y": 76, "width": 50, "height": 24 }
+        }
+      ],
+      "edges": [
+        {
+          "id": "1btgrkq",
+          "source": "storefront.web.api",
+          "target": "bank",
+          "label": "[...]",
+          "points": [
+            [232, 535],
+            [232, 581],
+            [232, 636],
+            [232, 682]
+          ],
+          "labelBBox": { "x": 233, "y": 608, "width": 33, "height": 25 },
+          "parent": null,
+          "relations": ["16e53rd", "qhxyvc"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        },
+        {
+          "id": "5das19",
+          "source": "buyer",
+          "target": "storefront",
+          "label": "Browses",
+          "points": [
+            [232, 180],
+            [232, 198],
+            [232, 218],
+            [232, 239]
+          ],
+          "labelBBox": { "x": 166, "y": 190, "width": 67, "height": 25 },
+          "parent": null,
+          "relations": ["lb3rnd"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        }
+      ]
+    },
+    "overview": {
+      "_type": "element",
+      "tags": null,
+      "links": null,
+      "_stage": "layouted",
+      "sourcePath": "model.c4",
+      "description": null,
+      "title": null,
+      "id": "overview",
+      "autoLayout": { "direction": "TB" },
+      "hash": "uWuiPCS6DPurlsk0NRYSgr4H0TiTqxycN9jDdd3pq6o",
+      "bounds": { "x": 0, "y": 0, "width": 320, "height": 830 },
+      "nodes": [
+        {
+          "id": "buyer",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": [],
+          "outEdges": ["5das19"],
+          "title": "Buyer",
+          "modelRef": "buyer",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "person",
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 132, "y": 76, "width": 56, "height": 24 }
+        },
+        {
+          "id": "storefront",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["5das19"],
+          "outEdges": ["1q78302"],
+          "title": "Store",
+          "modelRef": "storefront",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "system",
+          "x": 0,
+          "y": 325,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 134, "y": 76, "width": 52, "height": 24 }
+        },
+        {
+          "id": "bank",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["1q78302"],
+          "outEdges": [],
+          "title": "Bank",
+          "modelRef": "bank",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": ["external"],
+          "kind": "system",
+          "x": 0,
+          "y": 650,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 135, "y": 76, "width": 50, "height": 24 }
+        }
+      ],
+      "edges": [
+        {
+          "id": "5das19",
+          "source": "buyer",
+          "target": "storefront",
+          "label": "Browses",
+          "points": [
+            [160, 180],
+            [160, 222],
+            [160, 272],
+            [160, 315]
+          ],
+          "labelBBox": { "x": 161, "y": 241, "width": 67, "height": 25 },
+          "parent": null,
+          "relations": ["lb3rnd"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        },
+        {
+          "id": "1q78302",
+          "source": "storefront",
+          "target": "bank",
+          "label": "[...]",
+          "points": [
+            [160, 505],
+            [160, 547],
+            [160, 597],
+            [160, 640]
+          ],
+          "labelBBox": { "x": 161, "y": 566, "width": 33, "height": 25 },
+          "parent": null,
+          "relations": ["16e53rd", "qhxyvc"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal"
+        }
+      ]
+    },
+    "checkout": {
+      "_type": "dynamic",
+      "tags": null,
+      "links": null,
+      "_stage": "layouted",
+      "sourcePath": "model.c4",
+      "description": null,
+      "title": null,
+      "id": "checkout",
+      "variant": "diagram",
+      "flow": ["step-01"],
+      "autoLayout": { "direction": "LR" },
+      "hash": "LHrTM8q4bWPpM0M6NBRw2ne3_fRWJkJNzerqS40mCrk",
+      "sequenceLayout": {
+        "actors": [
+          {
+            "id": "buyer",
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180,
+            "ports": [
+              {
+                "id": "step-01_source",
+                "cx": 160,
+                "cy": 250,
+                "height": 40,
+                "type": "source",
+                "position": "right"
+              }
+            ]
+          },
+          {
+            "id": "storefront",
+            "x": 400,
+            "y": 0,
+            "width": 320,
+            "height": 180,
+            "ports": [
+              {
+                "id": "step-01_target",
+                "cx": 160,
+                "cy": 250,
+                "height": 24,
+                "type": "target",
+                "position": "left"
+              }
+            ]
+          }
+        ],
+        "compounds": [],
+        "steps": [
+          {
+            "id": "step-01",
+            "sourceHandle": "step-01_source",
+            "targetHandle": "step-01_target",
+            "labelBBox": { "width": 75, "height": 28 }
+          }
+        ],
+        "parallelAreas": [],
+        "subflows": [],
+        "bounds": { "x": 0, "y": 0, "width": 720, "height": 328 }
+      },
+      "bounds": { "x": 0, "y": 0, "width": 833, "height": 180 },
+      "nodes": [
+        {
+          "id": "buyer",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": [],
+          "outEdges": ["step-01"],
+          "title": "Buyer",
+          "modelRef": "buyer",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "person",
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 132, "y": 76, "width": 56, "height": 24 }
+        },
+        {
+          "id": "storefront",
+          "parent": null,
+          "level": 0,
+          "children": [],
+          "inEdges": ["step-01"],
+          "outEdges": [],
+          "title": "Store",
+          "modelRef": "storefront",
+          "shape": "rectangle",
+          "color": "primary",
+          "style": { "opacity": 15, "size": "md" },
+          "tags": [],
+          "kind": "system",
+          "x": 513,
+          "y": 0,
+          "width": 320,
+          "height": 180,
+          "labelBBox": { "x": 134, "y": 76, "width": 52, "height": 24 }
+        }
+      ],
+      "edges": [
+        {
+          "id": "step-01",
+          "source": "buyer",
+          "target": "storefront",
+          "label": "Visits",
+          "points": [
+            [320, 90],
+            [378, 90],
+            [444, 90],
+            [502, 90]
+          ],
+          "labelBBox": { "x": 389, "y": 58, "width": 59, "height": 20 },
+          "parent": null,
+          "relations": ["lb3rnd"],
+          "color": "gray",
+          "line": "dashed",
+          "head": "normal",
+          "tags": [],
+          "astPath": "/steps@0"
+        }
+      ]
+    }
+  },
+  "deployments": { "elements": {}, "relations": {} },
+  "imports": {},
+  "manualLayouts": {}
+}

@@ -24,7 +24,8 @@
     "@vanilla-extract/css": "catalog:",
     "astro": "catalog:",
     "effect": "catalog:",
-    "foldkit": "catalog:"
+    "foldkit": "catalog:",
+    "likec4": "catalog:"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:infra",

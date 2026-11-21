@@ -31,6 +31,7 @@ import {
   type LedgerEntry,
   type Participant,
   type Role,
+  type RoomNotice,
   type RoomView,
   type Scene,
   type Token,
@@ -39,6 +40,8 @@ import {
 type Generation = { teamId: string; id: string };
 type Lobby = { dm: string; players: readonly string[]; joined: readonly string[] };
 const lobbyKey = 'lobby';
+const roomDeliveryLeaseMs = 60_000;
+const isDeliveryExpiry = Schema.is(Schema.Int);
 
 interface Env {
   ROOM: DurableObjectNamespace<QuestRoom>;
@@ -79,6 +82,41 @@ const sceneWith = (scene: Scene, token: Token): Scene => ({
 });
 
 export class QuestRoom extends DurableObject<Env> {
+  async fetch(request: Request) {
+    const userId = request.headers.get('x-quest-user');
+    if (request.method !== 'GET' || request.headers.get('upgrade')?.toLowerCase() !== 'websocket')
+      return deny(426, 'WebSocket upgrade required');
+    if (!isAccountId(userId)) return deny(404, 'Table unavailable');
+    const participant = await this.participant(userId);
+    if (!participant) return deny(404, 'Table unavailable');
+    if (!participant.joined) return deny(403, 'Join the party first.');
+    const { 0: client, 1: server } = new WebSocketPair();
+    this.ctx.acceptWebSocket(server, [participant.role]);
+    server.serializeAttachment(Date.now() + roomDeliveryLeaseMs);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  webSocketMessage(socket: WebSocket) {
+    // oxlint-disable-next-line linteffect/no-manual-resource-close -- The Durable Object runtime owns accepted sockets.
+    socket.close(1008, 'This connection only sends room updates');
+  }
+
+  #notify(notice: RoomNotice, role?: Role) {
+    const now = Date.now();
+    for (const socket of this.ctx.getWebSockets(role)) {
+      if (socket.readyState !== WebSocket.OPEN) continue;
+      const expires = socket.deserializeAttachment();
+      try {
+        if (!isDeliveryExpiry(expires) || expires <= now)
+          // oxlint-disable-next-line linteffect/no-manual-resource-close -- Closing delivers the authorization expiry to this client.
+          socket.close(4000, 'Room authorization needs renewal');
+        else socket.send(notice);
+      } catch {
+        // A disconnected receiver cannot affect a committed command or the remaining receivers.
+      }
+    }
+  }
+
   async participant(userId: string) {
     return participantFor(await this.ctx.storage.get<Lobby>(lobbyKey), userId);
   }
@@ -125,7 +163,7 @@ export class QuestRoom extends DurableObject<Env> {
   }
 
   async reserve(input: typeof Start.Type) {
-    return this.ctx.storage.transaction(async (store) => {
+    const result = await this.ctx.storage.transaction(async (store) => {
       const previous = await store.get<Job>(jobKey(input.id));
       if (previous) {
         if (previous.prompt !== input.prompt) return undefined;
@@ -144,17 +182,22 @@ export class QuestRoom extends DurableObject<Env> {
       await store.put({ [jobKey(input.id)]: job, [current]: input.id });
       return job;
     });
+    if (result) this.#notify('room', 'dm');
+    return result;
   }
 
   async settle(id: string, status: 'ready' | 'failed') {
-    await this.ctx.storage.transaction(async (store) => {
+    const changed = await this.ctx.storage.transaction(async (store) => {
       const job = await store.get<Job>(jobKey(id));
-      if (job?.status === 'pending') await store.put(jobKey(id), { ...job, status });
+      if (job?.status !== 'pending') return false;
+      await store.put(jobKey(id), { ...job, status });
+      return true;
     });
+    if (changed) this.#notify('room', 'dm');
   }
 
   async apply(id: string) {
-    return this.ctx.storage.transaction(async (store) => {
+    const result = await this.ctx.storage.transaction(async (store) => {
       const job = await store.get<Job>(jobKey(id));
       if (!job || job.kind === 'backdrop') return undefined;
       const scene = await readScene(store);
@@ -172,10 +215,12 @@ export class QuestRoom extends DurableObject<Env> {
       });
       return { version: next.version };
     });
+    if (result) this.#notify('room');
+    return result;
   }
 
   async reveal({ id, style }: typeof Reveal.Type) {
-    return this.ctx.storage.transaction(async (store) => {
+    const result = await this.ctx.storage.transaction(async (store) => {
       const job = await store.get<Job>(jobKey(id));
       if (job?.kind !== 'backdrop') return undefined;
       if (style === 'plain' && job.plainVersion !== undefined) return { version: job.plainVersion };
@@ -209,6 +254,8 @@ export class QuestRoom extends DurableObject<Env> {
       await store.put({ [sceneKey]: next, [jobKey(id)]: updatedJob });
       return { version };
     });
+    if (result) this.#notify('room');
+    return result;
   }
 
   async ledger() {
@@ -273,7 +320,7 @@ export class QuestRoom extends DurableObject<Env> {
   }
 
   async publishLedgerEntry(input: typeof PublishLedgerEntry.Type) {
-    return this.ctx.storage.transaction(async (store) => {
+    const result = await this.ctx.storage.transaction(async (store) => {
       const key = ledgerKey(input.id);
       const entry = await store.get<LedgerEntry>(key);
       if (!entry) return { status: 'missing' as const };
@@ -292,10 +339,12 @@ export class QuestRoom extends DurableObject<Env> {
       await store.put(key, updated);
       return { status: 'saved' as const, entry: updated };
     });
+    if (result.status === 'saved') this.#notify('party-ledger', 'player');
+    return result;
   }
 
   async move(participant: Participant, input: typeof Move.Type) {
-    return this.ctx.storage.transaction(async (store) => {
+    const result = await this.ctx.storage.transaction(async (store) => {
       if (!mayMove(participant, input.id)) return { status: 'denied' as const };
       const scene = await readScene(store);
       const current = scene.tokens.find((token) => token.id === input.id);
@@ -312,6 +361,8 @@ export class QuestRoom extends DurableObject<Env> {
       await store.put(sceneKey, next);
       return { status: 'saved' as const, version: next.version };
     });
+    if (result.status === 'saved') this.#notify('room');
+    return result;
   }
 
   async appliedAssetKind(id: string): Promise<ArtKind | undefined> {
@@ -422,6 +473,8 @@ export default {
     if (!isAccountId(teamId) || extra !== undefined || !isAccountId(userId))
       return deny(404, 'Table unavailable');
     const room = roomOf(env, teamId);
+    // WebSocket upgrades cross the Durable Object fetch boundary as an intact response.
+    if (action === 'live' && parameter === undefined) return room.fetch(request);
     if (request.method === 'POST' && parameter === undefined && action === 'host') {
       const players = await inputFor(request, InviteSeats);
       if (!players || new Set([userId, ...players]).size !== 4)

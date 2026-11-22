@@ -41,6 +41,6 @@
     "typescript": "catalog:"
   },
   "peerDependencies": {
-    "foldkit": ">=0.170.0 <0.171.0"
+    "foldkit": ">=0.170.0 <0.172.0"
   }
 }

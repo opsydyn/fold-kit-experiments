@@ -43,7 +43,7 @@ export function datasetProject(
         },
         dependencies: {
           '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
-          foldkit: '0.170.0',
+          foldkit: '0.171.0',
           effect: '4.1.0',
           // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
           '@effect/platform-browser': '4.1.0',
@@ -141,7 +141,7 @@ These are the same maintained FoldKit sources as the promo example:
 
 The source panel reads these local files through Vite. Edit a file and the viewer
 and application rebuild together. Replace the static fixtures or adapt the fetch
-Command to your API. Query is experimental in FoldKit 0.170.0.
+Command to your API. Query is experimental in FoldKit 0.171.0.
 
 The compiled Viz modules and their declarations are included under \`vendor/\`,
 so this project does not require the monorepo or an unpublished Viz release.

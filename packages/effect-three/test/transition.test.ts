@@ -35,7 +35,7 @@ import {
   torus,
 } from '../src/kernel/index.ts';
 import { easingAndTimes } from './arbitraries.ts';
-import { assertProperty } from './property.ts';
+import { assertProperty, propertyTimeout } from './property.ts';
 import { snapshot } from './support/snapshot.ts';
 
 const easings: ReadonlyArray<Easing> = ['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack'];
@@ -214,23 +214,27 @@ describe('transitions', () => {
     graph.dispose();
   });
 
-  test('an eased pose depends only on scene time, not on the frames in between', async () => {
-    await assertProperty(easingAndTimes, ([easing, times]) => {
-      const transition = ease({ seconds: 1, easing });
-      const stepped = createSceneGraph();
-      const direct = createSceneGraph();
-      for (const graph of [stepped, direct]) {
-        graph.reconcile(cubeAt([0, 0, 0], transition));
-        graph.reconcile(cubeAt([3, -2, 1], transition, [2, 2, 2]));
-      }
-      const sorted = [...times].sort((a, b) => a - b);
-      for (const time of sorted) stepped.tick(time);
-      direct.tick(sorted.at(-1) ?? 0);
-      expect(snapshot(stepped)).toEqual(snapshot(direct));
-      stepped.dispose();
-      direct.dispose();
-    });
-  });
+  test(
+    'an eased pose depends only on scene time, not on the frames in between',
+    async () => {
+      await assertProperty(easingAndTimes, ([easing, times]) => {
+        const transition = ease({ seconds: 1, easing });
+        const stepped = createSceneGraph();
+        const direct = createSceneGraph();
+        for (const graph of [stepped, direct]) {
+          graph.reconcile(cubeAt([0, 0, 0], transition));
+          graph.reconcile(cubeAt([3, -2, 1], transition, [2, 2, 2]));
+        }
+        const sorted = [...times].sort((a, b) => a - b);
+        for (const time of sorted) stepped.tick(time);
+        direct.tick(sorted.at(-1) ?? 0);
+        expect(snapshot(stepped)).toEqual(snapshot(direct));
+        stepped.dispose();
+        direct.dispose();
+      });
+    },
+    propertyTimeout,
+  );
 
   test('ticking many tweens allocates nothing', () => {
     const at = (x: number) =>

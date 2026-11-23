@@ -98,16 +98,23 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
       body: JSON.stringify(body ?? {}),
     });
-  const fixture = async () => {
-    const response = await fixtureCall('/seed');
-    expect(response.status).toBe(200);
-    return Schema.decodeUnknownSync(Fixture)(await response.json());
+  /**
+   * The fixture worker reports a failed bootstrap in the body. Read it, because
+   * a bare `expect(status).toBe(200)` reduces every failure here to
+   * `Expected: 200  Received: 500` and this stack's own log goes to a temp file
+   * CI discards, which left `/seed` failures on CI with no cause to work from.
+   */
+  const seeded = async (path: string, response: Response) => {
+    if (response.status !== 200)
+      throw new Error(`${path} answered ${response.status}: ${await response.text()}`);
+    return response.json();
   };
-  const newUser = async (name: string, verified = true, google = true) => {
-    const response = await fixtureCall('/new-user', { name, verified, google });
-    expect(response.status).toBe(200);
-    return Schema.decodeUnknownSync(Actor)(await response.json());
-  };
+  const fixture = async () =>
+    Schema.decodeUnknownSync(Fixture)(await seeded('/seed', await fixtureCall('/seed')));
+  const newUser = async (name: string, verified = true, google = true) =>
+    Schema.decodeUnknownSync(Actor)(
+      await seeded('/new-user', await fixtureCall('/new-user', { name, verified, google })),
+    );
   const formPost = (path: string, cookie: string, fields: Readonly<Record<string, string>>) =>
     fetch(`${origin}${path}`, {
       method: 'POST',

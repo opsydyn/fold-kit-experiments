@@ -2,7 +2,7 @@ import { CloudflareD1 } from '@alchemy.run/better-auth/CloudflareD1';
 import * as Cloudflare from '@alchemy.run/cloudflare';
 import { getCookies } from 'better-auth/cookies';
 import { makeSignature } from 'better-auth/crypto';
-import { Config, Effect, Redacted, Schema } from 'effect';
+import { Cause, Config, Effect, Redacted, Schema } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { Auth, AuthLive } from '../src/auth';
@@ -164,7 +164,19 @@ export default class FixtureWorker extends Cloudflare.Worker<FixtureWorker>()(
           return HttpServerResponse.empty({ status: 204 });
         }
         return HttpServerResponse.empty({ status: 404 });
-      }),
+      }).pipe(
+        // Every route body here runs through `Effect.promise`, so whatever
+        // Better Auth or D1 throws arrives as a defect and the worker answers a
+        // bare 500. A caller then sees only `Expected: 200  Received: 500`,
+        // and this stack logs to a temp file CI discards, which is why repeated
+        // `/seed` failures in apps/zloz-team could never be explained. Carry the
+        // cause in the body instead. This worker is reachable only from the
+        // guarded local test stack, behind a bearer key, so no client of the
+        // real app can read it.
+        Effect.catchCause((cause) =>
+          Effect.succeed(HttpServerResponse.text(Cause.pretty(cause), { status: 500 })),
+        ),
+      ),
     };
   }).pipe(
     Effect.provide(AuthLive),

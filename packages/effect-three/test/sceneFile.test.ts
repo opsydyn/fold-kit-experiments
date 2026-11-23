@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 import { box, mesh, scene, type SceneDescription, standard } from '../src/kernel/index.ts';
 import { SceneFile } from '../src/runtime/index.ts';
 import { scene as anyScene } from './arbitraries.ts';
-import { assertProperty } from './property.ts';
+import { assertProperty, propertyTimeout } from './property.ts';
 
 /** The scene a file's text reads as; `undefined` when it cannot be read. */
 function loadedScene(text: string): SceneDescription | undefined {
@@ -25,8 +25,11 @@ function savesAndLoads(description: SceneDescription): void {
 const empty = SceneFile.save(scene({}));
 const cube = scene({ children: [mesh({ key: 'cube', geometry: box(), material: standard() })] });
 
-test('every scene saved loads back as it was', () =>
-  assertProperty(anyScene, savesAndLoads, { runs: 100 }));
+test(
+  'every scene saved loads back as it was',
+  () => assertProperty(anyScene, savesAndLoads, { runs: 100 }),
+  propertyTimeout,
+);
 
 function savesIndentedJson(): void {
   const text = SceneFile.save(cube);

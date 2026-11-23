@@ -21,9 +21,16 @@ concurrency:
 env:
   MOON_BASE: HEAD
 
+# Each job carries `timeout-minutes` because the default is six hours, and a
+# step that hangs rather than fails holds the branch for all of it. On a green
+# run `check` takes about 20 minutes and `foldkit-zloz` about 18, the browser
+# qualification being serial across three engines; the others finish in a
+# minute or two. Each budget is roughly double what its job needs, so it ends a
+# hang without failing a slow runner.
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,6 +62,7 @@ jobs:
 
   astro-compat:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,6 +86,7 @@ jobs:
 
   effect-three:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,6 +122,7 @@ jobs:
 
   foldkit-zloz:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -133,6 +133,8 @@ export type ZlozNode = Readonly<{
   architecture?: ZlozNodeArchitecture;
   /** Explicit opt-in outline geometry. Omission preserves legacy rectangular geometry. */
   appearance?: ZlozNodeAppearance;
+  /** Stable host icon reference. Rendering and asset authorization belong to the host. */
+  icon?: string;
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
 export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';

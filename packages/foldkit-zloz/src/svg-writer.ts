@@ -21,7 +21,7 @@ import { prepareSvgFontCoverage, type PreparedSvgFontCoverage } from './svg-font
 import type { EdgeRoute, LayoutLabelBox, Point, ZlozSnapshot, ZlozNode, ZlozEdge } from './types';
 
 type Paint = Readonly<{ fill?: string; stroke?: string; strokeWidth?: number; opacity?: number }>;
-/** Safe vector vocabulary; no markup, CSS, IDs, URL references, scripts or foreignObject. */
+/** Checked drawing primitives with optional inline raster images. */
 export type ZlozSvgPrimitive =
   | (Paint &
       Readonly<{ type: 'rect'; position: Point; width: number; height: number; radius?: number }>)
@@ -38,7 +38,8 @@ export type ZlozSvgPrimitive =
         size?: number;
         weight?: number;
       }>)
-  | Readonly<{ type: 'group'; translate?: Point; children: readonly ZlozSvgPrimitive[] }>;
+  | Readonly<{ type: 'group'; translate?: Point; children: readonly ZlozSvgPrimitive[] }>
+  | Readonly<{ type: 'raster'; position: Point; width: number; height: number; data: string }>;
 export type ZlozSvgAdapterContext = Readonly<{
   theme: ZlozSvgExportPlan['theme'];
   font: ZlozSvgExportPlan['font'];
@@ -191,6 +192,19 @@ function primitiveWriter(
         checkedKeys(value, ['type', 'translate', 'children']);
         if (!Array.isArray(value.children)) invalid('Group children must be an array.');
         return `<g${value.translate ? ` transform="translate(${point(value.translate)})"` : ''}>${value.children.map((child) => render(child, level + 1)).join('')}</g>`;
+      case 'raster':
+        checkedKeys(value, ['type', 'position', 'width', 'height', 'data']);
+        if (
+          // oxlint-disable-next-line anti-slop/no-runtime-typeof -- Adapters can be supplied by JavaScript callers.
+          typeof value.data !== 'string' ||
+          value.data.length > 87_410 ||
+          !/^data:(?:image\/png;base64,iVBORw0KGgo|image\/webp;base64,UklGR)[A-Za-z0-9+/]+={0,2}$/.test(
+            value.data,
+          ) ||
+          value.data.slice(value.data.indexOf(',') + 1).length % 4 !== 0
+        )
+          invalid('Inline raster images require bounded PNG or WebP data.');
+        return `<image x="${finite(value.position.x)}" y="${finite(value.position.y)}" width="${positive(value.width)}" height="${positive(value.height)}" href="${value.data}"/>`;
       case 'rect':
         checkedKeys(value, [...drawing, 'position', 'width', 'height', 'radius']);
         if (finite(value.radius ?? 0) < 0) invalid('SVG corner radius must be non-negative.');

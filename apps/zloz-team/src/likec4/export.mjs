@@ -89,6 +89,7 @@ export async function exportLikeC4(input, { lossPolicy = 'reject' } = {}) {
       diagnostics.push(loss('ports', id, 'Port identities are omitted from LikeC4 source.'));
     if (node.data !== undefined)
       diagnostics.push(loss('host-data', id, 'Host node data is omitted.'));
+    if (node.icon) diagnostics.push(loss('icon', id, 'The selected node icon is omitted.'));
     if (node.appearance)
       diagnostics.push(loss('appearance', id, 'The authored node outline is omitted.'));
     return [

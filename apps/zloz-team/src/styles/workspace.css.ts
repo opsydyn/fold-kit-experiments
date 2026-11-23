@@ -774,6 +774,7 @@ globalStyle('.node-type', {
   paddingLeft: 30,
 });
 globalStyle('.team-icon', { display: 'block', flexShrink: 0 });
+globalStyle('.team-uploaded-icon', { objectFit: 'contain' });
 globalStyle('.shared-editor .shared-node-resize', {
   position: 'absolute',
   right: -8,

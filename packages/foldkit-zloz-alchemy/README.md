@@ -187,3 +187,12 @@ authorization hooks. The Teams server supplies session identity and role policy.
 The browser uses the separate `/session` and `/delta` entries to consume
 confirmed diagram updates and reconcile operation receipts. The portable
 descriptor entry and `/domain` declaration inspection remain independent.
+
+## Infrastructure snapshots
+
+`readInfrastructureSnapshot` validates the separate, versioned infrastructure
+JSON. It projects declared resources, plan actions, named bindings, and
+dependencies into a detached graph and returns findings for unresolved
+references. The importer accepts an allowlisted artifact produced from a
+trusted Alchemy plan. The snapshot format excludes provider configuration,
+outputs, state, and credentials.

@@ -8,6 +8,7 @@ import type {
   EditorEvent,
   EditorState,
   ZlozGraph,
+  ZlozNode,
   ZlozGraphOperation,
   ZlozOperationReceipt,
   ZlozOperationRequest,
@@ -1898,6 +1899,43 @@ function overviewToggleView(h: HtmlBuilder<Message>, open: boolean, enabled: boo
   );
 }
 
+const infrastructureSource = Schema.decodeUnknownOption(
+  Schema.Struct({
+    alchemyInfrastructure: Schema.Struct({
+      stack: Schema.String,
+      stage: Schema.String,
+      revision: Schema.String,
+      type: Schema.optional(Schema.String),
+      omissions: Schema.Array(Schema.String),
+    }),
+  }),
+);
+
+function infrastructureDetails(h: HtmlBuilder<Message>, node: ZlozNode) {
+  const decoded = infrastructureSource(node.data);
+  if (Option.isNone(decoded)) return [];
+  const record = decoded.value.alchemyInfrastructure;
+  const omissions = record.omissions;
+  return [
+    h.section(
+      [h.AriaLabel('Alchemy source')],
+      [
+        h.h3([], ['Alchemy source']),
+        h.p([], [`${record.stack} · ${record.stage} · ${record.revision}`]),
+        ...(record.type ? [h.p([], [record.type])] : []),
+        ...(omissions.length
+          ? [
+              h.ul(
+                [],
+                omissions.map((item) => h.li([], [item])),
+              ),
+            ]
+          : []),
+      ],
+    ),
+  ];
+}
+
 function canvasView(
   h: HtmlBuilder<Message>,
   state: EditorState,
@@ -2840,6 +2878,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                       ],
                                       ['Rename node'],
                                     ),
+                                    ...infrastructureDetails(h, selected),
                                     ...selected.ports.map((port) =>
                                       h.button(
                                         [

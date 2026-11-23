@@ -217,3 +217,23 @@ risk score. POST `/api/zloz/diagrams/:team/:diagram/assessments` is the sole pub
 assessment writer; the existing authenticated frame/live feed exposes saved
 records. Deploy a compatible backend before this frontend; see ADR 0044 for the
 new durable event and rollback constraint.
+
+## Bring an Alchemy stack onto a board
+
+For Teams staging, generate a snapshot from the trusted stack with the approved
+local staging profile and environment. Run from the repository root first to
+build the adapter, then generate the snapshot from the app directory.
+
+```sh
+bun run --filter @opsydyn/foldkit-zloz-alchemy build
+cd apps/zloz-team
+bun --env-file=/absolute/path/to/staging.env tools/staging-infrastructure-snapshot.ts \
+  "$(git rev-parse HEAD)" /tmp/teams-staging.infrastructure.json
+```
+
+The command reads the pinned Alchemy plan and creates a new JSON file. In Teams,
+open **New diagram**, choose **Alchemy infrastructure**, and load the file.
+Review the canvas and its unresolved references. Select a finding to focus the
+resource. Acknowledge the losses and choose **Create team diagram**. Teammates
+can select an imported resource to inspect its stack, stage, and source
+revision. Plan action labels describe the capture and do not invoke Alchemy.

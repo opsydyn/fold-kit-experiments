@@ -70,6 +70,7 @@ fresh report directory. Choose the base ref for the changes you want to assess.
 
 ```sh
 bun install --frozen-lockfile
+npm ci --prefix tools/mutant-cafe
 bun run --filter @opsydyn/web typecheck
 report_dir=$(mktemp -d)
 bash tools/web-mutation-advisory.sh origin/main "$report_dir"

@@ -4,8 +4,9 @@ Proposed for the apps/web trial on 2026-11-23.
 
 The [local trial](../spikes/mutant-cafe.md) found a layout bug and missing
 command assertions. The web app already runs Vitest 5 and CI provides Node 24.
-Run Mutant Cafe 0.1.7 from the npm cache so its own Effect dependency stays
-outside the workspace. Keep the existing required CI checks as the merge gate.
+Install Mutant Cafe 0.1.7 from the separate npm lockfile in
+`tools/mutant-cafe`. Local and CI runs use the same dependency versions,
+and the tool’s copy of Effect stays outside the Bun workspace. Keep the existing required CI checks as the merge gate.
 
 The advisory job tests changed TypeScript bodies under `apps/web/src` against
 the PR head. It uses one mutation worker and runs at most 20 mutants in path order.

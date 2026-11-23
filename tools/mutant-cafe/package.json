@@ -1,0 +1,7 @@
+{
+  "name": "@opsydyn/mutation-tools",
+  "private": true,
+  "dependencies": {
+    "mutant-cafe": "0.1.7"
+  }
+}

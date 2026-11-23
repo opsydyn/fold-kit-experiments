@@ -12,7 +12,7 @@ git -c core.quotePath=false diff --no-color --no-ext-diff --no-textconv --no-ren
   | awk '/^diff --git / { body = 0 } /^--- / { body = 1 } body' > "$report_dir/web.diff"
 
 cd apps/web
-npx --yes mutant-cafe@0.1.7 --advisory --format github \
+../../tools/mutant-cafe/node_modules/.bin/mutant-cafe --advisory --format github \
   --file 'src/**/*.ts' --exclude '**/*.test.ts' --exclude 'src/test/**' \
   --exclude '**/*.stories.ts' --exclude '**/*.css.ts' --exclude '**/*.d.ts' \
   --in-diff "$report_dir/web.diff" --jobs 1 --max-mutants 20 --baseline-timeout 300 \

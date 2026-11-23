@@ -6,6 +6,7 @@ on:
       - 'apps/web/src/**/*.ts'
       - '.github/workflows/web-mutation-advisory.yml'
       - 'tools/web-mutation-advisory.sh'
+      - 'tools/mutant-cafe/**'
 
 permissions:
   contents: read
@@ -35,6 +36,9 @@ jobs:
           package-manager-cache: false
 
       - run: bun install --frozen-lockfile
+
+      - name: Install the locked mutation tool
+        run: npm ci --prefix tools/mutant-cafe
 
       - name: Build web dependencies and generate Astro types
         run: bun run --filter @opsydyn/web typecheck

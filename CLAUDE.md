@@ -117,7 +117,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.170.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.171.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -278,7 +278,7 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.170.0` with stable Effect `4.1.0` and
+Currently on `foldkit@0.171.0` with stable Effect `4.1.0` and
 `@foldkit/vite-plugin` `0.29.x`. FoldKit 0.170 peers on Effect `~4.1.0` (4.1 patches only);
 see `docs/releases/foldkit-0.170.md`. It needed no source changes from 0.169. Effect minor
 releases can change APIs: review each one, as FoldKit does.

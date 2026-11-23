@@ -15,7 +15,7 @@ Read the installed version, export map and declarations before selecting APIs. T
 scatter example](assets/scatter/package.json) targets the published
 `@opsydyn/foldkit-viz@0.18.0` contract and installs neither FoldKit, Effect nor Astro.
 Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.171.0` and Effect 4, and are
-qualified on FoldKit `0.170.0` with Effect `4.1.0`. These are qualified baselines, not
+qualified on FoldKit `0.171.0` with Effect `4.1.0`. These are qualified baselines, not
 instructions to downgrade another project. When using the adapters, pin
 `@effect/platform-browser` to the same version as `effect` (`4.1.0` here). FoldKit 0.170
 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which requires an equal or

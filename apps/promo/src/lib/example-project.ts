@@ -90,7 +90,7 @@ export async function buildExampleTemplate(
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',
-          foldkit: '0.170.0',
+          foldkit: '0.171.0',
           effect: '4.1.0',
           // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
           '@effect/platform-browser': '4.1.0',
@@ -160,7 +160,7 @@ export async function buildExampleTemplate(
       dependencies: {
         '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
         '@opsydyn/dataset-explorer': 'file:./vendor/source-highlighting',
-        foldkit: '0.170.0',
+        foldkit: '0.171.0',
         effect: '4.1.0',
         // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
         '@effect/platform-browser': '4.1.0',

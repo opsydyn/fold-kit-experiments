@@ -714,7 +714,7 @@ element.addEventListener(
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
 | `effect`  | `~4.1.0`              |
-| `foldkit` | `≥ 0.170.0 < 0.171.0` |
+| `foldkit` | `≥ 0.170.0 < 0.172.0` |
 
 ## Stateflow Observatory example
 

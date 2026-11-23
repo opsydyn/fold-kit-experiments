@@ -175,7 +175,7 @@ The demo's `/greeting` route proves request SSR and `/greeting-static` proves
 SSG through `definePage`. Existing chart routes remain `lazyApp` / `defineApp`
 client islands.
 
-The workspace targets FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.11`. Shared dependency
+The workspace targets FoldKit `0.171.0`, Effect `4.1.0` and Astro `7.4.11`. Shared dependency
 versions are declared once, in the root `package.json` catalogs (see [Dependencies](#dependencies)).
 Before upgrading an existing consumer, read the [0.167 migration guide](docs/migrations/foldkit-0.167.md)
 if it predates 0.167, then the [0.170 guide](docs/migrations/foldkit-0.170.md) for Effect 4.1, the

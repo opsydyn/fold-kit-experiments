@@ -279,9 +279,13 @@ From the Foldkit style guide (adapted):
 ## Foldkit version
 
 Currently on `foldkit@0.171.0` with stable Effect `4.1.0` and
-`@foldkit/vite-plugin` `0.29.x`. FoldKit 0.170 peers on Effect `~4.1.0` (4.1 patches only);
-see `docs/releases/foldkit-0.170.md`. It needed no source changes from 0.169. Effect minor
-releases can change APIs: review each one, as FoldKit does.
+`@foldkit/vite-plugin` `0.29.x`. FoldKit 0.171 peers on Effect `~4.1.0` (4.1 patches only);
+see `docs/releases/foldkit-0.171.md`. It needed no source changes from 0.170, but it is a
+breaking release: `Command.define`, `Mount.define` and `Mount.defineStream` narrowed
+`messages` to a non-empty tuple (use `Command.ResultMessageSchemas<Messages>` or the `Mount`
+equivalent in a generic factory), and `createKeyedLazy` now evicts keys absent from a
+completed render by default — `{ evict: 'None' }` restores the old retention, for bounded
+key sets only. Effect minor releases can change APIs: review each one, as FoldKit does.
 
 FoldKit 0.167+ and stable Effect guidance:
 
@@ -312,3 +316,11 @@ The current release includes:
 - `Lazy.expectAllReused` in `foldkit/test` to check lazy cache reuse (0.169)
 - `preserveScroll: true` on `makeApplication` (already wired in `packages/astro-foldkit/src/client.ts`)
 - `foldkit/http` — browser-safe `Http.layer` for Commands using Effect `HttpClient`
+- `createKeyedLazy` in `foldkit/html` — one memo slot per key, evicting keys absent from a
+  completed render (0.171). Prefer it over a hand-rolled `Map` of `createLazy` slots; keep a
+  `WeakMap` keyed by object identity where the keys are node objects, because a `PropertyKey`
+  cache holds deleted ids strongly
+- `Subscription.animationFrameEntry` dispatches in the frame it was scheduled in, not the
+  next one (0.171)
+- `EmbedHandle.disposeAsync` on `Runtime.embed` — await runtime shutdown and container
+  restoration before embedding a different program in that container (0.171)

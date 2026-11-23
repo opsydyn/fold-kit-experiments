@@ -11,6 +11,7 @@ import {
   type ZlozOperationRequest,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
+import { readInfrastructureSnapshot } from '@opsydyn/foldkit-zloz-alchemy';
 import { AssessmentReplySchema } from '@opsydyn/foldkit-zloz-alchemy/assessment';
 import {
   createDiagramCheckpoint,
@@ -1195,6 +1196,103 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     },
     60_000,
   );
+
+  test('Alchemy snapshot review creates a shared board with bindings, omissions and source revision', async () => {
+    const data = await fixture();
+    const boardUrl = `${origin}/app/${data.organizationId}/diagrams/new`;
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const session = async (cookie: string) => {
+      const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+      const at = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, at), value: cookie.slice(at + 1), url: origin },
+      ]);
+      return context.newPage();
+    };
+    const editor = await session(data.editor.cookie);
+    const owner = await session(data.owner.cookie);
+    await editor.goto(boardUrl);
+    const panel = editor.getByRole('region', { name: 'Alchemy infrastructure import' });
+    const snapshot = {
+      format: 'foldkit-zloz-alchemy-infrastructure',
+      version: 1,
+      source: {
+        packageVersion: '2.0.0-beta.85',
+        stack: 'zloz-team-staging',
+        stage: 'staging',
+        revision: 'pilot-revision',
+      },
+      resources: [
+        { id: 'ZlozTeamStagingApp', type: 'Cloudflare.Worker', action: 'update' },
+        { id: 'ZlozTeamServer', type: 'Cloudflare.Worker', action: 'noop' },
+      ],
+      links: [
+        { from: 'ZlozTeamStagingApp', to: 'ZlozTeamServer', kind: 'binding', name: 'ZLOZ_BACKEND' },
+      ],
+      omissions: [{ resource: 'ZlozTeamStagingApp', name: 'OTHER', kind: 'binding' }],
+    };
+    const realSnapshotPath = process.env.ZLOZ_INFRASTRUCTURE_SNAPSHOT;
+    const parsed = realSnapshotPath
+      ? readInfrastructureSnapshot(await readFile(realSnapshotPath, 'utf8'))
+      : null;
+    if (parsed?.status === 'blocked') throw new Error(parsed.message);
+    const realSnapshot = parsed?.snapshot;
+    const revision = realSnapshot?.source.revision ?? snapshot.source.revision;
+    const focusResource = realSnapshot ? 'ZlozTeamServer' : 'ZlozTeamStagingApp';
+    if (realSnapshotPath) {
+      expect(realSnapshot?.resources).toHaveLength(9);
+      await panel.getByLabel('Alchemy infrastructure JSON file').setInputFiles(realSnapshotPath);
+    } else {
+      await panel
+        .getByRole('textbox', { name: /paste Alchemy infrastructure JSON/ })
+        .fill(JSON.stringify(snapshot));
+      await panel.getByRole('button', { name: 'Review snapshot' }).click();
+    }
+    await browserExpect(
+      panel.getByText(`Source: zloz-team-staging · staging · ${revision}`),
+    ).toBeVisible();
+    await browserExpect(panel.getByRole('img', { name: /Read-only preview/ })).toBeVisible();
+    await panel
+      .getByRole('button', { name: 'Show ' + focusResource, exact: true })
+      .first()
+      .click();
+    await browserExpect(
+      panel.getByRole('img', { name: 'Read-only preview focused on ' + focusResource }),
+    ).toBeVisible();
+    await panel
+      .getByRole('textbox', { name: 'Imported diagram name' })
+      .fill('Alchemy review qualification');
+    const create = panel.getByRole('button', { name: 'Create team diagram' });
+    await browserExpect(create).toBeDisabled();
+    await panel.getByRole('checkbox', { name: /reviewed the import losses/ }).check();
+    await Promise.all([editor.waitForURL((url) => !url.pathname.endsWith('/new')), create.click()]);
+    await owner.goto(editor.url());
+    await browserExpect(owner.locator('[data-save-status]')).toHaveText('Saved');
+    await owner.getByRole('button', { name: /^Select ZlozTeamStagingApp · / }).press('Enter');
+    const source = owner.getByRole('region', { name: 'Alchemy source' });
+    await browserExpect(source).toContainText(`zloz-team-staging · staging · ${revision}`);
+    if (realSnapshot) {
+      await browserExpect(
+        owner.getByRole('button', {
+          name: /Binds to · QUESTMANCER for resource:ZlozTeamStagingApp:out → resource:QuestmancerPrivateWorker:in/,
+        }),
+      ).toBeAttached();
+    } else {
+      await browserExpect(source).toContainText('Unresolved binding · OTHER');
+    }
+    await browserExpect(
+      owner.getByRole('button', { name: /Binds to · ZLOZ_BACKEND/ }),
+    ).toBeAttached();
+    await owner.reload();
+    await browserExpect(owner.locator('[data-save-status]')).toHaveText('Saved');
+    await owner.getByRole('button', { name: /^Select ZlozTeamStagingApp · / }).press('Enter');
+    await browserExpect(source).toContainText(revision);
+    if (realSnapshot) {
+      await owner.getByRole('button', { name: /^Select ZlozTeamServer · / }).press('Enter');
+      await browserExpect(source).toContainText('Unresolved binding · ZlozDiagramPresenceV1');
+    }
+  }, 60_000);
 
   test('Mermaid and LikeC4 export review confirmed versions and losses before download', async () => {
     const data = await fixture();

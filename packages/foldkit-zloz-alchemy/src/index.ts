@@ -18,3 +18,7 @@ export type {
   AlchemyFindingNavigator,
   AlchemyFindingRevealDecision,
 } from './finding-navigation';
+
+export { alchemyTextLimits, parseAlchemyJson, AlchemyTextError } from './json-text';
+export { readInfrastructureSnapshot } from './infrastructure';
+export type { InfrastructureSnapshot } from './infrastructure';

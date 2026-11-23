@@ -29,7 +29,9 @@ Use Safari with VoiceOver on the linked chart example at `/charts#linked-views`.
 
 ## Candidate qualification
 
-The branch tarball built at `c88a28e3` passed a clean npm install with FoldKit 0.171.0 and Effect 4.1.0. Its SHA-256 is `ad7643364c9d4e53b1884be46665fafc5e1c9eec287f78af2ff00d1d2c60250b`. The clean consumer typechecked the bundled example, rendered a layered chart and the FoldKit view, reported a bad field at `marks[0].y`, retained the previous chart on refresh failure, and mapped a keyed point to its bin before compiling an empty view.
+Use the branch tarball built at `67853990` for the pilot. Its SHA-256 is `9ae32b7776eaab5661fc2b2225b358e4f15647a014f5d8cc4681af48f14fd1cb`. It passed a clean npm install with FoldKit 0.171.0 and Effect 4.1.0. The clean consumer typechecked the bundled example, rendered a layered chart and the FoldKit view, reported a bad field at `marks[0].y`, retained the previous chart on refresh failure, and mapped a keyed point to its bin before compiling an empty view. It also reported insufficient and singular regression inputs at `marks[0].transform` and `marks[0].transform[1]`, respectively.
+
+The first candidate, built at `c88a28e3` with SHA-256 `ad7643364c9d4e53b1884be46665fafc5e1c9eec287f78af2ff00d1d2c60250b`, was superseded before human sessions started.
 
 Published Viz 0.19.1 also passed clean installation and rendering in both a peer-free Node consumer and a FoldKit 0.171.0 consumer. The published package and the branch tarball share a version number. The branch tarball supplies `effect/plot` and `plotTargets` for the pilot.
 

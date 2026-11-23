@@ -26,7 +26,7 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` targets FoldKit `0.170.x`, Effect `4.1.x`, and the
+`@opsydyn/astro-foldkit` targets FoldKit `0.171.x`, Effect `4.1.x`, and the
 matching `@foldkit/vite-plugin` `0.29.x` line. An application on an older FoldKit
 needs an older release of this integration.
 Applications can define interruptible work with

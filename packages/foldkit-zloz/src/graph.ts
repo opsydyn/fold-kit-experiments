@@ -133,6 +133,12 @@ function isResizeLimits(value: unknown): value is NodeResizeLimits {
   );
 }
 /** @internal Structural node validation shared by graph and proposal boundaries. */
+export function isNodeIcon(value: unknown): value is string {
+  return (
+    typeof value === 'string' && /^(?:builtin:[a-z][a-z0-9-]{0,39}|team:[a-f0-9-]{36})$/.test(value)
+  );
+}
+
 export function isNode(value: unknown): value is ZlozNode {
   return (
     typeof value === 'object' &&
@@ -157,6 +163,7 @@ export function isNode(value: unknown): value is ZlozNode {
     (!('extent' in value) || value.extent === 'parent') &&
     (!('expandParent' in value) || typeof value.expandParent === 'boolean') &&
     (!('data' in value) || isJson(value.data)) &&
+    (!('icon' in value) || isNodeIcon(value.icon)) &&
     validNodeArchitectureFields(value)
   );
 }

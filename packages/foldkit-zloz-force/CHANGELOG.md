@@ -4,6 +4,12 @@
 
 - Validate explicit request connection mode through core; preserve loose ordered endpoints without rewriting ports.
 
+## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.8.0...foldkit-zloz-force-v0.9.0) (2026-11-23)
+
+### Miscellaneous Chores
+
+- **foldkit-zloz-force:** Synchronize foldkit-zloz versions
+
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-force-v0.7.0...foldkit-zloz-force-v0.8.0) (2026-11-21)
 
 ### Miscellaneous Chores

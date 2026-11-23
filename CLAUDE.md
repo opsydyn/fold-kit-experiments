@@ -4,25 +4,62 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Fifteen workspaces in active use:
+Bun workspace monorepo, 29 workspaces (`packages/*`, `apps/*`, `infra/*`).
 
-| Workspace                       | Path                             | Purpose                                                    |
-| ------------------------------- | -------------------------------- | ---------------------------------------------------------- |
-| `@opsydyn/astro-foldkit`        | `packages/astro-foldkit/`        | Astro integration for Foldkit apps                         |
-| `@opsydyn/foldkit-viz`          | `packages/foldkit-viz/`          | D3-quality chart primitives (no D3 dep)                    |
-| `@opsydyn/web`                  | `apps/web/`                      | Chart demos and reference workbenches                      |
-| `@opsydyn/dataset-explorer`     | `packages/dataset-explorer/`     | Private shared KeyedQuery example                          |
-| `@opsydyn/promo`                | `apps/promo/`                    | Static chart examples and downloadable projects            |
-| `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (npm, 0.x)         |
-| `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (npm, 0.x)                |
-| `@opsydyn/effect-three-rapier`  | `packages/effect-three-rapier/`  | Rapier physics engine for effect-three (npm, 0.x)          |
-| `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (npm, 0.x)     |
-| `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | Private effect-three samples for apps/web and three-promo  |
-| `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
-| `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: the 3D radar, markdown content      |
-| `@opsydyn/tech-radar-infra`     | `infra/tech-radar/`              | Alchemy stack deploying the tech radar to Cloudflare       |
-| `@opsydyn/docs`                 | `apps/docs/`                     | `docs/` as a Starlight site (GitHub Pages `/docs/`)        |
-| `@opsydyn/foldkit-dash`         | `packages/foldkit-dash/`         | Agent-first static dashboards CLI (ADR 0109, private)      |
+**Published to npm** — these keep literal dependency versions, never `catalog:`:
+
+| Workspace                       | Path                             | Purpose                                            |
+| ------------------------------- | -------------------------------- | -------------------------------------------------- |
+| `@opsydyn/astro-foldkit`        | `packages/astro-foldkit/`        | Astro integration and renderer for FoldKit         |
+| `@opsydyn/foldkit-viz`          | `packages/foldkit-viz/`          | D3-quality chart primitives (no D3 dep)            |
+| `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (0.x)      |
+| `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (0.x)             |
+| `@opsydyn/effect-three-rapier`  | `packages/effect-three-rapier/`  | Rapier physics for effect-three (0.x)              |
+| `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (0.x)  |
+| `@opsydyn/foldkit-zloz`         | `packages/foldkit-zloz/`         | Model-owned graph editing and native FoldKit views |
+| `@opsydyn/foldkit-zloz-elk`     | `packages/foldkit-zloz-elk/`     | Optional ELK layout adapter for Zloz               |
+| `@opsydyn/foldkit-zloz-force`   | `packages/foldkit-zloz-force/`   | Optional force layout and card-avoiding routing    |
+| `@opsydyn/foldkit-zloz-mermaid` | `packages/foldkit-zloz-mermaid/` | Optional, loss-aware Mermaid export for Zloz       |
+
+The effect-three four release together, and the foldkit-zloz four release together: each
+group is a `linked-versions` group in `release-please-config.json`, so one bump moves all
+four and rewrites the adapters' peer on the core. Only `astro-foldkit` and `foldkit-viz`
+publish automatically; the other eight need a `publish.yml` dispatch or the zloz release
+train. `docs/releases/foldkit-0.171.md` has the current registry state.
+
+**Private packages:**
+
+| Workspace                       | Path                             | Purpose                                                   |
+| ------------------------------- | -------------------------------- | --------------------------------------------------------- |
+| `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | effect-three samples shared by `apps/web` and three-promo |
+| `@opsydyn/dataset-explorer`     | `packages/dataset-explorer/`     | Shared KeyedQuery example                                 |
+| `@opsydyn/foldkit-dash`         | `packages/foldkit-dash/`         | Agent-first static dashboards CLI (ADR 0109)              |
+| `@opsydyn/foldkit-phosphor`     | `packages/foldkit-phosphor/`     | Parent-builder Phosphor SVG rendering, static compiler    |
+| `@opsydyn/foldkit-viz-py`       | `packages/foldkit-viz-py/`       | foldkit-viz as a Jupyter anywidget                        |
+| `@opsydyn/foldkit-zloz-cli`     | `packages/foldkit-zloz-cli/`     | Effect CLI: Zloz validation, audits, Mermaid export       |
+| `@opsydyn/foldkit-zloz-alchemy` | `packages/foldkit-zloz-alchemy/` | Read-only Alchemy declaration inspection and projection   |
+
+**Apps:**
+
+| Workspace                 | Path                   | Purpose                                                    |
+| ------------------------- | ---------------------- | ---------------------------------------------------------- |
+| `@opsydyn/web`            | `apps/web/`            | Chart demos and reference workbenches                      |
+| `@opsydyn/promo`          | `apps/promo/`          | Static chart examples and downloadable projects            |
+| `@opsydyn/three-promo`    | `apps/three-promo/`    | effect-three promo site (same layout and styling as promo) |
+| `@opsydyn/zloz-promo`     | `apps/zloz-promo/`     | Zloz promo site                                            |
+| `@opsydyn/zloz-demo`      | `apps/zloz-demo/`      | Zloz workbench demo                                        |
+| `@opsydyn/zloz-team`      | `apps/zloz-team/`      | Teams: collaborative Zloz board, the most active app       |
+| `@opsydyn/zloz-server`    | `apps/zloz-server/`    | Teams' server: Better Auth, D1, WebSocket rooms            |
+| `@opsydyn/tech-radar`     | `apps/tech-radar/`     | Standalone tech radar: the 3D radar, markdown content      |
+| `@opsydyn/polars-summary` | `apps/polars-summary/` | Server-summarised million-row Polars frame beside /explore |
+| `@opsydyn/docs`           | `apps/docs/`           | `docs/` as a Starlight site (GitHub Pages `/docs/`)        |
+
+**Infra** — separate Alchemy CLI programs, see [Dependencies](#dependencies):
+
+| Workspace                   | Path                | Purpose                                              |
+| --------------------------- | ------------------- | ---------------------------------------------------- |
+| `@opsydyn/tech-radar-infra` | `infra/tech-radar/` | Alchemy stack deploying the tech radar to Cloudflare |
+| `@opsydyn/zloz-infra`       | `infra/zloz/`       | Alchemy stack for the Zloz workbench on Workers      |
 
 The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
@@ -279,9 +316,13 @@ From the Foldkit style guide (adapted):
 ## Foldkit version
 
 Currently on `foldkit@0.171.0` with stable Effect `4.1.0` and
-`@foldkit/vite-plugin` `0.29.x`. FoldKit 0.170 peers on Effect `~4.1.0` (4.1 patches only);
-see `docs/releases/foldkit-0.170.md`. It needed no source changes from 0.169. Effect minor
-releases can change APIs: review each one, as FoldKit does.
+`@foldkit/vite-plugin` `0.29.x`. FoldKit 0.171 peers on Effect `~4.1.0` (4.1 patches only);
+see `docs/releases/foldkit-0.171.md`. It needed no source changes from 0.170, but it is a
+breaking release: `Command.define`, `Mount.define` and `Mount.defineStream` narrowed
+`messages` to a non-empty tuple (use `Command.ResultMessageSchemas<Messages>` or the `Mount`
+equivalent in a generic factory), and `createKeyedLazy` now evicts keys absent from a
+completed render by default — `{ evict: 'None' }` restores the old retention, for bounded
+key sets only. Effect minor releases can change APIs: review each one, as FoldKit does.
 
 FoldKit 0.167+ and stable Effect guidance:
 
@@ -312,3 +353,11 @@ The current release includes:
 - `Lazy.expectAllReused` in `foldkit/test` to check lazy cache reuse (0.169)
 - `preserveScroll: true` on `makeApplication` (already wired in `packages/astro-foldkit/src/client.ts`)
 - `foldkit/http` — browser-safe `Http.layer` for Commands using Effect `HttpClient`
+- `createKeyedLazy` in `foldkit/html` — one memo slot per key, evicting keys absent from a
+  completed render (0.171). Prefer it over a hand-rolled `Map` of `createLazy` slots; keep a
+  `WeakMap` keyed by object identity where the keys are node objects, because a `PropertyKey`
+  cache holds deleted ids strongly
+- `Subscription.animationFrameEntry` dispatches in the frame it was scheduled in, not the
+  next one (0.171)
+- `EmbedHandle.disposeAsync` on `Runtime.embed` — await runtime shutdown and container
+  restoration before embedding a different program in that container (0.171)

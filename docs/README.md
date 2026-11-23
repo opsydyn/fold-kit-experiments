@@ -15,8 +15,8 @@ search and navigation.
   [radar proposals on `@alchemy.run/domain`](spikes/radar-proposals.md). Earlier ones are
   [effect-three's spike results](effect-three/spike-results.md) and the
   [AG-UI spike](examples/ag-ui-spike.md).
-- **Releases:** what each FoldKit upgrade changed here, in `releases/`, such as
-  [FoldKit 0.170](releases/foldkit-0.170.md).
+- **Releases:** what each FoldKit upgrade changed here, in `releases/`, most recently
+  [FoldKit 0.171](releases/foldkit-0.171.md).
 - **Assessments, postmortems and migrations:** reviews of a dependency or a capability,
   what went wrong and what changed because of it, and upgrade guides.
 - **effect-three:** its [plan](effect-three/PLAN.md), [roadmap](effect-three/ROADMAP.md)

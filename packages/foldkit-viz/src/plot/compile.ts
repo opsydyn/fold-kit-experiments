@@ -2,6 +2,7 @@ import { axisTicks, chartLayout, resolveDomain } from '../chart/layout.js';
 import type { AxisScale, ChartFrame, PlotBounds } from '../chart/layout.js';
 import { colorScale, divergingScale, interpolateRgbBasis } from '../math/color.js';
 import { lttb, m4 } from '../math/downsample.js';
+import { RegressionInputError } from '../math/regression-input-error.js';
 import { loess, polynomialRegression } from '../math/regression.js';
 import { band, sqrt } from '../math/scale.js';
 import * as schemes from '../math/schemes.js';
@@ -413,15 +414,21 @@ function applyTransform(
     const carry = z === undefined || series[0] === undefined ? {} : { [z]: series[0][z] ?? null };
     switch (transform.type) {
       case 'regression': {
-        const fit = polynomialRegression(series, xy, { degree: transform.degree ?? 1 });
-        const finite = series.map(xy.x).filter(Number.isFinite);
-        const [lo, hi] = spanOf(finite) ?? [0, 0];
-        for (let i = 0; i <= 60; i += 1) {
-          const at = lo + ((hi - lo) * i) / 60;
-          const interval = fit.interval(at, transform.level ?? 0.95);
-          out.push({ ...carry, [X]: at, [Y]: interval.fit });
-          if (transform.band ?? true)
-            bandRows.push({ ...carry, [X]: at, [LO]: interval.lower, [HI]: interval.upper });
+        // oxlint-disable-next-line linteffect/no-try-catch -- Attach the mark path to known failures from the synchronous regression API.
+        try {
+          const fit = polynomialRegression(series, xy, { degree: transform.degree ?? 1 });
+          const finite = series.map(xy.x).filter(Number.isFinite);
+          const [lo, hi] = spanOf(finite) ?? [0, 0];
+          for (let i = 0; i <= 60; i += 1) {
+            const at = lo + ((hi - lo) * i) / 60;
+            const interval = fit.interval(at, transform.level ?? 0.95);
+            out.push({ ...carry, [X]: at, [Y]: interval.fit });
+            if (transform.band ?? true)
+              bandRows.push({ ...carry, [X]: at, [LO]: interval.lower, [HI]: interval.upper });
+          }
+        } catch (error) {
+          if (!(error instanceof RegressionInputError)) throw error;
+          fail(path, error.message);
         }
         break;
       }

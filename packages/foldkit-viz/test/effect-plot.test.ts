@@ -88,6 +88,57 @@ describe('Effect plot', () => {
     });
   });
 
+  it('keeps the last drawn chart when a regression refresh has too few usable points', () => {
+    const fitted = marks.line({
+      x: 'minute',
+      y: 'latency',
+      transform: { type: 'regression', degree: 2 },
+    });
+    const previous = compilePlot({
+      ...frame,
+      data: [...data, { minute: 2, latency: 4 }, { minute: 3, latency: 5 }],
+      marks: [fitted],
+    });
+    const refreshing = Option.getOrThrow(revalidateOrLoad(succeed(previous)));
+    const fetched = decodePlot({
+      ...frame,
+      data: [...data, { minute: 2, latency: null }],
+      marks: [fitted],
+    });
+    expect(Result.isSuccess(fetched)).toBe(true);
+    const chart = settle(refreshing, Result.flatMap(fetched, compileChecked));
+    expect(chart).toMatchObject({
+      _tag: 'Stale',
+      data: previous,
+      error: {
+        code: 'InvalidPlot',
+        path: 'marks[0].transform',
+        message: expect.stringContaining('A degree 2 fit needs more than 3 points'),
+      },
+    });
+  });
+
+  it('reports a singular fit at its index in a transform pipeline', () => {
+    const fitted = marks.line({
+      x: 'minute',
+      y: 'latency',
+      transform: [{ type: 'window', size: 1, reduce: 'mean' }, { type: 'regression' }],
+    });
+    const repeatedX = [
+      { minute: 1, latency: 2 },
+      { minute: 1, latency: 3 },
+      { minute: 1, latency: 4 },
+    ];
+    const issue = Result.getOrThrow(
+      Result.flip(compileChecked({ ...frame, data: repeatedX, marks: [fitted] })),
+    );
+    expect(issue).toMatchObject({
+      code: 'InvalidPlot',
+      path: 'marks[0].transform[1]',
+      message: expect.stringContaining('Regression is singular'),
+    });
+  });
+
   it('keeps the last drawn chart when a refresh has an invalid field', () => {
     const previous = compilePlot({
       ...frame,

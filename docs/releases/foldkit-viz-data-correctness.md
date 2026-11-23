@@ -4,3 +4,4 @@
 - SQL pushdown includes a mark's explicit key field in its projection. Constant annotations stay local and draw once.
 - Dense append takes its data from the plot's shared source. Move a mark-local table to the plot or recompile with its full data before appending.
 - Square-root scales apply the signed transform before interpolation. Non-zero and signed domains can now give different positions. Equal square-root and power domains map to the range midpoint.
+- The checked compiler reports polynomial fit errors at the responsible transform. A caller can handle insufficient or singular data and retain the last successful chart.

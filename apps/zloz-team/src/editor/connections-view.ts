@@ -1,10 +1,11 @@
 import type { ZlozConnectionsContext } from '@opsydyn/foldkit-zloz/foldkit';
-import { createLazy, type HtmlBuilder } from 'foldkit/html';
+import { createKeyedLazy, type HtmlBuilder } from 'foldkit/html';
 
-/** One instance per canvas. FoldKit owns cached VNodes and dispatch frames;
- * this registry drops slots for removed connections on every render. */
+/** One instance per canvas. FoldKit owns cached VNodes and dispatch frames; the keyed
+ * cache releases the slot for a connection absent from a completed render, which is
+ * `createKeyedLazy`'s default since FoldKit 0.171. */
 export function createConnectionsView<Message>(onSelected: (id: string) => Message) {
-  const slots = new Map<string, ReturnType<typeof createLazy>>();
+  const connection = createKeyedLazy();
   // The team canvas disables context menus and edge toolbars. Its connection
   // controls need only identity, display text, selection and selection policy.
   const button = (
@@ -26,17 +27,14 @@ export function createConnectionsView<Message>(onSelected: (id: string) => Messa
       ],
       [label],
     );
-  return (context: ZlozConnectionsContext, h: HtmlBuilder<Message>) => {
-    const present = new Set(context.entries.map(({ edge }) => edge.id));
-    for (const id of slots.keys()) if (!present.has(id)) slots.delete(id);
-    return h.div(
+  return (context: ZlozConnectionsContext, h: HtmlBuilder<Message>) =>
+    h.div(
       [h.Class('shared-connections')],
       context.entries.map((entry) => {
-        const slot = slots.get(entry.edge.id) ?? createLazy();
-        slots.set(entry.edge.id, slot);
         const endpoints = `${entry.sourceLabel} → ${entry.targetLabel}`;
         const label = entry.edge.label ? `${entry.edge.label} — ${endpoints}` : endpoints;
-        return slot(button, [
+        // Keyed by the same id as h.Key, so the memo and the DOM invalidate together.
+        return connection(entry.edge.id, button, [
           h,
           entry.edge.id,
           label,
@@ -45,5 +43,4 @@ export function createConnectionsView<Message>(onSelected: (id: string) => Messa
         ]);
       }),
     );
-  };
 }

@@ -52,6 +52,17 @@ Source: [FoldKit 0.171.0](https://foldkit.dev/blog/foldkit-0-171-0).
     would reintroduce the registry of deleted ids that the `WeakMap` exists to avoid.
   - All 176 `define` call sites already pass non-empty message lists, and nothing declares
     `Schema.Never` as a result.
+- **`EmbedHandle.disposeAsync` was assessed for `astro-foldkit` and deliberately not
+  adopted.** Its documented purpose is to await shutdown before embedding a _different_
+  program in the same container. `packages/astro-foldkit/src/client.ts` keeps one program per
+  island element in a `WeakMap` (`islandPrograms`) and re-embeds that same program on every
+  re-hydration, with `container` derived from the same element, so a container never hosts a
+  second program and that case cannot arise. Re-embedding the same program already waits for
+  the prior fiber to exit and the mount to be restored, which the code comments at the
+  `runtime.embed` call. Converting would also mean making `dispose` return a promise that its
+  only callers — an `astro:unmount` listener and the render-failure path, both void — cannot
+  await, trading a synchronous idempotent teardown for an unobserved rejection. Left as is.
+
 - **The version is not only in manifests.** Besides the root catalog and the exact literals
   in package `devDependencies`, `0.170.0` was named in skill assets, in SKILL.md prose, in a
   documented peer range, and in the generated-starter templates under `apps/promo`, where a

@@ -293,6 +293,142 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     }
   }, 60_000);
 
+  test('two editing accounts review and apply an import to the same empty board with shared Undo', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const url = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Import into this board',
+        graph: { version: 1, graph: { nodes: [], edges: [] } },
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string) => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      const page = await context.newPage();
+      await page.goto(url);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const importer = await open(data.editor.cookie);
+    const peer = await open(data.owner.cookie);
+    const importButton = importer.getByRole('button', { name: 'Import…', exact: true });
+    const panel = importer.getByRole('region', { name: 'Import into this board', exact: true });
+    const apply = panel.getByRole('button', { name: 'Import into this board', exact: true });
+    const writes: string[] = [];
+    importer.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/api/zloz/diagrams/'))
+        writes.push(request.postData() ?? '');
+    });
+
+    const addBounds = await importer.getByRole('button', { name: 'Add node' }).boundingBox();
+    const importBounds = await importButton.boundingBox();
+    expect(importBounds!.x).toBeGreaterThan(addBounds!.x);
+    expect(importBounds!.y).toBe(addBounds!.y);
+
+    await importButton.click();
+    await panel
+      .getByLabel('LikeC4 JSON file')
+      .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+    await panel.getByLabel('Static view').selectOption('detail');
+    await browserExpect(panel.getByRole('link', { name: 'Download Zloz v3' })).toBeVisible();
+    await browserExpect(apply).toBeDisabled();
+
+    const alchemy = {
+      format: 'foldkit-zloz-alchemy-infrastructure',
+      version: 1,
+      source: {
+        packageVersion: '2.0.0-beta.85',
+        stack: 'team-stack',
+        stage: 'staging',
+        revision: 'a1b2c3',
+      },
+      resources: [
+        { id: 'Api', type: 'Cloudflare.Worker', action: 'noop' },
+        { id: 'Db', type: 'Cloudflare.D1Database', action: 'noop' },
+      ],
+      links: [{ from: 'Api', to: 'Db', kind: 'binding', name: 'DB' }],
+      omissions: [{ resource: 'Api', kind: 'binding', name: 'OTHER' }],
+    };
+    const review = async () => {
+      await panel.getByLabel('Import format').selectOption('alchemy');
+      await panel
+        .getByRole('textbox', { name: /paste Alchemy infrastructure JSON/ })
+        .fill(JSON.stringify(alchemy));
+      await panel.getByRole('button', { name: 'Review snapshot' }).click();
+      await browserExpect(panel.getByText(/Binding OTHER has no resolved target/)).toBeVisible();
+      await browserExpect(apply).toBeDisabled();
+      await panel.getByLabel('I reviewed the import losses').check();
+      await browserExpect(apply).toBeEnabled();
+    };
+    await review();
+    expect(writes).toEqual([]);
+    await peer.getByRole('button', { name: 'Add node' }).click();
+    await browserExpect(panel.getByRole('status')).toContainText(
+      'The board changed while you reviewed',
+    );
+    await browserExpect(apply).toBeDisabled();
+    await peer.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(peer.locator('[data-confirmed-version]')).toHaveAttribute(
+      'data-confirmed-version',
+      '2',
+    );
+    await browserExpect(apply).toBeDisabled();
+    expect(writes).toEqual([]);
+
+    await panel.getByRole('button', { name: 'Close import' }).click();
+    await importButton.click();
+    await review();
+    await apply.click();
+    const apiNode = (page: Page) =>
+      page.getByRole('button', { name: 'Select Api · No change', exact: true });
+    await browserExpect(apiNode(importer)).toBeVisible();
+    await browserExpect(apiNode(peer)).toBeVisible();
+    await browserExpect(peer.getByRole('button', { name: /Binds to · DB/ })).toBeAttached();
+    await browserExpect(importer).toHaveURL(url);
+    await browserExpect(peer).toHaveURL(url);
+    expect(writes.map((text) => parseOperationRequest(text).operation.type)).toEqual([
+      'ImportEmptyBoard',
+    ]);
+    await peer.reload();
+    await browserExpect(apiNode(peer)).toBeVisible();
+    await importer.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(apiNode(peer)).toHaveCount(0);
+    await browserExpect(importButton).toBeVisible();
+
+    await importButton.click();
+    await panel
+      .getByLabel('LikeC4 JSON file')
+      .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+    await panel.getByLabel('Static view').selectOption('overview');
+    await browserExpect(panel.getByText(/endpoint is outside the view/)).toHaveCount(2);
+    await browserExpect(apply).toBeDisabled();
+    await panel.getByLabel('I reviewed the import losses').check();
+    await apply.click();
+    await browserExpect(
+      peer.getByRole('button', { name: 'Select Buyer', exact: true }),
+    ).toBeVisible();
+    await browserExpect(importer).toHaveURL(url);
+    await browserExpect(peer).toHaveURL(url);
+    expect(writes.map((text) => parseOperationRequest(text).operation.type)).toEqual([
+      'ImportEmptyBoard',
+      'Undo',
+      'ImportEmptyBoard',
+    ]);
+  }, 60_000);
+
   test('real app creates, opens, streams, edits and exports a private diagram with fresh role checks', async () => {
     const data = await fixture();
     const blankId = crypto.randomUUID();

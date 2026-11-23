@@ -409,6 +409,9 @@ globalStyle('.editor-actions button', {
   textAlign: 'left',
   whiteSpace: 'normal',
 });
+globalStyle('.editor-primary-actions', { display: 'flex', gap: 6 });
+globalStyle('.editor-primary-actions button:first-child', { flex: 1, minWidth: 0 });
+globalStyle('.editor-primary-actions button + button', { width: 'auto', whiteSpace: 'nowrap' });
 globalStyle('.editor-actions button:first-child', {
   background: theme.accent,
   color: theme.controlInk,
@@ -589,7 +592,7 @@ globalStyle('.layout-ghost', {
 globalStyle('.layout-ghost-group', {
   background: `color-mix(in srgb, transparent 84%, ${theme.accent})`,
 });
-globalStyle('.board-mermaid, .board-svg', {
+globalStyle('.board-mermaid, .board-svg, .board-import', {
   position: 'absolute',
   gridColumn: '1 / -1',
   gridRow: '2 / 3',
@@ -604,6 +607,17 @@ globalStyle('.board-mermaid, .board-svg', {
   border: `1px solid ${theme.controlRule}`,
   boxShadow: '0 8px 28px #0005',
 });
+globalStyle('.board-import', { gridTemplateRows: 'auto minmax(0, 1fr)' });
+globalStyle('.board-import > header', {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '8px 12px',
+  borderBottom: `1px solid ${theme.rule}`,
+});
+globalStyle('.board-import > header h2', { margin: 0 });
+globalStyle('.board-import-content', { padding: 12, overflowY: 'auto' });
 globalStyle('.board-svg', { gridTemplateRows: 'auto minmax(0, 1fr)' });
 globalStyle('.svg-review', { minHeight: 0, gridTemplateRows: 'minmax(0, 1fr) auto' });
 globalStyle('.svg-review-settings', {

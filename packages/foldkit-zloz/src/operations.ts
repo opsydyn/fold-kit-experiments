@@ -430,6 +430,27 @@ function proposedPatch(
         edges: [],
       };
     }
+    case 'ImportEmptyBoard': {
+      if (document.graph.nodes.length || document.graph.edges.length)
+        failure('Import requires an empty board');
+      return {
+        nodes: operation.graph.nodes.map((node, index) => ({
+          type: 'record',
+          id: node.id,
+          expected: null,
+          before: null,
+          after: node,
+          index,
+        })),
+        edges: operation.graph.edges.map((edge, index) => ({
+          id: edge.id,
+          expected: null,
+          before: null,
+          after: edge,
+          index,
+        })),
+      };
+    }
     case 'Connect': {
       if (edgeClockFor(document, operation.edge.id))
         failure('Edge identity was already used', 'IdentityUsed');

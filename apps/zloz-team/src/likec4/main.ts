@@ -1,6 +1,7 @@
+import { parseGraph } from '@opsydyn/foldkit-zloz';
 import { Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
@@ -12,6 +13,7 @@ export interface Props {
   readonly teamId: string;
   readonly creationId: string;
   readonly format?: 'alchemy';
+  readonly insideBoard?: true;
 }
 
 interface State extends Props {
@@ -125,11 +127,21 @@ const CreateLikeC4Diagram = Command.define('CreateLikeC4Diagram', {
     ),
 });
 
-function candidate(model: State) {
+function acceptedGraphText(model: State) {
   if (model.review?.status !== 'ready' || !model.review.graphText) return;
-  if (!model.name.trim() || model.name.trim().length > 120) return;
   if (model.review.diagnostics.some((item) => item.severity === 'loss') && !model.accepted) return;
-  const body = creationBody(model.creationId, model.name, model.review.graphText);
+  return model.review.graphText;
+}
+
+export function reviewedBoardGraph(model: State) {
+  const text = acceptedGraphText(model);
+  return model.insideBoard && text ? parseGraph(text) : null;
+}
+
+function candidate(model: State) {
+  const text = acceptedGraphText(model);
+  if (!text || !model.name.trim() || model.name.trim().length > 120) return;
+  const body = creationBody(model.creationId, model.name, text);
   return new TextEncoder().encode(body).byteLength <= requestLimit ? body : null;
 }
 
@@ -224,7 +236,7 @@ export function update(model: State, message: Message): Return<State, Message> {
     }),
     ClickedApply: (): Return<State, Message> => {
       const body = candidate(model);
-      if (!body || model.submission === 'sending') return { model };
+      if (model.insideBoard || !body || model.submission === 'sending') return { model };
       return {
         model: { ...model, submission: 'sending', notice: 'Creating diagram…' },
         commands: [
@@ -238,13 +250,15 @@ export function update(model: State, message: Message): Return<State, Message> {
   });
 }
 
-export function view(model: State, h: HtmlBuilder<Message>): Document {
+export function view(model: State, h: HtmlBuilder<Message>, blockedReason = '') {
   const disabled = model.submission !== 'idle';
   const review = model.review;
   const ready = review?.status === 'ready' ? review : null;
   const diagnostics = review?.diagnostics ?? [];
+  const emptyImport = model.insideBoard && ready?.graph.nodes.length === 0;
   const nodeLabels = new Map(ready?.graph.nodes.map(({ id, label }) => [id, label]));
   const tooLarge =
+    !model.insideBoard &&
     ready?.graphText &&
     model.name.trim() &&
     new TextEncoder().encode(creationBody(model.creationId, model.name, ready.graphText))
@@ -261,6 +275,8 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
       ],
       [
         h.h2([], [title]),
+        ...(blockedReason ? [h.p([h.Role('status')], [blockedReason])] : []),
+        ...(emptyImport ? [h.p([h.Role('status')], ['This view has no nodes to import.'])] : []),
         h.label(
           [],
           [
@@ -431,18 +447,22 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
           : []),
         ...(ready?.graphText
           ? [
-              h.label(
-                [],
-                [
-                  'Imported diagram name',
-                  h.input([
-                    h.Value(model.name),
-                    h.Maxlength(120),
-                    h.Disabled(disabled),
-                    h.OnInput((value) => Message.ChangedName({ value })),
-                  ]),
-                ],
-              ),
+              ...(!model.insideBoard
+                ? [
+                    h.label(
+                      [],
+                      [
+                        'Imported diagram name',
+                        h.input([
+                          h.Value(model.name),
+                          h.Maxlength(120),
+                          h.Disabled(disabled),
+                          h.OnInput((value) => Message.ChangedName({ value })),
+                        ]),
+                      ],
+                    ),
+                  ]
+                : []),
               ...(diagnostics.some(({ severity }) => severity === 'loss')
                 ? [
                     h.label(
@@ -476,15 +496,21 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
                   h.button(
                     [
                       h.Type('button'),
-                      h.Disabled(!candidate(model) || model.submission === 'sending'),
+                      h.Disabled(
+                        model.insideBoard
+                          ? Boolean(blockedReason) || emptyImport || !acceptedGraphText(model)
+                          : !candidate(model) || model.submission === 'sending',
+                      ),
                       h.OnClick(Message.ClickedApply()),
                     ],
                     [
-                      model.submission === 'retry'
-                        ? 'Retry creation'
-                        : alchemy
-                          ? 'Create team diagram'
-                          : 'Apply',
+                      model.insideBoard
+                        ? 'Import into this board'
+                        : model.submission === 'retry'
+                          ? 'Retry creation'
+                          : alchemy
+                            ? 'Create team diagram'
+                            : 'Apply',
                     ],
                   ),
                 ],

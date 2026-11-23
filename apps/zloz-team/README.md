@@ -241,3 +241,9 @@ Review the canvas and its unresolved references. Select a finding to focus the
 resource. Acknowledge the losses and choose **Create team diagram**. Teammates
 can select an imported resource to inspect its stack, stage, and source
 revision. Plan action labels describe the capture and do not invoke Alchemy.
+
+On an empty shared board, editors can instead choose **Import…** beside
+**Add node** and review a LikeC4 view or Alchemy snapshot in place.
+**Import into this board** applies the reviewed graph as one shared edit with
+one Undo. A newer confirmed version invalidates the preview even if a
+teammate's Undo makes the board empty again.

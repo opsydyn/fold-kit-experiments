@@ -310,6 +310,11 @@ export async function handleDiagramRequest(
             : undefined;
       if (icon && !(await usableNodeIcon(db, target.teamId, icon)))
         return json({ error: 'IconUnavailable' }, 422);
+      if (
+        operation.type === 'ImportEmptyBoard' &&
+        !(await graphIconsAvailable(db, target.teamId, operation.graph))
+      )
+        return json({ error: 'IconUnavailable' }, 422);
       const result = await service.execute(actor, target, input);
       trace?.('commit');
       // The native host owns this best-effort projection beyond response completion.

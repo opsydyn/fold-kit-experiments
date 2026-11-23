@@ -31,8 +31,8 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-The optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.171.0` and Effect 4,
-and are qualified on FoldKit `0.170.0` with Effect `4.1.0`. Consumers can use
+The optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` and Effect 4,
+and are qualified on FoldKit `0.171.0` with Effect `4.1.0`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,
 and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`

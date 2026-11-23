@@ -4,6 +4,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as PlotPanelMessage } from '../../ui/plot-panel';
 
 export const Message = defineMessageUnion({
+  ChangedMinimumExperience: { years: Schema.Number },
   ReceivedScatterMessage: { message: Schema.Unknown },
   ReceivedHistogramMessage: { message: Schema.Unknown },
 });

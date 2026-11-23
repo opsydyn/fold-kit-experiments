@@ -298,7 +298,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
       <p class={gridStyles.cellLabel}>JS tooling dependency network</p>
       <ArcDiagramApp />
     </div>
-    <div class={gridStyles.cell}>
+    <div class={gridStyles.cell} id="linked-views">
       <p class={gridStyles.cellLabel}>Experience vs salary — linked views</p>
       <LinkedChartsApp client:load />
     </div>

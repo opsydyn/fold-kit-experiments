@@ -3408,6 +3408,27 @@ type PlotTable = Readonly<{
   rows: ReadonlyArray<ReadonlyArray<string>>;
   total: number;
 }>;
+type PlotTarget = Readonly<{
+  facet: string;
+  mark: number;
+  graphic: number;
+  key: string;
+  title: string;
+  cx: number;
+  cy: number;
+  left: number;
+  right: number;
+  domain: readonly [number, number];
+  value: number | undefined;
+  includeEnd: boolean;
+  isBar: boolean;
+}>;
+function plotTargets(geometry: PlotGeometry, options: Readonly<{
+  mark: number;
+  facet?: string;
+  inset?: number;
+  finalIntervalClosed?: boolean;
+}>): ReadonlyArray<PlotTarget>;
 type PlotTick = Readonly<{
   value: number | string;
   position: number;

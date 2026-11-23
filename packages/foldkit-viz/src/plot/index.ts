@@ -15,5 +15,13 @@ export {
   invertAxis,
   invertPlot,
   pointerToPlot,
+  plotTargets,
 } from './interaction.js';
-export type { ClientPoint, ClientRect, PlotHit, PlotIndex, PlotLocation } from './interaction.js';
+export type {
+  ClientPoint,
+  ClientRect,
+  PlotHit,
+  PlotIndex,
+  PlotLocation,
+  PlotTarget,
+} from './interaction.js';

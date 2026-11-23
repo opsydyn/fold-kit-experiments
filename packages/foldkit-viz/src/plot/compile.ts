@@ -1059,6 +1059,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
   const dims = highlightFactors(rows, mark.highlight, path);
   switch (mark.mark) {
     case 'dot': {
+      if (rows.length === 0) return [];
       const x = requireScale(context.x, path, 'x'),
         y = requireScale(context.y, path, 'y');
       const xs = read(rows, channel(p, 'x') ?? mark.x, `${path}.x`),

@@ -162,6 +162,7 @@ export function rectGraphics(
   context: Context,
   channel: (name: ChannelName) => Channel | undefined,
 ): Graphics {
+  if (rows.length === 0) return [];
   const x = requireScale(context.x, path, 'x'),
     y = requireScale(context.y, path, 'y');
   if (x.axis.type === 'band' || y.axis.type === 'band')

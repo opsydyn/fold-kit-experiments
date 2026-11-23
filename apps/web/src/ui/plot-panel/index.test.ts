@@ -34,6 +34,21 @@ const scatter = init({ spec: scatterSpec }).model;
 const histogram = init({ spec: histogramSpec, brush: true }).model;
 
 describe('plot panel targets', () => {
+  it('keeps two independent target sets when panels share a spec', () => {
+    const spec: PlotSpec = {
+      ...scatterSpec,
+      marks: [
+        { mark: 'dot', x: 'years', y: 'pay', key: 'id', data: points.slice(0, 1) },
+        { mark: 'dot', x: 'years', y: 'pay', key: 'id', data: points.slice(1) },
+      ],
+    };
+    expect(targetsOf(init({ spec, mark: 0 }).model).map((target) => target.key)).toEqual(['a']);
+    expect(targetsOf(init({ spec, mark: 1 }).model).map((target) => target.key)).toEqual([
+      'b',
+      'c',
+    ]);
+  });
+
   it('lists dots and bars in x order, with bars covering their bins exactly', () => {
     expect(targetsOf(scatter).map((t) => t.key)).toEqual(['a', 'b', 'c']);
     const bins = targetsOf(histogram);
@@ -129,6 +144,27 @@ describe('plot panel data and view', () => {
     const replaced = update(active, Message.ReplacedRows({ rows: points.slice(0, 2) })).model;
     expect(targetsOf(replaced)).toHaveLength(2);
     expect(replaced.active).toEqual(Option.none());
+  });
+
+  it('makes displayed histogram bins and counts available in its table', async () => {
+    const node = document.createElement('div');
+    node.innerHTML = await renderChart((h) =>
+      view({ model: histogram, toParentMessage: (m) => m, ariaLabel: 'Pay distribution' }, h),
+    );
+    expect([...node.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual([
+      'Lower bound',
+      'Upper bound',
+      'count',
+    ]);
+    expect(
+      [...node.querySelectorAll('tbody tr')].map((row) =>
+        [...row.children].map((cell) => cell.textContent),
+      ),
+    ).toEqual([
+      ['50', '75', '2'],
+      ['75', '100', '0'],
+      ['100', '120', '1'],
+    ]);
   });
 
   it('renders a focusable chart with a live region and a data table', async () => {

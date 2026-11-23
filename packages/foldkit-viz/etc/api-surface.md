@@ -3039,6 +3039,8 @@ interface ArrowTable {
   };
   getChild(name: string): {
     toArray(): ArrayLike<unknown>;
+    readonly nullCount?: number;
+    [Symbol.iterator]?(): Iterator<unknown>;
   } | null;
 }
 type BarMark = CommonMark & Readonly<{

@@ -99,7 +99,11 @@ export const fillRows = <A>(rows: Rows, value: A): ReadonlyArray<A> =>
 export interface ArrowTable {
   readonly numRows: number;
   readonly schema: { readonly fields: ReadonlyArray<{ readonly name: string }> };
-  getChild(name: string): { toArray(): ArrayLike<unknown> } | null;
+  getChild(name: string): {
+    toArray(): ArrayLike<unknown>;
+    readonly nullCount?: number;
+    [Symbol.iterator]?(): Iterator<unknown>;
+  } | null;
 }
 
 const FLOAT_ARRAYS = [Float64Array, Float32Array, Int32Array, Int16Array, Int8Array] as const;
@@ -117,19 +121,27 @@ const isValue = (value: unknown): value is Value =>
 const isBigInt = (value: unknown): value is bigint => typeof value === 'bigint';
 
 /** Arrow's values as JSON values: dates become epoch milliseconds, 64-bit integers numbers. */
-const valuesOf = (values: ArrayLike<unknown>): ReadonlyArray<Value> =>
-  Array.from(values, (value): Value => {
-    if (isValue(value)) return value;
-    if (value instanceof Date) return value.getTime();
-    if (isBigInt(value)) return Number(value);
-    return value === undefined ? null : String(value);
-  });
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Arrow and DuckDB supply untyped values to this boundary parser.
+const valueOf = (value: unknown): Value => {
+  if (isValue(value)) return value;
+  if (value instanceof Date) return value.getTime();
+  if (isBigInt(value)) return Number(value);
+  return value === undefined ? null : String(value);
+};
+
+const valuesOf = (values: ArrayLike<unknown>): ReadonlyArray<Value> => Array.from(values, valueOf);
 
 /** A column table over an Arrow table's columns, typed arrays kept as they are. */
 export function fromArrow(table: ArrowTable): ColumnTable {
   const columns = Object.fromEntries(
     table.schema.fields.map(({ name }) => {
-      const values = table.getChild(name)?.toArray() ?? [];
+      const vector = table.getChild(name);
+      const iterate = vector?.[Symbol.iterator];
+      if (vector !== null && (vector.nullCount ?? 0) > 0 && iterate !== undefined) {
+        // Arrow numeric buffers do not encode validity. Iteration reads the bitmap.
+        return [name, Array.from({ [Symbol.iterator]: iterate.bind(vector) }, valueOf)];
+      }
+      const values = vector?.toArray() ?? [];
       if (isNumericArray(values)) return [name, values];
       if (values instanceof BigInt64Array || values instanceof BigUint64Array)
         return [name, Float64Array.from(values, Number)];

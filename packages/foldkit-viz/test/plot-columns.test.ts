@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { Float64, Int32, Table, vectorFromArray } from 'apache-arrow';
 import fc from 'fast-check';
 
 import {
@@ -208,6 +209,34 @@ describe('fromArrow', () => {
       return values === undefined ? null : { toArray: () => values };
     },
   });
+
+  it.each([
+    ['Int32', new Int32()],
+    ['Float64', new Float64()],
+  ] as const)(
+    'preserves null observations across sliced Arrow batches and accessible output (%s)',
+    (_, type) => {
+      const left = vectorFromArray([99, 1, null], type).slice(1);
+      const right = vectorFromArray([3], type);
+      const table = new Table({
+        x: left.concat(right),
+        y: vectorFromArray([2, 5, 8], new Int32()),
+      });
+      const rows = [
+        { x: 1, y: 2 },
+        { x: null, y: 5 },
+        { x: 3, y: 8 },
+      ];
+      const spec = plot([{ mark: 'dot', x: 'x', y: 'y' }]);
+      const data = fromArrow(table);
+      expect(compilePlot({ ...spec, data })).toEqual(compilePlot({ ...spec, data: rows }));
+      expect(plotTable({ ...spec, data }).rows).toEqual([
+        ['1', '2'],
+        ['', '5'],
+        ['3', '8'],
+      ]);
+    },
+  );
 
   it('keeps float and integer columns as they are', () => {
     const x = new Float64Array([1.5, 2.5]);

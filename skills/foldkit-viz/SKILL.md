@@ -14,7 +14,7 @@ interaction policy. This skill works without Astro or its integration skill.
 Read the installed version, export map and declarations before selecting APIs. The [pure
 scatter example](assets/scatter/package.json) targets the published
 `@opsydyn/foldkit-viz@0.18.0` contract and installs neither FoldKit, Effect nor Astro.
-Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.171.0` and Effect 4, and are
+Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` in Viz 0.19.1 and Effect 4, and are
 qualified on FoldKit `0.171.0` with Effect `4.1.0`. These are qualified baselines, not
 instructions to downgrade another project. When using the adapters, pin
 `@effect/platform-browser` to the same version as `effect` (`4.1.0` here). FoldKit 0.171

@@ -107,6 +107,7 @@ function columnsOf(mark: MarkSpec): ReadonlyArray<string> | 'all' {
   }
   if ('z' in mark && mark.z !== undefined) fields.add(mark.z);
   if ('highlight' in mark && mark.highlight !== undefined) fields.add(mark.highlight.field);
+  if (fields.size > 0 && mark.key !== undefined) fields.add(mark.key);
   return [...fields];
 }
 
@@ -240,6 +241,7 @@ export async function pushdown(spec: PlotSpec, source: SqlSource): Promise<PlotS
           : { ...rest, data: rows, x1: 'x1', x2: 'x2', y2: transform.reduce ?? 'count' };
       }
       const columns = columnsOf(mark);
+      if (columns.length === 0) return mark;
       const list = columns === 'all' ? '*' : columns.map(quote).join(', ');
       return { ...mark, data: await source.query(`SELECT ${list} FROM ${source.from}`) };
     }),

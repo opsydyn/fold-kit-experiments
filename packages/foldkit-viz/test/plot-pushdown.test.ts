@@ -49,6 +49,30 @@ describe('pushdown', () => {
     };
   }
 
+  it.each([false, true])(
+    'keeps observation keys when projecting columns (rule %s)',
+    async (rule) => {
+      const spec: PlotSpec = {
+        width: 400,
+        height: 260,
+        marks: [
+          { mark: 'dot', x: 'x', y: 'y', key: 'observation id' },
+          ...(rule ? [{ mark: 'rule', y: { value: 3 } } as const] : []),
+        ],
+      };
+      const from = "(VALUES ('north', 1, 2), ('south', 3, 4)) sample(\"observation id\", x, y)";
+      const expected = compilePlot({
+        ...spec,
+        data: [
+          { 'observation id': 'north', x: 1, y: 2 },
+          { 'observation id': 'south', x: 3, y: 4 },
+        ],
+      });
+      const pushed = await pushdown(spec, { from, query });
+      expect(compilePlot(pushed).facets).toEqual(expected.facets);
+    },
+  );
+
   const base = { width: 480, height: 300 } as const;
 
   it('bins a histogram in the engine, drawing exactly what binning every row locally draws', async () => {

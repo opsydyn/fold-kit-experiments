@@ -328,9 +328,22 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const panel = importer.getByRole('region', { name: 'Import into this board', exact: true });
     const apply = panel.getByRole('button', { name: 'Import into this board', exact: true });
     const writes: string[] = [];
+    const newBoardWrites: string[] = [];
+    const teamDiagramApi = `${origin}/api/zloz/diagrams/${data.organizationId}/`;
+    const newBoardUrl = `${origin}/app/${data.organizationId}/diagrams/new`;
+    const presence = importer.waitForRequest(
+      (request) => request.method() === 'POST' && request.url() === `${api}/presence`,
+    );
     importer.on('request', (request) => {
-      if (request.method() === 'POST' && request.url().includes('/api/zloz/diagrams/'))
-        writes.push(request.postData() ?? '');
+      if (request.method() !== 'POST') return;
+      const requestUrl = request.url();
+      if (requestUrl === `${api}/operations`) writes.push(request.postData() ?? '');
+      if (
+        requestUrl === newBoardUrl ||
+        (requestUrl.startsWith(teamDiagramApi) &&
+          !requestUrl.slice(teamDiagramApi.length).includes('/'))
+      )
+        newBoardWrites.push(requestUrl);
     });
 
     const addBounds = await importer.getByRole('button', { name: 'Add node' }).boundingBox();
@@ -422,6 +435,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     ).toBeVisible();
     await browserExpect(importer).toHaveURL(url);
     await browserExpect(peer).toHaveURL(url);
+    await presence;
+    expect(newBoardWrites).toEqual([]);
     expect(writes.map((text) => parseOperationRequest(text).operation.type)).toEqual([
       'ImportEmptyBoard',
       'Undo',

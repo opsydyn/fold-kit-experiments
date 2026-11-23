@@ -2022,6 +2022,30 @@ type Space3dSceneOptions = Readonly<{
 function surface3dScene(surface: Surface3d, options: Space3dSceneOptions): GroupNode;
 ```
 
+## ./effect/plot
+
+```ts
+const addMarks: (...marks: ReadonlyArray<MarkSpec>) => (spec: PlotSpec) => PlotSpec;
+const compileChecked: (spec: PlotSpec) => Result.Result<PlotGeometry, PlotIssue>;
+const decodePlot: (input: unknown) => Result.Result<WirePlotSpec, PlotIssue>;
+const marksFor: <T>() => {
+  dot: (options: DotOptions<T>) => DotMark;
+  line: (options: LineOptions<T>) => LineMark;
+  ruleY: (value: Value) => RuleMark;
+};
+class PlotIssue extends PlotIssue_base<{
+  readonly code: 'InvalidSpec' | 'InvalidPlot' | 'MissingField';
+  readonly path: string | null;
+  readonly message: string;
+  readonly field?: string;
+}> {}
+const PlotSpecSchema: Schema.Codec<WirePlotSpec, WirePlotSpec, never, never>;
+type WirePlotSpec = Omit<PlotSpec, 'data' | 'marks'> & Readonly<{
+  data?: WireData;
+  marks: ReadonlyArray<WireMark<MarkSpec>>;
+}>;
+```
+
 ## ./foldkit/cartesian
 
 ```ts

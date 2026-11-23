@@ -29,6 +29,36 @@ separate from this npm package and does not require Astro or its skill.
 bun add @opsydyn/foldkit-viz
 ```
 
+## Your first chart
+
+Compile a plot and render it to HTML. This works in a server route or a build script and needs no client JavaScript.
+
+```ts
+import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
+import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
+
+const spec = {
+  width: 440,
+  height: 260,
+  title: 'Service latency and 250 ms objective',
+  data: [
+    { minute: 0, latencyMs: 140 },
+    { minute: 1, latencyMs: 260 },
+  ],
+  x: { label: 'Minute' },
+  y: { label: 'Latency (ms)' },
+  marks: [
+    { mark: 'line', x: 'minute', y: 'latencyMs' },
+    { mark: 'rule', y: { value: 250 } },
+  ],
+} satisfies PlotSpec;
+
+const html = plotHtml(compilePlot(spec), { summary: true, table: plotTable(spec) });
+```
+
+The rule is an independent layer on the same scale. Edit its value to move the objective. When the row type is known, use `marksFor<Row>()` and `addMarks` from `@opsydyn/foldkit-viz/effect/plot` to compose reusable marks with checked field names. When a spec comes from JSON, call `decodePlot(input)` and `Result.flatMap(compileChecked)`. The resulting Effect Result carries the spec path on an expected failure. The checked authoring entry point uses Effect 4.1. Use `Effect.fromResult` in a FoldKit command and keep the last successful chart in the Model during refresh. [FoldKit view and command example](../../skills/foldkit-viz/assets/effect-plot.ts) · [Linked-view recipe](../../apps/web/src/apps/linked-charts/)
+
 ## FoldKit compatibility
 
 The optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` and Effect 4,
@@ -690,7 +720,7 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
   draws and how many, what the axes cover, and what colour shows.
 - **`plotTable(spec)`** lists the data a spec plots, field by field, capped at
   200 rows with the total noted.
-- **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
+- **Framework boundary:** the `foldkit/*` and `effect/*` entry points use optional peers,
   and a test enforces it.
 
 ## Column data and other languages (0.18.0+)

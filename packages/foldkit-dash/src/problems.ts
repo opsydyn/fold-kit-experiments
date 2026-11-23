@@ -72,8 +72,6 @@ export type Envelope = typeof Envelope.Type;
 
 export const encodeEnvelope = Schema.encodeSync(Schema.fromJsonString(Envelope));
 
-export { specPathOf } from './chart';
-
 /** The project has problems: exit 1. They have been reported already. */
 export class DashProblems extends Data.TaggedError('DashProblems')<{ readonly count: number }> {
   readonly [Runtime.errorExitCode] = 1;

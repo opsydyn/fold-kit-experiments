@@ -741,6 +741,8 @@ function buildScale(
   // Unless the spec says, aim for a tick every ~90px across and ~50px down.
   const span = axis === 'x' ? bounds.width / 90 : bounds.height / 50;
   const count = info.spec.ticks ?? Math.max(2, Math.min(10, Math.round(span)));
+  if (!(Number.isInteger(count) && count >= 2))
+    fail(`${axis}.ticks`, 'must be an integer of at least two');
   const ticks = axisTicks(domain, project, count, scale).map((t) => ({
     value: t.value,
     position: t.position,
@@ -1420,16 +1422,16 @@ function validateSpec(spec: PlotSpec): void {
       `unknown coordinates "${String(coordinates)}"; expected cartesian or polar`,
     );
   validateProjection(spec);
-  spec.marks.forEach((mark, i) => {
-    if ((mark.mark === 'geo' || mark.mark === 'graticule') && spec.projection === undefined)
-      fail(`marks[${i}]`, `a ${mark.mark} mark needs the plot to have a projection`);
-  });
   if (!(Number.isFinite(spec.width) && spec.width > 0))
     fail('width', 'must be finite and positive');
   if (!(Number.isFinite(spec.height) && spec.height > 0))
     fail('height', 'must be finite and positive');
   if (!Array.isArray(spec.marks) || spec.marks.length === 0)
     fail('marks', 'a plot needs at least one mark');
+  spec.marks.forEach((mark, i) => {
+    if ((mark.mark === 'geo' || mark.mark === 'graticule') && spec.projection === undefined)
+      fail(`marks[${i}]`, `a ${mark.mark} mark needs the plot to have a projection`);
+  });
   spec.marks.forEach((mark, i) => validateMark(mark, `marks[${i}]`));
 }
 

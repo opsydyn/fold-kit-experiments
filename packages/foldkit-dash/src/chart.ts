@@ -4,8 +4,8 @@
  * the same way.
  * @module Chart
  */
+import { compileChecked, decodePlot, type PlotIssue } from '@opsydyn/foldkit-viz/effect/plot';
 import {
-  compilePlot,
   invertAxis,
   invertPlot,
   type PlotAxis,
@@ -307,22 +307,20 @@ const highlightMarks = new Set(['bar', 'dot', 'cell', 'text', 'line', 'area']);
  * `highlight`), so a reader sees what they clicked. None when nothing is chosen, the
  * mark cannot be highlighted, or it has a highlight of its own.
  */
-const highlightOf = (spec: JsonObject, field: string, chosen: Json): Option.Option<JsonObject> => {
-  const marks = spec['marks'];
-  const [first, ...others] = Array.isArray(marks) ? marks : [];
-  const mark = first !== undefined && first !== null && isRecord(first) ? first : undefined;
-  const kind = mark?.['mark'];
-  return chosen === null ||
-    Array.isArray(chosen) ||
+const highlightOf = (spec: PlotSpec, field: string, chosen: Json): Option.Option<PlotSpec> => {
+  const [mark, ...others] = spec.marks;
+  if (
+    chosen === null ||
+    !Schema.is(Value)(chosen) ||
     mark === undefined ||
-    !isText(kind) ||
-    !highlightMarks.has(kind) ||
-    mark['highlight'] !== undefined
-    ? Option.none()
-    : Option.some({
-        ...spec,
-        marks: [{ ...mark, highlight: { field, values: [chosen] } }, ...others],
-      });
+    !highlightMarks.has(mark.mark) ||
+    mark.highlight !== undefined
+  )
+    return Option.none();
+  return Option.some({
+    ...spec,
+    marks: [{ ...mark, highlight: { field, values: [chosen] } }, ...others],
+  });
 };
 
 /** The series, x and y fields of a line, area or dot chart's first mark, if it draws several. */
@@ -374,15 +372,13 @@ const choiceFieldOf = (spec: JsonObject, selects: Selects): Option.Option<string
   return isText(field) ? Option.some(field) : Option.none();
 };
 
-/** The spec path at the start of a `compilePlot` message, such as `marks[0].y`. */
-export const specPathOf = (message: string): string | null =>
-  /^((?:[A-Za-z_$][\w$]*|\[\d+\])(?:\.[A-Za-z_$][\w$]*|\[\d+\])*):\s/.exec(message)?.[1] ?? null;
+const problem = (
+  kind: ChartProblem['kind'],
+  message: string,
+  path: string | null = null,
+): ChartProblem => ({ kind, path, message });
 
-const problem = (kind: ChartProblem['kind'], message: string): ChartProblem => ({
-  kind,
-  path: kind === 'spec' ? specPathOf(message) : null,
-  message,
-});
+const plotProblem = (issue: PlotIssue): ChartProblem => problem('spec', issue.message, issue.path);
 
 const isText = Schema.is(Schema.String);
 const decodeRows = Schema.decodeUnknownResult(Rows);
@@ -422,16 +418,18 @@ export const drawSpec = (
   return Result.flatMap(rowsOf(resolved, data), (rows) => {
     const where = resolved['where'] ?? null;
     const kept = filterRows(rows, where);
-    if (Result.isFailure(kept)) return Result.fail(problem('spec', kept.failure));
+    if (Result.isFailure(kept)) return Result.fail(problem('spec', kept.failure, 'where'));
     if (kept.success.length === 0 && rows.length > 0) {
       return Result.fail(problem('data', `where ${whereText(where)} keeps no rows`));
     }
     const { where: _, select, brush, ...rest } = resolved;
     if (select !== undefined && !isText(select)) {
-      return Result.fail(problem('spec', 'select: name an input, as "select": "region"'));
+      return Result.fail(problem('spec', 'select: name an input, as "select": "region"', 'select'));
     }
     if (brush !== undefined && !isText(brush)) {
-      return Result.fail(problem('spec', 'brush: name a between input, as "brush": "weeks"'));
+      return Result.fail(
+        problem('spec', 'brush: name a between input, as "brush": "weeks"', 'brush'),
+      );
     }
     const brushed = (drawn: Drawn): Result.Result<Drawn, ChartProblem> => {
       if (brush === undefined) return Result.succeed(drawn);
@@ -439,68 +437,68 @@ export const drawSpec = (
       return type === 'linear' || type === 'time'
         ? Result.succeed({ ...drawn, brushes: brush })
         : Result.fail(
-            problem('spec', 'brush: the chart needs an x axis of numbers or dates to drag across'),
+            problem(
+              'spec',
+              'brush: the chart needs an x axis of numbers or dates to drag across',
+              'brush',
+            ),
           );
     };
-    return Result.flatMap(
-      Result.try({
-        try: () => {
-          const spec: JsonObject = { ...rest, data: kept.success };
-          // SAFETY: compilePlot validates the whole spec and throws a RangeError naming the
-          // path at fault, which becomes a `spec` problem; nothing reads it unchecked.
-          const plot = spec as PlotSpec;
-          return { spec, plot, geometry: compilePlot(plot) };
-        },
-        catch: (error) => problem('spec', error instanceof Error ? error.message : String(error)),
-      }),
-      ({ spec, plot, geometry }): Result.Result<Drawn, ChartProblem> => {
-        const series = seriesOf(spec, kept.success, where);
-        const fields = Option.getOrNull(fieldsOf(spec));
-        if (select === undefined)
-          return Result.succeed({
-            plot,
-            geometry,
-            series,
-            selects: null,
-            rows: kept.success,
-            fields,
-            brushes: null,
-          });
-        const chosen = selectsOf(select, spec, kept.success, geometry);
-        if (Option.isNone(chosen)) {
-          return Result.fail(
-            problem('spec', 'select: the chart has no categories or series for a reader to click'),
-          );
-        }
-        const selects = chosen.value;
-        const highlighted = Option.flatMap(choiceFieldOf(spec, selects), (field) =>
-          highlightOf(spec, field, values[select] ?? null),
-        );
-        if (Option.isNone(highlighted)) {
-          return Result.succeed({
-            plot,
-            geometry,
-            series,
-            selects,
-            rows: kept.success,
-            fields,
-            brushes: null,
-          });
-        }
-        // SAFETY: the spec compiled above; a highlight on its first mark's own field is one
-        // compilePlot accepts.
-        const lit = highlighted.value as PlotSpec;
+    const spec: JsonObject = { ...rest, data: kept.success };
+    const drawn = decodePlot(spec).pipe(
+      Result.flatMap((plot) =>
+        Result.map(compileChecked(plot), (geometry) => ({ plot, geometry })),
+      ),
+      Result.mapError(plotProblem),
+    );
+    return Result.flatMap(drawn, ({ plot, geometry }): Result.Result<Drawn, ChartProblem> => {
+      const series = seriesOf(spec, kept.success, where);
+      const fields = Option.getOrNull(fieldsOf(spec));
+      if (select === undefined)
         return Result.succeed({
-          plot: lit,
-          geometry: compilePlot(lit),
+          plot,
+          geometry,
+          series,
+          selects: null,
+          rows: kept.success,
+          fields,
+          brushes: null,
+        });
+      const chosen = selectsOf(select, spec, kept.success, geometry);
+      if (Option.isNone(chosen)) {
+        return Result.fail(
+          problem('spec', 'select: the chart has no categories or series for a reader to click'),
+        );
+      }
+      const selects = chosen.value;
+      const highlighted = Option.flatMap(choiceFieldOf(spec, selects), (field) =>
+        highlightOf(plot, field, values[select] ?? null),
+      );
+      if (Option.isNone(highlighted)) {
+        return Result.succeed({
+          plot,
+          geometry,
           series,
           selects,
           rows: kept.success,
           fields,
           brushes: null,
         });
-      },
-    ).pipe(Result.flatMap(brushed));
+      }
+      const lit = highlighted.value;
+      return compileChecked(lit).pipe(
+        Result.mapError(plotProblem),
+        Result.map((geometry) => ({
+          plot: lit,
+          geometry,
+          series,
+          selects,
+          rows: kept.success,
+          fields,
+          brushes: null,
+        })),
+      );
+    }).pipe(Result.flatMap(brushed));
   });
 };
 

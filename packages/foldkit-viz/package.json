@@ -193,6 +193,9 @@
       "plot": [
         "./dist/plot.d.mts"
       ],
+      "effect/plot": [
+        "./dist/effect/plot.d.mts"
+      ],
       "foldkit/plot": [
         "./dist/foldkit/plot.d.mts"
       ],
@@ -443,6 +446,10 @@
       "import": "./dist/plot.mjs"
     },
     "./plot-spec.schema.json": "./schema/plot-spec.schema.json",
+    "./effect/plot": {
+      "types": "./dist/effect/plot.d.mts",
+      "import": "./dist/effect/plot.mjs"
+    },
     "./foldkit/plot": {
       "types": "./dist/foldkit/plot.d.mts",
       "import": "./dist/foldkit/plot.mjs"

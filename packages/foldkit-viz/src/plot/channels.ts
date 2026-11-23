@@ -18,8 +18,19 @@ import type {
  * I/O boundary: values are parsed here with guards, not cast.
  */
 
+/** A plot rejected an input at a known spec location. */
+export class PlotCompileError extends RangeError {
+  constructor(
+    readonly path: string,
+    detail: string,
+    readonly field?: string,
+  ) {
+    super(`${path}: ${detail}`);
+  }
+}
+
 export const fail = (path: string, message: string): never => {
-  throw new RangeError(`${path}: ${message}`);
+  throw new PlotCompileError(path, message);
 };
 
 // ── Channels ──────────────────────────────────────────────────────────────────
@@ -39,7 +50,10 @@ export const fieldOf = (channel: Channel | undefined): string | undefined =>
 export function read(rows: Rows, channel: Channel, path: string): ReadonlyArray<Value> {
   if (isConstant(channel)) return fillRows(rows, channel.value);
   if (!isText(channel) || channel === '') return fail(path, 'must be a field name or { value }');
-  return columnOf(rows, channel) ?? fail(path, `field "${channel}" is missing from the data`);
+  const values = columnOf(rows, channel);
+  if (values === undefined)
+    throw new PlotCompileError(path, `field "${channel}" is missing from the data`, channel);
+  return values;
 }
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;

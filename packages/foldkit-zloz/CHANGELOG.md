@@ -76,10 +76,9 @@
 
 ## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.9.0...foldkit-zloz-v0.10.0) (2026-11-23)
 
-
 ### Features
 
-* **zloz-team:** import reviewed graphs into empty boards ([#195](https://github.com/opsydyn/fold-kit-experiments/issues/195)) ([6a8a83a](https://github.com/opsydyn/fold-kit-experiments/commit/6a8a83a4d55bba494e1fb7f97071d4ccfd164326))
+- **zloz-team:** import reviewed graphs into empty boards ([#195](https://github.com/opsydyn/fold-kit-experiments/issues/195)) ([6a8a83a](https://github.com/opsydyn/fold-kit-experiments/commit/6a8a83a4d55bba494e1fb7f97071d4ccfd164326))
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.8.0...foldkit-zloz-v0.9.0) (2026-11-23)
 

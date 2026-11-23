@@ -188,8 +188,12 @@ copies the upstream licence to `public/third-party/PHOSPHOR-LICENSE`. No SVG par
 or full icon catalogue is included in the client rendering path.
 
 See [ADR 0042](../../docs/adr/0042-style-zloz-teams-as-a-c4-workspace.md).
-Custom icon uploads, shared icon choices, complexity scoring and evolution
-history remain later domain/API slices.
+Under **Selection inspector → Node icon**, editors can choose a built-in icon
+or upload a PNG or WebP to the shared team library. Images are limited to 64 KiB
+and 512 × 512. The team can reuse an icon across diagrams. Owners can archive
+icons, and existing boards keep displaying them. SVG exports embed available
+team icons. The export review reports when an image is unavailable or exceeds
+the SVG image budget. See [ADR 0125](../../docs/adr/0125-share-node-icons-through-the-team-library.md).
 
 ## Aggregate view
 

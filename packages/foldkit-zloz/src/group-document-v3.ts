@@ -147,6 +147,7 @@ function exactGraphFields(graph: JsonObject): void {
         'data',
         'architecture',
         'appearance',
+        'icon',
       ],
       path,
     );

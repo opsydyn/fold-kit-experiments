@@ -1,4 +1,4 @@
-import { ZlozError, isNode, isEdge } from './graph';
+import { ZlozError, isNode, isNodeIcon, isEdge } from './graph';
 import type { ZlozGraphOperation, ZlozNodeFrame, ZlozOperationRequest } from './operation-types';
 import type { JsonValue, Point } from './types';
 
@@ -79,6 +79,13 @@ export function isGraphOperation(value: unknown): value is ZlozGraphOperation {
         operationEntityId(value.id) &&
         operationVersion(value.expected) &&
         typeof value.label === 'string'
+      );
+    case 'SetNodeIcon':
+      return (
+        operationKeys(value, ['type', 'id', 'expected', 'icon']) &&
+        operationEntityId(value.id) &&
+        operationVersion(value.expected) &&
+        (value.icon === null || isNodeIcon(value.icon))
       );
     case 'AddNode':
       return (

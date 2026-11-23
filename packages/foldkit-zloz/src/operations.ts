@@ -1,6 +1,6 @@
 import { connectionReason } from './connection-validation';
 import { resolveDeletion } from './deletion';
-import { copyGraph, validateGraph, isGraph, isNode, isEdge, ZlozError } from './graph';
+import { copyGraph, validateGraph, isGraph, isNode, isNodeIcon, isEdge, ZlozError } from './graph';
 import { withDescendants } from './group-presentation';
 import {
   isOperationRequest,
@@ -32,6 +32,7 @@ import { resolvePortRemoval } from './port-removal';
 import type { Port, ZlozEdge, ZlozGraph, ZlozNode } from './types';
 
 type OperationComparable =
+  | null
   | string
   | ZlozGraph
   | ZlozNode
@@ -95,6 +96,8 @@ function inverseNode(patch: ZlozNodeChange, version: number): ZlozNodeChange {
       return { ...patch, before: patch.after, after: patch.before, expected: version };
     case 'label':
       return { ...patch, before: patch.after, after: patch.before, expected: version };
+    case 'icon':
+      return { ...patch, before: patch.after, after: patch.before, expected: version };
     case 'ports':
       return { ...patch, before: patch.after, after: patch.before, expected: version };
     case 'record':
@@ -138,10 +141,14 @@ function checkedNodePatch(document: ZlozOperationDocument, patch: ZlozNodeChange
       failure('Invalid node record change');
     return;
   }
-  if (!node || !clock?.present || clock[patch.type] !== patch.expected)
+  if (!node || !clock?.present || (clock[patch.type] ?? 0) !== patch.expected)
     failure('Node field changed before this operation');
   const before =
-    patch.type === 'geometry' ? frame(node) : patch.type === 'label' ? node.label : node.ports;
+    patch.type === 'geometry'
+      ? frame(node)
+      : patch.type === 'icon'
+        ? (node.icon ?? null)
+        : node[patch.type];
   if (!equal(before, patch.before)) failure('Node field does not match the accepted change');
 }
 function checkedEdgePatch(document: ZlozOperationDocument, patch: ZlozEdgeChange) {
@@ -191,6 +198,10 @@ function applyPatch(
       return [{ ...node, position: after.position, size: after.size }];
     }
     if (item.type === 'label') return [{ ...node, label: item.after }];
+    if (item.type === 'icon') {
+      const { icon: previousIcon, ...bare } = node;
+      return [item.after === null ? bare : { ...bare, icon: item.after }];
+    }
     return [
       { ...node, ports: ownership === 'shared' ? copyOperationValue(item.after) : item.after },
     ];
@@ -255,16 +266,19 @@ function replayOperationChange(
   const nodeClocks = new Map(document.nodes.map((clock) => [clock.id, clock]));
   for (const patch of change.nodes) {
     const current = nodeClocks.get(patch.id);
-    nodeClocks.set(
-      patch.id,
-      patch.type === 'record'
-        ? nodeClock(patch.id, change.version, patch.after !== null)
-        : {
-            ...(current ?? nodeClock(patch.id, 0)),
-            version: change.version,
-            [patch.type]: change.version,
-          },
-    );
+    if (patch.type === 'record') {
+      const next = nodeClock(patch.id, change.version, patch.after !== null);
+      nodeClocks.set(
+        patch.id,
+        current?.icon === undefined ? next : { ...next, icon: change.version },
+      );
+      continue;
+    }
+    nodeClocks.set(patch.id, {
+      ...(current ?? nodeClock(patch.id, 0)),
+      version: change.version,
+      [patch.type]: change.version,
+    });
   }
   const edgeClocks = new Map(document.edges.map((clock) => [clock.id, clock]));
   for (const patch of change.edges)
@@ -382,6 +396,19 @@ function proposedPatch(
             expected: operation.expected,
             before: nodeFor(document, operation.id).label,
             after: operation.label,
+          },
+        ],
+        edges: [],
+      };
+    case 'SetNodeIcon':
+      return {
+        nodes: [
+          {
+            type: 'icon',
+            id: operation.id,
+            expected: operation.expected,
+            before: nodeFor(document, operation.id).icon ?? null,
+            after: operation.icon,
           },
         ],
         edges: [],
@@ -675,6 +702,13 @@ function isNodeChange(value: unknown): value is ZlozNodeChange {
         typeof value.before === 'string' &&
         typeof value.after === 'string'
       );
+    case 'icon':
+      return (
+        operationKeys(value, fields) &&
+        operationVersion(value.expected) &&
+        (value.before === null || isNodeIcon(value.before)) &&
+        (value.after === null || isNodeIcon(value.after))
+      );
     case 'ports': {
       if (
         !operationKeys(value, fields) ||
@@ -786,7 +820,17 @@ export function isOperationDocument(value: unknown): value is ZlozOperationDocum
     for (const clock of value.nodes) {
       if (
         !operationRecord(clock) ||
-        !operationKeys(clock, ['id', 'present', 'version', 'geometry', 'label', 'ports']) ||
+        !operationKeys(clock, [
+          'id',
+          'present',
+          'version',
+          'geometry',
+          'label',
+          'ports',
+          ...(Object.hasOwn(clock, 'icon') ? ['icon'] : []),
+        ]) ||
+        (Object.hasOwn(clock, 'icon') &&
+          (!operationVersion(clock.icon) || clock.icon > Number(clock.version))) ||
         !operationEntityId(clock.id) ||
         ids.has(clock.id) ||
         typeof clock.present !== 'boolean' ||

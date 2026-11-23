@@ -1197,6 +1197,160 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     60_000,
   );
 
+  test('team icon uploads sync, reuse across diagrams, archive and export offline', async () => {
+    const data = await fixture();
+    const outside = await fixture();
+    const graph = parseGraph(JSON.stringify({ version: 1, graph: operationFixture.graph }));
+    const create = async (teamId: string, cookie: string) => {
+      const id = crypto.randomUUID();
+      const api = `${origin}/api/zloz/diagrams/${teamId}/${id}`;
+      const result = await fetch(api, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name: 'Team icon fixture',
+          graph: { version: 1, graph },
+        }),
+      });
+      expect(result.status).toBe(200);
+      return { api, page: `${origin}/app/${teamId}/diagrams/${id}` };
+    };
+    const first = await create(data.organizationId, data.owner.cookie);
+    const second = await create(data.organizationId, data.editor.cookie);
+    const foreign = await create(outside.organizationId, outside.owner.cookie);
+    const library = `${origin}/api/zloz/teams/${data.organizationId}/icons`;
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jPuoAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const postIcon = (cookie: string, body: string | Uint8Array<ArrayBuffer>) =>
+      fetch(`${library}?name=Invalid`, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'image/png' },
+        body,
+      });
+    expect((await postIcon(data.viewer.cookie, png)).status).toBe(403);
+    expect((await postIcon(data.editor.cookie, '<svg/>')).status).toBe(415);
+    expect((await postIcon(data.editor.cookie, new Uint8Array(65_537))).status).toBe(413);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string, url: string) => {
+      const context = await browser.newContext({
+        viewport: { width: 1366, height: 880 },
+        acceptDownloads: true,
+      });
+      const at = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, at), value: cookie.slice(at + 1), url: origin },
+      ]);
+      const page = await context.newPage();
+      await page.goto(url);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const editor = await open(data.editor.cookie, first.page);
+    const owner = await open(data.owner.cookie, first.page);
+    const webp = await owner.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 2;
+      canvas.height = 2;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas unavailable');
+      ctx.fillStyle = '#2288aa';
+      ctx.fillRect(0, 0, 2, 2);
+      return canvas.toDataURL('image/webp').split(',')[1]!;
+    });
+    const webpUpload = await fetch(
+      `${origin}/api/zloz/teams/${outside.organizationId}/icons?name=WebP`,
+      {
+        method: 'POST',
+        headers: { cookie: outside.editor.cookie, origin, 'content-type': 'image/webp' },
+        body: Buffer.from(webp, 'base64'),
+      },
+    );
+    expect(webpUpload.status).toBe(201);
+    expect(await webpUpload.json()).toMatchObject({ name: 'WebP', mediaType: 'image/webp' });
+
+    const showLibrary = async (page: Page) => {
+      await page.getByRole('button', { name: 'Select Alpha', exact: true }).press('Enter');
+      await page.getByRole('button', { name: 'Node icon', exact: true }).click();
+      const picker = page.getByRole('region', { name: 'Node icon picker' });
+      await picker.getByRole('button', { name: 'Team library', exact: true }).click();
+      return picker;
+    };
+    const editorPicker = await showLibrary(editor);
+    await editorPicker
+      .getByLabel(/Upload and apply icon/)
+      .setInputFiles({ name: 'Payments.png', mimeType: 'image/png', buffer: png });
+    await browserExpect(
+      editorPicker.getByRole('button', { name: 'Payments', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    const preview = (page: Page) =>
+      page.getByRole('button', { name: 'Select Alpha', exact: true }).locator('img');
+    const rendered = (page: Page) =>
+      browserExpect
+        .poll(() => preview(page).evaluate((icon: HTMLImageElement) => icon.naturalWidth))
+        .toBe(1);
+    await rendered(owner);
+    const url = await preview(owner).getAttribute('src');
+    if (!url) throw new Error('The applied icon has no asset URL');
+    const assetId = url.split('/').at(-1)!;
+    const viewerImage = await fetch(`${origin}${url}`, { headers: { cookie: data.viewer.cookie } });
+    expect(viewerImage.status).toBe(200);
+    expect(Buffer.from(await viewerImage.arrayBuffer())).toEqual(png);
+    expect(
+      (await fetch(`${origin}${url}`, { headers: { cookie: outside.owner.cookie } })).status,
+    ).toBe(403);
+    const foreignApply = await fetch(`${foreign.api}/operations`, {
+      method: 'POST',
+      headers: { cookie: outside.owner.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        version: 1,
+        operationId: crypto.randomUUID(),
+        operation: { type: 'SetNodeIcon', id: 'a', expected: 0, icon: `team:${assetId}` },
+      }),
+    });
+    expect(foreignApply.status).toBe(422);
+    await owner.reload();
+    await rendered(owner);
+    await owner.goto(second.page);
+    const secondPicker = await showLibrary(owner);
+    await secondPicker.getByRole('button', { name: 'Payments', exact: true }).click();
+    await rendered(owner);
+    await secondPicker.getByRole('button', { name: 'Archive Payments', exact: true }).click();
+    await browserExpect(
+      secondPicker.getByRole('button', { name: 'Payments', exact: true }),
+    ).toHaveCount(0);
+    await rendered(owner);
+    const exportSvg = owner.getByRole('button', { name: 'Export SVG', exact: true });
+    if (!(await exportSvg.isVisible()))
+      await owner.getByRole('button', { name: 'Tools', exact: true }).click();
+    await exportSvg.click();
+    const review = owner.getByRole('region', { name: 'SVG export preview' });
+    await browserExpect(review.getByRole('list', { name: 'SVG findings' })).toContainText(
+      'The team icon is embedded',
+    );
+    await review.getByRole('checkbox', { name: 'Accept the reported SVG losses' }).check();
+    const [file] = await Promise.all([
+      owner.waitForEvent('download'),
+      review.getByRole('button', { name: 'Download SVG', exact: true }).click(),
+    ]);
+    const source = await readFile(await file.path(), 'utf8');
+    expect(source).toContain(`href="data:image/png;base64,${png.toString('base64')}"`);
+    expect(source).not.toContain(url);
+    await owner.context().setOffline(true);
+    expect(
+      await owner.evaluate(async (svg) => {
+        const image = new Image();
+        image.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+        await image.decode();
+        return image.naturalWidth;
+      }, source),
+    ).toBeGreaterThan(0);
+    await file.delete();
+  }, 60_000);
+
   test('Alchemy snapshot review creates a shared board with bindings, omissions and source revision', async () => {
     const data = await fixture();
     const boardUrl = `${origin}/app/${data.organizationId}/diagrams/new`;
@@ -1529,7 +1683,11 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const browser = await chromium.launch();
     await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
     const open = async (cookie: string, width: number, colorScheme: 'light' | 'dark') => {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme });
+      const context = await browser.newContext({
+        viewport: { width, height: 900 },
+        colorScheme,
+        reducedMotion: 'reduce',
+      });
       const equals = cookie.indexOf('=');
       await context.addCookies([
         { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
@@ -1615,7 +1773,6 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
 
     const editor = await open(data.editor.cookie, 1440, 'dark');
     await page.bringToFront();
-    await page.emulateMedia({ reducedMotion: 'reduce' });
     const historicalWrites: string[] = [];
     page.on('request', (request) => {
       if (request.method() === 'POST' && request.url() === `${api}/operations`)
@@ -1623,6 +1780,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     });
     await panel.getByRole('button', { name: 'Open on canvas' }).press('Enter');
     const review = page.getByRole('region', { name: 'Board history' });
+    await browserExpect(review.getByRole('button', { name: 'Back to live' })).toBeFocused();
     await browserExpect(review).toContainText('Read-only · Version 1');
     await browserExpect(review.getByRole('button', { name: 'Play editions' })).toBeDisabled();
     const scrubber = review.getByRole('slider', { name: 'Review version' });

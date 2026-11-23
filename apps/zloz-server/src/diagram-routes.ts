@@ -33,6 +33,7 @@ import { ClefReference, type ClefAdvice } from './clef-contract';
 import { epochSql } from './date-sql';
 import { BodyRejected, bodyText } from './http-body';
 import type { DiagramPeer } from './presence';
+import { usableNodeIcon } from './team-icons';
 
 const Identifier = Schema.String.pipe(Schema.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/)));
 const Creation = Schema.Struct({
@@ -138,6 +139,12 @@ const parseClefReference = Schema.decodeUnknownSync(Schema.fromJsonString(ClefRe
 export const directoryRecencyProjectionSql =
   'UPDATE diagramDirectory SET updatedAt = MAX(updatedAt, ?1) WHERE organizationId = ?2 AND diagramId = ?3 AND updatedAt <= ?1 - 1000';
 
+async function graphIconsAvailable(db: D1Database, teamId: string, graph: ZlozGraph) {
+  const refs = new Set(graph.nodes.flatMap((node) => (node.icon ? [node.icon] : [])));
+  for (const icon of refs) if (!(await usableNodeIcon(db, teamId, icon))) return false;
+  return true;
+}
+
 /** Trusted session-derived identity; a body can never supply an actor or role. */
 export async function handleDiagramRequest(
   request: Request,
@@ -194,6 +201,8 @@ export async function handleDiagramRequest(
         new TextEncoder().encode(serializeGraph(graph)).byteLength > 1_048_576
       )
         return json({ error: 'DiagramTooLarge' }, 413);
+      if (!(await graphIconsAvailable(db, target.teamId, graph)))
+        return json({ error: 'IconUnavailable' }, 422);
       // Include immutable directory metadata in the native command identity. A changed
       // name cannot repair the original creation under a different metadata binding.
       const identityBytes = new TextEncoder().encode(
@@ -262,6 +271,8 @@ export async function handleDiagramRequest(
         new TextEncoder().encode(serializeGraph(saved.graph)).byteLength > 1_048_576
       )
         return json({ error: 'DiagramTooLarge' }, 413);
+      if (!(await graphIconsAvailable(db, target.teamId, saved.graph)))
+        return json({ error: 'IconUnavailable' }, 422);
       return json(
         await service.recover(actor, target, input.operationId, input.expectedVersion, saved),
       );
@@ -290,6 +301,15 @@ export async function handleDiagramRequest(
     }
     if (request.method === 'POST' && action === 'operations') {
       const input = await readInput(request, parseOperationRequest, 1_048_576);
+      const operation = input.operation;
+      const icon =
+        operation.type === 'SetNodeIcon'
+          ? operation.icon
+          : operation.type === 'AddNode'
+            ? operation.node.icon
+            : undefined;
+      if (icon && !(await usableNodeIcon(db, target.teamId, icon)))
+        return json({ error: 'IconUnavailable' }, 422);
       const result = await service.execute(actor, target, input);
       trace?.('commit');
       // The native host owns this best-effort projection beyond response completion.

@@ -29,6 +29,7 @@ import {
   type AccessPolicy,
 } from './qualification';
 import { stagingBootstrapRequest } from './staging-bootstrap';
+import { handleTeamIcons } from './team-icons';
 import { handleTeamRequest } from './team-routes';
 
 const sessionLayer = (access: AccessPolicy) =>
@@ -115,6 +116,8 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
       Config.withDefault(false),
     );
     const database = yield* Cloudflare.D1.QueryDatabase(AuthDb);
+    const iconBucket = yield* Cloudflare.R2.Bucket('ZlozTeamIcons');
+    const icons = yield* Cloudflare.R2.ReadWriteBucket(iconBucket);
     const access: AccessPolicy = {
       check: (actor, organizationId, edit) =>
         Effect.gen(function* () {
@@ -358,6 +361,19 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
           if (trace) response.headers.set('server-timing', timing.join(', '));
           return diagramHttpResponse(response);
         }
+        if (/^\/api\/zloz\/teams\/[A-Za-z0-9_-]+\/icons(?:\/|$)/.test(url.pathname)) {
+          const web = yield* HttpRequest.toWeb(request).pipe(Effect.orDie);
+          const native = yield* auth.auth;
+          const db = yield* database.raw;
+          const bucket = yield* icons.raw;
+          return HttpServerResponse.fromWeb(
+            yield* Effect.promise(() =>
+              handleTeamIcons(web, db, native, bucket).catch(() =>
+                Response.json({ error: 'IconServiceUnavailable' }, { status: 503 }),
+              ),
+            ),
+          );
+        }
         if (
           url.pathname.startsWith('/api/zloz/teams/') ||
           url.pathname.startsWith('/api/zloz/invitations/')
@@ -396,6 +412,7 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
     Effect.provide(AuthLive),
     Effect.provide(CloudflareD1(AuthDb)),
     Effect.provide(Cloudflare.D1.QueryDatabaseBinding),
+    Effect.provide(Cloudflare.R2.ReadWriteBucketBinding),
     Effect.provide(Cloudflare.Workers.AIBinding),
     Effect.provide(Cloudflare.Workers.RateLimitBinding),
     Effect.provide(Cloudflare.Email.SendBinding),

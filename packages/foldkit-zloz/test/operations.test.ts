@@ -391,3 +391,31 @@ test('a decimal group translation accepts floating-point rounding while retainin
   expect(result.document.graph.nodes.find((node) => node.id === 'g')?.position.x).toBe(0.3);
   expect(result.document.graph.nodes.find((node) => node.id === 'c')?.position.x).toBe(0.4);
 });
+
+test('a shared icon change replays, rejects a stale selection and undoes without reverting a peer rename', () => {
+  const initial = createOperationDocument(graph());
+  const set = request(
+    '{"version":1,"operationId":"set-icon","operation":{"type":"SetNodeIcon","id":"a","expected":0,"icon":"builtin:database"}}',
+  );
+  const changed = decide(initial, set);
+  expect(changed.type).toBe('accepted');
+  if (changed.type !== 'accepted') throw new Error('Expected the icon change to be accepted');
+  expect(parseGraph(serializeGraph(changed.document.graph)).nodes[0]?.icon).toBe(
+    'builtin:database',
+  );
+  expect(applyOperationChange(initial, changed.receipt.change)).toEqual(changed.document);
+  expect(isOperationDocument(changed.document)).toBe(true);
+  const peer = decide(changed.document, request(fixture.rename), 'bob');
+  expect(peer.type).toBe('accepted');
+  const stale = decide(peer.document, { ...set, operationId: 'stale-icon' });
+  expect(stale.receipt.code).toBe('Conflict');
+  const undone = decide(
+    peer.document,
+    request(
+      '{"version":1,"operationId":"undo-icon","operation":{"type":"Undo","operationId":"set-icon"}}',
+    ),
+  );
+  expect(undone.type).toBe('accepted');
+  expect(undone.document.graph.nodes[0]?.icon).toBeUndefined();
+  expect(undone.document.graph.nodes[0]?.label).toBe(peer.document.graph.nodes[0]?.label);
+});

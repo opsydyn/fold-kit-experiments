@@ -7,15 +7,17 @@ import {
 import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { c4Appearance } from '../appearance/c4';
-import { teamIcon } from '../appearance/icons';
 import { sharedNodeFrame } from './node-frame';
+import { nodeIcon } from './team-icons';
 
 /** One weak slot per immutable node; native ports and policies resolve before lookup. */
-export function createNodesView<Message>() {
+export function createNodesView<Message>(onIconFailure?: (icon: string) => Message) {
   const slots = new WeakMap<ZlozNode, ReturnType<typeof createLazy>>();
   const body = (
     h: HtmlBuilder<Message>,
     node: ZlozNode,
+    team: string,
+    iconFailed: boolean,
     selectedNodes: EditorState['selectedNodes'],
     readOnly: boolean,
     descriptionId: string,
@@ -79,7 +81,13 @@ export function createNodesView<Message>() {
           context,
           [h.Class('shared-node-title')],
           [
-            h.span([h.Class('node-name')], [teamIcon(h, icon), h.span([], [node.label])]),
+            h.span(
+              [h.Class('node-name')],
+              [
+                nodeIcon(h, team, iconFailed ? undefined : node.icon, icon, onIconFailure),
+                h.span([], [node.label]),
+              ],
+            ),
             ...(type ? [h.span([h.Class('node-type')], [type])] : []),
           ],
         ),
@@ -90,13 +98,20 @@ export function createNodesView<Message>() {
       ],
     );
   };
-  return (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) => {
+  return (
+    context: ZlozNodeRenderContext,
+    h: HtmlBuilder<Message>,
+    team = '',
+    iconFailed = false,
+  ) => {
     const slot = slots.get(context.node) ?? createLazy();
     slots.set(context.node, slot);
     const flags = context.diagnostics;
     return slot(body, [
       h,
       context.node,
+      team,
+      iconFailed,
       context.state.selectedNodes,
       context.state.readOnly,
       context.descriptionId,

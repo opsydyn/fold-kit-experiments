@@ -21,6 +21,7 @@ export type ZlozGraphOperation =
       nodes: readonly Readonly<{ id: string; expected: number; frame: ZlozNodeFrame }>[];
     }>
   | Readonly<{ type: 'RenameNode'; id: string; expected: number; label: string }>
+  | Readonly<{ type: 'SetNodeIcon'; id: string; expected: number; icon: string | null }>
   | Readonly<{ type: 'AddNode'; expectedVersion: number; node: ZlozNode }>
   | Readonly<{ type: 'Connect'; expectedVersion: number; edge: ZlozEdge }>
   | Readonly<{
@@ -44,6 +45,7 @@ export type ZlozNodeClock = Readonly<{
   version: number;
   geometry: number;
   label: number;
+  icon?: number;
   ports: number;
 }>;
 export type ZlozEdgeClock = Readonly<{ id: string; present: boolean; version: number }>;
@@ -56,6 +58,13 @@ export type ZlozNodeChange =
       after: ZlozNodeFrame;
     }>
   | Readonly<{ type: 'label'; id: string; expected: number; before: string; after: string }>
+  | Readonly<{
+      type: 'icon';
+      id: string;
+      expected: number;
+      before: string | null;
+      after: string | null;
+    }>
   | Readonly<{
       type: 'ports';
       id: string;

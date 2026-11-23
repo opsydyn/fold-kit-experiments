@@ -86,6 +86,7 @@ import * as Layout from './selection-layout';
 import { shareFrame } from './share-frame';
 import * as SourceExport from './source-export';
 import * as Svg from './svg-export';
+import * as TeamIcons from './team-icons';
 
 export { slow } from './diagnostics';
 
@@ -169,6 +170,8 @@ export const Model = Schema.Struct({
     Schema.Struct({ operationId: Schema.String, documentVersion: Schema.Number }),
   ),
   draft: Schema.String,
+  icons: TeamIcons.Panel,
+  failedIconAssets: Schema.Array(Schema.String),
   connection: Connection,
   socketRun: Schema.Number,
   socketSlot: SocketSlot,
@@ -222,6 +225,20 @@ export const Message = defineMessageUnion({
   ChangedLabel: { text: Schema.String },
   ClickedAdd: {},
   ClickedRename: {},
+  ToggledIconPicker: {},
+  FailedIconAsset: { icon: Schema.String },
+  SelectedIconTab: { tab: TeamIcons.Tab },
+  ChoseNodeIcon: { icon: Schema.NullOr(Schema.String) },
+  SelectedIconFile: { file: Schema.Unknown },
+  ClickedArchiveIcon: { id: Schema.String },
+  SettledIconLibrary: {
+    run: Schema.Number,
+    entries: Schema.NullOr(TeamIcons.Entries),
+    notice: Schema.String,
+    applied: Schema.NullOr(
+      Schema.Struct({ id: Schema.String, expected: Schema.Number, icon: Schema.String }),
+    ),
+  },
   ClickedUndo: {},
   ClickedRetry: {},
   ClickedDiscardQueuedMove: {},
@@ -270,6 +287,7 @@ export const Message = defineMessageUnion({
   },
   OpenedSvg: {},
   ClosedSvg: {},
+  LoadedSvgIcons: { run: Schema.Number, images: Schema.Record(Schema.String, Schema.String) },
   ObservedSvgReview: { request: Schema.Unknown },
   SelectedLayoutMethod: { method: Layout.Method },
   ClickedLayoutPreview: {},
@@ -369,6 +387,17 @@ function handoffDownload(contents: string, mediaType: string, fileName: string) 
   const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
   link.click();
 }
+const LoadSvgIcons = Command.define('LoadSvgIcons', {
+  args: { team: Schema.String, run: Schema.Number, references: Schema.Array(Schema.String) },
+  messages: [Message.LoadedSvgIcons],
+  execute: ({ team, run, references }) =>
+    Effect.tryPromise(() => Svg.loadIcons(team, references)).pipe(
+      Effect.match({
+        onSuccess: (images) => Message.LoadedSvgIcons({ run, images }),
+        onFailure: () => Message.LoadedSvgIcons({ run, images: {} }),
+      }),
+    ),
+});
 const DownloadSvg = Command.define('DownloadSvg', {
   args: {
     svg: Schema.String,
@@ -395,6 +424,37 @@ const DownloadSvg = Command.define('DownloadSvg', {
       Effect.match({ onSuccess: () => settled('succeeded'), onFailure: () => settled('failed') }),
     );
   },
+});
+const UseIconLibrary = Command.define('UseIconLibrary', {
+  args: {
+    team: Schema.String,
+    run: Schema.Number,
+    file: Schema.Unknown,
+    target: Schema.NullOr(Schema.Struct({ id: Schema.String, expected: Schema.Number })),
+    archive: Schema.NullOr(Schema.String),
+  },
+  messages: [Message.SettledIconLibrary],
+  execute: ({ team, run, file, target, archive }) =>
+    Effect.tryPromise({
+      try: async () => {
+        if (archive) await TeamIcons.archive(team, archive);
+        const uploaded = file instanceof File ? await TeamIcons.upload(team, file) : null;
+        const entries = await TeamIcons.list(team);
+        return Message.SettledIconLibrary({
+          run,
+          entries,
+          notice: uploaded ? 'Icon added to the team library.' : archive ? 'Icon archived.' : '',
+          applied: uploaded && target ? { ...target, icon: `team:${uploaded.id}` } : null,
+        });
+      },
+      catch: (error) => (error instanceof Error ? error.message : 'Icon library is unavailable.'),
+    }).pipe(
+      Effect.match({
+        onSuccess: (message) => message,
+        onFailure: (notice) =>
+          Message.SettledIconLibrary({ run, entries: null, notice, applied: null }),
+      }),
+    ),
 });
 const PrepareLayoutPreview = Command.define('PrepareLayoutPreview', {
   args: {
@@ -433,7 +493,7 @@ const sharedConnections = createConnectionsView<Message>((id) =>
   Message.ObservedEditorInput({ event: { type: 'EdgeSelected', id, additive: false } }),
 );
 const sharedPorts = createPortsView<Message>();
-const sharedNodes = createNodesView<Message>();
+const sharedNodes = createNodesView<Message>((icon) => Message.FailedIconAsset({ icon }));
 const AllocateDiagramSession = Command.define('AllocateDiagramSession', {
   messages: [Message.SucceededIdentity, Message.FailedIdentity],
   execute: Effect.try(() => crypto.randomUUID()).pipe(
@@ -555,6 +615,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         serial: 0,
         ownEdits: [],
         draft: '',
+        icons: TeamIcons.initial,
+        failedIconAssets: [],
         connection: Connection.Opening(),
         socketRun: 0,
         socketSlot: 'a',
@@ -749,6 +811,21 @@ function install(model: Model, state: DiagramSession, receipt?: ZlozOperationRec
     },
   };
 }
+function selectedIconTarget(model: Model) {
+  const id = editor(model).selectedNodes[0];
+  const clock = session(model).confirmed?.document.nodes.find((node) => node.id === id);
+  return clock?.present ? { id: clock.id, expected: clock.icon ?? 0 } : null;
+}
+
+function loadTeamIcons(model: Model, file: File | null = null, archive: string | null = null) {
+  const run = model.icons.run + 1;
+  const target = file ? selectedIconTarget(model) : null;
+  return {
+    model: { ...model, icons: { ...model.icons, run, busy: true, notice: '' } },
+    commands: [UseIconLibrary({ team: model.room.teamId, run, file, target, archive })],
+  };
+}
+
 function enqueue(model: Model, operation: ZlozGraphOperation): Return<Model, Message> {
   if (
     model.connection._tag === 'Denied' ||
@@ -971,6 +1048,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const confirmed = confirmedExportDocument(model);
       if (!confirmed) return { model };
       const svgRun = model.svgRun + 1;
+      const references = Svg.iconReferences(confirmed.graph);
       return {
         model: withRailChange(model, {
           ...model,
@@ -986,9 +1064,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           sourceExport: null,
           layout: Layout.Task.Closed(),
         }),
-        commands: [FocusBoardControl({ selector: '#board-svg' })],
+        commands: [
+          FocusBoardControl({ selector: '#board-svg' }),
+          ...(references.length
+            ? [LoadSvgIcons({ team: model.room.teamId, run: svgRun, references })]
+            : []),
+        ],
       };
     },
+    LoadedSvgIcons: ({ run, images }) =>
+      model.svg && run === model.svgRun
+        ? { model: { ...model, svg: { ...model.svg, images } } }
+        : { model },
     ClosedSvg: () => ({
       model: { ...model, svg: null },
       commands: [
@@ -1497,6 +1584,54 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         : current(model, room)
           ? { model: { ...model, peers: [] } }
           : { model },
+    FailedIconAsset: ({ icon }) => ({
+      model: model.failedIconAssets.includes(icon)
+        ? model
+        : {
+            ...model,
+            failedIconAssets: [...model.failedIconAssets, icon],
+          },
+    }),
+    ToggledIconPicker: () => {
+      const next = { ...model, icons: { ...model.icons, open: !model.icons.open } };
+      return next.icons.open && next.icons.tab === 'team' && !next.icons.busy
+        ? loadTeamIcons(next)
+        : { model: next };
+    },
+    SelectedIconTab: ({ tab }) => {
+      const next = { ...model, icons: { ...model.icons, tab } };
+      return tab === 'team' && !model.icons.busy ? loadTeamIcons(next) : { model: next };
+    },
+    ChoseNodeIcon: ({ icon }) => {
+      const target = selectedIconTarget(model);
+      return target ? enqueue(model, { type: 'SetNodeIcon', ...target, icon }) : { model };
+    },
+    SelectedIconFile: ({ file }) =>
+      model.role !== 'viewer' && !model.icons.busy && file instanceof File
+        ? loadTeamIcons(model, file)
+        : { model },
+    ClickedArchiveIcon: ({ id }) =>
+      model.role === 'owner' && !model.icons.busy ? loadTeamIcons(model, null, id) : { model },
+    SettledIconLibrary: ({ run, entries, notice, applied }) => {
+      if (run !== model.icons.run) return { model };
+      const next = {
+        ...model,
+        icons: { ...model.icons, entries: entries ?? model.icons.entries, notice, busy: false },
+      };
+      const target = selectedIconTarget(model);
+      if (!applied) return { model: next };
+      if (target?.id === applied.id && target.expected === applied.expected)
+        return enqueue(next, { type: 'SetNodeIcon', ...applied });
+      return {
+        model: {
+          ...next,
+          icons: {
+            ...next.icons,
+            notice: 'Icon added. Choose it to apply it to the current node.',
+          },
+        },
+      };
+    },
     ChangedLabel: ({ text }) => ({ model: { ...model, draft: text } }),
     ClickedAdd: () =>
       enqueue(model, {
@@ -1855,6 +1990,17 @@ function aggregateView(h: HtmlBuilder<Message>, graph: ZlozGraph, selectedId: st
 }
 
 const sharedCanvas = createLazy();
+const iconPickerToggle = createLazy();
+const iconPickerToggleView = (h: HtmlBuilder<Message>, open: boolean, disabled: boolean) =>
+  h.button(
+    [
+      h.Type('button'),
+      h.Disabled(disabled),
+      h.AriaExpanded(open),
+      h.OnClick(Message.ToggledIconPicker()),
+    ],
+    ['Node icon'],
+  );
 const canvasEvent = (event: EditorEvent) => Message.ObservedEditorInput({ event });
 function layoutGhosts(
   h: HtmlBuilder<Message>,
@@ -1942,6 +2088,8 @@ function canvasView(
   disabled: boolean,
   peers: Model['peers'],
   generation: string,
+  teamId: string,
+  failedIconAssets: readonly string[],
   geometrySaving: boolean,
   overview: boolean | null,
   layoutPreview: Layout.Proposal | null,
@@ -2029,7 +2177,8 @@ function canvasView(
             : null,
       canConnectPort: () => (geometrySaving ? 'Finish saving this move before connecting' : null),
       renderPort: sharedPorts,
-      renderNodeShell: sharedNodes,
+      renderNodeShell: (context, builder) =>
+        sharedNodes(context, builder, teamId, failedIconAssets.includes(context.node.icon ?? '')),
       renderGroupShell: (context, builder) =>
         zlozGroupFrame(
           builder,
@@ -2719,6 +2868,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               canvasDisabled,
               model.peers,
               model.room.generation,
+              model.room.teamId,
+              model.failedIconAssets,
               waiting,
               accessEnded ? null : model.overviewOpen,
               !layoutStale && isLiveConnection(model.connection) ? layout : null,
@@ -2879,6 +3030,35 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                       ['Rename node'],
                                     ),
                                     ...infrastructureDetails(h, selected),
+                                    ...(model.role !== 'viewer' && selected.kind !== 'group'
+                                      ? [
+                                          iconPickerToggle(iconPickerToggleView, [
+                                            h,
+                                            model.icons.open,
+                                            disabled,
+                                          ]),
+                                          ...(model.icons.open && !disabled
+                                            ? [
+                                                TeamIcons.view(
+                                                  h,
+                                                  model.icons,
+                                                  model.room.teamId,
+                                                  selected.icon,
+                                                  model.role === 'owner',
+                                                  {
+                                                    tab: (tab) => Message.SelectedIconTab({ tab }),
+                                                    choose: (icon) =>
+                                                      Message.ChoseNodeIcon({ icon }),
+                                                    upload: (file) =>
+                                                      Message.SelectedIconFile({ file }),
+                                                    archive: (id) =>
+                                                      Message.ClickedArchiveIcon({ id }),
+                                                  },
+                                                ),
+                                              ]
+                                            : []),
+                                        ]
+                                      : []),
                                     ...selected.ports.map((port) =>
                                       h.button(
                                         [

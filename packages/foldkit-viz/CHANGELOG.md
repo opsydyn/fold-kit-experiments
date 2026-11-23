@@ -4,10 +4,9 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.19.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.19.0...foldkit-viz-v0.19.1) (2026-11-23)
 
-
 ### Bug Fixes
 
-* ship the widened FoldKit 0.171 peer ranges, and record the upgrade ([#189](https://github.com/opsydyn/fold-kit-experiments/issues/189)) ([44a06de](https://github.com/opsydyn/fold-kit-experiments/commit/44a06dea64fcaa1ead7c87460f352ab75fc1aa86))
+- ship the widened FoldKit 0.171 peer ranges, and record the upgrade ([#189](https://github.com/opsydyn/fold-kit-experiments/issues/189)) ([44a06de](https://github.com/opsydyn/fold-kit-experiments/commit/44a06dea64fcaa1ead7c87460f352ab75fc1aa86))
 
 ## [0.19.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.18.0...foldkit-viz-v0.19.0) (2026-11-16)
 

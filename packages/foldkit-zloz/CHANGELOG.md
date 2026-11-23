@@ -76,10 +76,9 @@
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.8.0...foldkit-zloz-v0.9.0) (2026-11-23)
 
-
 ### Features
 
-* **zloz-team:** add a shared node icon library ([#192](https://github.com/opsydyn/fold-kit-experiments/issues/192)) ([6581a4b](https://github.com/opsydyn/fold-kit-experiments/commit/6581a4b07dcb5fb00ea05db9e9dcc8180c46cf87))
+- **zloz-team:** add a shared node icon library ([#192](https://github.com/opsydyn/fold-kit-experiments/issues/192)) ([6581a4b](https://github.com/opsydyn/fold-kit-experiments/commit/6581a4b07dcb5fb00ea05db9e9dcc8180c46cf87))
 
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.7.0...foldkit-zloz-v0.8.0) (2026-11-21)
 

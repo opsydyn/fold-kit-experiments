@@ -23,6 +23,7 @@ export type ZlozGraphOperation =
   | Readonly<{ type: 'RenameNode'; id: string; expected: number; label: string }>
   | Readonly<{ type: 'SetNodeIcon'; id: string; expected: number; icon: string | null }>
   | Readonly<{ type: 'AddNode'; expectedVersion: number; node: ZlozNode }>
+  | Readonly<{ type: 'ImportEmptyBoard'; expectedVersion: number; graph: ZlozGraph }>
   | Readonly<{ type: 'Connect'; expectedVersion: number; edge: ZlozEdge }>
   | Readonly<{
       type: 'Delete';

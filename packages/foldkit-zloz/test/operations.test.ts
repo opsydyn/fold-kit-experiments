@@ -419,3 +419,44 @@ test('a shared icon change replays, rejects a stale selection and undoes without
   expect(undone.document.graph.nodes[0]?.icon).toBeUndefined();
   expect(undone.document.graph.nodes[0]?.label).toBe(peer.document.graph.nodes[0]?.label);
 });
+
+test('an empty-board import is one replayable edit and cannot overwrite a peer or a newer empty board', () => {
+  const empty = createOperationDocument({ nodes: [], edges: [] });
+  const imported = graph();
+  const operation = request(
+    JSON.stringify({
+      version: 1,
+      operationId: 'import-reviewed',
+      operation: { type: 'ImportEmptyBoard', expectedVersion: 0, graph: imported },
+    }),
+  );
+  const result = decide(empty, operation);
+  expect(result.type).toBe('accepted');
+  if (result.receipt.status !== 'accepted') throw new Error('Import should be accepted');
+  expect(result.document.version).toBe(1);
+  expect(result.document.graph).toEqual(imported);
+  expect(applyOperationChange(empty, result.receipt.change).graph).toEqual(imported);
+
+  const rejected = decide(
+    result.document,
+    {
+      ...operation,
+      operationId: 'peer',
+      operation: { type: 'ImportEmptyBoard', expectedVersion: 1, graph: imported },
+    },
+    'bob',
+  );
+  expect(rejected.receipt).toMatchObject({ status: 'rejected', code: 'Conflict' });
+  expect(rejected.document).toBe(result.document);
+
+  const undone = decide(result.document, {
+    version: 1,
+    operationId: 'undo-import',
+    operation: { type: 'Undo', operationId: 'import-reviewed' },
+  });
+  expect(undone.document.graph.nodes).toEqual([]);
+  expect(undone.document.graph.edges).toEqual([]);
+  expect(
+    decide(undone.document, { ...operation, operationId: 'stale-preview' }, 'bob').receipt,
+  ).toMatchObject({ status: 'rejected', code: 'Conflict' });
+});

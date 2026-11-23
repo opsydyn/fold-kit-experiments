@@ -42,7 +42,7 @@ import {
   zlozWorldOverlayItem,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Effect, Option, Schema, Stream } from 'effect';
-import { Command, Dom, Render, Subscription } from 'foldkit';
+import { Command, Dom, Render, Submodel, Subscription } from 'foldkit';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { DevToolsConfig } from 'foldkit/runtime';
@@ -50,6 +50,8 @@ import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
+import * as DiagramImport from '../likec4/main';
+import { requestLimit } from '../likec4/review';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';
 import { createConnectionsView } from './connections-view';
@@ -150,6 +152,14 @@ export const Model = Schema.Struct({
   find: Schema.NullOr(Schema.String),
   sourceExport: Schema.NullOr(SourceExport.Review),
   sourceExportRun: Schema.Number,
+  importRun: Schema.Number,
+  boardImport: Schema.NullOr(
+    Schema.Struct({
+      version: Schema.Number,
+      child: DiagramImport.Model,
+      notice: Schema.String,
+    }),
+  ),
   svg: Schema.Unknown,
   svgRun: Schema.Number,
   layout: Layout.Task,
@@ -253,6 +263,11 @@ export const Message = defineMessageUnion({
   SelectedEvolutionVersion: { value: Schema.String },
   OpenedHistory: { version: Schema.Number },
   ClosedHistory: {},
+  OpenedBoardImport: {},
+  ClosedBoardImport: {},
+  ChoseBoardImportFormat: { format: Schema.Literals(['likec4', 'alchemy']) },
+  GotBoardImportMessage: { run: Schema.Number, message: DiagramImport.Message },
+
   ChangedHistoryPlayback: { run: Schema.Number, event: Schema.Unknown },
   ChangedHistoryBaseline: { run: Schema.Number, id: Schema.String },
   NavigatedHistory: { run: Schema.Number, event: Schema.Unknown },
@@ -641,6 +656,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         find: null,
         sourceExport: null,
         sourceExportRun: 0,
+        importRun: 0,
+        boardImport: null,
         svg: null,
         svgRun: 0,
         layout: Layout.Task.Closed(),
@@ -888,6 +905,34 @@ function currentSourceReview(model: Model, kind: SourceExport.Kind, version: num
     ? review
     : null;
 }
+function canOpenBoardImport(model: Model) {
+  const document = confirmedExportDocument(model);
+  return (
+    document !== undefined &&
+    document.graph.nodes.length === 0 &&
+    document.graph.edges.length === 0 &&
+    model.role !== 'viewer' &&
+    editor(model).gesture.type === 'idle' &&
+    !hasUncommittedEdit(model)
+  );
+}
+
+function boardImportBlockReason(model: Model, version: number) {
+  const document = session(model).confirmed?.document;
+  if (document?.version !== version || document.graph.nodes.length || document.graph.edges.length)
+    return 'The board changed while you reviewed the import. No import has been applied.';
+  return canOpenBoardImport(model) ? '' : 'Wait for a live, ready board before importing.';
+}
+
+function importChild(model: Model, format: 'likec4' | 'alchemy') {
+  const props = {
+    teamId: model.room.teamId,
+    creationId: model.room.diagramId,
+    insideBoard: true,
+  } satisfies DiagramImport.Props;
+  return DiagramImport.init(format === 'alchemy' ? { ...props, format } : props).model;
+}
+
 const supportedLayoutSelection = (model: Model) =>
   isLiveConnection(model.connection) &&
   editor(model).gesture.type === 'idle' &&
@@ -1222,6 +1267,84 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEvolutionVersion: ({ value }) => ({
       model: { ...model, evolution: Evolution.inspect(model.evolution, value) },
     }),
+    OpenedBoardImport: () => {
+      const document = confirmedExportDocument(model);
+      if (!document || !canOpenBoardImport(model)) return { model };
+      return {
+        model: {
+          ...model,
+          importRun: model.importRun + 1,
+          boardImport: {
+            version: document.version,
+            child: importChild(model, 'likec4'),
+            notice: '',
+          },
+        },
+        commands: [FocusBoardControl({ selector: '#board-import-format' })],
+      };
+    },
+    ClosedBoardImport: () => ({
+      model: { ...model, boardImport: null },
+      commands: [
+        FocusBoardControl({
+          selector: canOpenBoardImport(model) ? '#board-open-import' : '#shared-diagram-surface',
+        }),
+      ],
+    }),
+    ChoseBoardImportFormat: ({ format }) => {
+      if (!model.boardImport || (model.boardImport.child.format ?? 'likec4') === format)
+        return { model };
+      return {
+        model: {
+          ...model,
+          importRun: model.importRun + 1,
+          boardImport: { ...model.boardImport, child: importChild(model, format), notice: '' },
+        },
+      };
+    },
+    GotBoardImportMessage: ({ run, message: childMessage }) => {
+      const preview = model.boardImport;
+      if (!preview || run !== model.importRun) return { model };
+      if (childMessage._tag === 'ClickedApply') {
+        if (boardImportBlockReason(model, preview.version)) return { model };
+        const graph = DiagramImport.reviewedBoardGraph(preview.child);
+        if (!graph?.nodes.length) return { model };
+        const operation = {
+          type: 'ImportEmptyBoard',
+          expectedVersion: preview.version,
+          graph,
+        } as const;
+        const request = {
+          version: 1,
+          operationId: `${model.room.generation}-${model.serial + 1}`,
+          operation,
+        };
+        if (new TextEncoder().encode(JSON.stringify(request)).byteLength > requestLimit)
+          return {
+            model: {
+              ...model,
+              boardImport: { ...preview, notice: 'This import request exceeds 1 MiB.' },
+            },
+          };
+        const step = enqueue({ ...model, boardImport: null }, operation);
+        return {
+          ...step,
+          commands: [
+            ...(step.commands ?? []),
+            FocusBoardControl({ selector: '#shared-diagram-surface' }),
+          ],
+        };
+      }
+      return foldChild({
+        update: DiagramImport.update,
+        read: () => Option.some(preview.child),
+        write: (parent: Model, child) => ({
+          ...parent,
+          boardImport: { ...preview, child, notice: '' },
+        }),
+        toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
+      })(model, childMessage);
+    },
     OpenedHistory: ({ version }) => {
       if (!isLiveConnection(model.connection) || hasUncommittedEdit(model)) return { model };
       const review = HistoryReview.openHistory(
@@ -1456,6 +1579,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ...model,
           connection: denied ? Connection.Denied() : Connection.Reconnecting(),
           historyReview: denied ? null : model.historyReview,
+          boardImport: denied ? null : model.boardImport,
           evolution: denied ? Evolution.empty : model.evolution,
           // A failed HTTP snapshot can arrive after the feed recovered. Renew
           // the subscription as well as its label, rather than waiting for a
@@ -1576,6 +1700,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               ...model,
               connection: Connection.Denied(),
               historyReview: null,
+              boardImport: null,
               evolution: Evolution.empty,
               peers: [],
               error: 'Access ended. Sign in again or contact the team owner.',
@@ -2509,6 +2634,65 @@ function boardControlsView(
   );
 }
 
+const boardImportChildView = Submodel.defineView<
+  { child: typeof DiagramImport.Model.Type; reason: string },
+  typeof DiagramImport.Message.Type
+>(({ child, reason }, h) => DiagramImport.view(child, h, reason).body);
+
+function boardImportView(
+  model: Model,
+  h: HtmlBuilder<Message>,
+  preview: NonNullable<Model['boardImport']>,
+) {
+  const run = model.importRun;
+  const reason = boardImportBlockReason(model, preview.version);
+  return h.section(
+    [h.Class('board-import'), h.AriaLabel('Import into this board')],
+    [
+      h.header(
+        [],
+        [
+          h.h2([], ['Import into this board']),
+          h.button([h.Type('button'), h.OnClick(Message.ClosedBoardImport())], ['Close import']),
+        ],
+      ),
+      h.div(
+        [h.Class('board-import-content')],
+        [
+          h.label(
+            [],
+            [
+              'Import format',
+              h.select(
+                [
+                  h.Id('board-import-format'),
+                  h.Value(preview.child.format ?? 'likec4'),
+                  h.OnChange((value) =>
+                    Message.ChoseBoardImportFormat({
+                      format: value === 'alchemy' ? 'alchemy' : 'likec4',
+                    }),
+                  ),
+                ],
+                [
+                  h.option([h.Value('likec4')], ['LikeC4']),
+                  h.option([h.Value('alchemy')], ['Alchemy infrastructure']),
+                ],
+              ),
+            ],
+          ),
+          ...(preview.notice ? [h.p([h.Role('alert')], [preview.notice])] : []),
+          h.submodel({
+            slotId: `board-import-${run}`,
+            model: { child: preview.child, reason },
+            view: boardImportChildView,
+            toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
+          }),
+        ],
+      ),
+    ],
+  );
+}
+
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const review = historyReview(model);
   if (review) {
@@ -2718,6 +2902,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ]
           : []),
         ...(svg ? [svgPanel(svgPanelView, [h, svg, Svg.availability(svg, exportDocument)])] : []),
+        ...(!accessEnded && model.boardImport
+          ? [boardImportView(model, h, model.boardImport)]
+          : []),
         h.aside(
           [
             h.Id('board-tools'),
@@ -2745,9 +2932,26 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.div(
                   [h.Class('editor-actions')],
                   [
-                    h.button(
-                      [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
-                      [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                    h.div(
+                      [h.Class('editor-primary-actions')],
+                      [
+                        h.button(
+                          [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
+                          [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                        ),
+                        ...(canOpenBoardImport(model) && !model.boardImport
+                          ? [
+                              h.button(
+                                [
+                                  h.Id('board-open-import'),
+                                  h.Type('button'),
+                                  h.OnClick(Message.OpenedBoardImport()),
+                                ],
+                                ['Import…'],
+                              ),
+                            ]
+                          : []),
+                      ],
                     ),
                     h.button(
                       [

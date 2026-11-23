@@ -4,19 +4,22 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
+import { infrastructureViewId, reviewInfrastructure } from './infrastructure-review';
 import { listLikeC4Views } from './project.mjs';
 import { creationBody, requestLimit, reviewLikeC4 } from './review';
 
 export interface Props {
   readonly teamId: string;
   readonly creationId: string;
+  readonly format?: 'alchemy';
 }
 
 interface State extends Props {
   readonly source: string;
   readonly views: readonly string[];
   readonly selected: string;
-  readonly review: ReturnType<typeof reviewLikeC4> | null;
+  readonly review: ReturnType<typeof reviewLikeC4> | ReturnType<typeof reviewInfrastructure> | null;
+  readonly focused: string | null;
   readonly name: string;
   readonly accepted: boolean;
   readonly epoch: number;
@@ -33,6 +36,9 @@ export const Message = defineMessageUnion({
   SelectedFile: { file: Schema.Unknown },
   SettledRead: { epoch: Schema.Number, text: Schema.NullOr(Schema.String) },
   SelectedView: { id: Schema.String },
+  ChangedSnapshotText: { text: Schema.String },
+  ClickedReviewSnapshot: {},
+  FocusedFinding: { resource: Schema.NullOr(Schema.String) },
   ChangedName: { value: Schema.String },
   ChangedAcknowledgement: {},
   CancelledPreview: {},
@@ -46,6 +52,7 @@ const empty = {
   views: [],
   selected: '',
   review: null,
+  focused: null,
   accepted: false,
   reading: false,
   notice: '',
@@ -139,6 +146,17 @@ export function update(model: State, message: Message): Return<State, Message> {
     },
     SettledRead: ({ epoch, text }) => {
       if (epoch !== model.epoch || !editable) return { model };
+      if (model.format === 'alchemy')
+        return {
+          model: {
+            ...model,
+            reading: false,
+            source: text ?? '',
+            selected: infrastructureViewId,
+            review: text === null ? null : reviewInfrastructure(text),
+            notice: text === null ? 'Choose a UTF-8 infrastructure snapshot up to 1 MiB.' : '',
+          },
+        };
       const views = text === null ? [] : listLikeC4Views(text);
       return {
         model: {
@@ -152,6 +170,38 @@ export function update(model: State, message: Message): Return<State, Message> {
         },
       };
     },
+    ChangedSnapshotText: ({ text }) => ({
+      model:
+        editable && !model.reading
+          ? {
+              ...model,
+              source: text,
+              selected: '',
+              review: null,
+              focused: null,
+              accepted: false,
+              notice: '',
+            }
+          : model,
+    }),
+    ClickedReviewSnapshot: () => ({
+      model:
+        editable && !model.reading
+          ? {
+              ...model,
+              selected: infrastructureViewId,
+              review: reviewInfrastructure(model.source),
+              focused: null,
+              accepted: false,
+            }
+          : model,
+    }),
+    FocusedFinding: ({ resource }) => ({
+      model:
+        model.format === 'alchemy' && model.review?.status === 'ready'
+          ? { ...model, focused: resource, review: reviewInfrastructure(model.source, resource) }
+          : model,
+    }),
     SelectedView: ({ id }) => ({
       model: editable
         ? {
@@ -200,16 +250,21 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
     new TextEncoder().encode(creationBody(model.creationId, model.name, ready.graphText))
       .byteLength > requestLimit;
 
+  const alchemy = model.format === 'alchemy';
+  const title = alchemy ? 'Import Alchemy infrastructure' : 'Import a LikeC4 view';
   return {
-    title: 'Import a LikeC4 view',
+    title,
     body: h.section(
-      [h.AriaLabel('LikeC4 import'), h.Style({ display: 'grid', gap: '1rem' })],
       [
-        h.h2([], ['Import a LikeC4 view']),
+        h.AriaLabel(alchemy ? 'Alchemy infrastructure import' : 'LikeC4 import'),
+        h.Style({ display: 'grid', gap: '1rem' }),
+      ],
+      [
+        h.h2([], [title]),
         h.label(
           [],
           [
-            'LikeC4 JSON file',
+            alchemy ? 'Alchemy infrastructure JSON file' : 'LikeC4 JSON file',
             h.input([
               h.Key(String(model.fileKey)),
               h.Type('file'),
@@ -219,6 +274,30 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
             ]),
           ],
         ),
+        ...(alchemy
+          ? [
+              h.label(
+                [],
+                [
+                  'Or paste Alchemy infrastructure JSON',
+                  h.textarea([
+                    h.Value(model.source),
+                    h.Disabled(disabled || model.reading),
+                    h.Maxlength(requestLimit),
+                    h.OnInput((text) => Message.ChangedSnapshotText({ text })),
+                  ]),
+                ],
+              ),
+              h.button(
+                [
+                  h.Type('button'),
+                  h.Disabled(disabled || model.reading || !model.source.trim()),
+                  h.OnClick(Message.ClickedReviewSnapshot()),
+                ],
+                ['Review snapshot'],
+              ),
+            ]
+          : []),
         h.p([h.AriaLive('polite')], [model.reading ? 'Reading file…' : model.notice]),
         ...(model.views.length
           ? [
@@ -244,11 +323,34 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
         ...(ready
           ? [
               h.h3([], ['Diagram preview']),
+              ...('provenance' in ready
+                ? [
+                    h.p([], [`Source: ${ready.provenance}`]),
+                    h.p(
+                      [],
+                      [
+                        'Resources, bindings and dependencies from the captured plan. Action labels describe the plan at capture time.',
+                      ],
+                    ),
+                  ]
+                : []),
+              ...(model.focused
+                ? [
+                    h.button(
+                      [h.Type('button'), h.OnClick(Message.FocusedFinding({ resource: null }))],
+                      ['Show whole stack'],
+                    ),
+                  ]
+                : []),
               ...(ready.svg
                 ? [
                     h.img([
                       h.Src('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ready.svg)),
-                      h.Alt('Read-only preview of ' + model.selected),
+                      h.Alt(
+                        model.focused
+                          ? 'Read-only preview focused on ' + model.focused
+                          : 'Read-only preview of ' + model.selected,
+                      ),
                       h.Style({ width: '100%', 'max-height': '26rem', 'object-fit': 'contain' }),
                     ]),
                   ]
@@ -291,6 +393,18 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
                     [],
                     [
                       `${item.severity === 'info' ? 'Generated' : item.severity === 'loss' ? 'Loss' : 'Error'} · ${item.subject ? item.subject + ' · ' : ''}${item.message}`,
+                      ...(alchemy && item.subject
+                        ? [
+                            h.button(
+                              [
+                                h.Type('button'),
+                                h.AriaPressed(String(model.focused === item.subject)),
+                                h.OnClick(Message.FocusedFinding({ resource: item.subject })),
+                              ],
+                              [`Show ${item.subject}`],
+                            ),
+                          ]
+                        : []),
                     ],
                   ),
                 ),
@@ -300,13 +414,19 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
         ...(ready?.blockers.length
           ? [
               h.p([h.Role('alert')], [ready.blockers.join(' ')]),
-              h.a(
-                [
-                  h.Href('data:application/json;charset=utf-8,' + encodeURIComponent(ready.v3)),
-                  h.Download('likec4-view.zloz-v3.json'),
-                ],
-                ['Download Zloz v3'],
-              ),
+              ...('v3' in ready
+                ? [
+                    h.a(
+                      [
+                        h.Href(
+                          'data:application/json;charset=utf-8,' + encodeURIComponent(ready.v3),
+                        ),
+                        h.Download('likec4-view.zloz-v3.json'),
+                      ],
+                      ['Download Zloz v3'],
+                    ),
+                  ]
+                : []),
             ]
           : []),
         ...(ready?.graphText
@@ -359,7 +479,13 @@ export function view(model: State, h: HtmlBuilder<Message>): Document {
                       h.Disabled(!candidate(model) || model.submission === 'sending'),
                       h.OnClick(Message.ClickedApply()),
                     ],
-                    [model.submission === 'retry' ? 'Retry creation' : 'Apply'],
+                    [
+                      model.submission === 'retry'
+                        ? 'Retry creation'
+                        : alchemy
+                          ? 'Create team diagram'
+                          : 'Apply',
+                    ],
                   ),
                 ],
               ),

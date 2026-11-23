@@ -12,6 +12,7 @@ import type {
   ZlozOperationReceipt,
   ZlozOperationRequest,
   ZlozSvgReviewRequest,
+  ZlozEditionPlaybackEvent,
 } from '@opsydyn/foldkit-zloz';
 import { applyDiagramDelta, DiagramFeedSchema } from '@opsydyn/foldkit-zloz-alchemy/delta';
 import { operationHash } from '@opsydyn/foldkit-zloz-alchemy/hash';
@@ -67,6 +68,7 @@ import {
   otherSlot,
 } from './feed-state';
 import { findMatches, FindTarget } from './find';
+import * as HistoryReview from './history-review';
 import { createNodesView } from './nodes-view';
 import * as Opy from './opy';
 import { geometryGraph, pendingGeometryGraph } from './pending-geometry';
@@ -133,6 +135,10 @@ export const Model = Schema.Struct({
   assessment: Assessment.Model,
   coupling: Coupling.Model,
   evolution: Evolution.History,
+  historyReview: Schema.Unknown,
+  historyRun: Schema.Number,
+  historyReducedMotion: Schema.Boolean,
+  historyVisible: Schema.Boolean,
   inspector: Inspector,
   rails: Schema.Struct({ tools: Schema.Boolean, inspector: Schema.Boolean }),
   compactBoard: Schema.Boolean,
@@ -227,6 +233,14 @@ export const Message = defineMessageUnion({
   SelectedCanvasEmphasis: { emphasis: CanvasEmphasis },
   SelectedInspector: { inspector: Inspector },
   SelectedEvolutionVersion: { value: Schema.String },
+  OpenedHistory: { version: Schema.Number },
+  ClosedHistory: {},
+  ChangedHistoryPlayback: { run: Schema.Number, event: Schema.Unknown },
+  ChangedHistoryBaseline: { run: Schema.Number, id: Schema.String },
+  NavigatedHistory: { run: Schema.Number, event: Schema.Unknown },
+  AdvancedHistoryPlayback: { run: Schema.Number, milliseconds: Schema.Number },
+  ChangedHistoryMotion: { reducedMotion: Schema.Boolean },
+  ChangedHistoryVisibility: { visible: Schema.Boolean },
   ChangedBoardWidth: { compact: Schema.Boolean },
   ToggledBoardRail: { rail: Rail },
   ToggledBoardFocus: {},
@@ -552,6 +566,10 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         coupling,
         inspector: 'selection',
         evolution: Evolution.empty,
+        historyReview: null,
+        historyRun: 0,
+        historyReducedMotion: true,
+        historyVisible: false,
         rails: { tools: true, inspector: true },
         compactBoard: false,
         drawer: null,
@@ -1116,6 +1134,89 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEvolutionVersion: ({ value }) => ({
       model: { ...model, evolution: Evolution.inspect(model.evolution, value) },
     }),
+    OpenedHistory: ({ version }) => {
+      if (!isLiveConnection(model.connection) || hasUncommittedEdit(model)) return { model };
+      const review = HistoryReview.openHistory(
+        model.evolution,
+        version,
+        editor(model),
+        model.historyReducedMotion,
+      );
+      return review
+        ? {
+            model: { ...model, historyReview: review, historyRun: model.historyRun + 1 },
+            commands: [FocusBoardControl({ selector: '#history-back-live' })],
+          }
+        : { model };
+    },
+    ClosedHistory: () => ({
+      model: { ...model, historyReview: null, historyRun: model.historyRun + 1 },
+      commands: [FocusBoardControl({ selector: '#board-open-history' })],
+    }),
+    ChangedHistoryPlayback: ({ run, event }) => {
+      const review = historyReview(model);
+      if (!review || run !== model.historyRun) return { model };
+      // SAFETY: Built-in playback controls supply the typed event.
+      return {
+        model: {
+          ...model,
+          historyRun: run + 1,
+          historyReview: HistoryReview.advanceHistory(review, event as ZlozEditionPlaybackEvent),
+        },
+      };
+    },
+    ChangedHistoryBaseline: ({ run, id }) => {
+      const review = historyReview(model);
+      if (!review || run !== model.historyRun) return { model };
+      return { model: { ...model, historyReview: HistoryReview.chooseBaseline(review, id) } };
+    },
+    NavigatedHistory: ({ run, event }) => {
+      const review = historyReview(model);
+      if (!review || run !== model.historyRun) return { model };
+      // SAFETY: The historical canvas supplies the typed event, filtered by the SDK navigation allowlist.
+      return {
+        model: {
+          ...model,
+          historyReview: HistoryReview.navigateHistory(review, event as EditorEvent),
+        },
+      };
+    },
+    AdvancedHistoryPlayback: ({ run, milliseconds }) => {
+      const review = historyReview(model);
+      if (!review || run !== model.historyRun || !model.historyVisible) return { model };
+      return {
+        model: {
+          ...model,
+          historyReview: HistoryReview.advanceHistory(review, { type: 'Elapsed', milliseconds }),
+        },
+      };
+    },
+    ChangedHistoryMotion: ({ reducedMotion }) => {
+      const review = historyReview(model);
+      return {
+        model: {
+          ...model,
+          historyReducedMotion: reducedMotion,
+          historyRun: model.historyRun + 1,
+          historyReview:
+            review &&
+            HistoryReview.advanceHistory(review, { type: 'ReducedMotionChanged', reducedMotion }),
+        },
+      };
+    },
+    ChangedHistoryVisibility: ({ visible }) => {
+      const review = historyReview(model);
+      return {
+        model: {
+          ...model,
+          historyVisible: visible,
+          historyRun: model.historyRun + 1,
+          historyReview:
+            review &&
+            (visible ? review : HistoryReview.advanceHistory(review, { type: 'PauseClicked' })),
+        },
+      };
+    },
     GotCouplingMessage: ({ room, message }) => {
       if (!current(model, room) || !couplingVisible(model)) return { model };
       return foldChild({
@@ -1266,6 +1367,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           connection: denied ? Connection.Denied() : Connection.Reconnecting(),
+          historyReview: denied ? null : model.historyReview,
+          evolution: denied ? Evolution.empty : model.evolution,
           // A failed HTTP snapshot can arrive after the feed recovered. Renew
           // the subscription as well as its label, rather than waiting for a
           // further edit or authorization-lease expiry to repair that state.
@@ -1384,6 +1487,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             model: {
               ...model,
               connection: Connection.Denied(),
+              historyReview: null,
+              evolution: Evolution.empty,
               peers: [],
               error: 'Access ended. Sign in again or contact the team owner.',
             },
@@ -1682,6 +1787,12 @@ function flushQueuedMove(step: Return<Model, Message>): Return<Model, Message> {
   }
   const next = enqueue({ ...model, queuedMove: null }, operation);
   return { model: next.model, commands: [...(step.commands ?? []), ...(next.commands ?? [])] };
+}
+
+function historyReview(model: Model): HistoryReview.Review | null {
+  // SAFETY: This transient state is installed only by the typed history reducer.
+  const review = model.historyReview as HistoryReview.Review | null;
+  return model.connection._tag === 'Denied' ? null : review;
 }
 
 function hasUncommittedEdit(model: Model): boolean {
@@ -2060,9 +2171,15 @@ function evolutionInspectorView(
   h: HtmlBuilder<Message>,
   history: Evolution.History,
   connection: 'live' | 'offline' | 'denied',
+  availability: 'available' | 'blocked',
 ) {
-  return evolutionView(h, history, connection, (value) =>
-    Message.SelectedEvolutionVersion({ value }),
+  return evolutionView(
+    h,
+    history,
+    connection,
+    (value) => Message.SelectedEvolutionVersion({ value }),
+    (version) => Message.OpenedHistory({ version }),
+    availability,
   );
 }
 
@@ -2206,6 +2323,19 @@ function boardControlsView(
 }
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const review = historyReview(model);
+  if (review) {
+    const run = model.historyRun;
+    return {
+      title: model.name,
+      body: HistoryReview.historyView(h, review, session(model).confirmed?.document.version ?? -1, {
+        close: Message.ClosedHistory(),
+        playback: (event) => Message.ChangedHistoryPlayback({ run, event }),
+        baseline: (id) => Message.ChangedHistoryBaseline({ run, id }),
+        navigate: (event) => Message.NavigatedHistory({ run, event }),
+      }),
+    };
+  }
   const state = session(model);
   const status = saveStatus(model);
   const waiting = state.pending !== null || model.queuedMove !== null;
@@ -2640,6 +2770,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 : isLiveConnection(model.connection)
                                   ? 'live'
                                   : 'offline',
+                              !hasUncommittedEdit(model) && isLiveConnection(model.connection)
+                                ? 'available'
+                                : 'blocked',
                             ]),
                           ]
                         : model.inspector === 'coupling'
@@ -2901,6 +3034,50 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
         query: compactBoardQuery,
         mapMatches: (compact) => Message.ChangedBoardWidth({ compact }),
       }),
+    ),
+    historyPlayback: entry(
+      { run: Schema.Number, intervalMs: Schema.Number, active: Schema.Boolean },
+      {
+        modelToDependencies: (model) => {
+          const cursor = historyReview(model)?.cursor;
+          return {
+            run: model.historyRun,
+            intervalMs: cursor?.intervalMs ?? 2000,
+            active: model.historyVisible && cursor?.status === 'playing',
+          };
+        },
+        dependenciesToStream: ({ run, intervalMs, active }) =>
+          active
+            ? Stream.tick(intervalMs).pipe(
+                Stream.drop(1),
+                Stream.map(() =>
+                  Message.AdvancedHistoryPlayback({ run, milliseconds: intervalMs }),
+                ),
+              )
+            : Stream.empty,
+      },
+    ),
+    historyMotion: Subscription.persistentEntry(
+      Dom.streamFromMediaQuery({
+        query: '(prefers-reduced-motion: reduce)',
+        mapMatches: (reducedMotion) => Message.ChangedHistoryMotion({ reducedMotion }),
+      }),
+    ),
+    historyVisibility: Subscription.persistentEntry(
+      Stream.fromEffect(
+        Effect.sync(() =>
+          Message.ChangedHistoryVisibility({ visible: document.visibilityState === 'visible' }),
+        ),
+      ).pipe(
+        Stream.concat(
+          Dom.streamFromEvent({
+            target: () => document,
+            type: 'visibilitychange',
+            mapEvent: () =>
+              Message.ChangedHistoryVisibility({ visible: document.visibilityState === 'visible' }),
+          }),
+        ),
+      ),
     ),
     liveA: feed('a'),
     liveB: feed('b'),

@@ -165,6 +165,8 @@ export function view<M>(
   history: History,
   connection: 'live' | 'offline' | 'denied',
   onInspect: (value: string) => M,
+  onReview: (version: number) => M,
+  availability: 'available' | 'blocked',
 ) {
   const first = history.samples[0];
   const last = history.samples.at(-1);
@@ -219,6 +221,15 @@ export function view<M>(
                     ],
                   ),
                 ]),
+            h.button(
+              [
+                h.Id('board-open-history'),
+                h.Type('button'),
+                h.Disabled(availability === 'blocked'),
+                h.OnClick(onReview(inspected.version)),
+              ],
+              ['Open on canvas'],
+            ),
             dataTable(h, {
               caption: `Counts at version ${inspected.version}`,
               headers: ['Type', 'Count'],

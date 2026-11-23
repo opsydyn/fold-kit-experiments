@@ -23,6 +23,19 @@ export type PropertyOptions = {
 
 const defaultRuns = 200;
 
+/**
+ * Deadline for a `test` that calls `assertProperty`, passed as the test's third
+ * argument. Bun's own default is 5s per test, which is not a budget a property
+ * can keep: it checks `defaultRuns` values, and the work per value varies with
+ * what the arbitrary generates, so the total moves from run to run. The
+ * `convergence` property, which reconciles a whole sequence per value, crossed
+ * 5s on a loaded CI runner and failed as a timeout instead of reporting a
+ * falsified property. Bun takes this only at the call site — neither
+ * `bunfig.toml` nor an environment variable sets it — so each property test
+ * names it, and a property that truly hangs still fails here.
+ */
+export const propertyTimeout = 60_000;
+
 const evaluate =
   <A>(property: (value: A) => void) =>
   (value: A) =>

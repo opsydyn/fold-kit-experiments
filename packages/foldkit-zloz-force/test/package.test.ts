@@ -15,29 +15,41 @@ const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 // A child can stall independently of Bun's outer test deadline. Bound it so
 // cleanup runs and the failure names the exact compiler/runtime command.
+//
+// One blanket bound cannot do that. Packing, a cold `npm install` and a cold
+// `tsc` are minutes apart in cost, so a bound sized for the quick children
+// kills the slow ones mid-flight: a shared 45s budget SIGKILLed `tsc` on a
+// loaded CI runner and reported an empty failure, because `killSignal` leaves
+// no output to name. Each child now gets the budget its own work needs, and
+// every one of them stays under the outer deadline, so the bound that fires is
+// always the one that names the command. Sibling packs size theirs the same
+// way; see `packages/foldkit-zloz-cli/test/package.test.ts`.
 const options = {
   cwd: root,
   maxBuffer: 5 * 1024 * 1024,
-  timeout: 45_000,
+  timeout: 30_000,
   killSignal: 'SIGKILL' as const,
 };
+/** `options` carrying the budget this child's own work needs, in `cwd`. */
+const bound = (timeout: number, cwd: string = root) => ({ ...options, timeout, cwd });
 
 test('packed adapter installs in a clean npm consumer and runs in Node and Bun', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'foldkit-zloz-force-consumer-'));
   // Native process fixture cleanup must run even when npm or TypeScript fails.
   // oxlint-disable-next-line linteffect/no-try-catch
   try {
-    await exec('bun', ['run', '--filter', manifest.name, 'pack:check'], options);
+    await exec('bun', ['run', '--filter', manifest.name, 'pack:check'], bound(120_000));
     const force = path.join(
       root,
       'packages/foldkit-zloz-force/dist/pack',
       `opsydyn-foldkit-zloz-force-${manifest.version}.tgz`,
     );
     for (const name of ['foldkit-zloz', 'foldkit-viz'])
-      await exec('bun', ['pm', 'pack', '--destination', directory], {
-        ...options,
-        cwd: path.join(root, 'packages', name),
-      });
+      await exec(
+        'bun',
+        ['pm', 'pack', '--destination', directory],
+        bound(60_000, path.join(root, 'packages', name)),
+      );
     const core = path.join(directory, `opsydyn-foldkit-zloz-${coreManifest.version}.tgz`);
     const viz = path.join(directory, `opsydyn-foldkit-viz-${vizManifest.version}.tgz`);
     await writeFile(
@@ -58,10 +70,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
         viz,
         force,
       ],
-      {
-        ...options,
-        cwd: directory,
-      },
+      bound(120_000, directory),
     );
     for (const name of ['astro', 'react', 'foldkit', 'effect', 'elkjs'])
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
@@ -99,7 +108,7 @@ console.log('force-consumer-ok');
           resolution,
           consumer,
         ],
-        { ...options, cwd: directory },
+        bound(120_000, directory),
       );
     }
     console.info('[force-consumer] TypeScript emit');
@@ -115,14 +124,15 @@ console.log('force-consumer-ok');
         'compiled',
         consumer,
       ],
-      { ...options, cwd: directory },
+      bound(120_000, directory),
     );
     for (const runtime of ['node', 'bun']) {
       console.info(`[force-consumer] ${runtime} execution`);
-      const result = await exec(runtime, [path.join(directory, 'compiled/consumer.js')], {
-        ...options,
-        cwd: directory,
-      });
+      const result = await exec(
+        runtime,
+        [path.join(directory, 'compiled/consumer.js')],
+        bound(30_000, directory),
+      );
       expect(result.stdout.trim()).toBe('force-consumer-ok');
     }
     const contents = await exec('tar', ['-tzf', force], options);
@@ -140,4 +150,7 @@ console.log('force-consumer-ok');
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-}, 180_000);
+  // The whole pack normally lands well inside a minute. This outer deadline is
+  // only the backstop for a stall no child bound caught, so it leaves room for
+  // one slow child to hit its own budget and name itself first.
+}, 300_000);

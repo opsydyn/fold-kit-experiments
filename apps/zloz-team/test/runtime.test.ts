@@ -1402,7 +1402,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect(writes).toEqual([]);
   }, 60_000);
 
-  test('Diagram Evolution records confirmed deletion and Undo with inspectable version counts', async () => {
+  test('Diagram Evolution rewinds and compares without sending writes while a peer edits', async () => {
     const data = await fixture();
     const id = crypto.randomUUID();
     const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
@@ -1515,11 +1515,66 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       page.request.get(`${api}/export`).then(async (response) => parseGraph(await response.text())),
     ).resolves.toEqual(graph);
 
+    const editor = await open(data.editor.cookie, 1440, 'dark');
+    await page.bringToFront();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const historicalWrites: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url() === `${api}/operations`)
+        historicalWrites.push(request.url());
+    });
+    await panel.getByRole('button', { name: 'Open on canvas' }).press('Enter');
+    const review = page.getByRole('region', { name: 'Board history' });
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    await browserExpect(review.getByRole('button', { name: 'Play editions' })).toBeDisabled();
+    const scrubber = review.getByRole('slider', { name: 'Review version' });
+    await scrubber.press('Home');
+    await browserExpect(review).toContainText('Read-only · Version 0');
+    await scrubber.press('ArrowRight');
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    const play = review.getByRole('button', { name: 'Play editions' });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await browserExpect(play).toBeEnabled();
+    await play.click();
+    await browserExpect(review).toContainText('Read-only · Version 2');
+    await browserExpect(review.getByRole('button', { name: 'Pause editions' })).toBeDisabled();
+    await scrubber.press('ArrowLeft');
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    await review.getByLabel('Compare with').selectOption('0');
+    await browserExpect(review.locator('[data-zloz-history-ghosts]')).toBeAttached();
+    await review.getByText('Changes from version 0 (2)', { exact: true }).click();
+    await browserExpect(review.getByText('Beta · removed')).toBeVisible();
+    await review.getByRole('button', { name: 'Select Alpha', exact: true }).press('Delete');
+    await browserExpect(
+      review.getByRole('button', { name: 'Select Alpha', exact: true }),
+    ).toBeVisible();
+
+    await editor.bringToFront();
+    const peerNode = editor.getByRole('button', { name: 'Select Alpha', exact: true });
+    await peerNode.press('ArrowRight');
+    await browserExpect(review).toContainText('Live version 3');
+    await peerNode.press('Enter');
+    await editor.getByRole('button', { name: 'Delete selection', exact: true }).click();
+    await browserExpect(review).toContainText('Live version 4');
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    await browserExpect(
+      review.getByRole('button', { name: 'Select Alpha', exact: true }),
+    ).toBeVisible();
+    await page.bringToFront();
+    await review.getByRole('button', { name: 'Back to live' }).click();
+    await browserExpect(
+      page.getByRole('button', { name: 'Select Alpha', exact: true }),
+    ).toHaveCount(0);
+    await browserExpect(
+      page.getByRole('button', { name: 'Select Beta', exact: true }),
+    ).toBeVisible();
+    expect(historicalWrites).toEqual([]);
+
     await page.reload();
     await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
     await inspector.selectOption('evolution');
-    await browserExpect(panel).toContainText('Version 2');
-    await countIs(2, 'Relationships', 1);
+    await browserExpect(panel).toContainText('Version 4');
+    await countIs(4, 'Relationships', 0);
     await browserExpect(chart).toHaveCount(0);
   }, 60_000);
 

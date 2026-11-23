@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import type { ZlozGraph } from '@opsydyn/foldkit-zloz';
 
-import { empty, inspect, observe } from '../src/editor/evolution';
+import { empty, graphAt, inspect, observe } from '../src/editor/evolution';
 
 const emptyGraph: ZlozGraph = { nodes: [], edges: [] };
 
@@ -33,6 +33,7 @@ test('counts all five C4 types, other nodes and authored relationships separatel
   expect(observe(empty, { version: 0, graph }).samples).toEqual([
     {
       version: 0,
+      graph,
       counts: {
         person: 1,
         'software-system': 1,
@@ -77,4 +78,41 @@ test('the window holds 40 consecutive versions and evicting an inspected version
   );
   expect(next.inspected).toBeNull();
   expect(next.restartedAfterGap).toBe(false);
+});
+
+test('rewind has exact confirmed geometry and never supplies a missing version', () => {
+  const original: ZlozGraph = {
+    nodes: [
+      {
+        id: 'worker',
+        label: 'Original',
+        position: { x: 12, y: 50 },
+        size: { width: 100, height: 60 },
+        ports: [],
+      },
+    ],
+    edges: [],
+  };
+  const moved: ZlozGraph = {
+    nodes: original.nodes.map((node) => ({
+      ...node,
+      label: 'Renamed',
+      position: { x: 200, y: 50 },
+    })),
+    edges: [],
+  };
+  const baseline = observe(empty, { version: 7, graph: original });
+  const history = observe(baseline, { version: 8, graph: moved });
+  expect(graphAt(history, 7)?.nodes[0]).toMatchObject({
+    label: 'Original',
+    position: { x: 12, y: 50 },
+  });
+  expect(graphAt(history, 8)?.nodes[0]).toMatchObject({
+    label: 'Renamed',
+    position: { x: 200, y: 50 },
+  });
+  const resumed = observe(history, { version: 11, graph: emptyGraph });
+  expect(graphAt(resumed, 8)).toBeUndefined();
+  expect(graphAt(resumed, 10)).toBeUndefined();
+  expect(graphAt(resumed, 11)).toEqual(emptyGraph);
 });

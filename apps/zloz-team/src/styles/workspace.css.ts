@@ -1044,3 +1044,26 @@ globalStyle('.opy-composer, .opy-card', {
 globalStyle('.opy-composer textarea', { minHeight: 66, resize: 'vertical' });
 globalStyle('.opy-card h3, .opy-card p, .opy-card blockquote, .opy-composer > p', { margin: 0 });
 globalStyle('.opy-status', { color: theme.accent, fontWeight: 700 });
+
+globalStyle('.team-history', {
+  display: 'grid',
+  gridTemplateRows: 'auto minmax(0, 1fr)',
+  height: '100%',
+  minHeight: 0,
+});
+
+globalStyle('.team-history-controls', {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: '0.75rem',
+  padding: '0.75rem',
+  maxHeight: '35vh',
+  overflow: 'auto',
+});
+
+globalStyle('.team-history-controls label', {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+});

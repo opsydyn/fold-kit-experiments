@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.13.0...astro-foldkit-v0.13.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* ship the widened FoldKit 0.171 peer ranges, and record the upgrade ([#189](https://github.com/opsydyn/fold-kit-experiments/issues/189)) ([44a06de](https://github.com/opsydyn/fold-kit-experiments/commit/44a06dea64fcaa1ead7c87460f352ab75fc1aa86))
+
 ## [0.13.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.12.0...astro-foldkit-v0.13.0) (2026-11-13)
 
 ### Features

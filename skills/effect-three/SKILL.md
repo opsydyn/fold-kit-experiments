@@ -22,7 +22,7 @@ The four packages are released together at one version, and `-foldkit`, `-rapier
 `-troika` take the core as a peer at exactly that version: install matching versions,
 one core per application. They are `0.x`: a breaking change bumps the minor version.
 With FoldKit, pin `@effect/platform-browser` to the same version as `effect` (`4.1.0`
-here). FoldKit 0.170 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
+here). FoldKit 0.171 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
 requires an equal or newer `effect` and fails to resolve against an exact `4.1.0`.
 
 ## Choose the smallest layer

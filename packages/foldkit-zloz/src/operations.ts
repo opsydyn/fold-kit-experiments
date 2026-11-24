@@ -69,6 +69,12 @@ const edgeClockFor = (document: ZlozOperationDocument, id: string) =>
 const nodeFor = (document: ZlozOperationDocument, id: string) =>
   document.graph.nodes.find((node) => node.id === id) ??
   failure(`Node ${id} is no longer present`, 'Missing');
+function hotspotArchitecture(node: ZlozNode) {
+  const architecture = node.architecture;
+  if (architecture?.family !== 'event-storming' || architecture.role !== 'hotspot')
+    failure('Only a workshop hotspot has a discussion status', 'UnsupportedOperation');
+  return architecture;
+}
 const nodeClock = (id: string, version: number, present = true): ZlozNodeClock => ({
   id,
   present,
@@ -97,6 +103,8 @@ function inverseNode(patch: ZlozNodeChange, version: number): ZlozNodeChange {
     case 'label':
       return { ...patch, before: patch.after, after: patch.before, expected: version };
     case 'icon':
+      return { ...patch, before: patch.after, after: patch.before, expected: version };
+    case 'hotspot':
       return { ...patch, before: patch.after, after: patch.before, expected: version };
     case 'ports':
       return { ...patch, before: patch.after, after: patch.before, expected: version };
@@ -148,7 +156,9 @@ function checkedNodePatch(document: ZlozOperationDocument, patch: ZlozNodeChange
       ? frame(node)
       : patch.type === 'icon'
         ? (node.icon ?? null)
-        : node[patch.type];
+        : patch.type === 'hotspot'
+          ? hotspotArchitecture(node).status
+          : node[patch.type];
   if (!equal(before, patch.before)) failure('Node field does not match the accepted change');
 }
 function checkedEdgePatch(document: ZlozOperationDocument, patch: ZlozEdgeChange) {
@@ -198,6 +208,8 @@ function applyPatch(
       return [{ ...node, position: after.position, size: after.size }];
     }
     if (item.type === 'label') return [{ ...node, label: item.after }];
+    if (item.type === 'hotspot')
+      return [{ ...node, architecture: { ...hotspotArchitecture(node), status: item.after } }];
     if (item.type === 'icon') {
       const { icon: previousIcon, ...bare } = node;
       return [item.after === null ? bare : { ...bare, icon: item.after }];
@@ -267,11 +279,16 @@ function replayOperationChange(
   for (const patch of change.nodes) {
     const current = nodeClocks.get(patch.id);
     if (patch.type === 'record') {
-      const next = nodeClock(patch.id, change.version, patch.after !== null);
-      nodeClocks.set(
-        patch.id,
-        current?.icon === undefined ? next : { ...next, icon: change.version },
-      );
+      let next = nodeClock(patch.id, change.version, patch.after !== null);
+      if (current?.icon !== undefined) next = { ...next, icon: change.version };
+      if (
+        current &&
+        (current.hotspot !== undefined ||
+          (patch.after?.architecture?.family === 'event-storming' &&
+            patch.after.architecture.role === 'hotspot'))
+      )
+        next = { ...next, hotspot: change.version };
+      nodeClocks.set(patch.id, next);
       continue;
     }
     nodeClocks.set(patch.id, {
@@ -409,6 +426,19 @@ function proposedPatch(
             expected: operation.expected,
             before: nodeFor(document, operation.id).icon ?? null,
             after: operation.icon,
+          },
+        ],
+        edges: [],
+      };
+    case 'SetHotspotStatus':
+      return {
+        nodes: [
+          {
+            type: 'hotspot',
+            id: operation.id,
+            expected: operation.expected,
+            before: hotspotArchitecture(nodeFor(document, operation.id)).status,
+            after: operation.status,
           },
         ],
         edges: [],
@@ -730,6 +760,13 @@ function isNodeChange(value: unknown): value is ZlozNodeChange {
         (value.before === null || isNodeIcon(value.before)) &&
         (value.after === null || isNodeIcon(value.after))
       );
+    case 'hotspot':
+      return (
+        operationKeys(value, fields) &&
+        operationVersion(value.expected) &&
+        (value.before === 'open' || value.before === 'resolved') &&
+        (value.after === 'open' || value.after === 'resolved')
+      );
     case 'ports': {
       if (
         !operationKeys(value, fields) ||
@@ -849,9 +886,12 @@ export function isOperationDocument(value: unknown): value is ZlozOperationDocum
           'label',
           'ports',
           ...(Object.hasOwn(clock, 'icon') ? ['icon'] : []),
+          ...(Object.hasOwn(clock, 'hotspot') ? ['hotspot'] : []),
         ]) ||
         (Object.hasOwn(clock, 'icon') &&
           (!operationVersion(clock.icon) || clock.icon > Number(clock.version))) ||
+        (Object.hasOwn(clock, 'hotspot') &&
+          (!operationVersion(clock.hotspot) || clock.hotspot > Number(clock.version))) ||
         !operationEntityId(clock.id) ||
         ids.has(clock.id) ||
         typeof clock.present !== 'boolean' ||

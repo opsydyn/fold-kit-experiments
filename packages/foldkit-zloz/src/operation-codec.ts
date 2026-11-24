@@ -87,6 +87,13 @@ export function isGraphOperation(value: unknown): value is ZlozGraphOperation {
         operationVersion(value.expected) &&
         (value.icon === null || isNodeIcon(value.icon))
       );
+    case 'SetHotspotStatus':
+      return (
+        operationKeys(value, ['type', 'id', 'expected', 'status']) &&
+        operationEntityId(value.id) &&
+        operationVersion(value.expected) &&
+        (value.status === 'open' || value.status === 'resolved')
+      );
     case 'AddNode':
       return (
         operationKeys(value, ['type', 'expectedVersion', 'node']) &&

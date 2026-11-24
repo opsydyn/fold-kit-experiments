@@ -300,6 +300,156 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     }
   }, 60_000);
 
+  test('two editors share workshop notes and hotspot status with one-shot feedback', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const url = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    type WorkshopRequest =
+      | ZlozOperationRequest
+      | {
+          operationId: string;
+          name: string;
+          graph: { version: 1; graph: ZlozGraph };
+        };
+    const write = (suffix: string, cookie: string, body: WorkshopRequest) =>
+      fetch(api + suffix, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await write('', data.owner.cookie, {
+          operationId: id,
+          name: 'Order workshop',
+          graph: { version: 1, graph: { nodes: [], edges: [] } },
+        })
+      ).status,
+    ).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (
+      cookie: string,
+      reducedMotion: 'no-preference' | 'reduce' = 'no-preference',
+    ) => {
+      const context = await browser.newContext({
+        reducedMotion,
+        viewport: { width: 1440, height: 950 },
+      });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      await context.addInitScript(() => {
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (keyframes, options) {
+          const status = this.getAttribute('data-hotspot-state');
+          if (status) {
+            const root = document.documentElement;
+            root.setAttribute(
+              'data-test-hotspot-motion',
+              [root.getAttribute('data-test-hotspot-motion'), status].filter(Boolean).join(' '),
+            );
+          }
+          return animate.call(this, keyframes, options);
+        };
+      });
+      const page = await context.newPage();
+      await page.goto(url);
+      await browserExpect(page.locator('[data-edge-motion-run]')).toHaveAttribute(
+        'data-edge-motion-run',
+        /^\d+$/,
+      );
+      await page.getByLabel('Canvas emphasis').selectOption('event-storming');
+      return page;
+    };
+    const [owner, editor, viewer] = await Promise.all([
+      open(data.owner.cookie),
+      open(data.editor.cookie),
+      open(data.viewer.cookie, 'reduce'),
+    ]);
+    const event = owner.getByRole('button', { name: 'Add event' });
+    await event.focus();
+    await event.press('Enter');
+    await browserExpect(
+      editor.getByRole('button', { name: 'Select Domain Event', exact: true }),
+    ).toBeVisible();
+    await editor.getByRole('button', { name: 'Add hotspot' }).click();
+    const badge = (page: Page) => page.locator('[data-hotspot-status]');
+    await browserExpect(badge(owner)).toHaveText('Open question');
+    const eventFrame = (page: Page) =>
+      page.locator('[data-flow-node]').filter({
+        has: page.getByRole('button', { name: 'Select Domain Event', exact: true }),
+      });
+    const hotspotFrame = owner.locator('[data-flow-node]').filter({ has: badge(owner) });
+    expect(await eventFrame(owner).getAttribute('data-flow-x')).not.toBe(
+      await hotspotFrame.getAttribute('data-flow-x'),
+    );
+
+    const motion = (page: Page) => page.locator('html');
+    const saw = (page: Page, sequence: string) =>
+      browserExpect(motion(page)).toHaveAttribute('data-test-hotspot-motion', sequence);
+    await Promise.all([saw(owner, 'open'), saw(editor, 'open')]);
+    await browserExpect(badge(viewer)).toHaveText('Open question');
+    await browserExpect(motion(viewer)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await owner.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await Promise.all([saw(owner, 'open resolved'), saw(editor, 'open resolved')]);
+    await browserExpect(badge(viewer)).toHaveText('✓ Resolved');
+    const nodeId = await badge(editor)
+      .locator('[data-hotspot-flare]')
+      .getAttribute('data-hotspot-flare');
+    if (!nodeId) throw new Error('The workshop hotspot has no ID');
+    expect(
+      (
+        await write('/operations', data.viewer.cookie, {
+          version: 1,
+          operationId: crypto.randomUUID(),
+          operation: { type: 'SetHotspotStatus', id: nodeId, expected: 3, status: 'open' },
+        })
+      ).status,
+    ).toBe(403);
+    await viewer.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await browserExpect(viewer.getByRole('button', { name: 'Reopen hotspot' })).toHaveCount(0);
+    const initialX = Number(await eventFrame(editor).getAttribute('data-flow-x'));
+    await eventFrame(editor)
+      .getByRole('button', { name: 'Select Domain Event', exact: true })
+      .press('ArrowRight');
+    await browserExpect(eventFrame(owner)).not.toHaveAttribute('data-flow-x', String(initialX));
+    const movedX = await eventFrame(owner).getAttribute('data-flow-x');
+    expect(Number(movedX)).toBeGreaterThan(initialX);
+    await editor.reload();
+    await browserExpect(editor.getByLabel('Canvas emphasis')).toHaveValue('event-storming');
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await browserExpect(eventFrame(editor)).toHaveAttribute('data-flow-x', movedX ?? '');
+    await browserExpect(motion(editor)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await owner.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(badge(editor)).toHaveText('Open question');
+    await saw(editor, 'open');
+    await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await editor.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await editor.getByRole('button', { name: 'Reopen hotspot' }).click();
+    await browserExpect(badge(owner)).toHaveText('Open question');
+    await browserExpect(badge(viewer)).toHaveText('Open question');
+    await browserExpect(motion(viewer)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await saw(editor, 'open resolved open');
+    const exported = await fetch(api + '/export', { headers: { cookie: data.editor.cookie } });
+    expect(exported.ok).toBe(true);
+    expect(parseGraph(await exported.text()).nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          architecture: expect.objectContaining({ role: 'domain-event' }),
+        }),
+        expect.objectContaining({
+          architecture: { family: 'event-storming', role: 'hotspot', status: 'open' },
+        }),
+      ]),
+    );
+  }, 60_000);
+
   test('two editing accounts review and apply an import to the same empty board with shared Undo', async () => {
     const data = await fixture();
     const id = crypto.randomUUID();

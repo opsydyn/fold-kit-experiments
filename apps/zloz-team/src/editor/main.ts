@@ -89,11 +89,26 @@ import { shareFrame } from './share-frame';
 import * as SourceExport from './source-export';
 import * as Svg from './svg-export';
 import * as TeamIcons from './team-icons';
+import {
+  changedHotspots,
+  createWorkshopNote,
+  hotspotStatus,
+  revealHotspots,
+  workshopNotes,
+  WorkshopRole,
+  WorkshopStatus,
+} from './workshop';
 
 export { slow } from './diagnostics';
 
 const Role = Schema.Literals(['owner', 'editor', 'viewer']);
-const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'neutral']);
+const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'event-storming', 'neutral']);
+const canvasModeLabels = {
+  c4: 'C4 view',
+  ddd: 'DDD view',
+  'event-storming': 'Event Storming',
+  neutral: 'Neutral view',
+} satisfies Record<typeof CanvasEmphasis.Type, string>;
 const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate', 'evolution', 'opy']);
 const Rail = Schema.Literals(['tools', 'inspector']);
 const compactBoardQuery = '(max-width: 1080px)';
@@ -234,6 +249,9 @@ export const Message = defineMessageUnion({
   ObservedEditorInput: { event: Schema.Unknown },
   ChangedLabel: { text: Schema.String },
   ClickedAdd: {},
+  ClickedAddWorkshopNote: { noteRole: WorkshopRole },
+  ClickedHotspotStatus: { id: Schema.String, expected: Schema.Number, status: WorkshopStatus },
+  CompletedHotspotReveal: {},
   ClickedRename: {},
   ToggledIconPicker: {},
   FailedIconAsset: { icon: Schema.String },
@@ -329,6 +347,20 @@ export const devTools = {
     'SucceededPresence',
   ] satisfies readonly Message['_tag'][],
 } satisfies DevToolsConfig;
+const RevealHotspots = Command.define('RevealHotspots', {
+  args: {
+    run: Schema.Number,
+    changes: Schema.Array(Schema.Struct({ id: Schema.String, status: WorkshopStatus })),
+  },
+  messages: [Message.CompletedHotspotReveal],
+  execute: ({ run, changes }) => {
+    const reveal = Effect.sync(() => revealHotspots(run, changes));
+    return Render.afterCommit.pipe(
+      Effect.andThen(reveal),
+      Effect.map(Message.CompletedHotspotReveal),
+    );
+  },
+});
 const RevealEdges = Command.define('RevealEdges', {
   args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) },
   messages: [Message.CompletedEdgeReveal],
@@ -701,6 +733,14 @@ function install(model: Model, state: DiagramSession, receipt?: ZlozOperationRec
           : model.coupling,
       }
     : model;
+  if (
+    !old.confirmed &&
+    model.emphasis === 'c4' &&
+    state.confirmed?.document.graph.nodes.some(
+      (node) => node.architecture?.family === 'event-storming',
+    )
+  )
+    model = { ...model, emphasis: 'event-storming' };
   const undoResetVersion = state.confirmed?.undoResetVersion ?? 0;
   let ownEdits =
     undoResetVersion > (old.confirmed?.undoResetVersion ?? 0)
@@ -1758,6 +1798,32 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     ChangedLabel: ({ text }) => ({ model: { ...model, draft: text } }),
+    ClickedAddWorkshopNote: ({ noteRole }) =>
+      model.emphasis === 'event-storming'
+        ? enqueue(model, {
+            type: 'AddNode',
+            expectedVersion: session(model).confirmed?.document.version ?? 0,
+            node: createWorkshopNote(
+              noteRole,
+              `${model.room.generation}-node-${model.serial + 1}`,
+              session(model).confirmed?.document.graph.nodes ?? [],
+            ),
+          })
+        : { model },
+    ClickedHotspotStatus: ({ id, expected, status }) => {
+      const document = session(model).confirmed?.document;
+      const current = hotspotStatus(document?.graph.nodes.find((node) => node.id === id));
+      const clock = document?.nodes.find((node) => node.id === id);
+      return model.emphasis === 'event-storming' &&
+        editor(model).selectedNodes[0] === id &&
+        current &&
+        current !== status &&
+        clock?.present &&
+        (clock.hotspot ?? 0) === expected
+        ? enqueue(model, { type: 'SetHotspotStatus', id, expected, status })
+        : { model };
+    },
+    CompletedHotspotReveal: () => ({ model }),
     ClickedAdd: () =>
       enqueue(model, {
         type: 'AddNode',
@@ -1987,6 +2053,17 @@ function scheduleEdgeReveal(
     previous && confirmed && previous.undoResetVersion === confirmed.undoResetVersion
       ? introducedEdges(previous.document, confirmed.document)
       : [];
+  if (
+    next.emphasis === 'event-storming' &&
+    !next.historyReview &&
+    previous &&
+    confirmed &&
+    previous.undoResetVersion === confirmed.undoResetVersion
+  ) {
+    const changes = changedHotspots(previous.document, confirmed.document);
+    if (changes.length)
+      step = { ...step, commands: [...(step.commands ?? []), RevealHotspots({ run, changes })] };
+  }
   const waiting = next.deferredEdgeReveals;
   if (!added.length && !waiting.length) return step;
 
@@ -2729,8 +2806,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     (node) => node.id === currentEditor.selectedNodes[0],
   );
   const onEvent = canvasEvent;
-  const modeName =
-    model.emphasis === 'c4' ? 'C4 view' : model.emphasis === 'ddd' ? 'DDD view' : 'Neutral view';
+  const workshopMode = model.emphasis === 'event-storming';
+  const modeName = canvasModeLabels[model.emphasis];
+  const selectedHotspot = workshopMode ? hotspotStatus(selected) : null;
+  const selectedHotspotClock = selectedHotspot
+    ? state.confirmed?.document.nodes.find((node) => node.id === selected?.id)
+    : undefined;
   const toolsOpen = railVisible(model, 'tools');
   const inspectorOpen = railVisible(model, 'inspector');
   const showOpy = model.inspector === 'opy' && opyAvailable(model);
@@ -2929,16 +3010,64 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       ),
                     ]
                   : []),
+                h.label(
+                  [h.Class('canvas-mode')],
+                  [
+                    'Canvas emphasis',
+                    h.select(
+                      [
+                        h.Value(model.emphasis),
+                        h.AriaLabel('Canvas emphasis'),
+                        h.OnChange((value) =>
+                          Message.SelectedCanvasEmphasis({
+                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
+                          }),
+                        ),
+                      ],
+                      CanvasEmphasis.literals.map((emphasis) =>
+                        h.option([h.Value(emphasis)], [canvasModeLabels[emphasis]]),
+                      ),
+                    ),
+                  ],
+                ),
+                h.p(
+                  [h.Class('mode-note')],
+                  [
+                    workshopMode
+                      ? 'Capture what happened and flag questions for the team.'
+                      : 'Switching views preserves your diagram.',
+                  ],
+                ),
                 h.div(
                   [h.Class('editor-actions')],
                   [
                     h.div(
                       [h.Class('editor-primary-actions')],
                       [
-                        h.button(
-                          [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
-                          [teamIcon(h, 'plus'), h.span([], ['Add node'])],
-                        ),
+                        ...(workshopMode
+                          ? workshopNotes
+                              .slice(0, 2)
+                              .map(({ role, label }) =>
+                                h.button(
+                                  [
+                                    h.Key(role),
+                                    h.Type('button'),
+                                    h.Disabled(disabled),
+                                    h.OnClick(Message.ClickedAddWorkshopNote({ noteRole: role })),
+                                  ],
+                                  [teamIcon(h, 'plus'), h.span([], [label])],
+                                ),
+                              )
+                          : [
+                              h.button(
+                                [
+                                  h.Type('button'),
+                                  h.Disabled(disabled),
+                                  h.OnClick(Message.ClickedAdd()),
+                                ],
+                                [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                              ),
+                            ]),
                         ...(canOpenBoardImport(model) && !model.boardImport
                           ? [
                               h.button(
@@ -2953,6 +3082,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           : []),
                       ],
                     ),
+                    ...(workshopMode
+                      ? [
+                          h.details(
+                            [h.Class('board-popover')],
+                            [
+                              h.summary([], ['More workshop notes']),
+                              h.div(
+                                [h.Class('board-popover-content')],
+                                workshopNotes
+                                  .slice(2)
+                                  .map(({ role, label }) =>
+                                    h.button(
+                                      [
+                                        h.Key(role),
+                                        h.Type('button'),
+                                        h.Disabled(disabled),
+                                        h.OnClick(
+                                          Message.ClickedAddWorkshopNote({ noteRole: role }),
+                                        ),
+                                      ],
+                                      [label],
+                                    ),
+                                  ),
+                              ),
+                            ],
+                          ),
+                        ]
+                      : []),
                     h.button(
                       [
                         h.Type('button'),
@@ -2996,36 +3153,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   exportDocument !== undefined,
                 ]),
                 svgLauncher(svgLauncherView, [h, exportDocument !== undefined]),
-                h.label(
-                  [h.Class('canvas-mode')],
-                  [
-                    'Canvas emphasis',
-                    h.select(
-                      [
-                        h.Value(model.emphasis),
-                        h.AriaLabel('Canvas emphasis'),
-                        h.OnChange((value) =>
-                          Message.SelectedCanvasEmphasis({
-                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
-                          }),
-                        ),
-                      ],
-                      (['c4', 'ddd', 'neutral'] as const).map((emphasis) =>
-                        h.option(
-                          [h.Value(emphasis)],
-                          [
-                            emphasis === 'c4'
-                              ? 'C4 view'
-                              : emphasis === 'ddd'
-                                ? 'DDD view'
-                                : 'Neutral view',
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                h.p([h.Class('mode-note')], ['Appearance only. Your diagram stays unchanged.']),
                 h.p([h.Class('role-label')], [`Your role · ${model.role}`]),
               ]
             : [],
@@ -3233,6 +3360,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                       ],
                                       ['Rename node'],
                                     ),
+                                    ...(selectedHotspot &&
+                                    selectedHotspotClock?.present &&
+                                    model.role !== 'viewer'
+                                      ? [
+                                          h.button(
+                                            [
+                                              h.Type('button'),
+                                              h.Disabled(disabled),
+                                              h.OnClick(
+                                                Message.ClickedHotspotStatus({
+                                                  id: selected.id,
+                                                  expected: selectedHotspotClock.hotspot ?? 0,
+                                                  status:
+                                                    selectedHotspot === 'open'
+                                                      ? 'resolved'
+                                                      : 'open',
+                                                }),
+                                              ),
+                                            ],
+                                            [
+                                              selectedHotspot === 'open'
+                                                ? 'Resolve hotspot'
+                                                : 'Reopen hotspot',
+                                            ],
+                                          ),
+                                        ]
+                                      : []),
                                     ...infrastructureDetails(h, selected),
                                     ...(model.role !== 'viewer' && selected.kind !== 'group'
                                       ? [

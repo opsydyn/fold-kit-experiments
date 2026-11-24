@@ -152,9 +152,9 @@ describe('plot panel data and view', () => {
       view({ model: histogram, toParentMessage: (m) => m, ariaLabel: 'Pay distribution' }, h),
     );
     expect([...node.querySelectorAll('thead th')].map((cell) => cell.textContent)).toEqual([
-      'Lower bound',
-      'Upper bound',
-      'count',
+      'pay start',
+      'pay end',
+      'Count',
     ]);
     expect(
       [...node.querySelectorAll('tbody tr')].map((row) =>

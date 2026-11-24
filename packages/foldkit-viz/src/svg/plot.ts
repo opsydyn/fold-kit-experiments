@@ -130,7 +130,7 @@ const markupBuilder: PlotBuilder<MarkupAttribute, Markup> = {
   Style: (value) => ({ kind: 'style', value }),
 };
 
-export type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> &
+export type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table' | 'tables'> &
   Readonly<{
     /** Default `'light'`: concrete colours, since an image has no page colour to inherit. */
     theme?: PlotTheme;

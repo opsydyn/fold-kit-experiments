@@ -17,6 +17,7 @@ import {
   withTitle,
 } from './channels.js';
 import type { ChannelName, Context, Graphics, PositionScale } from './channels.js';
+import { plotValueFormatter, withAxisFormat } from './format.js';
 import type {
   Channel,
   Graphic,
@@ -100,6 +101,8 @@ export function polarScales(
   frame: PolarFrame,
 ): PolarScales {
   const { start, inner, outer } = frame;
+  const xFormat = xInfo?.spec.format;
+  const xLabel = xFormat === undefined ? String : plotValueFormatter(xFormat, 'x.format');
   let x: PositionScale | null = null;
   const angles: Array<PolarGeometry['angles'][number]> = [];
   if (xInfo !== null && isBandDomain(xInfo.domain)) {
@@ -121,7 +124,8 @@ export function polarScales(
       const s = first(v);
       return s === undefined ? undefined : s + scale.bandwidth / 2;
     };
-    for (const value of domain) angles.push({ value, angle: middle(value) ?? start, label: value });
+    for (const value of domain)
+      angles.push({ value, angle: middle(value) ?? start, label: xLabel(value) });
     x = {
       axis: axisOf(xInfo, [start, start + TAU]),
       place: middle,
@@ -137,7 +141,7 @@ export function polarScales(
     };
     // The last tick would sit on the first, a full turn round.
     for (const t of linearTicks([d0, d1], 8))
-      if (t < d1) angles.push({ value: t, angle: angle(t) ?? start, label: String(t) });
+      if (t < d1) angles.push({ value: t, angle: angle(t) ?? start, label: xLabel(t) });
     x = {
       axis: axisOf(xInfo, [start, start + TAU]),
       place: angle,
@@ -149,6 +153,8 @@ export function polarScales(
   let y: PositionScale | null = null;
   const radii: Array<PolarGeometry['radii'][number]> = [];
   if (yInfo !== null) {
+    const format = yInfo.spec.format;
+    const labelOf = format === undefined ? String : plotValueFormatter(format, 'y.format');
     if (isBandDomain(yInfo.domain)) fail('y', 'polar coordinates need a continuous y');
     const [d0, d1] = continuous(yInfo);
     // Radii grow from zero unless the spec says otherwise, so shapes compare by area.
@@ -159,7 +165,7 @@ export function polarScales(
       return Number.isFinite(n) ? inner + ((n - lo) / (hi - lo)) * (outer - inner) : undefined;
     };
     for (const t of linearTicks([lo, hi], yInfo.spec.ticks ?? 4))
-      if (t > lo) radii.push({ value: t, radius: radius(t) ?? inner, label: String(t) });
+      if (t > lo) radii.push({ value: t, radius: radius(t) ?? inner, label: labelOf(t) });
     y = {
       axis: axisOf({ ...yInfo, domain: [lo, hi] }, [inner, outer]),
       place: radius,
@@ -202,15 +208,19 @@ export function radialLabel(geometry: PolarGeometry, radius: number): readonly [
   ];
 }
 
-const axisOf = (info: AxisInfo, range: readonly [number, number]) => ({
-  type: 'linear' as const,
-  orientation: 'bottom' as const,
-  domain: info.domain,
-  label: info.label,
-  ticks: [],
-  grid: false,
-  range,
-});
+const axisOf = (info: AxisInfo, range: readonly [number, number]) =>
+  withAxisFormat(
+    {
+      type: 'linear' as const,
+      orientation: 'bottom' as const,
+      domain: info.domain,
+      label: info.label,
+      ticks: [],
+      grid: false,
+      range,
+    },
+    info.spec.format,
+  );
 
 // ── Marks ─────────────────────────────────────────────────────────────────────
 

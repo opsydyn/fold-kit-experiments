@@ -8,6 +8,8 @@ import { compileChecked, decodePlot, type PlotIssue } from '@opsydyn/foldkit-viz
 import {
   invertAxis,
   invertPlot,
+  plotTimestamp,
+  plotValueFormatter,
   type PlotAxis,
   type PlotGeometry,
   type PlotSpec,
@@ -606,6 +608,8 @@ export const targetsOf = (drawn: Drawn, spec: JsonObject): ReadonlyArray<Target>
   const xAxis = facet?.x ?? null;
   const yAxis = facet?.y ?? null;
   if (fields === null || xAxis === null || yAxis === null) return [];
+  const formatX = xAxis.format === undefined ? readable : plotValueFormatter(xAxis.format);
+  const formatY = yAxis.format === undefined ? readable : plotValueFormatter(yAxis.format);
   const { by } = fields;
   const order = domainOrder(spec);
   const firstSeen = [...new Set(rows.map((row) => String(by === null ? '' : (row[by] ?? ''))))];
@@ -615,7 +619,11 @@ export const targetsOf = (drawn: Drawn, spec: JsonObject): ReadonlyArray<Target>
   };
   const along = (row: Row): number => {
     const value = row[fields.x];
-    return isNumber(value) ? value : isText(value) && isoDate.test(value) ? Date.parse(value) : 0;
+    return isNumber(value)
+      ? value
+      : isText(value) && isoDate.test(value)
+        ? plotTimestamp(value)
+        : 0;
   };
   const sorted =
     fields.mark === 'bar'
@@ -636,7 +644,7 @@ export const targetsOf = (drawn: Drawn, spec: JsonObject): ReadonlyArray<Target>
     const py = pixelOf(yAxis, row[fields.y]);
     if (px === undefined || py === undefined) return [];
     const series = by === null ? '' : `${String(row[by] ?? '')}, `;
-    const text = `${series}${fields.xLabel} ${readable(row[fields.x])}: ${fields.yLabel} ${readable(row[fields.y])}`;
+    const text = `${series}${fields.xLabel} ${formatX(row[fields.x])}: ${fields.yLabel} ${formatY(row[fields.y])}`;
     return [
       {
         x: px,
@@ -690,7 +698,7 @@ const pixelOf = (axis: PlotAxis | null, value: Json | undefined): number | undef
   }
   const [d0, d1] = axis.domain.map(Number);
   const [r0, r1] = axis.range;
-  const at = isNumber(value) ? value : isText(value) ? Date.parse(value) : Number.NaN;
+  const at = isNumber(value) ? value : isText(value) ? plotTimestamp(value) : Number.NaN;
   if (d0 === undefined || d1 === undefined || d0 === d1 || !Number.isFinite(at)) return undefined;
   if (axis.type !== 'linear' && axis.type !== 'time') return undefined;
   return r0 + ((at - d0) / (d1 - d0)) * (r1 - r0);

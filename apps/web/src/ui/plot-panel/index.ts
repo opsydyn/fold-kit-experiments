@@ -6,8 +6,9 @@ import type { ChartCommand } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import {
   compilePlot,
   invertAxis,
-  plotTable,
+  plotTables,
   plotTargets,
+  plotValueFormatter,
   pointerToPlot,
   rowsOf,
 } from '@opsydyn/foldkit-viz/plot';
@@ -417,23 +418,6 @@ function overlayOf(ring: Option.Option<Ring>, brush: Option.Option<Band>): PlotO
   return { color };
 }
 
-const tableOf = (model: Model, geometry: PlotGeometry, targets: ReadonlyArray<Target>) => {
-  const mark = markOf(model.spec, model.mark);
-  if (mark?.mark !== 'rect' || mark.y !== undefined || mark.transform?.type !== 'bin')
-    return plotTable(model.spec);
-  const label = geometry.facets[0]?.y?.label || 'Value';
-  return {
-    caption: model.spec.title ?? 'Histogram bins',
-    headers: ['Lower bound', 'Upper bound', label],
-    rows: targets.map(({ domain, value }) => [
-      String(domain[0]),
-      String(domain[1]),
-      value === undefined ? '' : String(value),
-    ]),
-    total: targets.length,
-  };
-};
-
 export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const { model, toParentMessage, ariaLabel } = config;
   const panel = panelEvents.withMessage(h);
@@ -464,11 +448,13 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const chart = plotChart(h, geometry, {
     overlay: overlayOf(ring, brush),
     summary: true,
-    table: tableOf(model, base, targets),
+    tables: plotTables(spec, base),
   });
+  const formatX = spec.x?.format === undefined ? String : plotValueFormatter(spec.x.format);
   const liveText = Option.match(active, {
     onNone: () => '',
-    onSome: (t) => (t.isBar ? `${t.domain[0]} to ${t.domain[1]}, ${t.title}` : t.title),
+    onSome: (t) =>
+      t.isBar ? `${formatX(t.domain[0])} to ${formatX(t.domain[1])}, ${t.title}` : t.title,
   });
   const handleKeyDown = chartKeyDown((command) =>
     toParentMessage(Message.PressedKeyNav({ command })),

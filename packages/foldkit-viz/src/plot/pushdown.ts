@@ -3,7 +3,7 @@ import { rectBinEdges } from '../math/bin2d.js';
 import { channelOf, fieldOf } from './channels.js';
 import type { ChannelName } from './channels.js';
 import { rowsOf } from './columns.js';
-import { seriesField } from './marks-rect.js';
+import { binDescriptor, seriesField } from './marks-rect.js';
 import type { ColumnTable, MarkSpec, PlotSpec, Row, Value } from './types.js';
 
 /**
@@ -107,6 +107,10 @@ function columnsOf(mark: MarkSpec): ReadonlyArray<string> | 'all' {
   }
   if ('z' in mark && mark.z !== undefined) fields.add(mark.z);
   if ('highlight' in mark && mark.highlight !== undefined) fields.add(mark.highlight.field);
+  if (mark.mark === 'rect' && mark.prebinned !== undefined) {
+    fields.add(mark.prebinned.value);
+    if (mark.prebinned.series !== undefined) fields.add(mark.prebinned.series);
+  }
   if (fields.size > 0 && mark.key !== undefined) fields.add(mark.key);
   return [...fields];
 }
@@ -236,9 +240,10 @@ export async function pushdown(spec: PlotSpec, source: SqlSource): Promise<PlotS
         const two = mark.y !== undefined;
         const rows = two ? await grid(mark, source) : await histogram(mark, source);
         const { x: _x, y: _y, transform, ...rest } = mark;
+        const prebinned = binDescriptor(mark);
         return two
-          ? { ...rest, data: rows, x1: 'x1', x2: 'x2', y1: 'y1', y2: 'y2' }
-          : { ...rest, data: rows, x1: 'x1', x2: 'x2', y2: transform.reduce ?? 'count' };
+          ? { ...rest, data: rows, x1: 'x1', x2: 'x2', y1: 'y1', y2: 'y2', prebinned }
+          : { ...rest, data: rows, x1: 'x1', x2: 'x2', y2: transform.reduce ?? 'count', prebinned };
       }
       const columns = columnsOf(mark);
       if (columns.length === 0) return mark;

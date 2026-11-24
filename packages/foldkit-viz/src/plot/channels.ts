@@ -57,11 +57,20 @@ export function read(rows: Rows, channel: Channel, path: string): ReadonlyArray<
 }
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
+const ZONE_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/;
+
+/** Interpret ISO dates, including unzoned date-times, as portable instants. */
+export function plotTimestamp(value: string): number {
+  if (!ISO_DATE.test(value)) return Number.NaN;
+  if (value.length === 10) return Date.parse(value);
+  const dateTime = value.replace(' ', 'T');
+  return Date.parse(ZONE_SUFFIX.test(dateTime) ? dateTime : `${dateTime}Z`);
+}
 
 /** A value as a number on a continuous axis: numbers as they are, ISO dates as epoch ms. */
 export const numeric = (value: Value): number => {
   if (isNumber(value)) return value;
-  if (isText(value) && ISO_DATE.test(value)) return Date.parse(value);
+  if (isText(value)) return plotTimestamp(value);
   return Number.NaN;
 };
 

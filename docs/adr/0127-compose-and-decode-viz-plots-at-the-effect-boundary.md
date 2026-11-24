@@ -21,3 +21,11 @@ Expose point and interval targets for an explicitly chosen mark and facet in the
 ## Alternatives and consequences
 
 An independently written Effect schema would duplicate the grammar and its validation cases. Making the core depend on Effect would alter install and rendering contracts for pure consumers. The optional subpath costs an additional bundle and requires checking schema import behavior against the exported JSON fixtures. Share authoring fragments through ordinary functions and add constructors as consumer needs establish them.
+
+## Shared scales and value presentation
+
+An application composes independent plot specs with `sharePlotScales`. The shared descriptor fixes the type, the domain and any scale parameters or palette. Composition checks conflicts at the affected spec path. Individual views own dimensions, labels and formatting. This keeps the existing plot wire format usable by standalone renderers and data tools, with the parent deciding which views to align.
+
+Axis `format` is optional serialisable data. The compiler creates `Intl` formatters from the descriptor using an explicit locale fallback and UTC by default. Dates without an offset represent UTC. The same formatting contract serves tick labels, summaries, tables, and host-owned inspection. Axis `zone` still controls calendar tick placement.
+
+`plotTables` projects layer source fields, constant rules, and compiled bin values. Source tables read only the requested fields and row prefix. Bin rectangles retain their numeric edges so the table and linked inspection agree when styling adds inset or a plot reverses an axis. Renderers accept the layer tables alongside the existing single-table option.

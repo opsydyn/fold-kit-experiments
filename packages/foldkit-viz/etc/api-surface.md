@@ -643,6 +643,12 @@ type Graphic = (Paint & Readonly<{
   height: number;
   fill: string;
   stroke: string;
+  bin?: Readonly<{
+    x: readonly [number, number];
+    y?: readonly [number, number];
+    value: number;
+    series?: Value;
+  }>;
 }>) | (Paint & Readonly<{
   kind: 'line';
   key: string;
@@ -983,6 +989,7 @@ type PlotAxis = Readonly<{
   orientation: 'bottom' | 'left';
   domain: readonly [number, number] | ReadonlyArray<string>;
   label: string;
+  format?: PlotValueFormat;
   ticks: ReadonlyArray<PlotTick>;
   grid: boolean;
   range: readonly [number, number];
@@ -1038,6 +1045,22 @@ type PlotTick = Readonly<{
   position: number;
   label: string;
 }>;
+type PlotValueFormat = Readonly<{
+  kind: 'number' | 'percent';
+  locale?: string;
+  digits?: number;
+}> | Readonly<{
+  kind: 'unit';
+  unit: string;
+  locale?: string;
+  digits?: number;
+}> | Readonly<{
+  kind: 'dateTime';
+  locale?: string;
+  timeZone?: string;
+  dateStyle?: 'short' | 'medium' | 'long';
+  timeStyle?: 'short' | 'medium' | 'long';
+}>;
 function point(config: {
   domain: ReadonlyArray<string>;
   range: readonly [number, number];
@@ -1074,6 +1097,7 @@ type PositionScaleSpec = Readonly<{
   type?: 'linear' | 'log' | 'symlog' | 'pow' | 'time' | 'band';
   domain?: readonly [number, number] | ReadonlyArray<string>;
   label?: string;
+  format?: PlotValueFormat;
   zero?: boolean;
   ticks?: number;
   grid?: boolean;
@@ -1083,6 +1107,12 @@ type PositionScaleSpec = Readonly<{
   zone?: 'utc' | 'local';
   padding?: number;
   axis?: boolean;
+}>;
+type PrebinnedRect = Readonly<{
+  value: string;
+  xField?: string;
+  yField?: string;
+  series?: string;
 }>;
 type ProjectedDatum<T> = Readonly<{
   datum: T;
@@ -1144,6 +1174,7 @@ type RectMark = CommonMark & Readonly<{
   stroke?: Channel;
   inset?: number;
   transform?: BinTransform;
+  prebinned?: PrebinnedRect;
 }>;
 const reds: ReadonlyArray<string>;
 type RegressionAccessors<T> = Readonly<{
@@ -3129,6 +3160,9 @@ type ColorScaleSpec = Readonly<{
   label?: string;
 }>;
 type Column = ReadonlyArray<Value> | Float64Array | Float32Array | Int32Array | Int16Array | Int8Array | Uint32Array | Uint16Array | Uint8Array | Uint8ClampedArray;
+type ColumnConversionOptions = Readonly<{
+  bigIntAsText?: ReadonlyArray<string>;
+}>;
 function columnStore(): ColumnStore;
 type ColumnStore = Readonly<{
   append: (chunk: PlotData) => ColumnTable;
@@ -3165,7 +3199,7 @@ type DownsampleTransform = Readonly<{
   type: 'downsample';
   method: 'm4' | 'lttb';
 }>;
-function duckdbColumns(names: ReadonlyArray<string>, columns: ReadonlyArray<ReadonlyArray<unknown>>): ColumnTable;
+function duckdbColumns(names: ReadonlyArray<string>, columns: ReadonlyArray<ReadonlyArray<unknown>>, options?: ColumnConversionOptions): ColumnTable;
 interface DuckDBReader {
   columnNames(): ReadonlyArray<string>;
   getColumnsJS(): ReadonlyArray<ReadonlyArray<unknown>>;
@@ -3190,8 +3224,8 @@ type ForceMark = CommonMark & Readonly<{
   distance?: number;
   strength?: number;
 }>;
-function fromArrow(table: ArrowTable): ColumnTable;
-const fromDuckDB: (reader: DuckDBReader) => ColumnTable;
+function fromArrow(table: ArrowTable, options?: ColumnConversionOptions): ColumnTable;
+const fromDuckDB: (reader: DuckDBReader, options?: ColumnConversionOptions) => ColumnTable;
 type GeoMark = CommonMark & Readonly<{
   mark: 'geo';
   features: GeoObject;
@@ -3224,6 +3258,12 @@ type Graphic = (Paint & Readonly<{
   height: number;
   fill: string;
   stroke: string;
+  bin?: Readonly<{
+    x: readonly [number, number];
+    y?: readonly [number, number];
+    value: number;
+    series?: Value;
+  }>;
 }>) | (Paint & Readonly<{
   kind: 'line';
   key: string;
@@ -3339,6 +3379,7 @@ type PlotAxis = Readonly<{
   orientation: 'bottom' | 'left';
   domain: readonly [number, number] | ReadonlyArray<string>;
   label: string;
+  format?: PlotValueFormat;
   ticks: ReadonlyArray<PlotTick>;
   grid: boolean;
   range: readonly [number, number];
@@ -3399,15 +3440,14 @@ type PlotSpec = Readonly<{
   }>;
   marks: ReadonlyArray<MarkSpec>;
 }>;
-function plotTable(spec: PlotSpec, options?: Readonly<{
-  limit?: number;
-}>): PlotTable;
+function plotTable(spec: PlotSpec, options?: TableOptions): PlotTable;
 type PlotTable = Readonly<{
   caption: string;
   headers: ReadonlyArray<string>;
   rows: ReadonlyArray<ReadonlyArray<string>>;
   total: number;
 }>;
+function plotTables(spec: PlotSpec, geometry: PlotGeometry, options?: TableOptions): ReadonlyArray<PlotTable>;
 type PlotTarget = Readonly<{
   facet: string;
   mark: number;
@@ -3434,6 +3474,24 @@ type PlotTick = Readonly<{
   position: number;
   label: string;
 }>;
+function plotTimestamp(value: string): number;
+type PlotValueFormat = Readonly<{
+  kind: 'number' | 'percent';
+  locale?: string;
+  digits?: number;
+}> | Readonly<{
+  kind: 'unit';
+  unit: string;
+  locale?: string;
+  digits?: number;
+}> | Readonly<{
+  kind: 'dateTime';
+  locale?: string;
+  timeZone?: string;
+  dateStyle?: 'short' | 'medium' | 'long';
+  timeStyle?: 'short' | 'medium' | 'long';
+}>;
+function plotValueFormatter(format: PlotValueFormat, path?: string): (value: Value | undefined) => string;
 function pointerToPlot(client: ClientPoint, rect: ClientRect, geometry: Pick<PlotGeometry, 'width' | 'height'>): ClientPoint;
 type PolarGeometry = Readonly<{
   cx: number;
@@ -3457,6 +3515,7 @@ type PositionScaleSpec = Readonly<{
   type?: 'linear' | 'log' | 'symlog' | 'pow' | 'time' | 'band';
   domain?: readonly [number, number] | ReadonlyArray<string>;
   label?: string;
+  format?: PlotValueFormat;
   zero?: boolean;
   ticks?: number;
   grid?: boolean;
@@ -3466,6 +3525,12 @@ type PositionScaleSpec = Readonly<{
   zone?: 'utc' | 'local';
   padding?: number;
   axis?: boolean;
+}>;
+type PrebinnedRect = Readonly<{
+  value: string;
+  xField?: string;
+  yField?: string;
+  series?: string;
 }>;
 type ProjectionSpec = Readonly<{
   type: 'equirectangular' | 'mercator' | 'naturalEarth1' | 'orthographic' | 'albers';
@@ -3486,6 +3551,7 @@ type RectMark = CommonMark & Readonly<{
   stroke?: Channel;
   inset?: number;
   transform?: BinTransform;
+  prebinned?: PrebinnedRect;
 }>;
 type RegressionTransform = Readonly<{
   type: 'regression';
@@ -3511,6 +3577,12 @@ type SankeyMark = CommonMark & Readonly<{
   labels?: boolean;
 }>;
 type SchemeName = 'tableau10' | 'category10' | 'dark2' | 'set1' | 'blues' | 'greens' | 'reds' | 'oranges' | 'purples' | 'rdBu' | 'spectral' | 'rdYlGn' | 'brBG' | 'wong' | 'ibmCarbon' | 'tolMuted' | 'viridis' | 'magma' | 'inferno' | 'plasma' | 'cividis';
+type SharedPlotScales = Readonly<{
+  x?: SharedPositionScale;
+  y?: SharedPositionScale;
+  color?: SharedScale<ColorScaleSpec, (typeof colorProperties)[number]>;
+}>;
+const sharePlotScales: (scales: SharedPlotScales) => (spec: PlotSpec) => PlotSpec;
 type SizeScaleSpec = Readonly<{
   range?: readonly [number, number];
 }>;
@@ -4067,7 +4139,7 @@ type PlotPalette = Readonly<{
   background?: string;
 }>;
 function plotSvg(geometry: PlotGeometry, options?: PlotSvgOptions): string;
-type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table'> & Readonly<{
+type PlotSvgOptions = Omit<PlotChartOptions, 'palette' | 'table' | 'tables'> & Readonly<{
   theme?: PlotTheme;
   background?: boolean;
 }>;

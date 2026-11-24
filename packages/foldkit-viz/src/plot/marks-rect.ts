@@ -37,6 +37,10 @@ const isReducer = (value: unknown): value is Reducer => REDUCERS.some((r) => r =
 const isBinned = (mark: RectMark): boolean => mark.transform !== undefined;
 
 export function validateRect(mark: RectMark, path: string): void {
+  if (mark.prebinned !== undefined) {
+    if (isBinned(mark)) fail(`${path}.prebinned`, 'already reduced bins cannot be binned again');
+    if (mark.x1 === undefined) fail(`${path}.x1`, 'already reduced bins need a starting edge');
+  }
   if (!isBinned(mark)) {
     if (mark.x !== undefined) fail(`${path}.x`, 'a rect mark takes x and y only to bin them');
     if (mark.y !== undefined) fail(`${path}.y`, 'a rect mark takes x and y only to bin them');
@@ -74,6 +78,16 @@ export type BinnedRows = Readonly<{
 /** The field a histogram bins separately by: z, else the fill or stroke field. */
 export const seriesField = (mark: RectMark): string | undefined =>
   mark.z ?? fieldOf(mark.fill) ?? fieldOf(mark.stroke);
+
+export function binDescriptor(mark: RectMark): RectMark['prebinned'] {
+  if (mark.transform === undefined) return mark.prebinned;
+  return {
+    value: mark.y === undefined ? (mark.transform.reduce ?? 'count') : 'count',
+    xField: fieldOf(mark.x),
+    yField: fieldOf(mark.y),
+    series: mark.y === undefined ? seriesField(mark) : undefined,
+  };
+}
 
 /**
  * One row per bin. A histogram bins each series on the same thresholds and
@@ -182,23 +196,34 @@ export function rectGraphics(
   const strokes = paintOf(rows, mark.stroke, `${path}.stroke`, context, 'none');
   const inset = mark.inset ?? 0;
   const opacity = mark.opacity ?? 1;
+  const binned = binDescriptor(mark);
+  const binValues =
+    binned === undefined ? undefined : read(rows, binned.value, `${path}.prebinned.value`);
+  const series = binned?.series;
+  const groups = series === undefined ? undefined : read(rows, series, `${path}.prebinned.series`);
   return rows.flatMap((_, i): ReadonlyArray<Graphic> => {
     const across = edges(x, x1, x2, i),
       down = edges(y, y1, y2, i);
     if (across === undefined || down === undefined) return [];
-    return [
-      {
-        kind: 'rect',
-        key: keys[i] ?? `${index}:${i}`,
-        x: across[0] + inset,
-        y: down[0],
-        width: Math.max(0, across[1] - across[0] - 2 * inset),
-        height: down[1] - down[0],
-        fill: fills[i] ?? 'currentColor',
-        stroke: strokes[i] ?? 'none',
-        opacity: opacity * (dims[i] ?? 1),
-        ...withTitle(titles[i]),
-      },
-    ];
+    const graphic = {
+      kind: 'rect' as const,
+      key: keys[i] ?? `${index}:${i}`,
+      x: across[0] + inset,
+      y: down[0],
+      width: Math.max(0, across[1] - across[0] - 2 * inset),
+      height: down[1] - down[0],
+      fill: fills[i] ?? 'currentColor',
+      stroke: strokes[i] ?? 'none',
+      opacity: opacity * (dims[i] ?? 1),
+      ...withTitle(titles[i]),
+    };
+    if (binValues === undefined) return [graphic];
+    const bin = {
+      x: [numeric(x1?.[i] ?? null), numeric(x2[i] ?? null)] as const,
+      y: y1 === undefined ? undefined : ([numeric(y1[i] ?? null), numeric(y2[i] ?? null)] as const),
+      value: numeric(binValues[i] ?? null),
+      series: groups?.[i] ?? (groups === undefined ? undefined : null),
+    };
+    return [{ ...graphic, bin }];
   });
 }

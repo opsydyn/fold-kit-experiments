@@ -195,8 +195,9 @@ export function plotTargets(
     if (geometry.clip && !containsCentre(facet, cx, cy)) return [];
     const left = isBar ? g.x - inset : cx;
     const right = isBar ? g.x + g.width + inset : cx;
-    const start = numericAt(xAxis, left);
-    const end = numericAt(xAxis, right);
+    const bin = isBar ? g.bin : undefined;
+    const start = bin?.x[0] ?? numericAt(xAxis, left);
+    const end = bin?.x[1] ?? numericAt(xAxis, right);
     if (start === undefined || end === undefined) return [];
     return [
       {
@@ -210,7 +211,10 @@ export function plotTargets(
         left,
         right,
         domain: [Math.min(start, end), Math.max(start, end)],
-        value: numericAt(facet.y, isBar ? g.y : cy),
+        value:
+          bin !== undefined && bin.y === undefined
+            ? bin.value
+            : numericAt(facet.y, isBar ? g.y : cy),
         includeEnd: !isBar,
         isBar,
       },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import { Float64, Int32, Table, vectorFromArray } from 'apache-arrow';
+import { Float64, Int32, Int64, Table, vectorFromArray } from 'apache-arrow';
 import fc from 'fast-check';
 
 import {
@@ -255,6 +255,21 @@ describe('fromArrow', () => {
     expect(Array.from(table.columns.big ?? [])).toEqual([1, 2]);
     expect(table.columns.at).toEqual([when.getTime(), null]);
     expect(table.columns.label).toEqual(['a', null]);
+  });
+
+  it('keeps adjacent 64-bit keys distinct and rejects implicit rounding', () => {
+    const id = vectorFromArray([9007199254740992n, 9007199254740993n, null], new Int64());
+    const arrow = new Table({ id, x: vectorFromArray([1, 2, 3], new Int32()) });
+    expect(() => fromArrow(arrow)).toThrow(
+      'column "id" contains a BigInt outside the safe number range',
+    );
+    const data = fromArrow(arrow, { bigIntAsText: ['id'] });
+    expect(data.columns.id).toEqual(['9007199254740992', '9007199254740993', null]);
+    const geometry = compilePlot(plot([{ mark: 'dot', x: 'x', y: 'x', key: 'id' }], { data }));
+    expect(geometry.facets[0]?.marks[0]?.graphics.slice(0, 2).map(({ key }) => key)).toEqual([
+      '9007199254740992',
+      '9007199254740993',
+    ]);
   });
 
   it('plots an Arrow table', () => {

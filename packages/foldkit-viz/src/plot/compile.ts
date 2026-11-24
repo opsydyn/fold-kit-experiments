@@ -41,6 +41,7 @@ import type {
 } from './channels.js';
 import { fillRows, isColumnTable, rowsOf } from './columns.js';
 import type { Rows } from './columns.js';
+import { plotValueFormatter, withAxisFormat } from './format.js';
 import {
   fitProjection,
   geoGraphics,
@@ -220,7 +221,11 @@ function validateMark(mark: MarkSpec, path: string): void {
     );
   const rule: MarkRule = MARKS[mark.mark];
   for (const key of Object.keys(mark))
-    if (!OPTIONS.has(key) && !rule.channels.some((channel) => channel === key))
+    if (
+      !OPTIONS.has(key) &&
+      !(mark.mark === 'rect' && key === 'prebinned') &&
+      !rule.channels.some((channel) => channel === key)
+    )
       fail(`${path}.${key}`, `${aMark(mark.mark)} does not take ${key}`);
   for (const channel of rule.required)
     if (!(channel in mark)) fail(`${path}.${channel}`, `${aMark(mark.mark)} needs ${channel}`);
@@ -382,7 +387,9 @@ function seriesOf(
   const groups = new Map<string, Row[]>();
   for (const row of rows) {
     const key = String(row[field] ?? '');
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, [row]);
+    else group.push(row);
   }
   return [...groups];
 }
@@ -692,6 +699,9 @@ function buildScale(
   const range: readonly [number, number] =
     axis === 'x' ? [bounds.left, bounds.right] : [bounds.bottom, bounds.top];
   const orientation = axis === 'x' ? 'bottom' : 'left';
+  const format = info.spec.format;
+  const formatValue =
+    format === undefined ? undefined : plotValueFormatter(format, `${axis}.format`);
   const shown = info.spec.axis ?? true;
   const grid = shown && (info.spec.grid ?? info.type !== 'band');
   if (info.type === 'band') {
@@ -713,7 +723,8 @@ function buildScale(
       return s === undefined ? undefined : s + scale.bandwidth / 2;
     };
     // Label every k-th band when labels would collide, estimating ~6.5px a character.
-    const widest = domain.reduce((most, value) => Math.max(most, value.length), 1);
+    const labels = formatValue === undefined ? domain : domain.map(formatValue);
+    const widest = labels.reduce((most, label) => Math.max(most, label.length), 1);
     const every =
       axis === 'x'
         ? Math.max(1, Math.ceil((widest * 6.5 + 8) / scale.step))
@@ -721,10 +732,13 @@ function buildScale(
     const ticks: ReadonlyArray<PlotTick> = domain.map((value, i) => ({
       value,
       position: place(value) ?? 0,
-      label: shown && i % every === 0 ? value : '',
+      label: shown && i % every === 0 ? (labels[i] ?? value) : '',
     }));
     return {
-      axis: { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
+      axis: withAxisFormat(
+        { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
+        format,
+      ),
       place,
       start,
       bandwidth: scale.bandwidth,
@@ -753,22 +767,25 @@ function buildScale(
   const ticks = axisTicks(domain, project, count, scale).map((t) => ({
     value: t.value,
     position: t.position,
-    label: shown ? (t.label ?? String(t.value)) : '',
+    label: shown ? (formatValue?.(t.value) ?? t.label ?? String(t.value)) : '',
   }));
   const lo = Math.min(...domain),
     hi = Math.max(...domain);
   const baseline = lo <= 0 && hi >= 0 && info.type !== 'log' ? project(0) : project(lo);
   return {
-    axis: {
-      type: info.type,
-      orientation,
-      domain,
-      label: info.label,
-      ticks,
-      grid,
-      range,
-      ...scaleParameters(scale),
-    },
+    axis: withAxisFormat(
+      {
+        type: info.type,
+        orientation,
+        domain,
+        label: info.label,
+        ticks,
+        grid,
+        range,
+        ...scaleParameters(scale),
+      },
+      format,
+    ),
     place,
     start: place,
     bandwidth: 0,

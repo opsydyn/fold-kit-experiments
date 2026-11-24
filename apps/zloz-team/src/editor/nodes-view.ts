@@ -9,6 +9,7 @@ import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 import { c4Appearance } from '../appearance/c4';
 import { sharedNodeFrame } from './node-frame';
 import { nodeIcon } from './team-icons';
+import { hotspotStatus } from './workshop';
 
 /** One weak slot per immutable node; native ports and policies resolve before lookup. */
 export function createNodesView<Message>(onIconFailure?: (icon: string) => Message) {
@@ -60,6 +61,7 @@ export function createNodesView<Message>(onIconFailure?: (icon: string) => Messa
     };
     const architecture = node.architecture;
     const family = architecture?.family ?? 'untyped';
+    const hotspot = hotspotStatus(node);
     const c4 = architecture?.family === 'c4' ? c4Appearance(architecture) : null;
     const icon = c4?.icon ?? 'cube';
     const type =
@@ -73,6 +75,9 @@ export function createNodesView<Message>(onIconFailure?: (icon: string) => Messa
       [
         h.Class(selectedNodes.includes(node.id) ? 'shared-node is-selected' : 'shared-node'),
         h.DataAttribute('architecture', family),
+        ...(architecture?.family === 'event-storming'
+          ? [h.DataAttribute('workshop-role', architecture.role)]
+          : []),
         h.Style({ height: `${node.size.height}px` }),
       ],
       [
@@ -88,7 +93,27 @@ export function createNodesView<Message>(onIconFailure?: (icon: string) => Messa
                 h.span([], [node.label]),
               ],
             ),
-            ...(type ? [h.span([h.Class('node-type')], [type])] : []),
+            ...(hotspot
+              ? [
+                  h.span(
+                    [h.Class('workshop-hotspot'), h.DataAttribute('hotspot-status', hotspot)],
+                    [
+                      h.span(
+                        [
+                          h.Class('workshop-hotspot-flare'),
+                          h.AriaHidden(true),
+                          h.DataAttribute('hotspot-flare', node.id),
+                          h.DataAttribute('hotspot-state', hotspot),
+                        ],
+                        [],
+                      ),
+                      hotspot === 'open' ? 'Open question' : '✓ Resolved',
+                    ],
+                  ),
+                ]
+              : type
+                ? [h.span([h.Class('node-type')], [type])]
+                : []),
           ],
         ),
         ...(readOnly || selectionDisabledReason !== undefined || resizeDisabledReason !== undefined

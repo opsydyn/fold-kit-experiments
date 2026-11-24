@@ -312,6 +312,41 @@ globalStyle('.shared-editor[data-inspector-open="true"]', {
 globalStyle('.shared-editor[data-inspector-open="true"][data-inspector-mode="coupling"]', {
   vars: { '--inspector-width': '420px' },
 });
+globalStyle('.shared-editor[data-canvas-emphasis="event-storming"]', {
+  vars: { '--emphasis': theme.ddd },
+});
+globalStyle(
+  '.shared-editor[data-canvas-emphasis="event-storming"] .shared-node[data-workshop-role="domain-event"]',
+  {
+    borderBlockStart: `3px solid ${theme.ddd}`,
+  },
+);
+globalStyle(
+  '.shared-editor[data-canvas-emphasis="event-storming"] .shared-node[data-workshop-role="hotspot"]',
+  {
+    borderBlockStart: `3px solid ${theme.danger}`,
+  },
+);
+globalStyle('.workshop-hotspot', {
+  position: 'relative',
+  display: 'inline-block',
+  width: 'fit-content',
+  padding: '2px 7px',
+  border: '1px solid currentColor',
+  borderRadius: 20,
+  color: theme.danger,
+  fontSize: '0.75rem',
+  lineHeight: 1.2,
+});
+globalStyle('.workshop-hotspot[data-hotspot-status="resolved"]', { color: theme.accent });
+globalStyle('.workshop-hotspot-flare', {
+  position: 'absolute',
+  inset: -1,
+  border: '2px solid currentColor',
+  borderRadius: 'inherit',
+  opacity: 0,
+  pointerEvents: 'none',
+});
 globalStyle('.shared-editor[data-canvas-emphasis="ddd"]', { vars: { '--emphasis': theme.ddd } });
 globalStyle('.shared-editor[data-canvas-emphasis="neutral"]', {
   vars: { '--emphasis': theme.muted },

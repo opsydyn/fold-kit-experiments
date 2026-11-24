@@ -4,6 +4,8 @@ import { basename, dirname, join, normalize } from 'node:path';
 
 import { Glob } from 'bun';
 
+import vitestConfig from '../vitest.config';
+
 /**
  * CI, the git hooks and local runs share one definition of every check.
  *
@@ -198,6 +200,14 @@ function strip(script: string, scripts: Readonly<Record<string, string>>): Strip
   if (self !== null) return { ...strip(script.slice(self[0].length), scripts), buildsItself: true };
   return { command: script, builds: [], buildsItself: false };
 }
+
+test('the root Vitest runner includes every workspace whose dependencies it prepares', () => {
+  const prepared = projects
+    .filter(({ tags }) => tags.includes('foldkit-vitest'))
+    .map(({ dir }) => `${dir}/vitest.config.ts`)
+    .sort();
+  expect(vitestConfig.test?.projects?.toSorted()).toEqual(prepared);
+});
 
 describe('CI runs root ci:* scripts of moon tasks', () => {
   const runs = Object.entries(ci.jobs).flatMap(([job, { steps }]) =>

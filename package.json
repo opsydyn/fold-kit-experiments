@@ -95,6 +95,7 @@
     "dev:promo": "bun run --filter @opsydyn/promo dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
     "test": "moon run :test && moon run :integration",
+    "test:vitest": "moon run '#foldkit-vitest:prepare-vitest' && vitest",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
@@ -126,7 +127,8 @@
     "@typescript-eslint/utils": "^8.63.0",
     "effect": "catalog:",
     "oxfmt": "^0.57.0",
-    "oxlint": "catalog:"
+    "oxlint": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22.22.0"

@@ -238,12 +238,16 @@ describe('CI runs root ci:* scripts of moon tasks', () => {
     expect(missing).toEqual([]);
   });
 
-  test('ci:check runs the tests that rebuild packages after everything else', () => {
-    const phases = rootManifest.scripts?.['ci:check']?.split(' && ') ?? [];
-    expect(phases).toHaveLength(2);
-    expect(phases[1]).toBe('moon run :integration');
-    expect(phases[0]).not.toContain(':integration');
-  });
+  test.each(['test', 'ci:check'])(
+    '%s runs workspace tests before package integrations',
+    (script) => {
+      const phases = rootManifest.scripts?.[script]?.split(' && ') ?? [];
+      expect(phases).toHaveLength(2);
+      expect(phases[0]?.split(' ')).toContain(':test');
+      expect(phases[0]).not.toContain(':integration');
+      expect(phases[1]).toBe('moon run :integration');
+    },
+  );
 
   test('CI qualifies every public API documentation build with declared outputs', () => {
     const documented = projects.filter(({ manifest }) => manifest.scripts?.docs !== undefined);

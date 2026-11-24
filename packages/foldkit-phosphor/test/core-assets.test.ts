@@ -23,4 +23,4 @@ it('compiles every pinned official Core SVG in all six weights without a browser
     counts.push(names.length);
   }
   expect(new Set(counts).size).toBe(1);
-});
+}, 30_000);

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 
 import { mermaidPreview } from '../src/editor/mermaid-preview';
 import { Message } from '../src/editor/message';

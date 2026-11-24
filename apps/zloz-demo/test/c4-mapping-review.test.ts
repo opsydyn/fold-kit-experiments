@@ -1,4 +1,3 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
@@ -7,6 +6,7 @@ import { reviewReaderForScope } from '@opsydyn/foldkit-zloz-mermaid';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { workbenchC4MappingReview, updateC4MappingReview } from '../src/editor/c4-mapping-review';
 import { c4MappingReviewPanel } from '../src/editor/c4-mapping-review-view';
@@ -169,7 +169,7 @@ test('historical and busy sources protect choices while permitting item inspecti
   };
   const inspected = select(historical, 'node:retry-question');
   expect(workbenchC4MappingReview(inspected).sourceLabel).toBe('Edition · Discovery');
-  expect(workbenchC4MappingReview(inspected).preview.provenance.sessionId).toEndWith(':discovery');
+  expect(workbenchC4MappingReview(inspected).preview.provenance.sessionId).toMatch(/:discovery$/);
   expect(workbenchC4MappingReview(inspected).reason).toContain('Return to the working model');
   expect(field(inspected, 'role', 'component')).toBe(inspected);
   expect(action(inspected, 'retain')).toBe(inspected);

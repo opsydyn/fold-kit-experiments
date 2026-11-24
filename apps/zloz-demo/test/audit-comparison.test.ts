@@ -1,4 +1,3 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -7,6 +6,7 @@ import {
   updateEditionPlayback,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { auditExampleEditions, workbenchAuditContext } from '../src/editor/audit-comparison';
 import { Message } from '../src/editor/message';

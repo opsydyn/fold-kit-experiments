@@ -1,6 +1,5 @@
-import { expect, test } from 'bun:test';
-
 import { resolveEdgeWaypointControls, type EditorEvent } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { workbenchPolicy } from '../src/editor/editor-policy';
 import { Message } from '../src/editor/message';

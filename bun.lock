@@ -162,6 +162,7 @@
         "@foldkit/devtools": "catalog:",
         "@foldkit/ui": "catalog:",
         "@happy-dom/global-registrator": "^21.0.4",
+        "@opsydyn/testing": "workspace:*",
         "@playwright/test": "1.62.1",
         "@storybook/addon-a11y": "^10.4.6",
         "@storybook/html": "^10.4.6",
@@ -192,8 +193,11 @@
       },
       "devDependencies": {
         "@astrojs/check": "catalog:",
+        "@effect/vitest": "catalog:",
+        "@opsydyn/testing": "workspace:*",
         "bun-types": "catalog:",
         "typescript": "catalog:",
+        "vitest": "catalog:",
       },
     },
     "apps/zloz-promo": {
@@ -297,7 +301,7 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.13.0",
+      "version": "0.13.1",
       "dependencies": {
         "@foldkit/vite-plugin": "^0.29.0",
       },
@@ -505,7 +509,7 @@
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.19.0",
+      "version": "0.19.1",
       "devDependencies": {
         "@duckdb/node-api": "2.0.0-r.1",
         "@opsydyn/effect-three": "workspace:*",
@@ -543,7 +547,7 @@
     },
     "packages/foldkit-zloz": {
       "name": "@opsydyn/foldkit-zloz",
-      "version": "0.8.0",
+      "version": "0.10.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@types/node": "^22.0.0",
@@ -615,7 +619,7 @@
     },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
-      "version": "0.8.0",
+      "version": "0.10.0",
       "dependencies": {
         "elkjs": "0.12.1",
       },
@@ -629,12 +633,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.8.0",
+        "@opsydyn/foldkit-zloz": "0.10.0",
       },
     },
     "packages/foldkit-zloz-force": {
       "name": "@opsydyn/foldkit-zloz-force",
-      "version": "0.8.0",
+      "version": "0.10.0",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
@@ -648,12 +652,12 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.8.0",
+        "@opsydyn/foldkit-zloz": "0.10.0",
       },
     },
     "packages/foldkit-zloz-mermaid": {
       "name": "@opsydyn/foldkit-zloz-mermaid",
-      "version": "0.8.0",
+      "version": "0.10.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -667,12 +671,19 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-zloz": "0.8.0",
+        "@opsydyn/foldkit-zloz": "0.10.0",
         "foldkit": ">=0.170.0 <0.172.0",
       },
       "optionalPeers": [
         "foldkit",
       ],
+    },
+    "tools/testing": {
+      "name": "@opsydyn/testing",
+      "dependencies": {
+        "foldkit": "catalog:",
+        "vitest": "catalog:",
+      },
     },
   },
   "catalog": {
@@ -688,6 +699,7 @@
     "@effect/platform-browser": "4.1.0",
     "@effect/platform-bun": "4.1.0",
     "@effect/platform-node": "4.1.0",
+    "@effect/vitest": "4.1.0",
     "@foldkit/devtools": "0.171.0",
     "@foldkit/devtools-mcp": "0.26.0",
     "@foldkit/oxlint-plugin": "^0.15.3",
@@ -1013,6 +1025,8 @@
 
     "@effect/sql-d1": ["@effect/sql-d1@4.1.2", "", { "dependencies": { "@cloudflare/workers-types": "^5.20261031.1" }, "peerDependencies": { "effect": "^4.1.2" } }, "sha512-7uzFwDg/SQali/+Edp6H/t0nQSXtdDsNO8dHkC8xl45/YITJ6F5Os0pBZdXMCdtqehekhDM3qzTtJut4rLGcEA=="],
 
+    "@effect/vitest": ["@effect/vitest@4.1.0", "", { "peerDependencies": { "effect": "^4.1.0", "vitest": ">=5.0.0 <6.0.0" } }, "sha512-+APF69oTYgGj5WCewowk1/udepH74xz4ONyH7d+UfcK0SrF3osiSwsWEyODUpJvWd6MIk5F5PcFJiE4evMuG2A=="],
+
     "@emmetio/abbreviation": ["@emmetio/abbreviation@2.3.3", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-mgv58UrU3rh4YgbE/TzgLQwJ3pFsHHhCLqY20aJq+9comytTXUDNGG/SMtSeMJdkpxgXSXunBGLD8Boka3JyVA=="],
 
     "@emmetio/css-abbreviation": ["@emmetio/css-abbreviation@2.1.8", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-s9yjhJ6saOO/uk1V74eifykk2CBYi01STTK3WlXWGOepyKa23ymJ053+DNQjpFcy1ingpaO7AxCcwLvHFY9tuw=="],
@@ -1302,6 +1316,8 @@
     "@opsydyn/tech-radar": ["@opsydyn/tech-radar@workspace:apps/tech-radar"],
 
     "@opsydyn/tech-radar-infra": ["@opsydyn/tech-radar-infra@workspace:infra/tech-radar"],
+
+    "@opsydyn/testing": ["@opsydyn/testing@workspace:tools/testing"],
 
     "@opsydyn/three-promo": ["@opsydyn/three-promo@workspace:apps/three-promo"],
 

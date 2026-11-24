@@ -1,6 +1,6 @@
-import { expect, test } from 'bun:test';
-
 import { parseEditions, serializeEditions, updateEditor } from '@opsydyn/foldkit-zloz';
+import { Story } from 'foldkit';
+import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';
@@ -58,20 +58,24 @@ test('rewind and navigation reject workbench mutations and return to the exact w
 
 test('returning after a resize refreshes only surface measurement, preserving document, camera and Undo', () => {
   const examples = update(init().model, Message.ClickedOrderHistory()).model;
-  const reviewing = update(examples, Message.SelectedHistoryEdition({ id: 'order-evolved' })).model;
-  const resized = update(
-    reviewing,
-    Message.ObservedZlozInput({
-      message: { type: 'SurfaceMeasured', size: { width: 390, height: 700 } },
+  const surface = { width: 390, height: 700 };
+  Story.story(
+    update,
+    Story.given(examples),
+    Story.message(Message.SelectedHistoryEdition({ id: 'order-evolved' })),
+    Story.message(
+      Message.ObservedZlozInput({ message: { type: 'SurfaceMeasured', size: surface } }),
+    ),
+    Story.message(Message.SelectedHistoryEdition({ id: 'order-start' })),
+    Story.model((model) => expect(model.historyReview?.editor.surface).toEqual(surface)),
+    Story.message(Message.ClickedHistoryPresent()),
+    Story.model((present) => {
+      expect(present.editor.surface).toEqual(surface);
+      expect(present.editor.graph).toBe(examples.editor.graph);
+      expect(present.editor.viewport).toBe(examples.editor.viewport);
+      expect(present.editor.past).toBe(examples.editor.past);
     }),
-  ).model;
-  const swapped = update(resized, Message.SelectedHistoryEdition({ id: 'order-start' })).model;
-  expect(swapped.historyReview?.editor.surface).toEqual({ width: 390, height: 700 });
-  const present = update(swapped, Message.ClickedHistoryPresent()).model;
-  expect(present.editor.surface).toEqual({ width: 390, height: 700 });
-  expect(present.editor.graph).toBe(examples.editor.graph);
-  expect(present.editor.viewport).toBe(examples.editor.viewport);
-  expect(present.editor.past).toBe(examples.editor.past);
+  );
 });
 
 test('comparison requests preserve stale baselines and independently retained preferences without editing history', () => {

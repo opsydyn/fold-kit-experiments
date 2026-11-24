@@ -1,5 +1,3 @@
-import { expect, test } from 'bun:test';
-
 import {
   serializeEditionsV2,
   serializeModelDocumentV2,
@@ -7,6 +5,7 @@ import {
   parseModelDocument,
 } from '@opsydyn/foldkit-zloz';
 import { Effect } from 'effect';
+import { expect, test } from 'vitest';
 
 import { ReadHistoryFile, byteLimit } from '../src/history-workbench/command';
 import { Message } from '../src/history-workbench/message';

@@ -21,6 +21,7 @@ type Manifest = {
   readonly devDependencies?: Readonly<Record<string, string>>;
   readonly optionalDependencies?: Readonly<Record<string, string>>;
   readonly workspaces?: {
+    readonly packages: ReadonlyArray<string>;
     readonly catalog?: Readonly<Record<string, string>>;
     readonly catalogs?: Readonly<Record<string, Readonly<Record<string, string>>>>;
   };
@@ -39,8 +40,9 @@ const catalogs = {
 const workspaces: Array<{ readonly path: string; readonly manifest: Manifest }> = [
   { path: 'package.json', manifest: root },
 ];
-for (const pattern of ['apps/*/package.json', 'packages/*/package.json', 'infra/*/package.json']) {
-  for await (const path of new Glob(pattern).scan('.')) {
+if (!root.workspaces) throw new Error('Missing workspace configuration in the root manifest');
+for (const workspace of root.workspaces.packages) {
+  for await (const path of new Glob(`${workspace}/package.json`).scan('.')) {
     workspaces.push({ path, manifest: await read(path) });
   }
 }

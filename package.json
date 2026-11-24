@@ -5,7 +5,8 @@
     "packages": [
       "packages/*",
       "apps/*",
-      "infra/*"
+      "infra/*",
+      "tools/testing"
     ],
     "catalog": {
       "@arethetypeswrong/cli": "0.18.5",
@@ -19,6 +20,7 @@
       "@effect/platform-browser": "4.1.0",
       "@effect/platform-bun": "4.1.0",
       "@effect/platform-node": "4.1.0",
+      "@effect/vitest": "4.1.0",
       "@foldkit/devtools": "0.171.0",
       "@foldkit/devtools-mcp": "0.26.0",
       "@modelcontextprotocol/sdk": "1.29.0",

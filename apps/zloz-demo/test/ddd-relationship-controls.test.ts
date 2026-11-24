@@ -1,11 +1,10 @@
-import { expect, test } from 'bun:test';
-
 import {
   createHistoryReview,
   captureEdition,
   updateEditor,
   type ZlozDddRelationshipRequest,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { workbenchDddControls } from '../src/editor/ddd-relationship-controls';
 import { workbenchPolicy } from '../src/editor/editor-policy';

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./foldkit": "./foldkit.ts"
+    "./foldkit": "./foldkit.ts",
+    "./tags": "./tags.ts"
   },
   "dependencies": {
     "foldkit": "catalog:",

@@ -39,6 +39,25 @@ export const Invitation = Schema.Struct({
   status: Schema.String,
 });
 export const Diagram = Schema.Struct({ id: Id, name: Schema.String, updatedAt: Schema.Number });
+export const directoryPageSize = 100;
+export function boardSearch(params: URLSearchParams) {
+  const page = Number(params.get('page'));
+  return {
+    q: (params.get('q') ?? '').trim().slice(0, 120),
+    page:
+      Number.isSafeInteger(page * directoryPageSize) && Number.isInteger(page) && page > 0
+        ? page
+        : 1,
+  };
+}
+
+export function boardSearchSuffix({ q, page }: ReturnType<typeof boardSearch>) {
+  const search = new URLSearchParams();
+  if (q) search.set('q', q);
+  if (page > 1) search.set('page', String(page));
+  return search.size ? `?${search}` : '';
+}
+
 export const TeamView = Schema.Struct({
   team: Team,
   role: Role,
@@ -46,6 +65,7 @@ export const TeamView = Schema.Struct({
   members: Schema.Array(Member),
   invitations: Schema.Array(Invitation),
   diagrams: Schema.Array(Diagram),
+  moreDiagrams: Schema.optional(Schema.Boolean),
 });
 export const InvitationView = Schema.Union([
   Schema.TaggedStruct('Pending', {

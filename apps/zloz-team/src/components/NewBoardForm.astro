@@ -1,0 +1,23 @@
+---
+interface Props {
+  teamId: string;
+  creationId: string;
+  name?: string;
+  mode?: string;
+  dismissible?: boolean;
+}
+const { teamId, creationId, name = '', mode = 'c4', dismissible = false } = Astro.props;
+---
+<form action={`/app/${teamId}/diagrams/new?blank=1`} method="post" enctype="multipart/form-data" class="new-board-form">
+  <input type="hidden" name="creationId" value={creationId} />
+  <label>Board name<input name="name" required maxlength="120" autofocus value={name} /></label>
+  <label>Starting view<select name="mode">
+    <option value="c4" selected={mode === 'c4'}>C4</option>
+    <option value="ddd" selected={mode === 'ddd'}>DDD</option>
+    <option value="event-storming" selected={mode === 'event-storming'}>Event Storming</option>
+  </select></label>
+  <div class="board-actions">
+    <button class="primary" type="submit">Create board</button>
+    {dismissible ? <button type="button" popovertarget="new-board" popovertargetaction="hide">Cancel</button> : <a href={`/app/${teamId}`}>Back to boards</a>}
+  </div>
+</form>

@@ -1,4 +1,7 @@
 ---
+import SettingsIcon from '@phosphor-icons/core/assets/regular/sliders-horizontal.svg';
+import BoardDirectory from '../../../components/BoardDirectory.astro';
+import '../../../styles/boards.css';
 import Shell from '../../../layouts/Shell.astro';
 import { loadTeam, teamAction, teamNotice, expiresLabel } from '../../../server/onboarding';
 import { loginPath } from '../../../server/continuation';
@@ -6,26 +9,31 @@ import { loginPath } from '../../../server/continuation';
 const teamId = Astro.params.teamId ?? '';
 const outcome = await teamAction(Astro.request, teamId);
 if (outcome._tag === 'Redirect') return outcome.response;
-const loaded = await loadTeam(Astro.request, teamId);
+const loaded = await loadTeam(Astro.request, teamId, Astro.url.searchParams);
+Astro.response.headers.set('Cache-Control', 'private, no-store');
 const signInRedirect = loaded._tag === 'Failure' && loaded.status === 401 ? Astro.redirect(loginPath(`/app/${teamId}`), 303) : undefined;
 if (signInRedirect) return signInRedirect;
 if (loaded._tag === 'Failure') Astro.response.status = loaded.status;
 else if (outcome._tag === 'Rejected') Astro.response.status = outcome.status;
 const notice = teamNotice(Astro.url.searchParams.get('notice'));
+const settings = loaded._tag === 'Ready' && loaded.value.role === 'owner' &&
+  (Astro.url.searchParams.get('view') === 'settings' || Boolean(notice) || outcome._tag === 'Rejected');
 ---
 <Shell title={loaded._tag === 'Ready' ? loaded.value.team.name : 'Team unavailable'} wide>
-  <nav aria-label="Workspace"><a href="/app">Your teams</a></nav>
-  {loaded._tag === 'Failure' ? <><h1>Team unavailable</h1><p role="alert">{loaded.message}</p></> : <>
+  <nav aria-label="Workspace" class="team-context">
+    <a href="/app">Your teams</a>
+    {loaded._tag === 'Ready' && loaded.value.role === 'owner' && (settings
+      ? <a href={`/app/${teamId}`}>Back to boards</a>
+      : <a class="settings-link" href={`/app/${teamId}?view=settings`}><SettingsIcon aria-hidden="true" />Team settings</a>)}
+  </nav>
+  {loaded._tag === 'Failure' ? <><h1>Team unavailable</h1><p role="alert">{loaded.message}</p>{loaded.status >= 500 && <a href={Astro.url.pathname + Astro.url.search}>Try again</a>}</> : <>
     <h1>{loaded.value.team.name}</h1>
     <p>Your role: <strong>{loaded.value.role}</strong></p>
     {notice && <p role="status">{notice}</p>}
     {outcome._tag === 'Rejected' && <p class="error" role="alert">{outcome.message}</p>}
-    <section aria-labelledby="diagrams-heading">
-      <h2 id="diagrams-heading">Diagrams</h2>
-      {loaded.value.role !== 'viewer' && <p><a href={`/app/${teamId}/diagrams/new`}>Create or import a diagram</a></p>}
-      {loaded.value.diagrams.length === 0 ? <p>No diagrams yet.</p> : <ul>{loaded.value.diagrams.map((diagram) => <li><a href={`/app/${teamId}/diagrams/${diagram.id}`}>{diagram.name}</a></li>)}</ul>}
-    </section>
-    {loaded.value.role === 'owner' && <>
+    {!settings && <BoardDirectory team={loaded.value} />}
+    {settings && <>
+      <h2>Team settings</h2>
       <section aria-labelledby="invite-heading">
         <h2 id="invite-heading">Invite a teammate</h2>
         <p>Invite their email address, then share the link.</p>

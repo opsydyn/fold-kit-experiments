@@ -202,6 +202,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       expect((await read(api + 'room', party.owner.cookie)).status).toBe(404);
 
       await dm.goto(origin + team);
+      await dm.getByRole('link', { name: 'Team settings' }).click();
       const invite = async (email: string) => {
         await dm.getByLabel('Email address').fill(email);
         await dm
@@ -510,6 +511,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         true,
       );
       await dm.goto(origin + team);
+      await dm.getByRole('link', { name: 'Team settings' }).click();
       await dm.getByRole('button', { name: 'Remove ' + mira.email, exact: true }).click();
       await browserExpect(
         dm.getByRole('button', { name: 'Remove ' + mira.email, exact: true }),

@@ -156,6 +156,12 @@ export function view<M>(
             ),
           )
         : [
+            h.p(
+              [],
+              [
+                'Uploading adds the icon to the team library and applies it to the selected node for everyone.',
+              ],
+            ),
             h.label(
               [],
               [

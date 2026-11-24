@@ -1,27 +1,43 @@
 import { parseGraph, serializeGraph } from '@opsydyn/foldkit-zloz';
 import { BodyRejected } from '@opsydyn/zloz-server/src/http-body';
-import { Data, Schema } from 'effect';
+import { Schema } from 'effect';
 
 import { forward } from './backend';
 import { boundedFormData } from './form-data';
-
-class CreationFormRejected extends Data.TaggedError('CreationFormRejected') {}
 
 /** Bound multipart bytes before parsing files. IDs survive a failed form submission. */
 export async function createDiagram(request: Request, teamId: string) {
   let id: string = crypto.randomUUID();
   let name = '';
+  let mode: 'c4' | 'ddd' | 'event-storming' = 'c4';
   let graphText = '';
-  if (request.method !== 'POST') return { id, name, graphText, error: '', status: 200 };
+  if (request.method !== 'POST') return { id, name, mode, graphText, error: '', status: 200 };
   if (request.headers.get('origin') !== new URL(request.url).origin)
-    return { id, name, graphText, error: 'This request came from another site.', status: 403 };
+    return {
+      id,
+      name,
+      mode,
+      graphText,
+      error: 'This request came from another site.',
+      status: 403,
+    };
   try {
     const form = await boundedFormData(request, 1_048_576);
     id = Schema.decodeUnknownSync(
       Schema.String.pipe(Schema.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/))),
     )(form.get('creationId'));
+    const selected = form.get('mode');
+    if (selected === 'ddd' || selected === 'event-storming') mode = selected;
     name = String(form.get('name') ?? '').trim();
-    if (!name || name.length > 120) throw new CreationFormRejected();
+    if (!name || name.length > 120)
+      return {
+        id,
+        name,
+        mode,
+        graphText,
+        error: 'Enter a board name of up to 120 characters.',
+        status: 400,
+      };
     const file = form.get('file');
     graphText =
       file instanceof File && file.size
@@ -38,23 +54,25 @@ export async function createDiagram(request: Request, teamId: string) {
         },
         body: JSON.stringify({ operationId: id, name, graph: JSON.parse(serializeGraph(graph)) }),
       }),
-    );
+    ).catch(() => new Response(null, { status: 503 }));
     if (!response.ok)
       return {
         id,
         name,
+        mode,
         graphText,
         error:
           response.status === 403
-            ? 'Your role does not allow creating diagrams.'
-            : 'Creation did not finish. Keep this form and retry to recover the same diagram.',
+            ? 'Your role does not allow creating boards.'
+            : 'Creation could not be confirmed. Retry this form to open the same board.',
         status: response.status,
       };
-    return { id, name, graphText, error: '', status: 303 };
+    return { id, name, mode, graphText, error: '', status: 303 };
   } catch (error) {
     return {
       id,
       name,
+      mode,
       graphText,
       error: 'Enter a name and a valid exported Zloz graph (up to 250 nodes and 500 edges).',
       status: error instanceof BodyRejected ? error.status : 400,

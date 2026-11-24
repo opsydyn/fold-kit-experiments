@@ -12,7 +12,7 @@ const returnTo = continuation(Astro.url.searchParams.get('returnTo'));
 const { google, emailCode } = await signInMethods(Astro.request);
 ---
 <Shell title="Sign in">
-  <h1>Your team’s diagrams.</h1>
+  <h1>Your team’s boards.</h1>
   <p>Sign in with the email address on your team invitation.</p>
   <form method="post"><input type="hidden" name="returnTo" value={returnTo} /><button type="submit" disabled={!google}>Continue with Google</button></form>
   {emailCode && <p><a href={'/login/email?returnTo=' + encodeURIComponent(returnTo)}>Continue with email</a></p>}

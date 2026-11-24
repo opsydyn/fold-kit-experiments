@@ -1,6 +1,12 @@
 import type { ZlozConnectionsContext } from '@opsydyn/foldkit-zloz/foldkit';
 import { createKeyedLazy, type HtmlBuilder } from 'foldkit/html';
 
+const workshopLinkLabels = {
+  produces: 'Produces',
+  activates: 'Activates',
+  triggers: 'Triggers',
+} as const;
+
 /** One instance per canvas. FoldKit owns cached VNodes and dispatch frames; the keyed
  * cache releases the slot for a connection absent from a completed render, which is
  * `createKeyedLazy`'s default since FoldKit 0.171. */
@@ -31,8 +37,21 @@ export function createConnectionsView<Message>(onSelected: (id: string) => Messa
     h.div(
       [h.Class('shared-connections')],
       context.entries.map((entry) => {
-        const endpoints = `${entry.sourceLabel} → ${entry.targetLabel}`;
-        const label = entry.edge.label ? `${entry.edge.label} — ${endpoints}` : endpoints;
+        const meaning = entry.edge.architecture;
+        const verb =
+          meaning?.family === 'event-storming' &&
+          (meaning.role === 'produces' ||
+            meaning.role === 'activates' ||
+            meaning.role === 'triggers')
+            ? meaning.role
+            : null;
+        const endpoints = verb
+          ? `${entry.sourceLabel} ${verb} ${entry.targetLabel}`
+          : `${entry.sourceLabel} → ${entry.targetLabel}`;
+        const label =
+          entry.edge.label && !(verb && entry.edge.label === workshopLinkLabels[verb])
+            ? `${entry.edge.label} — ${endpoints}`
+            : endpoints;
         // Keyed by the same id as h.Key, so the memo and the DOM invalidate together.
         return connection(entry.edge.id, button, [
           h,

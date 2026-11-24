@@ -237,7 +237,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run dev:docs`           | Start the docs site at `localhost:4327`               |
 | `bun run dev:polars-summary` | Start the Polars summary server at `localhost:4330`   |
 | `bun run dev:zloz-team`      | Start the local Teams workspace at `localhost:4331`   |
-| `bun run test`               | Run all workspace test scripts sequentially           |
+| `bun run test`               | Run workspace tests, then package integrations        |
 | `bun typecheck`              | Typecheck all workspaces                              |
 | `bun run check`              | oxlint + oxfmt format check                           |
 | `bun run ci:check`           | The CI `check` job, cached (see below)                |
@@ -285,6 +285,7 @@ script built first; and moon ignores every path `.gitignore` does. Package
 scripts keep their dependency builds, so `bun run --filter <package> <script>`
 and the deploy workflows work without moon.
 
+See the [test index](tools/testing/README.md) for individual suites, browser journeys and mutation testing.
 Use `bun run test` at the root: bare `bun test` bypasses the workspace script
 and can traverse vendored reference repositories. To work within a single
 workspace, pass `--filter`:

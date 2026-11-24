@@ -61,3 +61,25 @@ and one real bug, cheaply. It is a day old and pre-1.0 (mutant ids may change be
 versions), so it stays out of CI and out of the dependencies for now. A wider use waits on
 the test runner: moving the `bun test` workspaces to Vitest would bring it to effect-three,
 foldkit-viz and the tech radar.
+
+The [apps/web PR trial](../adr/0127-trial-mutation-testing-on-web-pull-requests.md)
+revisits this decision with Mutant Cafe 0.1.7 and Node 24 in CI.
+
+To run the same advisory locally on a committed branch, use Node 24 and a
+fresh report directory. Choose the base ref for the changes you want to assess.
+
+```sh
+bun install --frozen-lockfile
+npm ci --prefix tools/mutant-cafe
+bun run --filter @opsydyn/web typecheck
+report_dir=$(mktemp -d)
+bash tools/web-mutation-advisory.sh origin/main "$report_dir"
+echo "$report_dir/web-mutants/outcomes.json"
+```
+
+On `6581a4b0`, replaying the web changes since the parent of `23b5cc19`
+selected seven mutants in Explore's `mount.ts`. All seven survived the related
+`update.test.ts` suite, including replacing `PaintScatter.execute` with
+`Effect.never`. A second run scoped to request diagnostics' `machine.ts`
+selected 33 candidates, ran 20, caught four and missed 16. The 13 beyond the
+budget have no outcome.

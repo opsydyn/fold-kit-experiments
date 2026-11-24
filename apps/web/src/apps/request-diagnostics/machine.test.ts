@@ -1,3 +1,4 @@
+import { rowsOf } from '@opsydyn/foldkit-viz/plot';
 import { describe, expect, test } from 'vitest';
 
 import { diagnosticsMachine } from './machine';
@@ -195,6 +196,25 @@ describe('request diagnostics machine', () => {
       const back = step(step(ready, exited).model, entered);
       expect(back.model.explorer._tag).toBe('Ready');
       expect(machineCommands(back.commands)).toEqual([]);
+    });
+
+    test('keeps the brushed range and plotted requests across a return visit', () => {
+      const outside = { x: 80, y: 1.2, label: 'outside' };
+      const inside = { x: 150, y: 2.4, label: 'inside' };
+      const points = [outside, inside];
+      const domain = [100, 200] as const;
+      const ready = step(initModel, Message.LoadedMetrics({ points })).model;
+      const filtered = step(ready, Message.ChangedSelection({ domain })).model;
+
+      const away = step(filtered, exited);
+      const back = step(away.model, entered);
+      expect(machineCommands(away.commands)).toEqual([]);
+      expect(machineCommands(back.commands)).toEqual([]);
+      expect(back.model.explorer).toMatchObject({ _tag: 'Filtered', domain });
+      expect(rowsOf(back.model.scatter.spec.data ?? [])).toEqual([inside]);
+
+      const cleared = step(back.model, Message.ClearedSelection());
+      expect(rowsOf(cleared.model.scatter.spec.data ?? [])).toEqual(points);
     });
 
     test('tries a failed load again', () => {

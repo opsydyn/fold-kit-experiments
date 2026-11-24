@@ -1588,9 +1588,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       return picker;
     };
     const editorPicker = await showLibrary(editor);
-    await editorPicker
-      .getByLabel(/Upload and apply icon/)
-      .setInputFiles({ name: 'Payments.png', mimeType: 'image/png', buffer: png });
+    const upload = editorPicker.getByLabel(/Upload and apply icon/);
+    await browserExpect(upload).toBeEnabled();
+    await upload.setInputFiles({ name: 'Payments.png', mimeType: 'image/png', buffer: png });
     await browserExpect(
       editorPicker.getByRole('button', { name: 'Payments', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true');

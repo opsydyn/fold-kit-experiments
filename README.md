@@ -179,8 +179,10 @@ The workspace targets FoldKit `0.171.0`, Effect `4.1.0` and Astro `7.4.11`. Shar
 versions are declared once, in the root `package.json` catalogs (see [Dependencies](#dependencies)).
 Before upgrading an existing consumer, read the [0.167 migration guide](docs/migrations/foldkit-0.167.md)
 if it predates 0.167, then the [0.170 guide](docs/migrations/foldkit-0.170.md) for Effect 4.1, the
-route `Transition` helpers and `AsyncData.matchDataSplitEmpty`. The optional FoldKit peers in Viz
-remain optional for pure geometry imports.
+route `Transition` helpers and `AsyncData.matchDataSplitEmpty`, then the
+[0.171 guide](docs/migrations/foldkit-0.171.md) for the non-empty `messages` tuple on
+`Command.define` and the `Mount.define` pair, and `createKeyedLazy`'s new eviction default. The
+optional FoldKit peers in Viz remain optional for pure geometry imports.
 
 ## Reference Workflows
 

@@ -42,7 +42,7 @@ import {
   zlozWorldOverlayItem,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Effect, Option, Schema, Stream } from 'effect';
-import { Command, Dom, Render, Subscription } from 'foldkit';
+import { Command, Dom, Render, Submodel, Subscription } from 'foldkit';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { DevToolsConfig } from 'foldkit/runtime';
@@ -50,6 +50,8 @@ import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
+import * as DiagramImport from '../likec4/main';
+import { requestLimit } from '../likec4/review';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';
 import { createConnectionsView } from './connections-view';
@@ -87,11 +89,26 @@ import { shareFrame } from './share-frame';
 import * as SourceExport from './source-export';
 import * as Svg from './svg-export';
 import * as TeamIcons from './team-icons';
+import {
+  changedHotspots,
+  createWorkshopNote,
+  hotspotStatus,
+  revealHotspots,
+  workshopNotes,
+  WorkshopRole,
+  WorkshopStatus,
+} from './workshop';
 
 export { slow } from './diagnostics';
 
 const Role = Schema.Literals(['owner', 'editor', 'viewer']);
-const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'neutral']);
+const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'event-storming', 'neutral']);
+const canvasModeLabels = {
+  c4: 'C4 view',
+  ddd: 'DDD view',
+  'event-storming': 'Event Storming',
+  neutral: 'Neutral view',
+} satisfies Record<typeof CanvasEmphasis.Type, string>;
 const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate', 'evolution', 'opy']);
 const Rail = Schema.Literals(['tools', 'inspector']);
 const compactBoardQuery = '(max-width: 1080px)';
@@ -150,6 +167,14 @@ export const Model = Schema.Struct({
   find: Schema.NullOr(Schema.String),
   sourceExport: Schema.NullOr(SourceExport.Review),
   sourceExportRun: Schema.Number,
+  importRun: Schema.Number,
+  boardImport: Schema.NullOr(
+    Schema.Struct({
+      version: Schema.Number,
+      child: DiagramImport.Model,
+      notice: Schema.String,
+    }),
+  ),
   svg: Schema.Unknown,
   svgRun: Schema.Number,
   layout: Layout.Task,
@@ -224,6 +249,9 @@ export const Message = defineMessageUnion({
   ObservedEditorInput: { event: Schema.Unknown },
   ChangedLabel: { text: Schema.String },
   ClickedAdd: {},
+  ClickedAddWorkshopNote: { noteRole: WorkshopRole },
+  ClickedHotspotStatus: { id: Schema.String, expected: Schema.Number, status: WorkshopStatus },
+  CompletedHotspotReveal: {},
   ClickedRename: {},
   ToggledIconPicker: {},
   FailedIconAsset: { icon: Schema.String },
@@ -253,6 +281,11 @@ export const Message = defineMessageUnion({
   SelectedEvolutionVersion: { value: Schema.String },
   OpenedHistory: { version: Schema.Number },
   ClosedHistory: {},
+  OpenedBoardImport: {},
+  ClosedBoardImport: {},
+  ChoseBoardImportFormat: { format: Schema.Literals(['likec4', 'alchemy']) },
+  GotBoardImportMessage: { run: Schema.Number, message: DiagramImport.Message },
+
   ChangedHistoryPlayback: { run: Schema.Number, event: Schema.Unknown },
   ChangedHistoryBaseline: { run: Schema.Number, id: Schema.String },
   NavigatedHistory: { run: Schema.Number, event: Schema.Unknown },
@@ -314,6 +347,20 @@ export const devTools = {
     'SucceededPresence',
   ] satisfies readonly Message['_tag'][],
 } satisfies DevToolsConfig;
+const RevealHotspots = Command.define('RevealHotspots', {
+  args: {
+    run: Schema.Number,
+    changes: Schema.Array(Schema.Struct({ id: Schema.String, status: WorkshopStatus })),
+  },
+  messages: [Message.CompletedHotspotReveal],
+  execute: ({ run, changes }) => {
+    const reveal = Effect.sync(() => revealHotspots(run, changes));
+    return Render.afterCommit.pipe(
+      Effect.andThen(reveal),
+      Effect.map(Message.CompletedHotspotReveal),
+    );
+  },
+});
 const RevealEdges = Command.define('RevealEdges', {
   args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) },
   messages: [Message.CompletedEdgeReveal],
@@ -641,6 +688,8 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         find: null,
         sourceExport: null,
         sourceExportRun: 0,
+        importRun: 0,
+        boardImport: null,
         svg: null,
         svgRun: 0,
         layout: Layout.Task.Closed(),
@@ -684,6 +733,14 @@ function install(model: Model, state: DiagramSession, receipt?: ZlozOperationRec
           : model.coupling,
       }
     : model;
+  if (
+    !old.confirmed &&
+    model.emphasis === 'c4' &&
+    state.confirmed?.document.graph.nodes.some(
+      (node) => node.architecture?.family === 'event-storming',
+    )
+  )
+    model = { ...model, emphasis: 'event-storming' };
   const undoResetVersion = state.confirmed?.undoResetVersion ?? 0;
   let ownEdits =
     undoResetVersion > (old.confirmed?.undoResetVersion ?? 0)
@@ -888,6 +945,34 @@ function currentSourceReview(model: Model, kind: SourceExport.Kind, version: num
     ? review
     : null;
 }
+function canOpenBoardImport(model: Model) {
+  const document = confirmedExportDocument(model);
+  return (
+    document !== undefined &&
+    document.graph.nodes.length === 0 &&
+    document.graph.edges.length === 0 &&
+    model.role !== 'viewer' &&
+    editor(model).gesture.type === 'idle' &&
+    !hasUncommittedEdit(model)
+  );
+}
+
+function boardImportBlockReason(model: Model, version: number) {
+  const document = session(model).confirmed?.document;
+  if (document?.version !== version || document.graph.nodes.length || document.graph.edges.length)
+    return 'The board changed while you reviewed the import. No import has been applied.';
+  return canOpenBoardImport(model) ? '' : 'Wait for a live, ready board before importing.';
+}
+
+function importChild(model: Model, format: 'likec4' | 'alchemy') {
+  const props = {
+    teamId: model.room.teamId,
+    creationId: model.room.diagramId,
+    insideBoard: true,
+  } satisfies DiagramImport.Props;
+  return DiagramImport.init(format === 'alchemy' ? { ...props, format } : props).model;
+}
+
 const supportedLayoutSelection = (model: Model) =>
   isLiveConnection(model.connection) &&
   editor(model).gesture.type === 'idle' &&
@@ -1222,6 +1307,84 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEvolutionVersion: ({ value }) => ({
       model: { ...model, evolution: Evolution.inspect(model.evolution, value) },
     }),
+    OpenedBoardImport: () => {
+      const document = confirmedExportDocument(model);
+      if (!document || !canOpenBoardImport(model)) return { model };
+      return {
+        model: {
+          ...model,
+          importRun: model.importRun + 1,
+          boardImport: {
+            version: document.version,
+            child: importChild(model, 'likec4'),
+            notice: '',
+          },
+        },
+        commands: [FocusBoardControl({ selector: '#board-import-format' })],
+      };
+    },
+    ClosedBoardImport: () => ({
+      model: { ...model, boardImport: null },
+      commands: [
+        FocusBoardControl({
+          selector: canOpenBoardImport(model) ? '#board-open-import' : '#shared-diagram-surface',
+        }),
+      ],
+    }),
+    ChoseBoardImportFormat: ({ format }) => {
+      if (!model.boardImport || (model.boardImport.child.format ?? 'likec4') === format)
+        return { model };
+      return {
+        model: {
+          ...model,
+          importRun: model.importRun + 1,
+          boardImport: { ...model.boardImport, child: importChild(model, format), notice: '' },
+        },
+      };
+    },
+    GotBoardImportMessage: ({ run, message: childMessage }) => {
+      const preview = model.boardImport;
+      if (!preview || run !== model.importRun) return { model };
+      if (childMessage._tag === 'ClickedApply') {
+        if (boardImportBlockReason(model, preview.version)) return { model };
+        const graph = DiagramImport.reviewedBoardGraph(preview.child);
+        if (!graph?.nodes.length) return { model };
+        const operation = {
+          type: 'ImportEmptyBoard',
+          expectedVersion: preview.version,
+          graph,
+        } as const;
+        const request = {
+          version: 1,
+          operationId: `${model.room.generation}-${model.serial + 1}`,
+          operation,
+        };
+        if (new TextEncoder().encode(JSON.stringify(request)).byteLength > requestLimit)
+          return {
+            model: {
+              ...model,
+              boardImport: { ...preview, notice: 'This import request exceeds 1 MiB.' },
+            },
+          };
+        const step = enqueue({ ...model, boardImport: null }, operation);
+        return {
+          ...step,
+          commands: [
+            ...(step.commands ?? []),
+            FocusBoardControl({ selector: '#shared-diagram-surface' }),
+          ],
+        };
+      }
+      return foldChild({
+        update: DiagramImport.update,
+        read: () => Option.some(preview.child),
+        write: (parent: Model, child) => ({
+          ...parent,
+          boardImport: { ...preview, child, notice: '' },
+        }),
+        toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
+      })(model, childMessage);
+    },
     OpenedHistory: ({ version }) => {
       if (!isLiveConnection(model.connection) || hasUncommittedEdit(model)) return { model };
       const review = HistoryReview.openHistory(
@@ -1456,6 +1619,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ...model,
           connection: denied ? Connection.Denied() : Connection.Reconnecting(),
           historyReview: denied ? null : model.historyReview,
+          boardImport: denied ? null : model.boardImport,
           evolution: denied ? Evolution.empty : model.evolution,
           // A failed HTTP snapshot can arrive after the feed recovered. Renew
           // the subscription as well as its label, rather than waiting for a
@@ -1576,6 +1740,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               ...model,
               connection: Connection.Denied(),
               historyReview: null,
+              boardImport: null,
               evolution: Evolution.empty,
               peers: [],
               error: 'Access ended. Sign in again or contact the team owner.',
@@ -1633,6 +1798,32 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     ChangedLabel: ({ text }) => ({ model: { ...model, draft: text } }),
+    ClickedAddWorkshopNote: ({ noteRole }) =>
+      model.emphasis === 'event-storming'
+        ? enqueue(model, {
+            type: 'AddNode',
+            expectedVersion: session(model).confirmed?.document.version ?? 0,
+            node: createWorkshopNote(
+              noteRole,
+              `${model.room.generation}-node-${model.serial + 1}`,
+              session(model).confirmed?.document.graph.nodes ?? [],
+            ),
+          })
+        : { model },
+    ClickedHotspotStatus: ({ id, expected, status }) => {
+      const document = session(model).confirmed?.document;
+      const current = hotspotStatus(document?.graph.nodes.find((node) => node.id === id));
+      const clock = document?.nodes.find((node) => node.id === id);
+      return model.emphasis === 'event-storming' &&
+        editor(model).selectedNodes[0] === id &&
+        current &&
+        current !== status &&
+        clock?.present &&
+        (clock.hotspot ?? 0) === expected
+        ? enqueue(model, { type: 'SetHotspotStatus', id, expected, status })
+        : { model };
+    },
+    CompletedHotspotReveal: () => ({ model }),
     ClickedAdd: () =>
       enqueue(model, {
         type: 'AddNode',
@@ -1862,6 +2053,17 @@ function scheduleEdgeReveal(
     previous && confirmed && previous.undoResetVersion === confirmed.undoResetVersion
       ? introducedEdges(previous.document, confirmed.document)
       : [];
+  if (
+    next.emphasis === 'event-storming' &&
+    !next.historyReview &&
+    previous &&
+    confirmed &&
+    previous.undoResetVersion === confirmed.undoResetVersion
+  ) {
+    const changes = changedHotspots(previous.document, confirmed.document);
+    if (changes.length)
+      step = { ...step, commands: [...(step.commands ?? []), RevealHotspots({ run, changes })] };
+  }
   const waiting = next.deferredEdgeReveals;
   if (!added.length && !waiting.length) return step;
 
@@ -2509,6 +2711,65 @@ function boardControlsView(
   );
 }
 
+const boardImportChildView = Submodel.defineView<
+  { child: typeof DiagramImport.Model.Type; reason: string },
+  typeof DiagramImport.Message.Type
+>(({ child, reason }, h) => DiagramImport.view(child, h, reason).body);
+
+function boardImportView(
+  model: Model,
+  h: HtmlBuilder<Message>,
+  preview: NonNullable<Model['boardImport']>,
+) {
+  const run = model.importRun;
+  const reason = boardImportBlockReason(model, preview.version);
+  return h.section(
+    [h.Class('board-import'), h.AriaLabel('Import into this board')],
+    [
+      h.header(
+        [],
+        [
+          h.h2([], ['Import into this board']),
+          h.button([h.Type('button'), h.OnClick(Message.ClosedBoardImport())], ['Close import']),
+        ],
+      ),
+      h.div(
+        [h.Class('board-import-content')],
+        [
+          h.label(
+            [],
+            [
+              'Import format',
+              h.select(
+                [
+                  h.Id('board-import-format'),
+                  h.Value(preview.child.format ?? 'likec4'),
+                  h.OnChange((value) =>
+                    Message.ChoseBoardImportFormat({
+                      format: value === 'alchemy' ? 'alchemy' : 'likec4',
+                    }),
+                  ),
+                ],
+                [
+                  h.option([h.Value('likec4')], ['LikeC4']),
+                  h.option([h.Value('alchemy')], ['Alchemy infrastructure']),
+                ],
+              ),
+            ],
+          ),
+          ...(preview.notice ? [h.p([h.Role('alert')], [preview.notice])] : []),
+          h.submodel({
+            slotId: `board-import-${run}`,
+            model: { child: preview.child, reason },
+            view: boardImportChildView,
+            toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
+          }),
+        ],
+      ),
+    ],
+  );
+}
+
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const review = historyReview(model);
   if (review) {
@@ -2545,8 +2806,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     (node) => node.id === currentEditor.selectedNodes[0],
   );
   const onEvent = canvasEvent;
-  const modeName =
-    model.emphasis === 'c4' ? 'C4 view' : model.emphasis === 'ddd' ? 'DDD view' : 'Neutral view';
+  const workshopMode = model.emphasis === 'event-storming';
+  const modeName = canvasModeLabels[model.emphasis];
+  const selectedHotspot = workshopMode ? hotspotStatus(selected) : null;
+  const selectedHotspotClock = selectedHotspot
+    ? state.confirmed?.document.nodes.find((node) => node.id === selected?.id)
+    : undefined;
   const toolsOpen = railVisible(model, 'tools');
   const inspectorOpen = railVisible(model, 'inspector');
   const showOpy = model.inspector === 'opy' && opyAvailable(model);
@@ -2718,6 +2983,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ]
           : []),
         ...(svg ? [svgPanel(svgPanelView, [h, svg, Svg.availability(svg, exportDocument)])] : []),
+        ...(!accessEnded && model.boardImport
+          ? [boardImportView(model, h, model.boardImport)]
+          : []),
         h.aside(
           [
             h.Id('board-tools'),
@@ -2742,13 +3010,106 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       ),
                     ]
                   : []),
+                h.label(
+                  [h.Class('canvas-mode')],
+                  [
+                    'Canvas emphasis',
+                    h.select(
+                      [
+                        h.Value(model.emphasis),
+                        h.AriaLabel('Canvas emphasis'),
+                        h.OnChange((value) =>
+                          Message.SelectedCanvasEmphasis({
+                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
+                          }),
+                        ),
+                      ],
+                      CanvasEmphasis.literals.map((emphasis) =>
+                        h.option([h.Value(emphasis)], [canvasModeLabels[emphasis]]),
+                      ),
+                    ),
+                  ],
+                ),
+                h.p(
+                  [h.Class('mode-note')],
+                  [
+                    workshopMode
+                      ? 'Capture what happened and flag questions for the team.'
+                      : 'Switching views preserves your diagram.',
+                  ],
+                ),
                 h.div(
                   [h.Class('editor-actions')],
                   [
-                    h.button(
-                      [h.Type('button'), h.Disabled(disabled), h.OnClick(Message.ClickedAdd())],
-                      [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                    h.div(
+                      [h.Class('editor-primary-actions')],
+                      [
+                        ...(workshopMode
+                          ? workshopNotes
+                              .slice(0, 2)
+                              .map(({ role, label }) =>
+                                h.button(
+                                  [
+                                    h.Key(role),
+                                    h.Type('button'),
+                                    h.Disabled(disabled),
+                                    h.OnClick(Message.ClickedAddWorkshopNote({ noteRole: role })),
+                                  ],
+                                  [teamIcon(h, 'plus'), h.span([], [label])],
+                                ),
+                              )
+                          : [
+                              h.button(
+                                [
+                                  h.Type('button'),
+                                  h.Disabled(disabled),
+                                  h.OnClick(Message.ClickedAdd()),
+                                ],
+                                [teamIcon(h, 'plus'), h.span([], ['Add node'])],
+                              ),
+                            ]),
+                        ...(canOpenBoardImport(model) && !model.boardImport
+                          ? [
+                              h.button(
+                                [
+                                  h.Id('board-open-import'),
+                                  h.Type('button'),
+                                  h.OnClick(Message.OpenedBoardImport()),
+                                ],
+                                ['Import…'],
+                              ),
+                            ]
+                          : []),
+                      ],
                     ),
+                    ...(workshopMode
+                      ? [
+                          h.details(
+                            [h.Class('board-popover')],
+                            [
+                              h.summary([], ['More workshop notes']),
+                              h.div(
+                                [h.Class('board-popover-content')],
+                                workshopNotes
+                                  .slice(2)
+                                  .map(({ role, label }) =>
+                                    h.button(
+                                      [
+                                        h.Key(role),
+                                        h.Type('button'),
+                                        h.Disabled(disabled),
+                                        h.OnClick(
+                                          Message.ClickedAddWorkshopNote({ noteRole: role }),
+                                        ),
+                                      ],
+                                      [label],
+                                    ),
+                                  ),
+                              ),
+                            ],
+                          ),
+                        ]
+                      : []),
                     h.button(
                       [
                         h.Type('button'),
@@ -2792,36 +3153,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   exportDocument !== undefined,
                 ]),
                 svgLauncher(svgLauncherView, [h, exportDocument !== undefined]),
-                h.label(
-                  [h.Class('canvas-mode')],
-                  [
-                    'Canvas emphasis',
-                    h.select(
-                      [
-                        h.Value(model.emphasis),
-                        h.AriaLabel('Canvas emphasis'),
-                        h.OnChange((value) =>
-                          Message.SelectedCanvasEmphasis({
-                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
-                          }),
-                        ),
-                      ],
-                      (['c4', 'ddd', 'neutral'] as const).map((emphasis) =>
-                        h.option(
-                          [h.Value(emphasis)],
-                          [
-                            emphasis === 'c4'
-                              ? 'C4 view'
-                              : emphasis === 'ddd'
-                                ? 'DDD view'
-                                : 'Neutral view',
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                h.p([h.Class('mode-note')], ['Appearance only. Your diagram stays unchanged.']),
                 h.p([h.Class('role-label')], [`Your role · ${model.role}`]),
               ]
             : [],
@@ -3029,6 +3360,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                       ],
                                       ['Rename node'],
                                     ),
+                                    ...(selectedHotspot &&
+                                    selectedHotspotClock?.present &&
+                                    model.role !== 'viewer'
+                                      ? [
+                                          h.button(
+                                            [
+                                              h.Type('button'),
+                                              h.Disabled(disabled),
+                                              h.OnClick(
+                                                Message.ClickedHotspotStatus({
+                                                  id: selected.id,
+                                                  expected: selectedHotspotClock.hotspot ?? 0,
+                                                  status:
+                                                    selectedHotspot === 'open'
+                                                      ? 'resolved'
+                                                      : 'open',
+                                                }),
+                                              ),
+                                            ],
+                                            [
+                                              selectedHotspot === 'open'
+                                                ? 'Resolve hotspot'
+                                                : 'Reopen hotspot',
+                                            ],
+                                          ),
+                                        ]
+                                      : []),
                                     ...infrastructureDetails(h, selected),
                                     ...(model.role !== 'viewer' && selected.kind !== 'group'
                                       ? [

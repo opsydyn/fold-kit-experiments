@@ -13,12 +13,17 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current packages target FoldKit `0.170.x`, Effect `4.1.x` and the
+Current packages target FoldKit `0.171.x`, Effect `4.1.x` and the
 `@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
-`0.18.0`, effect-three `0.6.4` and the Zloz family `0.3.0`. Earlier compatibility
+`0.19.0`, effect-three `0.6.4`, foldkit-zloz `0.7.0` and the rest of the Zloz family
+`0.6.2`. The repository is ahead of npm on the Zloz family, which is at `0.8.0` here:
+[releases/foldkit-0.171.md](releases/foldkit-0.171.md) has the table of what each
+package admits on the registry and how each one's release ships. Earlier compatibility
 notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
 [0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
-covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`.
+covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`, and the
+[0.171 guide](migrations/foldkit-0.171.md) the non-empty `messages` tuple and
+`createKeyedLazy`'s eviction default.
 
 ## Viz: data-science release track — 2026-11-13
 

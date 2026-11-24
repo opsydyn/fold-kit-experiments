@@ -98,16 +98,23 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
       body: JSON.stringify(body ?? {}),
     });
-  const fixture = async () => {
-    const response = await fixtureCall('/seed');
-    expect(response.status).toBe(200);
-    return Schema.decodeUnknownSync(Fixture)(await response.json());
+  /**
+   * The fixture worker reports a failed bootstrap in the body. Read it, because
+   * a bare `expect(status).toBe(200)` reduces every failure here to
+   * `Expected: 200  Received: 500` and this stack's own log goes to a temp file
+   * CI discards, which left `/seed` failures on CI with no cause to work from.
+   */
+  const seeded = async (path: string, response: Response) => {
+    if (response.status !== 200)
+      throw new Error(`${path} answered ${response.status}: ${await response.text()}`);
+    return response.json();
   };
-  const newUser = async (name: string, verified = true, google = true) => {
-    const response = await fixtureCall('/new-user', { name, verified, google });
-    expect(response.status).toBe(200);
-    return Schema.decodeUnknownSync(Actor)(await response.json());
-  };
+  const fixture = async () =>
+    Schema.decodeUnknownSync(Fixture)(await seeded('/seed', await fixtureCall('/seed')));
+  const newUser = async (name: string, verified = true, google = true) =>
+    Schema.decodeUnknownSync(Actor)(
+      await seeded('/new-user', await fixtureCall('/new-user', { name, verified, google })),
+    );
   const formPost = (path: string, cookie: string, fields: Readonly<Record<string, string>>) =>
     fetch(`${origin}${path}`, {
       method: 'POST',
@@ -291,6 +298,307 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     } finally {
       await browser.close();
     }
+  }, 60_000);
+
+  test('two editors share workshop notes and hotspot status with one-shot feedback', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const url = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    type WorkshopRequest =
+      | ZlozOperationRequest
+      | {
+          operationId: string;
+          name: string;
+          graph: { version: 1; graph: ZlozGraph };
+        };
+    const write = (suffix: string, cookie: string, body: WorkshopRequest) =>
+      fetch(api + suffix, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await write('', data.owner.cookie, {
+          operationId: id,
+          name: 'Order workshop',
+          graph: { version: 1, graph: { nodes: [], edges: [] } },
+        })
+      ).status,
+    ).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (
+      cookie: string,
+      reducedMotion: 'no-preference' | 'reduce' = 'no-preference',
+    ) => {
+      const context = await browser.newContext({
+        reducedMotion,
+        viewport: { width: 1440, height: 950 },
+      });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      await context.addInitScript(() => {
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (keyframes, options) {
+          const status = this.getAttribute('data-hotspot-state');
+          if (status) {
+            const root = document.documentElement;
+            root.setAttribute(
+              'data-test-hotspot-motion',
+              [root.getAttribute('data-test-hotspot-motion'), status].filter(Boolean).join(' '),
+            );
+          }
+          return animate.call(this, keyframes, options);
+        };
+      });
+      const page = await context.newPage();
+      await page.goto(url);
+      await browserExpect(page.locator('[data-edge-motion-run]')).toHaveAttribute(
+        'data-edge-motion-run',
+        /^\d+$/,
+      );
+      await page.getByLabel('Canvas emphasis').selectOption('event-storming');
+      return page;
+    };
+    const [owner, editor, viewer] = await Promise.all([
+      open(data.owner.cookie),
+      open(data.editor.cookie),
+      open(data.viewer.cookie, 'reduce'),
+    ]);
+    const event = owner.getByRole('button', { name: 'Add event' });
+    await event.focus();
+    await event.press('Enter');
+    await browserExpect(
+      editor.getByRole('button', { name: 'Select Domain Event', exact: true }),
+    ).toBeVisible();
+    await editor.getByRole('button', { name: 'Add hotspot' }).click();
+    const badge = (page: Page) => page.locator('[data-hotspot-status]');
+    await browserExpect(badge(owner)).toHaveText('Open question');
+    const eventFrame = (page: Page) =>
+      page.locator('[data-flow-node]').filter({
+        has: page.getByRole('button', { name: 'Select Domain Event', exact: true }),
+      });
+    const hotspotFrame = owner.locator('[data-flow-node]').filter({ has: badge(owner) });
+    expect(await eventFrame(owner).getAttribute('data-flow-x')).not.toBe(
+      await hotspotFrame.getAttribute('data-flow-x'),
+    );
+
+    const motion = (page: Page) => page.locator('html');
+    const saw = (page: Page, sequence: string) =>
+      browserExpect(motion(page)).toHaveAttribute('data-test-hotspot-motion', sequence);
+    await Promise.all([saw(owner, 'open'), saw(editor, 'open')]);
+    await browserExpect(badge(viewer)).toHaveText('Open question');
+    await browserExpect(motion(viewer)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await owner.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await Promise.all([saw(owner, 'open resolved'), saw(editor, 'open resolved')]);
+    await browserExpect(badge(viewer)).toHaveText('✓ Resolved');
+    const nodeId = await badge(editor)
+      .locator('[data-hotspot-flare]')
+      .getAttribute('data-hotspot-flare');
+    if (!nodeId) throw new Error('The workshop hotspot has no ID');
+    expect(
+      (
+        await write('/operations', data.viewer.cookie, {
+          version: 1,
+          operationId: crypto.randomUUID(),
+          operation: { type: 'SetHotspotStatus', id: nodeId, expected: 3, status: 'open' },
+        })
+      ).status,
+    ).toBe(403);
+    await viewer.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await browserExpect(viewer.getByRole('button', { name: 'Reopen hotspot' })).toHaveCount(0);
+    const initialX = Number(await eventFrame(editor).getAttribute('data-flow-x'));
+    await eventFrame(editor)
+      .getByRole('button', { name: 'Select Domain Event', exact: true })
+      .press('ArrowRight');
+    await browserExpect(eventFrame(owner)).not.toHaveAttribute('data-flow-x', String(initialX));
+    const movedX = await eventFrame(owner).getAttribute('data-flow-x');
+    expect(Number(movedX)).toBeGreaterThan(initialX);
+    await editor.reload();
+    await browserExpect(editor.getByLabel('Canvas emphasis')).toHaveValue('event-storming');
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await browserExpect(eventFrame(editor)).toHaveAttribute('data-flow-x', movedX ?? '');
+    await browserExpect(motion(editor)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await owner.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(badge(editor)).toHaveText('Open question');
+    await saw(editor, 'open');
+    await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
+    await browserExpect(badge(editor)).toHaveText('✓ Resolved');
+    await editor.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await editor.getByRole('button', { name: 'Reopen hotspot' }).click();
+    await browserExpect(badge(owner)).toHaveText('Open question');
+    await browserExpect(badge(viewer)).toHaveText('Open question');
+    await browserExpect(motion(viewer)).not.toHaveAttribute('data-test-hotspot-motion', /./);
+    await saw(editor, 'open resolved open');
+    const exported = await fetch(api + '/export', { headers: { cookie: data.editor.cookie } });
+    expect(exported.ok).toBe(true);
+    expect(parseGraph(await exported.text()).nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          architecture: expect.objectContaining({ role: 'domain-event' }),
+        }),
+        expect.objectContaining({
+          architecture: { family: 'event-storming', role: 'hotspot', status: 'open' },
+        }),
+      ]),
+    );
+  }, 60_000);
+
+  test('two editing accounts review and apply an import to the same empty board with shared Undo', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const url = `${origin}/app/${data.organizationId}/diagrams/${id}`;
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { cookie: data.owner.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Import into this board',
+        graph: { version: 1, graph: { nodes: [], edges: [] } },
+      }),
+    });
+    expect(created.status).toBe(200);
+
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string) => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const equals = cookie.indexOf('=');
+      await context.addCookies([
+        { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+      ]);
+      const page = await context.newPage();
+      await page.goto(url);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const importer = await open(data.editor.cookie);
+    const peer = await open(data.owner.cookie);
+    const importButton = importer.getByRole('button', { name: 'Import…', exact: true });
+    const panel = importer.getByRole('region', { name: 'Import into this board', exact: true });
+    const apply = panel.getByRole('button', { name: 'Import into this board', exact: true });
+    const writes: string[] = [];
+    const newBoardWrites: string[] = [];
+    const teamDiagramApi = `${origin}/api/zloz/diagrams/${data.organizationId}/`;
+    const newBoardUrl = `${origin}/app/${data.organizationId}/diagrams/new`;
+    const presence = importer.waitForRequest(
+      (request) => request.method() === 'POST' && request.url() === `${api}/presence`,
+    );
+    importer.on('request', (request) => {
+      if (request.method() !== 'POST') return;
+      const requestUrl = request.url();
+      if (requestUrl === `${api}/operations`) writes.push(request.postData() ?? '');
+      if (
+        requestUrl === newBoardUrl ||
+        (requestUrl.startsWith(teamDiagramApi) &&
+          !requestUrl.slice(teamDiagramApi.length).includes('/'))
+      )
+        newBoardWrites.push(requestUrl);
+    });
+
+    const addBounds = await importer.getByRole('button', { name: 'Add node' }).boundingBox();
+    const importBounds = await importButton.boundingBox();
+    expect(importBounds!.x).toBeGreaterThan(addBounds!.x);
+    expect(importBounds!.y).toBe(addBounds!.y);
+
+    await importButton.click();
+    await panel
+      .getByLabel('LikeC4 JSON file')
+      .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+    await panel.getByLabel('Static view').selectOption('detail');
+    await browserExpect(panel.getByRole('link', { name: 'Download Zloz v3' })).toBeVisible();
+    await browserExpect(apply).toBeDisabled();
+
+    const alchemy = {
+      format: 'foldkit-zloz-alchemy-infrastructure',
+      version: 1,
+      source: {
+        packageVersion: '2.0.0-beta.85',
+        stack: 'team-stack',
+        stage: 'staging',
+        revision: 'a1b2c3',
+      },
+      resources: [
+        { id: 'Api', type: 'Cloudflare.Worker', action: 'noop' },
+        { id: 'Db', type: 'Cloudflare.D1Database', action: 'noop' },
+      ],
+      links: [{ from: 'Api', to: 'Db', kind: 'binding', name: 'DB' }],
+      omissions: [{ resource: 'Api', kind: 'binding', name: 'OTHER' }],
+    };
+    const review = async () => {
+      await panel.getByLabel('Import format').selectOption('alchemy');
+      await panel
+        .getByRole('textbox', { name: /paste Alchemy infrastructure JSON/ })
+        .fill(JSON.stringify(alchemy));
+      await panel.getByRole('button', { name: 'Review snapshot' }).click();
+      await browserExpect(panel.getByText(/Binding OTHER has no resolved target/)).toBeVisible();
+      await browserExpect(apply).toBeDisabled();
+      await panel.getByLabel('I reviewed the import losses').check();
+      await browserExpect(apply).toBeEnabled();
+    };
+    await review();
+    expect(writes).toEqual([]);
+    await peer.getByRole('button', { name: 'Add node' }).click();
+    await browserExpect(panel.getByRole('status')).toContainText(
+      'The board changed while you reviewed',
+    );
+    await browserExpect(apply).toBeDisabled();
+    await peer.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(peer.locator('[data-confirmed-version]')).toHaveAttribute(
+      'data-confirmed-version',
+      '2',
+    );
+    await browserExpect(apply).toBeDisabled();
+    expect(writes).toEqual([]);
+
+    await panel.getByRole('button', { name: 'Close import' }).click();
+    await importButton.click();
+    await review();
+    await apply.click();
+    const apiNode = (page: Page) =>
+      page.getByRole('button', { name: 'Select Api · No change', exact: true });
+    await browserExpect(apiNode(importer)).toBeVisible();
+    await browserExpect(apiNode(peer)).toBeVisible();
+    await browserExpect(peer.getByRole('button', { name: /Binds to · DB/ })).toBeAttached();
+    await browserExpect(importer).toHaveURL(url);
+    await browserExpect(peer).toHaveURL(url);
+    expect(writes.map((text) => parseOperationRequest(text).operation.type)).toEqual([
+      'ImportEmptyBoard',
+    ]);
+    await peer.reload();
+    await browserExpect(apiNode(peer)).toBeVisible();
+    await importer.getByRole('button', { name: 'Undo my last edit' }).click();
+    await browserExpect(apiNode(peer)).toHaveCount(0);
+    await browserExpect(importButton).toBeVisible();
+
+    await importButton.click();
+    await panel
+      .getByLabel('LikeC4 JSON file')
+      .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
+    await panel.getByLabel('Static view').selectOption('overview');
+    await browserExpect(panel.getByText(/endpoint is outside the view/)).toHaveCount(2);
+    await browserExpect(apply).toBeDisabled();
+    await panel.getByLabel('I reviewed the import losses').check();
+    await apply.click();
+    await browserExpect(
+      peer.getByRole('button', { name: 'Select Buyer', exact: true }),
+    ).toBeVisible();
+    await browserExpect(importer).toHaveURL(url);
+    await browserExpect(peer).toHaveURL(url);
+    await presence;
+    expect(newBoardWrites).toEqual([]);
+    expect(writes.map((text) => parseOperationRequest(text).operation.type)).toEqual([
+      'ImportEmptyBoard',
+      'Undo',
+      'ImportEmptyBoard',
+    ]);
   }, 60_000);
 
   test('real app creates, opens, streams, edits and exports a private diagram with fresh role checks', async () => {

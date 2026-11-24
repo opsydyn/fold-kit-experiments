@@ -419,3 +419,106 @@ test('a shared icon change replays, rejects a stale selection and undoes without
   expect(undone.document.graph.nodes[0]?.icon).toBeUndefined();
   expect(undone.document.graph.nodes[0]?.label).toBe(peer.document.graph.nodes[0]?.label);
 });
+
+test('an empty-board import is one replayable edit and cannot overwrite a peer or a newer empty board', () => {
+  const empty = createOperationDocument({ nodes: [], edges: [] });
+  const imported = graph();
+  const operation = request(
+    JSON.stringify({
+      version: 1,
+      operationId: 'import-reviewed',
+      operation: { type: 'ImportEmptyBoard', expectedVersion: 0, graph: imported },
+    }),
+  );
+  const result = decide(empty, operation);
+  expect(result.type).toBe('accepted');
+  if (result.receipt.status !== 'accepted') throw new Error('Import should be accepted');
+  expect(result.document.version).toBe(1);
+  expect(result.document.graph).toEqual(imported);
+  expect(applyOperationChange(empty, result.receipt.change).graph).toEqual(imported);
+
+  const rejected = decide(
+    result.document,
+    {
+      ...operation,
+      operationId: 'peer',
+      operation: { type: 'ImportEmptyBoard', expectedVersion: 1, graph: imported },
+    },
+    'bob',
+  );
+  expect(rejected.receipt).toMatchObject({ status: 'rejected', code: 'Conflict' });
+  expect(rejected.document).toBe(result.document);
+
+  const undone = decide(result.document, {
+    version: 1,
+    operationId: 'undo-import',
+    operation: { type: 'Undo', operationId: 'import-reviewed' },
+  });
+  expect(undone.document.graph.nodes).toEqual([]);
+  expect(undone.document.graph.edges).toEqual([]);
+  expect(
+    decide(undone.document, { ...operation, operationId: 'stale-preview' }, 'bob').receipt,
+  ).toMatchObject({ status: 'rejected', code: 'Conflict' });
+});
+
+test('shared hotspot status replays and undoes independently of a teammate rename', () => {
+  const initial = createOperationDocument({
+    nodes: [
+      {
+        id: 'question',
+        label: 'Who owns retries?',
+        position: { x: 20, y: 40 },
+        size: { width: 160, height: 90 },
+        ports: [],
+        architecture: {
+          family: 'event-storming',
+          role: 'hotspot',
+          status: 'open',
+          description: 'Discuss with Support',
+        },
+      },
+    ],
+    edges: [],
+  });
+  const resolve = request(
+    '{"version":1,"operationId":"resolve","operation":{"type":"SetHotspotStatus","id":"question","expected":0,"status":"resolved"}}',
+  );
+  const changed = decide(initial, resolve);
+  if (changed.receipt.status !== 'accepted') throw new Error(changed.receipt.message);
+  expect(applyOperationChange(initial, changed.receipt.change)).toEqual(changed.document);
+  expect(isOperationDocument(changed.document)).toBe(true);
+  expect(changed.document.graph.nodes[0]?.architecture).toMatchObject({ status: 'resolved' });
+  expect(decide(changed.document, { ...resolve, operationId: 'stale' }, 'bob').receipt.code).toBe(
+    'Conflict',
+  );
+  const renamed = decide(
+    changed.document,
+    request(
+      '{"version":1,"operationId":"rename","operation":{"type":"RenameNode","id":"question","expected":0,"label":"Agree on retry ownership"}}',
+    ),
+    'bob',
+  );
+  const undone = decide(
+    renamed.document,
+    request(
+      '{"version":1,"operationId":"undo-hotspot","operation":{"type":"Undo","operationId":"resolve"}}',
+    ),
+  );
+  expect(undone.document.graph.nodes[0]).toMatchObject({
+    label: 'Agree on retry ownership',
+    architecture: {
+      family: 'event-storming',
+      role: 'hotspot',
+      status: 'open',
+      description: 'Discuss with Support',
+    },
+  });
+  expect(
+    decide(
+      createOperationDocument(graph()),
+      request(
+        '{"version":1,"operationId":"wrong-kind","operation":{"type":"SetHotspotStatus","id":"a","expected":0,"status":"resolved"}}',
+      ),
+    ).receipt.code,
+  ).toBe('UnsupportedOperation');
+});

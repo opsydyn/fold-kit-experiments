@@ -61,6 +61,22 @@ const named = new Map([
   ['Astro', 'astro'],
 ]);
 
+/**
+ * Versions named in prose without backticks, as in "FoldKit 0.170 accepts `~4.1.0`".
+ * These drifted through three upgrades because the backticked patterns above miss both
+ * the bare version and the two-component form.
+ *
+ * A bare version is only checked when it reads as a claim about what the skill targets.
+ * Words that mark it as deliberately historical exempt it, so "Upgrading from FoldKit
+ * 0.167" and "an app that predates Astro 5" stay as written. A range is always backticked
+ * here (`0.167` to `0.170`), so it never reaches this function.
+ */
+const historical = new Set(['from', 'predates', 'before', 'since', 'until', 'to', 'than']);
+const unbackticked = (text: string): ReadonlyArray<{ name: string; version: string }> =>
+  [...text.matchAll(/(\w+)?\s*\b(FoldKit|Effect|Astro)\s+(\d+\.\d+(?:\.\d+)?)\b/g)]
+    .filter(([, preceding = '']) => !historical.has(preceding.toLowerCase()))
+    .map(([, , label = '', version = '']) => ({ name: named.get(label) ?? label, version }));
+
 for await (const skillFile of new Glob('skills/*/SKILL.md').scan('.')) {
   const skill = skillFile.slice(0, -'/SKILL.md'.length);
   const installed = new Map<string, string>();
@@ -97,10 +113,17 @@ for await (const skillFile of new Glob('skills/*/SKILL.md').scan('.')) {
         version,
       }),
     ),
+    ...unbackticked(text),
   ];
   for (const { name, version } of mentions) {
     const expected = [...(installed.has(name) ? [installed.get(name)] : (catalog.get(name) ?? []))];
-    if (expected.length > 0 && !expected.includes(version)) {
+    // A mention may be less precise than the version it is checked against: `0.170`
+    // is wrong against 0.171.0 and right against 0.170.3, so compare the parts given.
+    const parts = version.split('.').length;
+    const matches = expected.some(
+      (candidate) => candidate?.split('.').slice(0, parts).join('.') === version,
+    );
+    if (expected.length > 0 && !matches) {
       problems.push(`${skillFile} names ${name} ${version}, not ${expected.join(' or ')}`);
     }
   }

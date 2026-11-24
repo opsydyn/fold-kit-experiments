@@ -312,6 +312,41 @@ globalStyle('.shared-editor[data-inspector-open="true"]', {
 globalStyle('.shared-editor[data-inspector-open="true"][data-inspector-mode="coupling"]', {
   vars: { '--inspector-width': '420px' },
 });
+globalStyle('.shared-editor[data-canvas-emphasis="event-storming"]', {
+  vars: { '--emphasis': theme.ddd },
+});
+globalStyle(
+  '.shared-editor[data-canvas-emphasis="event-storming"] .shared-node[data-workshop-role="domain-event"]',
+  {
+    borderBlockStart: `3px solid ${theme.ddd}`,
+  },
+);
+globalStyle(
+  '.shared-editor[data-canvas-emphasis="event-storming"] .shared-node[data-workshop-role="hotspot"]',
+  {
+    borderBlockStart: `3px solid ${theme.danger}`,
+  },
+);
+globalStyle('.workshop-hotspot', {
+  position: 'relative',
+  display: 'inline-block',
+  width: 'fit-content',
+  padding: '2px 7px',
+  border: '1px solid currentColor',
+  borderRadius: 20,
+  color: theme.danger,
+  fontSize: '0.75rem',
+  lineHeight: 1.2,
+});
+globalStyle('.workshop-hotspot[data-hotspot-status="resolved"]', { color: theme.accent });
+globalStyle('.workshop-hotspot-flare', {
+  position: 'absolute',
+  inset: -1,
+  border: '2px solid currentColor',
+  borderRadius: 'inherit',
+  opacity: 0,
+  pointerEvents: 'none',
+});
 globalStyle('.shared-editor[data-canvas-emphasis="ddd"]', { vars: { '--emphasis': theme.ddd } });
 globalStyle('.shared-editor[data-canvas-emphasis="neutral"]', {
   vars: { '--emphasis': theme.muted },
@@ -409,6 +444,9 @@ globalStyle('.editor-actions button', {
   textAlign: 'left',
   whiteSpace: 'normal',
 });
+globalStyle('.editor-primary-actions', { display: 'flex', gap: 6 });
+globalStyle('.editor-primary-actions button:first-child', { flex: 1, minWidth: 0 });
+globalStyle('.editor-primary-actions button + button', { width: 'auto', whiteSpace: 'nowrap' });
 globalStyle('.editor-actions button:first-child', {
   background: theme.accent,
   color: theme.controlInk,
@@ -589,7 +627,7 @@ globalStyle('.layout-ghost', {
 globalStyle('.layout-ghost-group', {
   background: `color-mix(in srgb, transparent 84%, ${theme.accent})`,
 });
-globalStyle('.board-mermaid, .board-svg', {
+globalStyle('.board-mermaid, .board-svg, .board-import', {
   position: 'absolute',
   gridColumn: '1 / -1',
   gridRow: '2 / 3',
@@ -604,6 +642,17 @@ globalStyle('.board-mermaid, .board-svg', {
   border: `1px solid ${theme.controlRule}`,
   boxShadow: '0 8px 28px #0005',
 });
+globalStyle('.board-import', { gridTemplateRows: 'auto minmax(0, 1fr)' });
+globalStyle('.board-import > header', {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '8px 12px',
+  borderBottom: `1px solid ${theme.rule}`,
+});
+globalStyle('.board-import > header h2', { margin: 0 });
+globalStyle('.board-import-content', { padding: 12, overflowY: 'auto' });
 globalStyle('.board-svg', { gridTemplateRows: 'auto minmax(0, 1fr)' });
 globalStyle('.svg-review', { minHeight: 0, gridTemplateRows: 'minmax(0, 1fr) auto' });
 globalStyle('.svg-review-settings', {

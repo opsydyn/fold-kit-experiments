@@ -1,3 +1,4 @@
+import type { EventStormingHotspotArchitecture } from './architecture';
 import type {
   EditorPolicy,
   Endpoint,
@@ -11,6 +12,7 @@ import type {
 
 /** Authored world geometry, independent of DOM measurements and local editor revision. */
 export type ZlozNodeFrame = Readonly<{ position: Point; size: Size }>;
+type HotspotStatus = EventStormingHotspotArchitecture['status'];
 export type ZlozGraphOperation =
   | Readonly<{
       type: 'MoveNodes';
@@ -22,7 +24,9 @@ export type ZlozGraphOperation =
     }>
   | Readonly<{ type: 'RenameNode'; id: string; expected: number; label: string }>
   | Readonly<{ type: 'SetNodeIcon'; id: string; expected: number; icon: string | null }>
+  | Readonly<{ type: 'SetHotspotStatus'; id: string; expected: number; status: HotspotStatus }>
   | Readonly<{ type: 'AddNode'; expectedVersion: number; node: ZlozNode }>
+  | Readonly<{ type: 'ImportEmptyBoard'; expectedVersion: number; graph: ZlozGraph }>
   | Readonly<{ type: 'Connect'; expectedVersion: number; edge: ZlozEdge }>
   | Readonly<{
       type: 'Delete';
@@ -46,6 +50,7 @@ export type ZlozNodeClock = Readonly<{
   geometry: number;
   label: number;
   icon?: number;
+  hotspot?: number;
   ports: number;
 }>;
 export type ZlozEdgeClock = Readonly<{ id: string; present: boolean; version: number }>;
@@ -58,6 +63,13 @@ export type ZlozNodeChange =
       after: ZlozNodeFrame;
     }>
   | Readonly<{ type: 'label'; id: string; expected: number; before: string; after: string }>
+  | Readonly<{
+      type: 'hotspot';
+      id: string;
+      expected: number;
+      before: HotspotStatus;
+      after: HotspotStatus;
+    }>
   | Readonly<{
       type: 'icon';
       id: string;

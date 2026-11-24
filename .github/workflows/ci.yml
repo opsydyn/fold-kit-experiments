@@ -10,9 +10,21 @@ on:
 permissions:
   contents: read
 
+# A pull request's runs supersede each other: only the newest push to a branch
+# is worth checking, so its group is the ref and the older run is cancelled.
+#
+# A push to main must not work that way. The Zloz release train publishes only
+# from a commit whose own push run concluded `success`
+# (.github/scripts/zloz-release-train.mjs, `waitForCI`), and under one group per
+# ref every main run was cancelled by the next merge. That is what blocked
+# foldkit-zloz 0.8.0 and 0.9.0: the train read `cancelled`, not a test failure.
+# Giving each pushed commit its own group lets every one of them reach a
+# conclusion the train can read, and lets a release commit's run be re-run
+# later without a merge killing it. Standard runners are free on this public
+# repository, so the cost is concurrent runners, not minutes.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Each job runs its root `ci:<job>` script, a moon run that the git hooks and
 # local runs use too (tools/ci-parity.test.ts keeps them in step). CI starts
@@ -21,9 +33,16 @@ concurrency:
 env:
   MOON_BASE: HEAD
 
+# Each job carries `timeout-minutes` because the default is six hours, and a
+# step that hangs rather than fails holds the branch for all of it. On a green
+# run `check` takes about 20 minutes and `foldkit-zloz` about 18, the browser
+# qualification being serial across three engines; the others finish in a
+# minute or two. Each budget is roughly double what its job needs, so it ends a
+# hang without failing a slow runner.
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,6 +74,7 @@ jobs:
 
   astro-compat:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -78,6 +98,7 @@ jobs:
 
   effect-three:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,6 +134,7 @@ jobs:
 
   foldkit-zloz:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

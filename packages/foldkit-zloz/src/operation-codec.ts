@@ -1,4 +1,4 @@
-import { ZlozError, isNode, isNodeIcon, isEdge } from './graph';
+import { ZlozError, isNode, isNodeIcon, isEdge, isGraph } from './graph';
 import type { ZlozGraphOperation, ZlozNodeFrame, ZlozOperationRequest } from './operation-types';
 import type { JsonValue, Point } from './types';
 
@@ -87,12 +87,32 @@ export function isGraphOperation(value: unknown): value is ZlozGraphOperation {
         operationVersion(value.expected) &&
         (value.icon === null || isNodeIcon(value.icon))
       );
+    case 'SetHotspotStatus':
+      return (
+        operationKeys(value, ['type', 'id', 'expected', 'status']) &&
+        operationEntityId(value.id) &&
+        operationVersion(value.expected) &&
+        (value.status === 'open' || value.status === 'resolved')
+      );
     case 'AddNode':
       return (
         operationKeys(value, ['type', 'expectedVersion', 'node']) &&
         operationVersion(value.expectedVersion) &&
         isNode(value.node) &&
         operationEntityId(value.node.id)
+      );
+    case 'ImportEmptyBoard':
+      return (
+        operationKeys(value, ['type', 'expectedVersion', 'graph']) &&
+        operationVersion(value.expectedVersion) &&
+        operationRecord(value.graph) &&
+        operationKeys(value.graph, ['nodes', 'edges']) &&
+        isGraph(value.graph) &&
+        value.graph.nodes.length > 0 &&
+        value.graph.nodes.length <= 250 &&
+        value.graph.edges.length <= 500 &&
+        value.graph.nodes.every(({ id }) => operationEntityId(id)) &&
+        value.graph.edges.every(({ id }) => operationEntityId(id))
       );
     case 'Connect':
       return (

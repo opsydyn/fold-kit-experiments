@@ -1,5 +1,7 @@
 # Each task is the package script of the same name without its dependency
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tags: ['foldkit-vitest']
+
 tasks:
   build:
     script: 'astro build'

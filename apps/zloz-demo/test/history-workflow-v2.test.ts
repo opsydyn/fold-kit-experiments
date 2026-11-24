@@ -1,11 +1,10 @@
-import { expect, test } from 'bun:test';
-
 import {
   createModelEditorV2,
   captureConnectionDocument,
   parseModelDocumentV2,
   serializeModelDocumentV2,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import {
   init,

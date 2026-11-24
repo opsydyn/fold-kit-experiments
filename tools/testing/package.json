@@ -1,0 +1,12 @@
+{
+  "name": "@opsydyn/testing",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./foldkit": "./foldkit.ts"
+  },
+  "dependencies": {
+    "foldkit": "catalog:",
+    "vitest": "catalog:"
+  }
+}

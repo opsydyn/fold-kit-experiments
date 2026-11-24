@@ -53,6 +53,7 @@
     "@foldkit/devtools": "catalog:",
     "@foldkit/ui": "catalog:",
     "@happy-dom/global-registrator": "^21.0.4",
+    "@opsydyn/testing": "workspace:*",
     "@playwright/test": "1.62.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/html": "^10.4.6",

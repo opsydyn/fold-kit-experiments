@@ -1,11 +1,10 @@
-import { expect, test } from 'bun:test';
-
 import {
   createModelEditorV2,
   captureModellingPatchV2,
   updateEditor,
   serializeModellingPatchReceiptV2,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import {
   nativeReview,

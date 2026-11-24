@@ -1,4 +1,3 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -7,6 +6,7 @@ import {
   createEditionPlayback,
   updateEditionPlayback,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { dddAuditExampleEditions, workbenchDddAuditContext } from '../src/editor/ddd-audit';
 import { Message } from '../src/editor/message';

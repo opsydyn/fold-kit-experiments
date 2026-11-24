@@ -1,5 +1,6 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
+
+import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';

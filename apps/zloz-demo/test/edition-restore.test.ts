@@ -1,7 +1,6 @@
-import { expect, test } from 'bun:test';
-
 import { captureEdition, serializeEditions, updateEditor } from '@opsydyn/foldkit-zloz';
 import { Effect } from 'effect';
+import { expect, test } from 'vitest';
 
 import { ImportZlozEditions } from '../src/editor/command';
 import { editionArchiveByteLimit, orderEditions } from '../src/editor/history';

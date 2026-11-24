@@ -1,9 +1,9 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { updateEditor } from '@opsydyn/foldkit-zloz';
 import { Effect } from 'effect';
+import { expect, test } from 'vitest';
 
 import { workbenchAlchemyFindings } from '../src/editor/alchemy-review';
 import { decodeAlchemyText, alchemyTextLimits } from '../src/editor/alchemy-text';

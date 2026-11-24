@@ -1,4 +1,3 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
@@ -6,6 +5,7 @@ import { captureEdition, createHistoryReview } from '@opsydyn/foldkit-zloz';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { workbenchC4MappingReview } from '../src/editor/c4-mapping-review';
 import { c4MappingReviewPanel } from '../src/editor/c4-mapping-review-view';

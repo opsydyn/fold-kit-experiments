@@ -1,4 +1,3 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -13,6 +12,7 @@ import {
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';

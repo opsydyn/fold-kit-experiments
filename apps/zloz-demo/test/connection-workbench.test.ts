@@ -1,6 +1,5 @@
-import { expect, test } from 'bun:test';
-
 import { captureConnectionDocument } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { Message, editorFor, init, update, type Model } from '../src/connections/state';
 

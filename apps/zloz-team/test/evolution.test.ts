@@ -1,8 +1,12 @@
 import { expect, test } from 'bun:test';
 
 import type { ZlozGraph } from '@opsydyn/foldkit-zloz';
+import { Scene } from 'foldkit';
+import type { HtmlBuilder } from 'foldkit/html';
 
 import { empty, graphAt, inspect, observe } from '../src/editor/evolution';
+import { view as evolutionView } from '../src/editor/evolution-view';
+import { createWorkshopNote } from '../src/editor/workshop';
 
 const emptyGraph: ZlozGraph = { nodes: [], edges: [] };
 
@@ -35,6 +39,8 @@ test('counts all five C4 types, other nodes and authored relationships separatel
       version: 0,
       graph,
       counts: {
+        events: 0,
+        openHotspots: 0,
         person: 1,
         'software-system': 1,
         'external-system': 1,
@@ -116,3 +122,89 @@ test('rewind has exact confirmed geometry and never supplies a missing version',
   expect(graphAt(resumed, 10)).toBeUndefined();
   expect(graphAt(resumed, 11)).toEqual(emptyGraph);
 });
+
+test('workshop chart activation opens the selected version with its retained predecessor', () => {
+  const history = [17, 18, 19].reduce(
+    (current, version) => observe(current, { version, graph: emptyGraph }),
+    empty,
+  );
+  type Target = { version: number; baseline?: number };
+  const config = {
+    update: (_model: Target, message: Target) => ({ model: message }),
+    view: (model: Target, h: HtmlBuilder<Target>) =>
+      model.version >= 0
+        ? h.p([], [`Review ${model.version}, baseline ${model.baseline ?? 'none'}`])
+        : evolutionView(
+            h,
+            history,
+            'live',
+            () => model,
+            (version, baseline) => ({ version, baseline }),
+            'available',
+            'workshop',
+          ),
+  };
+  for (const [version, expected] of [
+    [17, 'Review 17, baseline none'],
+    [18, 'Review 18, baseline 17'],
+  ] as const) {
+    Scene.scene(
+      config,
+      Scene.given({ version: -1 }),
+      Scene.click(`[data-evolution-version="${version}"]`),
+      Scene.expect(Scene.text(expected)).toExist(),
+    );
+  }
+  Scene.scene(
+    config,
+    Scene.given({ version: -1 }),
+    Scene.click('#board-open-history'),
+    Scene.expect(Scene.text('Review 19, baseline 18')).toExist(),
+  );
+});
+
+test('only Event Storming domain events contribute to the workshop event series', () => {
+  const nodes = [
+    createWorkshopNote('domain-event', 'event', []),
+    createWorkshopNote('command', 'command', []),
+    {
+      ...createWorkshopNote('domain-event', 'ddd-event', []),
+      architecture: { family: 'ddd', role: 'domain-event' } as const,
+    },
+  ];
+  expect(
+    observe(empty, { version: 7, graph: { nodes, edges: [] } }).samples[0]?.counts,
+  ).toMatchObject({ events: 1, openHotspots: 0, other: 3 });
+});
+
+test.each([
+  ['live', 'blocked'],
+  ['offline', 'blocked'],
+] as const)(
+  'Evolution keeps counts readable with rewind unavailable (%s, %s)',
+  (connection, availability) => {
+    const history = [7, 8].reduce(
+      (current, version) => observe(current, { version, graph: emptyGraph }),
+      empty,
+    );
+    Scene.scene(
+      {
+        update: (model: typeof history) => ({ model }),
+        view: (model: typeof history, h: HtmlBuilder<string>) =>
+          evolutionView(
+            h,
+            model,
+            connection,
+            (value) => value,
+            (version) => String(version),
+            availability,
+            'workshop',
+          ),
+      },
+      Scene.given(history),
+      Scene.expect(Scene.role('table', { name: 'Counts at version 8' })).toExist(),
+      Scene.expect(Scene.role('button', { name: 'Open on canvas' })).toBeDisabled(),
+      Scene.expect(Scene.selector('[data-evolution-version]')).toBeAbsent(),
+    );
+  },
+);

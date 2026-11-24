@@ -1,5 +1,7 @@
 import { bodyText, BodyRejected } from '@opsydyn/zloz-server/src/http-body';
 import {
+  boardSearch,
+  boardSearchSuffix,
   InviteCommand,
   InvitationView,
   MutationResult,
@@ -30,8 +32,12 @@ async function failure(response: Response) {
   };
 }
 
-export async function loadTeam(request: Request, teamId: string) {
-  const response = await readPath(request, `/api/zloz/teams/${encodeURIComponent(teamId)}`);
+export async function loadTeam(request: Request, teamId: string, search?: URLSearchParams) {
+  const path = `/api/zloz/teams/${encodeURIComponent(teamId)}`;
+  const suffix = search ? boardSearchSuffix(boardSearch(search)) : '';
+  const response = await readPath(request, path + suffix).catch(
+    () => new Response(null, { status: 503 }),
+  );
   if (!response.ok) return failure(response);
   return {
     _tag: 'Ready' as const,

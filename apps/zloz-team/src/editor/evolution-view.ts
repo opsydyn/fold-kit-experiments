@@ -18,13 +18,25 @@ import type { HtmlBuilder } from 'foldkit/html';
 
 import { windowSize, type History, type Sample, type SeriesKey } from './evolution';
 
-const series: readonly {
+type Series = Readonly<{
   key: SeriesKey;
   label: string;
   color: string;
   symbol: SeriesStyle['symbol'];
   dashPattern: string;
-}[] = [
+}>;
+export type Perspective = 'workshop' | 'architecture';
+const workshopSeries: readonly Series[] = [
+  { key: 'events', label: 'Domain events', color: 'var(--ddd)', symbol: 'square', dashPattern: '' },
+  {
+    key: 'openHotspots',
+    label: 'Open hotspots',
+    color: 'var(--danger)',
+    symbol: 'diamond',
+    dashPattern: '5 3',
+  },
+];
+const architectureSeries: readonly Series[] = [
   {
     key: 'person',
     label: 'People',
@@ -81,8 +93,17 @@ const theme: ChartTheme = {
 
 type Row = Readonly<{ key: SeriesKey; label: string; version: number; count: number }>;
 
-function plot<M>(h: HtmlBuilder<M>, samples: readonly Sample[], inspected: Sample) {
-  const active = series.filter(({ key }) => samples.some(({ counts }) => counts[key] > 0));
+function plot<M>(
+  h: HtmlBuilder<M>,
+  samples: readonly Sample[],
+  inspected: Sample,
+  perspective: Perspective,
+  onReview?: (version: number) => M,
+) {
+  const active =
+    perspective === 'workshop'
+      ? workshopSeries
+      : architectureSeries.filter(({ key }) => samples.some(({ counts }) => counts[key] > 0));
   if (active.length === 0) return [h.p([], ['No nodes or relationships in this window.'])];
 
   const rows: readonly Row[] = samples.flatMap(({ version, counts }) =>
@@ -124,7 +145,8 @@ function plot<M>(h: HtmlBuilder<M>, samples: readonly Sample[], inspected: Sampl
       {
         layout: geometry.layout,
         title: 'Diagram Evolution',
-        description: 'Stepped counts by confirmed version. Use Inspect version for exact counts.',
+        description:
+          'Counts by confirmed version. Use Inspect version for exact counts and Open on canvas to rewind.',
         theme,
       },
       [
@@ -148,15 +170,38 @@ function plot<M>(h: HtmlBuilder<M>, samples: readonly Sample[], inspected: Sampl
         ...geometry.series.map(({ key, path }) => lineSeries(h, { path, style: styleFor(key) })),
         pointSeries<Row, M>(h, {
           points: geometry.series.flatMap(({ points }) =>
-            points.filter(({ datum }) => datum.version === inspected.version),
+            perspective === 'workshop'
+              ? points
+              : points.filter(({ datum }) => datum.version === inspected.version),
           ),
           styleFor: (point) => styleFor(point.seriesKey),
           labelFor: (row) => `${row.label}: ${row.count}`,
-          activeKey: null,
+          activeKey: `${inspected.version}/openHotspots`,
         }),
+        ...(onReview
+          ? samples.map(({ version }) => {
+              const { plot, x } = geometry.layout;
+              const left = Math.max(plot.left, x(version - 0.5));
+              const right = Math.min(plot.right, x(version + 0.5));
+              return h.rect(
+                [
+                  h.Key(String(version)),
+                  h.DataAttribute('evolution-version', String(version)),
+                  h.X(String(left)),
+                  h.Y(String(plot.top)),
+                  h.Width(String(right - left)),
+                  h.Height(String(plot.height)),
+                  h.Class('evolution-version-target'),
+                  h.OnClick(onReview(version)),
+                ],
+                [h.title([], [`Review version ${version}`])],
+              );
+            })
+          : []),
       ],
     ),
     legend(h, { entries, theme }),
+    ...(onReview ? [h.p([], ['Select a point to rewind to its version.'])] : []),
   ];
 }
 
@@ -165,12 +210,18 @@ export function view<M>(
   history: History,
   connection: 'live' | 'offline' | 'denied',
   onInspect: (value: string) => M,
-  onReview: (version: number) => M,
+  onReview: (version: number, baseline?: number) => M,
   availability: 'available' | 'blocked',
+  perspective: Perspective,
 ) {
   const first = history.samples[0];
   const last = history.samples.at(-1);
   const inspected = history.samples.find(({ version }) => version === history.inspected) ?? last;
+  const reviewVersion = (version: number) =>
+    onReview(
+      version,
+      perspective === 'workshop' && first && version > first.version ? version - 1 : undefined,
+    );
   const heading = h.h2([h.Class('rail-heading')], ['Diagram Evolution']);
   const contents =
     connection === 'denied'
@@ -205,7 +256,15 @@ export function view<M>(
             ...(first.version === last.version
               ? [h.p([], ['The chart appears after another confirmed version arrives.'])]
               : [
-                  ...plot(h, history.samples, inspected),
+                  ...plot(
+                    h,
+                    history.samples,
+                    inspected,
+                    perspective,
+                    connection === 'live' && availability === 'available'
+                      ? reviewVersion
+                      : undefined,
+                  ),
                   h.label([h.For('board-evolution-version')], ['Inspect version']),
                   h.select(
                     [
@@ -225,15 +284,17 @@ export function view<M>(
               [
                 h.Id('board-open-history'),
                 h.Type('button'),
-                h.Disabled(availability === 'blocked'),
-                h.OnClick(onReview(inspected.version)),
+                h.Disabled(connection !== 'live' || availability === 'blocked'),
+                h.OnClick(reviewVersion(inspected.version)),
               ],
               ['Open on canvas'],
             ),
             dataTable(h, {
               caption: `Counts at version ${inspected.version}`,
               headers: ['Type', 'Count'],
-              rows: series.map(({ key, label }) => [label, String(inspected.counts[key])]),
+              rows: (perspective === 'workshop' ? workshopSeries : architectureSeries).map(
+                ({ key, label }) => [label, String(inspected.counts[key])],
+              ),
             }),
           ]
         : [h.p([h.Role('status')], ['Waiting for the first confirmed diagram version.'])];

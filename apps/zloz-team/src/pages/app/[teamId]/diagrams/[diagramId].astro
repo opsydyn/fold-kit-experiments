@@ -1,10 +1,13 @@
 ---
+import { boardSearch, boardSearchSuffix } from '@opsydyn/zloz-server/src/team-contract';
 import { Schema } from 'effect';
 import Editor from '../../../../editor/app';
 import Shell from '../../../../layouts/Shell.astro';
 import { forward, sessionFor } from '../../../../server/backend';
 import { loginPath } from '../../../../server/continuation';
 const teamId = Astro.params.teamId ?? '';
+const requestedView = Astro.url.searchParams.get('view');
+const startingView = requestedView === 'event-storming' || requestedView === 'ddd' ? requestedView : 'c4';
 const diagramId = Astro.params.diagramId ?? '';
 const userSession = await sessionFor(Astro.request);
 if (!userSession) return Astro.redirect(loginPath(`/app/${teamId}/diagrams/${diagramId}`), 303);
@@ -14,9 +17,15 @@ const opened = Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String, rol
 ---
 <Shell title={opened.name} board>
   <div slot="board-title" class="board-title">
-    <nav aria-label="Diagram"><a href={`/app/${teamId}`}>Back to team</a> {opened.role === 'owner' && <a href={`/app/${teamId}/diagrams/${diagramId}/recovery`}>Backup and recovery</a>}</nav>
+    <nav aria-label="Diagram"><a href={`/app/${teamId}${boardSearchSuffix(boardSearch(Astro.url.searchParams))}`}>Back to team</a> <button type="button" popovertarget="board-settings">Board settings</button></nav>
+    <section id="board-settings" popover="auto" class="workspace-settings" aria-labelledby="board-settings-title">
+      <h2 id="board-settings-title">{opened.name}</h2>
+      <p>Your board access: {opened.role}.</p>
+      {opened.role === 'owner' && <><p>Restoring a backup changes this board for everyone.</p><a href={`/app/${teamId}/diagrams/${diagramId}/recovery`}>Backup and recovery</a> · <a href={`/app/${teamId}?view=settings`}>Team settings</a></>}
+      {opened.role !== 'owner' && <p>Team owners manage access and recovery.</p>}
+    </section>
     <h1 title={opened.name}>{opened.name}</h1>
   </div>
-  <Editor client:load teamId={teamId} diagramId={diagramId} actorId={userSession.user.id} role={opened.role} name={opened.name} />
+  <Editor client:load startingView={startingView} teamId={teamId} diagramId={diagramId} actorId={userSession.user.id} role={opened.role} name={opened.name} />
   <noscript>Enable JavaScript to edit this shared diagram.</noscript>
 </Shell>

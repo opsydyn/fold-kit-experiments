@@ -6,6 +6,7 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type {
+  CouplingCohort,
   CouplingReadiness,
   CouplingRow,
   RecordedCouplingRow,
@@ -78,17 +79,20 @@ export function view<P>(
         ),
       ],
     );
+  const comparisonContext = (group: CouplingCohort) =>
+    h.dl(
+      [h.Class('coupling-context')],
+      [
+        h.div([], [h.dt([], ['Abstraction scope']), h.dd([], [group.abstraction])]),
+        h.div([], [h.dt([], ['Time horizon']), h.dd([], [group.horizon])]),
+        h.div([], [h.dt([], ['Assessment model']), h.dd([], [group.modelVersion])]),
+      ],
+    );
   const evidence = (row: RecordedCouplingRow | RemovedCouplingRow) =>
     h.details(
       [h.Class('coupling-evidence')],
       [
         h.summary([], ['Evidence and provenance']),
-        h.p(
-          [],
-          [
-            `Scope: ${row.cohort.abstraction}. Horizon: ${row.cohort.horizon}. Model: ${row.cohort.modelVersion}.`,
-          ],
-        ),
         h.p(
           [],
           [
@@ -141,6 +145,10 @@ export function view<P>(
   const all = currentRows(model);
   const marks = rows.filter(assessed);
   const cohort = projection.cohorts.find((group) => group.cohort.key === model.cohort);
+  const counts = cohort?.readiness;
+  const comparable = counts
+    ? counts['complementary-balance'] + counts['low-volatility-balance'] + counts.imbalance
+    : 0;
   const removed = projection.removed.slice(
     model.removedPage * PAGE_SIZE,
     (model.removedPage + 1) * PAGE_SIZE,
@@ -158,13 +166,12 @@ export function view<P>(
       h.p(
         [],
         [
-          'Read-only judgments from the last confirmed diagram. Compare evidence within one scope and horizon.',
+          'Compare fully assessed relationships from the confirmed diagram. Their abstraction scope, time horizon and assessment model must match exactly.',
         ],
       ),
       ...(context.connectionNotice
         ? [h.p([h.Class('coupling-notice')], [context.connectionNotice])]
         : []),
-      readiness(projection.readiness, 'Whole-diagram readiness'),
       ...(!projection.rows.length ? [h.p([], ['No relationships to assess.'])] : []),
       h.label(
         [],
@@ -191,12 +198,26 @@ export function view<P>(
         ],
       ),
       ...(cohort
-        ? [readiness(cohort.readiness, 'Selected-cohort readiness')]
+        ? [
+            comparisonContext(cohort.cohort),
+            h.p(
+              [h.Class('coupling-comparability')],
+              [
+                comparable === 0
+                  ? 'No current outcomes to compare in this group.'
+                  : comparable === 1
+                    ? 'One relationship has a current outcome. A comparison needs a second fully assessed relationship in this group.'
+                    : `${comparable} of ${cohort.rows.length} relationships have comparable outcomes.`,
+              ],
+            ),
+          ]
         : [
             h.p(
               [],
               [
-                'Choose one scope and horizon to display an orbit. All scopes remain available in the table.',
+                projection.cohorts.length
+                  ? 'Choose a scope and time horizon to compare outcomes. The table shows the context of each assessment.'
+                  : 'A shared assessment on a current relationship supplies the scope and time horizon.',
               ],
             ),
           ]),
@@ -221,7 +242,7 @@ export function view<P>(
                       { size: 300, nodeRadius: { min: 22, max: 22 } },
                     ),
                     title: 'Assessed relationships on this page',
-                    description: `${marks.length} assessed of ${rows.length} displayed relationships. Equal-sized markers. Details in the relationship table.`,
+                    description: `${cohort.cohort.abstraction} · ${cohort.cohort.horizon} · ${cohort.cohort.modelVersion}. ${marks.length} assessed of ${rows.length} displayed relationships. Equal-sized markers. Details in the relationship table.`,
                     coreFill: 'var(--panel)',
                     coreStroke: 'var(--rule)',
                     centre: [
@@ -263,33 +284,46 @@ export function view<P>(
                 ],
               ),
             ]
-          : [
-              h.p(
-                [],
-                [
-                  cohort && !marks.length
-                    ? 'No current fully assessed relationships on this page. Review the readiness states and evidence below.'
-                    : 'The table provides the complete reading at this width.',
-                ],
+          : cohort
+            ? [
+                h.p(
+                  [],
+                  [
+                    !marks.length
+                      ? 'No current fully assessed relationships on this page. Review the readiness states and evidence below.'
+                      : 'The table provides the complete reading at this width.',
+                  ],
+                ),
+              ]
+            : [],
+      ),
+      ...(cohort
+        ? [
+            h.ul(
+              [h.Class('coupling-legend'), h.AriaLabel('Integration types on this page')],
+              integrations.map((kind) =>
+                h.li(
+                  [],
+                  [
+                    h.span(
+                      [h.Class('coupling-category'), h.Style({ color: colours[kind] })],
+                      ['●'],
+                    ),
+                    `${kind}: ${marks.filter((row) => row.integrationType === kind).length}`,
+                  ],
+                ),
               ),
-            ],
-      ),
-      h.ul(
-        [h.Class('coupling-legend'), h.AriaLabel('Integration types on this page')],
-        integrations.map((kind) =>
-          h.li(
-            [],
-            [
-              h.span([h.Class('coupling-category'), h.Style({ color: colours[kind] })], ['●']),
-              `${kind}: ${marks.filter((row) => row.integrationType === kind).length}`,
-            ],
-          ),
-        ),
-      ),
-      h.p(
-        [h.Class('coupling-note')],
-        ['Integration counts describe only the assessed relationships displayed on this page.'],
-      ),
+            ),
+            h.p(
+              [h.Class('coupling-note')],
+              [
+                'Integration counts describe only the assessed relationships displayed on this page.',
+              ],
+            ),
+          ]
+        : []),
+      readiness(projection.readiness, 'Whole-diagram readiness'),
+      ...(cohort ? [readiness(cohort.readiness, 'Selected-cohort readiness')] : []),
       h.table(
         [h.Class('coupling-table')],
         [
@@ -338,6 +372,7 @@ export function view<P>(
                         ? [h.p([], ['No shared assessment yet.'])]
                         : [
                             h.p([], [`Integration: ${row.integrationType ?? 'unknown'}`]),
+                            ...(!cohort ? [comparisonContext(row.cohort)] : []),
                             evidence(row),
                           ]),
                       button(
@@ -390,6 +425,7 @@ export function view<P>(
                           `${row.record.assessment.target.sourceNodeId} → ${row.record.assessment.target.targetNodeId} · removed`,
                         ],
                       ),
+                      comparisonContext(row.cohort),
                       evidence(row),
                       button(
                         `Review retained assessment ${row.relationshipId}`,

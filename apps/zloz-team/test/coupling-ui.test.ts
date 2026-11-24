@@ -158,6 +158,7 @@ test('empty, unknown, stale, invalid and removed states keep their evidence with
     const html = await render(update(model, Message.RecordedWidth({ width: 500 })).model);
     expect(html).toContain(`data-coupling-state="${state}"`);
     expect(html).toContain(expected);
+    expect(html).toContain('No current outcomes to compare in this group.');
     expect(html).not.toContain('class="chart-orbit"');
   }
   const empty = await render(
@@ -335,6 +336,7 @@ test('SSR/table fallback, measured orbit and All-scopes mode expose honest quali
   expect(narrow).toContain('<table');
   expect(narrow).toContain('Evidence and provenance');
   expect(narrow).toContain('high cohesion');
+  expect(narrow).toContain('A comparison needs a second fully assessed relationship');
   expect(narrow).toContain('model · declared');
   const wide = await render(update(model, Message.RecordedWidth({ width: 300 })).model);
   expect(wide).toContain('class="chart-orbit"');
@@ -350,4 +352,76 @@ test('SSR/table fallback, measured orbit and All-scopes mode expose honest quali
   expect(all).not.toContain('class="chart-orbit"');
   expect(all).toContain('Not started');
   expect(all).toContain('data-coupling-row="cb"');
+});
+
+test('comparison context is visible before readiness and identifies eligible assessments across the full group', async () => {
+  const scopes = [
+    ['Containers', 'Next quarter'],
+    ['Containers', 'Next quarter'],
+    ['Containers', 'Next quarter'],
+    ['Containers', 'Next year'],
+    ['Components', 'Next quarter'],
+  ] as const;
+  const edges = scopes.map((_, i) => ({ ...frame.document.graph.edges[0]!, id: `edge-${i}` }));
+  const source = {
+    ...frame,
+    document: { ...createOperationDocument({ ...frame.document.graph, edges }), version: 7 },
+    assessments: scopes.map(([abstraction, horizon], i) => ({
+      ...frame.assessments![0]!,
+      operationId: `assessment-${i}`,
+      assessment: {
+        ...assessment,
+        scope: { abstraction, horizon },
+        target: {
+          ...assessment.target,
+          relationshipId: edges[i]!.id,
+          graphVersion: i === 2 ? 6 : 7,
+        },
+      },
+    })),
+  };
+  const overview = observe(init(), source);
+  const all = await render(overview);
+  for (const [i, [scope, horizon]] of scopes.entries()) {
+    const row = all.split(`data-coupling-row="edge-${i}"`)[1]!.split('<details')[0]!;
+    expect(row).toContain(`<dt>Abstraction scope</dt><dd>${scope}</dd>`);
+    expect(row).toContain(`<dt>Time horizon</dt><dd>${horizon}</dd>`);
+  }
+  const selected = update(
+    overview,
+    Message.SelectedCohort({
+      key: JSON.stringify([assessment.modelVersion, 'Containers', 'Next quarter']),
+    }),
+  ).model;
+  const html = await render(update(selected, Message.RecordedWidth({ width: 300 })).model);
+  expect(html).toContain('2 of 3 relationships have comparable outcomes');
+  const beforeOrbit = html.split('class="chart-orbit"')[0]!;
+  expect(beforeOrbit).toContain('<dt>Abstraction scope</dt><dd>Containers</dd>');
+  expect(beforeOrbit).toContain('<dt>Time horizon</dt><dd>Next quarter</dd>');
+  expect(beforeOrbit).toContain('<dt>Assessment model</dt><dd>balanced-coupling-binary/v1</dd>');
+  expect(beforeOrbit).not.toContain('Whole-diagram readiness');
+  expect(html).toContain('data-coupling-row="edge-2"');
+  expect(html).not.toContain('data-coupling-row="edge-3"');
+  expect(html).not.toContain('data-coupling-row="edge-4"');
+});
+
+test('the comparison count covers the exact group while orbit marks cover the current page', async () => {
+  const edges = Array.from({ length: 13 }, (_, index) => ({
+    ...frame.document.graph.edges[0]!,
+    id: `edge-${index}`,
+  }));
+  const grouped = observe(init(), {
+    ...frame,
+    document: { ...createOperationDocument({ ...frame.document.graph, edges }), version: 7 },
+    assessments: edges.map((edge) => ({
+      ...frame.assessments![0]!,
+      operationId: edge.id,
+      assessment: { ...assessment, target: { ...assessment.target, relationshipId: edge.id } },
+    })),
+  });
+  const wide = update(grouped, Message.RecordedWidth({ width: 300 })).model;
+  const second = await render(update(wide, Message.ClickedPage({ delta: 1 })).model);
+  expect(second).toContain('13 of 13 relationships have comparable outcomes');
+  expect(second).toContain('1 assessed of 1 displayed relationships');
+  expect(second).toContain('C4 containers · Next quarter · balanced-coupling-binary/v1.');
 });

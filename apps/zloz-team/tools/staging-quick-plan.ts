@@ -14,7 +14,10 @@ const workerIds = ['ZlozTeamServer', 'ZlozTeamStagingApp'];
 const isTeamsWorker = (row: StackPlan['resources'][number]) =>
   workerIds.includes(row.fqn) && row.resourceType === 'Cloudflare.Worker';
 
-export function rejectQuickStagingPlan(plan: Pick<StackPlan, 'stack' | 'resources' | 'actions'>) {
+export function rejectQuickStagingPlan(
+  plan: Pick<StackPlan, 'stack' | 'resources' | 'actions'>,
+  boardRelease = false,
+) {
   if (plan.stack.name !== STAGING_STACK || plan.stack.stage !== 'staging')
     return new QuickStagingPlanRejected({ message: 'The plan must target Teams staging.' });
   for (const worker of workerIds) {
@@ -32,7 +35,12 @@ export function rejectQuickStagingPlan(plan: Pick<StackPlan, 'stack' | 'resource
   )
     return new QuickStagingPlanRejected({ message: 'The existing backend binding is required.' });
   for (const row of plan.resources) {
-    if (row.action !== 'noop' && (row.action !== 'update' || !isTeamsWorker(row)))
+    const boardDatabase =
+      boardRelease && row.fqn === 'ZlozTeamAuth' && row.resourceType === 'Cloudflare.D1Database';
+    if (
+      row.action !== 'noop' &&
+      (row.action !== 'update' || !(isTeamsWorker(row) || boardDatabase))
+    )
       return new QuickStagingPlanRejected({ message: `${row.fqn} requires ${row.action}.` });
     if (row.bindings.some((binding) => binding.action !== 'noop'))
       return new QuickStagingPlanRejected({ message: `${row.fqn} has binding changes.` });

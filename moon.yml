@@ -39,6 +39,7 @@ tasks:
       - '/.moon/tasks/**/*'
       - '/**/moon.yml'
       - '/**/package.json'
+      - '/vitest.config.ts'
       - '/release-please-config.json'
       - '/.release-please-manifest.json'
 

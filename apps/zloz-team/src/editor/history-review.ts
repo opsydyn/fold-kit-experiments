@@ -17,6 +17,7 @@ import {
 import {
   zlozEditionScrubberInput,
   zlozHistoryGhosts,
+  zlozPlaybackControl,
   zlozPlaybackControls,
   zlozView,
 } from '@opsydyn/foldkit-zloz/foldkit';
@@ -24,6 +25,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { graphAt, type History } from './evolution';
+import { workshopChangeLabel, workshopGhost } from './workshop-ghost';
 
 function editionAt(history: History, id: string) {
   const graph = graphAt(history, Number(id));
@@ -102,69 +104,29 @@ export function historyView<M>(
     label: 'Review version',
     labelEdition: (id) => `Version ${id}`,
   });
+  const changeRow = (
+    change: ZlozHistoryComparison['nodes'][number] | ZlozHistoryComparison['edges'][number],
+    workshopLabel?: string,
+  ) => {
+    const label = (change.after ?? change.before)?.label || change.id;
+    const detail =
+      change.kind === 'changed'
+        ? [change.semanticChanged ? 'content' : '', change.layoutChanged ? 'geometry' : '']
+            .filter(Boolean)
+            .join(' and ')
+        : '';
+    const summary = workshopLabel ?? `${change.kind}${detail ? ` (${detail})` : ''}`;
+    return h.li([], [`${label} · ${summary}`]);
+  };
   const changes = comparison
-    ? [...comparison.nodes, ...comparison.edges].map((change) => {
-        const label = (change.after ?? change.before)?.label || change.id;
-        const detail =
-          change.kind === 'changed'
-            ? [change.semanticChanged ? 'content' : '', change.layoutChanged ? 'geometry' : '']
-                .filter(Boolean)
-                .join(' and ')
-            : '';
-        return h.li([], [`${label} · ${change.kind}${detail ? ` (${detail})` : ''}`]);
-      })
+    ? [
+        ...comparison.nodes.map((change) => changeRow(change, workshopChangeLabel(change))),
+        ...comparison.edges.map((change) => changeRow(change)),
+      ]
     : [];
   return h.section(
     [h.Class('team-history'), h.AriaLabel('Board history')],
     [
-      h.header(
-        [h.Class('team-history-controls')],
-        [
-          h.button(
-            [h.Id('history-back-live'), h.Type('button'), h.OnClick(actions.close)],
-            ['Back to live'],
-          ),
-          h.strong([], [`Read-only · Version ${review.editionId}`]),
-          h.span([], [`Live version ${latest}`]),
-          zlozEditionScrubberInput(h, scrubber, ({ editionId }) =>
-            actions.playback({ type: 'EditionSelected', id: editionId ?? '' }),
-          ),
-          h.label(
-            [],
-            [
-              'Compare with',
-              h.select(
-                [h.Value(baseline), h.OnChange(actions.baseline)],
-                [
-                  h.option([h.Value('')], ['No comparison']),
-                  ...history.samples.map(({ version }) =>
-                    h.option(
-                      [h.Key(String(version)), h.Value(String(version))],
-                      [`Version ${version}`],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          zlozPlaybackControls(
-            h,
-            resolveEditionPlaybackControls(cursor, { editionLabel: `Version ${review.editionId}` }),
-            actions.playback,
-          ),
-          ...(comparison
-            ? [
-                h.details(
-                  [],
-                  [
-                    h.summary([], [`Changes from version ${baseline} (${changes.length})`]),
-                    changes.length ? h.ul([], changes) : h.p([], ['No graph changes.']),
-                  ],
-                ),
-              ]
-            : []),
-        ],
-      ),
       zlozView(h, review.editor, {
         id: 'history-diagram',
         label: 'Historical diagram',
@@ -176,9 +138,143 @@ export function historyView<M>(
         edgeToolbar: false,
         viewportControls: true,
         autoPan: false,
+        renderCanvasHelp: (_context, builder) =>
+          builder.span(
+            [],
+            ['Drag the background to pan. Scroll to zoom. Use the timeline to review a version.'],
+          ),
+        renderLayout: ({ canvas, help, controls, status, connections }, builder) =>
+          builder.div(
+            [builder.Class('rewind-canvas')],
+            [
+              canvas,
+              builder.details(
+                [builder.Class('rewind-navigation')],
+                [
+                  builder.summary([], ['Canvas controls']),
+                  ...(controls ? [controls] : []),
+                  help,
+                  builder.details([], [builder.summary([], ['Relationships']), connections]),
+                ],
+              ),
+              status,
+            ],
+          ),
         renderWorldOverlay: (_context, builder) =>
-          comparison ? zlozHistoryGhosts(builder, comparison) : null,
+          comparison ? zlozHistoryGhosts(builder, comparison, { renderNode: workshopGhost }) : null,
       }),
+      h.footer(
+        [h.Class('team-history-controls'), h.AriaLabel('Rewind transport')],
+        [
+          h.div(
+            [h.Class('rewind-readouts')],
+            [
+              h.strong([], [`Read-only · Version ${review.editionId}`]),
+              h.span([], [`Live version ${latest}`]),
+              h.button(
+                [h.Id('history-back-live'), h.Type('button'), h.OnClick(actions.close)],
+                ['Back to live'],
+              ),
+            ],
+          ),
+          h.div(
+            [h.Class('rewind-deck')],
+            [
+              zlozPlaybackControls(h, resolveEditionPlaybackControls(cursor), actions.playback, {
+                controls: ['rewind', 'previous', 'play', 'pause', 'next'],
+                attributes: [h.Class('rewind-keys')],
+                renderControl: (control, builder, onEvent) =>
+                  zlozPlaybackControl(
+                    builder,
+                    control,
+                    onEvent,
+                    control.reason === null ? [builder.Title(control.label)] : [],
+                    [
+                      builder.span(
+                        [builder.AriaHidden(true)],
+                        [
+                          { previous: '│◀', play: '▶', pause: 'Ⅱ', next: '▶│', rewind: '◀◀' }[
+                            control.name
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                renderReason: () => null,
+              }),
+              h.div(
+                [
+                  h.Class('rewind-scale'),
+                  h.Style({
+                    '--rewind-intervals': String(Math.max(1, history.samples.length - 1)),
+                  }),
+                ],
+                [
+                  zlozEditionScrubberInput(h, scrubber, ({ editionId }) =>
+                    actions.playback({ type: 'EditionSelected', id: editionId ?? '' }),
+                  ),
+                  h.div(
+                    [h.Class('rewind-range')],
+                    [
+                      history.samples.length === 1
+                        ? 'Only one version in this session window'
+                        : `Session window · Versions ${history.samples[0]?.version}–${history.samples.at(-1)?.version}`,
+                    ],
+                  ),
+                ],
+              ),
+              ...(history.samples.length > 1
+                ? [
+                    h.label(
+                      [h.Class('rewind-compare')],
+                      [
+                        'Compare with',
+                        h.select(
+                          [h.Value(baseline), h.OnChange(actions.baseline)],
+                          [
+                            h.option([h.Value('')], ['No comparison']),
+                            ...history.samples.map(({ version }) =>
+                              h.option(
+                                [h.Key(String(version)), h.Value(String(version))],
+                                [`Version ${version}`],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ]
+                : []),
+            ],
+          ),
+          ...(cursor.reducedMotion && history.samples.length > 1
+            ? [h.small([], ['Reduced motion · Step or scrub manually.'])]
+            : []),
+          ...(comparison
+            ? [
+                h.div(
+                  [h.Class('rewind-changes')],
+                  [
+                    h.button(
+                      [h.Type('button'), h.Popovertarget('history-diff')],
+                      [`Changes from version ${baseline} (${changes.length})`],
+                    ),
+                    h.div(
+                      [
+                        h.Id('history-diff'),
+                        h.Popover('auto'),
+                        h.Class('rewind-diff'),
+                        h.Role('region'),
+                        h.AriaLabel('Version differences'),
+                      ],
+                      [changes.length ? h.ul([], changes) : h.p([], ['No graph changes.'])],
+                    ),
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
     ],
   );
 }

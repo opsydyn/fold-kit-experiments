@@ -9,6 +9,8 @@ import { bootstrapTeam, problem } from './bootstrap';
 import { epochSql } from './date-sql';
 import { BodyRejected, bodyText } from './http-body';
 import {
+  boardSearch,
+  directoryPageSize,
   BootstrapCommand,
   CancelCommand,
   InviteCommand,
@@ -231,12 +233,15 @@ async function teamRoute(request: Request, db: D1Database, auth: NativeAuth, ori
               .all<{ id: string; email: string; role: Role; expiresAt: number; status: string }>()
           ).results
         : [];
+    const { q, page } = boardSearch(url.searchParams);
     const diagrams = (
       await db
         .prepare(
-          'SELECT diagramId AS id, name, updatedAt FROM diagramDirectory WHERE organizationId = ? ORDER BY updatedAt DESC LIMIT 100',
+          `SELECT diagramId AS id, name, updatedAt FROM diagramDirectory
+           WHERE organizationId = ? AND instr(lower(name), lower(?)) > 0
+           ORDER BY updatedAt DESC, diagramId ASC LIMIT ? OFFSET ?`,
         )
-        .bind(teamId)
+        .bind(teamId, q, directoryPageSize + 1, (page - 1) * directoryPageSize)
         .all<{ id: string; name: string; updatedAt: number }>()
     ).results;
     return json({
@@ -245,7 +250,8 @@ async function teamRoute(request: Request, db: D1Database, auth: NativeAuth, ori
       currentUserId: session.user.id,
       members,
       invitations,
-      diagrams,
+      diagrams: diagrams.slice(0, directoryPageSize),
+      moreDiagrams: diagrams.length > directoryPageSize,
     });
   }
   if (request.method !== 'POST' || !action)

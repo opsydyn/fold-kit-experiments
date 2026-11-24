@@ -7,11 +7,12 @@ import {
   recoverOperationDocument,
 } from '@opsydyn/foldkit-zloz';
 import { operationHash } from '@opsydyn/foldkit-zloz-alchemy/hash';
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
+import { renderToString } from 'foldkit/experimental/server';
 
 import fixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import { feedDescriptor } from '../src/editor/feed-state';
-import { init, Message, saveStatus, update } from '../src/editor/main';
+import { init, Message, saveStatus, update, view } from '../src/editor/main';
 
 const props = {
   teamId: 'team',
@@ -931,4 +932,88 @@ test('learning a recovery marker late preserves edits acknowledged after that re
     type: 'Undo',
     operationId: next.request.operationId,
   });
+});
+
+test('History opens the latest confirmed version in focus mode and leaves the live session intact', () => {
+  const focused = update(ready(), Message.ToggledBoardFocus()).model;
+  const reviewing = update(focused, Message.OpenedLatestHistory()).model;
+  expect(reviewing.historyReview).toBeTruthy();
+  expect(reviewing.session).toBe(focused.session);
+  const returned = update(reviewing, Message.ClosedHistory()).model;
+  expect(returned.focusedBoard).toBe(true);
+  expect(returned.session).toBe(focused.session);
+  const offline = update(
+    focused,
+    Message.ObservedDisconnect({ room, run: 0, reason: 'failure' }),
+  ).model;
+  expect(update(offline, Message.OpenedLatestHistory()).model).toBe(offline);
+});
+
+test('rewind keeps the historical canvas above its transport as live advances and returns to the new live version in one action', async () => {
+  const live = ready();
+  const reviewing = update(live, Message.OpenedLatestHistory()).model;
+  const peer = await preparedOwnEdit(live);
+  const advanced = update(
+    reviewing,
+    Message.ObservedFrame({ room, run: 0, frame: peer.confirmed }),
+  ).model;
+  expect(advanced.historyReview).toBe(reviewing.historyReview);
+  const rendered = await Effect.runPromise(
+    renderToString(
+      {
+        Flags: Schema.Struct({}),
+        init: () => ({ model: advanced }),
+        view,
+      },
+      { flags: {}, isHydratable: false },
+    ),
+  );
+  expect(rendered.html).toContain('Read-only · Version 0');
+  expect(rendered.html).toContain('Live version 1');
+  expect(rendered.html).toContain('Only one version in this session window');
+  expect(rendered.html.indexOf('id="history-diagram"')).toBeGreaterThan(-1);
+  expect(rendered.html.indexOf('id="history-back-live"')).toBeGreaterThan(
+    rendered.html.indexOf('id="history-diagram"'),
+  );
+  const returned = update(advanced, Message.ClosedHistory()).model;
+  expect(returned.historyReview).toBeNull();
+  expect(returned.session.confirmed?.document.version).toBe(1);
+  expect(returned.session).toBe(advanced.session);
+  expect(returned.session.pending).toBeNull();
+});
+
+test('manual rewind steps across the confirmed window with reduced motion and keeps live edits intact', async () => {
+  const initial = ready();
+  const advance = await preparedOwnEdit(initial);
+  const live = update(
+    initial,
+    Message.ObservedFrame({ room, run: 0, frame: advance.confirmed }),
+  ).model;
+  const reviewing = update(
+    { ...live, historyReducedMotion: true },
+    Message.OpenedLatestHistory(),
+  ).model;
+  const stepped = update(
+    reviewing,
+    Message.ChangedHistoryPlayback({
+      run: reviewing.historyRun,
+      event: { type: 'PreviousClicked' },
+    }),
+  ).model;
+  const rendered = await Effect.runPromise(
+    renderToString(
+      {
+        Flags: Schema.Struct({}),
+        init: () => ({ model: stepped }),
+        view,
+      },
+      { flags: {}, isHydratable: false },
+    ),
+  );
+  expect(rendered.html).toContain('Session window · Versions 0–1');
+  expect(rendered.html).toContain('Reduced motion · Step or scrub manually.');
+  expect(rendered.html).toContain('Read-only · Version 0');
+  expect(rendered.html).toContain('Live version 1');
+  expect(stepped.session).toBe(live.session);
+  expect(stepped.ownEdits).toBe(live.ownEdits);
 });

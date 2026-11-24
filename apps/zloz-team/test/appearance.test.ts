@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import * as Appearance from '../src/appearance/main';
-import { themePreference } from '../src/appearance/preferences';
+import { themePreference, toolLabelsPreference } from '../src/appearance/preferences';
 import { Connection } from '../src/editor/feed-state';
 import { init, Message, update } from '../src/editor/main';
 
@@ -70,4 +70,38 @@ test('canvas emphasis changes no shared state, geometry, version, commands or Un
   expect(result.model.ownEdits).toBe(before.ownEdits);
   expect(result.model.serial).toBe(before.serial);
   expect(result.commands).toBeUndefined();
+});
+
+test('tool labels restore independently of theme and retain the current choice after a failed save', () => {
+  const initial = Appearance.init({ preference: 'dark', toolLabels: 'labelled' }).model;
+  const compact = Appearance.update(
+    initial,
+    Appearance.Message.SelectedToolLabels({ value: 'icons' }),
+  );
+  expect(compact.commands).toHaveLength(1);
+  expect(compact.model.preference).toBe('dark');
+  const stale = Appearance.update(
+    compact.model,
+    Appearance.Message.SettledToolLabels({ value: 'labelled', saved: false }),
+  );
+  expect(stale.model).toBe(compact.model);
+  const failed = Appearance.update(
+    stale.model,
+    Appearance.Message.SettledToolLabels({ value: 'icons', saved: false }),
+  );
+  expect(failed.model.toolLabels).toBe('icons');
+  expect(failed.model.labelsNotice).toContain('for this visit');
+  const light = Appearance.update(
+    failed.model,
+    Appearance.Message.SelectedThemePreference({ preference: 'light' }),
+  );
+  expect(light.model.toolLabels).toBe('icons');
+  expect(light.model.labelsNotice).toBe(failed.model.labelsNotice);
+});
+
+test('only supported tool label cookies restore on a subsequent request', () => {
+  expect(toolLabelsPreference('labelled')).toBe('labelled');
+  for (const value of [undefined, 'icons', 'LABELLED', 'labelled; other=value']) {
+    expect(toolLabelsPreference(value)).toBe('icons');
+  }
 });

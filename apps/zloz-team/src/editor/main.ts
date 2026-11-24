@@ -2,6 +2,7 @@ import {
   createEditor,
   decideOperation,
   projectAggregate,
+  resolveEventStormingRelationship,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
 import type {
@@ -61,7 +62,7 @@ import { observe as observeCoupling, update as updateCoupling } from './coupling
 import { view as couplingView } from './coupling/view';
 import { revealEdgeStrokes, introducedEdges } from './edge-motion';
 import * as Evolution from './evolution';
-import { view as evolutionView } from './evolution-view';
+import { view as evolutionView, type Perspective as EvolutionPerspective } from './evolution-view';
 import {
   Connection,
   ReconnectDelay,
@@ -98,6 +99,7 @@ import {
   WorkshopRole,
   WorkshopStatus,
 } from './workshop';
+import { journey, journeyView } from './workshop-journey';
 
 export { slow } from './diagnostics';
 
@@ -109,10 +111,18 @@ const canvasModeLabels = {
   'event-storming': 'Event Storming',
   neutral: 'Neutral view',
 } satisfies Record<typeof CanvasEmphasis.Type, string>;
-const Inspector = Schema.Literals(['selection', 'coupling', 'aggregate', 'evolution', 'opy']);
+const Inspector = Schema.Literals([
+  'selection',
+  'coupling',
+  'aggregate',
+  'evolution',
+  'opy',
+  'journey',
+]);
 const Rail = Schema.Literals(['tools', 'inspector']);
 const compactBoardQuery = '(max-width: 1080px)';
 export const Props = Schema.Struct({
+  startingView: Schema.optional(CanvasEmphasis),
   teamId: Schema.String,
   diagramId: Schema.String,
   actorId: Schema.String,
@@ -144,6 +154,13 @@ const FeedProgress = Schema.Struct({
   cursor: Schema.Number,
   sourceVersion: Schema.Number,
 });
+const workshopLinkHint = {
+  produces: 'To add Produces, connect a command output to a domain event input.',
+  activates: 'To add Activates, connect a domain event output to a policy input.',
+  triggers: 'To add Triggers, connect a policy output to a command input.',
+} as const;
+const WorkshopLink = Schema.Literals(['plain', 'produces', 'activates', 'triggers']);
+
 export const Model = Schema.Struct({
   feedMode: Schema.Literals(['legacy', 'delta']),
   feedSeeds: Schema.Array(FeedSeed),
@@ -159,6 +176,7 @@ export const Model = Schema.Struct({
   historyReducedMotion: Schema.Boolean,
   historyVisible: Schema.Boolean,
   inspector: Inspector,
+  journey: Schema.Struct({ start: Schema.String, via: Schema.Array(Schema.String) }),
   rails: Schema.Struct({ tools: Schema.Boolean, inspector: Schema.Boolean }),
   compactBoard: Schema.Boolean,
   drawer: Schema.NullOr(Rail),
@@ -205,6 +223,7 @@ export const Model = Schema.Struct({
   cursor: Schema.NullOr(Schema.Struct({ x: Schema.Number, y: Schema.Number })),
   error: Schema.String,
   emphasis: CanvasEmphasis,
+  workshopLink: WorkshopLink,
 });
 export type Model = Omit<typeof Model.Type, 'coupling' | 'svg'> &
   Readonly<{ coupling: Coupling.Model; svg: Svg.Review | null }>;
@@ -276,10 +295,15 @@ export const Message = defineMessageUnion({
   SucceededEdit: { room: Room, reply: Schema.Unknown },
   FailedEdit: { room: Room, operationId: Schema.String },
   GotAssessmentMessage: { room: Room, message: Assessment.Message },
+  SelectedWorkshopLink: { meaning: WorkshopLink },
   SelectedCanvasEmphasis: { emphasis: CanvasEmphasis },
+  ChoseJourneyStart: { id: Schema.String },
+  FollowedJourneyLink: { id: Schema.String },
+  SteppedBackInJourney: { edgeId: Schema.String, depth: Schema.Number },
   SelectedInspector: { inspector: Inspector },
   SelectedEvolutionVersion: { value: Schema.String },
-  OpenedHistory: { version: Schema.Number },
+  OpenedLatestHistory: {},
+  OpenedHistory: { version: Schema.Number, baseline: Schema.optional(Schema.Number) },
   ClosedHistory: {},
   OpenedBoardImport: {},
   ClosedBoardImport: {},
@@ -323,7 +347,7 @@ export const Message = defineMessageUnion({
   LoadedSvgIcons: { run: Schema.Number, images: Schema.Record(Schema.String, Schema.String) },
   ObservedSvgReview: { request: Schema.Unknown },
   SelectedLayoutMethod: { method: Layout.Method },
-  ClickedLayoutPreview: {},
+  ClickedLayoutPreview: { method: Schema.optional(Layout.Method) },
   DiscardedLayoutPreview: {},
   ClickedApplyLayout: { run: Schema.Number },
   SettledLayoutPreview: { room: Room, run: Schema.Number, result: Layout.Task },
@@ -671,10 +695,12 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         peers: [],
         cursor: null,
         error: '',
-        emphasis: 'c4',
+        workshopLink: 'plain' as const,
+        emphasis: props.startingView ?? 'c4',
         assessment,
         coupling,
         inspector: 'selection',
+        journey: { start: '', via: [] },
         evolution: Evolution.empty,
         historyReview: null,
         historyRun: 0,
@@ -973,10 +999,10 @@ function importChild(model: Model, format: 'likec4' | 'alchemy') {
   return DiagramImport.init(format === 'alchemy' ? { ...props, format } : props).model;
 }
 
-const supportedLayoutSelection = (model: Model) =>
+const supportedLayoutSelection = (model: Model, method = model.layoutMethod) =>
   isLiveConnection(model.connection) &&
   editor(model).gesture.type === 'idle' &&
-  editor(model).selectedNodes.length >= Layout.methods[model.layoutMethod].minimum;
+  editor(model).selectedNodes.length >= Layout.methods[method].minimum;
 const layoutStaleReason = (model: Model, proposal: Layout.Proposal) =>
   Layout.staleReason(proposal, model.session.confirmed?.document, editor(model).selectedNodes);
 function layoutApplyReason(model: Model, stale: string | null) {
@@ -994,6 +1020,30 @@ function withRailChange(before: Model, next: Model): Model {
   return {
     ...next,
     coupling: couplingVisible(next) ? observeCoupling(coupling, next.session.confirmed) : coupling,
+  };
+}
+
+function navigableJourney(model: Model) {
+  const graph = session(model).confirmed?.document.graph;
+  return graph && model.inspector === 'journey' && editor(model).gesture.type === 'idle'
+    ? journey(graph, model.journey)
+    : null;
+}
+function revealJourneyStep(
+  model: Model,
+  via: readonly string[],
+  nodeId: string,
+): Return<Model, Message> {
+  const revealed = update(
+    { ...model, journey: { ...model.journey, via } },
+    canvasEvent({ type: 'NodeRevealRequested', id: nodeId }),
+  );
+  return {
+    model: revealed.model,
+    commands: [
+      ...(revealed.commands ?? []),
+      FocusBoardControl({ selector: '#journey-current-note' }),
+    ],
   };
 }
 
@@ -1036,7 +1086,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
                 },
               }),
         }),
-        commands: open ? [FocusBoardControl({ selector: `#board-${rail}` })] : [],
+        commands: [
+          FocusBoardControl({ selector: open ? `#board-${rail}` : `#board-${rail}-toggle` }),
+        ],
       };
     },
     ToggledBoardFocus: () => ({
@@ -1185,9 +1237,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedLayoutMethod: ({ method }) => ({
       model: { ...model, layoutMethod: method, layout: Layout.Task.Closed() },
     }),
-    ClickedLayoutPreview: () => {
+    ClickedLayoutPreview: ({ method = model.layoutMethod }) => {
       const document = session(model).confirmed?.document;
-      if (!document || !supportedLayoutSelection(model) || model.layout._tag === 'Running')
+      if (!document || !supportedLayoutSelection(model, method) || model.layout._tag === 'Running')
         return { model };
       const run = model.layoutRun + 1;
       const currentEditor = editor(model);
@@ -1195,6 +1247,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: withRailChange(model, {
           ...model,
           layoutRun: run,
+          layoutMethod: method,
           layout: Layout.Task.Running(),
           drawer: model.compactBoard ? null : model.drawer,
           find: null,
@@ -1208,7 +1261,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             document,
             selection: currentEditor.selectedNodes,
             direction: (currentEditor.surface?.width ?? 800) < 600 ? 'DOWN' : 'RIGHT',
-            method: model.layoutMethod,
+            method,
           }),
           FocusBoardControl({ selector: '#board-layout-preview' }),
         ],
@@ -1297,7 +1350,41 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             toParentMessage: (message) => Message.GotOpyMessage({ room, message }),
           })(model, childMessage)
         : { model },
+    ChoseJourneyStart: ({ id }) => {
+      const graph = session(model).confirmed?.document.graph;
+      if (!graph || model.inspector !== 'journey' || editor(model).gesture.type !== 'idle')
+        return { model };
+      const cursor = { start: id, via: [] };
+      if (!id) return { model: { ...model, journey: cursor } };
+      if (!journey(graph, cursor).start) return { model };
+      return update(
+        { ...model, journey: cursor },
+        canvasEvent({ type: 'NodeRevealRequested', id }),
+      );
+    },
+    FollowedJourneyLink: ({ id }) => {
+      const path = navigableJourney(model);
+      const step = path?.choices.find((choice) => choice.id === id);
+      if (!path || !step) return { model };
+      return revealJourneyStep(
+        model,
+        [...path.steps, step].map((edge) => edge.id),
+        step.target.id,
+      );
+    },
+    SteppedBackInJourney: ({ edgeId, depth }) => {
+      const path = navigableJourney(model);
+      if (!path?.start || path.steps.length !== depth || path.steps.at(-1)?.id !== edgeId)
+        return { model };
+      const remaining = path.steps.slice(0, -1);
+      return revealJourneyStep(
+        model,
+        remaining.map((edge) => edge.id),
+        (remaining.at(-1)?.target ?? path.start).id,
+      );
+    },
     SelectedInspector: ({ inspector }) => {
+      if (inspector === 'journey' && model.emphasis !== 'event-storming') return { model };
       if (inspector === model.inspector) return { model };
       const next = withRailChange(model, { ...model, inspector });
       return inspector === 'selection' && model.assessment.status === 'editing'
@@ -1327,7 +1414,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model: { ...model, boardImport: null },
       commands: [
         FocusBoardControl({
-          selector: canOpenBoardImport(model) ? '#board-open-import' : '#shared-diagram-surface',
+          selector:
+            canOpenBoardImport(model) && railVisible(model, 'tools')
+              ? '#board-open-import'
+              : '#board-menu-file-toggle',
         }),
       ],
     }),
@@ -1385,7 +1475,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
       })(model, childMessage);
     },
-    OpenedHistory: ({ version }) => {
+    OpenedLatestHistory: () => {
+      const latest = model.evolution.samples.at(-1);
+      return latest ? update(model, Message.OpenedHistory({ version: latest.version })) : { model };
+    },
+    OpenedHistory: ({ version, baseline }) => {
       if (!isLiveConnection(model.connection) || hasUncommittedEdit(model)) return { model };
       const review = HistoryReview.openHistory(
         model.evolution,
@@ -1395,14 +1489,28 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       );
       return review
         ? {
-            model: { ...model, historyReview: review, historyRun: model.historyRun + 1 },
+            model: {
+              ...model,
+              historyReview:
+                baseline === undefined
+                  ? review
+                  : HistoryReview.chooseBaseline(review, String(baseline)),
+              historyRun: model.historyRun + 1,
+            },
             commands: [FocusBoardControl({ selector: '#history-back-live' })],
           }
         : { model };
     },
     ClosedHistory: () => ({
       model: { ...model, historyReview: null, historyRun: model.historyRun + 1 },
-      commands: [FocusBoardControl({ selector: '#board-open-history' })],
+      commands: [
+        FocusBoardControl({
+          selector:
+            railVisible(model, 'inspector') && model.inspector === 'evolution'
+              ? '#board-open-history'
+              : '#board-history-toggle',
+        }),
+      ],
     }),
     ChangedHistoryPlayback: ({ run, event }) => {
       const review = historyReview(model);
@@ -1552,7 +1660,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         toParentMessage: (message) => Message.GotAssessmentMessage({ room, message }),
       })(model, childMessage);
     },
-    SelectedCanvasEmphasis: ({ emphasis }) => ({ model: { ...model, emphasis } }),
+    SelectedWorkshopLink: ({ meaning }) => ({ model: { ...model, workshopLink: meaning } }),
+    SelectedCanvasEmphasis: ({ emphasis }) => ({
+      model: {
+        ...model,
+        emphasis,
+        inspector:
+          model.inspector === 'journey' && emphasis !== 'event-storming'
+            ? ('selection' as const)
+            : model.inspector,
+        workshopLink: 'plain' as const,
+      },
+    }),
     SucceededIdentity: ({ generation }) => {
       if (model.room.generation) return { model };
       const room = { ...model.room, generation };
@@ -1999,6 +2118,29 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               queuedMove: appendMove(model.queuedMove, result.operation),
             },
           };
+        if (
+          result.operation.type === 'Connect' &&
+          model.emphasis === 'event-storming' &&
+          model.workshopLink !== 'plain'
+        ) {
+          const edge = {
+            ...result.operation.edge,
+            architecture: { family: 'event-storming', role: model.workshopLink } as const,
+          };
+          const decision = resolveEventStormingRelationship(observed.graph, edge);
+          if (decision.type !== 'allowed')
+            return {
+              model: {
+                ...next,
+                base: null,
+                error: workshopLinkHint[model.workshopLink],
+              },
+            };
+          return enqueue(next, {
+            ...result.operation,
+            edge: { ...edge, label: decision.rule.label },
+          });
+        }
         return enqueue(next, result.operation);
       }
       if (
@@ -2449,7 +2591,7 @@ function layoutLauncherView(h: HtmlBuilder<Message>, method: Layout.Method, enab
           h.Type('button'),
           h.Title(`Select at least ${Layout.methods[method].minimum} sibling nodes or groups`),
           h.Disabled(!enabled),
-          h.OnClick(Message.ClickedLayoutPreview()),
+          h.OnClick(Message.ClickedLayoutPreview({ method })),
         ],
         ['Preview selection layout'],
       ),
@@ -2555,20 +2697,32 @@ function svgLauncherView(h: HtmlBuilder<Message>, available: boolean) {
   );
 }
 
+const workshopJourneyInspector = createLazy();
+function workshopJourneyPanel(h: HtmlBuilder<Message>, graph: ZlozGraph, cursor: Model['journey']) {
+  return journeyView(h, journey(graph, cursor), {
+    start: (id) => Message.ChoseJourneyStart({ id }),
+    follow: (id) => Message.FollowedJourneyLink({ id }),
+    back: (edgeId, depth) => Message.SteppedBackInJourney({ edgeId, depth }),
+    reveal: (type, id) =>
+      canvasEvent({ type: type === 'node' ? 'NodeRevealRequested' : 'EdgeRevealRequested', id }),
+  });
+}
 const evolutionInspector = createLazy();
 function evolutionInspectorView(
   h: HtmlBuilder<Message>,
   history: Evolution.History,
   connection: 'live' | 'offline' | 'denied',
   availability: 'available' | 'blocked',
+  perspective: EvolutionPerspective,
 ) {
   return evolutionView(
     h,
     history,
     connection,
     (value) => Message.SelectedEvolutionVersion({ value }),
-    (version) => Message.OpenedHistory({ version }),
+    (version, baseline) => Message.OpenedHistory({ version, baseline }),
     availability,
+    perspective,
   );
 }
 
@@ -2668,6 +2822,127 @@ function svgPanelView(h: HtmlBuilder<Message>, review: Svg.Review, availability:
   );
 }
 
+const commandBar = createLazy();
+
+function commandBarView(
+  h: HtmlBuilder<Message>,
+  teamId: string,
+  role: Model['role'],
+  importAvailable: boolean,
+  exportAvailable: boolean,
+  undoAvailable: boolean,
+  deleteAvailable: boolean,
+  layoutSelection: number,
+  reviewAvailable: boolean,
+  focused: boolean,
+  exportUrl: string,
+  accessEnded: boolean,
+) {
+  // Native popovers provide exclusive opening, Escape, light dismissal and keyboard focus return.
+  const menu = (name: string, contents: (id: string) => ReturnType<typeof h.div>[]) => {
+    const id = `board-menu-${name.toLowerCase()}`;
+    return h.div(
+      [h.Class('board-menu')],
+      [
+        h.button([h.Id(`${id}-toggle`), h.Type('button'), h.Popovertarget(id)], [name]),
+        h.div(
+          [
+            h.Id(id),
+            h.Popover('auto'),
+            h.Class('board-command-list'),
+            h.AriaLabel(name),
+            h.Role('group'),
+          ],
+          contents(id),
+        ),
+      ],
+    );
+  };
+  const action = (id: string, label: string, message: Message, enabled = true) =>
+    h.button(
+      [
+        h.Type('button'),
+        h.Disabled(!enabled || accessEnded),
+        h.Popovertarget(id),
+        h.Popovertargetaction('hide'),
+        h.OnClick(message),
+      ],
+      [label],
+    );
+
+  return h.nav(
+    [h.Class('board-command-bar'), h.AriaLabel('Board commands')],
+    [
+      menu('File', (id) => [
+        action(id, 'Import into empty board…', Message.OpenedBoardImport(), importAvailable),
+        action(
+          id,
+          'Export Mermaid…',
+          Message.OpenedSourceExport({ kind: 'mermaid' }),
+          exportAvailable,
+        ),
+        action(
+          id,
+          'Export LikeC4…',
+          Message.OpenedSourceExport({ kind: 'likec4' }),
+          exportAvailable,
+        ),
+        ...(exportAvailable ? [h.a([h.Href(exportUrl)], ['Download confirmed JSON'])] : []),
+        action(id, 'Export SVG…', Message.OpenedSvg(), exportAvailable),
+        ...(role === 'owner' && !accessEnded
+          ? [h.a([h.Href(`/app/${encodeURIComponent(teamId)}?view=settings`)], ['Team settings'])]
+          : []),
+      ]),
+      menu('Edit', (id) => [
+        action(id, 'Undo my last edit', Message.ClickedUndo(), undoAvailable),
+        action(id, 'Delete selection', Message.ClickedDelete(), deleteAvailable),
+        action(id, 'Find on board…', Message.OpenedFind()),
+      ]),
+      menu('View', (id) => [
+        action(id, focused ? 'Exit focus' : 'Focus board', Message.ToggledBoardFocus()),
+        action(id, 'Review latest version', Message.OpenedLatestHistory(), reviewAvailable),
+      ]),
+      menu('Arrange', (id) =>
+        Layout.Method.literals.map((method) =>
+          action(
+            id,
+            Layout.methods[method].label + '…',
+            Message.ClickedLayoutPreview({ method }),
+            layoutSelection >= Layout.methods[method].minimum,
+          ),
+        ),
+      ),
+      menu('Help', () => [
+        h.p(
+          [],
+          [
+            'Drag the background to pan. Scroll to zoom. Use Find to locate a node or relationship.',
+          ],
+        ),
+        ...(role !== 'viewer' && !accessEnded
+          ? [
+              h.p(
+                [],
+                [
+                  'Move a node by its title or focus the title and press an arrow key. Escape cancels the gesture.',
+                ],
+              ),
+            ]
+          : []),
+      ]),
+      h.button(
+        [
+          h.Type('button'),
+          h.Id('board-history-toggle'),
+          h.Disabled(accessEnded || !reviewAvailable),
+          h.OnClick(Message.OpenedLatestHistory()),
+        ],
+        ['History'],
+      ),
+    ],
+  );
+}
+
 function boardControlsView(
   h: HtmlBuilder<Message>,
   toolsOpen: boolean,
@@ -2681,6 +2956,7 @@ function boardControlsView(
       [
         h.Type('button'),
         h.Disabled(accessEnded),
+        h.Id(`board-${rail}-toggle`),
         h.AriaControls(`board-${rail}`),
         h.AriaExpanded(open),
         h.OnClick(Message.ToggledBoardRail({ rail })),
@@ -2775,7 +3051,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   if (review) {
     const run = model.historyRun;
     return {
-      title: model.name,
+      title: `${model.name} | ZLOZ`,
       body: HistoryReview.historyView(h, review, session(model).confirmed?.document.version ?? -1, {
         close: Message.ClosedHistory(),
         playback: (event) => Message.ChangedHistoryPlayback({ run, event }),
@@ -2826,7 +3102,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const matches = findOpen ? findMatches(currentEditor, model.find ?? '') : [];
   const findLimit = 20;
   return {
-    title: model.name,
+    title: `${model.name} | ZLOZ`,
     body: h.div(
       [
         h.Class('shared-editor'),
@@ -2841,6 +3117,27 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.div(
           [h.Class('canvas-toolbar'), h.Role('group'), h.AriaLabel('Board controls')],
           [
+            commandBar(commandBarView, [
+              h,
+              model.room.teamId,
+              model.role,
+              canOpenBoardImport(model) && !model.boardImport,
+              exportDocument !== undefined,
+              !disabled && model.ownEdits.length > 0,
+              !disabled &&
+                (currentEditor.selectedNodes.length > 0 || currentEditor.selectedEdges.length > 0),
+              isLiveConnection(model.connection) &&
+              currentEditor.gesture.type === 'idle' &&
+              model.layout._tag !== 'Running'
+                ? currentEditor.selectedNodes.length
+                : 0,
+              isLiveConnection(model.connection) &&
+                !hasUncommittedEdit(model) &&
+                model.evolution.samples.length > 0,
+              model.focusedBoard,
+              `${pathFor(model.room)}/export`,
+              accessEnded,
+            ]),
             boardControls(boardControlsView, [
               h,
               toolsOpen,
@@ -3030,12 +3327,47 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     ),
                   ],
                 ),
+                ...(workshopMode && model.role !== 'viewer'
+                  ? [
+                      h.label(
+                        [h.Class('canvas-mode')],
+                        [
+                          'Connection meaning',
+                          h.select(
+                            [
+                              h.Value(model.workshopLink),
+                              h.Disabled(disabled),
+                              h.OnChange((value) =>
+                                Message.SelectedWorkshopLink({
+                                  meaning: Schema.is(WorkshopLink)(value)
+                                    ? value
+                                    : model.workshopLink,
+                                }),
+                              ),
+                            ],
+                            [
+                              h.option([h.Value('plain')], ['Plain connection']),
+                              h.option(
+                                [h.Value('produces')],
+                                ['Produces · command → domain event'],
+                              ),
+                              h.option(
+                                [h.Value('activates')],
+                                ['Activates · domain event → policy'],
+                              ),
+                              h.option([h.Value('triggers')], ['Triggers · policy → command']),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]
+                  : []),
                 h.p(
                   [h.Class('mode-note')],
                   [
                     workshopMode
                       ? 'Capture what happened and flag questions for the team.'
-                      : 'Switching views preserves your diagram.',
+                      : 'View applies only to you.',
                   ],
                 ),
                 h.div(
@@ -3110,25 +3442,37 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           ),
                         ]
                       : []),
-                    h.button(
+                    h.div(
+                      [h.Class('rail-edit-tools'), h.Role('group'), h.AriaLabel('Edit selection')],
                       [
-                        h.Type('button'),
-                        h.Disabled(disabled || !model.ownEdits.length),
-                        h.OnClick(Message.ClickedUndo()),
-                      ],
-                      [teamIcon(h, 'arrow-counter-clockwise'), h.span([], ['Undo my last edit'])],
-                    ),
-                    h.button(
-                      [
-                        h.Type('button'),
-                        h.Disabled(
-                          disabled ||
-                            (!currentEditor.selectedNodes.length &&
-                              !currentEditor.selectedEdges.length),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Disabled(disabled || !model.ownEdits.length),
+                            h.Title('Undo my last edit'),
+                            h.AriaLabel('Undo my last edit'),
+                            h.OnClick(Message.ClickedUndo()),
+                          ],
+                          [
+                            teamIcon(h, 'arrow-counter-clockwise'),
+                            h.span([], ['Undo my last edit']),
+                          ],
                         ),
-                        h.OnClick(Message.ClickedDelete()),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Disabled(
+                              disabled ||
+                                (!currentEditor.selectedNodes.length &&
+                                  !currentEditor.selectedEdges.length),
+                            ),
+                            h.Title('Delete selection'),
+                            h.AriaLabel('Delete selection'),
+                            h.OnClick(Message.ClickedDelete()),
+                          ],
+                          [teamIcon(h, 'trash'), h.span([], ['Delete selection'])],
+                        ),
                       ],
-                      [teamIcon(h, 'trash'), h.span([], ['Delete selection'])],
                     ),
                   ],
                 ),
@@ -3239,6 +3583,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           ],
                           [
                             h.option([h.Value('selection')], ['Selection and authoring']),
+                            ...(workshopMode
+                              ? [h.option([h.Value('journey')], ['Workshop journey'])]
+                              : []),
                             h.option([h.Value('aggregate')], ['Aggregate']),
                             h.option([h.Value('coupling')], ['Balanced Coupling map']),
                             h.option([h.Value('evolution')], ['Diagram Evolution']),
@@ -3280,206 +3627,222 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                   ])
                                 : h.p([], ['Opening diagram…']),
                           ]
-                      : model.inspector === 'evolution'
+                      : model.inspector === 'journey'
                         ? [
-                            evolutionInspector(evolutionInspectorView, [
-                              h,
-                              model.evolution,
-                              accessEnded
-                                ? 'denied'
-                                : isLiveConnection(model.connection)
-                                  ? 'live'
-                                  : 'offline',
-                              !hasUncommittedEdit(model) && isLiveConnection(model.connection)
-                                ? 'available'
-                                : 'blocked',
-                            ]),
+                            accessEnded
+                              ? h.p([], ['Access ended.'])
+                              : state.confirmed
+                                ? workshopJourneyInspector(workshopJourneyPanel, [
+                                    h,
+                                    state.confirmed.document.graph,
+                                    model.journey,
+                                  ])
+                                : h.p([], ['Opening diagram…']),
                           ]
-                        : model.inspector === 'coupling'
+                        : model.inspector === 'evolution'
                           ? [
-                              ...(model.assessment.status === 'editing'
-                                ? [
-                                    h.div(
-                                      [h.Class('coupling-notice')],
-                                      [
-                                        h.p(
-                                          [h.Role('status')],
-                                          [
-                                            `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
-                                          ],
-                                        ),
-                                        h.button(
-                                          [
-                                            h.Type('button'),
-                                            h.OnClick(
-                                              Message.SelectedInspector({ inspector: 'selection' }),
-                                            ),
-                                          ],
-                                          ['Return to assessment'],
-                                        ),
-                                      ],
-                                    ),
-                                  ]
-                                : []),
-                              couplingView(
-                                model.coupling,
+                              evolutionInspector(evolutionInspectorView, [
                                 h,
-                                (message) =>
-                                  Message.GotCouplingMessage({ room: model.room, message }),
-                                {
-                                  selectedId: currentEditor.selectedEdges[0] ?? null,
-                                  connectionNotice:
-                                    model.connection._tag === 'Live' ||
-                                    model.connection._tag === 'Handoff'
-                                      ? ''
-                                      : 'Showing the last confirmed assessments while the connection is unavailable.',
-                                },
-                              ),
+                                model.evolution,
+                                accessEnded
+                                  ? 'denied'
+                                  : isLiveConnection(model.connection)
+                                    ? 'live'
+                                    : 'offline',
+                                !hasUncommittedEdit(model) && isLiveConnection(model.connection)
+                                  ? 'available'
+                                  : 'blocked',
+                                workshopMode ? 'workshop' : 'architecture',
+                              ]),
                             ]
-                          : [
-                              h.h2([h.Class('rail-heading')], ['Selection inspector']),
-                              ...(selected
-                                ? [
-                                    h.label(
-                                      [],
-                                      [
-                                        'Node label',
-                                        h.input([
-                                          h.Value(model.draft),
-                                          h.Disabled(disabled),
-                                          h.Maxlength(500),
-                                          h.OnInput((text) => Message.ChangedLabel({ text })),
-                                        ]),
-                                      ],
-                                    ),
-                                    h.button(
-                                      [
-                                        h.Type('button'),
-                                        h.Disabled(disabled || !model.draft.trim()),
-                                        h.OnClick(Message.ClickedRename()),
-                                      ],
-                                      ['Rename node'],
-                                    ),
-                                    ...(selectedHotspot &&
-                                    selectedHotspotClock?.present &&
-                                    model.role !== 'viewer'
-                                      ? [
+                          : model.inspector === 'coupling'
+                            ? [
+                                ...(model.assessment.status === 'editing'
+                                  ? [
+                                      h.div(
+                                        [h.Class('coupling-notice')],
+                                        [
+                                          h.p(
+                                            [h.Role('status')],
+                                            [
+                                              `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
+                                            ],
+                                          ),
                                           h.button(
                                             [
                                               h.Type('button'),
-                                              h.Disabled(disabled),
                                               h.OnClick(
-                                                Message.ClickedHotspotStatus({
-                                                  id: selected.id,
-                                                  expected: selectedHotspotClock.hotspot ?? 0,
-                                                  status:
-                                                    selectedHotspot === 'open'
-                                                      ? 'resolved'
-                                                      : 'open',
+                                                Message.SelectedInspector({
+                                                  inspector: 'selection',
                                                 }),
                                               ),
                                             ],
-                                            [
-                                              selectedHotspot === 'open'
-                                                ? 'Resolve hotspot'
-                                                : 'Reopen hotspot',
-                                            ],
+                                            ['Return to assessment'],
                                           ),
-                                        ]
-                                      : []),
-                                    ...infrastructureDetails(h, selected),
-                                    ...(model.role !== 'viewer' && selected.kind !== 'group'
-                                      ? [
-                                          iconPickerToggle(iconPickerToggleView, [
-                                            h,
-                                            model.icons.open,
-                                            disabled,
+                                        ],
+                                      ),
+                                    ]
+                                  : []),
+                                couplingView(
+                                  model.coupling,
+                                  h,
+                                  (message) =>
+                                    Message.GotCouplingMessage({ room: model.room, message }),
+                                  {
+                                    selectedId: currentEditor.selectedEdges[0] ?? null,
+                                    connectionNotice:
+                                      model.connection._tag === 'Live' ||
+                                      model.connection._tag === 'Handoff'
+                                        ? ''
+                                        : 'Showing the last confirmed assessments while the connection is unavailable.',
+                                  },
+                                ),
+                              ]
+                            : [
+                                h.h2([h.Class('rail-heading')], ['Selection inspector']),
+                                ...(selected
+                                  ? [
+                                      h.label(
+                                        [],
+                                        [
+                                          'Node label',
+                                          h.input([
+                                            h.Value(model.draft),
+                                            h.Disabled(disabled),
+                                            h.Maxlength(500),
+                                            h.OnInput((text) => Message.ChangedLabel({ text })),
                                           ]),
-                                          ...(model.icons.open && !disabled
-                                            ? [
-                                                TeamIcons.view(
-                                                  h,
-                                                  model.icons,
-                                                  model.room.teamId,
-                                                  selected.icon,
-                                                  model.role === 'owner',
-                                                  {
-                                                    tab: (tab) => Message.SelectedIconTab({ tab }),
-                                                    choose: (icon) =>
-                                                      Message.ChoseNodeIcon({ icon }),
-                                                    upload: (file) =>
-                                                      Message.SelectedIconFile({ file }),
-                                                    archive: (id) =>
-                                                      Message.ClickedArchiveIcon({ id }),
-                                                  },
-                                                ),
-                                              ]
-                                            : []),
-                                        ]
-                                      : []),
-                                    ...selected.ports.map((port) =>
+                                        ],
+                                      ),
                                       h.button(
                                         [
                                           h.Type('button'),
-                                          h.Disabled(disabled),
-                                          h.OnClick(
-                                            onEvent({
-                                              type: 'PortRemoved',
-                                              endpoint: { node: selected.id, port: port.id },
-                                            }),
-                                          ),
+                                          h.Disabled(disabled || !model.draft.trim()),
+                                          h.OnClick(Message.ClickedRename()),
                                         ],
-                                        [`Remove ${port.id} port`],
+                                        ['Rename node'],
                                       ),
+                                      ...(selectedHotspot &&
+                                      selectedHotspotClock?.present &&
+                                      model.role !== 'viewer'
+                                        ? [
+                                            h.button(
+                                              [
+                                                h.Type('button'),
+                                                h.Disabled(disabled),
+                                                h.OnClick(
+                                                  Message.ClickedHotspotStatus({
+                                                    id: selected.id,
+                                                    expected: selectedHotspotClock.hotspot ?? 0,
+                                                    status:
+                                                      selectedHotspot === 'open'
+                                                        ? 'resolved'
+                                                        : 'open',
+                                                  }),
+                                                ),
+                                              ],
+                                              [
+                                                selectedHotspot === 'open'
+                                                  ? 'Resolve hotspot'
+                                                  : 'Reopen hotspot',
+                                              ],
+                                            ),
+                                          ]
+                                        : []),
+                                      ...infrastructureDetails(h, selected),
+                                      ...(model.role !== 'viewer' && selected.kind !== 'group'
+                                        ? [
+                                            iconPickerToggle(iconPickerToggleView, [
+                                              h,
+                                              model.icons.open,
+                                              disabled,
+                                            ]),
+                                            ...(model.icons.open && !disabled
+                                              ? [
+                                                  TeamIcons.view(
+                                                    h,
+                                                    model.icons,
+                                                    model.room.teamId,
+                                                    selected.icon,
+                                                    model.role === 'owner',
+                                                    {
+                                                      tab: (tab) =>
+                                                        Message.SelectedIconTab({ tab }),
+                                                      choose: (icon) =>
+                                                        Message.ChoseNodeIcon({ icon }),
+                                                      upload: (file) =>
+                                                        Message.SelectedIconFile({ file }),
+                                                      archive: (id) =>
+                                                        Message.ClickedArchiveIcon({ id }),
+                                                    },
+                                                  ),
+                                                ]
+                                              : []),
+                                          ]
+                                        : []),
+                                      ...selected.ports.map((port) =>
+                                        h.button(
+                                          [
+                                            h.Type('button'),
+                                            h.Disabled(disabled),
+                                            h.OnClick(
+                                              onEvent({
+                                                type: 'PortRemoved',
+                                                endpoint: { node: selected.id, port: port.id },
+                                              }),
+                                            ),
+                                          ],
+                                          [`Remove ${port.id} port`],
+                                        ),
+                                      ),
+                                    ]
+                                  : [
+                                      h.p(
+                                        [h.Class('inspector-hint')],
+                                        [
+                                          'Select a node to rename it. Drag to move; use the width handle to resize. Activate an output port, then an input port to connect.',
+                                        ],
+                                      ),
+                                    ]),
+                                h.div(
+                                  [h.Id('assessment-inspector'), h.Tabindex(-1)],
+                                  [
+                                    Assessment.view(
+                                      model.assessment,
+                                      {
+                                        room: model.room,
+                                        frame: state.confirmed,
+                                        editable:
+                                          model.role !== 'viewer' &&
+                                          model.connection._tag !== 'Denied',
+                                        graphPending: waiting,
+                                      },
+                                      h,
+                                      (message) =>
+                                        Message.GotAssessmentMessage({ room: model.room, message }),
                                     ),
-                                  ]
-                                : [
-                                    h.p(
-                                      [h.Class('inspector-hint')],
+                                  ],
+                                ),
+                                h.div(
+                                  [h.Class('board-facts')],
+                                  [
+                                    h.div(
+                                      [],
                                       [
-                                        'Select a node to rename it. Drag to move; use the width handle to resize. Activate an output port, then an input port to connect.',
+                                        h.strong([], [String(currentEditor.graph.nodes.length)]),
+                                        h.span([], ['Nodes']),
                                       ],
                                     ),
-                                  ]),
-                              h.div(
-                                [h.Id('assessment-inspector'), h.Tabindex(-1)],
-                                [
-                                  Assessment.view(
-                                    model.assessment,
-                                    {
-                                      room: model.room,
-                                      frame: state.confirmed,
-                                      editable:
-                                        model.role !== 'viewer' &&
-                                        model.connection._tag !== 'Denied',
-                                      graphPending: waiting,
-                                    },
-                                    h,
-                                    (message) =>
-                                      Message.GotAssessmentMessage({ room: model.room, message }),
-                                  ),
-                                ],
-                              ),
-                              h.div(
-                                [h.Class('board-facts')],
-                                [
-                                  h.div(
-                                    [],
-                                    [
-                                      h.strong([], [String(currentEditor.graph.nodes.length)]),
-                                      h.span([], ['Nodes']),
-                                    ],
-                                  ),
-                                  h.div(
-                                    [],
-                                    [
-                                      h.strong([], [String(currentEditor.graph.edges.length)]),
-                                      h.span([], ['Connections']),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ]),
+                                    h.div(
+                                      [],
+                                      [
+                                        h.strong([], [String(currentEditor.graph.edges.length)]),
+                                        h.span([], ['Connections']),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ]),
                   ],
                 ),
               ]

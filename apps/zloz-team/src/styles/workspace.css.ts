@@ -305,7 +305,7 @@ globalStyle('.shared-editor', {
     },
   },
 });
-globalStyle('.shared-editor[data-tools-open="true"]', { vars: { '--tools-width': '190px' } });
+globalStyle('.shared-editor[data-tools-open="true"]', { vars: { '--tools-width': '164px' } });
 globalStyle('.shared-editor[data-inspector-open="true"]', {
   vars: { '--inspector-width': '290px' },
 });
@@ -373,6 +373,7 @@ globalStyle('.tool-rail, .editor-inspector', {
 globalStyle('.tool-rail[hidden], .editor-inspector[hidden]', { display: 'none' });
 globalStyle('.tool-rail', {
   gridArea: 'tools',
+  padding: 8,
   overflowY: 'auto',
   '@media': { '(max-width: 1080px)': { gridArea: 'canvas', left: 0, width: 'min(86vw, 240px)' } },
 });
@@ -447,7 +448,7 @@ globalStyle('.editor-actions button', {
 globalStyle('.editor-primary-actions', { display: 'flex', gap: 6 });
 globalStyle('.editor-primary-actions button:first-child', { flex: 1, minWidth: 0 });
 globalStyle('.editor-primary-actions button + button', { width: 'auto', whiteSpace: 'nowrap' });
-globalStyle('.editor-actions button:first-child', {
+globalStyle('.editor-primary-actions button:first-child', {
   background: theme.accent,
   color: theme.controlInk,
   borderColor: theme.accent,
@@ -883,6 +884,22 @@ globalStyle('.coupling-map', { fontSize: 13, overflowWrap: 'anywhere', minWidth:
 globalStyle('.coupling-map h2', { fontFamily: mono, fontSize: 16, lineHeight: 1.5 });
 globalStyle('.coupling-map h3', { fontFamily: mono, fontSize: 12, margin: '20px 0 8px' });
 globalStyle('.coupling-map p', { margin: '8px 0' });
+globalStyle('.coupling-context', {
+  display: 'grid',
+  gap: 6,
+  margin: '8px 0',
+  padding: '6px 10px',
+  borderLeft: `2px solid ${theme.accent}`,
+  background: theme.raised,
+});
+globalStyle('.coupling-context dt', { fontSize: 11, color: theme.muted });
+globalStyle('.coupling-context dd', {
+  margin: 0,
+  color: theme.ink,
+  whiteSpace: 'pre-wrap',
+  overflowWrap: 'anywhere',
+});
+globalStyle('.coupling-comparability', { fontWeight: 600 });
 globalStyle('.coupling-readiness', { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 });
 globalStyle('.coupling-readiness div', {
   padding: 8,
@@ -1097,23 +1114,273 @@ globalStyle('.opy-status', { color: theme.accent, fontWeight: 700 });
 
 globalStyle('.team-history', {
   display: 'grid',
-  gridTemplateRows: 'auto minmax(0, 1fr)',
+  gridTemplateRows: 'minmax(0, 1fr) auto',
   height: '100%',
   minHeight: 0,
+  minWidth: 0,
+  margin: 0,
+  padding: 0,
+  border: 0,
 });
-
-globalStyle('.team-history-controls', {
+globalStyle('.rewind-canvas', {
   display: 'flex',
-  flexWrap: 'wrap',
-  alignItems: 'center',
-  gap: '0.75rem',
-  padding: '0.75rem',
-  maxHeight: '35vh',
+  flexDirection: 'column',
+  flex: '1 1 0',
+  minHeight: 0,
+  position: 'relative',
+});
+globalStyle('.rewind-navigation', {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  zIndex: 1,
+  background: theme.panel,
+  color: theme.ink,
+  border: `1px solid ${theme.rule}`,
+  padding: '4px 8px',
+  maxWidth: 'min(22rem, 90%)',
+  maxHeight: '75%',
   overflow: 'auto',
 });
-
-globalStyle('.team-history-controls label', {
+globalStyle('.team-history-controls', {
+  minWidth: 0,
+  padding: '6px clamp(6px, 1.5vw, 18px)',
+  background: theme.panel,
+  borderTop: `2px solid ${theme.controlRule}`,
+  color: theme.ink,
+  maxHeight: '45dvh',
+  overflowY: 'auto',
+  fontFamily: mono,
+});
+globalStyle('.rewind-readouts, .rewind-deck, .rewind-keys', {
   display: 'flex',
   alignItems: 'center',
-  gap: '0.4rem',
+  gap: 6,
+  minWidth: 0,
+});
+globalStyle('.rewind-readouts', { fontSize: 12, flexWrap: 'wrap' });
+globalStyle('.rewind-readouts strong', { color: theme.accent });
+globalStyle('#history-back-live', { marginLeft: 'auto', padding: '4px 10px' });
+globalStyle('.rewind-keys button', { minWidth: 36, minHeight: 36, padding: 4, fontFamily: mono });
+globalStyle('.rewind-scale', { flex: '1 1 0', minWidth: 0 });
+globalStyle('.rewind-scale input[type="range"]', {
+  width: '100%',
+  height: 30,
+  margin: 0,
+  padding: 0,
+  border: 0,
+  cursor: 'pointer',
+  accentColor: theme.accent,
+  background: `repeating-linear-gradient(90deg, ${theme.controlRule} 0 1px, transparent 1px calc(100% / var(--rewind-intervals))) center bottom / calc(100% - 16px) 7px no-repeat`,
+});
+globalStyle('.rewind-scale input[type="range"]', {
+  '@media': { '(forced-colors: none)': { appearance: 'none' } },
+});
+for (const thumb of ['::-webkit-slider-thumb', '::-moz-range-thumb']) {
+  globalStyle(`.rewind-scale input[type="range"]${thumb}`, {
+    '@media': {
+      '(forced-colors: none)': {
+        appearance: 'none',
+        height: 22,
+        width: 12,
+        borderRadius: 2,
+        border: `1px solid ${theme.ink}`,
+        background: theme.accent,
+        boxShadow: `inset 2px 0 ${theme.panel}`,
+      },
+    },
+  });
+}
+globalStyle('.rewind-scale input[type="range"]::-webkit-slider-runnable-track', {
+  '@media': {
+    '(forced-colors: none)': {
+      background: `linear-gradient(${theme.rule}, ${theme.rule}) center / 100% 2px no-repeat`,
+    },
+  },
+});
+globalStyle('.rewind-scale input[type="range"]::-moz-range-track', {
+  '@media': { '(forced-colors: none)': { background: theme.rule, height: 2 } },
+});
+globalStyle('.rewind-keys [role="status"]', {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  overflow: 'hidden',
+  clipPath: 'inset(50%)',
+});
+globalStyle('.rewind-range, .rewind-compare, .team-history-controls small', {
+  fontFamily: mono,
+  fontSize: 11,
+  color: theme.muted,
+});
+globalStyle('.rewind-compare', { gap: 0 });
+globalStyle('.rewind-compare select', { minHeight: 32, padding: 4 });
+globalStyle('.rewind-diff', {
+  position: 'fixed',
+  inset: 'auto',
+  left: 8,
+  bottom: '6rem',
+  margin: 0,
+  padding: 10,
+  maxHeight: '32dvh',
+  maxWidth: 'calc(100vw - 16px)',
+  overflow: 'auto',
+  background: theme.panel,
+  color: theme.ink,
+  border: `1px solid ${theme.rule}`,
+});
+globalStyle('.rewind-deck', {
+  '@media': {
+    '(max-width: 640px)': { display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', gap: 4 },
+  },
+});
+globalStyle('.rewind-scale', {
+  '@media': { '(max-width: 640px)': { gridRow: 1, gridColumn: '1 / -1' } },
+});
+globalStyle('.rewind-keys button, #history-back-live', {
+  '@media': { '(pointer: coarse)': { minWidth: 44, minHeight: 44 } },
+});
+
+globalStyle('.rewind-compare', {
+  '@media': {
+    '(max-width: 420px)': { gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 6 },
+  },
+});
+globalStyle('.board-command-bar', {
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 2,
+});
+globalStyle('.board-command-bar button', {
+  minHeight: 36,
+  padding: '4px 8px',
+  fontSize: 12,
+});
+globalStyle('.board-menu > button, #board-history-toggle', {
+  background: 'transparent',
+  borderColor: 'transparent',
+});
+globalStyle('.board-command-list', {
+  position: 'fixed',
+  inset: 'auto',
+  '@supports': {
+    '(top: anchor(bottom))': {
+      top: 'anchor(bottom)',
+      left: 'clamp(4px, anchor(left), calc(100vw - 14rem))',
+    },
+  },
+  margin: 0,
+  width: 'min(13.5rem, calc(100vw - 8px))',
+  maxHeight: '60dvh',
+  overflowY: 'auto',
+  padding: 4,
+  border: `1px solid ${theme.rule}`,
+  background: theme.panel,
+  color: theme.ink,
+});
+globalStyle('.board-command-list:popover-open', { display: 'grid', gap: 2 });
+globalStyle('.board-command-list > button, .board-command-list > a', {
+  textAlign: 'left',
+  justifyContent: 'flex-start',
+  padding: '6px 10px',
+});
+
+globalStyle('.rail-edit-tools', { display: 'flex', gap: 4 });
+globalStyle('.rail-edit-tools button', {
+  width: 44,
+  minWidth: 44,
+  minHeight: 44,
+  padding: 6,
+  justifyContent: 'center',
+});
+globalStyle('.rail-edit-tools button span', { display: 'none' });
+globalStyle('body:has([data-tool-labels="labelled"]) .rail-edit-tools', { display: 'grid' });
+globalStyle('body:has([data-tool-labels="labelled"]) .rail-edit-tools button', {
+  width: '100%',
+  justifyContent: 'flex-start',
+});
+globalStyle('body:has([data-tool-labels="labelled"]) .rail-edit-tools button span', {
+  display: 'inline',
+});
+globalStyle('.tool-rail .canvas-mode', { marginTop: 8 });
+globalStyle('.tool-rail .tool-divider', { margin: '8px 0' });
+globalStyle('.tool-rail .role-label', { marginTop: 8, paddingTop: 8 });
+globalStyle('.workspace-settings', {
+  position: 'fixed',
+  inset: 'auto',
+  margin: 0,
+  top: '4rem',
+  right: 8,
+  width: 'min(18rem, calc(100vw - 16px))',
+  maxHeight: 'calc(100dvh - 5rem)',
+  overflowY: 'auto',
+  padding: 16,
+  background: theme.panel,
+  color: theme.ink,
+  border: `1px solid ${theme.rule}`,
+});
+globalStyle('.workspace-settings h2', { fontSize: 16, margin: 0 });
+globalStyle('.workspace-settings .theme-controller', { display: 'grid', gap: 12 });
+globalStyle('.preferences-entry > button, .board-title nav button', {
+  fontSize: 12,
+  padding: '4px 8px',
+});
+
+globalStyle('[data-canvas-emphasis="event-storming"] .editor-primary-actions', {
+  display: 'grid',
+});
+globalStyle('[data-canvas-emphasis="event-storming"] .editor-primary-actions button', {
+  width: '100%',
+  whiteSpace: 'normal',
+});
+
+globalStyle('.workshop-ghost', { color: theme.accent });
+globalStyle('.workshop-ghost[data-zloz-history-node="removed"]', { color: theme.danger });
+globalStyle('.workshop-ghost text', {
+  fill: 'currentColor',
+  stroke: theme.panel,
+  strokeWidth: 3,
+  paintOrder: 'stroke',
+  fontFamily: mono,
+  fontSize: 12,
+});
+
+globalStyle('.evolution-version-target', { fill: 'transparent', cursor: 'pointer' });
+globalStyle('.evolution-version-target:hover', { fill: theme.accent, fillOpacity: 0.12 });
+
+globalStyle('.workshop-journey', {
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  margin: 0,
+  padding: 0,
+  border: 0,
+});
+globalStyle('.workshop-journey > *', { flexShrink: 0 });
+globalStyle('.workshop-journey .journey-trail', {
+  flex: '1 1 auto',
+  minHeight: '3rem',
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  padding: '4px',
+});
+globalStyle('.workshop-journey .journey-overview svg', {
+  display: 'block',
+  height: 'clamp(64px, 16dvh, 160px)',
+});
+globalStyle('.journey-overview', {
+  margin: '0.75rem 0',
+  padding: '0.5rem',
+  border: `1px solid ${theme.rule}`,
+  background: theme.raised,
+  color: theme.ink,
+});
+globalStyle('.journey-overview figcaption', { fontWeight: 650, overflowWrap: 'anywhere' });
+globalStyle('.journey-overview text', {
+  paintOrder: 'stroke',
+  stroke: theme.raised,
+  strokeWidth: 3,
+  strokeLinejoin: 'round',
 });

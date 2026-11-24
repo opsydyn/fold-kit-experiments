@@ -5,6 +5,8 @@ M1 supplies invited-team onboarding; M2 supplies shared graph operations and the
 optional Alchemy adapter. M3 connects the shared browser editor with create/import,
 live updates, confirmed-state export, conditional Undo, retry and transient presence.
 
+The [ZLOZ product North Star](docs/product-north-star.md) guides Teams design decisions and sets the review gates for the UX roadmap.
+
 From the repository root:
 
 ```sh

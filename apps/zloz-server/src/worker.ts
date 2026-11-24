@@ -31,6 +31,7 @@ import {
 import { stagingBootstrapRequest } from './staging-bootstrap';
 import { handleTeamIcons } from './team-icons';
 import { handleTeamRequest } from './team-routes';
+import { workshopLinkDenial } from './workshop-link';
 
 const sessionLayer = (access: AccessPolicy) =>
   Layer.effect(
@@ -161,7 +162,9 @@ export default class ZlozServer extends Cloudflare.Worker<ZlozServer>()(
           ? 'Recovery exceeds diagram limits'
           : null,
       policy: () => ({
-        canApplyOperation: (_operation, _graph, _scope, _change, candidate) => {
+        canApplyOperation: (operation, graph, _scope, _change, candidate) => {
+          const denial = workshopLinkDenial(operation, graph);
+          if (denial) return denial;
           if (candidate.nodes.length > 250 || candidate.edges.length > 500)
             return 'Diagram limit: 250 nodes and 500 edges';
           return new TextEncoder().encode(serializeGraph(candidate)).byteLength > 1_048_576

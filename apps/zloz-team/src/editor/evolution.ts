@@ -3,6 +3,8 @@ import { Schema } from 'effect';
 
 export const windowSize = 40;
 const Counts = Schema.Struct({
+  events: Schema.Number,
+  openHotspots: Schema.Number,
   person: Schema.Number,
   'software-system': Schema.Number,
   'external-system': Schema.Number,
@@ -23,7 +25,9 @@ export const History = Schema.Struct({
 export type History = typeof History.Type;
 export const empty: History = { samples: [], inspected: null, restartedAfterGap: false };
 
-function category({ architecture }: ZlozNode): Exclude<SeriesKey, 'relationships'> {
+function category({
+  architecture,
+}: ZlozNode): Exclude<SeriesKey, 'relationships' | 'openHotspots' | 'events'> {
   if (architecture?.family !== 'c4') return 'other';
   return architecture.role === 'software-system' && architecture.scope === 'external'
     ? 'external-system'
@@ -40,6 +44,8 @@ export function observe(
   if (last && version <= last.version) return history;
 
   const counts = {
+    events: 0,
+    openHotspots: 0,
     person: 0,
     'software-system': 0,
     'external-system': 0,
@@ -48,7 +54,13 @@ export function observe(
     other: 0,
     relationships: graph.edges.length,
   };
-  for (const node of graph.nodes) counts[category(node)] += 1;
+  for (const node of graph.nodes) {
+    counts[category(node)] += 1;
+    const note = node.architecture;
+    if (note?.family !== 'event-storming') continue;
+    if (note.role === 'domain-event') counts.events += 1;
+    if (note.role === 'hotspot' && note.status === 'open') counts.openHotspots += 1;
+  }
   const sample = { version, counts, graph };
   if (last && version !== last.version + 1)
     return { samples: [sample], inspected: null, restartedAfterGap: true };

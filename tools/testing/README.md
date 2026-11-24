@@ -5,6 +5,7 @@ Run these commands from the repository root. On a fresh checkout, use the Bun ve
 | To run                                                     | Command                                                                                      |
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Full workspace test suite                                  | `bun run test`                                                                               |
+| P0 tests for release-blocking user impact                  | `bun run test:p0`                                                                            |
 | Both Vitest apps                                           | `bun run test:vitest run`                                                                    |
 | One Vitest app                                             | `bun run test:vitest run --project web` or `bun run test:vitest run --project zloz-demo`     |
 | Watch a FoldKit Story or Scene                             | `bun run test:vitest watch --project zloz-demo history.test.ts`                              |
@@ -17,6 +18,12 @@ Run these commands from the repository root. On a fresh checkout, use the Bun ve
 `bun run test` runs the root tool tests and each workspace's Moon `test` task, including Bun, Vitest and pytest suites. Moon builds declared prerequisites first, including the widget bundle and schema that pytest imports. After this phase succeeds, Moon runs the package `integration` tasks. They share a mutex because they rebuild or pack files that other tests read.
 
 Moon reuses cached results on later runs. Use `bun run ci:clean -- test` to exercise the committed entry point in a fresh checkout with an empty task cache. Browser and mutation commands above have their own setup in the [CI workflow](../../.github/workflows/ci.yml) and [mutation workflow](../../.github/workflows/web-mutation-advisory.yml).
+
+## P0 tests
+
+Use the shared Vitest tag `{ tags: ['p0'] }` on a test when its failure would justify holding a release. Name the user impact in the test. The first two [Zloz history tests tagged P0](../../apps/zloz-demo/test/history.test.ts) protect the working document and undo history when someone reviews an older edition and returns to the present.
+
+Run `bun run test:p0` locally. CI runs the same check alongside the full suite, so a draft-preservation regression has its own PR result. The check fails if the filter runs zero P0 tests. The full suite also runs tagged tests.
 
 ## Testing Effect and FoldKit workspaces
 

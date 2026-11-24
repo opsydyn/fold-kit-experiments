@@ -19,64 +19,73 @@ test('named capture and example editions preserve earlier captures and canonical
   expect(update(examples, Message.ClickedOrderHistory()).model.editions).toHaveLength(3);
   expect(parseEditions(serializeEditions(examples.editions))).toEqual(examples.editions);
 });
-test('rewind and navigation reject workbench mutations and return to the exact working editor and view choice', () => {
-  const initial = init().model;
-  const editor = updateEditor(initial.editor, {
-    type: 'NodeLabelChanged',
-    id: 'source',
-    label: 'Working draft',
-  });
-  const working = { ...initial, editor };
-  const examples = update(working, Message.ClickedOrderHistory()).model;
-  const historical = update(
-    examples,
-    Message.SelectedHistoryEdition({ id: 'order-evolved' }),
-  ).model;
-  expect(historical.editor).toBe(editor);
-  expect(historical.historyReview?.editor.readOnly).toBe(true);
-  expect(historical.historyBaselineId).toBe('order-start');
-  const blocked = update(historical, Message.SelectedExample({ example: 'c4-context' })).model;
-  expect(blocked.editor).toBe(editor);
-  expect(
-    update(blocked, Message.SucceededImport({ id: -1, json: 'invalid stale load' })).model.editor,
-  ).toBe(editor);
-  expect(
-    update(blocked, Message.ObservedZlozInput({ message: { type: 'DeletePressed' } })).model.editor,
-  ).toBe(editor);
-  const moved = update(
-    blocked,
-    Message.ObservedZlozInput({ message: { type: 'ViewportNudged', delta: { x: 20, y: 0 } } }),
-  ).model;
-  expect(moved.historyReview?.editor.viewport).not.toEqual(
-    historical.historyReview?.editor.viewport,
-  );
-  const present = update(moved, Message.ClickedHistoryPresent()).model;
-  expect(present.editor).toBe(editor);
-  expect(present.nodeDesign).toBe(working.nodeDesign);
-  expect(present.editor.past).toHaveLength(1);
-});
+test(
+  'rewind and navigation reject workbench mutations and return to the exact working editor and view choice',
+  { tags: ['p0'] },
+  () => {
+    const initial = init().model;
+    const editor = updateEditor(initial.editor, {
+      type: 'NodeLabelChanged',
+      id: 'source',
+      label: 'Working draft',
+    });
+    const working = { ...initial, editor };
+    const examples = update(working, Message.ClickedOrderHistory()).model;
+    const historical = update(
+      examples,
+      Message.SelectedHistoryEdition({ id: 'order-evolved' }),
+    ).model;
+    expect(historical.editor).toBe(editor);
+    expect(historical.historyReview?.editor.readOnly).toBe(true);
+    expect(historical.historyBaselineId).toBe('order-start');
+    const blocked = update(historical, Message.SelectedExample({ example: 'c4-context' })).model;
+    expect(blocked.editor).toBe(editor);
+    expect(
+      update(blocked, Message.SucceededImport({ id: -1, json: 'invalid stale load' })).model.editor,
+    ).toBe(editor);
+    expect(
+      update(blocked, Message.ObservedZlozInput({ message: { type: 'DeletePressed' } })).model
+        .editor,
+    ).toBe(editor);
+    const moved = update(
+      blocked,
+      Message.ObservedZlozInput({ message: { type: 'ViewportNudged', delta: { x: 20, y: 0 } } }),
+    ).model;
+    expect(moved.historyReview?.editor.viewport).not.toEqual(
+      historical.historyReview?.editor.viewport,
+    );
+    const present = update(moved, Message.ClickedHistoryPresent()).model;
+    expect(present.editor).toBe(editor);
+    expect(present.nodeDesign).toBe(working.nodeDesign);
+    expect(present.editor.past).toHaveLength(1);
+  },
+);
 
-test('returning after a resize refreshes only surface measurement, preserving document, camera and Undo', () => {
-  const examples = update(init().model, Message.ClickedOrderHistory()).model;
-  const surface = { width: 390, height: 700 };
-  Story.story(
-    update,
-    Story.given(examples),
-    Story.message(Message.SelectedHistoryEdition({ id: 'order-evolved' })),
-    Story.message(
-      Message.ObservedZlozInput({ message: { type: 'SurfaceMeasured', size: surface } }),
-    ),
-    Story.message(Message.SelectedHistoryEdition({ id: 'order-start' })),
-    Story.model((model) => expect(model.historyReview?.editor.surface).toEqual(surface)),
-    Story.message(Message.ClickedHistoryPresent()),
-    Story.model((present) => {
-      expect(present.editor.surface).toEqual(surface);
-      expect(present.editor.graph).toBe(examples.editor.graph);
-      expect(present.editor.viewport).toBe(examples.editor.viewport);
-      expect(present.editor.past).toBe(examples.editor.past);
-    }),
-  );
-});
+test(
+  'returning after a resize refreshes only surface measurement, preserving document, camera and Undo',
+  { tags: ['p0'] },
+  () => {
+    const examples = update(init().model, Message.ClickedOrderHistory()).model;
+    const surface = { width: 390, height: 700 };
+    Story.story(
+      update,
+      Story.given(examples),
+      Story.message(Message.SelectedHistoryEdition({ id: 'order-evolved' })),
+      Story.message(
+        Message.ObservedZlozInput({ message: { type: 'SurfaceMeasured', size: surface } }),
+      ),
+      Story.message(Message.SelectedHistoryEdition({ id: 'order-start' })),
+      Story.model((model) => expect(model.historyReview?.editor.surface).toEqual(surface)),
+      Story.message(Message.ClickedHistoryPresent()),
+      Story.model((present) => {
+        expect(present.editor.surface).toEqual(surface);
+        expect(present.editor.graph).toBe(examples.editor.graph);
+        expect(present.editor.viewport).toBe(examples.editor.viewport);
+        expect(present.editor.past).toBe(examples.editor.past);
+      }),
+    );
+  },
+);
 
 test('comparison requests preserve stale baselines and independently retained preferences without editing history', () => {
   const examples = update(init().model, Message.ClickedOrderHistory()).model;

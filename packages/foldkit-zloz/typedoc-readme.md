@@ -1,4 +1,4 @@
-# Foldkit Zloz public contract
+# ZLOZ public contract
 
 ## Headless architecture nodes
 

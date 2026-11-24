@@ -147,7 +147,7 @@ export function view<M>(
             ? [
                 h.h3([], [`${name} source`]),
                 ...(review.kind === 'mermaid'
-                  ? [h.p([], ['The bundle includes Zloz identifiers and conversion diagnostics.'])]
+                  ? [h.p([], ['The bundle includes ZLOZ identifiers and conversion diagnostics.'])]
                   : [
                       h.p(
                         [],

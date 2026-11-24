@@ -1,7 +1,7 @@
-# Foldkit Zloz promo
+# ZLOZ promo
 
 Private static Astro site at `apps/zloz-promo`. Uses the selected Nested frame
-identity, the Viz/Three family styling, approved product copy and an app-owned
+identity, light and dark themes, and an app-owned
 C4 context fixture through the public graph/geometry/Mermaid packages.
 
 ## Local review
@@ -45,7 +45,7 @@ Set these at build/dev startup:
 No canonical production origin, hosting provider configuration or npm rename is
 assumed. The site is not added to the existing Pages deployment. Registry
 publication remains a separate, later slice. Current technical imports remain
-`@opsydyn/foldkit-zloz*` while public product copy says Foldkit Zloz.
+`@opsydyn/foldkit-zloz*` while public product copy says ZLOZ.
 
 The hero is explicitly a **static package-generated preview**, not an interactive
 editor. Astro prerenders it from `src/lib/context-model.ts`. Node outlines, port

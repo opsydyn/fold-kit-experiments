@@ -74,7 +74,7 @@ export async function createDiagram(request: Request, teamId: string) {
       name,
       mode,
       graphText,
-      error: 'Enter a name and a valid exported Zloz graph (up to 250 nodes and 500 edges).',
+      error: 'Enter a name and a valid exported ZLOZ graph (up to 250 nodes and 500 edges).',
       status: error instanceof BodyRejected ? error.status : 400,
     };
   }

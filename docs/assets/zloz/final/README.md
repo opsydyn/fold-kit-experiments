@@ -1,4 +1,4 @@
-# Foldkit Zloz — Nested frame identity
+# ZLOZ — Nested frame identity
 
 Selected by the user on 2026-11-08. Preserve the folded boundary, inner element
 and bridge as a single mark. Geometry is the approved B study, now packaged for

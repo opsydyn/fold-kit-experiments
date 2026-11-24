@@ -1,4 +1,4 @@
-# Zloz private backend
+# ZLOZ private backend
 
 Private Alchemy Worker for the team app. Better Auth owns sessions and
 organization membership in D1. The first-class Alchemy adapter owns the diagram

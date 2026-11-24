@@ -45,6 +45,6 @@ export const init = () => ({
     editor: createEditor(initialGraph),
     active: null,
     sequence: 0,
-    notice: 'A graph editor built with Foldkit Zloz.',
+    notice: 'A graph editor built with ZLOZ.',
   } satisfies Model,
 });

@@ -1,6 +1,6 @@
-# Zloz naming and compatibility
+# ZLOZ naming and compatibility
 
-**Foldkit Zloz** is the graph and system modelling toolkit. Its package family is:
+**ZLOZ** is the graph and system modelling toolkit. Its package family is:
 
 - `@opsydyn/foldkit-zloz` — core, plus optional `/foldkit` views.
 - `@opsydyn/foldkit-zloz-elk` — ELK layout.
@@ -12,13 +12,13 @@ These remain unpublished workspace candidates. The old `0.2.0` release proposal
 was closed; it is not a registry release. No package will be released using a
 Flow name. Publication remains a separate, explicitly authorized step.
 
-Update imports to the Zloz package names. Prefer `ZlozGraph`, `ZlozNode`,
+Update imports to the ZLOZ package names. Prefer `ZlozGraph`, `ZlozNode`,
 `ZlozError`, `ZlozViewOptions`, `zlozView` and `createZlozNodeBodyCache`.
 Previous symbol names are deprecated aliases inside the new packages, sharing
 constructors and implementation identity. Generic APIs such as `createEditor`,
 `updateEditor`, `createElkLayout` and `exportMermaid` keep their domain names.
 
-The [API reference](/fold-kit-experiments/zloz/api/) is titled **Foldkit Zloz API**
+The [API reference](/fold-kit-experiments/zloz/api/) is titled **ZLOZ API**
 and covers all four packages. The previous API entry URL remains reachable.
 The workbench workspace is `apps/zloz-demo`, started with `bun run dev:zloz-demo`.
 The reference example is `/zloz`; `/flow` redirects there.

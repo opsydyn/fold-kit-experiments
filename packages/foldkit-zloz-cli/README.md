@@ -1,6 +1,6 @@
-# Foldkit Zloz CLI
+# ZLOZ CLI
 
-An independent Effect CLI package for validating Zloz models, auditing relationships,
+An independent Effect CLI package for validating ZLOZ models, auditing relationships,
 inspecting conversion and patch receipts, and exporting Mermaid bundles.
 **Private workspace package; not published to npm.** No Mermaid parser,
 browser, Foldkit runtime or layout engine is installed by this package.
@@ -65,7 +65,7 @@ the existing Mermaid bundle and `diagnostics`. Rejected responses have
 `data.source`: source alone cannot retain original node/edge/port identity.
 The nested bundle deliberately retains its existing `foldkit-flow-mermaid/v1`
 protocol and `flowId` fields for saved-data compatibility. All package names are
-Zloz; no Flow-named package is approved for publication.
+ZLOZ; no Flow-named package is approved for publication.
 
 | Exit | Meaning                                                            | Output                                             |
 | ---- | ------------------------------------------------------------------ | -------------------------------------------------- |

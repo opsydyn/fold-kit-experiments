@@ -71,7 +71,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       [label],
     );
   return {
-    title: 'Compose — Foldkit Zloz',
+    title: 'Compose — ZLOZ',
     body: h.div(
       [h.Class('compose-example')],
       [

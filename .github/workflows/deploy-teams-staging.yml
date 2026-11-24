@@ -91,7 +91,7 @@ jobs:
             ' >/dev/null
           curl -fsS --max-time 8 "$ZLOZ_ORIGIN/login" > "$RUNNER_TEMP/teams-staging-login.html"
           grep -Fq 'class="brand-mark"' "$RUNNER_TEMP/teams-staging-login.html"
-          grep -Fq '<title>Foldkit Zloz — Nested frame</title>' "$RUNNER_TEMP/teams-staging-login.html"
+          grep -Fq 'Continue with Google' "$RUNNER_TEMP/teams-staging-login.html"
           smoke_finished=$(date -u +%s)
           dispatched=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
           elapsed=$(( smoke_finished - $(date -u -d "$dispatched" +%s) ))

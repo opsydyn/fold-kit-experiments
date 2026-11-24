@@ -22,7 +22,7 @@ cmap = font.getBestCmap()
 scale = 25 / font["head"].unitsPerEm
 x = 44.0
 letters = []
-for character in "Foldkit Zloz":
+for character in "ZLOZ":
     name = cmap[ord(character)]
     pen = SVGPathPen(glyphs)
     glyphs[name].draw(pen)
@@ -35,7 +35,7 @@ width = round(x + 4)
 def svg(body, wordmark=False):
     size = f'{width} 40' if wordmark else '32 32'
     dimensions = f'width="{width}" height="40"' if wordmark else 'width="32" height="32"'
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size}" {dimensions} role="img" aria-label="Foldkit Zloz">\n  <title>Foldkit Zloz — Nested frame</title>\n{body}\n</svg>\n'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size}" {dimensions} role="img" aria-label="ZLOZ">\n  <title>ZLOZ — Nested frame</title>\n{body}\n</svg>\n'
 
 palettes = {
     "light": {"blue": "#3d79fa", "gold": "#f5ce60", "coral": "#fa8b79"},

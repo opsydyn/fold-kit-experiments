@@ -23,7 +23,7 @@ export function mermaidExportPanel(model: Model, h: HtmlBuilder<Message>) {
       h.p(
         [],
         [
-          'Export a flowchart projection. Keep Zloz JSON as the authoritative document. The download bundles source, identity metadata and conversion diagnostics.',
+          'Export a flowchart projection. Keep ZLOZ JSON as the authoritative document. The download bundles source, identity metadata and conversion diagnostics.',
         ],
       ),
       h.p(

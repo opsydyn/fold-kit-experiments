@@ -197,6 +197,7 @@
         "@effect/vitest": "catalog:",
         "@opsydyn/testing": "workspace:*",
         "bun-types": "catalog:",
+        "fast-check": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },

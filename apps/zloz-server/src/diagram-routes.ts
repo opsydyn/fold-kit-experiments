@@ -33,6 +33,7 @@ import { ClefReference, type ClefAdvice } from './clef-contract';
 import { epochSql } from './date-sql';
 import { BodyRejected, bodyText } from './http-body';
 import type { DiagramPeer } from './presence';
+import { BoardRename, type BoardTitle } from './team-contract';
 import { usableNodeIcon } from './team-icons';
 
 const Identifier = Schema.String.pipe(Schema.check(Schema.isPattern(/^[A-Za-z0-9_-]{1,128}$/)));
@@ -154,7 +155,7 @@ export async function handleDiagramRequest(
   trace?: (phase: string) => void,
 ): Promise<Response> {
   const match = new URL(request.url).pathname.match(
-    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments|decisions|clef-review))?$/,
+    /^\/api\/zloz\/diagrams\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})(?:\/(operations|export|presence|checkpoint|restore|assessments|decisions|clef-review|name))?$/,
   );
   if (!match) return json({ error: 'Missing' }, 404);
   const target = { teamId: match[1]!, diagramId: match[2]! };
@@ -165,12 +166,13 @@ export async function handleDiagramRequest(
     if (!session) return json({ error: 'SignInRequired' }, 401);
     const access = await db
       .prepare(
-        `SELECT member.role, diagramDirectory.name, diagramDirectory.updatedAt FROM member JOIN session ON session.userId = member.userId LEFT JOIN diagramDirectory ON diagramDirectory.organizationId = member.organizationId AND diagramDirectory.diagramId = ? WHERE member.organizationId = ? AND member.userId = ? AND session.id = ? AND ${epochSql('session.expiresAt')} > ?`,
+        `SELECT member.role, diagramDirectory.name, diagramDirectory.nameRevision, diagramDirectory.updatedAt FROM member JOIN session ON session.userId = member.userId LEFT JOIN diagramDirectory ON diagramDirectory.organizationId = member.organizationId AND diagramDirectory.diagramId = ? WHERE member.organizationId = ? AND member.userId = ? AND session.id = ? AND ${epochSql('session.expiresAt')} > ?`,
       )
       .bind(target.diagramId, target.teamId, session.user.id, session.session.id, Date.now())
       .first<{
         role: string;
         name: string | null;
+        nameRevision: number | null;
         // oxlint-disable-next-line linteffect/no-raw-time-domain-field -- D1 boundary: nullable LEFT JOIN projection of the existing epoch-millisecond metadata column, not a canonical document clock.
         updatedAt: number | null;
       }>();
@@ -227,8 +229,39 @@ export async function handleDiagramRequest(
         .run();
       return json({ target, name: command.name });
     }
-    if (access.name === null || access.updatedAt === null) return json({ error: 'Missing' }, 404);
-    const directory = { name: access.name, updatedAt: access.updatedAt };
+    if (access.name === null || access.nameRevision === null || access.updatedAt === null)
+      return json({ error: 'Missing' }, 404);
+    const boardTitle = { name: access.name, nameRevision: access.nameRevision };
+    if (request.method === 'POST' && action === 'name') {
+      const input = await readInput(
+        request,
+        Schema.decodeUnknownSync(Schema.fromJsonString(BoardRename)),
+      );
+      // Check the revision and the caller's current write permission in the write itself.
+      const permitted = `EXISTS (SELECT 1 FROM member JOIN session ON member.userId = session.userId
+        WHERE member.organizationId = diagramDirectory.organizationId AND member.userId = ? AND session.id = ?
+        AND member.role IN ('owner', 'editor') AND ${epochSql('session.expiresAt')} > ?)`;
+      const identity = [
+        target.teamId,
+        target.diagramId,
+        actor.userId,
+        actor.sessionId,
+        Date.now(),
+      ] as const;
+      const renamed = await db
+        .prepare(`UPDATE diagramDirectory SET name = ?, nameRevision = nameRevision + 1,
+        updatedAt = MAX(updatedAt, ?) WHERE nameRevision = ? AND organizationId = ? AND diagramId = ?
+        AND ${permitted} RETURNING name, nameRevision`)
+        .bind(input.name.trim(), Date.now(), input.expectedRevision, ...identity)
+        .first<BoardTitle>();
+      if (renamed) return json(renamed);
+      const latest = await db
+        .prepare(`SELECT name, nameRevision FROM diagramDirectory
+        WHERE organizationId = ? AND diagramId = ? AND ${permitted}`)
+        .bind(...identity)
+        .first<BoardTitle>();
+      return latest ? json(latest, 409) : json({ error: 'AccessDenied' }, 403);
+    }
     if (request.method === 'GET' && action === 'checkpoint') {
       const saved = await service.checkpoint(actor, target);
       if (!saved) return json({ error: 'Missing' }, 404);
@@ -322,7 +355,7 @@ export async function handleDiagramRequest(
       const now = Date.now();
       // Reuse this request's fresh directory read to avoid a D1 round trip
       // within the recency window. SQL still guards overlapping stale reads.
-      if (directory.updatedAt <= now - 1000)
+      if (access.updatedAt <= now - 1000)
         service.defer(
           db
             .prepare(directoryRecencyProjectionSql)
@@ -347,6 +380,7 @@ export async function handleDiagramRequest(
       )
         return json({ error: 'InvalidCursor' }, 400);
       return json({
+        boardTitle,
         peers: await service.heartbeat(target, {
           ...input,
           actorId: actor.userId,
@@ -376,7 +410,7 @@ export async function handleDiagramRequest(
       const decisionFrame = {
         frame: { ...frame, relationshipDecisions: frame.relationshipDecisions ?? [] },
         decisionAuthoring: service.decisionAuthoring === true,
-        name: directory.name,
+        ...boardTitle,
         role: access.role,
       };
       return json(
@@ -390,7 +424,7 @@ export async function handleDiagramRequest(
       relationshipDecisions: _decisions,
       ...graphFrame
     } = frame;
-    return json({ ...bootstrap, frame: graphFrame, name: directory.name, role: access.role });
+    return json({ ...bootstrap, frame: graphFrame, ...boardTitle, role: access.role });
   } catch (error) {
     if (error instanceof InvalidDiagramInput) return json({ error: 'InvalidDiagramInput' }, 400);
     if (error instanceof BodyRejected) return json({ error: 'BodyRejected' }, error.status);

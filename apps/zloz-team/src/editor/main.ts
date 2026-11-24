@@ -42,6 +42,7 @@ import {
   zlozView,
   zlozWorldOverlayItem,
 } from '@opsydyn/foldkit-zloz/foldkit';
+import { BoardTitle } from '@opsydyn/zloz-server/src/team-contract';
 import { Effect, Option, Schema, Stream } from 'effect';
 import { Command, Dom, Render, Submodel, Subscription } from 'foldkit';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
@@ -51,6 +52,7 @@ import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
+import { publishTitle, titleChanges } from '../board-settings/channel';
 import * as DiagramImport from '../likec4/main';
 import { requestLimit } from '../likec4/review';
 import * as Assessment from './assessment';
@@ -128,6 +130,7 @@ export const Props = Schema.Struct({
   actorId: Schema.String,
   role: Role,
   name: Schema.String,
+  nameRevision: Schema.optional(Schema.Number),
 });
 export type Props = typeof Props.Type;
 const Room = Schema.Struct({
@@ -208,6 +211,7 @@ export const Model = Schema.Struct({
   base: Schema.NullOr(DiagramDocumentSchema),
   role: Role,
   name: Schema.String,
+  nameRevision: Schema.Number,
   serial: Schema.Number,
   ownEdits: Schema.Array(
     Schema.Struct({ operationId: Schema.String, documentVersion: Schema.Number }),
@@ -263,6 +267,7 @@ export const Message = defineMessageUnion({
     reason: Schema.Literals(['lease', 'failure']),
   },
   ObservedTick: { room: Room },
+  ObservedBoardTitle: { title: BoardTitle },
   SucceededPresence: { room: Room, peers: Schema.Array(Peer) },
   FailedPresence: { room: Room, status: Schema.Number },
   ObservedEditorInput: { event: Schema.Unknown },
@@ -650,12 +655,11 @@ const SendDiagramPresence = Command.define('SendDiagramPresence', {
         signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
       });
       if (!response.ok) return Message.FailedPresence({ room, status: response.status });
-      return Message.SucceededPresence({
-        room,
-        peers: Schema.decodeUnknownSync(Schema.Struct({ peers: Schema.Array(Peer) }))(
-          await response.json(),
-        ).peers,
-      });
+      const presence = Schema.decodeUnknownSync(
+        Schema.Struct({ peers: Schema.Array(Peer), boardTitle: Schema.optional(BoardTitle) }),
+      )(await response.json());
+      if (presence.boardTitle) publishTitle(presence.boardTitle);
+      return Message.SucceededPresence({ room, peers: presence.peers });
     }).pipe(Effect.orElseSucceed(() => Message.FailedPresence({ room, status: 0 }))),
 });
 
@@ -672,6 +676,7 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
     {
       toParentModel: ({ assessment, coupling }): Model => ({
         ...props,
+        nameRevision: props.nameRevision ?? 0,
         room,
         feedMode: 'legacy',
         feedSeeds: [],
@@ -1848,6 +1853,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ],
       };
     },
+    ObservedBoardTitle: ({ title }) => ({
+      model: title.nameRevision > model.nameRevision ? { ...model, ...title } : model,
+    }),
     SucceededPresence: ({ room, peers }) =>
       current(model, room) && model.connection._tag !== 'Denied'
         ? { model: { ...model, peers } }
@@ -3969,6 +3977,9 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
       },
     );
   return {
+    titleChanges: Subscription.persistentEntry(
+      titleChanges((title) => Message.ObservedBoardTitle({ title })),
+    ),
     compactBoard: Subscription.persistentEntry(
       Dom.streamFromMediaQuery({
         query: compactBoardQuery,

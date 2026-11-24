@@ -14,6 +14,13 @@ plan. It supports code and asset updates to the Teams app and server Workers. Us
 [direct worktree workflow](#direct-staging-deploy-from-a-worktree) for changes to
 bindings, migrations or other resources.
 
+The first release with shared board renaming includes
+`0006_board_name_revision.sql`. From the merged commit, use the direct workflow
+below and inspect the plan for the existing Teams D1 database. The migration
+adds `diagramDirectory.nameRevision` with a default of zero for existing boards.
+Verify the migration history and hosted smoke after applying it. Subsequent
+code-only board releases can use the quick deploy again.
+
 The `teams-staging` environment restricts deployment to `main` and supplies the
 staging Google client and operator token. The workflow uses the existing
 Cloudflare deployment credentials and keeps bootstrap disabled and OPY enabled.

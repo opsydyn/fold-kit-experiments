@@ -53,6 +53,6 @@ jobs:
         if: ${{ !cancelled() && steps.mutation.outcome != 'skipped' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-mutation-outcomes
+          name: ${{ github.run_attempt == 1 && 'web-mutation-outcomes' || format('web-mutation-outcomes-{0}', github.run_attempt) }}
           path: ${{ runner.temp }}/web-mutants/outcomes.json
           if-no-files-found: error

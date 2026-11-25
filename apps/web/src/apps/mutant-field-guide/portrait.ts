@@ -5,7 +5,7 @@ import type { Specimen } from './specimens';
 
 export function portrait({ id, kind }: Specimen) {
   const random = randomLcg(Number.parseInt(id.slice(0, 8), 16));
-  const effect = kind !== 'value';
+  const effect = kind === 'never' || kind === 'die' || kind === 'succeed';
   const fill = effect ? '#8ad9bf' : '#ffc688';
   const points = Array.from({ length: 24 }, (_, index) => {
     const angle = (index * Math.PI) / 12;

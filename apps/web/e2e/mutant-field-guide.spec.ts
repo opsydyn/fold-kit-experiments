@@ -7,11 +7,11 @@ test('Explore specimens retain their portraits and recorded outcomes across navi
 }) => {
   await page.goto('/mutant-field-guide');
   await expect(page.getByRole('heading', { name: 'The endless one' })).toBeVisible();
-  const shelf = page.getByRole('navigation', { name: 'Explore specimens' });
+  const shelf = page.getByRole('navigation', { name: 'Recorded specimens' });
   const links = shelf.getByRole('link');
-  await expect(links).toHaveCount(7);
+  expect(await links.count()).toBeGreaterThanOrEqual(11);
   const portraits = new Set<string>();
-  for (const link of await links.all()) {
+  for (const link of (await links.all()).slice(0, 7)) {
     const name = (await link.getAttribute('aria-label'))?.replace('Inspect ', '');
     await link.focus();
     await page.keyboard.press('Enter');
@@ -20,13 +20,16 @@ test('Explore specimens retain their portraits and recorded outcomes across navi
     const portrait = await page.locator('figure svg').innerHTML();
     expect(await selected.innerHTML()).toBe(portrait);
     portraits.add(portrait);
-    await expect(page.getByRole('list').getByRole('listitem').locator('b')).toHaveText([
-      'Survived',
-      'Caught',
-      'Caught',
-    ]);
+    expect(
+      (await page.getByRole('list').getByRole('listitem').locator('b').allTextContents()).slice(
+        0,
+        3,
+      ),
+    ).toEqual(['Survived', 'Caught', 'Caught']);
   }
   expect(portraits.size).toBe(7);
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Fault spine' })).toBeVisible();
+  await shelf.getByRole('link', { name: 'Inspect portrait · c02499' }).click();
+  await expect(page.getByRole('listitem').first()).toContainText('Untested');
 });

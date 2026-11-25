@@ -1,0 +1,32 @@
+name: Archive field guide observations
+
+on:
+  workflow_run:
+    workflows: ['Web mutation advisory']
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  archive:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # workflow_run resolves github.sha to trusted default-branch code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 -B -m unittest discover -s tools/mutant-cafe/archive
+      - name: Import completed advisory
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+          SOURCE_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          artifact=web-mutation-outcomes
+          if [[ "$SOURCE_ATTEMPT" != 1 ]]; then artifact="$artifact-$SOURCE_ATTEMPT"; fi
+          gh run download "$SOURCE_RUN" --name "$artifact" --dir "$RUNNER_TEMP/report"
+          cp tools/mutant-cafe/archive/{import_run.py,publish.sh} "$RUNNER_TEMP/"
+          bash "$RUNNER_TEMP/publish.sh" "$RUNNER_TEMP/import_run.py" "$RUNNER_TEMP/report/outcomes.json"

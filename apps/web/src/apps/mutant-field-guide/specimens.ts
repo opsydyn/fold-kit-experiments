@@ -1,4 +1,4 @@
-export const specimens = [
+export const exploreSpecimens = [
   {
     id: '4c0c68adb8210c249f623323',
     fn: 'colorsOf',
@@ -70,4 +70,13 @@ export const specimens = [
     kind: 'succeed',
   },
 ] as const;
-export type Specimen = (typeof specimens)[number];
+export interface Specimen {
+  id: string;
+  fn: string;
+  line: number;
+  name: string;
+  short: string;
+  note: string;
+  key: string;
+  kind: 'value' | 'never' | 'die' | 'succeed' | 'other';
+}

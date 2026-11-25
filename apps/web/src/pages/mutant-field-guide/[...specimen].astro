@@ -1,17 +1,14 @@
 ---
 import Portrait from '../../apps/mutant-field-guide/Portrait.astro';
-import runs from '../../apps/mutant-field-guide/explore-runs.json';
-import { specimens } from '../../apps/mutant-field-guide/specimens';
+import { loadGuide } from '../../apps/mutant-field-guide/archive';
 
-export const prerender = true;
-export function getStaticPaths() {
-  return specimens.flatMap((specimen) => {
-    const ids = specimen.kind === 'never' ? [undefined, specimen.id] : [specimen.id];
-    return ids.map((id) => ({ params: { specimen: id }, props: { specimen } }));
-  });
-}
-const { specimen } = Astro.props;
-const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught']]);
+const { records, offline } = await loadGuide();
+const specimen = records.get(Astro.params.specimen ?? '088431c5ccfa86175c2fdbce');
+if (!specimen) return new Response(offline ? 'Archive temporarily unavailable' : 'Unknown specimen', {
+  status: offline ? 503 : 404,
+  headers: offline ? { 'Retry-After': '60' } : {},
+});
+const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['untested', 'Untested']]);
 ---
 <!doctype html>
 <html lang="en">
@@ -32,21 +29,21 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught']]);
         <section aria-labelledby="specimen-name">
           <span class="cap">Specimen {specimen.id.slice(0, 8)}</span>
           <h2 id="specimen-name">{specimen.name}</h2>
-          <code>{specimen.fn} · mount.ts:{specimen.line}</code>
+          <code>{specimen.fn} · {specimen.file}:{specimen.line}</code>
           <p>{specimen.note}</p>
           <ol class="states" aria-label="Recorded test outcomes">
-            {runs.map((run) => (
+            {specimen.observations.map((run) => (
               <li>
-                <small>{run.label}</small>
-                <b>{outcomeLabels.get(run.outcomes[specimen.id]) ?? run.outcomes[specimen.id]}</b>
+                <small>{run.url ? <a href={run.url}>{run.label}</a> : run.label}</small>
+                <b>{outcomeLabels.get(run.outcome) ?? run.outcome}</b>
               </li>
             ))}
           </ol>
         </section>
       </div>
-      <h3 id="shelf-title">Explore specimens</h3>
+      <h3 id="shelf-title">Recorded specimens</h3>
       <nav class="shelf" aria-labelledby="shelf-title">
-        {specimens.map((entry) => (
+        {[...records.values()].map((entry) => (
           <a href={'/mutant-field-guide/' + entry.id}
             aria-current={entry.id === specimen.id ? 'page' : undefined}
             aria-label={'Inspect ' + entry.name}>
@@ -56,6 +53,7 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught']]);
         ))}
       </nav>
       <p class="key">{specimen.key} The markings come from the mutant ID.</p>
+    {offline && <p class="key">Showing bundled records. The live archive is unavailable.</p>}
     </main>
   </body>
 </html>
@@ -166,6 +164,7 @@ p {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
 }
+code { overflow-wrap: anywhere; }
 .shelf a {
   color: var(--fg);
   background: transparent;

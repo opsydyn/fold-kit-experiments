@@ -4,22 +4,35 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
-import { ThemePreference, ToolLabels, themeCookie, toolLabelsCookie } from './preferences';
+import {
+  MotionPreference,
+  motionCookie,
+  motionChangeEvent,
+  ThemePreference,
+  ToolLabels,
+  themeCookie,
+  toolLabelsCookie,
+} from './preferences';
 
 export const Props = Schema.Struct({
   preference: ThemePreference,
   toolLabels: Schema.optional(ToolLabels),
+  motion: Schema.optional(MotionPreference),
   noMeta: Schema.optional(Schema.Boolean),
 });
 export type Props = typeof Props.Type;
 export const Model = Schema.Struct({
   preference: ThemePreference,
   toolLabels: ToolLabels,
+  motion: MotionPreference,
+  motionNotice: Schema.String,
   labelsNotice: Schema.String,
   notice: Schema.String,
 });
 export type Model = typeof Model.Type;
 export const Message = defineMessageUnion({
+  SelectedMotion: { value: MotionPreference },
+  SettledMotion: { value: MotionPreference, saved: Schema.Boolean },
   SelectedToolLabels: { value: ToolLabels },
   SettledToolLabels: { value: ToolLabels, saved: Schema.Boolean },
   SelectedThemePreference: { preference: ThemePreference },
@@ -28,13 +41,30 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 class BrowserPreferenceSaveFailed extends Data.TaggedError('BrowserPreferenceSaveFailed') {}
-function writePreferenceCookie(name: typeof themeCookie | typeof toolLabelsCookie, value: string) {
+function writePreferenceCookie(
+  name: typeof themeCookie | typeof toolLabelsCookie | typeof motionCookie,
+  value: string,
+) {
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${name}=${value}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
   if (!document.cookie.split(';').some((part) => part.trim() === `${name}=${value}`))
     throw new BrowserPreferenceSaveFailed();
 }
 
+const SaveMotion = Command.define('SaveMotion', {
+  args: { value: MotionPreference },
+  messages: [Message.SettledMotion],
+  execute: ({ value }) =>
+    Effect.try(() => {
+      document.dispatchEvent(new CustomEvent(motionChangeEvent, { detail: value }));
+      writePreferenceCookie(motionCookie, value);
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.SettledMotion({ value, saved: true }),
+        onFailure: () => Message.SettledMotion({ value, saved: false }),
+      }),
+    ),
+});
 const SaveToolLabels = Command.define('SaveToolLabels', {
   args: { value: ToolLabels },
   messages: [Message.SettledToolLabels],
@@ -61,12 +91,29 @@ export const init = (props: Props) => ({
   model: {
     preference: props.preference,
     toolLabels: props.toolLabels ?? ('icons' as const),
+    motion: props.motion ?? ('system' as const),
+    motionNotice: '',
     labelsNotice: '',
     notice: '',
   },
 });
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
+    SelectedMotion: ({ value }) => ({
+      model: { ...model, motion: value, motionNotice: '' },
+      commands: [SaveMotion({ value })],
+    }),
+    SettledMotion: ({ value, saved }) => ({
+      model:
+        value === model.motion
+          ? {
+              ...model,
+              motionNotice: saved
+                ? ''
+                : 'Motion applied for this visit. Your browser could not save the preference.',
+            }
+          : model,
+    }),
     SelectedToolLabels: ({ value }) => ({
       model: { ...model, toolLabels: value, labelsNotice: '' },
       commands: [SaveToolLabels({ value })],
@@ -105,6 +152,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
     [
       h.Class('theme-controller'),
       h.DataAttribute('team-theme-preference', model.preference),
+      h.DataAttribute('motion-preference', model.motion),
       h.DataAttribute('tool-labels', model.toolLabels),
     ],
     [
@@ -143,6 +191,27 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           ),
         ],
       ),
+      h.label(
+        [],
+        [
+          'Board motion',
+          h.select(
+            [
+              h.Value(model.motion),
+              h.OnChange((value) =>
+                Message.SelectedMotion({
+                  value: Schema.is(MotionPreference)(value) ? value : model.motion,
+                }),
+              ),
+            ],
+            [
+              h.option([h.Value('system')], ['Follow system']),
+              h.option([h.Value('reduce')], ['Reduce motion']),
+            ],
+          ),
+        ],
+      ),
+      ...(model.motionNotice ? [h.span([h.Role('status')], [model.motionNotice])] : []),
       ...(model.labelsNotice ? [h.span([h.Role('status')], [model.labelsNotice])] : []),
       ...(model.notice
         ? [h.span([h.Class('theme-notice'), h.Role('status')], [model.notice])]

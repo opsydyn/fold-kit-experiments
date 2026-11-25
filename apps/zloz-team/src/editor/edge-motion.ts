@@ -1,5 +1,7 @@
 import type { ZlozOperationDocument } from '@opsydyn/foldkit-zloz';
 
+import { prefersReducedMotion } from '../appearance/preferences';
+
 /** Edge clocks retain used IDs, including edges restored by Undo. */
 export function introducedEdges(before: ZlozOperationDocument, after: ZlozOperationDocument) {
   if (before.graph.edges === after.graph.edges || before.version >= after.version) return [];
@@ -9,7 +11,7 @@ export function introducedEdges(before: ZlozOperationDocument, after: ZlozOperat
 
 /** Only the painted stroke moves. The labelled hit path and layout stay available. */
 export function revealEdgeStrokes(run: number, edgeIds: readonly string[]) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (prefersReducedMotion()) return;
   const board = document.querySelector(`[data-edge-motion-run="${run}"]`);
   if (!board) return;
   for (const id of edgeIds) {

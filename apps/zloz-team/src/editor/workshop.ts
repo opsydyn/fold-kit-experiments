@@ -6,6 +6,8 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
 
+import { prefersReducedMotion } from '../appearance/preferences';
+
 export const WorkshopRole = Schema.Literals([
   'domain-event',
   'hotspot',
@@ -82,7 +84,7 @@ export function revealHotspots(
   run: number,
   changes: readonly { id: string; status: typeof WorkshopStatus.Type }[],
 ) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (prefersReducedMotion()) return;
   const board = document.querySelector(
     `[data-edge-motion-run="${run}"][data-canvas-emphasis="event-storming"]`,
   );

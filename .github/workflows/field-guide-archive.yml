@@ -1,17 +1,21 @@
 name: Archive field guide observations
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/field-guide-archive.yml']
   workflow_run:
     workflows: ['Web mutation advisory']
     types: [completed]
 
 permissions:
+  pull-requests: read
   actions: read
   contents: write
 
 jobs:
   archive:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     steps:
       # workflow_run resolves github.sha to trusted default-branch code.
@@ -25,6 +29,18 @@ jobs:
           SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
           SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          # The installing PR can finish its advisory before this listener exists on main.
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            merged_head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+              --jq 'map(select(.merged_at != null and .base.ref == "main")) | first | .head.sha // empty')
+            [[ -n "$merged_head" ]] || exit 0
+            observation=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/web-mutation-advisory.yml/runs" \
+              -f head_sha="$merged_head" -f event=pull_request -f status=success -f per_page=1 \
+              --jq '.workflow_runs[] | [.id,.run_attempt,.run_started_at,.head_sha] | @tsv')
+            # An in-progress advisory will arrive through workflow_run.
+            [[ -n "$observation" ]] || exit 0
+            read -r SOURCE_RUN SOURCE_ATTEMPT SOURCE_STARTED_AT SOURCE_SHA <<< "$observation"
+          fi
           artifact=web-mutation-outcomes
           if [[ "$SOURCE_ATTEMPT" != 1 ]]; then artifact="$artifact-$SOURCE_ATTEMPT"; fi
           gh run download "$SOURCE_RUN" --name "$artifact" --dir "$RUNNER_TEMP/report"

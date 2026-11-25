@@ -95,9 +95,11 @@ export function loadGuide(fetchArchive: typeof fetch = fetch) {
     ),
   );
   return response.pipe(
-    Effect.flatMap((response) =>
-      response.ok ? Effect.tryPromise(() => response.json()) : Effect.fail(response.status),
+    Effect.filterOrFail(
+      (result) => result.ok,
+      (result) => result.status,
     ),
+    Effect.flatMap((result) => Effect.tryPromise(() => result.json())),
     Effect.flatMap(decodeRuns),
     Effect.match({
       onSuccess: (runs) => ({ records: fieldGuide(runs), offline: false }),

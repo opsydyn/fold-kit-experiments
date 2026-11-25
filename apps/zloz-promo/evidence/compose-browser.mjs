@@ -28,7 +28,7 @@ await (async () => {
   await expect(edges).toHaveCount(1);
   await expect(button('Undo')).toBeDisabled();
   await expect(button('Redo')).toBeDisabled();
-  await expect(page).toHaveTitle('Foldkit Zloz — Compose systems. Connect ideas.');
+  await expect(page).toHaveTitle('ZLOZ — Compose systems. Connect ideas.');
   await button('Select Review').click();
   await expect(button('Select Review')).toHaveAttribute('aria-pressed', 'true');
   await expect(example.locator('[aria-label="Current selection"]')).toHaveText('Selected: Review');
@@ -113,7 +113,7 @@ await (async () => {
   await expect(edges).toHaveCount(2);
   await button('Undo').click();
   await expect(edges).toHaveCount(1);
-  await expect(page).toHaveTitle('Foldkit Zloz — Compose systems. Connect ideas.');
+  await expect(page).toHaveTitle('ZLOZ — Compose systems. Connect ideas.');
   await page.locator('.compose-source summary').click();
   await expect(page.locator('.compose-source .pl-k').first()).toHaveCSS(
     'color',

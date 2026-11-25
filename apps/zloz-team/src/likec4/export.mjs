@@ -119,7 +119,7 @@ export async function exportLikeC4(input, { lossPolicy = 'reject' } = {}) {
       diagnostics.push(loss('host-data', edge.id, 'Host relationship data is omitted.'));
     if (edge.architecture)
       diagnostics.push(
-        loss('edge-architecture', edge.id, 'Zloz relationship semantics are omitted.'),
+        loss('edge-architecture', edge.id, 'ZLOZ relationship semantics are omitted.'),
       );
     if (edge.pathStyle || edge.waypoints)
       diagnostics.push(loss('layout', edge.id, 'Authored edge routing is omitted.'));

@@ -17,7 +17,7 @@ if (
   name !== 'foldkit-zloz-mermaid' &&
   name !== 'foldkit-zloz-cli'
 )
-  throw new Error('Expected a Foldkit Zloz package name');
+  throw new Error('Expected a ZLOZ package name');
 const manifests = {
   'foldkit-zloz': core,
   'foldkit-zloz-elk': elk,

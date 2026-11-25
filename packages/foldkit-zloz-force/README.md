@@ -1,10 +1,10 @@
 # @opsydyn/foldkit-zloz-force
 
-Force layout and automatic orthogonal routing for Foldkit Zloz.
+Force layout and automatic orthogonal routing for ZLOZ.
 The adapter uses the FoldKit Viz simulation and requires Node.js 22 or newer
 for headless use.
 
-The four public Zloz packages release together, with adapters pinned to the exact
+The four public ZLOZ packages release together, with adapters pinned to the exact
 core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
 verifies registry archives and provenance before advancing to the next package.
 
@@ -69,7 +69,7 @@ bun run --filter @opsydyn/foldkit-zloz-force pack:check
 ```
 
 The package ships ESM, TypeScript declarations, an MIT licence, and third-party
-notices. Publish compatible Zloz core and Viz versions before releasing this
+notices. Publish compatible ZLOZ core and Viz versions before releasing this
 adapter through the repository's manual publish workflow.
 
 Custom normalized port anchors use the core's canonical points. Routing leads

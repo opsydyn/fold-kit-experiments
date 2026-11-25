@@ -461,7 +461,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         })
       : [],
   );
-  const title = 'Architecture workbench | Foldkit Zloz';
+  const title = 'Architecture workbench | ZLOZ';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
   if (themePreference === null || colorScheme === null) return { title, body: h.div([], []) };

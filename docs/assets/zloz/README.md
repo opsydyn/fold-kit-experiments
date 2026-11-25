@@ -1,4 +1,4 @@
-# Zloz logo concepts
+# ZLOZ logo concepts
 
 Three authored SVG studies. **B — Nested frame is the user-selected direction**;
 the [final asset set and usage rules](final/README.md) are now available. Review them at
@@ -27,7 +27,7 @@ cube geometry, using the existing family typography and light/dark palette.
 - The review includes 16, 24 and 32px proofs plus monochrome at 32px. The SVG grid
   includes internal breathing room. See the final identity guide for minimum-size
   and clear-space rules.
-- Use **Foldkit Zloz** publicly. **Złóż** appears only in the name's explanation.
+- Use **ZLOZ** publicly. **Złóż** appears only in the name's explanation.
 
 The reusable comparison component is
 [`ZlozFamilyHeader.astro`](../../../apps/promo/src/components/ZlozFamilyHeader.astro).

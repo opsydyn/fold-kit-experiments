@@ -37,7 +37,7 @@ await (async () => {
   await page.evaluate(() => document.fonts.ready);
   await expect(page.locator('body')).toHaveCSS('font-family', '"Inter Variable", sans-serif');
   expect(await page.evaluate(() => document.fonts.check('740 18px "Inter Variable"'))).toBe(true);
-  await expect(page).toHaveTitle('Architecture workbench | Foldkit Zloz');
+  await expect(page).toHaveTitle('Architecture workbench | ZLOZ');
   await button('Open nested C4 container view').click();
   await expect(surface.locator('[data-flow-c4-node]')).toHaveCount(4);
   const snapshot = async () => {

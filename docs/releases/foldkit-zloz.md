@@ -1,4 +1,4 @@
-# Foldkit Zloz npm publication
+# ZLOZ npm publication
 
 The four Zloz packages were initially published at 0.3.0. See the
 [ADR 0036 execution record](../adr/0036-publish-the-zloz-package-family-to-npm.md#execution-record)

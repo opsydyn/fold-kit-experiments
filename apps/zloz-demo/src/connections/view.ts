@@ -197,7 +197,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
     );
   return {
-    title: 'Connection workbench | Foldkit Zloz',
+    title: 'Connection workbench | ZLOZ',
     body: h.div(
       [h.Class('connection-lab'), h.DataAttribute('flow-workbench-color-scheme', model.scheme)],
       [

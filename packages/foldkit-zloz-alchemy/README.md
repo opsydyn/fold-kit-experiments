@@ -1,11 +1,11 @@
-# Zloz Alchemy adapter (private workspace)
+# ZLOZ Alchemy adapter (private workspace)
 
 Read-only Domain inspection and portable graph projection. This package is
 `private: true`, version `0.0.0`, and is not an npm release candidate.
 
 | Entry                                  | Responsibility                                                          | Required runtime                           |
 | -------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
-| `@opsydyn/foldkit-zloz-alchemy`        | Validate/serialize a v1 descriptor; recompute graph and findings        | Zloz core only                             |
+| `@opsydyn/foldkit-zloz-alchemy`        | Validate/serialize a v1 descriptor; recompute graph and findings        | ZLOZ core only                             |
 | `@opsydyn/foldkit-zloz-alchemy/domain` | Inspect trusted, already-loaded Domain declarations; optionally project | Core, exact Domain/Alchemy beta.85, Effect |
 
 The portable entry's JavaScript and declarations have no SDK, Effect, Foldkit or
@@ -109,7 +109,7 @@ No browser, provider, deployment, publication or user-acceptance claim is made.
 
 ## Local workbench review
 
-The Zloz workbench's **Domain review** sidebar demonstrates this portable entry
+The ZLOZ workbench's **Domain review** sidebar demonstrates this portable entry
 with paste/file text decoding, detached read-only preview, declared provenance and
 visible losses. Its host boundary is limited to 1 MiB UTF-8, depth 16 and 16,384
 values, rejecting duplicate keys and bad framing before projection. It does not

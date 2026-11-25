@@ -464,7 +464,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
     );
   return {
-    title: 'History workbench | Foldkit Zloz',
+    title: 'History workbench | ZLOZ',
     body: h.div(
       [
         h.Class('history-workbench'),

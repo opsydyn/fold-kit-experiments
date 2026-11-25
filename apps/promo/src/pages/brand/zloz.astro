@@ -27,17 +27,17 @@ const concepts = [
   { id: 'c', letter: 'C', name: 'Connected planes', color: connected, mono: connectedMono, url: connectedUrl, monoUrl: connectedMonoUrl, idea: 'Independent pieces, composed together.', detail: 'Two offset planes meet through a stepped connection. A lighter, more open silhouette emphasizes extensibility.', tradeoff: 'Direct connection story; less compact at favicon scale.' },
 ];
 ---
-<Layout title="Foldkit Zloz — Three logo concepts" description="Three SVG logo concepts, compared with Foldkit Viz and effect-three in light, dark and monochrome.">
+<Layout title="ZLOZ — Three logo concepts" description="Three SVG logo concepts, compared with Foldkit Viz and effect-three in light, dark and monochrome.">
   <div class="zloz-review">
     <section class="review-intro" aria-labelledby="review-title">
       <p class="eyebrow">Family identity / Concept review</p>
-      <h1 id="review-title">Three ways to Zloz.</h1>
+      <h1 id="review-title">Three logo concepts for ZLOZ.</h1>
       <p class="review-tagline">Compose systems. Connect ideas.</p>
       <p class="review-context">B — Nested frame is the selected direction. The final SVG assets use the same neutral surfaces, blue accents and Inter typography as Viz and Three. The original studies remain below for comparison.</p>
       <nav class="concept-jump" aria-label="Logo concepts">{concepts.map(concept => <a href={`#concept-${concept.id}`}>{concept.letter} · {concept.name} <span aria-hidden="true">↓</span></a>)}</nav>
     </section>
     <section class="final-identity" aria-labelledby="final-title">
-      <p class="eyebrow">Selected identity</p><h2 id="final-title">Nested frame. Foldkit Zloz.</h2>
+      <p class="eyebrow">Selected identity</p><h2 id="final-title">Nested frame. ZLOZ.</h2>
       <div class="theme-pair">
         {(['light', 'dark'] as const).map(mode => <figure class={`proof-theme proof-${mode}`} data-final-identity={mode}>
           <figcaption>{mode === 'light' ? 'Light' : 'Dark'} identity</figcaption>
@@ -53,7 +53,7 @@ const concepts = [
         <a href={finalFaviconUrl} download="zloz-favicon.svg">Favicon SVG</a>
       </div>
     </section>
-    <section class="concept-overview" aria-label="Three Zloz silhouettes">
+    <section class="concept-overview" aria-label="Three ZLOZ silhouettes">
       {concepts.map(concept => <a class="overview-mark" href={`#concept-${concept.id}`} aria-label={`Review concept ${concept.letter}: ${concept.name}`}>
         <span class="overview-symbol"><Fragment set:html={decorativeLogo(concept.color)} /></span>
         <span class="overview-label"><span>{concept.letter}</span><strong>{concept.name}</strong></span>
@@ -76,7 +76,7 @@ const concepts = [
         <div class="study-notes"><p>{concept.detail}</p><p><span>Consider:</span> {concept.tradeoff}</p><div class="asset-links"><a href={concept.url} download={`zloz-${concept.id}.svg`}>Color SVG <span aria-hidden="true">↗</span></a><a href={concept.monoUrl} download={`zloz-${concept.id}-mono.svg`}>Mono SVG <span aria-hidden="true">↗</span></a></div></div>
       </section>)}
     </div>
-    <section class="review-outcome" aria-labelledby="review-outcome-title"><p class="eyebrow">Selected direction · B</p><h2 id="review-outcome-title">Nested frame wins.</h2><p>A folded boundary, an inner element and a bridge: a system within a system. The final assets carry this identity into the board. Next, build the dedicated Zloz promo shell in the Viz and Three family style.</p><p class="origin-note">Zloz comes from <span lang="pl">Złóż</span>: fold, assemble, put together. The public name stays Zloz.</p></section>
+    <section class="review-outcome" aria-labelledby="review-outcome-title"><p class="eyebrow">Selected direction · B</p><h2 id="review-outcome-title">Nested frame wins.</h2><p>A folded boundary, an inner element and a bridge: a system within a system. The final assets carry this identity into the board.</p><p class="origin-note">ZLOZ comes from <span lang="pl">Złóż</span>: fold, assemble, put together. The product name is ZLOZ.</p></section>
   </div>
 </Layout>
 

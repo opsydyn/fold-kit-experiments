@@ -364,29 +364,29 @@ example runs in the web app.
 **Not planned:** Polars in the browser, whose WASM build is an alpha, and any
 dependency on Polars or Arrow inside foldkit-viz.
 
-## Zloz: brand and product direction — 2026-11-08
+## ZLOZ: brand and product direction — 2026-11-08
 
 **Status:** brand migration, identity assets, promo and workbench hosting are
 delivered. The remaining improvements are tracked below.
 
 ### Name and positioning
 
-- **External product name:** **Foldkit Zloz**. Use **Zloz** in public-facing copy
+- **External product name:** **ZLOZ**. Use **ZLOZ** in public-facing copy
   and ASCII **zloz** for future slugs, URLs and command spelling.
 - **Origin:** **Złóż**, Polish for “fold, assemble, put together.” Preserve the
-  accented spelling in the name's explanation; use Zloz externally for ease of
+  accented spelling in the name's explanation; use ZLOZ externally for ease of
   typing and sharing.
-- **Rebrand:** Flow → Zloz.
+- **Rebrand:** Flow → ZLOZ.
 - **Identity:** “More than a flow editor. A system composition toolkit.” What
   began as a node-and-edge editor now supports composing, exploring and
   communicating complex systems.
 - **Primary tagline:** “Compose systems. Connect ideas.”
 - **Supporting strapline:** “Compose. Connect. Communicate.”
-- **One-line description:** “Foldkit Zloz is a functional, extensible graph toolkit
-  for interactive node editors, C4 architecture modelling, and Mermaid export.”
+- **One-line description:** “Map system boundaries, connect people and services,
+  and share your architecture as a diagram or Mermaid source.”
 
-**Brand architecture:** Foldkit is the UI toolkit; Zloz is the graph and system
-modelling toolkit within that family.
+**Brand architecture:** Use ZLOZ on the promo site, in the workbench and on team boards.
+Use FoldKit when documenting the UI integration.
 
 ### Three core capabilities
 
@@ -448,7 +448,7 @@ local baseline for the Zloz demo. Site delivery and registry publication are
 separate from that existing local evidence.
 
 **Naming cleanup:** all four package/release identities use Zloz; the API title
-is **Foldkit Zloz API**, with canonical `/zloz/api/` navigation. Deprecated source
+is **ZLOZ API**, with canonical `/zloz/api/` navigation. Deprecated source
 aliases and saved-data protocols are documented in the [migration guide](zloz-migration.md).
 No Flow-named package may be released; obsolete release PR #110 was closed.
 

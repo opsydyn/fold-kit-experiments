@@ -1,4 +1,4 @@
-# Foldkit Zloz sample
+# ZLOZ sample
 
 Astro serves the page shell and hydrates a FoldKit editor island. The release
 workflow starts with a draft, review and publish step. Connect Review to
@@ -27,7 +27,7 @@ Graph changes clear that acknowledgement. C4 system context is supported as a
 flowchart projection. **Open nested C4 container view** demonstrates subgraphs
 with a nested persistence boundary, preserved child endpoints and hierarchy
 metadata. Empty groups are rejected; authored layout remains a reported loss.
-Keep the normal Zloz JSON export as your authoritative document.
+Keep the normal ZLOZ JSON export as your authoritative document.
 See the [qualification and screenshots](evidence/mermaid-export.md).
 
 **Open Onion Architecture** replaces the editor graph with an editable example.
@@ -142,7 +142,7 @@ larger step) for keyboard resizing. Contents stay fixed and Undo restores bounds
 
 Imported nodes can declare `resizeLimits` for manual width and group boundary
 editing. Card width sliders show the imported limits; all enforcement lives in
-the Zloz package. Layout and measured card height remain content-driven.
+the ZLOZ package. Layout and measured card height remain content-driven.
 
 Select a group and activate **Lock proportions** to scale its boundary uniformly.
 The same action is in the package's group context panel. Pointer and keyboard
@@ -156,7 +156,7 @@ fixed. Top/left resizing moves the boundary origin without moving the contents.
 Side handles resize one axis when unlocked. With **Lock proportions**, dragging a
 side scales both dimensions around the perpendicular center. Arrow keys on a side
 handle affect its axis only; Shift keeps the larger step. All geometry is owned
-by the Zloz package, including legacy corner-event compatibility.
+by the ZLOZ package, including legacy corner-event compatibility.
 
 Use **Background** to choose dots, squares, custom graph paper, or no grid.
 Dots are the default. The custom example composes native FoldKit builder nodes
@@ -675,7 +675,7 @@ See [local browser evidence](evidence/receipt-review.md) and
 [ADR 0047](../../docs/adr/0047-reopen-conversion-receipts-as-read-only-comparisons.md).
 
 Each recorded change also has **Focus before** and **Focus after** controls. They
-select that side and frame the node or the connection's endpoints using Zloz's
+select that side and frame the node or the connection's endpoints using ZLOZ's
 public history navigation primitives. The chosen row is highlighted, and native
 buttons retain keyboard focus. If the canvas is not measured, a gesture is active
 or another receipt is being read, controls show the reason they are unavailable.

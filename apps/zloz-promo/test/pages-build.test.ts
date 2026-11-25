@@ -16,6 +16,8 @@ test.skipIf(!base)(
     expect(pages).toContain('docs/index.html');
     for (const page of pages) {
       const html = await Bun.file(join(directory, page)).text();
+      expect(html).toContain('aria-label="ZLOZ home"');
+      expect(html).not.toMatch(/foldkit zloz|a foldkit family member/i);
       expect(html).not.toContain('http://localhost:');
       expect(html).not.toContain('http://127.0.0.1:');
       for (const match of html.matchAll(/(?:href|src|component-url|renderer-url)="([^"]+)"/g)) {

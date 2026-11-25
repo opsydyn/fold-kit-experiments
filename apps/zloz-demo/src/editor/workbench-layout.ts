@@ -131,7 +131,7 @@ export function workbenchLayout(
                     h.div(
                       [],
                       [
-                        h.p([h.Class('workbench-eyebrow')], ['FOLDKIT ZLOZ']),
+                        h.p([h.Class('workbench-eyebrow')], ['ZLOZ']),
                         h.h1([], ['Workflow patterns']),
                       ],
                     ),

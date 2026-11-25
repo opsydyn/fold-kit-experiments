@@ -11,7 +11,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       [label],
     );
   return {
-    title: 'Foldkit Zloz',
+    title: 'ZLOZ',
     body: h.div(
       [],
       [

@@ -439,7 +439,7 @@ export function view(model: State, h: HtmlBuilder<Message>, blockedReason = '') 
                         ),
                         h.Download('likec4-view.zloz-v3.json'),
                       ],
-                      ['Download Zloz v3'],
+                      ['Download ZLOZ v3'],
                     ),
                   ]
                 : []),

@@ -1,11 +1,11 @@
-# Foldkit Zloz ELK
+# ZLOZ ELK
 
 Optional automatic layout for `@opsydyn/foldkit-zloz`. The adapter maps flat and nested graphs with fixed ports to ELK Layered. It returns node
 positions, fitted group bounds, and orthogonal edge routes. It owns no UI, persistence, graph state or workflow execution.
 
 The public package family is released together. Native v3 group-port layout is included in 0.6.0.
 
-The four public Zloz packages release together, with adapters pinned to the exact
+The four public ZLOZ packages release together, with adapters pinned to the exact
 core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
 verifies registry archives and provenance before advancing to the next package.
 
@@ -48,13 +48,13 @@ does not cancel ELK computation; request/revision checks prevent late publicatio
 See [ELK's worker documentation](https://github.com/kieler/elkjs#web-worker).
 
 ELK is an external dependency, not bundled into this package. The core package
-installs and works without it. Node 22+, ESM only. Compatibility uses the matching Zloz version and the pinned elkjs 0.12.1. Both Zloz packages release at the same version.
+installs and works without it. Node 22+, ESM only. Compatibility uses the matching ZLOZ version and the pinned elkjs 0.12.1. Both ZLOZ packages release at the same version.
 The adapter has no FoldKit or Effect peer.
 
 The server baseline is **Node 22+**; the default adapter is qualified in Node and
 Chromium. In the observed Bun 1.4.4 / macOS 26.6.2 arm64 consumer, layout completes
 but the standalone process stays alive. A minimal `elkjs@0.12.1` program reproduces
-this without Zloz. Bun process-exit behavior for ELK is outside this release's
+this without ZLOZ. Bun process-exit behavior for ELK is outside this release's
 qualification; use Node for CLI layout jobs. Other Bun versions/platforms are
 unqualified for this lifecycle behavior. Core, Force and Mermaid separately pass
 standalone Node and Bun consumers.
@@ -62,7 +62,7 @@ standalone Node and Bun consumers.
 ## Scope and verification
 
 Compound layout preserves group membership and routes directed edges across
-boundaries. Zloz edges connect one source to one target. Compare representative
+boundaries. ZLOZ edges connect one source to one target. Compare representative
 diagrams before upgrading ELK, since layout may vary by version.
 
 Run `bun run --filter @opsydyn/foldkit-zloz-elk test`, `typecheck` and `pack:check`.

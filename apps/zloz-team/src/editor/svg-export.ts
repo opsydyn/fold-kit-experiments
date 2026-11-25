@@ -260,7 +260,7 @@ function context(review: Review, available: Availability): ZlozSvgReviewContext 
     snapshot: { graph: review.graph },
     title: review.title,
     description:
-      'Confirmed Zloz Teams diagram. Shared assessments, decisions and live board decorations are outside the SVG.',
+      'Confirmed ZLOZ Teams diagram. Shared assessments, decisions and live board decorations are outside the SVG.',
     fileName: `zloz-v${review.version}.svg`,
     theme: { colorScheme: 'light' },
     regions: [{ id: 'model', label: 'Whole diagram', value: { type: 'model', padding: 32 } }],

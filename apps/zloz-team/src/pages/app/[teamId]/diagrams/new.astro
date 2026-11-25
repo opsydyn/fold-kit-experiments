@@ -28,7 +28,7 @@ Astro.response.status = outcome.status;
     <NewBoardForm teamId={teamId} creationId={outcome.id} name={outcome.name} mode={outcome.mode} />
   </> : <>
   <h1>Import a board</h1>
-  <p>Start blank or import an exported Zloz graph. Every import creates a new diagram.</p>
+  <p>Start blank or import an exported ZLOZ graph. Every import creates a new diagram.</p>
   {outcome.error && <p role="alert">{outcome.error}</p>}
   <form method="post" enctype="multipart/form-data" class="create-diagram">
     <input type="hidden" name="creationId" value={outcome.id} />

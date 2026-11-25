@@ -29,8 +29,7 @@ export function workbenchSvgContext(
     snapshot: model.editor,
     surface: model.editor.surface,
     title: `${model.modelIdentity.name}${model.historyReview ? ` — edition ${model.historyReview.editionId}` : ''}`,
-    description:
-      'Canonical Foldkit Zloz model; editor controls and host overlays are not captured.',
+    description: 'Canonical ZLOZ model; editor controls and host overlays are not captured.',
     fileName: 'zloz-workbench.svg',
     theme: { colorScheme: scheme },
     themes: [

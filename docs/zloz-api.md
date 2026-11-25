@@ -1,6 +1,6 @@
-# Foldkit Zloz API and type contracts
+# ZLOZ API and type contracts
 
-The Zloz API reference is generated with TypeDoc from public package entry points,
+The ZLOZ API reference is generated with TypeDoc from public package entry points,
 using the same tool as FoldKit Viz. It describes the source revision used for the
 build; the packages remain local release candidates until separately published.
 

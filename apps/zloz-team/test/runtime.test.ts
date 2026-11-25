@@ -236,7 +236,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browserExpect(panel.getByRole('alert')).toContainText('Group storefront has a port');
       await browserExpect(panel.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled();
       const pendingDownload = page.waitForEvent('download');
-      await panel.getByRole('link', { name: 'Download Zloz v3' }).click();
+      await panel.getByRole('link', { name: 'Download ZLOZ v3' }).click();
       const download = await pendingDownload;
       const file = await download.path();
       expect(await Bun.file(file).json()).toMatchObject({
@@ -922,7 +922,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       .getByLabel('LikeC4 JSON file')
       .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
     await panel.getByLabel('Static view').selectOption('detail');
-    await browserExpect(panel.getByRole('link', { name: 'Download Zloz v3' })).toBeVisible();
+    await browserExpect(panel.getByRole('link', { name: 'Download ZLOZ v3' })).toBeVisible();
     await browserExpect(apply).toBeDisabled();
 
     const alchemy = {

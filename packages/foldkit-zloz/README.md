@@ -1,4 +1,4 @@
-# Foldkit Zloz
+# ZLOZ
 
 Graph editing with state owned by your application. The pure TypeScript core has
 no runtime dependencies. The optional `/foldkit` entry renders HTML nodes and SVG
@@ -7,7 +7,7 @@ edges through your existing FoldKit builder. ELK is available separately as
 
 `@opsydyn/foldkit-zloz` is available on npm.
 
-The four public Zloz packages release together, with adapters pinned to the exact
+The four public ZLOZ packages release together, with adapters pinned to the exact
 core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
 verifies registry archives and provenance before advancing to the next package.
 
@@ -790,7 +790,7 @@ glyph fits inside its card. Cylinders use the core's `outlinePath` and
 The presets retain native focus/selection, movement, ports, policy reasons,
 context actions, collapse and resize controls. Content uses safe core bounds
 inside the authored height; increase dimensions for long descriptions. External
-scope uses both text and dashes. Scoped Zloz tokens control paint in light/dark
+scope uses both text and dashes. Scoped ZLOZ tokens control paint in light/dark
 or host/Pleat themes. Theme changes do not alter the document or history.
 
 `ZlozC4NodeOptions<Message>` exposes `renderIcon`, `renderType`, `renderName`,
@@ -903,7 +903,7 @@ Use `renderEdge(context, h)` for custom SVG decoration along `context.path`.
 The context includes the edge, label position, selection state, resolved
 stroke, width and dash array, and an arrow marker reference. Return
 `undefined` to draw the built-in edge. Keep custom SVG decorative and draw it
-along the supplied path so Zloz's hit area, reconnect handles, and editable
+along the supplied path so ZLOZ's hit area, reconnect handles, and editable
 label stay aligned. The SVG is hidden from assistive technology. Put
 interactive controls in the host view.
 
@@ -956,7 +956,7 @@ visibility is controlled by the host, including in minimal mode.
 Use `zlozWorldOverlayItem` from `@opsydyn/foldkit-zloz/foldkit` to anchor
 HTML at a world point. Decorative items pass pointer input through by
 default. Set `interactive: true` for native controls that handle their
-own input while Zloz's canvas gestures and shortcuts stay out of the way.
+own input while ZLOZ's canvas gestures and shortcuts stay out of the way.
 
 ```ts
 renderWorldOverlay: (_context, h) =>
@@ -1176,13 +1176,13 @@ renderContextMenu: (context, h) =>
 Use `zlozContextDimensionInput` for a native number field with the current
 value, grid step, and disabled state. The group's `showMeasurements` flag
 carries the effective diagnostics preference. Return `undefined` to use the
-default content. On opening, Zloz focuses the first focusable control or the
+default content. On opening, ZLOZ focuses the first focusable control or the
 panel itself. Escape returns focus to the canvas. Clicking or moving focus
 outside dismisses the panel.
 
 Use `renderConnections` to arrange the visible edges in a custom list. The
 context provides their selected state, endpoint labels, optional context
-actions, and whether the list is compact or read-only. Zloz owns the named
+actions, and whether the list is compact or read-only. ZLOZ owns the named
 Connections group and its compact disclosure, and calls the renderer only
 when the list is open. Edges hidden inside collapsed groups are filtered
 before the renderer runs.
@@ -1261,10 +1261,10 @@ tokens. Supply a partial token object to inherit the other variables from
 the host. The editor's theme can change on any render without recreating
 its state.
 
-Set `themeClassName` on a Zloz view to scope a theme to that editor. Existing
+Set `themeClassName` on a ZLOZ view to scope a theme to that editor. Existing
 CSS variables still inherit from ancestors. A host using Pleat can combine a
 class from `cssClass()` with a CSS class that maps its semantic theme tokens
-to the Zloz variables. Pleat owns the host theme and style registration.
+to the ZLOZ variables. Pleat owns the host theme and style registration.
 
 | Part        | CSS variables                                                                                                                            |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1285,7 +1285,7 @@ For example, given a Pleat theme that exposes the app's semantic CSS tokens:
 }
 ```
 
-Pass `themeClassName: 'release-flow-theme'` in the Zloz view options. To apply
+Pass `themeClassName: 'release-flow-theme'` in the ZLOZ view options. To apply
 a Pleat style directly to the root as well, append its `cssClass(style)` result.
 A per-edge `edgeAppearance` stroke or width takes precedence over the default
 edge tokens, and the selection token controls the selected stroke.
@@ -1915,7 +1915,7 @@ scrolling:
 | `'off'`  | Wheel events keep their native page or browser behavior.                  |
 
 The option applies only to wheel input on the canvas. Editable controls
-keep their own wheel behavior. Zloz updates its default help text to match
+keep their own wheel behavior. ZLOZ updates its default help text to match
 the option. Custom help receives the same `wheelNavigation` value.
 
 Set `doubleClickZoom: true` to zoom in 1.25× around the pointer when
@@ -1942,13 +1942,13 @@ Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
 `fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
 pinch, double-click, toolbar, and Fit view share the inclusive range. Both limits must
 be finite and positive, and equal limits fix the zoom. An explicit
-`viewport` must be in range. Without one, Zloz starts at the allowed zoom
+`viewport` must be in range. Without one, ZLOZ starts at the allowed zoom
 closest to 1.
 
 Fit view uses CSS pixels for padding and caps the inset at a quarter of the
 shorter canvas side. The defaults are 0.1–4× and 24 px. Dispatch
 `ViewportConstraintsChanged` while idle to change both settings. If the
-current zoom falls outside the new range, Zloz clamps around the canvas
+current zoom falls outside the new range, ZLOZ clamps around the canvas
 center and stops any running fit. For host-controlled camera operations,
 `zoomAt` and `fitViewport` take the same `ZoomLimits` as an optional fourth
 argument.
@@ -2074,7 +2074,7 @@ zlozView(h, model.editor, {
 For a custom layout, use `{ type: 'custom', render }`. The callback receives
 `{ id, viewport, surface, spacing }` and the host's typed `HtmlBuilder`. `surface`
 can be `null` before measurement. Return ordinary FoldKit HTML/SVG; keep it
-decorative. Zloz places it behind the graph in a non-interactive, aria-hidden
+decorative. ZLOZ places it behind the graph in a non-interactive, aria-hidden
 screen-space layer. Apply the supplied viewport when drawing canvas-space grids.
 No browser mutation, effects, or second UI runtime is needed.
 
@@ -2144,7 +2144,7 @@ renderAlignmentGuide: ({ start, end }, h) =>
 ```
 
 Return `undefined` for the default dashed guide or `null` to omit it.
-Zloz calls the hook only for resolved guides when the effective
+ZLOZ calls the hook only for resolved guides when the effective
 `alignmentGuides` diagnostic is enabled. Guide visibility is independent
 of snapping.
 
@@ -2164,7 +2164,7 @@ Pass `canResizeNode(node, graph)` in `EditorPolicy` to restrict explicit
 resizing. Return a reason to block an edit or `null` to allow it. The policy
 covers pointer resizing, keyboard resize steps, direct dimension edits, and
 Fit group to contents. If an edit would also grow an ancestor with locked
-dimensions, Zloz rejects the whole edit.
+dimensions, ZLOZ rejects the whole edit.
 
 Pass the same callback to `zlozView` to hide locked resize handles and
 disable group dimension controls. Custom node shells receive
@@ -2174,7 +2174,7 @@ disable group dimension controls. Custom node shells receive
 
 Pass `canSelectNode(node, graph)` or `canSelectEdge(edge, graph)` in
 `EditorPolicy`. Return `null` to allow selection or a reason to exclude
-the item. Zloz checks direct selection and interactions that select an item,
+the item. ZLOZ checks direct selection and interactions that select an item,
 such as opening its context menu. An excluded group can still contain
 individually selectable nodes.
 
@@ -2210,7 +2210,7 @@ pressed control cancels.
 The fit uses the configured padding, zoom limits, animation, and reduced
 motion behavior. It works in read-only views and preserves selection and
 undo history. Use `renderZoomAreaMarquee(context, h)` to paint the preview
-inside Zloz's pointer-inert frame. The context provides normalized world
+inside ZLOZ's pointer-inert frame. The context provides normalized world
 bounds and the viewport. Return `undefined` for the default or `null` to
 hide the decoration.
 
@@ -2221,7 +2221,7 @@ Set `previousViewControl: true` with `viewportControls: true` to show
 `context.actions.previousView` with `zlozViewportControl`, or send
 `{ type: 'PreviousViewClicked' }` directly.
 
-Zloz keeps one session checkpoint. Fit view, Fit selection, Zoom to area,
+ZLOZ keeps one session checkpoint. Fit view, Fit selection, Zoom to area,
 and node or connection reveal capture the camera before moving it.
 Manual pan and zoom leave the checkpoint available. Back uses it once,
 respects the current zoom limits and reduced-motion preference, and works
@@ -2230,7 +2230,7 @@ graph, and undo history. Snapshots save the current camera only.
 
 ### Reveal a node
 
-Send `{ type: 'NodeRevealRequested', id }` to center a node. Zloz keeps the
+Send `{ type: 'NodeRevealRequested', id }` to center a node. ZLOZ keeps the
 current zoom when the node fits and zooms out as needed within the active
 limits. It expands collapsed ancestors and uses the existing Fit view timing,
 including reduced motion. Graph edits, selection, and history are separate
@@ -2244,7 +2244,7 @@ gesture, and works in read-only mode.
 ### Reveal a connection
 
 Send `{ type: 'EdgeRevealRequested', id }` to frame both endpoint nodes
-and the stored route when the edge uses it. Zloz opens collapsed ancestors
+and the stored route when the edge uses it. ZLOZ opens collapsed ancestors
 of the endpoints, preserves selection and history, and uses the same zoom
 and timing rules as node reveal. The frame uses authored endpoint bounds and
 stored route points. Custom SVG path extensions can extend beyond that frame.
@@ -2457,7 +2457,7 @@ on release.
 
 ### Live box-selection preview
 
-While drawing a marquee, Zloz highlights the nodes that would be selected
+While drawing a marquee, ZLOZ highlights the nodes that would be selected
 on release. The preview uses the same match rule, collapsed-group
 projection, and ancestor selection as the final selection. Pressed states
 and selection actions continue to reflect the committed selection until
@@ -2472,7 +2472,7 @@ show its own feedback. Preview remains available in minimal mode.
 
 Use `renderSelectionMarquee(context, h)` to replace the decoration during
 a box-selection gesture. The context contains normalized `bounds` in graph
-coordinates, the current `viewport`, the matching rule, and `previewNodeIds`. Zloz positions and sizes the frame
+coordinates, the current `viewport`, the matching rule, and `previewNodeIds`. ZLOZ positions and sizes the frame
 using the same bounds as selection on release. Use decorative content that
 fills the frame.
 
@@ -2507,7 +2507,7 @@ renderResizeReadout: ({ node, widthText, heightText }, h) =>
 ```
 
 The renderer receives the node with raw Model dimensions, the formatted
-values, and the `resizing` or `selected-group` phase. Zloz keeps placement
+values, and the `resizing` or `selected-group` phase. ZLOZ keeps placement
 and the polite status region. Return `undefined` for the default badge or
 `null` to omit an eligible readout. The renderer runs only when the effective
 `measurements` diagnostic and the readout option allow it.
@@ -2556,7 +2556,7 @@ renderCanvasStatus: ({ defaultText }, h) =>
   h.span([h.Class('canvas-status-badge')], [defaultText]),
 ```
 
-Zloz keeps the description ID referenced by the canvas and node controls,
+ZLOZ keeps the description ID referenced by the canvas and node controls,
 and updates status inside the existing polite live region. Diagnostics
 visually hide these containers while preserving their accessible content.
 Keep meaningful text in both renderers, including when `visible` is false.
@@ -2622,7 +2622,7 @@ renderViewportControls: ({ actions }, h) =>
 
 With `minimap: true`, `renderMinimap` receives visible nodes in paint order and
 world bounds from the current Model, including collapsed groups. Compose
-`zlozMinimap(h, context, onEvent, frameAttributes, svgChildren)` inside the Zloz
+`zlozMinimap(h, context, onEvent, frameAttributes, svgChildren)` inside the ZLOZ
 surface for pointer input. Its inner SVG stretches to fit the frame and maps
 clicks using the area inside the border and padding. Draw node marks in world
 coordinates, and add `zlozMinimapViewport(h, context.geometry, svgAttributes)`
@@ -2720,7 +2720,7 @@ anchor. The primitives merge style attributes and apply those geometry propertie
 last. Keep frames at the supplied world coordinate level; avoid CSS transforms,
 margins, size constraints or ancestor positioning that would move/scale the frame
 away from Model geometry. Visual node height may intentionally change with
-content or a shell switch; Zloz remeasures it and rebases history. Fixed group
+content or a shell switch; ZLOZ remeasures it and rebases history. Fixed group
 bounds do not auto-fit to new content; use `GroupFitClicked` when desired.
 
 The sample's **Node design** selector switches between the default cards and
@@ -2803,7 +2803,7 @@ ELK and force adapters, and the lightweight force eligibility subpath. Signature
 fields, unions and source links come from TypeScript exports. Its landing page
 explains Model ownership, composition and package boundaries.
 
-The Pages workflow builds the [Zloz API reference](https://opsydyn.github.io/fold-kit-experiments/zloz/api/).
+The Pages workflow builds the [ZLOZ API reference](https://opsydyn.github.io/fold-kit-experiments/zloz/api/).
 That route becomes available when the updated workflow reaches Pages; generating
 it locally does not publish the site or npm packages.
 
@@ -3074,7 +3074,7 @@ default and null omits it. Keep custom content noninteractive. The visual-only S
 is aria-hidden; supply a textual change list/legend through the comparison model.
 Use the complete uncollapsed comparison in this slice; host filtering/collapse
 projections and custom route fidelity require explicit integration. Themes use
-scoped Zloz paint tokens. Minimal-mode masking is a host presentation choice.
+scoped ZLOZ paint tokens. Minimal-mode masking is a host presentation choice.
 
 This is named snapshot review, separate from session Undo and the monotonic editor
 freshness revision. Playback, fork/merge, collaborative history and agent history commands remain
@@ -3532,7 +3532,7 @@ selection cursor, timer, graph edits or persistence format are introduced.
 ## Typed event-storming relationships
 
 Edges can carry `architecture: EventStormingEdgeArchitecture` independently of
-their visible `label` and host-owned `data`. Zloz's default process conventions
+their visible `label` and host-owned `data`. ZLOZ's default process conventions
 are:
 
 | Role        | Source       | Target       |
@@ -3914,7 +3914,7 @@ const next = updateEditor(
 | Strategic | partnership, shared-kernel             | two distinct bounded contexts; symmetric                                               |
 | Strategic | upstream-downstream, customer-supplier | source upstream/supplier → target downstream/customer                                  |
 
-These tactical roles are Zloz conventions, not a universal DDD grammar. A
+These tactical roles are ZLOZ conventions, not a universal DDD grammar. A
 `contains` annotation does not assign `parentId`, and influence direction is not
 necessarily message/data flow. Directional strategic roles optionally accept a
 nonempty, duplicate-free upstream list of `open-host-service` and
@@ -4690,7 +4690,7 @@ check source authorship or manage cancellation. Hosts own the matching detached
 editor, active request and source/review identity, and can compose a FitViewClicked
 navigation event after publication.
 
-The Zloz workbench's Domain review demonstrates explicit ELK Arrange/Cancel,
+The ZLOZ workbench's Domain review demonstrates explicit ELK Arrange/Cancel,
 RIGHT/DOWN, Restore original, finding navigation and unchanged working history.
 See [preview layout evidence](../../apps/zloz-demo/evidence/alchemy-layout.md).
 This API is qualified against this branch's source/artifact; published 0.3.0 does
@@ -5167,7 +5167,7 @@ are outside this workflow. Nothing is published by these APIs.
 ### External systems, hotspots and lanes (headless)
 
 The workshop vocabulary distinguishes causal participants from discussion annotations
-and organizational frames. These are Zloz modelling conventions, not executable
+and organizational frames. These are ZLOZ modelling conventions, not executable
 business rules or a claim of universal EventStorming grammar.
 
 | Descriptor (`family: 'event-storming'`)         | Core meaning                                        | Node contract                                                             |

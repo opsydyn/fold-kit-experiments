@@ -1,0 +1,21 @@
+---
+import { portrait } from './portrait';
+import type { Specimen } from './specimens';
+
+interface Props { specimen: Specimen }
+const { specimen } = Astro.props;
+const { fill, body, legs, antennae, spots, loop, spikes, eyes } = portrait(specimen);
+---
+<svg viewBox="0 0 300 265" aria-hidden="true" focusable="false">
+  <ellipse cx="150" cy="222" rx="70" ry="8" fill="#91a888" opacity=".45" />
+  <g stroke="#153c38" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    {legs.map(d => <path {d} fill="none" stroke-width="8" />)}
+    {loop && <path d={loop} fill="none" stroke-width="8" />}
+    {spikes.map(points => <polygon {points} fill="#f49a73" />)}
+    {specimen.kind === 'succeed' && <ellipse cx="150" cy="70" rx="50" ry="14" fill="none" />}
+    {antennae.map(({x,y,stem}) => <g><path d={stem} fill="none" /><circle cx={x} cy={y} r="7" fill={fill} /></g>)}
+    <path d={body} fill={fill} />
+    {eyes.map(x => <g><circle cx={x} cy="141" r="16" fill="#fffced" /><circle cx={x+3} cy="141" r="6" fill="#153c38" /></g>)}
+    {spots.map(({x,y,r}) => <circle cx={x} cy={y} {r} fill="#153c38" stroke="none" opacity=".65" />)}
+  </g>
+</svg>

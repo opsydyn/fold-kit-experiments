@@ -39,6 +39,15 @@ export const Invitation = Schema.Struct({
   status: Schema.String,
 });
 export const Diagram = Schema.Struct({ id: Id, name: Schema.String, updatedAt: Schema.Number });
+export const NameRevision = Schema.Int.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0)));
+export const BoardTitle = Schema.Struct({ name: Schema.String, nameRevision: NameRevision });
+export type BoardTitle = typeof BoardTitle.Type;
+export const BoardRename = Schema.Struct({
+  name: Schema.String.pipe(
+    Schema.check(Schema.isMinLength(1), Schema.isMaxLength(120), Schema.isPattern(/\S/)),
+  ),
+  expectedRevision: NameRevision,
+});
 export const directoryPageSize = 100;
 export function boardSearch(params: URLSearchParams) {
   const page = Number(params.get('page'));

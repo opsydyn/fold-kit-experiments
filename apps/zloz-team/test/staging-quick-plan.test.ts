@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import type { WorkerProps } from '@alchemy.run/cloudflare/Workers';
 import type { StackPlan } from 'alchemy/Alchemist';
-import { Context, Effect } from 'effect';
+import { Context, Effect, Schema } from 'effect';
 
 import { changedWorkerSettings, rejectQuickStagingPlan } from '../tools/staging-quick-plan';
 
@@ -231,4 +231,71 @@ test('the standalone workflow supplies the existing pilot settings from its prot
       },
     },
   });
+});
+
+test('the migration release admits only an update to the existing Teams D1 resource', () => {
+  const [app, server, db] = fixture.resources;
+  const database = { ...db, resourceType: 'Cloudflare.D1Database', action: 'update' as const };
+  const plan = { ...fixture, resources: [app, server, database] };
+  expect(rejectQuickStagingPlan(plan)).toBeDefined();
+  expect(rejectQuickStagingPlan(plan, true)).toBeUndefined();
+  for (const other of [
+    { ...database, action: 'replace' as const },
+    { ...database, fqn: 'AnotherDatabase' },
+    { ...database, bindings: [{ sid: 'OTHER', action: 'create' as const }] },
+  ])
+    expect(
+      rejectQuickStagingPlan({ ...plan, resources: [app, server, other] }, true),
+    ).toBeDefined();
+});
+
+test('staging automatically selects the successful same-repository main push SHA and gates hosted smoke on apply', async () => {
+  const path = new URL('../../../.github/workflows/deploy-teams-staging.yml', import.meta.url);
+  const step = Schema.Struct({
+    name: Schema.optional(Schema.String),
+    id: Schema.optional(Schema.String),
+    if: Schema.optional(Schema.String),
+    run: Schema.optional(Schema.String),
+    with: Schema.optional(Schema.Struct({ ref: Schema.optional(Schema.String) })),
+  });
+  const workflow = Schema.decodeUnknownSync(
+    Schema.Struct({
+      on: Schema.Struct({ workflow_run: Schema.Unknown }),
+      jobs: Schema.Struct({
+        candidate: Schema.Struct({ if: Schema.String, steps: Schema.Array(step) }),
+        deploy: Schema.Struct({
+          needs: Schema.String,
+          concurrency: Schema.Unknown,
+          env: Schema.Struct({ RELEASE_SHA: Schema.String }),
+          steps: Schema.Array(step),
+        }),
+      }),
+    }),
+  )(Bun.YAML.parse(await Bun.file(path).text()));
+  expect(workflow.on.workflow_run).toEqual({
+    workflows: ['ci'],
+    types: ['completed'],
+    branches: ['main'],
+  });
+  const { candidate, deploy } = workflow.jobs;
+  for (const condition of [
+    "github.event.workflow_run.event == 'push'",
+    "github.event.workflow_run.conclusion == 'success'",
+    'github.event.workflow_run.head_repository.full_name == github.repository',
+  ])
+    expect(candidate.if).toContain(condition);
+  expect(candidate.steps[0]?.run).toContain('git/ref/heads/main');
+  expect(deploy.needs).toBe('candidate');
+  expect(deploy.env.RELEASE_SHA).toBe('${{ needs.candidate.outputs.sha }}');
+  expect(deploy.steps[0]?.with?.ref).toBe(deploy.env.RELEASE_SHA);
+  expect(deploy.concurrency).toEqual({ group: 'deploy-teams-staging', queue: 'max' });
+  const steps = deploy.steps;
+  const check = steps.findIndex((step) => step.id === 'current');
+  const apply = steps.findIndex((step) => step.run?.includes('bun tools/staging-quick.ts release'));
+  const smoke = steps.findIndex((step) => step.name === 'Verify hosted build, backend and sign-in');
+  expect(check).toBeGreaterThan(0);
+  expect(apply).toBeGreaterThan(check);
+  expect(smoke).toBeGreaterThan(apply);
+  expect(steps[apply]?.if).toBe("steps.current.outputs.release == 'true'");
+  expect(steps[smoke]?.if).toBe(steps[apply]?.if);
 });

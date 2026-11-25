@@ -1,25 +1,59 @@
 name: Deploy Teams staging
 
 on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
 
-concurrency:
-  group: deploy-teams-staging
-  cancel-in-progress: false
-
 jobs:
+  candidate:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.conclusion == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      sha: ${{ steps.select.outputs.sha }}
+    steps:
+      - id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$CANDIDATE" != "$current" ]]; then
+            echo 'Superseded by a newer main commit.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$CANDIDATE&per_page=1" |
+              jq -e --arg sha "$CANDIDATE" '.workflow_runs[0] | .head_sha == $sha and .conclusion == "success"' >/dev/null
+          fi
+          echo "sha=$CANDIDATE" >> "$GITHUB_OUTPUT"
+
   deploy:
-    if: github.ref == 'refs/heads/main'
+    needs: candidate
+    if: needs.candidate.outputs.sha != ''
+    concurrency:
+      group: deploy-teams-staging
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 12
     environment:
       name: teams-staging
       url: https://teams-staging.opsydyn.xyz
     env:
+      RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
       ZLOZ_ORIGIN: https://teams-staging.opsydyn.xyz
       ZLOZ_DECISION_AUTHORING: 'true'
       ZLOZ_STAGING_BOOTSTRAP: 'false'
@@ -28,7 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.candidate.outputs.sha }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -46,11 +80,23 @@ jobs:
           bun run --filter @opsydyn/zloz-server test
       - name: Build Teams from the dispatched commit
         run: |
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          jq -n --arg sha "$GITHUB_SHA" --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          jq -n --arg sha "$RELEASE_SHA" --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
             '{commit:$sha,run:$run,attempt:$attempt}' > apps/zloz-team/public/teams-staging-build.json
           bun run --filter @opsydyn/zloz-team build
+      - name: Recheck release commit after acquiring staging slot
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$current" == "$RELEASE_SHA" ]]; then
+            echo 'release=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'A newer main commit superseded this release.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Apply the guarded Teams staging plan
+        if: steps.current.outputs.release == 'true'
         working-directory: apps/zloz-team
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.TECH_RADAR_CLOUDFLARE_API_TOKEN }}
@@ -65,8 +111,9 @@ jobs:
         run: |
           bun node_modules/alchemy/bin/cli.js provider check-env --config staging.alchemy.ts --no-input
           test -n "$ZLOZ_OPERATOR_TOKEN"
-          bun tools/staging-quick.ts apply
+          bun tools/staging-quick.ts release
       - name: Verify hosted build, backend and sign-in
+        if: steps.current.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           ZLOZ_EMAIL_SIGN_IN_TEAM: ${{ vars.ZLOZ_EMAIL_SIGN_IN_TEAM }}
@@ -97,6 +144,6 @@ jobs:
           elapsed=$(( smoke_finished - $(date -u -d "$dispatched" +%s) ))
           {
             echo '### Teams staging verified'
-            printf '\n- Commit `%s`\n- Run %s attempt %s\n- Dispatch to hosted smoke %ss\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$elapsed"
+            printf '\n- Commit `%s`\n- Run %s attempt %s\n- Dispatch to hosted smoke %ss\n' "$RELEASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$elapsed"
             echo '- Hosted build marker, anonymous session, Google and email sign-in configuration, and sign-in shell passed.'
           } | tee -a "$GITHUB_STEP_SUMMARY"

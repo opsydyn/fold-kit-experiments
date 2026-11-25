@@ -76,6 +76,8 @@ Keep operator traces separate from user-visible status. Capture durations, outco
 
 ## Delivery and review gates
 
+**Continuous delivery to Teams staging.** Every current green main commit should reach staging through CI, with its build identity, reviewed migrations and hosted smoke verified automatically. A routine release needs no operator action. Record release evidence against the exact commit.
+
 The order is deliberate. Each milestone leaves a complete user journey available for review. Use the exit criteria below to review each milestone.
 
 | Milestone                             | Deliverable                                                                                                                                                        | Ready for the next review when…                                                                                                                                                                                                                                    |

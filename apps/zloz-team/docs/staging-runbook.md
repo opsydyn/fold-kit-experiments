@@ -8,11 +8,16 @@ For the invite-only Moonwell pilot, see [Questmancer on Teams staging](questmanc
 
 ## Quick staging deploy from GitHub
 
-Run **Deploy Teams staging** from **Actions** on `main`. The workflow builds the
-dispatched commit, runs focused Teams checks and applies the guarded Alchemy
-plan. It supports code and asset updates to the Teams app and server Workers. Use the
-[direct worktree workflow](#direct-staging-deploy-from-a-worktree) for changes to
-bindings, migrations or other resources.
+A successful push CI run on the current `main` commit starts **Deploy Teams staging**.
+The job serializes releases, rechecks the commit before apply, and builds and verifies
+that exact SHA. A manual rerun uses the same CI and migration checks.
+
+The release verifies the existing Teams D1 database and its ordered Alchemy migration
+names and hashes. The only approved pending migration is `0006_board_name_revision.sql`.
+After apply, the job verifies database identity, preserved history rows and the
+`diagramDirectory.nameRevision` column definition. A retry verifies the completed
+state. The run summary records migration and hosted smoke results. Other infrastructure
+changes require extending the reviewed guard before they can ship automatically.
 
 The `teams-staging` environment restricts deployment to `main` and supplies the
 staging Google client and operator token. The workflow uses the existing

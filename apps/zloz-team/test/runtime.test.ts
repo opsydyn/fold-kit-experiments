@@ -419,6 +419,92 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await browserExpect(viewer.getByRole('link', { name, exact: true })).toBeVisible();
   }, 90_000);
 
+  test('shared board rename checks roles, preserves a conflicting draft and converges after reload', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const team = '/app/' + data.organizationId;
+    const url = origin + team + '/diagrams/' + id;
+    const api = origin + '/api/zloz/diagrams/' + data.organizationId + '/' + id;
+    const post = (
+      cookie: string,
+      path: string,
+      body:
+        | { name: string; expectedRevision: number }
+        | { operationId: string; name: string; graph: ZlozGraph },
+    ) =>
+      fetch(api + path, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await post(data.owner.cookie, '', {
+          operationId: id,
+          name: 'Returns',
+          graph: JSON.parse(serializeGraph({ nodes: [], edges: [] })),
+        })
+      ).status,
+    ).toBe(200);
+    const rename = (cookie: string, name: string, expectedRevision = 0) =>
+      post(cookie, '/name', { name, expectedRevision });
+    expect((await rename(data.viewer.cookie, 'Viewer edit')).status).toBe(403);
+    expect((await rename(data.outsider.cookie, 'Other team edit')).status).toBe(403);
+    expect((await rename(data.owner.cookie, '  ')).status).toBe(400);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string) => {
+      const page = await browser.newPage();
+      const separator = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+        ]);
+      await page.goto(url);
+      await page.getByRole('button', { name: 'Board settings' }).click();
+      return page;
+    };
+    const [owner, editor, viewer] = await Promise.all([
+      open(data.owner.cookie),
+      open(data.editor.cookie),
+      open(data.viewer.cookie),
+    ]);
+    const field = (page: Page) => page.getByRole('textbox', { name: 'Board name' });
+    const save = (page: Page) => page.getByRole('button', { name: 'Save board name' }).click();
+    const heading = (page: Page) => page.getByRole('heading', { level: 1 });
+    await browserExpect(field(viewer)).toHaveCount(0);
+    await field(editor).fill('  ');
+    await save(editor);
+    await browserExpect(field(editor)).toBeFocused();
+    await browserExpect(editor.getByText('Enter a board name.')).toBeVisible();
+    await field(editor).fill('Refund approvals');
+    await field(owner).fill('Returns and refunds');
+    await save(owner);
+    for (const page of [owner, editor, viewer])
+      await browserExpect(heading(page)).toHaveText('Returns and refunds', { timeout: 15000 });
+    await save(editor);
+    await browserExpect(field(editor)).toHaveValue('Refund approvals');
+    await browserExpect(editor.getByText(/Someone renamed this board/)).toBeVisible();
+    await browserExpect(heading(editor)).toHaveText('Returns and refunds');
+    await editor.getByRole('button', { name: 'Apply my name' }).click();
+    for (const page of [owner, editor, viewer]) {
+      await browserExpect(heading(page)).toHaveText('Refund approvals', { timeout: 15000 });
+      await page.reload();
+      await browserExpect(heading(page)).toHaveText('Refund approvals');
+      expect(page.url()).toBe(url);
+      await page.goto(origin + team);
+      await browserExpect(
+        page.getByRole('link', { name: 'Refund approvals', exact: true }),
+      ).toHaveAttribute('href', team + '/diagrams/' + id);
+    }
+    const results = await Promise.all([
+      rename(data.owner.cookie, 'A', 2),
+      rename(data.editor.cookie, 'B', 2),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  }, 90_000);
+
   test('design pass: two editors discover a returns board, follow a fork and loop, rewind a peer edit and return live', async () => {
     const data = await fixture();
     const team = `/app/${data.organizationId}`;

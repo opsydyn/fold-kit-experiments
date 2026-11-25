@@ -9,7 +9,9 @@ Install Mutant Cafe 0.1.7 from the separate npm lockfile in
 and the tool’s copy of Effect stays outside the Bun workspace. Keep the existing required CI checks as the merge gate.
 
 The advisory job tests changed TypeScript bodies under `apps/web/src` against
-the PR head. It uses one mutation worker and runs at most 20 mutants in path order.
+the PR head. When the web TypeScript diff contains only tests, a changed
+co-located `name.test.ts` selects its tracked sibling `name.ts` for a replay.
+It uses one mutation worker and runs at most 20 mutants in path order.
 The baseline has five minutes within the 30-minute job limit, so it can report a timeout.
 Its Actions summary and `web-mutation-outcomes` artifact record selection,
 execution, outcomes and baseline failures. A zero selection skips the baseline.

@@ -128,6 +128,10 @@ const Inspector = Schema.Literals([
   'journey',
 ]);
 const Rail = Schema.Literals(['tools', 'inspector']);
+const BoardCommand = Schema.Literals(['File', 'Edit', 'View', 'Arrange', 'Help', 'History']);
+type BoardCommand = typeof BoardCommand.Type;
+const triggerId = (name: BoardCommand) =>
+  name === 'History' ? 'board-history-toggle' : `board-menu-${name.toLowerCase()}-toggle`;
 const compactBoardQuery = '(max-width: 1080px)';
 export const Props = Schema.Struct({
   startingView: Schema.optional(CanvasEmphasis),
@@ -189,6 +193,7 @@ export const Model = Schema.Struct({
   rails: Schema.Struct({ tools: Schema.Boolean, inspector: Schema.Boolean }),
   compactBoard: Schema.Boolean,
   drawer: Schema.NullOr(Rail),
+  activeBoardCommand: BoardCommand,
   focusedBoard: Schema.Boolean,
   overviewOpen: Schema.Boolean,
   find: Schema.NullOr(Schema.String),
@@ -329,6 +334,8 @@ export const Message = defineMessageUnion({
   ChangedHistoryVisibility: { visible: Schema.Boolean },
   ChangedBoardWidth: { compact: Schema.Boolean },
   ToggledBoardRail: { rail: Rail },
+  FocusedBoardCommand: { name: BoardCommand },
+  NavigatedBoardCommands: { name: BoardCommand },
   ToggledBoardFocus: {},
   ToggledOverview: {},
   OpenedFind: {},
@@ -421,6 +428,19 @@ const FocusBoardControl = Command.define('FocusBoardControl', {
       Effect.catchTag('ElementNotFound', () => Effect.void),
       Effect.map(() => Message.CompletedBoardFocus()),
     ),
+});
+const FocusCommandTrigger = Command.define('FocusCommandTrigger', {
+  args: { name: BoardCommand },
+  messages: [Message.CompletedBoardFocus],
+  execute: ({ name }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit;
+      document.querySelector<HTMLElement>('.board-command-bar :popover-open')?.hidePopover();
+      yield* Dom.focus(`#${triggerId(name)}`).pipe(
+        Effect.catchTag('ElementNotFound', () => Effect.void),
+      );
+      return Message.CompletedBoardFocus();
+    }),
 });
 const PrepareLikeC4 = Command.define('PrepareLikeC4', {
   args: { run: Schema.Number, document: DiagramDocumentSchema },
@@ -720,6 +740,7 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
         rails: { tools: true, inspector: true },
         compactBoard: false,
         drawer: null,
+        activeBoardCommand: 'File',
         focusedBoard: false,
         overviewOpen: false,
         find: null,
@@ -1102,6 +1123,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ],
       };
     },
+    FocusedBoardCommand: ({ name }) => ({
+      model: model.activeBoardCommand === name ? model : { ...model, activeBoardCommand: name },
+    }),
+    NavigatedBoardCommands: ({ name }) => ({
+      model: { ...model, activeBoardCommand: name },
+      commands: [FocusCommandTrigger({ name })],
+    }),
     ToggledBoardFocus: () => ({
       model: withRailChange(model, {
         ...model,
@@ -2841,6 +2869,7 @@ const commandBar = createLazy();
 
 function commandBarView(
   h: HtmlBuilder<Message>,
+  active: BoardCommand,
   teamId: string,
   role: Model['role'],
   importAvailable: boolean,
@@ -2854,12 +2883,27 @@ function commandBarView(
   accessEnded: boolean,
 ) {
   // Native popovers provide exclusive opening, Escape, light dismissal and keyboard focus return.
-  const menu = (name: string, contents: (id: string) => ReturnType<typeof h.div>[]) => {
+  const commands = BoardCommand.literals.filter(
+    (name) => name !== 'History' || (reviewAvailable && !accessEnded),
+  );
+  const tabStop = commands.includes(active) ? active : 'File';
+  const trigger = (name: BoardCommand) => [
+    h.Id(triggerId(name)),
+    h.Tabindex(name === tabStop ? 0 : -1),
+    h.OnFocus(Message.FocusedBoardCommand({ name })),
+    h.OnKeyDownPreventDefault((key) => {
+      if (key !== 'ArrowLeft' && key !== 'ArrowRight') return Option.none();
+      const offset = key === 'ArrowRight' ? 1 : -1;
+      const index = (commands.indexOf(name) + offset + commands.length) % commands.length;
+      return Option.some(Message.NavigatedBoardCommands({ name: commands[index]! }));
+    }),
+  ];
+  const menu = (name: BoardCommand, contents: (id: string) => ReturnType<typeof h.div>[]) => {
     const id = `board-menu-${name.toLowerCase()}`;
     return h.div(
       [h.Class('board-menu')],
       [
-        h.button([h.Id(`${id}-toggle`), h.Type('button'), h.Popovertarget(id)], [name]),
+        h.button([...trigger(name), h.Type('button'), h.Popovertarget(id)], [name]),
         h.div(
           [
             h.Id(id),
@@ -2885,8 +2929,8 @@ function commandBarView(
       [label],
     );
 
-  return h.nav(
-    [h.Class('board-command-bar'), h.AriaLabel('Board commands')],
+  return h.div(
+    [h.Class('board-command-bar'), h.Role('toolbar'), h.AriaLabel('Board commands')],
     [
       menu('File', (id) => [
         action(id, 'Import into empty board…', Message.OpenedBoardImport(), importAvailable),
@@ -2948,7 +2992,7 @@ function commandBarView(
       h.button(
         [
           h.Type('button'),
-          h.Id('board-history-toggle'),
+          ...trigger('History'),
           h.Disabled(accessEnded || !reviewAvailable),
           h.OnClick(Message.OpenedLatestHistory()),
         ],
@@ -3134,6 +3178,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             commandBar(commandBarView, [
               h,
+              model.activeBoardCommand,
               model.room.teamId,
               model.role,
               canOpenBoardImport(model) && !model.boardImport,

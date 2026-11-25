@@ -1298,6 +1298,93 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect(parseGraph(await exported.text())).toEqual({ nodes: [], edges: [] });
   }, 25_000);
 
+  test('command bar keyboard navigation preserves the selected node and board version', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const cookie = data.editor.cookie;
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { origin, cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Keyboard workshop',
+        graph: { version: 1, graph: operationFixture.graph },
+      }),
+    });
+    expect(created.status).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const page = await browser.newPage();
+    const separator = cookie.indexOf('=');
+    await page
+      .context()
+      .addCookies([
+        { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+      ]);
+    let writes = 0;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url() === api + '/operations') writes++;
+    });
+    await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+    await page.getByText('Saved', { exact: true }).waitFor();
+    const button = (name: string) => page.getByRole('button', { name, exact: true });
+    const node = button('Select Alpha');
+    await node.click();
+    await browserExpect(node).toHaveAttribute('aria-pressed', 'true');
+    const frame = page.locator('[data-flow-node="a"][data-flow-x]');
+    const position = () =>
+      frame.evaluate((el) => [el.getAttribute('data-flow-x'), el.getAttribute('data-flow-y')]);
+    const before = await position();
+    const version = page.locator('[data-confirmed-version]');
+    await browserExpect(version).toHaveAttribute('data-confirmed-version', '0');
+    await button('Tools').focus();
+    await page.keyboard.press('Shift+Tab');
+    await browserExpect(button('File')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    const toolbar = page.getByRole('toolbar', { name: 'Board commands' });
+    expect(await toolbar.evaluate((el) => el.contains(document.activeElement))).toBe(false);
+    await page.keyboard.press('Tab');
+    await browserExpect(button('File')).toBeFocused();
+    await page.keyboard.press('Enter');
+    const filePanel = page.getByRole('group', { name: 'File', exact: true });
+    await browserExpect(filePanel).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await browserExpect(button('Edit')).toBeFocused();
+    await browserExpect(filePanel).toBeHidden();
+    await page.keyboard.press('ArrowLeft');
+    await browserExpect(button('File')).toBeFocused();
+    for (const [key, name] of [
+      ['ArrowLeft', 'History'],
+      ['ArrowLeft', 'Help'],
+      ['ArrowRight', 'History'],
+      ['ArrowRight', 'File'],
+      ['ArrowRight', 'Edit'],
+      ['ArrowRight', 'View'],
+      ['ArrowRight', 'Arrange'],
+      ['ArrowLeft', 'View'],
+    ] as const) {
+      await page.keyboard.press(key);
+      await browserExpect(button(name)).toBeFocused();
+    }
+    await page.keyboard.press('Enter');
+    const panel = page.getByRole('group', { name: 'View', exact: true });
+    await browserExpect(panel).toBeVisible();
+    await page.keyboard.press('Tab');
+    await browserExpect(panel.getByRole('button', { name: 'Focus board' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await browserExpect(panel).toBeHidden();
+    await browserExpect(button('View')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await browserExpect(button('Tools')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await browserExpect(button('View')).toBeFocused();
+    await browserExpect(node).toHaveAttribute('aria-pressed', 'true');
+    expect(await position()).toEqual(before);
+    await browserExpect(version).toHaveAttribute('data-confirmed-version', '0');
+    expect(writes).toBe(0);
+  }, 60_000);
+
   test('workspace themes and C4/DDD emphasis are personal, persistent and never author graph changes', async () => {
     const data = await fixture();
     const id = crypto.randomUUID();

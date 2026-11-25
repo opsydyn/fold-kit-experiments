@@ -52,6 +52,12 @@ import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
+import {
+  motionQuery,
+  motionChangeEvent,
+  prefersReducedMotion,
+  type MotionPreference,
+} from '../appearance/preferences';
 import { publishTitle, titleChanges } from '../board-settings/channel';
 import * as DiagramImport from '../likec4/main';
 import { requestLimit } from '../likec4/review';
@@ -1556,6 +1562,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     ChangedHistoryMotion: ({ reducedMotion }) => {
+      if (model.historyReducedMotion === reducedMotion) return { model };
       const review = historyReview(model);
       return {
         model: {
@@ -4010,9 +4017,22 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
     ),
     historyMotion: Subscription.persistentEntry(
       Dom.streamFromMediaQuery({
-        query: '(prefers-reduced-motion: reduce)',
-        mapMatches: (reducedMotion) => Message.ChangedHistoryMotion({ reducedMotion }),
-      }),
+        query: motionQuery,
+        mapMatches: () => Message.ChangedHistoryMotion({ reducedMotion: prefersReducedMotion() }),
+      }).pipe(
+        Stream.merge(
+          Dom.streamFromEvent({
+            target: (): Dom.TypedEventTarget<{
+              'zloz:motion-preference': CustomEvent<MotionPreference>;
+            }> => document,
+            type: motionChangeEvent,
+            mapEvent: ({ detail }) =>
+              Message.ChangedHistoryMotion({
+                reducedMotion: detail === 'reduce' || window.matchMedia(motionQuery).matches,
+              }),
+          }),
+        ),
+      ),
     ),
     historyVisibility: Subscription.persistentEntry(
       Stream.fromEffect(

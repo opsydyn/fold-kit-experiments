@@ -840,6 +840,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
     await browserExpect(badge(editor)).toHaveText('✓ Resolved');
     await editor.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await viewer.getByRole('button', { name: 'My preferences' }).click();
+    await viewer.getByLabel('Board motion').selectOption('reduce');
+    await viewer.keyboard.press('Escape');
+    await viewer.emulateMedia({ reducedMotion: 'no-preference' });
     await editor.getByRole('button', { name: 'Reopen hotspot' }).click();
     await browserExpect(badge(owner)).toHaveText('Open question');
     await browserExpect(badge(viewer)).toHaveText('Open question');
@@ -2526,6 +2530,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const play = review.getByRole('button', { name: 'Play editions' });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await browserExpect(play).toBeEnabled();
+    const preferences = page.getByRole('button', { name: 'My preferences', exact: true });
+    await preferences.click();
+    await page.getByLabel('Board motion').selectOption('reduce');
+    await browserExpect(play).toBeDisabled();
+    await page.getByLabel('Board motion').selectOption('system');
+    await browserExpect(play).toBeEnabled();
+    await page.keyboard.press('Escape');
     await play.click();
     await browserExpect(review).toContainText('Read-only · Version 2');
     await browserExpect(review.getByRole('button', { name: 'Pause editions' })).toBeDisabled();
@@ -2951,13 +2962,17 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         });
         expect(await response.json()).toMatchObject({ receipt: { status: 'accepted' } });
       };
-      await editor.page.emulateMedia({ reducedMotion: 'reduce' });
+      await editor.page.getByRole('button', { name: 'My preferences' }).click();
+      await editor.page.getByLabel('Board motion').selectOption('reduce');
+      await editor.page.keyboard.press('Escape');
       await connect('reduced-edge', 'c', 'd', 2);
       await browserExpect.poll(() => motions(owner.page)).toEqual([createdEdge, 'reduced-edge']);
       await browserExpect(
         editor.page.locator('[data-flow-edge-stroke="reduced-edge"]'),
       ).toBeVisible();
-      await editor.page.emulateMedia({ reducedMotion: 'no-preference' });
+      expect(await (await editor.context.request.get(editor.page.url())).text()).toContain(
+        'data-team-motion="reduce"',
+      );
       expect(await motions(editor.page)).toEqual([createdEdge]);
 
       disconnected = true;
@@ -2976,6 +2991,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         editor.page.locator('[data-flow-edge-stroke="offline-edge"]'),
       ).toBeVisible();
       expect(await motions(editor.page)).toEqual([createdEdge]);
+      await editor.page.getByRole('button', { name: 'My preferences' }).click();
+      await browserExpect(editor.page.getByLabel('Board motion')).toHaveValue('reduce');
+      await editor.page.getByLabel('Board motion').selectOption('system');
+      await editor.page.keyboard.press('Escape');
       await connect('next-live-edge', 'b', 'd', 4);
       await browserExpect.poll(() => motions(editor.page)).toEqual([createdEdge, 'next-live-edge']);
       await editor.page.reload();

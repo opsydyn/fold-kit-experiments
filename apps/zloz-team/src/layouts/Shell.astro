@@ -1,14 +1,15 @@
 ---
 import '../styles/workspace.css';
 import Appearance from '../appearance/app';
-import { themeCookie, themePreference, toolLabelsCookie, toolLabelsPreference } from '../appearance/preferences';
+import { motionCookie, motionPreference, themeCookie, themePreference, toolLabelsCookie, toolLabelsPreference } from '../appearance/preferences';
 import mark from '../../../../docs/assets/zloz/final/mark.svg?raw';
 interface Props { title: string; wide?: boolean; board?: boolean }
 const { title, wide = false, board = false } = Astro.props;
+const motion = motionPreference(Astro.cookies.get(motionCookie)?.value);
 const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
 ---
 <!doctype html>
-<html lang="en" data-team-theme={preference}>
+<html lang="en" data-team-theme={preference} data-team-motion={motion}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -22,8 +23,8 @@ const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
         <button type="button" popovertarget="my-preferences">My preferences</button>
         <section id="my-preferences" popover="auto" class="workspace-settings" aria-labelledby="preferences-heading">
           <h2 id="preferences-heading">My preferences</h2>
-          <p>Theme and tool labels apply in this browser.</p>
-          <Appearance client:load noMeta preference={preference} toolLabels={toolLabelsPreference(Astro.cookies.get(toolLabelsCookie)?.value)} />
+          <p>Theme, motion and tool labels apply in this browser.</p>
+          <Appearance client:load noMeta motion={motion} preference={preference} toolLabels={toolLabelsPreference(Astro.cookies.get(toolLabelsCookie)?.value)} />
         </section>
       </div>
     </header>

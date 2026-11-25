@@ -14,7 +14,7 @@ const pageUrl = (next: number) => base + boardSearchSuffix({ q, page: next });
 const directorySuffix = boardSearchSuffix({ q, page });
 const dates = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'UTC' });
 ---
-<section class="board-directory" aria-labelledby="boards-heading">
+<section data-directory-path={base + directorySuffix} class="board-directory" aria-labelledby="boards-heading">
   <header class="directory-header">
     <h2 id="boards-heading">Boards</h2>
     {team.role !== 'viewer' && <div class="board-actions">
@@ -45,3 +45,35 @@ const dates = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 
   </nav>}
   {team.role === 'viewer' && <p class="board-access">You can view these boards. Ask a team owner for editing access.</p>}
 </section>
+
+<script>
+  const directory = document.querySelector<HTMLElement>('.board-directory');
+  const scrollKey = 'zloz-team-directory-return';
+  if (directory) {
+    const path = directory.dataset.directoryPath;
+    directory.querySelector('.board-list')?.addEventListener('click', (event) => {
+      if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0 ||
+          event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest('a') : null;
+      if (!link) return;
+      // oxlint-disable-next-line linteffect/no-try-catch -- Browser storage can be blocked; navigation remains native.
+      try {
+        sessionStorage.setItem(scrollKey, JSON.stringify({ path, board: link.href, y: scrollY }));
+      } catch { /* Storage may be disabled. The board link still works. */ }
+    });
+    window.addEventListener('pageshow', (event) => {
+      // oxlint-disable-next-line linteffect/no-try-catch -- Blocked storage and malformed saved entries fall back to normal page navigation.
+      try {
+        // History traversal and reload already have browser-managed scroll positions.
+        const navigation = performance.getEntriesByType('navigation')[0];
+        if (event.persisted || !(navigation instanceof PerformanceNavigationTiming) || navigation.type !== 'navigate') return;
+        const saved = sessionStorage.getItem(scrollKey);
+        if (!saved) return;
+        sessionStorage.removeItem(scrollKey);
+        const entry = JSON.parse(saved);
+        if (entry?.path === path && entry.board === document.referrer && Number.isFinite(entry.y))
+          window.scrollTo({ top: entry.y, behavior: 'instant' });
+      } catch { /* Ignore unavailable or invalid tab storage. */ }
+    });
+  }
+</script>

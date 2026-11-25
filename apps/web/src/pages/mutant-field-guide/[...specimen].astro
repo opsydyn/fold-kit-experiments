@@ -1,0 +1,247 @@
+---
+import Portrait from '../../apps/mutant-field-guide/Portrait.astro';
+import { loadGuide } from '../../apps/mutant-field-guide/archive';
+
+const { records, offline } = await loadGuide();
+const specimen = records.get(Astro.params.specimen ?? '088431c5ccfa86175c2fdbce');
+if (!specimen) return new Response(offline ? 'Archive temporarily unavailable' : 'Unknown specimen', {
+  status: offline ? 503 : 404,
+  headers: offline ? { 'Retry-After': '60' } : {},
+});
+const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['untested', 'Untested']]);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{specimen.name} · Mutant field guide</title>
+  </head>
+  <body>
+    <header>
+      <i class="mark" aria-hidden="true"></i>
+      <h1 class="word">Mutant field guide</h1>
+      <a class="back" href="/explore">Explore demo ↗</a>
+    </header>
+    <main>
+      <div class="hero">
+        <figure><Portrait {specimen} /></figure>
+        <section aria-labelledby="specimen-name">
+          <span class="cap">Specimen {specimen.id.slice(0, 8)}</span>
+          <h2 id="specimen-name">{specimen.name}</h2>
+          <code>{specimen.fn} · {specimen.file}:{specimen.line}</code>
+          <p>{specimen.note}</p>
+          <ol class="states" aria-label="Recorded test outcomes">
+            {specimen.observations.map((run) => (
+              <li>
+                <small>{run.url ? <a href={run.url}>{run.label}</a> : run.label}</small>
+                <b>{outcomeLabels.get(run.outcome) ?? run.outcome}</b>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
+      <h3 id="shelf-title">Recorded specimens</h3>
+      <nav class="shelf" aria-labelledby="shelf-title">
+        {[...records.values()].map((entry) => (
+          <a href={'/mutant-field-guide/' + entry.id}
+            aria-current={entry.id === specimen.id ? 'page' : undefined}
+            aria-label={'Inspect ' + entry.name}>
+            <Portrait specimen={entry} />
+            {entry.short}
+          </a>
+        ))}
+      </nav>
+      <p class="key">{specimen.key} The markings come from the mutant ID.</p>
+    {offline && <p class="key">Showing bundled records. The live archive is unavailable.</p>}
+    </main>
+  </body>
+</html>
+<style is:global>
+body {
+  --bg: light-dark(#f3f1e6, #202723);
+  --fg: light-dark(#162e26, #f0f2d8);
+  --sub: light-dark(#4b6052, #c0c9b9);
+  --line: light-dark(#bcc4ae, #5c685d);
+  color: var(--fg);
+  background: var(--bg);
+  font:
+    15px/1.45 system-ui,
+    sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+* {
+  box-sizing: border-box;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 19px 5%;
+  border-bottom: 1px solid var(--line);
+}
+.word {
+  font:
+    italic 27px Georgia,
+    serif;
+}
+.mark {
+  display: inline-block;
+  width: 23px;
+  height: 23px;
+  background: var(--fg);
+  border-radius: 40% 65% 45% 70%;
+  transform: rotate(-30deg);
+  position: relative;
+}
+.mark:after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background: var(--bg);
+  border-radius: 50%;
+}
+main {
+  padding: 22px 5%;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  align-items: center;
+  gap: 6%;
+}
+figure {
+  margin: 0;
+  background-color: #dce4bd;
+  background-image: radial-gradient(#9daf8a 0.75px, transparent 0.75px);
+  background-size: 12px 12px;
+  border-radius: 46% 46% 12px 12px;
+  position: relative;
+  text-align: center;
+}
+figure svg {
+  width: min(100%, 340px);
+  display: block;
+  margin: auto;
+}
+.cap {
+  font:
+    11px ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+  color: var(--sub);
+  text-transform: uppercase;
+}
+h2 {
+  font:
+    normal clamp(31px, 5vw, 56px)/1.01 Georgia,
+    serif;
+  letter-spacing: -0.045em;
+  margin: 10px 0;
+}
+code {
+  font:
+    13px ui-monospace,
+    monospace;
+}
+p {
+  margin: 14px 0;
+}
+.states {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.states b {
+  display: block;
+  font: 600 15px system-ui;
+}
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+code { overflow-wrap: anywhere; }
+.shelf a {
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 4px;
+  text-align: center;
+  font: 12px system-ui;
+}
+.shelf a svg {
+  width: 100%;
+  height: 54px;
+  display: block;
+}
+.shelf a[aria-current="page"] {
+  border: 2px solid var(--fg);
+  background: light-dark(#dde6cf, #3e4e41);
+  padding: 3px;
+}
+.shelf a:focus-visible {
+  outline: 3px solid #9170cf;
+  outline-offset: 2px;
+}
+h3 {
+  font: normal 18px Georgia;
+  margin: 20px 0 8px;
+}
+.key {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--sub);
+}
+@media (max-width: 590px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  figure svg {
+    max-width: 220px;
+  }
+  .shelf {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+html {
+  color-scheme: light dark;
+  background: #f3f1e6;
+}
+header,
+main {
+  max-width: 1060px;
+  margin: auto;
+}
+.word {
+  margin: 0;
+}
+.back {
+  margin-left: auto;
+  color: var(--sub);
+  font-size: 13px;
+}
+.shelf a {
+  text-decoration: none;
+}
+.shelf a:hover {
+  background: var(--line);
+}
+.states {
+  list-style: none;
+  padding-left: 0;
+  flex-wrap: wrap;
+}
+.states li + li {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+</style>

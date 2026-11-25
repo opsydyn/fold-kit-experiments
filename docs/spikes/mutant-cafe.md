@@ -83,3 +83,16 @@ selected seven mutants in Explore's `mount.ts`. All seven survived the related
 `Effect.never`. A second run scoped to request diagnostics' `machine.ts`
 selected 33 candidates, ran 20, caught four and missed 16. The 13 beyond the
 budget have no outcome.
+
+## Field guide history
+
+After a successful web advisory, the field guide archive workflow imports its report from
+the completed run. It executes the importer from the default branch. The compact records
+live in `archive.json` on the `field-guide-data` branch. Each record carries the source
+commit, run ID, attempt, start time and SHA-256 of the original report. Reprocessing the
+same artifact is idempotent. A later attempt adds another observation for the same mutant.
+
+The web guide reads the public archive on request. Updates become visible after GitHub's
+raw-content cache refreshes. When that archive is unavailable, the guide labels its bundled
+Explore and first portrait records. The archive workflow activates when it reaches the
+default branch. A failed archive job can be retried from its Actions run.

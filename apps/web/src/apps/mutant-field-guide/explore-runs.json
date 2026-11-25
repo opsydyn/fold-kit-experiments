@@ -1,0 +1,41 @@
+[
+  {
+    "label": "Original suite",
+    "outcomes": {
+      "4c0c68adb8210c249f623323": "missed",
+      "7f3599ead3dbd5cc848f7ff8": "missed",
+      "9308eceba58e69c0bd7a0916": "missed",
+      "ae22caefc5e42f717cb32fb3": "missed",
+      "088431c5ccfa86175c2fdbce": "missed",
+      "4cbd778d63db8381c719e7f7": "missed",
+      "c174995116163bbdb0dcf6af": "missed"
+    },
+    "reportSha256": "31ebfe648072f37bc4d7f4d655d2cbba9a5d3d5dbd9468983caaf46d9c172ca6"
+  },
+  {
+    "label": "Mount test replay",
+    "outcomes": {
+      "4c0c68adb8210c249f623323": "caught",
+      "7f3599ead3dbd5cc848f7ff8": "caught",
+      "9308eceba58e69c0bd7a0916": "caught",
+      "ae22caefc5e42f717cb32fb3": "caught",
+      "088431c5ccfa86175c2fdbce": "caught",
+      "4cbd778d63db8381c719e7f7": "caught",
+      "c174995116163bbdb0dcf6af": "caught"
+    },
+    "reportSha256": "e3a2cc3944314dad76a7b978931335694588c5a80570d525b2342f54344a05b4"
+  },
+  {
+    "label": "Pinned tool replay",
+    "outcomes": {
+      "4c0c68adb8210c249f623323": "caught",
+      "7f3599ead3dbd5cc848f7ff8": "caught",
+      "9308eceba58e69c0bd7a0916": "caught",
+      "ae22caefc5e42f717cb32fb3": "caught",
+      "088431c5ccfa86175c2fdbce": "caught",
+      "4cbd778d63db8381c719e7f7": "caught",
+      "c174995116163bbdb0dcf6af": "caught"
+    },
+    "reportSha256": "d527826e93f00d280dd4e29d6289eb1e39c2d06456fae2e6f630a8f3f089fb0c"
+  }
+]

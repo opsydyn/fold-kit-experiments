@@ -120,5 +120,38 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "run": 45716586946,
+    "attempt": 1,
+    "commit": "83f60d24ad4eefdf772105038283a28cced4f99a",
+    "startedAt": "2026-11-25T22:50:25Z",
+    "reportSha256": "889cbf9f20971ea8352e1a992397a3490a00a7f8c66098ab5f03b002fe305c95",
+    "entries": [
+      {
+        "id": "22cb9ec1f9735433959fe0c5",
+        "file": "src/apps/mutant-field-guide/cthulhu.ts",
+        "fn": "cthulhuKnot",
+        "genre": "FnValue",
+        "line": 3,
+        "outcome": "caught"
+      },
+      {
+        "id": "87c891910cc5570c24fab827",
+        "file": "src/apps/mutant-field-guide/cthulhu.ts",
+        "fn": "cthulhuKnot",
+        "genre": "FnValue",
+        "line": 3,
+        "outcome": "caught"
+      },
+      {
+        "id": "d8cd4f9462d92add38365c2b",
+        "file": "src/apps/mutant-field-guide/cthulhu.ts",
+        "fn": "cthulhuKnot",
+        "genre": "FnValue",
+        "line": 3,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

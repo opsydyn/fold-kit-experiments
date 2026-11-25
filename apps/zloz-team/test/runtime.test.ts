@@ -419,6 +419,74 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await browserExpect(viewer.getByRole('link', { name, exact: true })).toBeVisible();
   }, 90_000);
 
+  test.each(['browser Back', 'Back to team'] as const)(
+    'a filtered board directory restores its scroll position via %s',
+    async (returnPath) => {
+      const data = await fixture();
+      const teamPath = `/app/${data.organizationId}`;
+      const id = crypto.randomUUID();
+      const cookie = data.editor.cookie;
+      const name = 'Returns workshop';
+      const created = await fetch(`${origin}/api/zloz/diagrams/${data.organizationId}/${id}`, {
+        method: 'POST',
+        headers: { origin, cookie, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name,
+          graph: { version: 1, graph: operationFixture.graph },
+        }),
+      });
+      expect(created.status).toBe(200);
+      for (let i = 0; i < 45; i++) {
+        expect(
+          (
+            await fixtureCall('/directory', {
+              organizationId: data.organizationId,
+              userId: `Returns review ${i}`,
+            })
+          ).status,
+        ).toBe(204);
+      }
+      const browser = await chromium.launch();
+      await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+      const split = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: origin },
+        ]);
+      const directoryUrl = origin + teamPath + '?q=Returns';
+      await page.goto(directoryUrl);
+      const row = page.getByRole('link', { name, exact: true });
+      await row.scrollIntoViewIfNeeded();
+      const depth = () => page.evaluate(() => window.scrollY);
+      const before = await depth();
+      expect(before).toBeGreaterThan(720);
+      await row.click();
+      await page.getByText('Saved', { exact: true }).waitFor();
+      if (returnPath === 'browser Back') await page.goBack();
+      else await page.getByRole('link', { name: 'Back to team', exact: true }).click();
+      await browserExpect(page).toHaveURL(directoryUrl);
+      await browserExpect(page.getByRole('searchbox')).toHaveValue('Returns');
+      await browserExpect
+        .poll(depth, { message: `Restore the previous directory scroll offset of ${before}px` })
+        .toBeCloseTo(before, 0);
+      await browserExpect(row).toBeInViewport();
+
+      if (returnPath === 'browser Back') {
+        await page.goForward();
+        await page.getByRole('link', { name: 'Back to team', exact: true }).click();
+        await browserExpect.poll(depth).toBeCloseTo(before, 0);
+      }
+      // A fresh directory visit should start at the top.
+      await page.goto(origin + '/app');
+      await page.goto(directoryUrl);
+      await browserExpect.poll(depth).toBe(0);
+    },
+    60_000,
+  );
+
   test('shared board rename checks roles, preserves a conflicting draft and converges after reload', async () => {
     const data = await fixture();
     const id = crypto.randomUUID();

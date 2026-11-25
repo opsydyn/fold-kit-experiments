@@ -13,3 +13,19 @@ export const toolLabelsCookie = 'zloz-team-tool-labels';
 export function toolLabelsPreference(value: string | undefined): ToolLabels {
   return Schema.is(ToolLabels)(value) ? value : 'icons';
 }
+
+export const MotionPreference = Schema.Literals(['system', 'reduce']);
+export type MotionPreference = typeof MotionPreference.Type;
+export const motionCookie = 'zloz-team-motion';
+export const motionChangeEvent = 'zloz:motion-preference';
+export const motionQuery = '(prefers-reduced-motion: reduce)';
+export function motionPreference(value: string | undefined): MotionPreference {
+  return value === 'reduce' ? 'reduce' : 'system';
+}
+export function prefersReducedMotion() {
+  const controller = document.querySelector<HTMLElement>('[data-motion-preference]');
+  return (
+    (controller?.dataset.motionPreference ?? document.documentElement.dataset.teamMotion) ===
+      'reduce' || window.matchMedia(motionQuery).matches
+  );
+}

@@ -1,0 +1,61 @@
+---
+import { randomLcg } from '@opsydyn/foldkit-viz/math/random';
+import { line } from '@opsydyn/foldkit-viz/shape/line';
+
+interface Props { id: string; knot: 'open' | 'knotted' }
+const { id, knot } = Astro.props;
+const random = randomLcg(Number.parseInt(id.slice(0, 8), 16));
+const arms = [-1, 1].flatMap(side => [0, 1, 2].map(index => {
+  const reach = 29 + index * 12;
+  const curl = 6 + 7 * random();
+  return line([
+    [120 + side * (8 + index * 6), 96],
+    [120 + side * reach, 111],
+    [120 + side * (reach - curl), 135 + curl],
+    [120 + side * (reach + 7), 153 - index * 8],
+    [120 + side * (reach + 18), 137 - index * 7],
+  ], { curve: 'catmullRom', digits: 2 });
+}));
+const unbound = knot === 'open';
+---
+<details class="sighting">
+  <summary>Inspect the loop</summary>
+  <div class="plate">
+    <svg viewBox="0 0 240 184" aria-hidden="true" focusable="false">
+      <circle cx="120" cy="93" r="81" fill="#234946" stroke="#87a99a" stroke-dasharray="1 5"/>
+      <g fill="#35605a" stroke="#a4c9a5" stroke-width="1.6" stroke-linejoin="round">
+        {[false, true].map(mirror => (
+          <g transform={mirror ? 'translate(240 0) scale(-1 1)' : undefined}>
+            <path d="M103 108 Q72 60 33 53 Q49 76 35 98 Q60 83 60 111 Q77 96 89 124 Z"/>
+            <path d="M39 58 Q68 70 89 108 M40 60 Q57 68 60 100" fill="none"/>
+          </g>
+        ))}
+        <path d="M88 92 C77 65 93 32 119 29 C148 26 163 60 151 89 L143 104 Q120 117 98 104 Z" fill="#88ba9e"/>
+      </g>
+      <g fill="#153c38">
+        <path d="M91 77 Q101 81 112 85 Q101 95 91 77 Z M149 77 Q139 81 128 85 Q139 95 149 77 Z"/>
+      </g>
+      <g fill="none" stroke-linecap="round">
+        {arms.map(d => <g><path {d} stroke="#153c38" stroke-width="9"/><path {d} stroke="#88ba9e" stroke-width="5"/></g>)}
+        <path d={unbound
+          ? 'M115 96 C115 123 76 144 93 153 Q103 160 111 149 M125 96 C125 123 164 144 147 153 Q137 160 129 149'
+          : 'M115 96 C115 122 76 142 93 153 C110 167 132 123 147 139 C168 162 139 167 120 146 C104 126 122 115 125 96'}
+          stroke="#f2d69c" stroke-width="4"/>
+      </g>
+    </svg>
+    <div>
+      <h3>Cthulhu, the endless wait</h3>
+      <p><code>Effect.never</code> leaves its caller waiting. This mutant once survived the suite.</p>
+      <p>{unbound ? 'The knot is open. A later test caught it.' : 'The tentacles hold their knot. The last recorded verdict was Survived.'}</p>
+    </div>
+  </div>
+</details>
+<style is:inline>
+  .sighting { margin: 1rem 0; }
+  .sighting summary { width: fit-content; cursor: pointer; color: var(--sub); text-decoration: underline dotted; text-underline-offset: .25em; }
+  .sighting summary:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+  .sighting .plate { margin-top: .75rem; padding: 1rem; border-radius: .75rem; background: #153c38; color: #f3f1df; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  .sighting .plate svg { width: min(13rem, 100%); height: auto; }
+  .sighting .plate div { flex: 1 1 14rem; }
+  .sighting .plate h3 { font: italic 1.5rem Georgia, serif; margin: 0; }
+</style>

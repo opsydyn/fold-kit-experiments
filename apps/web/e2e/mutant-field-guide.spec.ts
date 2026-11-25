@@ -33,3 +33,21 @@ test('Explore specimens retain their portraits and recorded outcomes across navi
   await shelf.getByRole('link', { name: 'Inspect portrait · c02499' }).click();
   await expect(page.getByRole('listitem').first()).toContainText('Untested');
 });
+
+test('the endless one hides its deep-water portrait behind a keyboard disclosure', async ({
+  page,
+}) => {
+  await page.goto('/mutant-field-guide');
+  const title = page.getByRole('heading', {
+    name: 'Cthulhu, the endless wait',
+    includeHidden: true,
+  });
+  await expect(title).toBeHidden();
+  await page.getByText('Inspect the loop', { exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(title).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(title).toBeHidden();
+  await page.getByRole('link', { name: 'Inspect Fault spine' }).click();
+  await expect(page.locator('summary', { hasText: 'Inspect the loop' })).toHaveCount(0);
+});

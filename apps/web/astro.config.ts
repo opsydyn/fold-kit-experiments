@@ -1,5 +1,5 @@
 import { globSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import cloudflare from '@astrojs/cloudflare';
@@ -10,7 +10,7 @@ import { Schema } from 'effect';
 
 import manifest from '../../package.json';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = dirname(fileURLToPath(new URL('../../package.json', import.meta.url)));
 const workspacePaths = globSync(
   manifest.workspaces.packages.map((pattern) => pattern + '/package.json'),
   { cwd: root },

@@ -532,5 +532,34 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "apps/zloz-demo",
+    "selected": 9,
+    "budgetSkipped": 7,
+    "failed": false,
+    "run": 45810401763,
+    "attempt": 1,
+    "commit": "315370b1fa70ee45f5e3ea8da7e5ade738abc969",
+    "startedAt": "2026-11-26T11:25:06Z",
+    "reportSha256": "1b49261b769eec87664a3437ff1140d7b148120fe7bab93b16fbb04f99796eb6",
+    "entries": [
+      {
+        "id": "540cc4f702e0c758be088d29",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      },
+      {
+        "id": "d5223e92e3ce78e8f0b2e676",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

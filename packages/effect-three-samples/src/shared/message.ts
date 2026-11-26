@@ -1,14 +1,15 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+import { SceneStart } from '../effect-ui-scene';
+
+export const Message = UiSchema.TaggedEnum({
   ClickedCube: { key: Schema.String },
   HoveredCube: { key: Schema.String },
   LeftCube: { key: Schema.String },
   ClickedToggleSize: {},
   ClickedToggleSecondCube: {},
   ClickedToggleScene: {},
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

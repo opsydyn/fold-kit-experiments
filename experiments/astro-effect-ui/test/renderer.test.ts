@@ -982,3 +982,53 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   60_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Shared Resources keeps its canvas across edits and releases it on unmount',
+  async () => {
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      page.setDefaultTimeout(9000);
+      await page.route(`${origin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      await page.goto(`${origin}/three-scenes/shared/`);
+      const ready = page.getByText('Scene running.', { exact: false });
+      await ready.waitFor();
+      const canvas = page.locator('effect-three-scene canvas[data-engine]');
+      const original = await canvas.elementHandle();
+      await page.getByRole('button', { name: 'Grow cubes' }).press('Enter');
+      await page.getByRole('button', { name: 'Shrink cubes' }).waitFor();
+      await page.getByRole('button', { name: 'Remove right cube' }).press('Enter');
+      await page.getByRole('button', { name: 'Add right cube' }).waitFor();
+      expect(await canvas.evaluate((current, before) => current === before, original)).toBe(true);
+      await page.getByRole('button', { name: 'Unmount scene' }).press('Enter');
+      await page.getByText('Scene unmounted:', { exact: false }).waitFor();
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        original,
+      );
+      await page.getByRole('button', { name: 'Mount scene' }).press('Enter');
+      await ready.waitFor();
+      expect(await canvas.evaluate((current, before) => current !== before, original)).toBe(true);
+      expect(
+        await canvas.evaluate(
+          (node) => node instanceof HTMLCanvasElement && node.getContext('webgl2')?.isContextLost(),
+        ),
+      ).toBe(false);
+      await page.getByRole('button', { name: 'Shrink cubes' }).waitFor();
+      await page.getByRole('button', { name: 'Add right cube' }).waitFor();
+    } finally {
+      await browser.close();
+    }
+  },
+  45_000,
+);

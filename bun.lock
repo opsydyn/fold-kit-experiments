@@ -77,15 +77,14 @@
     "apps/tech-radar": {
       "name": "@opsydyn/tech-radar",
       "dependencies": {
-        "@foldkit/ui": "catalog:",
-        "@opsydyn/astro-foldkit": "workspace:*",
+        "@effect/ui": "catalog:",
+        "@opsydyn/astro-effect-ui": "workspace:*",
         "@opsydyn/effect-three": "workspace:*",
         "@opsydyn/effect-three-foldkit": "workspace:*",
         "@opsydyn/effect-three-troika": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
-        "foldkit": "catalog:",
         "three": "catalog:",
       },
       "devDependencies": {

@@ -1,17 +1,16 @@
-import { Combobox, Popover, Tooltip } from '@foldkit/ui';
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 import { Category, Ring } from './data';
+import { SceneStart } from './labelledEnvironment';
 import { SheetStop } from './sheet';
 import { Shortcut } from './shortcuts';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
 import { Typeface } from './typefaces';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   HoveredBlip: { key: Schema.String },
   LeftBlip: { key: Schema.String },
   ClickedBlip: { key: Schema.String },
@@ -84,14 +83,20 @@ export const Message = defineMessageUnion({
   ResizedStage: { width: Schema.Number, height: Schema.Number },
   ChangedScreenDensity: { isDense: Schema.Boolean },
   CompletedFocusSearch: {},
+  CompletedScrollSearch: {},
   CompletedOpenPage: {},
   SucceededLoadLastVisit: { edition: Schema.NullOr(Schema.String) },
   CompletedSaveLastVisit: {},
   ClickedDismissSinceVisit: {},
-  GotTooltipMessage: { control: IconControl, message: Tooltip.Message },
-  GotSearchMessage: { message: Combobox.Message },
-  GotHelpMessage: { message: Popover.Message },
+  TypedSearch: { query: Schema.String },
+  ToggledSearch: { open: Schema.Boolean },
+  MovedSearch: { offset: Schema.Literals([-1, 1]) },
+  PickedSearch: { id: Schema.String },
+  ToggledHelp: { open: Schema.Boolean },
+  DismissedTooltip: { control: IconControl },
+  LeftTooltip: { control: IconControl },
+  MountedRadar: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

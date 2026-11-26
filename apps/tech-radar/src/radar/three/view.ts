@@ -1,7 +1,6 @@
-import { Disclosure, Popover, Switch, Tooltip } from '@foldkit/ui';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import { Match, Option } from 'effect';
-import type { Attribute, Document, Html, HtmlBuilder } from 'foldkit/html';
+import { Mount, type View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+import { Effect, Match, Option, Queue, Stream } from 'effect';
 
 import { bodyLabels, bodyOf } from './bodies';
 import { comparedWith, movesOf } from './compare';
@@ -15,7 +14,7 @@ import {
   ringLabels,
 } from './data';
 import { eggReadout, isEggKey, isMonolithKey } from './easter';
-import { sceneMount } from './labelledEnvironment';
+import { EffectThreeStage, sceneMount } from './labelledEnvironment';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
 import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
@@ -37,7 +36,7 @@ import {
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
-import { searchBox, searchResults } from './search';
+import { searchResults } from './search';
 import type { SheetStop } from './sheet';
 import { shortcuts } from './shortcuts';
 import { shellRadius } from './space';
@@ -46,8 +45,8 @@ import { changesIn } from './timeline';
 import { trailOf } from './trail';
 import { Typeface, typefaceFrom, typefaceLabels, typeVariables } from './typefaces';
 
-const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
-  h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
+const button = (h: Html.H<Message>, label: string, message: Message) =>
+  h.button.class('e3-button').attr('type', 'button').on('click', message).children(label);
 
 const describe = (entry: RadarEntry): string =>
   `${entry.name} · ${categoryLabels[entry.category]} · ${ringLabels[entry.ring]}`;
@@ -119,28 +118,25 @@ const categoryOf = (value: string): CategoryFilter =>
 
 /** A titled group of the sidebar's controls, with any of its own actions beside the title. */
 const panelSection = (
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   title: string,
-  children: ReadonlyArray<Html>,
-  actions: ReadonlyArray<Html> = [],
-): Html =>
-  h.section(
-    [h.Class('e3-panel-section'), h.AriaLabel(title)],
-    [
-      h.div(
-        [h.Class('e3-panel-heading-row')],
-        [h.h2([h.Class('e3-panel-heading')], [title]), ...actions],
-      ),
+  children: View.Children<Message>,
+  actions: View.Children<Message> = [],
+) =>
+  h.section
+    .key(title)
+    .class('e3-panel-section')
+    .attr('aria-label', title)
+    .children(
+      h.div
+        .class('e3-panel-heading-row')
+        .children(h.h2.class('e3-panel-heading').children(title), ...actions),
       ...children,
-    ],
-  );
+    );
 
 /** A small text action in a section's heading row. */
-const headingAction = (
-  h: HtmlBuilder<Message>,
-  attributes: ReadonlyArray<Attribute<Message>>,
-  label: string,
-): Html => h.button([h.Class('e3-heading-action'), h.Type('button'), ...attributes], [label]);
+const headingAction = (h: Html.H<Message>, message: Message, label: string) =>
+  h.button.class('e3-heading-action').attr('type', 'button').on('click', message).children(label);
 
 const choiceOf = (value: string): ThemeChoice =>
   Option.getOrElse(
@@ -156,28 +152,34 @@ const choiceLabel = (model: Model, choice: ThemeChoice): string =>
   );
 
 /** The theme picker, small, beside the View heading. */
-const themePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.select(
-    [
-      h.Class('e3-heading-select'),
-      h.AriaLabel('Theme'),
-      h.Value(model.themeChoice),
-      h.OnChange((value) => Message.ChoseTheme({ choice: choiceOf(value) })),
-    ],
-    ThemeChoice.literals.map((choice) => h.option([h.Value(choice)], [choiceLabel(model, choice)])),
-  );
+const themePicker = (model: Model, h: Html.H<Message>) =>
+  h.select
+    .class('e3-heading-select')
+    .attr('aria-label', 'Theme')
+    .on('change', ({ value }) => Message.ChoseTheme({ choice: choiceOf(value) }))
+    .children(
+      ...ThemeChoice.literals.map((choice) =>
+        h.option
+          .attr('value', choice)
+          .selected(choice === model.themeChoice)
+          .children(choiceLabel(model, choice)),
+      ),
+    );
 
 /** The typeface picker, beside the theme picker. */
-const typefacePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.select(
-    [
-      h.Class('e3-heading-select'),
-      h.AriaLabel('Typeface'),
-      h.Value(model.typeface),
-      h.OnChange((value) => Message.ChoseTypeface({ typeface: typefaceFrom(value) })),
-    ],
-    Typeface.literals.map((typeface) => h.option([h.Value(typeface)], [typefaceLabels[typeface]])),
-  );
+const typefacePicker = (model: Model, h: Html.H<Message>) =>
+  h.select
+    .class('e3-heading-select')
+    .attr('aria-label', 'Typeface')
+    .on('change', ({ value }) => Message.ChoseTypeface({ typeface: typefaceFrom(value) }))
+    .children(
+      ...Typeface.literals.map((typeface) =>
+        h.option
+          .attr('value', typeface)
+          .selected(typeface === model.typeface)
+          .children(typefaceLabels[typeface]),
+      ),
+    );
 
 /** What each icon button shows, is called and does. */
 const iconControls = {
@@ -201,159 +203,185 @@ const iconControls = {
  * A small square button, its face a glyph. Its name is spoken, and a tooltip shows it on
  * hover or keyboard focus, as a `title` never does on focus or touch.
  */
-const iconButton = (model: Model, h: HtmlBuilder<Message>, control: IconControl): Html => {
+const iconButton = (model: Model, h: Html.H<Message>, control: IconControl) => {
   const { glyph, label, message } = iconControls[control];
-  const toView = ({ trigger, panel, isVisible }: Tooltip.RenderInfo): Html =>
-    h.span(
-      [h.Class('e3-tooltip-anchor')],
-      [
-        h.button(
-          [...trigger, h.Class('e3-button e3-icon-button'), h.OnClick(message)],
-          [h.span([h.AriaHidden(true)], [glyph])],
-        ),
-        ...[h.span([...panel, h.Class('e3-tooltip')], [label])].filter(() => isVisible),
-      ],
+  return h.span
+    .class('e3-tooltip-anchor')
+    .attr('data-dismissed', Option.contains(model.dismissedTooltip, control) ? '' : undefined)
+    .on('mouseleave', Message.LeftTooltip({ control }))
+    .children(
+      h.button
+        .class('e3-button', 'e3-icon-button')
+        .attr('type', 'button')
+        .attr('aria-label', label)
+        .on('click', message)
+        .on('keydown', ({ key }) =>
+          key === 'Escape' ? Message.DismissedTooltip({ control }) : undefined,
+        )
+        .on('blur', Message.LeftTooltip({ control }))
+        .children(h.span.attr('aria-hidden', 'true').children(glyph)),
+      h.span.class('e3-tooltip').attr('aria-hidden', 'true').children(label),
     );
-  return h.submodel({
-    slotId: `tooltip-${control}`,
-    model: model.tooltips[control],
-    view: Tooltip.view,
-    viewInputs: { ariaLabel: label, anchor: { placement: 'bottom', gap: 6, padding: 8 }, toView },
-    toParentMessage: (child) => Message.GotTooltipMessage({ control, message: child }),
-  });
 };
 
-/**
- * The search box: typing filters the radar and lists what it shows, a category at a time,
- * each entry with its ring; picking one pins it and faces it.
- */
-const searchBoxView = (model: Model, h: HtmlBuilder<Message>): Html => {
+const searchKeys = (model: Model, key: string): Message | undefined => {
+  if (key === 'ArrowDown') return Message.MovedSearch({ offset: 1 });
+  if (key === 'ArrowUp') return Message.MovedSearch({ offset: -1 });
+  if (key === 'Escape' && model.searchOpen) return Message.ToggledSearch({ open: false });
+  if (key !== 'Enter' || !model.searchOpen) return undefined;
+  return Option.getOrUndefined(
+    Option.map(model.activeSearchEntry, (id) => Message.PickedSearch({ id })),
+  );
+};
+
+const searchBoxView = (model: Model, h: Html.H<Message>) => {
   const results = searchResults(model);
-  const byId = new Map(results.map((position) => [position.entry.id, position.entry]));
-  const nameOf = (id: string) => byId.get(id)?.name ?? id;
-  const ringOf = (id: string) =>
-    Option.match(Option.fromNullishOr(byId.get(id)), {
-      onNone: () => '',
-      onSome: (entry) => ringLabels[entry.ring],
-    });
-  const itemConfig = (id: string) => ({
-    className: 'e3-search-item',
-    content: h.span(
-      [h.Class('e3-search-entry')],
-      [h.span([], [nameOf(id)]), h.span([h.Class('e3-search-ring')], [ringOf(id)])],
+  const active = Option.filter(model.activeSearchEntry, (id) =>
+    results.some(({ entry }) => entry.id === id),
+  );
+  return h.div.class('e3-search').children(
+    h.div.class('e3-search-field').children(
+      h.input
+        .class('e3-text', 'e3-search-input')
+        .attr('type', 'text')
+        .attr('role', 'combobox')
+        .attr('aria-label', 'Search entries')
+        .attr('aria-autocomplete', 'list')
+        .attr('aria-controls', 'radar-search-results')
+        .attr('aria-expanded', String(model.searchOpen))
+        .attr(
+          'aria-activedescendant',
+          model.searchOpen
+            ? Option.getOrUndefined(Option.map(active, (id) => `radar-option-${id}`))
+            : undefined,
+        )
+        .attr('placeholder', 'Search')
+        .value(model.query)
+        .on('input', ({ value: query }) => Message.TypedSearch({ query }))
+        .on('keydown', ({ key, composing }) => (composing ? undefined : searchKeys(model, key)), {
+          preventDefault: true,
+        })
+        .on('blur', Message.ToggledSearch({ open: false })),
+      h.button
+        .class('e3-search-toggle')
+        .attr('type', 'button')
+        .attr('tabindex', '-1')
+        .attr('aria-label', 'List the entries')
+        .attr('aria-expanded', String(model.searchOpen))
+        .on('pointerdown', () => undefined, { preventDefault: 'always' })
+        .on('click', Message.ToggledSearch({ open: !model.searchOpen }))
+        .children('▾'),
     ),
-  });
-  const headingOf = (key: string) =>
-    Option.match(Option.fromNullishOr(results.find(({ entry }) => entry.category === key)), {
-      onNone: () => undefined,
-      onSome: ({ entry }) => ({
-        className: 'e3-search-heading',
-        content: h.span([], [categoryLabels[entry.category]]),
-      }),
-    });
-  return h.submodel({
-    slotId: 'search',
-    model: model.search,
-    view: searchBox.view,
-    viewInputs: {
-      items: results.map(({ entry }) => entry.id),
-      maybeSelectedValue: model.selected,
-      restingInputValue: model.query,
-      itemToValue: (id) => id,
-      itemToDisplayText: nameOf,
-      itemToConfig: itemConfig,
-      itemGroupKey: (id) => byId.get(id)?.category ?? '',
-      groupToHeading: headingOf,
-      ariaLabel: 'Search entries',
-      inputPlaceholder: 'Search',
-      inputClassName: 'e3-text e3-search-input',
-      className: 'e3-search',
-      inputWrapperClassName: 'e3-search-field',
-      itemsClassName: 'e3-search-items',
-      buttonClassName: 'e3-search-toggle',
-      buttonContent: h.span(
-        [],
-        [
-          h.span([h.AriaHidden(true)], ['▾']),
-          h.span([h.Class('e3-visually-hidden')], ['List the entries']),
-        ],
+    h.div
+      .class('e3-search-items')
+      .attr('id', 'radar-search-results')
+      .attr('role', 'listbox')
+      .attr('aria-label', 'Matching entries')
+      .attr('hidden', model.searchOpen ? undefined : '')
+      .children(
+        ...categoryIds.map((category) => {
+          const entries = results.filter(({ entry }) => entry.category === category);
+          return entries.length === 0
+            ? undefined
+            : h.div
+                .attr('role', 'group')
+                .attr('aria-label', categoryLabels[category])
+                .children(
+                  h.span
+                    .class('e3-search-heading')
+                    .attr('aria-hidden', 'true')
+                    .children(categoryLabels[category]),
+                  ...entries.map(({ entry }) =>
+                    h.div
+                      .class('e3-search-item')
+                      .attr('role', 'option')
+                      .attr('id', `radar-option-${entry.id}`)
+                      .attr('aria-selected', String(Option.contains(active, entry.id)))
+                      .attr('data-active', Option.contains(active, entry.id) ? '' : undefined)
+                      .attr(
+                        'data-selected',
+                        Option.contains(model.selected, entry.id) ? '' : undefined,
+                      )
+                      .on('pointerdown', () => undefined, { preventDefault: 'always' })
+                      .on('click', Message.PickedSearch({ id: entry.id }))
+                      .children(
+                        h.span
+                          .class('e3-search-entry')
+                          .children(
+                            h.span(entry.name),
+                            h.span.class('e3-search-ring').children(ringLabels[entry.ring]),
+                          ),
+                      ),
+                  ),
+                );
+        }),
       ),
-      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
-    },
-    toParentMessage: (message) => Message.GotSearchMessage({ message }),
-  });
+  );
 };
 
-const findControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+const findControls = (model: Model, h: Html.H<Message>) =>
   panelSection(h, 'Find', [
-    h.div(
-      [h.Class('e3-find')],
-      [
-        searchBoxView(model, h),
-        h.select(
-          [
-            h.Class('e3-text'),
-            h.AriaLabel('Category'),
-            h.Value(model.category),
-            h.OnChange((value) => Message.ChangedCategory({ category: categoryOf(value) })),
-          ],
-          [
-            h.option([h.Value('all')], ['All categories']),
-            ...categoryIds.map((category) =>
-              h.option([h.Value(category)], [categoryLabels[category]]),
-            ),
-          ],
+    h.div.class('e3-find').children(
+      searchBoxView(model, h),
+      h.select
+        .class('e3-text')
+        .attr('aria-label', 'Category')
+        .on('change', ({ value }) => Message.ChangedCategory({ category: categoryOf(value) }))
+        .children(
+          h.option
+            .attr('value', 'all')
+            .selected(model.category === 'all')
+            .children('All categories'),
+          ...categoryIds.map((category) =>
+            h.option
+              .attr('value', category)
+              .selected(category === model.category)
+              .children(categoryLabels[category]),
+          ),
         ),
-      ],
     ),
   ]);
 
-const ringControls = (model: Model, h: HtmlBuilder<Message>): Html => {
+const ringControls = (model: Model, h: Html.H<Message>) => {
   const counts = countRings(presentOf(model), filtersOf(model));
   return panelSection(
     h,
     'Rings',
     [
-      h.div(
-        [h.Class('e3-grid-2')],
-        ringIds.map((ring) =>
-          h.button(
-            [
-              h.Class('e3-button'),
-              h.Type('button'),
-              h.AriaPressed(String(model.enabledRings.includes(ring))),
-              h.OnClick(Message.ClickedRing({ ring })),
-            ],
-            [`${ringLabels[ring]} (${counts[ring]})`],
-          ),
+      h.div.class('e3-grid-2').children(
+        ...ringIds.map((ring) =>
+          h.button
+            .class('e3-button')
+            .attr('type', 'button')
+            .attr('aria-pressed', String(model.enabledRings.includes(ring)))
+            .on('click', Message.ClickedRing({ ring }))
+            .children(`${ringLabels[ring]} (${counts[ring]})`),
         ),
       ),
     ],
-    [headingAction(h, [h.OnClick(Message.ClickedClearFilters())], 'Clear filters')],
+    [headingAction(h, Message.ClickedClearFilters(), 'Clear filters')],
   );
 };
 
-const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+const viewControls = (model: Model, h: Html.H<Message>) =>
   panelSection(
     h,
     'View',
     [
-      h.div(
-        [h.Class('e3-toolbar')],
-        [
+      h.div
+        .class('e3-toolbar')
+        .children(
           iconButton(model, h, 'turn-left'),
           iconButton(model, h, 'turn-right'),
           iconButton(model, h, 'zoom-out'),
           iconButton(model, h, 'zoom-in'),
-        ],
-      ),
-      h.div(
-        [h.Class('e3-grid-2')],
-        [
+        ),
+      h.div
+        .class('e3-grid-2')
+        .children(
           button(h, 'Reset view', Message.ClickedResetView()),
           button(h, 'Universe view', Message.ClickedUniverse()),
-        ],
-      ),
+        ),
     ],
     [typefacePicker(model, h), themePicker(model, h)],
   );
@@ -362,53 +390,37 @@ const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
  * Whether the relationships are drawn: a switch beside the heading, read as "Show
  * relationships". It sends the radar's own toggle, so a recorded tour still replays.
  */
-const relationshipSwitch = (model: Model, h: HtmlBuilder<Message>): Html =>
-  Switch.view(
-    {
-      id: 'radar-relationships',
-      isChecked: model.showRelationships,
-      onToggle: () => Message.ClickedRelationships(),
-      toView: ({ button: track, label }) =>
-        h.span(
-          [h.Class('e3-switch')],
-          [
-            h.span(
-              [...label, h.Class('e3-switch-label')],
-              ['Show', h.span([h.Class('e3-visually-hidden')], [' relationships'])],
-            ),
-            h.button(
-              [...track, h.Class('e3-switch-track')],
-              [h.span([h.Class('e3-switch-thumb')], [])],
-            ),
-          ],
-        ),
-    },
-    h,
-  );
+const relationshipSwitch = (model: Model, h: Html.H<Message>) =>
+  h.span
+    .class('e3-switch')
+    .children(
+      h.span.class('e3-switch-label').attr('aria-hidden', 'true').children('Show'),
+      h.button
+        .class('e3-switch-track')
+        .attr('role', 'switch')
+        .attr('type', 'button')
+        .attr('aria-label', 'Show relationships')
+        .attr('aria-checked', String(model.showRelationships))
+        .on('click', Message.ClickedRelationships())
+        .children(h.span.class('e3-switch-thumb').children()),
+    );
 
 /** The relationship key: each type's colour and line style beside its name, and a toggle. */
-const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
+const relationshipLegend = (model: Model, h: Html.H<Message>) =>
   panelSection(
     h,
     'Relationships',
     [
-      h.ul(
-        [h.Class('e3-key')],
-        relationshipTypes.map((type) =>
-          h.li(
-            [],
-            [
-              h.span(
-                [
-                  h.Class('e3-edge-swatch'),
-                  h.Style({
-                    borderTop: `3px ${relationshipLines[type]} ${relationshipCss(themeOf(model), type)}`,
-                  }),
-                ],
-                [],
-              ),
-              relationshipLabels[type],
-            ],
+      h.ul.class('e3-key').children(
+        ...relationshipTypes.map((type) =>
+          h.li.children(
+            h.span
+              .class('e3-edge-swatch')
+              .style({
+                borderTop: `3px ${relationshipLines[type]} ${relationshipCss(themeOf(model), type)}`,
+              })
+              .children(),
+            relationshipLabels[type],
           ),
         ),
       ),
@@ -417,60 +429,44 @@ const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
   );
 
 /** One relationship of the pinned entry: choosing it pins the entry at the other end. */
-const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relation): Html =>
-  h.li(
-    [],
-    [
-      h.button(
-        [
-          h.Class('e3-relation'),
-          h.Type('button'),
-          h.OnClick(Message.ClickedRelay({ to: relation.other })),
-        ],
-        [
-          h.span(
-            [
-              h.Class('e3-edge-swatch'),
-              h.AriaHidden(true),
-              h.Style({
-                borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(themeOf(model), relation.type)}`,
-              }),
-            ],
-            [],
+const relationButton = (model: Model, h: Html.H<Message>, relation: Relation) =>
+  h.li.children(
+    h.button
+      .class('e3-relation')
+      .attr('type', 'button')
+      .on('click', Message.ClickedRelay({ to: relation.other }))
+      .children(
+        h.span
+          .class('e3-edge-swatch')
+          .attr('aria-hidden', 'true')
+          .style({
+            borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(themeOf(model), relation.type)}`,
+          })
+          .children(),
+        h.span.children(
+          h.span.class('e3-relation-type').children(`${relation.label} `),
+          h.strong.children(
+            Option.match(positionOf(model, relation.other), {
+              onNone: () => relation.other,
+              onSome: ({ entry }) => entry.name,
+            }),
           ),
-          h.span(
-            [],
-            [
-              h.span([h.Class('e3-relation-type')], [`${relation.label} `]),
-              h.strong(
-                [],
-                [
-                  Option.match(positionOf(model, relation.other), {
-                    onNone: () => relation.other,
-                    onSome: ({ entry }) => entry.name,
-                  }),
-                ],
-              ),
-            ],
-          ),
-          h.span([h.Class('e3-relation-note')], [relation.note]),
-        ],
+        ),
+        h.span.class('e3-relation-note').children(relation.note),
       ),
-    ],
   );
 
-const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyArray<Html> =>
+const relations = (model: Model, h: Html.H<Message>, id: string): View.Children<Message> =>
   Match.value(relationsOf(relationshipsOf(model), id)).pipe(
     Match.when(
       (list) => list.length === 0,
       () => [],
     ),
     Match.orElse((list) => [
-      h.h4([], ['Related']),
-      h.ul(
-        [h.Class('e3-relations')],
-        list.map((relation) => relationButton(model, h, relation)),
-      ),
+      h.h4.children('Related'),
+      h.ul
+        .class('e3-relations')
+        .children(...list.map((relation) => relationButton(model, h, relation))),
     ]),
   );
 
@@ -479,39 +475,32 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
  * Each is also a cluster stop: choosing it flies to the category's sector. Identity also
  * rides on every label and list row, never colour alone.
  */
-const legend = (model: Model, h: HtmlBuilder<Message>): Html =>
+const legend = (model: Model, h: Html.H<Message>) =>
   panelSection(h, 'Categories', [
-    h.div(
-      [h.Class('e3-stack')],
-      categoryIds.map((category) =>
-        h.button(
-          [
-            h.Class('e3-button e3-legend-button'),
-            h.Type('button'),
-            h.AriaLabel(`Fly to ${categoryLabels[category]}`),
-            h.OnClick(Message.ClickedCluster({ category })),
-          ],
-          [
-            h.span(
-              [
-                h.Class('e3-swatch'),
-                h.Style({ background: categoryCss(themeOf(model), category) }),
-              ],
-              [],
-            ),
+    h.div.class('e3-stack').children(
+      ...categoryIds.map((category) =>
+        h.button
+          .class('e3-button e3-legend-button')
+          .attr('type', 'button')
+          .attr('aria-label', `Fly to ${categoryLabels[category]}`)
+          .on('click', Message.ClickedCluster({ category }))
+          .children(
+            h.span
+              .class('e3-swatch')
+              .style({ background: categoryCss(themeOf(model), category) })
+              .children(),
             categoryLabels[category],
-            h.span([h.Class('e3-legend-body')], [bodyLabels[bodyOf[category]]]),
-          ],
-        ),
+            h.span.class('e3-legend-body').children(bodyLabels[bodyOf[category]]),
+          ),
       ),
     ),
   ]);
 
 /** The pinned entry's full page, as it stood in the edition shown, when the site has one. */
-const fullPageLink = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyArray<Html> =>
+const fullPageLink = (model: Model, h: Html.H<Message>, id: string): View.Children<Message> =>
   Option.match(fullPageOf(model, id), {
     onNone: () => [],
-    onSome: (href) => [h.a([h.Class('e3-full-page'), h.Href(href)], ['Full page'])],
+    onSome: (href) => [h.a.class('e3-full-page').attr('href', href).children('Full page')],
   });
 
 /** Where an entry's source lives, as a short host name: "github.com". */
@@ -529,139 +518,107 @@ const hostOf = (url: string): string =>
  */
 const details = (
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   placement: 'stage' | 'sheet',
-): ReadonlyArray<Html> =>
+): View.Children<Message> =>
   Option.match(
     Option.flatMap(model.selected, (id) => positionOf(model, id)),
     {
       onNone: () => [],
       onSome: ({ entry }) => [
-        h.section(
-          [
-            h.Class(`e3-details e3-details-${placement}`),
-            h.AriaLabel('Selected entry'),
-            h.Style({ '--series': categoryCss(themeOf(model), entry.category) }),
-          ],
-          [
-            h.p(
-              [h.Class('e3-details-meta')],
-              [
-                h.span([h.Class('e3-swatch'), h.AriaHidden(true)], []),
+        h.section
+          .key(`details-${placement}`)
+          .class(`e3-details e3-details-${placement}`)
+          .attr('aria-label', 'Selected entry')
+          .style({ '--series': categoryCss(themeOf(model), entry.category) })
+          .children(
+            h.p
+              .class('e3-details-meta')
+              .children(
+                h.span.class('e3-swatch').attr('aria-hidden', 'true').children(),
                 categoryLabels[entry.category],
-                h.span([h.Class('e3-ring-badge')], [ringLabels[entry.ring]]),
-              ],
-            ),
-            h.h3([], [entry.name]),
-            h.p([h.Class('e3-details-summary')], [entry.description]),
-            h.div(
-              [h.Class('e3-details-actions')],
-              [
+                h.span.class('e3-ring-badge').children(ringLabels[entry.ring]),
+              ),
+            h.h3.children(entry.name),
+            h.p.class('e3-details-summary').children(entry.description),
+            h.div
+              .class('e3-details-actions')
+              .children(
                 ...fullPageLink(model, h, entry.id),
                 button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
                 button(h, 'Copy link', Message.ClickedCopyLink()),
-                // In the immersive radar the sheet is only this card's first rows.
-                h.button(
-                  [
-                    h.Class('e3-button e3-details-more'),
-                    h.Type('button'),
-                    h.OnClick(Message.ClickedMoreFromImmersive()),
-                  ],
-                  ['More ↑'],
-                ),
-              ],
-            ),
-            h.p(
-              [h.Class('e3-details-source')],
-              [
-                h.a(
-                  [h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')],
-                  [`Source · ${hostOf(entry.sourceUrl)}`],
-                ),
-              ],
+                h.button
+                  .class('e3-button e3-details-more')
+                  .attr('type', 'button')
+                  .on('click', Message.ClickedMoreFromImmersive())
+                  .children('More ↑'),
+              ),
+            h.p.class('e3-details-source').children(
+              h.a
+                .attr('href', entry.sourceUrl)
+                .attr('target', '_blank')
+                .attr('rel', 'noopener')
+                .children(`Source · ${hostOf(entry.sourceUrl)}`),
             ),
             ...relations(model, h, entry.id),
-          ],
-        ),
+          ),
       ],
     },
   );
 
-const entryRow = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition): Html => {
+const entryRow = (model: Model, h: Html.H<Message>, position: RadarPosition) => {
   const { entry } = position;
-  return h.tr(
-    [],
-    [
-      h.th([h.Scope('row')], [String(position.displayNumber)]),
-      h.td(
-        [],
-        [
-          h.button(
-            [
-              h.Class('e3-button'),
-              h.Type('button'),
-              h.AriaPressed(String(Option.contains(model.selected, entry.id))),
-              h.OnClick(Message.ClickedEntry({ id: entry.id })),
-            ],
-            [entry.name],
-          ),
-        ],
-      ),
-      h.td([], [categoryLabels[entry.category]]),
-      h.td([], [ringLabels[entry.ring]]),
-    ],
+  return h.tr.children(
+    h.th.attr('scope', 'row').children(String(position.displayNumber)),
+    h.td.children(
+      h.button
+        .class('e3-button')
+        .attr('type', 'button')
+        .attr('aria-pressed', String(Option.contains(model.selected, entry.id)))
+        .on('click', Message.ClickedEntry({ id: entry.id }))
+        .children(entry.name),
+    ),
+    h.td.children(categoryLabels[entry.category]),
+    h.td.children(ringLabels[entry.ring]),
   );
 };
 
-const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
+const entryTable = (model: Model, h: Html.H<Message>) => {
   const visible = visibleOf(model);
-  return Disclosure.view(
-    {
-      id: 'radar-entries',
-      isOpen: model.entriesOpen,
-      onToggle: (isOpen) => Message.ToggledEntries({ isOpen }),
-      toView: ({ button: toggle, panel, animatePanel }) =>
-        h.div(
-          [h.Class('e3-table')],
-          [
-            h.button(
-              [...toggle, h.Class('e3-table-toggle')],
-              [`Entries (${visible.length} of ${presentOf(model).length})`],
-            ),
-            animatePanel(
-              h.div([...panel, h.Class('e3-table-scroll')], [entryList(model, h, visible)]),
-            ),
-          ],
-        ),
-    },
-    h,
-  );
+  const label = `Entries (${visible.length} of ${presentOf(model).length})`;
+  return h.div
+    .key('Entries')
+    .class('e3-table')
+    .children(
+      h.button
+        .class('e3-table-toggle')
+        .attr('type', 'button')
+        .attr('aria-label', label)
+        .attr('aria-controls', 'radar-entries')
+        .attr('aria-expanded', String(model.entriesOpen))
+        .attr('data-open', model.entriesOpen ? '' : undefined)
+        .on('click', Message.ToggledEntries({ isOpen: !model.entriesOpen }))
+        .children(label),
+      h.div
+        .class('e3-table-scroll')
+        .attr('id', 'radar-entries')
+        .attr('hidden', model.entriesOpen ? undefined : '')
+        .children(entryList(model, h, visible)),
+    );
 };
 
 /** The entries as a table: choosing one pins it and turns the radar to face it. */
-const entryList = (
-  model: Model,
-  h: HtmlBuilder<Message>,
-  visible: ReadonlyArray<RadarPosition>,
-): Html =>
-  h.table(
-    [],
-    [
-      h.caption([], ['Choose an entry to pin it and turn the radar to face it']),
-      h.thead(
-        [],
-        [
-          h.tr(
-            [],
-            ['#', 'Entry', 'Category', 'Ring'].map((heading) => h.th([h.Scope('col')], [heading])),
-          ),
-        ],
+const entryList = (model: Model, h: Html.H<Message>, visible: ReadonlyArray<RadarPosition>) =>
+  h.table.children(
+    h.caption.children('Choose an entry to pin it and turn the radar to face it'),
+    h.thead.children(
+      h.tr.children(
+        ...['#', 'Entry', 'Category', 'Ring'].map((heading) =>
+          h.th.attr('scope', 'col').children(heading),
+        ),
       ),
-      h.tbody(
-        [],
-        visible.map((position) => entryRow(model, h, position)),
-      ),
-    ],
+    ),
+    h.tbody.children(...visible.map((position) => entryRow(model, h, position))),
   );
 
 /** A click on a category's name stops at its sector; anywhere else it is a blip's. */
@@ -692,57 +649,56 @@ const doubleClickedAt = (key: string): Message =>
   );
 
 /** What changed in the shown edition, or that it is where the radar began. */
-const changeList = (model: Model, h: HtmlBuilder<Message>): Html =>
+const changeList = (model: Model, h: Html.H<Message>) =>
   Option.match(comparedWith(model), {
     onNone: () => editionChanges(model, h),
     onSome: (from) => comparisonChanges(model, h, from),
   });
 
 /** What changed between the compared edition and the shown one, each a flight to its entry. */
-const comparisonChanges = (model: Model, h: HtmlBuilder<Message>, from: number): Html => {
+const comparisonChanges = (model: Model, h: Html.H<Message>, from: number) => {
   const moves = movesOf(model, from);
   return moves.length === 0
-    ? h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Nothing changed between them.'])
-    : h.ul(
-        [h.Class('e3-timeline-changes e3-compare-changes'), h.AriaLive('polite')],
-        moves.map(({ id, glyph, kind, text }) =>
-          h.li(
-            [],
-            [
-              h.button(
-                [
-                  h.Class('e3-since-change'),
-                  h.Type('button'),
-                  h.OnClick(Message.ClickedFlyTo({ id })),
-                ],
-                [
-                  h.span(
-                    [h.Class(`e3-compare-glyph e3-compare-${kind}`), h.AriaHidden(true)],
-                    [glyph],
-                  ),
+    ? h.p.class('e3-note').attr('aria-live', 'polite').children('Nothing changed between them.')
+    : h.ul
+        .class('e3-timeline-changes e3-compare-changes')
+        .attr('aria-live', 'polite')
+        .children(
+          ...moves.map(({ id, glyph, kind, text }) =>
+            h.li.children(
+              h.button
+                .class('e3-since-change')
+                .attr('type', 'button')
+                .on('click', Message.ClickedFlyTo({ id }))
+                .children(
+                  h.span
+                    .class(`e3-compare-glyph e3-compare-${kind}`)
+                    .attr('aria-hidden', 'true')
+                    .children(glyph),
                   text,
-                ],
-              ),
-            ],
+                ),
+            ),
           ),
-        ),
-      );
+        );
 };
 
-const editionChanges = (model: Model, h: HtmlBuilder<Message>): Html => {
+const editionChanges = (model: Model, h: Html.H<Message>) => {
   const changes = changesIn(model, model.edition);
   return Match.value({ first: model.edition === 0, quiet: changes.length === 0 }).pipe(
     Match.when({ first: true }, () =>
-      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Where the radar began.']),
+      h.p.class('e3-note').attr('aria-live', 'polite').children('Where the radar began.'),
     ),
     Match.when({ quiet: true }, () =>
-      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['No entries moved in this edition.']),
+      h.p
+        .class('e3-note')
+        .attr('aria-live', 'polite')
+        .children('No entries moved in this edition.'),
     ),
     Match.orElse(() =>
-      h.ul(
-        [h.Class('e3-timeline-changes'), h.AriaLive('polite')],
-        changes.map((change) => h.li([], [change])),
-      ),
+      h.ul
+        .class('e3-timeline-changes')
+        .attr('aria-live', 'polite')
+        .children(...changes.map((change) => h.li.children(change))),
     ),
   );
 };
@@ -755,7 +711,7 @@ const editionChanges = (model: Model, h: HtmlBuilder<Message>): Html => {
  * Two editions side by side: pick an earlier edition to compare the shown one with, and
  * play the moves between them. Only offered when there is an earlier edition.
  */
-const comparisonControls = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+const comparisonControls = (model: Model, h: Html.H<Message>): View.Children<Message> => {
   const editions = editionsOf(model);
   const earlier = editions.slice(0, model.edition);
   const chosen = Option.getOrElse(
@@ -766,61 +722,54 @@ const comparisonControls = (model: Model, h: HtmlBuilder<Message>): ReadonlyArra
   return earlier.length === 0
     ? []
     : [
-        h.div(
-          [h.Class('e3-controls e3-compare')],
-          [
-            h.select(
-              [
-                h.Class('e3-text'),
-                h.AriaLabel('Compare with an earlier edition'),
-                h.Value(chosen),
-                h.OnChange((value) =>
-                  Message.ChoseComparison({ index: value === 'none' ? null : Number(value) }),
-                ),
-              ],
-              [
-                h.option([h.Value('none')], ['Compare with…']),
-                ...earlier.map(({ label }, index) =>
-                  h.option([h.Value(String(index))], [`↔ ${label}`]),
-                ),
-              ],
-            ),
-            ...[
-              h.button(
-                [
-                  h.Class('e3-button'),
-                  h.Type('button'),
-                  h.Disabled(playing || model.reducedMotion),
-                  h.OnClick(Message.ClickedPlayMoves()),
-                ],
-                [playing ? 'Playing…' : '▶ Play the moves'],
+        h.div.class('e3-controls e3-compare').children(
+          h.select
+            .class('e3-text')
+            .attr('aria-label', 'Compare with an earlier edition')
+            .on('change', ({ value }) =>
+              Message.ChoseComparison({ index: value === 'none' ? null : Number(value) }),
+            )
+            .children(
+              h.option
+                .attr('value', 'none')
+                .selected(chosen === 'none')
+                .children('Compare with…'),
+              ...earlier.map(({ label }, index) =>
+                h.option
+                  .attr('value', String(index))
+                  .selected(String(index) === chosen)
+                  .children(`↔ ${label}`),
               ),
-            ].filter(() => Option.isSome(comparedWith(model)) || playing),
-          ],
+            ),
+          ...[
+            h.button
+              .class('e3-button')
+              .attr('type', 'button')
+              .disabled(playing || model.reducedMotion)
+              .on('click', Message.ClickedPlayMoves())
+              .children(playing ? 'Playing…' : '▶ Play the moves'),
+          ].filter(() => Option.isSome(comparedWith(model)) || playing),
         ),
         // What the marks mean, while there is a comparison to read.
         ...[
-          h.p([h.Class('e3-compare-legend')], ['▲▼ moved in or out · ✦ new · ↺ back · ◌ left']),
+          h.p.class('e3-compare-legend').children('▲▼ moved in or out · ✦ new · ↺ back · ◌ left'),
         ].filter(() => Option.isSome(comparedWith(model))),
       ];
 };
 
 /** The shown edition's own tour, when it changed anything and no tour is playing. */
-const editionTourButton = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const editionTourButton = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   changesIn(model, model.edition).length > 0 && model.tour._tag !== 'Playing'
     ? [
-        h.button(
-          [
-            h.Class('e3-button e3-edition-tour'),
-            h.Type('button'),
-            h.OnClick(Message.ClickedEditionTour()),
-          ],
-          [`▶ Tour the ${editionOf(model).label.toLowerCase()}`],
-        ),
+        h.button
+          .class('e3-button e3-edition-tour')
+          .attr('type', 'button')
+          .on('click', Message.ClickedEditionTour())
+          .children(`▶ Tour the ${editionOf(model).label.toLowerCase()}`),
       ]
     : [];
 
-const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+const timeline = (model: Model, h: Html.H<Message>): View.Children<Message> => {
   const editions = editionsOf(model);
   const shown = editionOf(model);
   const playLabel = Match.value(model.playing).pipe(
@@ -828,49 +777,39 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     Match.orElse(() => 'Play'),
   );
   return [
-    h.section(
-      [h.Class('e3-panel-section e3-timeline'), h.AriaLabel('Timeline')],
-      [
-        // The edition shown sits beside the heading, so the row below is only its controls.
-        h.div(
-          [h.Class('e3-panel-heading-row')],
-          [
-            h.h2([h.Class('e3-panel-heading')], ['Timeline']),
-            h.span([h.Class('e3-heading-status')], [`${shown.label} · ${shown.authoredOn}`]),
-          ],
+    h.section
+      .key('Timeline')
+      .class('e3-panel-section e3-timeline')
+      .attr('aria-label', 'Timeline')
+      .children(
+        h.div
+          .class('e3-panel-heading-row')
+          .children(
+            h.h2.class('e3-panel-heading').children('Timeline'),
+            h.span.class('e3-heading-status').children(`${shown.label} · ${shown.authoredOn}`),
+          ),
+        h.div.class('e3-controls').children(
+          button(h, playLabel, Message.ClickedPlay()),
+          h.input
+            .class('e3-range')
+            .attr('type', 'range')
+            .attr('min', '0')
+            .attr('max', String(Math.max(0, editions.length - 1)))
+            .attr('step', '1')
+            .value(String(model.edition))
+            .attr('aria-label', 'Edition')
+            .attr('aria-valuetext', `${shown.label}, ${shown.authoredOn}`)
+            .on('input', ({ value }) => Message.ChangedEdition({ index: Number(value) })),
         ),
-        h.div(
-          [h.Class('e3-controls')],
-          [
-            button(h, playLabel, Message.ClickedPlay()),
-            h.input([
-              h.Class('e3-range'),
-              h.Type('range'),
-              h.Min('0'),
-              h.Max(String(Math.max(0, editions.length - 1))),
-              h.Step('1'),
-              h.Value(String(model.edition)),
-              h.AriaLabel('Edition'),
-              h.Attribute('aria-valuetext', `${shown.label}, ${shown.authoredOn}`),
-              h.OnInput((value) => Message.ChangedEdition({ index: Number(value) })),
-            ]),
-          ],
-        ),
-        // A fixed height, whatever the edition says: the panel never jumps as it plays, and
-        // a busy edition scrolls within. Focusable, so the keyboard can scroll it too.
-        h.div(
-          [
-            h.Class('e3-timeline-log'),
-            h.Attribute('tabindex', '0'),
-            h.Role('region'),
-            h.AriaLabel('What changed in this edition'),
-          ],
-          [changeList(model, h)],
-        ),
+        h.div
+          .class('e3-timeline-log')
+          .attr('tabindex', '0')
+          .attr('role', 'region')
+          .attr('aria-label', 'What changed in this edition')
+          .children(changeList(model, h)),
         ...comparisonControls(model, h),
         ...editionTourButton(model, h),
-      ],
-    ),
+      ),
   ].filter(() => editions.length > 1);
 };
 
@@ -880,23 +819,20 @@ const dotLooks = {
   pinned: { radius: '0.07', stroke: 'var(--text)' },
 } as const;
 
-const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition): Html => {
+const minimapDot = (model: Model, position: RadarPosition) => {
   const [x, y] = minimapPoint(position);
   const looks = Match.value(Option.contains(model.selected, position.entry.id)).pipe(
     Match.when(true, () => dotLooks.pinned),
     Match.orElse(() => dotLooks.resting),
   );
-  return h.circle(
-    [
-      h.Cx(String(x)),
-      h.Cy(String(y)),
-      h.R(looks.radius),
-      h.Fill(categoryCss(themeOf(model), position.entry.category)),
-      h.Stroke(looks.stroke),
-      h.StrokeWidth('0.02'),
-    ],
-    [],
-  );
+  return new Html.Element<Message>('circle')
+    .attr('cx', String(x))
+    .attr('cy', String(y))
+    .attr('r', looks.radius)
+    .attr('fill', categoryCss(themeOf(model), position.entry.category))
+    .attr('stroke', looks.stroke)
+    .attr('stroke-width', '0.02')
+    .children();
 };
 
 /**
@@ -905,153 +841,112 @@ const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPositi
  * the camera's bearing. A click on a quarter stops at that cluster; the legend's chips do
  * the same from the keyboard.
  */
-const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.svg(
-    [
-      h.Class('e3-minimap'),
-      h.ViewBox('-1.08 -1.08 2.16 2.16'),
-      h.Role('img'),
-      h.AriaLabel('Minimap of the radar from above'),
-    ],
-    [
+const minimap = (model: Model) =>
+  new Html.Element<Message>('svg')
+    .class('e3-minimap')
+    .attr('viewBox', '-1.08 -1.08 2.16 2.16')
+    .attr('role', 'img')
+    .attr('aria-label', 'Minimap of the radar from above')
+    .children(
       ...categoryIds.map((category) =>
-        h.path(
-          [
-            h.D(quarterPath(category)),
-            h.Fill(categoryCss(themeOf(model), category)),
-            h.Opacity('0.12'),
-            h.Class('e3-minimap-quarter'),
-            h.OnClick(Message.ClickedCluster({ category })),
-          ],
-          [h.title([], [`Fly to ${categoryLabels[category]}`])],
-        ),
+        new Html.Element<Message>('path')
+          .attr('d', quarterPath(category))
+          .attr('fill', categoryCss(themeOf(model), category))
+          .attr('opacity', '0.12')
+          .class('e3-minimap-quarter')
+          .attr('aria-label', `Fly to ${categoryLabels[category]}`)
+          .on('click', Message.ClickedCluster({ category }))
+          .children(),
       ),
       ...ringIds.map((ring) =>
-        h.circle(
-          [
-            h.Cx('0'),
-            h.Cy('0'),
-            h.R(String(ringRadius(shellRadius(ring)))),
-            h.Fill('none'),
-            h.Stroke('var(--muted)'),
-            h.StrokeWidth('0.012'),
-            h.Opacity('0.6'),
-          ],
-          [],
-        ),
+        new Html.Element<Message>('circle')
+          .attr('cx', '0')
+          .attr('cy', '0')
+          .attr('r', String(ringRadius(shellRadius(ring))))
+          .attr('fill', 'none')
+          .attr('stroke', 'var(--muted)')
+          .attr('stroke-width', '0.012')
+          .attr('opacity', '0.6')
+          .children(),
       ),
-      ...visibleOf(model).map((position) => minimapDot(model, h, position)),
-      h.polygon(
-        [h.Points(cameraMarker(model.camera.position)), h.Fill('var(--text)'), h.Opacity('0.9')],
-        [],
-      ),
-    ],
-  );
+      ...visibleOf(model).map((position) => minimapDot(model, position)),
+      new Html.Element<Message>('polygon')
+        .attr('points', cameraMarker(model.camera.position))
+        .attr('fill', 'var(--text)')
+        .attr('opacity', '0.9')
+        .children(),
+    );
 
 /** A breadcrumb that flies somewhere; the last one marks where the camera is. */
-const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current: boolean): Html =>
-  h.button(
-    [
-      h.Class('e3-crumb'),
-      h.Type('button'),
-      ...[h.AriaCurrent('location')].filter(() => current),
-      h.OnClick(message),
-    ],
-    [label],
-  );
+const crumb = (h: Html.H<Message>, label: string, message: Message, current: boolean) =>
+  h.button
+    .class('e3-crumb')
+    .attr('type', 'button')
+    .attr('aria-current', current ? 'location' : 'false')
+    .on('click', message)
+    .children(label);
 
 /** The help button in the breadcrumb: a popover listing the gestures for this pointer. */
-const helpButton = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const toView = ({ button, panel, isVisible }: Popover.RenderInfo): Html =>
-    h.span(
-      [h.Class('e3-help')],
-      [
-        h.button(
-          [
-            ...button,
-            h.Class('e3-crumb e3-crumb-icon e3-crumb-help'),
-            h.Title('How to move round'),
-          ],
-          ['?'],
-        ),
-        ...[
-          h.div(
-            [...panel, h.Class('e3-help-panel')],
-            [
-              h.ul(
-                [],
-                hints[model.input].map((hint) => h.li([], [hint])),
-              ),
-            ],
-          ),
-        ].filter(() => isVisible),
-      ],
-    );
-  return h.submodel({
-    slotId: 'help',
-    model: model.help,
-    view: Popover.view,
-    viewInputs: {
-      ariaLabel: 'How to move round the radar',
-      anchor: { placement: 'bottom-end', gap: 6, padding: 8 },
-      toView,
-    },
-    toParentMessage: (message) => Message.GotHelpMessage({ message }),
-  });
-};
+const helpButton = (model: Model, h: Html.H<Message>) =>
+  h.span.class('e3-help').children(
+    h.button
+      .class('e3-crumb', 'e3-crumb-icon', 'e3-crumb-help')
+      .attr('type', 'button')
+      .attr('aria-label', 'How to move round the radar')
+      .attr('aria-controls', 'radar-help-panel')
+      .attr('aria-expanded', String(model.helpOpen))
+      .on('click', Message.ToggledHelp({ open: !model.helpOpen }))
+      .children('?'),
+    h.div
+      .class('e3-help-panel')
+      .attr('id', 'radar-help-panel')
+      .popover('auto', model.helpOpen)
+      .on('toggle', ({ newState }) => Message.ToggledHelp({ open: newState === 'open' }))
+      .children(h.ul.children(...hints[model.input].map((hint) => h.li(hint)))),
+  );
 
 /** The trail as a breadcrumb over the stage; the last crumb is where the camera is. */
-const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
+const breadcrumb = (model: Model, h: Html.H<Message>) => {
   const stops = trailOf(model);
-  return h.nav(
-    [h.Class('e3-breadcrumb'), h.AriaLabel('Location')],
-    [
+  return h.nav
+    .class('e3-breadcrumb')
+    .attr('aria-label', 'Location')
+    .children(
       ...stops.flatMap((stop, index) => [
-        ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
+        ...[h.span.attr('aria-hidden', 'true').children('›')].filter(() => index > 0),
         crumb(h, stop.label, stop.message, index === stops.length - 1),
       ]),
-      // Where the breadcrumb says the camera is, as a link to send.
-      h.button(
-        [
-          h.Class('e3-crumb e3-crumb-icon e3-crumb-link'),
-          h.Type('button'),
-          h.AriaLabel('Copy a link to this view'),
-          h.Title('Copy a link to this view'),
-          h.OnClick(Message.ClickedCopyLink()),
-        ],
-        ['🔗'],
-      ),
-      // On a phone the minimap is put away until asked for; wider screens always show it.
-      h.button(
-        [
-          h.Class('e3-crumb e3-crumb-icon e3-crumb-minimap'),
-          h.Type('button'),
-          h.AriaLabel(model.minimapShown ? 'Hide the minimap' : 'Show the minimap'),
-          h.AriaPressed(String(model.minimapShown)),
-          h.OnClick(Message.ClickedMinimap()),
-        ],
-        ['◎'],
-      ),
-      h.button(
-        [
-          h.Class('e3-crumb e3-crumb-icon e3-crumb-immersive'),
-          h.Type('button'),
-          h.AriaLabel(
-            model.immersive ? 'Leave the full-screen radar' : 'Fill the screen with the radar',
-          ),
-          h.Title(model.immersive ? 'Leave full screen' : 'Full screen'),
-          h.AriaPressed(String(model.immersive)),
-          h.OnClick(Message.ClickedImmersive()),
-        ],
-        [model.immersive ? '⤡' : '⤢'],
-      ),
+      h.button
+        .class('e3-crumb e3-crumb-icon e3-crumb-link')
+        .attr('type', 'button')
+        .attr('aria-label', 'Copy a link to this view')
+        .attr('title', 'Copy a link to this view')
+        .on('click', Message.ClickedCopyLink())
+        .children('🔗'),
+      h.button
+        .class('e3-crumb e3-crumb-icon e3-crumb-minimap')
+        .attr('type', 'button')
+        .attr('aria-label', model.minimapShown ? 'Hide the minimap' : 'Show the minimap')
+        .attr('aria-pressed', String(model.minimapShown))
+        .on('click', Message.ClickedMinimap())
+        .children('◎'),
+      h.button
+        .class('e3-crumb e3-crumb-icon e3-crumb-immersive')
+        .attr('type', 'button')
+        .attr(
+          'aria-label',
+          model.immersive ? 'Leave the full-screen radar' : 'Fill the screen with the radar',
+        )
+        .attr('title', model.immersive ? 'Leave full screen' : 'Full screen')
+        .attr('aria-pressed', String(model.immersive))
+        .on('click', Message.ClickedImmersive())
+        .children(model.immersive ? '⤡' : '⤢'),
       helpButton(model, h),
-    ],
-  );
+    );
 };
 
 /** What the recorder offers, by its state: record, then play, save or load a tour. */
-const tourButtons = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const tourButtons = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   Match.value(model.tour).pipe(
     Match.tag('Idle', () => [
       button(h, '● Record', Message.ClickedRecord()),
@@ -1082,32 +977,34 @@ const tourStatus = (model: Model): string =>
  * The flight recorder: your moves, recorded as you make them, replayed as a guided tour
  * with a caption for each; saved as a file to send.
  */
-const tourControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+const tourControls = (model: Model, h: Html.H<Message>) =>
   panelSection(
     h,
     'Tour',
-    [h.div([h.Class('e3-controls e3-tour-controls')], tourButtons(model, h))],
-    [h.span([h.Class('e3-heading-status'), h.AriaLive('polite')], [tourStatus(model)])],
+    [h.div.class('e3-controls e3-tour-controls').children(...tourButtons(model, h))],
+    [h.span.class('e3-heading-status').attr('aria-live', 'polite').children(tourStatus(model))],
   );
 
 /** While a tour plays, the move just made, in words, over the stage. */
-const tourCaption = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const tourCaption = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   Match.value(model.tour).pipe(
     Match.tag('Playing', ({ caption }) => [
-      h.p([h.Class('e3-tour-caption'), h.AriaLive('polite')], [caption]),
+      h.p.class('e3-tour-caption').attr('aria-live', 'polite').children(caption),
     ]),
     Match.orElse(() => []),
   );
 
 /** The host page's links out, if it gave any: no empty navigation landmark otherwise. */
-const linksOut = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const linksOut = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   model.links.length === 0
     ? []
     : [
-        h.nav(
-          [h.Class('e3-panel-links'), h.AriaLabel('Elsewhere')],
-          model.links.map(({ label, href }) => h.a([h.Href(href)], [label])),
-        ),
+        h.nav
+          .class('e3-panel-links')
+          .attr('aria-label', 'Elsewhere')
+          .children(
+            ...model.links.map(({ label, href }) => h.a.attr('href', href).children(label)),
+          ),
       ];
 
 /** What the sheet's text button does at each stop, and says. */
@@ -1122,146 +1019,132 @@ const sheetButtons = {
  * handle is a strip to tap or swipe, and a button that does the same from a keyboard. The
  * handle is hidden on wider screens.
  */
-const sheetHandle = (model: Model, h: HtmlBuilder<Message>): Html => {
+const sheetGestures = Mount.makeStream('RadarSheetGestures', { args: {} }, (element: HTMLElement) =>
+  Stream.callback<Message>((queue) => {
+    const watch = Effect.sync(() => {
+      const pressed = (event: PointerEvent) =>
+        Queue.offerUnsafe(queue, Message.PressedSheetHandle({ y: event.screenY }));
+      const released = (event: PointerEvent) =>
+        Queue.offerUnsafe(queue, Message.ReleasedSheetHandle({ y: event.screenY }));
+      element.addEventListener('pointerdown', pressed);
+      element.addEventListener('pointerup', released);
+      return () => {
+        element.removeEventListener('pointerdown', pressed);
+        element.removeEventListener('pointerup', released);
+      };
+    });
+    return Effect.acquireRelease(watch, Effect.sync);
+  }),
+);
+
+const sheetHandle = (model: Model, h: Html.H<Message>) => {
   const next = sheetButtons[model.sheet];
-  return h.div(
-    [h.Class('e3-sheet-handle')],
-    [
-      h.div(
-        [
-          h.Class('e3-sheet-grip-area'),
-          h.AriaHidden(true),
-          // Screen coordinates at both ends: only how far the finger travelled matters.
-          h.OnPointerDown((_type, _button, _screenX, screenY) =>
-            Option.some(Message.PressedSheetHandle({ y: screenY })),
-          ),
-          // A touch is captured by the element it began on, so it lifts here even when the
-          // finger has moved off the strip. A mouse uses the button below.
-          h.OnPointerUp((_screenX, screenY) =>
-            Option.some(Message.ReleasedSheetHandle({ y: screenY })),
-          ),
-        ],
-        [h.span([h.Class('e3-sheet-grip')], [])],
-      ),
-      h.button(
-        [
-          h.Class('e3-sheet-stop'),
-          h.Type('button'),
-          h.OnClick(Message.ChoseSheetStop({ stop: next.to })),
-        ],
-        [next.label],
-      ),
-    ],
-  );
+  return h.div
+    .key('sheet-handle')
+    .class('e3-sheet-handle')
+    .children(
+      h.div
+        .class('e3-sheet-grip-area')
+        .attr('aria-hidden', 'true')
+        .onMount(sheetGestures())
+        .children(h.span.class('e3-sheet-grip').children()),
+      h.button
+        .class('e3-sheet-stop')
+        .attr('type', 'button')
+        .on('click', Message.ChoseSheetStop({ stop: next.to }))
+        .children(next.label),
+    );
 };
 
 /** The sidebar's header: the radar's name, the shortcuts button and the links out. */
-const header = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.header(
-    [h.Class('e3-panel-header')],
-    [
-      h.div(
-        [h.Class('e3-panel-title-row')],
-        [
-          h.h1([h.Class('e3-panel-title')], [model.title]),
-          h.button(
-            [
-              h.Class('e3-shortcuts-button'),
-              h.Type('button'),
-              h.AriaLabel('Keyboard shortcuts'),
-              h.AriaExpanded(model.shortcutsOpen),
-              h.OnClick(Message.ClickedShortcuts()),
-            ],
-            ['?'],
-          ),
-        ],
-      ),
+const header = (model: Model, h: Html.H<Message>) =>
+  h.header
+    .key('radar-header')
+    .class('e3-panel-header')
+    .children(
+      h.div
+        .class('e3-panel-title-row')
+        .children(
+          h.h1.class('e3-panel-title').children(model.title),
+          h.button
+            .class('e3-shortcuts-button')
+            .attr('type', 'button')
+            .attr('aria-label', 'Keyboard shortcuts')
+            .attr('aria-expanded', String(model.shortcutsOpen))
+            .on('click', Message.ClickedShortcuts())
+            .children('?'),
+        ),
       ...linksOut(model, h),
-    ],
-  );
+    );
 
 /** What changed since the reader's last visit, until they dismiss it. */
-const sinceVisitNote = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const sinceVisitNote = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   Option.match(model.sinceVisit, {
     onNone: () => [],
     onSome: ({ label, changes }) => [
-      h.section(
-        [h.Class('e3-since'), h.AriaLabel('Since your last visit')],
-        [
-          h.div(
-            [h.Class('e3-since-head')],
-            [
-              h.p(
-                [h.Class('e3-since-title')],
-                [
+      h.section
+        .class('e3-since')
+        .attr('aria-label', 'Since your last visit')
+        .children(
+          h.div
+            .class('e3-since-head')
+            .children(
+              h.p
+                .class('e3-since-title')
+                .children(
                   `${changes.length} ${changes.length === 1 ? 'change' : 'changes'} since your last visit`,
-                ],
-              ),
-              h.button(
-                [
-                  h.Class('e3-button'),
-                  h.Type('button'),
-                  h.AriaLabel('Dismiss'),
-                  h.OnClick(Message.ClickedDismissSinceVisit()),
-                ],
-                ['×'],
-              ),
-            ],
-          ),
-          h.p([h.Class('e3-since-from')], [`You last saw the ${label.toLowerCase()}.`]),
-          h.ul(
-            [h.Class('e3-since-list')],
-            changes.map(({ id, text }) =>
-              h.li(
-                [],
-                [
-                  h.button(
-                    [
-                      h.Class('e3-since-change'),
-                      h.Type('button'),
-                      h.OnClick(Message.ClickedFlyTo({ id })),
-                    ],
-                    [text],
-                  ),
-                ],
+                ),
+              h.button
+                .class('e3-button')
+                .attr('type', 'button')
+                .attr('aria-label', 'Dismiss')
+                .on('click', Message.ClickedDismissSinceVisit())
+                .children('×'),
+            ),
+          h.p.class('e3-since-from').children(`You last saw the ${label.toLowerCase()}.`),
+          h.ul
+            .class('e3-since-list')
+            .children(
+              ...changes.map(({ id, text }) =>
+                h.li.children(
+                  h.button
+                    .class('e3-since-change')
+                    .attr('type', 'button')
+                    .on('click', Message.ClickedFlyTo({ id }))
+                    .children(text),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+        ),
     ],
   });
 
 /** The keyboard shortcuts, while `?` has them open: Esc, `?` or the button closes them. */
-const shortcutList = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const shortcutList = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   model.shortcutsOpen
     ? [
-        h.section(
-          [h.Class('e3-shortcuts'), h.Role('dialog'), h.AriaLabelledBy('e3-shortcuts-title')],
-          [
-            h.div(
-              [h.Class('e3-shortcuts-head')],
-              [
-                h.h2([h.Id('e3-shortcuts-title')], ['Keyboard shortcuts']),
-                h.button(
-                  [
-                    h.Class('e3-button'),
-                    h.Type('button'),
-                    h.AriaLabel('Close the shortcuts'),
-                    h.OnClick(Message.ClickedShortcuts()),
-                  ],
-                  ['×'],
-                ),
-              ],
-            ),
-            h.dl(
-              [],
-              shortcuts.map(({ label, does }) =>
-                h.div([], [h.dt([], [h.kbd([], [label])]), h.dd([], [does])]),
+        h.section
+          .class('e3-shortcuts')
+          .attr('role', 'dialog')
+          .attr('aria-labelledby', 'e3-shortcuts-title')
+          .children(
+            h.div
+              .class('e3-shortcuts-head')
+              .children(
+                h.h2.attr('id', 'e3-shortcuts-title').children('Keyboard shortcuts'),
+                h.button
+                  .class('e3-button')
+                  .attr('type', 'button')
+                  .attr('aria-label', 'Close the shortcuts')
+                  .on('click', Message.ClickedShortcuts())
+                  .children('×'),
+              ),
+            h.dl.children(
+              ...shortcuts.map(({ label, does }) =>
+                h.div.children(h.dt.children(h.kbd.children(label)), h.dd.children(does)),
               ),
             ),
-          ],
-        ),
+          ),
       ]
     : [];
 
@@ -1269,15 +1152,14 @@ const shortcutList = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
  * The sidebar: every control in one column beside the stage, in the order a reader
  * reaches for them, from finding an entry to the full list.
  */
-const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.aside(
-    [
-      h.Class('e3-sidebar'),
-      h.AriaLabel('Radar controls'),
-      h.DataAttribute('sheet', model.sheet),
-      h.DataAttribute('pinned', String(Option.isSome(model.selected))),
-    ],
-    [
+const sidebar = (model: Model, h: Html.H<Message>) =>
+  h.aside
+    .key('radar-sidebar')
+    .class('e3-sidebar')
+    .attr('aria-label', 'Radar controls')
+    .attr('data-sheet', model.sheet)
+    .attr('data-pinned', String(Option.isSome(model.selected)))
+    .children(
       sheetHandle(model, h),
       ...details(model, h, 'sheet'),
       header(model, h),
@@ -1289,62 +1171,60 @@ const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
       relationshipLegend(model, h),
       tourControls(model, h),
       entryTable(model, h),
-    ],
-  );
+    );
 
 /**
  * The radar as a standalone app: the stage fills the screen beside the sidebar, with the
  * breadcrumb, readout, minimap and pinned entry floating over it, so nothing scrolls.
  */
-const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+const radar = (model: Model, h: Html.H<Message>): View.Children<Message> => [
   sidebar(model, h),
-  h.div(
-    [h.Class('e3-stage-frame')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage e3-stage-fill',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onPointerEnter: ({ key }) => enteredAt(key),
-          onPointerLeave: ({ key }) => leftAt(key),
-          onClick: ({ key }) => clickedAt(key),
-          onDoubleClick: ({ key }) => doubleClickedAt(key),
-          onPointerMissed: () => Message.ClickedEmptySpace(),
-          onGesture: (gesture) => Message.MadeGesture({ gesture }),
-        },
-        h,
-      ),
+  h.div
+    .key('radar-stage')
+    .class('e3-stage-frame')
+    .children(
+      EffectThreeStage(h)
+        .class('e3-stage', 'e3-stage-fill')
+        .on('scene-pointer-enter', ({ key }) => enteredAt(key))
+        .on('scene-pointer-leave', ({ key }) => leftAt(key))
+        .on('scene-click', ({ key }) => clickedAt(key))
+        .on('scene-double-click', ({ key }) => doubleClickedAt(key))
+        .on('scene-pointer-missed', Message.ClickedEmptySpace())
+        .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
+        .onMount(
+          Mount.map(sceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+            Message.ReceivedSceneLifecycle({ lifecycle }),
+          ),
+        )
+        .children(),
       breadcrumb(model, h),
       ...tourCaption(model, h),
-      h.p([h.Class('e3-readout e3-stage-readout'), h.AriaLive('polite')], [readout(model)]),
-      minimap(model, h),
+      h.p.class('e3-readout e3-stage-readout').attr('aria-live', 'polite').children(readout(model)),
+      minimap(model),
       ...sinceVisitNote(model, h),
       ...shortcutList(model, h),
-    ],
-  ),
+    ),
   ...details(model, h, 'stage'),
 ];
 
-const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const content = (model: Model, h: Html.H<Message>): View.Children<Message> =>
   Match.value(model.data).pipe(
     Match.tag('Ready', () => radar(model, h)),
-    Match.tag('Failure', ({ reason }) => [h.p([h.Class('e3-readout')], [reason])]),
+    Match.tag('Failure', ({ reason }) => [h.p.class('e3-readout').children(reason)]),
     Match.exhaustive,
   );
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: model.title,
-  body: h.div(
-    [
-      h.Class('e3-sample e3-app'),
-      h.DataAttribute('theme', themeOf(model)),
-      h.DataAttribute('typeface', model.typeface),
-      h.DataAttribute('immersive', String(model.immersive)),
-      h.DataAttribute('minimap', String(model.minimapShown)),
-      h.Style({ ...cssVariables(themeOf(model)), ...typeVariables(model.typeface) }),
-    ],
-    content(model, h),
-  ),
-});
+const radarMount = Mount.make('TechRadarReady', { args: {} }, () =>
+  Effect.succeed(Message.MountedRadar()),
+);
+
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div
+    .class('e3-sample', 'e3-app')
+    .attr('data-theme', themeOf(model))
+    .attr('data-typeface', model.typeface)
+    .attr('data-immersive', String(model.immersive))
+    .attr('data-minimap', String(model.minimapShown))
+    .style({ ...cssVariables(themeOf(model)), ...typeVariables(model.typeface) })
+    .onMount(radarMount())
+    .children(...content(model, h));

@@ -1,8 +1,7 @@
-import { Combobox, Popover, Tooltip } from '@foldkit/ui';
 import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
-import { CategoryFilter, type IconControl, PointerInput } from './controls-schema';
+import { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 import {
   Category,
   categoryIds,
@@ -31,14 +30,6 @@ export { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 /** The Monolith Easter egg: one slab, or shattered into microservices. */
 export const MonolithState = Schema.Literals(['whole', 'shattered']);
 export type MonolithState = typeof MonolithState.Type;
-
-/** Each icon button's tooltip, closed. */
-const closedTooltips = {
-  'turn-left': Tooltip.init({ id: 'radar-turn-left' }),
-  'turn-right': Tooltip.init({ id: 'radar-turn-right' }),
-  'zoom-out': Tooltip.init({ id: 'radar-zoom-out' }),
-  'zoom-in': Tooltip.init({ id: 'radar-zoom-in' }),
-} as const satisfies Readonly<Record<IconControl, Tooltip.Model>>;
 
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
@@ -144,17 +135,11 @@ export const Model = Schema.Struct({
       changes: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.String })),
     }),
   ),
-  /** The search box: a Combobox whose input follows `query`. */
-  search: Combobox.Model,
-  /** The help button's popover: how to read and move round the radar, in the reader's gestures. */
-  help: Popover.Model,
-  /** The icon buttons' tooltips. */
-  tooltips: Schema.Struct({
-    'turn-left': Tooltip.Model,
-    'turn-right': Tooltip.Model,
-    'zoom-out': Tooltip.Model,
-    'zoom-in': Tooltip.Model,
-  }),
+  /** The search list opens independently of the query; selection stays on the radar. */
+  searchOpen: Schema.Boolean,
+  activeSearchEntry: Schema.Option(Schema.String),
+  helpOpen: Schema.Boolean,
+  dismissedTooltip: Schema.Option(IconControl),
   /** The stage's width over its height, from the last gesture; square until then. */
   stageAspect: Schema.Number,
   /** Whether the screen packs 2.5 or more device pixels to a CSS pixel (most phones). */
@@ -293,9 +278,10 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   immersive: false,
   minimapShown: false,
   sinceVisit: Option.none(),
-  search: Combobox.init({ id: 'radar-search' }),
-  help: Popover.init({ id: 'radar-help' }),
-  tooltips: closedTooltips,
+  searchOpen: false,
+  activeSearchEntry: Option.none(),
+  helpOpen: false,
+  dismissedTooltip: Option.none(),
   stageAspect: 1,
   stageWidth: 640,
   denseScreen: false,

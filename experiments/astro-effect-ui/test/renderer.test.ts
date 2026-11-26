@@ -1405,3 +1405,67 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   75_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'standalone Radar preserves keyboard focus as search removes the pinned card',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({
+        reducedMotion: 'reduce',
+        viewport: { width: 1440, height: 950 },
+      });
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const models = new URL('../../../apps/tech-radar/public/models/', import.meta.url);
+      await page.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname.startsWith('/models/')) {
+          await route.fulfill({
+            path: new URL(pathname.slice('/models/'.length), models).pathname,
+          });
+          return;
+        }
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      const response = await page.goto(`${siteOrigin}/tech-radar/`);
+      expect(await response?.text()).toContain('data-theme="paper"');
+      await page.locator('effect-three-scene canvas[data-engine]').waitFor();
+      const search = page.getByRole('combobox', { name: 'Search entries' });
+      await page.keyboard.press('/');
+      expect(await search.evaluate((node) => node === document.activeElement)).toBe(true);
+      await search.fill('bun');
+      const options = page.getByRole('listbox', { name: 'Matching entries' });
+      await options.getByRole('option', { name: /Bun/ }).waitFor();
+      expect(await search.evaluate((node) => node === document.activeElement)).toBe(true);
+      await search.press('ArrowDown');
+      expect(await search.getAttribute('aria-activedescendant')).toBe('radar-option-bun');
+      await search.press('Enter');
+      await page.waitForURL((url) => url.searchParams.get('entry') === 'bun');
+      await options.waitFor({ state: 'hidden' });
+      expect(await search.inputValue()).toBe('bun');
+      const zoom = page.getByRole('button', { name: 'Zoom in', exact: true });
+      const tooltip = zoom.locator('..').locator('.e3-tooltip');
+      await zoom.focus();
+      await tooltip.waitFor();
+      await zoom.press('Escape');
+      await tooltip.waitFor({ state: 'hidden' });
+      const help = page.getByRole('button', { name: 'How to move round the radar' });
+      await help.press('Enter');
+      await page.locator('#radar-help-panel').waitFor();
+      await page.keyboard.press('Escape');
+      await page.locator('#radar-help-panel').waitFor({ state: 'hidden' });
+      await help.and(page.locator('[aria-expanded=false]')).waitFor();
+      await page.getByRole('switch', { name: 'Show relationships' }).press('Enter');
+      await page.waitForURL((url) => url.searchParams.get('edges') === 'off');
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  45_000,
+);

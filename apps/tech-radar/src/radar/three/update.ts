@@ -1,8 +1,6 @@
-import { Combobox, Popover, Tooltip } from '@foldkit/ui';
+import type { Command } from '@effect/ui';
 import { type Camera, type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
-import { Match, Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import { foldChild, foldChildAt, type Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { advanceComet } from './comet';
 import {
@@ -10,6 +8,7 @@ import {
   EnterFullscreen,
   ExitFullscreen,
   FocusSearch,
+  ScrollSearch,
   LoadLastVisit,
   LoadThemeChoice,
   LoadTour,
@@ -39,7 +38,6 @@ import {
   homeCamera,
   idOfBlip,
   hostOf,
-  type IconControl,
   initialModel,
   isVisible,
   type Model,
@@ -49,7 +47,7 @@ import {
   visibleOf,
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
-import { searchBox, searchMove, withSearchText } from './search';
+import { nextResult } from './search';
 import { sheetAfter } from './sheet';
 import type { Shortcut } from './shortcuts';
 import { zoomedPosition, zoomLimits } from './space';
@@ -68,7 +66,10 @@ import {
   type Tour,
 } from './tour';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+};
 
 /** Look round the radar from outside its labels; it stays centred, so no panning. */
 const orbitLimits = orbitOptions({
@@ -83,29 +84,6 @@ const orbitLimits = orbitOptions({
 /** How far one Zoom button moves the camera towards or away from the centre. */
 const zoomFactors = { in: 0.8, out: 1.25 } as const;
 
-/**
- * An icon button's tooltip: its own update runs, the next tooltip is written back and its
- * delay and anchor Commands come back as the radar's. Showing and hiding change nothing
- * else.
- */
-const foldTooltip = foldChildAt({
-  update: Tooltip.update,
-  readAt: (model: Model, control: IconControl) => Option.some(model.tooltips[control]),
-  writeAt: (model, control, next) =>
-    modifyFields(model, { tooltips: (tooltips) => ({ ...tooltips, [control]: next }) }),
-  toParentMessage: (control, message) => Message.GotTooltipMessage({ control, message }),
-  foldOutMessage: () => () => (model) => ({ model }),
-});
-
-/** The help popover: its own update, its focus and anchor Commands the radar's. */
-const foldHelp = foldChild({
-  update: Popover.update,
-  read: (model: Model) => Option.some(model.help),
-  write: (model, help) => ({ ...model, help }),
-  toParentMessage: (message) => Message.GotHelpMessage({ message }),
-  foldOutMessage: () => (model) => ({ model }),
-});
-
 /** How far one Turn button turns the camera round the radar's axis. */
 const turnStep = Math.PI / 6;
 
@@ -113,7 +91,7 @@ const turnStep = Math.PI / 6;
 const reconcile = (model: Model): Model => {
   const keepVisible = (id: Option.Option<string>) =>
     Option.filter(id, (current) => isVisible(model, current));
-  return modifyFields(model, { hovered: keepVisible, selected: keepVisible });
+  return Struct.evolve(model, { hovered: keepVisible, selected: keepVisible });
 };
 
 /** Pins a blip, or unpins it when it is already pinned. */
@@ -246,40 +224,6 @@ const withQuery = (model: Model, query: string): Model =>
     entriesOpen: model.entriesOpen || query.trim() !== '',
     monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
   });
-
-/**
- * The search box: its own update runs, and picking an entry pins it and faces it, as a row
- * of the entries table does.
- */
-const pickedFromSearch =
-  (outMessage: Combobox.OutMessage<string>) =>
-  (model: Model): AppReturn =>
-    Match.value(outMessage).pipe(
-      Match.tag('Selected', ({ value }) => ({ model: chooseEntry(model, value) })),
-      Match.orElse(() => ({ model })),
-    );
-
-const readSearch = (model: Model) => Option.some(model.search);
-
-const foldSearch = foldChild({
-  update: searchBox.update,
-  read: readSearch,
-  write: (model, search) => ({ ...model, search }),
-  toParentMessage: (message) => Message.GotSearchMessage({ message }),
-  foldOutMessage: pickedFromSearch,
-});
-
-/** A search box Message: its own step, and typing is a search, as it always was. */
-const searchStep = (model: Model, message: Combobox.Message): AppReturn => {
-  const result = foldSearch(model, message);
-  return Match.value(message).pipe(
-    Match.tag('UpdatedInputValue', ({ value }) => ({
-      ...result,
-      model: withQuery(result.model, value),
-    })),
-    Match.orElse(() => result),
-  );
-};
 
 /** Applies `apply` to the entry a blip's key names, while the filters show it. */
 const withBlip = (key: string, model: Model, apply: (id: string) => Model): AppReturn => {
@@ -428,15 +372,15 @@ export const init = (props: RadarProps): AppReturn => {
     link,
   );
   const commands = [
-    ...Option.match(link.theme, { onNone: () => [LoadThemeChoice()], onSome: () => [] }),
-    LoadTypeface(),
-    LoadLastVisit(),
+    ...Option.match(link.theme, { onNone: () => [LoadThemeChoice.make()], onSome: () => [] }),
+    LoadTypeface.make(),
+    LoadLastVisit.make(),
   ];
   const toured = Option.match(link.tour, {
     onNone: () => model,
     onSome: () => startEditionTour(model),
   });
-  return { model: withSearchText(toured), commands };
+  return { model: toured, commands };
 };
 
 /**
@@ -494,7 +438,7 @@ const returned = (model: Model, lastSeen: string | null): AppReturn => {
   const sinceVisit = changes.length > 0 ? Option.some({ label, changes }) : Option.none();
   const remember = Option.match(Option.fromNullishOr(editions[current]), {
     onNone: () => [],
-    onSome: ({ authoredOn }) => [SaveLastVisit({ edition: authoredOn })],
+    onSome: ({ authoredOn }) => [SaveLastVisit.make({ edition: authoredOn })],
   });
   return { model: { ...model, sinceVisit }, commands: remember };
 };
@@ -548,7 +492,7 @@ const released = (model: Model, y: number): Model =>
  */
 const immersed = (model: Model, immersive: boolean): AppReturn => ({
   model: { ...model, immersive, sheet: 'peek', sheetDrag: Option.none() },
-  commands: [immersive ? EnterFullscreen() : ExitFullscreen()],
+  commands: [immersive ? EnterFullscreen.make() : ExitFullscreen.make()],
 });
 
 /** The entry chosen, if there is one, as a click in the list would. */
@@ -562,7 +506,7 @@ const flownTo = (model: Model): Model =>
 /** What a keyboard shortcut does (see shortcuts.ts). */
 const pressed = (model: Model, shortcut: Shortcut): AppReturn =>
   Match.value(shortcut).pipe(
-    Match.when('focus-search', (): AppReturn => ({ model, commands: [FocusSearch()] })),
+    Match.when('focus-search', (): AppReturn => ({ model, commands: [FocusSearch.make()] })),
     Match.when('next-entry', () => ({ model: chosen(model, steppedEntry(model, 1)) })),
     Match.when('previous-entry', () => ({ model: chosen(model, steppedEntry(model, -1)) })),
     Match.when('next-edition', () =>
@@ -576,7 +520,7 @@ const pressed = (model: Model, shortcut: Shortcut): AppReturn =>
       const href = Option.flatMap(model.selected, (id) => fullPageOf(model, id));
       return Option.match(href, {
         onNone: () => ({ model }),
-        onSome: (page) => ({ model, commands: [OpenPage({ href: page })] }),
+        onSome: (page) => ({ model, commands: [OpenPage.make({ href: page })] }),
       });
     }),
     Match.when('reset-view', () => step(model, Message.ClickedResetView())),
@@ -592,184 +536,227 @@ const pressed = (model: Model, shortcut: Shortcut): AppReturn =>
   );
 
 const step = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    HoveredBlip: ({ key }) =>
-      hovering(model, () =>
-        withBlip(key, model, (id) => modifyFields(model, { hovered: () => Option.some(id) })),
-      ),
-    LeftBlip: ({ key }) =>
-      hovering(model, () =>
-        withBlip(key, model, (id) =>
-          modifyFields(model, {
-            hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      HoveredBlip: ({ key }) =>
+        hovering(model, () =>
+          withBlip(key, model, (id) => Struct.evolve(model, { hovered: () => Option.some(id) })),
+        ),
+      LeftBlip: ({ key }) =>
+        hovering(model, () =>
+          withBlip(key, model, (id) =>
+            Struct.evolve(model, {
+              hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
+            }),
+          ),
+        ),
+      ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
+      DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
+      ClickedEmptySpace: () => ({
+        model: Struct.evolve(model, {
+          selected: () => Option.none(),
+          hoveredEgg: () => Option.none(),
+        }),
+      }),
+      ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
+      ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
+      ChangedQuery: ({ query }) => ({ model: withQuery(model, query) }),
+      ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
+      ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
+      ClickedClearFilters: () => ({
+        model: { ...model, query: '', category: 'all', enabledRings: ringIds },
+      }),
+      ClickedTurn: ({ direction }) => ({
+        model: Struct.evolve(model, { camera: (camera) => turned(camera, direction) }),
+      }),
+      ClickedResetView: () => ({ model: { ...model, cluster: Option.none(), camera: homeCamera } }),
+      ClickedUniverse: () => ({
+        model: { ...model, cluster: Option.none(), camera: universeCamera(model.camera.position) },
+      }),
+      ClickedCluster: ({ category }) => ({
+        model: { ...model, cluster: Option.some(category), camera: clusterCamera(category) },
+      }),
+      ClickedZoom: ({ direction }) => ({
+        model: Struct.evolve(model, {
+          camera: (camera) => ({
+            ...camera,
+            position: zoomedPosition(camera.position, zoomFactors[direction]),
           }),
-        ),
-      ),
-    ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
-    DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
-    ClickedEmptySpace: () => ({
-      model: modifyFields(model, {
-        selected: () => Option.none(),
-        hoveredEgg: () => Option.none(),
-      }),
-    }),
-    ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
-    ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
-    ChangedQuery: ({ query }) => ({ model: withQuery(model, query) }),
-    ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
-    ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
-    ClickedClearFilters: () => ({
-      model: { ...model, query: '', category: 'all', enabledRings: ringIds },
-    }),
-    ClickedTurn: ({ direction }) => ({
-      model: modifyFields(model, { camera: (camera) => turned(camera, direction) }),
-    }),
-    ClickedResetView: () => ({ model: { ...model, cluster: Option.none(), camera: homeCamera } }),
-    ClickedUniverse: () => ({
-      model: { ...model, cluster: Option.none(), camera: universeCamera(model.camera.position) },
-    }),
-    ClickedCluster: ({ category }) => ({
-      model: { ...model, cluster: Option.some(category), camera: clusterCamera(category) },
-    }),
-    ClickedZoom: ({ direction }) => ({
-      model: modifyFields(model, {
-        camera: (camera) => ({
-          ...camera,
-          position: zoomedPosition(camera.position, zoomFactors[direction]),
         }),
       }),
-    }),
-    ClickedRelationships: () => ({
-      model: modifyFields(model, { showRelationships: (shown) => !shown }),
-    }),
-    ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
-    PressedShortcut: ({ shortcut }) => pressed(model, shortcut),
-    ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
-    PressedSheetHandle: ({ y }) => ({ model: { ...model, sheetDrag: Option.some(y) } }),
-    ReleasedSheetHandle: ({ y }) => ({ model: released(model, y) }),
-    ChoseSheetStop: ({ stop }) => ({ model: { ...model, sheet: stop } }),
-    ClickedImmersive: () => immersed(model, !model.immersive),
-    ClickedMoreFromImmersive: () => {
-      const back = immersed(model, false);
-      return { ...back, model: { ...back.model, sheet: 'half' } };
-    },
-    ChangedFullscreen: ({ isFullscreen }) => ({
-      model: { ...model, immersive: model.immersive && isFullscreen },
-    }),
-    CompletedFullscreen: () => ({ model }),
-    ClickedMinimap: () => ({ model: { ...model, minimapShown: !model.minimapShown } }),
-    ChangedScreenDensity: ({ isDense }) => ({ model: { ...model, denseScreen: isDense } }),
-    ResizedStage: ({ width, height }) => ({
-      model: { ...model, stageAspect: width / height, stageWidth: width },
-    }),
-    CompletedFocusSearch: () => ({ model }),
-    CompletedOpenPage: () => ({ model }),
-    SucceededLoadLastVisit: ({ edition }) => returned(model, edition),
-    CompletedSaveLastVisit: () => ({ model }),
-    ClickedDismissSinceVisit: () => ({ model: { ...model, sinceVisit: Option.none() } }),
-    GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
-    GotSearchMessage: ({ message }) => searchStep(model, message),
-    GotHelpMessage: ({ message }) => foldHelp(model, message),
-    MadeGesture: ({ gesture }) => ({
-      model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
-    }),
-    ClickedRelay: ({ to }) => ({ model: relayTo(model, to) }),
-    AdvancedRelay: ({ deltaTimeMs }) => ({ model: advanceRelay(model, deltaTimeMs) }),
-    ChangedReducedMotion: ({ isReducedMotion }) => ({
-      model: { ...model, reducedMotion: isReducedMotion },
-    }),
-    ChangedEdition: ({ index }) => {
-      const edition = clampEdition(model, index);
-      return {
-        model: reconcile({
+      ClickedRelationships: () => ({
+        model: Struct.evolve(model, { showRelationships: (shown) => !shown }),
+      }),
+      ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
+      PressedShortcut: ({ shortcut }) => pressed(model, shortcut),
+      ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
+      PressedSheetHandle: ({ y }) => ({ model: { ...model, sheetDrag: Option.some(y) } }),
+      ReleasedSheetHandle: ({ y }) => ({ model: released(model, y) }),
+      ChoseSheetStop: ({ stop }) => ({ model: { ...model, sheet: stop } }),
+      ClickedImmersive: () => immersed(model, !model.immersive),
+      ClickedMoreFromImmersive: () => {
+        const back = immersed(model, false);
+        return { ...back, model: { ...back.model, sheet: 'half' } };
+      },
+      ChangedFullscreen: ({ isFullscreen }) => ({
+        model: { ...model, immersive: model.immersive && isFullscreen },
+      }),
+      CompletedFullscreen: () => ({ model }),
+      ClickedMinimap: () => ({ model: { ...model, minimapShown: !model.minimapShown } }),
+      ChangedScreenDensity: ({ isDense }) => ({ model: { ...model, denseScreen: isDense } }),
+      ResizedStage: ({ width, height }) => ({
+        model: { ...model, stageAspect: width / height, stageWidth: width },
+      }),
+      CompletedFocusSearch: () => ({ model }),
+      CompletedScrollSearch: () => ({ model }),
+      CompletedOpenPage: () => ({ model }),
+      SucceededLoadLastVisit: ({ edition }) => returned(model, edition),
+      CompletedSaveLastVisit: () => ({ model }),
+      ClickedDismissSinceVisit: () => ({ model: { ...model, sinceVisit: Option.none() } }),
+      TypedSearch: ({ query }) => ({
+        model: { ...withQuery(model, query), searchOpen: true, activeSearchEntry: Option.none() },
+      }),
+      ToggledSearch: ({ open }) => ({
+        model: { ...model, searchOpen: open, activeSearchEntry: Option.none() },
+        commands: open ? [FocusSearch.make()] : [],
+      }),
+      MovedSearch: ({ offset }) => {
+        const activeSearchEntry = nextResult(model, offset);
+        return {
+          model: { ...model, searchOpen: true, activeSearchEntry },
+          commands: Option.toArray(
+            Option.map(activeSearchEntry, (id) => ScrollSearch.make({ id })),
+          ),
+        };
+      },
+      PickedSearch: ({ id }) => ({
+        model: { ...chooseEntry(model, id), searchOpen: false, activeSearchEntry: Option.none() },
+      }),
+      ToggledHelp: ({ open }) => ({ model: { ...model, helpOpen: open } }),
+      DismissedTooltip: ({ control }) => ({
+        model: { ...model, dismissedTooltip: Option.some(control) },
+      }),
+      LeftTooltip: ({ control }) => ({
+        model: {
           ...model,
-          edition,
-          playing: false,
-          playClock: 0,
-          // A comparison is with an earlier edition; scrubbing back past it ends it.
-          comparing: Option.filter(model.comparing, (from) => from < edition),
+          dismissedTooltip: Option.filter(
+            model.dismissedTooltip,
+            (dismissed) => dismissed !== control,
+          ),
+        },
+      }),
+      MountedRadar: () => ({
+        model,
+        commands: [
+          ...(model.themeChoice === 'auto' ? [LoadThemeChoice.make()] : []),
+          LoadTypeface.make(),
+          LoadLastVisit.make(),
+        ],
+      }),
+      MadeGesture: ({ gesture }) => ({
+        model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
+      }),
+      ClickedRelay: ({ to }) => ({ model: relayTo(model, to) }),
+      AdvancedRelay: ({ deltaTimeMs }) => ({ model: advanceRelay(model, deltaTimeMs) }),
+      ChangedReducedMotion: ({ isReducedMotion }) => ({
+        model: { ...model, reducedMotion: isReducedMotion },
+      }),
+      ChangedEdition: ({ index }) => {
+        const edition = clampEdition(model, index);
+        return {
+          model: reconcile({
+            ...model,
+            edition,
+            playing: false,
+            playClock: 0,
+            // A comparison is with an earlier edition; scrubbing back past it ends it.
+            comparing: Option.filter(model.comparing, (from) => from < edition),
+            movePlayback: Option.none(),
+          }),
+        };
+      },
+      ChoseComparison: ({ index }) => ({
+        model: {
+          ...model,
+          comparing: Option.filter(
+            Option.fromNullishOr(index),
+            (from) => from >= 0 && from < model.edition,
+          ),
           movePlayback: Option.none(),
-        }),
-      };
-    },
-    ChoseComparison: ({ index }) => ({
-      model: {
-        ...model,
-        comparing: Option.filter(
-          Option.fromNullishOr(index),
-          (from) => from >= 0 && from < model.edition,
-        ),
-        movePlayback: Option.none(),
-        compareClock: 0,
-      },
+          compareClock: 0,
+        },
+      }),
+      ClickedPlayMoves: () => ({ model: playMoves(model) }),
+      AdvancedMoves: ({ deltaTimeMs }) => ({ model: advanceMoves(model, deltaTimeMs) }),
+      AdvancedArrivals: ({ deltaTimeMs }) => ({
+        model: { ...model, compareClock: model.compareClock + deltaTimeMs },
+      }),
+      ClickedPlay: () => ({ model: togglePlay(model) }),
+      AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
+      HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),
+      // On touch an egg keeps speaking after the finger lifts, until a tap elsewhere.
+      LeftEgg: ({ key }) =>
+        hovering(model, () => ({
+          model: Struct.evolve(model, {
+            hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+          }),
+        })),
+      ChangedColorScheme: ({ scheme }) => ({ model: { ...model, colorScheme: scheme } }),
+      ChangedContrast: ({ contrast }) => ({ model: { ...model, contrast } }),
+      ChoseTheme: ({ choice }) => ({
+        model: { ...model, themeChoice: choice },
+        commands: [SaveThemeChoice.make({ choice })],
+      }),
+      SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
+      CompletedSaveThemeChoice: () => ({ model }),
+      ChoseTypeface: ({ typeface }) => ({
+        model: { ...model, typeface },
+        commands: [SaveTypeface.make({ typeface })],
+      }),
+      SucceededLoadTypeface: ({ typeface }) => ({ model: { ...model, typeface } }),
+      CompletedSaveTypeface: () => ({ model }),
+      ChangedPointerInput: ({ input }) => ({
+        model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
+      }),
+      EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
+      AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
+      AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
+      AdvancedStackEgg: ({ deltaTimeMs }) => ({ model: advanceStackEgg(model, deltaTimeMs) }),
+      ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
+      CompletedReplaceLink: () => ({ model }),
+      ClickedCopyLink: () => ({ model, commands: [CopyLink.make()] }),
+      CompletedCopyLink: ({ outcome }) => ({
+        model: { ...model, linkNotice: Option.some(outcome) },
+      }),
+      ClickedRecord: () => ({
+        model: {
+          ...model,
+          tour: { _tag: 'Recording', recording: { start: linkOf(model), steps: [] } },
+          tourNotice: Option.none(),
+        },
+      }),
+      ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
+      ClickedPlayTour: () => ({ model: startTour(model) }),
+      ClickedEditionTour: () => ({ model: startEditionTour(model) }),
+      ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
+      AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
+      ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
+      CompletedSaveTour: () => ({ model }),
+      ClickedLoadTour: () => ({ model, commands: [LoadTour.make()] }),
+      SucceededLoadTour: ({ recording }) => ({
+        model: {
+          ...model,
+          // SAFETY: LoadTour decodes the file against the tour schema before sending this.
+          tour: { _tag: 'Ready', recording: recording as Recording },
+          tourNotice: Option.some('Tour loaded: press Play to watch it'),
+        },
+      }),
+      FailedLoadTour: ({ reason }) => ({ model: { ...model, tourNotice: Option.some(reason) } }),
+      CancelledLoadTour: () => ({ model }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    ClickedPlayMoves: () => ({ model: playMoves(model) }),
-    AdvancedMoves: ({ deltaTimeMs }) => ({ model: advanceMoves(model, deltaTimeMs) }),
-    AdvancedArrivals: ({ deltaTimeMs }) => ({
-      model: { ...model, compareClock: model.compareClock + deltaTimeMs },
-    }),
-    ClickedPlay: () => ({ model: togglePlay(model) }),
-    AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
-    HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),
-    // On touch an egg keeps speaking after the finger lifts, until a tap elsewhere.
-    LeftEgg: ({ key }) =>
-      hovering(model, () => ({
-        model: modifyFields(model, {
-          hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
-        }),
-      })),
-    ChangedColorScheme: ({ scheme }) => ({ model: { ...model, colorScheme: scheme } }),
-    ChangedContrast: ({ contrast }) => ({ model: { ...model, contrast } }),
-    ChoseTheme: ({ choice }) => ({
-      model: { ...model, themeChoice: choice },
-      commands: [SaveThemeChoice({ choice })],
-    }),
-    SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
-    CompletedSaveThemeChoice: () => ({ model }),
-    ChoseTypeface: ({ typeface }) => ({
-      model: { ...model, typeface },
-      commands: [SaveTypeface({ typeface })],
-    }),
-    SucceededLoadTypeface: ({ typeface }) => ({ model: { ...model, typeface } }),
-    CompletedSaveTypeface: () => ({ model }),
-    ChangedPointerInput: ({ input }) => ({
-      model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
-    }),
-    EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
-    AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
-    AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
-    AdvancedStackEgg: ({ deltaTimeMs }) => ({ model: advanceStackEgg(model, deltaTimeMs) }),
-    ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
-    CompletedReplaceLink: () => ({ model }),
-    ClickedCopyLink: () => ({ model, commands: [CopyLink()] }),
-    CompletedCopyLink: ({ outcome }) => ({ model: { ...model, linkNotice: Option.some(outcome) } }),
-    ClickedRecord: () => ({
-      model: {
-        ...model,
-        tour: { _tag: 'Recording', recording: { start: linkOf(model), steps: [] } },
-        tourNotice: Option.none(),
-      },
-    }),
-    ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
-    ClickedPlayTour: () => ({ model: startTour(model) }),
-    ClickedEditionTour: () => ({ model: startEditionTour(model) }),
-    ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
-    AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
-    ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
-    CompletedSaveTour: () => ({ model }),
-    ClickedLoadTour: () => ({ model, commands: [LoadTour()] }),
-    SucceededLoadTour: ({ recording }) => ({
-      model: {
-        ...model,
-        // SAFETY: LoadTour decodes the file against the tour schema before sending this.
-        tour: { _tag: 'Ready', recording: recording as Recording },
-        tourNotice: Option.some('Tour loaded: press Play to watch it'),
-      },
-    }),
-    FailedLoadTour: ({ reason }) => ({ model: { ...model, tourNotice: Option.some(reason) } }),
-    CancelledLoadTour: () => ({ model }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );
 
 /** Anything that moves the camera itself ends a relay jump under way: the ride is skippable. */
 const endsJourney: ReadonlySet<Message['_tag']> = new Set([
@@ -796,7 +783,7 @@ const recordingOf = (tour: Tour): Option.Option<Recording> =>
 const saveCommands = (model: Model) =>
   Option.match(recordingOf(model.tour), {
     onNone: () => [],
-    onSome: (recording) => [SaveTour({ recording })],
+    onSome: (recording) => [SaveTour.make({ recording })],
   });
 
 /** A finished recording ready to play, unless nothing was recorded. */
@@ -910,7 +897,8 @@ const advanceTour = (model: Model, deltaTimeMs: number): AppReturn =>
  */
 const moveOf = (message: Message): Option.Option<Message> =>
   Match.value(message).pipe(
-    Match.tag('GotSearchMessage', ({ message: search }) => searchMove(search)),
+    Match.tag('TypedSearch', ({ query }) => Option.some(Message.ChangedQuery({ query }))),
+    Match.tag('PickedSearch', ({ id }) => Option.some(Message.ClickedEntry({ id }))),
     Match.orElse(() => Option.liftPredicate(message, isRecordable)),
   );
 
@@ -955,7 +943,7 @@ const withLink = (before: Model, result: AppReturn): AppReturn => {
     Match.when(true, () => result),
     Match.orElse(() => ({
       model: { ...result.model, linkNotice: Option.none() },
-      commands: [...(result.commands ?? []), ReplaceLink({ query: link })],
+      commands: [...(result.commands ?? []), ReplaceLink.make({ query: link })],
     })),
   );
 };
@@ -970,5 +958,5 @@ export const update = (model: Model, message: Message): AppReturn => {
   );
   const result = recording(step(ready, message), message);
   // However the query changed (typing, a tour, a link, Clear filters), the search box shows it.
-  return withLink(model, { ...result, model: withSearchText(result.model) });
+  return withLink(model, result);
 };

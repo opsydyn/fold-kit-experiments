@@ -92,16 +92,15 @@ edit stops the build with the file that caused it. `test/content.test.ts` proves
 markdown is the same radar as the original's fixture, which the tests keep as stable test
 data in `src/test/fixture.ts`.
 
-## The radar is a copy
+## The standalone 3D radar
 
-- `src/radar/three` is a copy of `packages/effect-three-samples/src/radar`, with the two
-  helpers it imported (`labelledEnvironment.ts`, `renderer.ts`), `lighten` and the samples'
-  stylesheet. Its tests are in `test/three` and run with `bun test`.
-- The copy takes the radar's data, title and full-page addresses as props, and drops the
-  original's demo notice. Otherwise it is as copied.
-- The original is not changed by this app. They share libraries only (effect-three, its
-  FoldKit adapter, troika and foldkit-viz), so a library fix reaches both, but a radar
-  fix, such as a new theme, has to be ported by hand in either direction.
+- `src/radar/three` is the standalone Effect UI island. Its tests are in `test/three`
+  and run with `bun test`.
+- Astro passes the Markdown dataset, title, full-page addresses and deep link into
+  the island. The standalone island owns its sidebar, search and tours.
+- The workbench Radar and this app share Effect UI, Astro's Effect UI renderer,
+  effect-three, the Three browser adapter, troika and foldkit-viz. Changes to either
+  Radar's own controls or content apply to that app.
 
 ## Hosting
 

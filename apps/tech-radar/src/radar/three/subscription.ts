@@ -1,138 +1,156 @@
-/**
- * The radar's subscriptions: animation frames while the timeline plays or a relay jump
- * rides an edge, and the reader's reduced-motion preference, so jumps land at once for
- * those who ask.
- */
-import { Duration, Option, Stream } from 'effect';
-import { Dom, Subscription } from 'foldkit';
+import { Subscription } from '@effect/ui';
+import { HtmlSubscription } from '@effect/ui/html';
+import { Cause, Effect, Option, Queue, Stream } from 'effect';
 
 import { cometMoves } from './comet';
 import { arriving } from './compare';
 import { konamiCode } from './invaders';
 import { Message } from './message';
-import type { Model, PointerInput } from './model';
+import type { Model } from './model';
 import { shortcuts } from './shortcuts';
 import { stackEggMoves } from './stack';
 import { stageSizes } from './stageSize';
-import type { ColorScheme, ContrastSetting } from './themes';
 import { isPlaying } from './tour';
 
-/** What a `(prefers-color-scheme: light)` match means. */
-const schemes: ReadonlyArray<ColorScheme> = ['dark', 'light'];
+const frame = (name: string, message: (time: { deltaTimeMs: number }) => Message) =>
+  Subscription.make(
+    name,
+    Stream.callback<Message>((queue) =>
+      Effect.gen(function* () {
+        const frames = yield* HtmlSubscription.AnimationFrames;
+        let previous = frames.now();
+        const watch = Effect.sync(() =>
+          frames.listen((now) => {
+            const deltaTimeMs = Math.max(0, now - previous);
+            previous = now;
+            Queue.offerUnsafe(queue, message({ deltaTimeMs }));
+          }),
+        );
+        yield* Effect.acquireRelease(watch, Effect.sync);
+      }),
+    ),
+  );
 
-/** What a `(prefers-contrast: more)` or `(forced-colors: active)` match means. */
-const contrasts: ReadonlyArray<ContrastSetting> = ['standard', 'more'];
+const subscribeToMedia =
+  (query: string, send: (matches: boolean) => Message, queue: Queue.Queue<Message, Cause.Done>) =>
+  () => {
+    const media = window.matchMedia(query);
+    const listener = () => Queue.offerUnsafe(queue, send(media.matches));
+    media.addEventListener('change', listener);
+    listener();
+    return () => media.removeEventListener('change', listener);
+  };
 
-/** What a `(hover: hover)` match means: no, a finger; yes, a mouse or pen. */
-const inputs: ReadonlyArray<PointerInput> = ['touch', 'hover'];
+const preference = (name: string, query: string, send: (matches: boolean) => Message) =>
+  Subscription.make(
+    name,
+    Stream.callback<Message>((queue) => {
+      const watch = Effect.sync(subscribeToMedia(query, send, queue));
+      return Effect.acquireRelease(watch, Effect.sync);
+    }),
+  );
 
-export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  playback: Subscription.animationFrameEntry({
-    isActive: (model) => model.playing,
-    toMessage: (deltaTimeMs) => Message.AdvancedPlayback({ deltaTimeMs }),
+const editing = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable || target.closest('input, textarea, select') !== null);
+
+const watchKonami = (queue: Queue.Queue<Message, Cause.Done>) => () => {
+  let index = 0;
+  let updated = 0;
+  const keydown = (event: KeyboardEvent) => {
+    if (event.repeat || event.isComposing || editing(event.target)) return;
+    const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+    if (event.timeStamp - updated >= 3000) index = 0;
+    updated = event.timeStamp;
+    index = key === konamiCode[index] ? index + 1 : Number(key === konamiCode[0]);
+    if (index !== konamiCode.length) return;
+    index = 0;
+    Queue.offerUnsafe(queue, Message.EnteredKonamiCode());
+  };
+  document.addEventListener('keydown', keydown);
+  return () => document.removeEventListener('keydown', keydown);
+};
+
+const konami = Subscription.make(
+  'konami',
+  Stream.callback<Message>((queue) => {
+    const watch = Effect.sync(watchKonami(queue));
+    return Effect.acquireRelease(watch, Effect.sync);
   }),
-  relay: Subscription.animationFrameEntry({
-    isActive: (model) => Option.isSome(model.journey),
-    toMessage: (deltaTimeMs) => Message.AdvancedRelay({ deltaTimeMs }),
+);
+
+const shortcutByKey = new Map(
+  shortcuts.flatMap(({ shortcut, keys }) => keys.map((key) => [key, shortcut] as const)),
+);
+
+const shortcutKeys = Subscription.make(
+  'shortcuts',
+  Stream.callback<Message>((queue) => {
+    const start = Effect.sync(() => {
+      const keydown = (event: KeyboardEvent) => {
+        if (
+          event.repeat ||
+          event.isComposing ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.altKey ||
+          editing(event.target)
+        )
+          return;
+        const shortcut = shortcutByKey.get(event.key.toUpperCase());
+        if (shortcut === undefined) return;
+        event.preventDefault();
+        Queue.offerUnsafe(queue, Message.PressedShortcut({ shortcut }));
+      };
+      document.addEventListener('keydown', keydown);
+      return () => document.removeEventListener('keydown', keydown);
+    });
+    return Effect.acquireRelease(start, Effect.sync);
   }),
-  // The Konami code, anywhere but in a text field: the invaders' cue.
-  konami: Subscription.persistentEntry(
-    Dom.streamFromKeyBindings<Message>({
-      bindings: [
-        {
-          keys: konamiCode,
-          preventDefault: false,
-          mapEvent: () => Message.EnteredKonamiCode(),
-        },
-      ],
-      sequenceTimeout: Duration.seconds(3),
-    }),
-  ),
-  // The keyboard shortcuts, anywhere but in a text field (see shortcuts.ts). Their own
-  // stream: the Konami code's arrows may not share a table with single presses.
-  shortcuts: Subscription.persistentEntry(
-    Dom.streamFromKeyBindings<Message>({
-      bindings: shortcuts.flatMap(({ shortcut, keys }) =>
-        keys.map((key) => ({ keys: key, mapEvent: () => Message.PressedShortcut({ shortcut }) })),
-      ),
-    }),
-  ),
-  // A dense phone screen draws the radar at fewer pixels: it looks the same, and costs less.
-  screenDensity: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(min-resolution: 2.5dppx)',
-      mapMatches: (isDense) => Message.ChangedScreenDensity({ isDense }),
-    }),
-  ),
-  // The canvas's shape, which the camera's field of view and the labels follow.
-  stageAspect: Subscription.persistentEntry(
-    Stream.map(stageSizes, ({ width, height }) => Message.ResizedStage({ width, height })),
-  ),
-  // Leaving the browser's full screen (Esc, a gesture) leaves the immersive radar too.
-  fullscreen: Subscription.persistentEntry(
-    Dom.streamFromEvent({
-      target: globalThis.document,
-      type: 'fullscreenchange',
-      mapEvent: () =>
-        Message.ChangedFullscreen({ isFullscreen: globalThis.document.fullscreenElement !== null }),
-    }),
-  ),
-  // "Play the moves" in a comparison: the hold, then the glide (see compare.ts).
-  moves: Subscription.animationFrameEntry({
-    isActive: (model) => Option.isSome(model.movePlayback),
-    toMessage: (deltaTimeMs) => Message.AdvancedMoves({ deltaTimeMs }),
+);
+
+const fullscreen = Subscription.make(
+  'fullscreen',
+  Stream.callback<Message>((queue) => {
+    const start = Effect.sync(() => {
+      const change = () =>
+        Queue.offerUnsafe(
+          queue,
+          Message.ChangedFullscreen({ isFullscreen: document.fullscreenElement !== null }),
+        );
+      document.addEventListener('fullscreenchange', change);
+      return () => document.removeEventListener('fullscreenchange', change);
+    });
+    return Effect.acquireRelease(start, Effect.sync);
   }),
-  // A comparison's arrivals: first light, a comet coming round, a horizon collapsing.
-  arrivals: Subscription.animationFrameEntry({
-    isActive: arriving,
-    toMessage: (deltaTimeMs) => Message.AdvancedArrivals({ deltaTimeMs }),
-  }),
-  invasion: Subscription.animationFrameEntry({
-    isActive: (model) => Option.isSome(model.invasion),
-    toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),
-  }),
-  // A tour plays to the frame clock: each move waits out its pace, then the next is made.
-  tour: Subscription.animationFrameEntry({
-    isActive: (model) => isPlaying(model.tour),
-    toMessage: (deltaTimeMs) => Message.AdvancedTour({ deltaTimeMs }),
-  }),
-  comet: Subscription.animationFrameEntry({
-    isActive: cometMoves,
-    toMessage: (deltaTimeMs) => Message.AdvancedComet({ deltaTimeMs }),
-  }),
-  stackEgg: Subscription.animationFrameEntry({
-    isActive: stackEggMoves,
-    toMessage: (deltaTimeMs) => Message.AdvancedStackEgg({ deltaTimeMs }),
-  }),
-  // Whether the reader can hover: a phone or tablet cannot, so a tap reads instead.
-  pointerInput: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(hover: hover)',
-      mapMatches: (canHover) =>
-        Message.ChangedPointerInput({ input: inputs[Number(canHover)] ?? 'touch' }),
-    }),
+);
+
+export const subscriptions = ({ model }: { readonly model: Model }) => [
+  model.playing && frame('playback', Message.AdvancedPlayback),
+  Option.isSome(model.journey) && frame('relay', Message.AdvancedRelay),
+  Option.isSome(model.invasion) && frame('invasion', Message.AdvancedInvasion),
+  isPlaying(model.tour) && frame('tour', Message.AdvancedTour),
+  cometMoves(model) && frame('comet', Message.AdvancedComet),
+  konami,
+  shortcutKeys,
+  Option.isSome(model.movePlayback) && frame('comparison-moves', Message.AdvancedMoves),
+  arriving(model) && frame('comparison-arrivals', Message.AdvancedArrivals),
+  stackEggMoves(model) && frame('stack-egg', Message.AdvancedStackEgg),
+  preference('screen-density', '(min-resolution: 2.5dppx)', (isDense) =>
+    Message.ChangedScreenDensity({ isDense }),
   ),
-  // The reader's colour scheme, which the theme's Auto choice follows.
-  colorScheme: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-color-scheme: light)',
-      mapMatches: (isLight) =>
-        Message.ChangedColorScheme({ scheme: schemes[Number(isLight)] ?? 'dark' }),
-    }),
+  Subscription.make('stage-size', Stream.map(stageSizes, Message.ResizedStage)),
+  fullscreen,
+  preference('pointer-input', '(hover: hover)', (hover) =>
+    Message.ChangedPointerInput({ input: hover ? 'hover' : 'touch' }),
   ),
-  // A reader who asks for more contrast, or whose system forces its colours, gets High
-  // contrast under Auto.
-  contrast: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-contrast: more), (forced-colors: active)',
-      mapMatches: (isMore) =>
-        Message.ChangedContrast({ contrast: contrasts[Number(isMore)] ?? 'standard' }),
-    }),
+  preference('color-scheme', '(prefers-color-scheme: light)', (light) =>
+    Message.ChangedColorScheme({ scheme: light ? 'light' : 'dark' }),
   ),
-  reducedMotion: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-reduced-motion: reduce)',
-      mapMatches: (isReducedMotion) => Message.ChangedReducedMotion({ isReducedMotion }),
-    }),
+  preference('contrast', '(prefers-contrast: more), (forced-colors: active)', (more) =>
+    Message.ChangedContrast({ contrast: more ? 'more' : 'standard' }),
   ),
-}));
+  preference('reduced-motion', '(prefers-reduced-motion: reduce)', (isReducedMotion) =>
+    Message.ChangedReducedMotion({ isReducedMotion }),
+  ),
+];

@@ -1,3 +1,4 @@
+import { marksFor } from '@opsydyn/foldkit-viz/effect/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { Option, Schema } from 'effect';
 import { foldChildInits } from 'foldkit/update';
@@ -40,6 +41,11 @@ export const POINTS: ReadonlyArray<KeyedPoint> = [
   { id: 'salary-30', x: 20, y: 175000, label: '20yr' },
 ];
 
+export const pointsWithExperience = (years: number): ReadonlyArray<KeyedPoint> =>
+  POINTS.filter((point) => point.x >= years);
+
+const marks = marksFor<KeyedPoint>();
+
 /** Salary against experience, one dot per person, keyed by id for linking. */
 export const scatterSpec: PlotSpec = {
   width: 380,
@@ -48,15 +54,14 @@ export const scatterSpec: PlotSpec = {
   x: { label: 'Years experience' },
   y: { label: 'Salary ($)' },
   marks: [
-    {
-      mark: 'dot',
+    marks.dot({
       x: 'x',
       y: 'y',
       key: 'id',
       r: { value: 5 },
       fill: { value: '#6366f1' },
       title: 'label',
-    },
+    }),
   ],
 };
 
@@ -83,6 +88,7 @@ export const Model = Schema.Struct({
   scatter: Schema.Unknown,
   histogram: Schema.Unknown,
   inspection: Schema.Unknown,
+  minimumExperience: Schema.Number,
 });
 export type Model = Omit<typeof Model.Type, 'scatter' | 'histogram' | 'inspection'> & {
   readonly scatter: PlotPanel.Model;
@@ -101,6 +107,7 @@ export const initChartModels = () =>
         scatter,
         histogram,
         inspection: Option.none(),
+        minimumExperience: 0,
       }),
       folds: {
         scatter: {

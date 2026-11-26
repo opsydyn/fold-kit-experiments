@@ -37,6 +37,20 @@ const opacities = async (html: Promise<string>, selector: string) => {
 };
 
 describe('linked charts update', () => {
+  it('clears a linked inspection after filtering and recovers from an empty chart', () => {
+    const selected = hoverPoint(initialModel(), 'salary-1');
+    const filtered = update(selected, Message.ChangedMinimumExperience({ years: 10 })).model;
+    expect(filtered.inspection).toEqual(Option.none());
+    expect(PlotPanel.targetsOf(filtered.scatter).some((target) => target.key === 'salary-1')).toBe(
+      false,
+    );
+    const empty = update(filtered, Message.ChangedMinimumExperience({ years: 25 })).model;
+    expect(PlotPanel.targetsOf(empty.scatter)).toEqual([]);
+    expect(PlotPanel.targetsOf(empty.histogram)).toEqual([]);
+    const reset = update(empty, Message.ChangedMinimumExperience({ years: 0 })).model;
+    expect(PlotPanel.targetsOf(reset.scatter).map((target) => target.key)).toContain('salary-1');
+  });
+
   it('activates the histogram bin holding a hovered point', () => {
     const model = initialModel();
     const point = POINTS[0];

@@ -99,7 +99,11 @@ export const fillRows = <A>(rows: Rows, value: A): ReadonlyArray<A> =>
 export interface ArrowTable {
   readonly numRows: number;
   readonly schema: { readonly fields: ReadonlyArray<{ readonly name: string }> };
-  getChild(name: string): { toArray(): ArrayLike<unknown> } | null;
+  getChild(name: string): {
+    toArray(): ArrayLike<unknown>;
+    readonly nullCount?: number;
+    [Symbol.iterator]?(): Iterator<unknown>;
+  } | null;
 }
 
 const FLOAT_ARRAYS = [Float64Array, Float32Array, Int32Array, Int16Array, Int8Array] as const;
@@ -116,24 +120,50 @@ const isValue = (value: unknown): value is Value =>
   typeof value === 'boolean';
 const isBigInt = (value: unknown): value is bigint => typeof value === 'bigint';
 
-/** Arrow's values as JSON values: dates become epoch milliseconds, 64-bit integers numbers. */
-const valuesOf = (values: ArrayLike<unknown>): ReadonlyArray<Value> =>
-  Array.from(values, (value): Value => {
-    if (isValue(value)) return value;
-    if (value instanceof Date) return value.getTime();
-    if (isBigInt(value)) return Number(value);
-    return value === undefined ? null : String(value);
-  });
+export type ColumnConversionOptions = Readonly<{
+  /** Preserve BigInt values in these fields as decimal strings, including across chunks. */
+  bigIntAsText?: ReadonlyArray<string>;
+}>;
+
+function numberFromBigInt(value: bigint, field: string): number {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number))
+    return fail(
+      `column "${field}" contains a BigInt outside the safe number range. Use bigIntAsText for exact values.`,
+    );
+  return number;
+}
+
+/** Values as JSON values, with exactness checked before coercing a BigInt. */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- Arrow and DuckDB supply untyped values to this boundary parser.
+const valueOf = (value: unknown, field: string, asText: boolean): Value => {
+  if (isValue(value)) return value;
+  if (value instanceof Date) return value.getTime();
+  if (isBigInt(value)) return asText ? String(value) : numberFromBigInt(value, field);
+  return value === undefined ? null : String(value);
+};
 
 /** A column table over an Arrow table's columns, typed arrays kept as they are. */
-export function fromArrow(table: ArrowTable): ColumnTable {
+export function fromArrow(table: ArrowTable, options: ColumnConversionOptions = {}): ColumnTable {
   const columns = Object.fromEntries(
     table.schema.fields.map(({ name }) => {
-      const values = table.getChild(name)?.toArray() ?? [];
+      const asText = options.bigIntAsText?.includes(name) ?? false;
+      const vector = table.getChild(name);
+      const iterate = vector?.[Symbol.iterator];
+      if (vector !== null && (vector.nullCount ?? 0) > 0 && iterate !== undefined) {
+        // Arrow numeric buffers do not encode validity. Iteration reads the bitmap.
+        return [
+          name,
+          Array.from({ [Symbol.iterator]: iterate.bind(vector) }, (value) =>
+            valueOf(value, name, asText),
+          ),
+        ];
+      }
+      const values = vector?.toArray() ?? [];
       if (isNumericArray(values)) return [name, values];
-      if (values instanceof BigInt64Array || values instanceof BigUint64Array)
-        return [name, Float64Array.from(values, Number)];
-      return [name, valuesOf(values)];
+      if (!asText && (values instanceof BigInt64Array || values instanceof BigUint64Array))
+        return [name, Float64Array.from(values, (value) => numberFromBigInt(value, name))];
+      return [name, Array.from(values, (value) => valueOf(value, name, asText))];
     }),
   );
   return { length: table.numRows, columns };
@@ -156,12 +186,21 @@ const isNumberLike = (value: unknown): value is number | bigint | Date | null =>
   value === null || typeof value === 'number' || isBigInt(value) || value instanceof Date;
 
 /** A numeric column as a Float64Array: nulls become NaN, dates epoch milliseconds. */
-function numericColumn(values: ReadonlyArray<number | bigint | Date | null>): Float64Array {
+function numericColumn(
+  values: ReadonlyArray<number | bigint | Date | null>,
+  field: string,
+): Float64Array {
   const column = new Float64Array(values.length);
   for (let i = 0; i < values.length; i += 1) {
     const value = values[i] ?? null;
     column[i] =
-      value === null ? Number.NaN : value instanceof Date ? value.getTime() : Number(value);
+      value === null
+        ? Number.NaN
+        : value instanceof Date
+          ? value.getTime()
+          : isBigInt(value)
+            ? numberFromBigInt(value, field)
+            : value;
   }
   return column;
 }
@@ -175,12 +214,13 @@ const isNumberLikeColumn = (
  * A column table from DuckDB columns already converted to JS values: a whole
  * result's `reader.getColumnsJS()`, or one streamed chunk's
  * `chunk.convertColumns(JSDuckDBValueConverter)`. Numeric, temporal and
- * 64-bit columns become Float64Arrays (nulls NaN, dates epoch milliseconds, as
- * fromArrow gives); any other column keeps JSON values.
+ * safe numeric BigInt columns become Float64Arrays. Nulls are NaN and dates are
+ * epoch milliseconds in numeric columns. Use `bigIntAsText` for exact BigInts.
  */
 export function duckdbColumns(
   names: ReadonlyArray<string>,
   columns: ReadonlyArray<ReadonlyArray<unknown>>,
+  options: ColumnConversionOptions = {},
 ): ColumnTable {
   if (names.length !== columns.length)
     fail(
@@ -190,12 +230,14 @@ export function duckdbColumns(
     Object.fromEntries(
       names.map((name, i) => {
         const values = columns[i] ?? [];
-        return [name, isNumberLikeColumn(values) ? numericColumn(values) : valuesOf(values)];
+        const asText = options.bigIntAsText?.includes(name) ?? false;
+        if (!asText && isNumberLikeColumn(values)) return [name, numericColumn(values, name)];
+        return [name, values.map((value) => valueOf(value, name, asText))];
       }),
     ),
   );
 }
 
 /** A column table over a DuckDB result read into memory, such as `await connection.runAndReadAll(sql)`. */
-export const fromDuckDB = (reader: DuckDBReader): ColumnTable =>
-  duckdbColumns(reader.columnNames(), reader.getColumnsJS());
+export const fromDuckDB = (reader: DuckDBReader, options?: ColumnConversionOptions): ColumnTable =>
+  duckdbColumns(reader.columnNames(), reader.getColumnsJS(), options);

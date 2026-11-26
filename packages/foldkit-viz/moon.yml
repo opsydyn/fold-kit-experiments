@@ -29,6 +29,6 @@ tasks:
     deps: ['build']
     # Rebuilds and packs packages itself, so it runs after the parallel checks,
     # one at a time, and its inputs cover everything it rebuilds.
-    inputs: ['/packages/foldkit-viz/**/*']
+    inputs: ['/packages/foldkit-viz/**/*', '/skills/foldkit-viz/assets/effect-plot.ts']
     options:
       mutex: 'rebuilds-packages'

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 
 import { plotChart } from '../src/foldkit/plot';
-import { compilePlot, describePlot, plotTable } from '../src/plot';
+import { compilePlot, describePlot, plotTable, plotTables } from '../src/plot';
 import type { PlotSpec } from '../src/plot';
 import { renderChart } from './render-chart';
 
@@ -126,6 +126,63 @@ describe('plotTable', () => {
 });
 
 describe('rendering', () => {
+  it('names the observed series, supplied interval and reference threshold in the figure', async () => {
+    const spec: PlotSpec = {
+      width: 400,
+      height: 260,
+      title: 'Service latency',
+      data: [{ minute: 1, value: 180, low: 160, high: 205 }],
+      y: { label: 'Latency (ms)' },
+      marks: [
+        { mark: 'area', x: 'minute', y: 'high', y0: 'low' },
+        { mark: 'line', x: 'minute', y: 'value' },
+        { mark: 'rule', y: { value: 250 } },
+      ],
+    };
+    const geometry = compilePlot(spec);
+    const tables = plotTables(spec, geometry);
+    expect(tables.map(({ rows }) => rows)).toEqual([
+      [['1', '205', '160']],
+      [['1', '180']],
+      [['250']],
+    ]);
+    expect(tables[0]?.headers).toEqual(['minute', 'Latency (ms) (high)', 'Latency (ms) (low)']);
+    const html = await renderChart<never>((h) => plotChart(h, geometry, { tables }));
+    expect(html.match(/<caption>/g)).toHaveLength(3);
+    expect(html).toContain('Reference rule');
+    expect(html).toContain('>250</th>');
+  });
+
+  it('reports transformed bin counts and original edges even with visual inset', () => {
+    const spec: PlotSpec = {
+      width: 400,
+      height: 260,
+      data: [{ value: 10 }, { value: 16 }, { value: 21 }],
+      marks: [{ mark: 'rect', x: 'value', inset: 3, transform: { type: 'bin', thresholds: [20] } }],
+    };
+    const [table] = plotTables(spec, compilePlot(spec));
+    expect(table?.headers).toEqual(['value start', 'value end', 'Count']);
+    expect(table?.rows).toEqual([
+      ['10', '20', '2'],
+      ['20', '21', '1'],
+    ]);
+  });
+
+  it('only reads visible table rows and the fields used by their layer', () => {
+    const outsideLimit = () => {
+      throw new Error('row outside the table limit');
+    };
+    const values = [1, 2, 3];
+    Object.defineProperties(values, { 1: { get: outsideLimit }, 2: { get: outsideLimit } });
+    const spec: PlotSpec = {
+      ...sales,
+      data: { length: 3, columns: { month: ['Jan', 'Feb', 'Mar'], units: values } },
+    };
+    const [table] = plotTables(spec, compilePlot(sales), { limit: 1 });
+    expect(table?.rows).toEqual([['Jan', '1', '']]);
+    expect(table?.total).toBe(3);
+  });
+
   it('adds the summary to the description and the table, hidden, beside the chart', async () => {
     const html = await renderChart<never>((h) =>
       plotChart(h, compilePlot(sales), { summary: true, table: plotTable(sales) }),

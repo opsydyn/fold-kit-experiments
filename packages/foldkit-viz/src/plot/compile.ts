@@ -2,6 +2,7 @@ import { axisTicks, chartLayout, resolveDomain } from '../chart/layout.js';
 import type { AxisScale, ChartFrame, PlotBounds } from '../chart/layout.js';
 import { colorScale, divergingScale, interpolateRgbBasis } from '../math/color.js';
 import { lttb, m4 } from '../math/downsample.js';
+import { RegressionInputError } from '../math/regression-input-error.js';
 import { loess, polynomialRegression } from '../math/regression.js';
 import { band, sqrt } from '../math/scale.js';
 import * as schemes from '../math/schemes.js';
@@ -40,6 +41,7 @@ import type {
 } from './channels.js';
 import { fillRows, isColumnTable, rowsOf } from './columns.js';
 import type { Rows } from './columns.js';
+import { plotValueFormatter, withAxisFormat } from './format.js';
 import {
   fitProjection,
   geoGraphics,
@@ -219,7 +221,11 @@ function validateMark(mark: MarkSpec, path: string): void {
     );
   const rule: MarkRule = MARKS[mark.mark];
   for (const key of Object.keys(mark))
-    if (!OPTIONS.has(key) && !rule.channels.some((channel) => channel === key))
+    if (
+      !OPTIONS.has(key) &&
+      !(mark.mark === 'rect' && key === 'prebinned') &&
+      !rule.channels.some((channel) => channel === key)
+    )
       fail(`${path}.${key}`, `${aMark(mark.mark)} does not take ${key}`);
   for (const channel of rule.required)
     if (!(channel in mark)) fail(`${path}.${channel}`, `${aMark(mark.mark)} needs ${channel}`);
@@ -381,7 +387,9 @@ function seriesOf(
   const groups = new Map<string, Row[]>();
   for (const row of rows) {
     const key = String(row[field] ?? '');
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, [row]);
+    else group.push(row);
   }
   return [...groups];
 }
@@ -413,15 +421,21 @@ function applyTransform(
     const carry = z === undefined || series[0] === undefined ? {} : { [z]: series[0][z] ?? null };
     switch (transform.type) {
       case 'regression': {
-        const fit = polynomialRegression(series, xy, { degree: transform.degree ?? 1 });
-        const finite = series.map(xy.x).filter(Number.isFinite);
-        const [lo, hi] = spanOf(finite) ?? [0, 0];
-        for (let i = 0; i <= 60; i += 1) {
-          const at = lo + ((hi - lo) * i) / 60;
-          const interval = fit.interval(at, transform.level ?? 0.95);
-          out.push({ ...carry, [X]: at, [Y]: interval.fit });
-          if (transform.band ?? true)
-            bandRows.push({ ...carry, [X]: at, [LO]: interval.lower, [HI]: interval.upper });
+        // oxlint-disable-next-line linteffect/no-try-catch -- Attach the mark path to known failures from the synchronous regression API.
+        try {
+          const fit = polynomialRegression(series, xy, { degree: transform.degree ?? 1 });
+          const finite = series.map(xy.x).filter(Number.isFinite);
+          const [lo, hi] = spanOf(finite) ?? [0, 0];
+          for (let i = 0; i <= 60; i += 1) {
+            const at = lo + ((hi - lo) * i) / 60;
+            const interval = fit.interval(at, transform.level ?? 0.95);
+            out.push({ ...carry, [X]: at, [Y]: interval.fit });
+            if (transform.band ?? true)
+              bandRows.push({ ...carry, [X]: at, [LO]: interval.lower, [HI]: interval.upper });
+          }
+        } catch (error) {
+          if (!(error instanceof RegressionInputError)) throw error;
+          fail(path, error.message);
         }
         break;
       }
@@ -685,6 +699,9 @@ function buildScale(
   const range: readonly [number, number] =
     axis === 'x' ? [bounds.left, bounds.right] : [bounds.bottom, bounds.top];
   const orientation = axis === 'x' ? 'bottom' : 'left';
+  const format = info.spec.format;
+  const formatValue =
+    format === undefined ? undefined : plotValueFormatter(format, `${axis}.format`);
   const shown = info.spec.axis ?? true;
   const grid = shown && (info.spec.grid ?? info.type !== 'band');
   if (info.type === 'band') {
@@ -706,7 +723,8 @@ function buildScale(
       return s === undefined ? undefined : s + scale.bandwidth / 2;
     };
     // Label every k-th band when labels would collide, estimating ~6.5px a character.
-    const widest = domain.reduce((most, value) => Math.max(most, value.length), 1);
+    const labels = formatValue === undefined ? domain : domain.map(formatValue);
+    const widest = labels.reduce((most, label) => Math.max(most, label.length), 1);
     const every =
       axis === 'x'
         ? Math.max(1, Math.ceil((widest * 6.5 + 8) / scale.step))
@@ -714,10 +732,13 @@ function buildScale(
     const ticks: ReadonlyArray<PlotTick> = domain.map((value, i) => ({
       value,
       position: place(value) ?? 0,
-      label: shown && i % every === 0 ? value : '',
+      label: shown && i % every === 0 ? (labels[i] ?? value) : '',
     }));
     return {
-      axis: { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
+      axis: withAxisFormat(
+        { type: 'band', orientation, domain, label: info.label, ticks, grid, range },
+        format,
+      ),
       place,
       start,
       bandwidth: scale.bandwidth,
@@ -741,25 +762,30 @@ function buildScale(
   // Unless the spec says, aim for a tick every ~90px across and ~50px down.
   const span = axis === 'x' ? bounds.width / 90 : bounds.height / 50;
   const count = info.spec.ticks ?? Math.max(2, Math.min(10, Math.round(span)));
+  if (!(Number.isInteger(count) && count >= 2))
+    fail(`${axis}.ticks`, 'must be an integer of at least two');
   const ticks = axisTicks(domain, project, count, scale).map((t) => ({
     value: t.value,
     position: t.position,
-    label: shown ? (t.label ?? String(t.value)) : '',
+    label: shown ? (formatValue?.(t.value) ?? t.label ?? String(t.value)) : '',
   }));
   const lo = Math.min(...domain),
     hi = Math.max(...domain);
   const baseline = lo <= 0 && hi >= 0 && info.type !== 'log' ? project(0) : project(lo);
   return {
-    axis: {
-      type: info.type,
-      orientation,
-      domain,
-      label: info.label,
-      ticks,
-      grid,
-      range,
-      ...scaleParameters(scale),
-    },
+    axis: withAxisFormat(
+      {
+        type: info.type,
+        orientation,
+        domain,
+        label: info.label,
+        ticks,
+        grid,
+        range,
+        ...scaleParameters(scale),
+      },
+      format,
+    ),
     place,
     start: place,
     bandwidth: 0,
@@ -1057,6 +1083,7 @@ function markGraphics(p: Prepared, context: Context): ReadonlyArray<Graphic> {
   const dims = highlightFactors(rows, mark.highlight, path);
   switch (mark.mark) {
     case 'dot': {
+      if (rows.length === 0) return [];
       const x = requireScale(context.x, path, 'x'),
         y = requireScale(context.y, path, 'y');
       const xs = read(rows, channel(p, 'x') ?? mark.x, `${path}.x`),
@@ -1420,16 +1447,16 @@ function validateSpec(spec: PlotSpec): void {
       `unknown coordinates "${String(coordinates)}"; expected cartesian or polar`,
     );
   validateProjection(spec);
-  spec.marks.forEach((mark, i) => {
-    if ((mark.mark === 'geo' || mark.mark === 'graticule') && spec.projection === undefined)
-      fail(`marks[${i}]`, `a ${mark.mark} mark needs the plot to have a projection`);
-  });
   if (!(Number.isFinite(spec.width) && spec.width > 0))
     fail('width', 'must be finite and positive');
   if (!(Number.isFinite(spec.height) && spec.height > 0))
     fail('height', 'must be finite and positive');
   if (!Array.isArray(spec.marks) || spec.marks.length === 0)
     fail('marks', 'a plot needs at least one mark');
+  spec.marks.forEach((mark, i) => {
+    if ((mark.mark === 'geo' || mark.mark === 'graticule') && spec.projection === undefined)
+      fail(`marks[${i}]`, `a ${mark.mark} mark needs the plot to have a projection`);
+  });
   spec.marks.forEach((mark, i) => validateMark(mark, `marks[${i}]`));
 }
 

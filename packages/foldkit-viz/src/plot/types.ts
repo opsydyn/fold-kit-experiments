@@ -29,10 +29,23 @@ export type PlotData = ReadonlyArray<Row> | ColumnTable;
 /** A field name, or a constant. */
 export type Channel = string | Readonly<{ value: Value }>;
 
+/** A portable display format for an axis and the values it describes. */
+export type PlotValueFormat =
+  | Readonly<{ kind: 'number' | 'percent'; locale?: string; digits?: number }>
+  | Readonly<{ kind: 'unit'; unit: string; locale?: string; digits?: number }>
+  | Readonly<{
+      kind: 'dateTime';
+      locale?: string;
+      timeZone?: string;
+      dateStyle?: 'short' | 'medium' | 'long';
+      timeStyle?: 'short' | 'medium' | 'long';
+    }>;
+
 export type PositionScaleSpec = Readonly<{
   type?: 'linear' | 'log' | 'symlog' | 'pow' | 'time' | 'band';
   domain?: readonly [number, number] | ReadonlyArray<string>;
   label?: string;
+  format?: PlotValueFormat;
   zero?: boolean;
   ticks?: number;
   grid?: boolean;
@@ -288,6 +301,14 @@ export type CellMark = CommonMark &
  * y1 starts at the axis baseline. With a bin transform, `x` (and `y`) are the
  * values to bin and the edges are computed.
  */
+export type PrebinnedRect = Readonly<{
+  /** The reduced value field, such as count or proportion. */
+  value: string;
+  xField?: string;
+  yField?: string;
+  series?: string;
+}>;
+
 export type RectMark = CommonMark &
   Readonly<{
     mark: 'rect';
@@ -304,6 +325,8 @@ export type RectMark = CommonMark &
     /** Pixels left empty on each side across x, such as between histogram bars. Default 0. */
     inset?: number;
     transform?: BinTransform;
+    /** Metadata for data already reduced to interval rows, such as SQL pushdown output. */
+    prebinned?: PrebinnedRect;
   }>;
 
 /**
@@ -554,6 +577,13 @@ export type Graphic =
         height: number;
         fill: string;
         stroke: string;
+        /** Original bin edges and reduced value, independent of pixel inset or axis direction. */
+        bin?: Readonly<{
+          x: readonly [number, number];
+          y?: readonly [number, number];
+          value: number;
+          series?: Value;
+        }>;
       }>)
   | (Paint &
       Readonly<{
@@ -607,6 +637,7 @@ export type PlotAxis = Readonly<{
   orientation: 'bottom' | 'left';
   domain: readonly [number, number] | ReadonlyArray<string>;
   label: string;
+  format?: PlotValueFormat;
   ticks: ReadonlyArray<PlotTick>;
   grid: boolean;
   /** Pixel range the domain maps onto: [left, right] across, [bottom, top] down. */

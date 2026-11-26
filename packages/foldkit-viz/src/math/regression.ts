@@ -1,3 +1,4 @@
+import { RegressionInputError } from './regression-input-error.js';
 import { studentTQuantile } from './stats.js';
 
 /**
@@ -46,7 +47,9 @@ function invert(
     const pivotRow = rows[pivot] ?? [];
     const value = pivotRow[col] ?? 0;
     if (Math.abs(value) < 1e-12 * scale)
-      throw new RangeError('Regression is singular: x needs more distinct values for this degree');
+      throw new RegressionInputError(
+        'Regression is singular: x needs more distinct values for this degree',
+      );
     rows[pivot] = rows[col] ?? [];
     rows[col] = pivotRow.map((v) => v / value);
     for (let r = 0; r < size; r += 1) {
@@ -72,11 +75,11 @@ export function polynomialRegression<T>(
 ): RegressionFit {
   const { degree } = options;
   if (!Number.isInteger(degree) || degree < 1)
-    throw new RangeError('Regression degree must be a positive integer');
+    throw new RegressionInputError('Regression degree must be a positive integer');
   const pairs = pairsOf(data, accessors);
   const terms = degree + 1;
   if (pairs.length <= terms)
-    throw new RangeError(`A degree ${degree} fit needs more than ${terms} points`);
+    throw new RegressionInputError(`A degree ${degree} fit needs more than ${terms} points`);
 
   const mean = pairs.reduce((s, p) => s + p.x, 0) / pairs.length;
   const spread = Math.max(...pairs.map((p) => Math.abs(p.x - mean))) || 1;
@@ -119,7 +122,8 @@ export function polynomialRegression<T>(
     residualStandardError: Math.sqrt(variance),
     predict: evaluate,
     interval: (x, level = 0.95) => {
-      if (!(level > 0 && level < 1)) throw new RangeError('Confidence level must be in (0, 1)');
+      if (!(level > 0 && level < 1))
+        throw new RegressionInputError('Confidence level must be in (0, 1)');
       const v = basis(x);
       const leverage = v.reduce(
         (s, vi, i) => s + vi * (inverse[i] ?? []).reduce((t, m, j) => t + m * (v[j] ?? 0), 0),

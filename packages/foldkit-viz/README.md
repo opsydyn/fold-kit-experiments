@@ -29,6 +29,42 @@ separate from this npm package and does not require Astro or its skill.
 bun add @opsydyn/foldkit-viz
 ```
 
+## Your first chart
+
+Compile a plot and render it to HTML. This works in a server route or a build script and needs no client JavaScript.
+
+```ts
+import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
+import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
+
+const spec = {
+  width: 440,
+  height: 260,
+  title: 'Service latency and 250 ms objective',
+  data: [
+    { minute: 0, latencyMs: 140 },
+    { minute: 1, latencyMs: 260 },
+  ],
+  x: { label: 'Minute' },
+  y: { label: 'Latency (ms)' },
+  marks: [
+    { mark: 'line', x: 'minute', y: 'latencyMs' },
+    { mark: 'rule', y: { value: 250 } },
+  ],
+} satisfies PlotSpec;
+
+const html = plotHtml(compilePlot(spec), { summary: true, table: plotTable(spec) });
+```
+
+The rule is an independent layer on the same scale. Edit its value to move the objective. When the row type is known, use `marksFor<Row>()` and `addMarks` from `@opsydyn/foldkit-viz/effect/plot` to compose reusable marks with checked field names. When a spec comes from JSON, call `decodePlot(input)` and `Result.flatMap(compileChecked)`. The resulting Effect Result carries the spec path on an expected failure. The checked authoring entry point uses Effect 4.1. Use `Effect.fromResult` in a FoldKit command and keep the last successful chart in the Model during refresh. [FoldKit view and command example](../../skills/foldkit-viz/assets/effect-plot.ts) · [Linked-view recipe](../../apps/web/src/apps/linked-charts/)
+
+Pass `tables: plotTables(spec, geometry)` to `plotHtml` or `plotChart` for a table per layer. Tables identify source fields and reference rules. Histograms report compiled bin edges and values, including grouped and faceted bins. Pass `{ limit }` as the third argument to limit the rows read from each table. `plotTable(spec)` remains available for the first mark that reads fields.
+
+Use `sharePlotScales({ x, color })` to reuse one explicit time domain and colour mapping across independently compiled charts. Each descriptor supplies `type` and `domain`. An explicit local scale setting must agree with its shared counterpart or the helper reports the conflicting path. Width, axis labels, grid, and display formats belong to each chart.
+
+Set `x.format` or `y.format` with a serialisable number, percent, unit, or date/time descriptor. It formats ticks, summaries and tables. Use `plotValueFormatter` with the same descriptor in a custom readout. Dates without an offset represent UTC, and date/time formatting defaults to UTC. Use standard `Intl` unit names, such as `millisecond`. [Service health recipe with a supplied interval, reference rule and shared scales](../../skills/foldkit-viz/assets/service-health.ts)
+
 ## FoldKit compatibility
 
 The optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` and Effect 4,
@@ -690,7 +726,7 @@ plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) });
   draws and how many, what the axes cover, and what colour shows.
 - **`plotTable(spec)`** lists the data a spec plots, field by field, capped at
   200 rows with the total noted.
-- **Framework boundary:** only `foldkit/*` modules import FoldKit or Effect,
+- **Framework boundary:** the `foldkit/*` and `effect/*` entry points use optional peers,
   and a test enforces it.
 
 ## Column data and other languages (0.18.0+)
@@ -744,9 +780,12 @@ request and sends a spec of the summary.
 ### DuckDB and streaming data (0.19.0+)
 
 `fromDuckDB` reads a DuckDB result (`@duckdb/node-api`'s reader) as a column
-table, and `duckdbColumns` does the same for one streamed chunk. Numeric,
-temporal and 64-bit columns become `Float64Array`s (nulls `NaN`, dates epoch
-milliseconds, as `fromArrow` gives). foldkit-viz does not depend on DuckDB.
+table, and `duckdbColumns` does the same for one streamed chunk. Numeric
+and temporal columns become `Float64Array`s (nulls `NaN`, dates epoch
+milliseconds). `fromArrow`, `fromDuckDB`, and `duckdbColumns` reject unsafe
+BigInt-to-number conversion. Pass `{ bigIntAsText: ['id'] }` to preserve an
+identifier column as exact decimal strings, including across streamed chunks.
+foldkit-viz does not depend on DuckDB.
 
 ```ts
 import { DuckDBInstance, JSDuckDBValueConverter } from '@duckdb/node-api';

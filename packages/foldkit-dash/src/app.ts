@@ -9,7 +9,7 @@
  */
 import { plotChart, type PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
 import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
-import { plotTable, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
+import { plotTables, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
 import { Effect, Option, Result, Schema } from 'effect';
 import { Command, CustomElement, Mount, Navigation } from 'foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
@@ -649,7 +649,7 @@ const chart = (
         ],
         [
           plotChart(h, drawn.geometry, {
-            table: plotTable(drawn.plot),
+            tables: plotTables(drawn.plot, drawn.geometry),
             summary: true,
             ...overlay,
           }),

@@ -12,6 +12,7 @@
   "./chart/space3d": 3072,
   "./chart/theme": 1024,
   "./effect-three/space3d": 1536,
+  "./effect/plot": 65536,
   "./foldkit/cartesian": 3072,
   "./foldkit/keyboard": 1024,
   "./foldkit/orbit": 3584,

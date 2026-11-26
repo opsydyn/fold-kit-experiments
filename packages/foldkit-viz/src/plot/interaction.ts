@@ -1,4 +1,4 @@
-import { fail, highlightMatcher } from './channels.js';
+import { fail, highlightMatcher, isNumber } from './channels.js';
 import { isColumnTable } from './columns.js';
 import type {
   FacetGeometry,
@@ -7,7 +7,6 @@ import type {
   PlotAxis,
   PlotData,
   PlotGeometry,
-  Row,
   Value,
 } from './types.js';
 
@@ -146,6 +145,94 @@ const centreOf = (g: Graphic): readonly [number, number] => {
   }
 };
 
+const containsCentre = (facet: FacetGeometry, x: number, y: number): boolean =>
+  x >= facet.plot.left && x <= facet.plot.right && y >= facet.plot.top && y <= facet.plot.bottom;
+
+export type PlotTarget = Readonly<{
+  facet: string;
+  mark: number;
+  graphic: number;
+  key: string;
+  title: string;
+  cx: number;
+  cy: number;
+  left: number;
+  right: number;
+  domain: readonly [number, number];
+  /** Numeric y value for a point or the upper edge of a rectangle. */
+  value: number | undefined;
+  includeEnd: boolean;
+  isBar: boolean;
+}>;
+
+/** Keyboard and pointer targets for ordinary dots and rectangles with numeric x coordinates. */
+export function plotTargets(
+  geometry: PlotGeometry,
+  options: Readonly<{
+    mark: number;
+    facet?: string;
+    inset?: number;
+    finalIntervalClosed?: boolean;
+  }>,
+): ReadonlyArray<PlotTarget> {
+  const facet =
+    options.facet === undefined
+      ? geometry.facets[0]
+      : geometry.facets.find((candidate) => candidate.key === options.facet);
+  if (facet === undefined || facet.x === null || facet.x.type === 'band') return [];
+  const xAxis = facet.x;
+  const mark = facet.marks.find((candidate) => candidate.index === options.mark);
+  const inset = options.inset ?? 0;
+  const numericAt = (axis: PlotAxis | null, pixel: number): number | undefined => {
+    const value = axis === null ? undefined : invertAxis(axis, pixel);
+    // Avoid exposing inversion noise on a bin boundary or a displayed value.
+    return isNumber(value) && Number.isFinite(value) ? Number(value.toPrecision(15)) : undefined;
+  };
+  const targets = (mark?.graphics ?? []).flatMap((g, graphic): ReadonlyArray<PlotTarget> => {
+    const isBar = g.kind === 'rect';
+    if (!isBar && g.kind !== 'circle' && !(mark?.mark === 'dot' && isSymbolPath(g))) return [];
+    const [cx, cy] = centreOf(g);
+    if (geometry.clip && !containsCentre(facet, cx, cy)) return [];
+    const left = isBar ? g.x - inset : cx;
+    const right = isBar ? g.x + g.width + inset : cx;
+    const bin = isBar ? g.bin : undefined;
+    const start = bin?.x[0] ?? numericAt(xAxis, left);
+    const end = bin?.x[1] ?? numericAt(xAxis, right);
+    if (start === undefined || end === undefined) return [];
+    return [
+      {
+        facet: facet.key,
+        mark: options.mark,
+        graphic,
+        key: g.key,
+        title: g.title ?? g.key,
+        cx,
+        cy,
+        left,
+        right,
+        domain: [Math.min(start, end), Math.max(start, end)],
+        value:
+          bin !== undefined && bin.y === undefined
+            ? bin.value
+            : numericAt(facet.y, isBar ? g.y : cy),
+        includeEnd: !isBar,
+        isBar,
+      },
+    ];
+  });
+  const lastEdge = options.finalIntervalClosed
+    ? targets.reduce(
+        (end, target) => (target.isBar ? Math.max(end, target.domain[1]) : end),
+        -Infinity,
+      )
+    : -Infinity;
+  return targets
+    .map((target) =>
+      target.isBar && target.domain[1] === lastEdge ? { ...target, includeEnd: true } : target,
+    )
+    .sort((a, b) => a.cx - b.cx);
+}
+
 export function indexPlot(geometry: PlotGeometry): PlotIndex {
   const owners: Owner[] = [];
   let total = 0;
@@ -170,12 +257,10 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
         if (g.kind === 'points') {
           const id =
             owners.push({ facet: facet.key, mark: mark.index, key: g.key, dense: true }) - 1;
-          const { plot } = facet;
           for (let i = 0; i < g.count; i += 1) {
             const px = g.xs[i] ?? 0,
               py = g.ys[i] ?? 0;
-            // Points outside the plot area, such as past a zoomed axis, are not drawn.
-            if (px < plot.left || px > plot.right || py < plot.top || py > plot.bottom) continue;
+            if (geometry.clip && !containsCentre(facet, px, py)) continue;
             xs[n] = g.xs[i] ?? 0;
             ys[n] = g.ys[i] ?? 0;
             owner[n] = id;
@@ -190,6 +275,7 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
           const id =
             owners.push({ facet: facet.key, mark: mark.index, key: g.key, dense: false }) - 1;
           const [cx, cy] = centreOf(g);
+          if (geometry.clip && !containsCentre(facet, cx, cy)) continue;
           xs[n] = cx;
           ys[n] = cy;
           owner[n] = id;
@@ -200,9 +286,9 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
   // Counting sort by cell: cellStart[c]..cellStart[c + 1] lists cell c's points.
   const columns = Math.max(1, Math.ceil(geometry.width / CELL) + 1);
   const rows = Math.max(1, Math.ceil(geometry.height / CELL) + 1);
-  const cellOf = (x: number, y: number) =>
-    Math.min(rows - 1, Math.max(0, Math.floor(y / CELL))) * columns +
-    Math.min(columns - 1, Math.max(0, Math.floor(x / CELL)));
+  const columnOf = (x: number) => Math.min(columns - 1, Math.max(0, Math.floor(x / CELL)));
+  const rowOf = (y: number) => Math.min(rows - 1, Math.max(0, Math.floor(y / CELL)));
+  const cellOf = (x: number, y: number) => rowOf(y) * columns + columnOf(x);
   const cells = new Uint32Array(n);
   const cellStart = new Uint32Array(columns * rows + 1);
   for (let i = 0; i < n; i += 1) {
@@ -223,10 +309,10 @@ export function indexPlot(geometry: PlotGeometry): PlotIndex {
   const nearest = (x: number, y: number, radius = 24): PlotHit | undefined => {
     let best = -1;
     let bestDistance = radius * radius;
-    const c0 = Math.max(0, Math.floor((x - radius) / CELL)),
-      c1 = Math.min(columns - 1, Math.floor((x + radius) / CELL));
-    const r0 = Math.max(0, Math.floor((y - radius) / CELL)),
-      r1 = Math.min(rows - 1, Math.floor((y + radius) / CELL));
+    const c0 = columnOf(x - radius),
+      c1 = columnOf(x + radius);
+    const r0 = rowOf(y - radius),
+      r1 = rowOf(y + radius);
     for (let r = r0; r <= r1; r += 1)
       for (let c = c0; c <= c1; c += 1) {
         const cell = r * columns + c;

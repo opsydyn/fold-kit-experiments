@@ -561,5 +561,17 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "apps/web",
+    "selected": 0,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 45810402190,
+    "attempt": 1,
+    "commit": "315370b1fa70ee45f5e3ea8da7e5ade738abc969",
+    "startedAt": "2026-11-26T11:25:06Z",
+    "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
+    "entries": []
   }
 ]

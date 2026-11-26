@@ -107,7 +107,7 @@ import {
   WorkshopRole,
   WorkshopStatus,
 } from './workshop';
-import { journey, journeyView } from './workshop-journey';
+import { journey, journeyTriggerId, journeyView } from './workshop-journey';
 
 export { slow } from './diagnostics';
 
@@ -428,6 +428,20 @@ const FocusBoardControl = Command.define('FocusBoardControl', {
       Effect.catchTag('ElementNotFound', () => Effect.void),
       Effect.map(() => Message.CompletedBoardFocus()),
     ),
+});
+const FocusJourneyNote = Command.define('FocusJourneyNote', {
+  args: { triggerId: Schema.String },
+  messages: [Message.CompletedBoardFocus],
+  execute: ({ triggerId }) =>
+    Effect.gen(function* () {
+      yield* Render.afterCommit;
+      const active = document.activeElement;
+      // A removed Follow button leaves focus on the body. A surviving trigger
+      // may hand off focus too, unless the reviewer already chose another control.
+      if (active === document.body || active?.id === triggerId)
+        document.getElementById('journey-current-note')?.focus();
+      return Message.CompletedBoardFocus();
+    }),
 });
 const FocusCommandTrigger = Command.define('FocusCommandTrigger', {
   args: { name: BoardCommand },
@@ -1065,6 +1079,7 @@ function revealJourneyStep(
   model: Model,
   via: readonly string[],
   nodeId: string,
+  triggerId: string,
 ): Return<Model, Message> {
   const revealed = update(
     { ...model, journey: { ...model.journey, via } },
@@ -1072,10 +1087,7 @@ function revealJourneyStep(
   );
   return {
     model: revealed.model,
-    commands: [
-      ...(revealed.commands ?? []),
-      FocusBoardControl({ selector: '#journey-current-note' }),
-    ],
+    commands: [...(revealed.commands ?? []), FocusJourneyNote({ triggerId })],
   };
 }
 
@@ -1409,6 +1421,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model,
         [...path.steps, step].map((edge) => edge.id),
         step.target.id,
+        journeyTriggerId(id),
       );
     },
     SteppedBackInJourney: ({ edgeId, depth }) => {
@@ -1420,6 +1433,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model,
         remaining.map((edge) => edge.id),
         (remaining.at(-1)?.target ?? path.start).id,
+        journeyTriggerId(),
       );
     },
     SelectedInspector: ({ inspector }) => {

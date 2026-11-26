@@ -208,6 +208,42 @@ test('Astro renders composed Viz dots and reports a missing plot field', async (
   }
 });
 
+test('an island can retry after its hydration state fails to parse', async () => {
+  const dom = new TestWindow({ url: origin });
+  try {
+    dom.document.write(await readFile(new URL('chart/index.html', output), 'utf8'));
+    const island = dom.document.querySelector('#interactive-chart astro-island');
+    const state = island?.querySelector('script[data-effect-ui-state]');
+    const originalSvg = island?.querySelector('svg');
+    if (!island || !state?.textContent || !originalSvg) {
+      throw new Error('Expected an island with hydrated chart markup and state.');
+    }
+    const serializedState = state.textContent;
+    state.textContent = '{';
+    // SAFETY: Happy DOM supplies the DOM methods the renderer uses.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The declarations are incompatible with lib.dom.
+    const hydrate = renderer(island as unknown as HTMLElement);
+    const props = { ...reportChart, interactive: true };
+    await expect(hydrate(VizBarChart, props, {}, { client: 'load' })).rejects.toThrow();
+    expect(island.querySelector('svg')).toBe(originalSvg);
+    state.textContent = serializedState;
+    await hydrate(VizBarChart, props, {}, { client: 'load' });
+    expect(island.querySelector('svg')).toBe(originalSvg);
+    island
+      .querySelector('button[data-bar-key="feb"]')
+      ?.dispatchEvent(new dom.MouseEvent('click', { bubbles: true }));
+    await expectEventually(
+      () => island.querySelector('output')?.textContent,
+      'February: 24 reports',
+    );
+  } finally {
+    for (const island of dom.document.querySelectorAll('astro-island')) {
+      island.dispatchEvent(new dom.Event('astro:unmount'));
+    }
+    await dom.close();
+  }
+});
+
 test('client:only mounts without a server render or serialized state', async () => {
   const dom = new TestWindow({ url: origin });
   try {

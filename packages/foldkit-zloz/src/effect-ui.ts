@@ -4,8 +4,11 @@ import { Html } from '@effect/ui/html';
 import type { BrowserInput } from './browser-input';
 import { portConnectionEnd } from './connection-mode';
 import { resolveConnectionPreview } from './connection-preview';
+import { resolveContextMapRelationship } from './context-map';
 import { resolveEdgeGeometry } from './edge-geometry';
+import { contextMapLabel } from './effect-ui-context-map';
 import { surfaceInput } from './effect-ui-input';
+import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
 import { portBoundaryPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
@@ -41,6 +44,8 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
+  architectureNotation?: boolean;
+  onToggleGroup?: (id: string) => Message;
   theme?: ZlozTheme;
   worldOverlay?: View.Content<Message> | null;
   pinchZoom?: boolean;
@@ -81,23 +86,32 @@ export function graphSurface<Message>(
       sourceGroup: scene.hiddenBy.get(edge.source.node),
       targetGroup: scene.hiddenBy.get(edge.target.node),
     });
+    const relationship = options.architectureNotation
+      ? resolveContextMapRelationship(editor.graph, edge)
+      : null;
     const path = svg('path')
       .key(edge.id)
       .class('zloz-ui-edge')
       .attr('d', geometry.path)
       .attr('data-flow-edge', edge.id)
       .attr('data-selected', String(editor.selectedEdges.includes(edge.id)))
-      .attr('marker-end', `url(#${marker})`)
+      .attr('data-zloz-context-map-edge', relationship?.edge.id)
+      .attr(
+        'marker-end',
+        relationship && relationship.direction !== 'directed' ? undefined : `url(#${marker})`,
+      )
       .children();
     const position = geometry.labelPosition;
     const label =
-      edge.label && position
-        ? h.span
-            .key(`label:${edge.id}`)
-            .class('zloz-ui-edge-label')
-            .style({ left: `${position.x}px`, top: `${position.y}px` })
-            .children(edge.label)
-        : null;
+      relationship && position
+        ? contextMapLabel(h, relationship, position)
+        : edge.label && position
+          ? h.span
+              .key(`label:${edge.id}`)
+              .class('zloz-ui-edge-label')
+              .style({ left: `${position.x}px`, top: `${position.y}px` })
+              .children(edge.label)
+          : null;
     return { path, label };
   });
   const handles =
@@ -239,8 +253,17 @@ function nodeView<Message>(
 ) {
   const note = options.nodeNote?.(node);
   const selected = editor.selectedNodes.includes(node.id);
-  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Derive decoration from the authored outline.
-  const outline = node.appearance ? nodeShapeGeometry(node) : null;
+  const architecture = options.architectureNotation ? node.architecture : undefined;
+  const prefix = architecture && notationPrefix(architecture);
+  const notation = architecture ? notationView(h, node, architecture) : null;
+  const accent = notationStroke(architecture);
+  const group = node.kind === 'group';
+  const collapsed = group && editor.collapsedGroups.includes(node.id);
+  const toggle = group ? options.onToggleGroup : undefined;
+  const hasOutline = architecture ? !group : node.appearance !== undefined;
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Use the authored outline geometry.
+  const outline = hasOutline ? nodeShapeGeometry(node) : null;
+  const content = outline?.contentBounds;
   const svg = (tag: 'svg' | 'path') => new Html.Element<Message>(tag);
   return (
     h.div
@@ -248,6 +271,9 @@ function nodeView<Message>(
       .class('zloz-ui-node')
       .attr('data-flow-node', node.id)
       .attr('data-node-kind', node.kind)
+      .attr('data-flow-group-collapsed', group ? String(collapsed) : undefined)
+      .attr('data-notation', architecture?.family)
+      .attr(prefix ? `data-${prefix}-${group ? 'group' : 'node'}` : 'data-node-id', node.id)
       // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Read the canonical authored geometry.
       .attr('data-node-outline', outline?.shape)
       .attr('data-selection-preview', selecting ? 'true' : undefined)
@@ -256,6 +282,7 @@ function nodeView<Message>(
         top: `${node.position.y}px`,
         width: `${node.size.width}px`,
         height: `${node.size.height}px`,
+        '--zloz-ui-notation-accent': accent,
       })
       .children(
         outline
@@ -264,9 +291,16 @@ function nodeView<Message>(
               .attr('aria-hidden', 'true')
               .attr('viewBox', `0 0 ${node.size.width} ${node.size.height}`)
               .children(
-                svg('path').attr('d', outline.outlinePath),
+                svg('path')
+                  .attr('d', outline.outlinePath)
+                  .attr('stroke-dasharray', notationDash(architecture, selecting))
+                  .attr('vector-effect', 'non-scaling-stroke')
+                  .attr(prefix ? `data-${prefix}-outline` : 'data-outline', ''),
                 ...outline.decorationPaths.map((path) =>
-                  svg('path').attr('d', path).attr('fill', 'none'),
+                  svg('path')
+                    .attr('d', path)
+                    .attr('fill', 'none')
+                    .attr(prefix ? `data-${prefix}-cap` : 'data-outline-decoration', ''),
                 ),
               )
           : null,
@@ -275,8 +309,30 @@ function nodeView<Message>(
           .attr('type', 'button')
           .attr('data-flow-handle', node.id)
           .attr('aria-label', `Select ${node.label}`)
+          .attr('aria-description', notation?.accessibleDescription)
           .attr('aria-pressed', String(selected))
-          .children(node.label),
+          .style(
+            architecture && content
+              ? {
+                  inset: `${content.y}px auto auto ${content.x}px`,
+                  width: `${content.width}px`,
+                  height: `${content.height}px`,
+                }
+              : {},
+          )
+          .children(notation?.content ?? node.label),
+        toggle && !editor.readOnly
+          ? h.button
+              .key('collapse-toggle')
+              .class('zloz-ui-collapse-toggle')
+              .attr('type', 'button')
+              .attr('data-flow-no-drag', '')
+              .attr('aria-label', `${collapsed ? 'Expand' : 'Collapse'} ${node.label}`)
+              .attr('aria-expanded', String(!collapsed))
+              .disabled(editor.gesture.type !== 'idle')
+              .on('click', toggle(node.id))
+              .children(collapsed ? 'Expand' : 'Collapse')
+          : null,
         ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
         ...node.ports.map((port) => {
           const endpoint = { node: node.id, port: port.id };

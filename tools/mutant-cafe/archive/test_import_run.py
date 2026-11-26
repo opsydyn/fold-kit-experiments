@@ -39,5 +39,8 @@ class ImportRunTests(unittest.TestCase):
         both = import_run(web, *args, "apps/zloz-demo")
         self.assertEqual(len(both), 2)
         self.assertEqual(both[1]["workspace"], "apps/zloz-demo")
+        viz = import_run(both, *args, "packages/foldkit-viz")
+        self.assertEqual(len(viz), 3)
+        self.assertEqual(import_run(viz, *args, "packages/foldkit-viz"), viz)
         with self.assertRaises(ValueError):
             import_run([], *args, "../anywhere")

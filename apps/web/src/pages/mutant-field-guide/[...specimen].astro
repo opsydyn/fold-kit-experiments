@@ -1,4 +1,6 @@
 ---
+import Cthulhu from '../../apps/mutant-field-guide/Cthulhu.astro';
+import { cthulhuKnot } from '../../apps/mutant-field-guide/cthulhu';
 import Portrait from '../../apps/mutant-field-guide/Portrait.astro';
 import { loadGuide } from '../../apps/mutant-field-guide/archive';
 
@@ -8,6 +10,7 @@ if (!specimen) return new Response(offline ? 'Archive temporarily unavailable' :
   status: offline ? 503 : 404,
   headers: offline ? { 'Retry-After': '60' } : {},
 });
+const knot = cthulhuKnot(specimen.kind, specimen.observations);
 const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['untested', 'Untested']]);
 ---
 <!doctype html>
@@ -53,7 +56,8 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['u
         ))}
       </nav>
       <p class="key">{specimen.key} The markings come from the mutant ID.</p>
-    {offline && <p class="key">Showing bundled records. The live archive is unavailable.</p>}
+      {knot && <Cthulhu id={specimen.id} {knot} />}
+      {offline && <p class="key">Showing bundled records. The live archive is unavailable.</p>}
     </main>
   </body>
 </html>

@@ -205,7 +205,7 @@ export const NativeGroupEditor = Html.component({
       id: 'fixture-group',
       onEvent: (event: ZlozGroupWorkbenchEventV3) => Message.Input({ event }),
     };
-    return h.div(
+    return h.div.attr('data-group-surface-width', String(state.editor.surface.width)).children(
       h.button
         .disabled(state.pending !== null)
         .on('click', Message.ArrangeClicked())

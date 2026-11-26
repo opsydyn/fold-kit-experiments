@@ -905,6 +905,7 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
       const readout = page.locator('.e3-readout');
       const go = async (sample: string) => {
         await page.goto(`${origin}/three-scenes/${sample}/`);
+        await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
         await canvas.waitFor();
       };
       // The real Three stage consumes these structured hits. Choose world points directly
@@ -1434,10 +1435,11 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
       });
       const response = await page.goto(`${siteOrigin}/tech-radar/`);
       expect(await response?.text()).toContain('data-theme="paper"');
+      await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
       await page.locator('effect-three-scene canvas[data-engine]').waitFor();
       const search = page.getByRole('combobox', { name: 'Search entries' });
       await page.keyboard.press('/');
-      expect(await search.evaluate((node) => node === document.activeElement)).toBe(true);
+      await search.and(page.locator(':focus')).waitFor();
       await search.fill('bun');
       const options = page.getByRole('listbox', { name: 'Matching entries' });
       await options.getByRole('option', { name: /Bun/ }).waitFor();
@@ -1489,6 +1491,10 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
       });
       const response = await page.goto(`${siteOrigin}/native-group/`);
       expect(await response?.text()).toContain('data-effect-ui-state');
+      await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
+      await page
+        .locator('[data-group-surface-width]:not([data-group-surface-width="800"])')
+        .waitFor();
       const child = page.locator('[data-flow-node="child"]');
       const port = page.locator('[data-flow-owner="g"][data-flow-port="out"]');
       const path = page.locator('[data-flow-edge="boundary-link"]');

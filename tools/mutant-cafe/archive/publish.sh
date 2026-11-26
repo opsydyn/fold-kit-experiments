@@ -17,7 +17,7 @@ for retry in 1 2 3 4 5; do
     [[ $status == 2 ]] || exit "$status"
     git switch --orphan "archive-bootstrap-$retry"
   fi
-  python3 "$importer" archive.json "$report" "$SOURCE_RUN" "$SOURCE_ATTEMPT" "$SOURCE_SHA" "$SOURCE_STARTED_AT"
+  python3 "$importer" archive.json "$report" "$SOURCE_RUN" "$SOURCE_ATTEMPT" "$SOURCE_SHA" "$SOURCE_STARTED_AT" --workspace "$SOURCE_WORKSPACE"
   git add -- archive.json
   git diff --cached --quiet && exit 0
   git commit -m "Archive advisory $SOURCE_RUN attempt $SOURCE_ATTEMPT"

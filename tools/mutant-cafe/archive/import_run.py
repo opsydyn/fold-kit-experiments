@@ -7,11 +7,13 @@ import re
 from pathlib import Path, PurePosixPath
 
 
-def import_run(archive, raw, run_id, attempt, commit, started_at):
+def import_run(archive, raw, run_id, attempt, commit, started_at, workspace="apps/web"):
     report = json.loads(raw)
     if report.get("schemaVersion") != 2 or not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("Invalid advisory version or source commit")
     datetime.strptime(started_at, "%Y-%m-%dT%H:%M:%SZ")
+    if workspace not in ("apps/web", "apps/zloz-demo"):
+        raise ValueError("Unknown advisory workspace")
     if run_id < 1 or attempt < 1:
         raise ValueError("Invalid workflow run identity")
     results = report["results"]
@@ -37,11 +39,18 @@ def import_run(archive, raw, run_id, attempt, commit, started_at):
             raise ValueError("Invalid mutation metadata")
         entries.append(dict(id=mutant_id, file=str(path), fn=fields[0], genre=fields[1],
                             line=line, outcome=fields[2]))
-    record = dict(run=run_id, attempt=attempt, commit=commit, startedAt=started_at,
+    record = dict(workspace=workspace, selected=report.get("selected", len(results)),
+                  budgetSkipped=report.get("budgetSkipped", 0),
+                  failed=bool(report.get("failure")), run=run_id, attempt=attempt, commit=commit, startedAt=started_at,
                   reportSha256=hashlib.sha256(raw).hexdigest(), entries=entries)
     for previous in archive:
-        if (previous["run"], previous["attempt"]) == (run_id, attempt):
-            if previous != record:
+        if (previous.get("workspace", "apps/web"), previous["run"], previous["attempt"]) == (workspace, run_id, attempt):
+            # Older web records predate workspace and selection metadata.
+            comparable = dict(record)
+            for key in ("workspace", "selected", "budgetSkipped", "failed"):
+                if key not in previous:
+                    comparable.pop(key)
+            if previous != comparable:
                 raise ValueError("Conflicting artifact for the same workflow attempt")
             return archive
     return sorted([*archive, record], key=lambda item: (item["run"], item["attempt"]))
@@ -55,7 +64,8 @@ if __name__ == "__main__":
     parser.add_argument("attempt", type=int)
     parser.add_argument("commit")
     parser.add_argument("started_at")
+    parser.add_argument("--workspace", default="apps/web")
     args = parser.parse_args()
     archive = json.loads(args.archive.read_text()) if args.archive.exists() else []
-    updated = import_run(archive, args.report.read_bytes(), args.run, args.attempt, args.commit, args.started_at)
+    updated = import_run(archive, args.report.read_bytes(), args.run, args.attempt, args.commit, args.started_at, args.workspace)
     args.archive.write_text(json.dumps(updated, indent=2) + "\n")

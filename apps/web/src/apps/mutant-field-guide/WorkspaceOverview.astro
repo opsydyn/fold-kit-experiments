@@ -1,0 +1,71 @@
+---
+import type { fieldGuide } from './archive';
+
+interface Props extends ReturnType<typeof fieldGuide> { offline: boolean }
+declare const __FIELD_GUIDE_WORKSPACES__: ReadonlyArray<{ path: string; name: string }>;
+const { latestRuns, records, offline } = Astro.props;
+
+const rows = __FIELD_GUIDE_WORKSPACES__.map(({ path, name }) => {
+  const run = latestRuns.get(path);
+  const specimens = [...records].filter(([, specimen]) => specimen.workspace === path);
+  const counts = new Map<string, number>();
+  for (const entry of run?.entries ?? []) {
+    counts.set(entry.outcome, (counts.get(entry.outcome) ?? 0) + 1);
+  }
+  const outcomes = [...counts].map(([outcome, count]) =>
+    count + ' ' + (outcome === 'missed' ? 'survived' : outcome)
+  );
+  if (run?.failed) outcomes.unshift('Advisory failed');
+  if (run?.budgetSkipped) outcomes.push(run.budgetSkipped + ' budget-skipped');
+  if (run && outcomes.length === 0) {
+    outcomes.push(run.selected === 0 ? 'No mutants selected' : 'No recorded outcomes');
+  }
+  return { path, name, run, specimens, outcomes };
+}).sort((a, b) => Number(Boolean(b.run)) - Number(Boolean(a.run)) || a.path.localeCompare(b.path));
+---
+<section class="inventory" aria-labelledby="inventory-title">
+  <h2 id="inventory-title">Workspaces</h2>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Workspace</th>
+          <th scope="col">Last run</th>
+          <th scope="col">Outcomes in last run</th>
+          <th scope="col">Specimens</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ path, name, run, specimens, outcomes }) => (
+          <tr>
+            <th scope="row"><span>{name}</span><small>{path}</small></th>
+            <td>
+              {run ? (
+                <a href={`https://github.com/opsydyn/fold-kit-experiments/actions/runs/${run.run}/attempts/${run.attempt}`}>
+                  <time datetime={run.startedAt}>{run.startedAt.slice(0, 10)}</time> · <code>{run.commit.slice(0, 7)}</code>
+                </a>
+              ) : (offline ? 'No bundled run' : 'Never run')}
+            </td>
+            <td>{outcomes.join(' · ') || '—'}</td>
+            <td>
+              {specimens[0] ? (
+                <a aria-label={'View specimens for ' + name} href={'/mutant-field-guide/' + specimens[0][0] + '#shelf-title'}>
+                  {specimens.length}
+                </a>
+              ) : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</section>
+<style>
+  .inventory { margin-top: 2rem; }
+  .inventory h2 { font: 1.6rem Georgia, serif; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  th, td { text-align: left; padding: .65rem .5rem; border-bottom: 1px solid var(--line); }
+  th small { display: block; font-weight: 400; color: var(--sub); }
+  a { color: inherit; }
+</style>

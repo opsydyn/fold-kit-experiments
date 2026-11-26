@@ -29,3 +29,15 @@ class ImportRunTests(unittest.TestCase):
         self.result["mutant"]["file"] = "/work/src/../../outside.ts"
         with self.assertRaises(ValueError):
             import_run([], self.report(), 42, 1, self.commit, "2026-11-25T18:30:39Z")
+
+    def test_workspace_is_part_of_run_identity_and_legacy_web_import_is_idempotent(self):
+        args = (self.report(), 42, 1, self.commit, "2026-11-25T18:30:39Z")
+        web = import_run([], *args)
+        for key in ("workspace", "selected", "failed"):
+            del web[0][key]
+        self.assertEqual(import_run(web, *args), web)
+        both = import_run(web, *args, "apps/zloz-demo")
+        self.assertEqual(len(both), 2)
+        self.assertEqual(both[1]["workspace"], "apps/zloz-demo")
+        with self.assertRaises(ValueError):
+            import_run([], *args, "../anywhere")

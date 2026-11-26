@@ -1,0 +1,102 @@
+import { SceneSchema, type SceneEvent } from '@opsydyn/effect-three';
+import { Schema } from 'effect';
+
+/** A scene update that could not be applied. The scene keeps its last good state. */
+export const SceneError = Schema.Union([
+  ...SceneSchema.DescriptionError.members,
+  Schema.TaggedStruct('MalformedScene', { issue: Schema.String }),
+]);
+export type SceneError = typeof SceneError.Type;
+
+const Counts = Schema.Struct({ live: Schema.Int, created: Schema.Int, disposed: Schema.Int });
+
+/** What one scene update did, and the GPU resources held afterwards. */
+export const ReconciledDetail = Schema.Struct({
+  ops: Schema.Struct({
+    created: Schema.Int,
+    updated: Schema.Int,
+    moved: Schema.Int,
+    removed: Schema.Int,
+    replaced: Schema.Int,
+    reordered: Schema.Int,
+    configured: Schema.Int,
+  }),
+  resources: Schema.Struct({ geometries: Counts, materials: Counts }),
+});
+export type ReconciledDetail = typeof ReconciledDetail.Type;
+
+/** An immersive session began presenting the scene in `mode`, or ended (`null`). */
+export const XrSessionDetail = Schema.Struct({
+  mode: Schema.NullOr(Schema.Literals(['immersive-vr', 'immersive-ar'])),
+});
+export type XrSessionDetail = typeof XrSessionDetail.Type;
+
+export const sceneEventSchemas = {
+  'scene-click': SceneSchema.ButtonDetail,
+  'scene-double-click': SceneSchema.ButtonDetail,
+  'scene-context-menu': SceneSchema.HitDetail,
+  'scene-pointer-down': SceneSchema.ButtonDetail,
+  'scene-pointer-up': SceneSchema.ButtonDetail,
+  'scene-pointer-enter': SceneSchema.HitDetail,
+  'scene-pointer-move': SceneSchema.HitDetail,
+  'scene-pointer-leave': SceneSchema.KeyDetail,
+  'scene-pointer-missed': SceneSchema.MissDetail,
+  'scene-wheel': SceneSchema.WheelDetail,
+  'scene-drag': SceneSchema.DragDetail,
+  'scene-drag-end': SceneSchema.DragDetail,
+  'scene-gesture': SceneSchema.GestureDetail,
+  'scene-gesture-end': SceneSchema.GestureEndDetail,
+  'scene-auto-rotated': SceneSchema.AutoRotatedDetail,
+  'scene-collision': SceneSchema.CollisionDetail,
+  'scene-contact-force': SceneSchema.ContactForceDetail,
+  'scene-physics-reached': SceneSchema.PhysicsReachedDetail,
+  'scene-measured': SceneSchema.MeasuredDetail,
+  'scene-label-measured': SceneSchema.LabelMeasuredDetail,
+  'scene-xr': XrSessionDetail,
+  'scene-xr-stick': SceneSchema.XrStickDetail,
+  'scene-xr-button': SceneSchema.XrButtonDetail,
+  'scene-xr-surface': SceneSchema.XrSurfaceDetail,
+  'scene-xr-moved': SceneSchema.XrMovedDetail,
+  'scene-xr-teleported': SceneSchema.XrTeleportedDetail,
+  'scene-xr-poses': SceneSchema.XrPosesDetail,
+  'scene-xr-planes': SceneSchema.XrPlanesDetail,
+  'scene-xr-meshes': SceneSchema.XrMeshesDetail,
+  'scene-performance': SceneSchema.PerformanceDetail,
+  'scene-error': Schema.Struct({ error: SceneError }),
+  'scene-asset-loaded': SceneSchema.AssetLoadedDetail,
+  'scene-asset-failed': SceneSchema.AssetFailedDetail,
+  'scene-reconciled': ReconciledDetail,
+};
+
+/** The DOM event name for each kernel scene event. */
+export const domEventName = {
+  Click: 'scene-click',
+  DoubleClick: 'scene-double-click',
+  ContextMenu: 'scene-context-menu',
+  PointerDown: 'scene-pointer-down',
+  PointerUp: 'scene-pointer-up',
+  PointerEnter: 'scene-pointer-enter',
+  PointerMove: 'scene-pointer-move',
+  PointerLeave: 'scene-pointer-leave',
+  PointerMissed: 'scene-pointer-missed',
+  Wheel: 'scene-wheel',
+  Drag: 'scene-drag',
+  DragEnd: 'scene-drag-end',
+  Gesture: 'scene-gesture',
+  GestureEnd: 'scene-gesture-end',
+  AutoRotated: 'scene-auto-rotated',
+  Collision: 'scene-collision',
+  ContactForce: 'scene-contact-force',
+  PhysicsReached: 'scene-physics-reached',
+  Measured: 'scene-measured',
+  LabelMeasured: 'scene-label-measured',
+  XrStick: 'scene-xr-stick',
+  XrButton: 'scene-xr-button',
+  XrSurface: 'scene-xr-surface',
+  XrMoved: 'scene-xr-moved',
+  XrTeleported: 'scene-xr-teleported',
+  XrPoses: 'scene-xr-poses',
+  XrPlanes: 'scene-xr-planes',
+  XrMeshes: 'scene-xr-meshes',
+  PerformanceChanged: 'scene-performance',
+} as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneEventSchemas>;

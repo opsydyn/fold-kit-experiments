@@ -5,7 +5,7 @@
  */
 import type { Op, ResourceStats } from '@opsydyn/effect-three';
 
-import type { ReconciledDetail } from '../element.ts';
+import type { ReconciledDetail } from '../sceneEvents.ts';
 
 /** Counts operations by kind and snapshots resource counters. */
 export const summarise = (ops: ReadonlyArray<Op>, stats: ResourceStats): ReconciledDetail => {

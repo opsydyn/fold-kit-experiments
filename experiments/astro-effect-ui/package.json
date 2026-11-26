@@ -7,14 +7,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "prepare:viz": "mkdir -p dist && cd ../../packages/foldkit-viz && bun run --filter @opsydyn/effect-three build && bun run build && bun pm pack --quiet --filename ../../experiments/astro-effect-ui/dist/foldkit-viz.tgz",
     "build": "astro build --root test/fixture",
-    "test": "bun test test/renderer.test.ts",
+    "test": "bun test test/renderer.test.ts test/effect-three.test.ts",
     "typecheck": "tsc --noEmit",
     "test:browser": "ASTRO_EFFECT_UI_BROWSER=1 bun test test/renderer.test.ts"
   },
   "devDependencies": {
     "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
-    "@opsydyn/foldkit-viz": "file:../../packages/foldkit-viz",
+    "@opsydyn/foldkit-viz": "file:dist/foldkit-viz.tgz",
     "astro": "7.4.11",
     "bun-types": "1.4.3",
     "effect": "4.1.6",

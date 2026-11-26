@@ -4,9 +4,17 @@ This private package tests direct Effect UI component imports in Astro 7.4.11.
 Its dependencies live outside the root Bun workspace. The fixture pins Effect
 UI to commit `77dcd92` and uses Effect 4.1.6.
 
-From the repository root, install the workspace and run
-`bun run --filter @opsydyn/foldkit-viz build`. Then, from this directory, run
-`bun install`, `bun run typecheck` and `bun test`.
+Install the root workspace, then run these commands from this directory.
+
+```sh
+bun run prepare:viz
+bun install
+bun run typecheck
+bun run test
+```
+
+The setup packs the local Viz build so the preview installs it using the
+same package boundary as an external consumer.
 The tests build an Astro site, inspect its static HTML and exercise the client
 renderer against the built markup in Happy DOM. To test Astro's real
 `ClientRouter` and `client:visible` behavior, install Chromium with
@@ -44,6 +52,11 @@ replays clicks on retained controls. Deferred removal cancels replay. Native
 links and form edits retain their browser behavior during activation. The
 Effect UI integration owns this directive on an Astro site. Use one
 integration that registers `client:interaction` per Astro configuration.
+
+The Effect Three fixture mounts a shared browser scene host through Effect
+UI mount arguments. A scene update keeps the same canvas and renderer. The
+test uses a recording renderer and checks canvas, renderer, geometry and
+material cleanup after Astro unmounts the island.
 
 See [ADR 0128](../../docs/adr/0128-evaluate-a-standalone-astro-effect-ui-renderer.md)
 for the preview scope.

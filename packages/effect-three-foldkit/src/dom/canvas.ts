@@ -6,7 +6,7 @@
 import type { Op, ResourceStore, SceneEvent } from '@opsydyn/effect-three';
 
 import type { AssetNotice } from '../assetRegistry.ts';
-import { domEventName, type SceneError } from '../element.ts';
+import { domEventName, type SceneError } from '../sceneEvents.ts';
 import type { Latch } from './latch.ts';
 import { summarise } from './reconciled.ts';
 

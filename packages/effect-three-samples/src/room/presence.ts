@@ -20,6 +20,7 @@ import {
   Stream,
 } from 'effect';
 
+import { waitForRelayOpen } from '../relay-connection';
 import { Message } from './message';
 import type { Model } from './model';
 import { channelName, Wire } from './wire';
@@ -65,32 +66,6 @@ const connect = (url: string, heard: RelayLink['heard']): WebSocket => {
   return socket;
 };
 
-// oxlint-disable-next-line linteffect/no-effect-wrapper-alias -- Own the handshake listeners through success, failure, and cancellation.
-function waitForOpen(socket: WebSocket, url: string) {
-  const ready = Effect.callback<void, string>((resume) => {
-    const opened = () => {
-      cleanup();
-      resume(Effect.void);
-    };
-    const refused = () => {
-      cleanup();
-      resume(Effect.fail(`No relay at ${url}`));
-    };
-    const timeout = setTimeout(refused, relayConnectMilliseconds);
-    const cleanup = () => {
-      clearTimeout(timeout);
-      socket.removeEventListener('open', opened);
-      socket.removeEventListener('error', refused);
-      socket.removeEventListener('close', refused);
-    };
-    socket.addEventListener('open', opened);
-    socket.addEventListener('error', refused);
-    socket.addEventListener('close', refused);
-    return Effect.sync(cleanup);
-  });
-  return ready.pipe(Effect.withSpan('effect-three.room.relay.connect'));
-}
-
 /** The keyed stream owns the socket, its queue and the service's current link. */
 function relayMessages(url: string) {
   const connection = Effect.gen(function* () {
@@ -106,7 +81,7 @@ function relayMessages(url: string) {
     const socket = yield* Effect.acquireRelease(open, (socket) =>
       Effect.sync(() => socket.close()),
     );
-    yield* waitForOpen(socket, url);
+    yield* waitForRelayOpen(socket, url, relayConnectMilliseconds);
     yield* Effect.acquireRelease(Ref.set(active, Option.some({ socket, heard })), () =>
       Ref.set(active, Option.none()),
     );

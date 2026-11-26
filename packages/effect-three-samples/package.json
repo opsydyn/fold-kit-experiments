@@ -44,7 +44,6 @@
     "@opsydyn/effect-three-troika": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "effect": "catalog:",
-    "foldkit": "catalog:",
     "three": "catalog:"
   },
   "devDependencies": {

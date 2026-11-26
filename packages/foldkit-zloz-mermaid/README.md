@@ -39,7 +39,8 @@ verifies registry archives and provenance before advancing to the next package.
 The private Effect UI preview exports `groupMermaidReviewV3` from
 `@opsydyn/foldkit-zloz-mermaid/effect-ui`. Pass the native v3 review controls
 and route its requests through `updateGroupMermaidReviewV3` to protect
-source-bound consent and give the host the reviewed download payload.
+source-bound consent and give the host the reviewed download payload. The
+host supplies its Effect UI version and HTML builder.
 
 ## Type contract
 

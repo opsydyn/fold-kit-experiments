@@ -72,14 +72,10 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@effect/ui": "0.0.0",
     "@opsydyn/foldkit-zloz": "0.10.0",
     "foldkit": ">=0.170.0 <0.172.0"
   },
   "peerDependenciesMeta": {
-    "@effect/ui": {
-      "optional": true
-    },
     "foldkit": {
       "optional": true
     }

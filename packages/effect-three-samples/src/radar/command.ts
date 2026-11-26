@@ -3,12 +3,14 @@
  * missing or refuse (a private window, blocked site data), so a load that fails, or finds
  * nothing it recognises, is Auto, and a save that fails is quietly forgotten.
  */
+import { Command } from '@effect/ui';
+import { HtmlFiles } from '@effect/ui/html';
 import { Effect, Option, Schema } from 'effect';
-import { Command, File, Navigation } from 'foldkit';
 
 import { Message } from './message';
 import { Theme, ThemeChoice } from './themes';
-import { isRecordable, type Recording } from './tour';
+import { isRecordable } from './tour';
+import { Recording } from './tour-schema';
 
 /** Where the choice is kept: Auto is kept as nothing at all. */
 export const themeStorage = { key: 'radar-theme' } as const;
@@ -17,13 +19,12 @@ export const themeStorage = { key: 'radar-theme' } as const;
 export const choiceFrom = (stored: string | null): ThemeChoice =>
   Option.getOrElse(Schema.decodeUnknownOption(ThemeChoice)(stored), (): ThemeChoice => 'auto');
 
-export const LoadThemeChoice = Command.define('LoadThemeChoice', {
-  messages: [Message.SucceededLoadThemeChoice],
-  execute: Effect.try(() => globalThis.localStorage.getItem(themeStorage.key)).pipe(
+export const LoadThemeChoice = Command.make('LoadThemeChoice', { args: {} }, () =>
+  Effect.try(() => globalThis.localStorage.getItem(themeStorage.key)).pipe(
     Effect.orElseSucceed(() => null),
     Effect.map((stored) => Message.SucceededLoadThemeChoice({ choice: choiceFrom(stored) })),
   ),
-});
+);
 
 /** Keeps a picked theme; forgets the choice when Auto is picked. */
 const store = (choice: ThemeChoice): void =>
@@ -32,23 +33,26 @@ const store = (choice: ThemeChoice): void =>
     onSome: (picked) => globalThis.localStorage.setItem(themeStorage.key, picked),
   });
 
-export const SaveThemeChoice = Command.define('SaveThemeChoice', {
-  args: { choice: ThemeChoice },
-  messages: [Message.CompletedSaveThemeChoice],
-  execute: ({ choice }) =>
+export const SaveThemeChoice = Command.make(
+  'SaveThemeChoice',
+  { args: { choice: ThemeChoice } },
+  ({ choice }) =>
     Effect.try(() => store(choice)).pipe(
       Effect.orElseSucceed(() => undefined),
       Effect.map(() => Message.CompletedSaveThemeChoice()),
     ),
-});
+);
 
 /** The address bar, rewritten to the view's link, without adding a history entry. */
-export const ReplaceLink = Command.define('ReplaceLink', {
-  args: { query: Schema.String },
-  messages: [Message.CompletedReplaceLink],
-  execute: ({ query }) =>
-    Navigation.replaceUrl(addressFor(query)).pipe(Effect.map(() => Message.CompletedReplaceLink())),
-});
+export const ReplaceLink = Command.make(
+  'ReplaceLink',
+  { args: { query: Schema.String } },
+  ({ query }) =>
+    Effect.sync(() => {
+      globalThis.history.replaceState(globalThis.history.state, '', addressFor(query));
+      return Message.CompletedReplaceLink();
+    }),
+);
 
 /** This page's address with `query` as its query string; none when the link is empty. */
 const addressFor = (query: string): string =>
@@ -58,17 +62,14 @@ const addressFor = (query: string): string =>
   )}${globalThis.location.hash}`;
 
 /** The address on the clipboard; a refusal (no permission, no clipboard) is reported. */
-export const CopyLink = Command.define('CopyLink', {
-  messages: [Message.CompletedCopyLink],
-  execute: Effect.tryPromise(() =>
-    globalThis.navigator.clipboard.writeText(globalThis.location.href),
-  ).pipe(
+export const CopyLink = Command.make('CopyLink', { args: {} }, () =>
+  Effect.tryPromise(() => globalThis.navigator.clipboard.writeText(globalThis.location.href)).pipe(
     Effect.match({
       onSuccess: () => Message.CompletedCopyLink({ outcome: 'copied' }),
       onFailure: () => Message.CompletedCopyLink({ outcome: 'refused' }),
     }),
   ),
-});
+);
 
 /** A tour as a file: a version, where it starts (a deep link) and its moves. */
 const TourFile = Schema.Struct({
@@ -78,17 +79,15 @@ const TourFile = Schema.Struct({
 });
 
 /** A tour, saved as a JSON file named for the day it was saved. */
-export const SaveTour = Command.define('SaveTour', {
-  args: { recording: Schema.Unknown },
-  messages: [Message.CompletedSaveTour],
-  execute: ({ recording }) =>
-    // SAFETY: `recording` is the Model's own Recording, passed through the Command's
-    // Schema.Unknown argument because a Recording holds Messages the Model cannot name.
-    Effect.try(() => download(recording as Recording)).pipe(
+export const SaveTour = Command.make(
+  'SaveTour',
+  { args: { recording: Recording } },
+  ({ recording }) =>
+    Effect.try(() => download(recording)).pipe(
       Effect.orElseSucceed(() => undefined),
       Effect.map(() => Message.CompletedSaveTour()),
     ),
-});
+);
 
 const download = (recording: Recording): void => {
   const file = new Blob(
@@ -108,12 +107,11 @@ const download = (recording: Recording): void => {
  * A tour from a file the reader picks. It must be a tour this radar wrote: anything else
  * is refused in words, and moves a tour may not hold are dropped.
  */
-export const LoadTour = Command.define('LoadTour', {
-  messages: [Message.SucceededLoadTour, Message.FailedLoadTour, Message.CancelledLoadTour],
-  execute: File.select(['.json', 'application/json']).pipe(
-    Effect.flatMap((picked) => tourFromPick(picked)),
+export const LoadTour = Command.make('LoadTour', { args: {} }, () =>
+  HtmlFiles.Files.use((files) => files.pick({ accept: ['.json', 'application/json'] })).pipe(
+    Effect.flatMap(({ files }) => tourFromPick(Option.fromNullishOr(files[0]))),
   ),
-});
+);
 
 /** What loading a tour comes to: a tour, a refusal, or nothing picked. */
 type LoadedTour = ReturnType<
@@ -123,8 +121,8 @@ type LoadedTour = ReturnType<
 >;
 
 /** A picked file read as a tour; a file that cannot be read is refused. */
-const readTour = (file: File.File) =>
-  File.readAsText(file).pipe(
+const readTour = (file: File) =>
+  HtmlFiles.readAsText(file).pipe(
     Effect.map(tourFrom),
     Effect.orElseSucceed(
       (): LoadedTour => Message.FailedLoadTour({ reason: 'That file could not be read' }),
@@ -132,7 +130,7 @@ const readTour = (file: File.File) =>
   );
 
 /** The picked file's tour; nothing picked is a cancel. */
-const tourFromPick = (picked: Option.Option<File.File>) =>
+const tourFromPick = (picked: Option.Option<File>) =>
   Option.match(picked, {
     onNone: () => Effect.succeed<LoadedTour>(Message.CancelledLoadTour()),
     onSome: readTour,

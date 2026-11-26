@@ -1284,3 +1284,124 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   60_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  '3D Radar restores a deep link and records, saves, and plays a tour',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      page.setDefaultTimeout(15_000);
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const models = new URL('../../../apps/web/public/models/', import.meta.url);
+      await page.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname.startsWith('/models/')) {
+          await route.fulfill({
+            path: new URL(pathname.slice('/models/'.length), models).pathname,
+          });
+          return;
+        }
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      await page.addInitScript(() => localStorage.setItem('radar-theme', 'blueprint'));
+      await page.goto(`${siteOrigin}/three-scenes/radar/`);
+      const canvas = page.locator('effect-three-scene canvas[data-engine]');
+      await canvas.waitFor();
+      const app = page.locator('.e3-app');
+      const dropdown = page.getByRole('combobox', { name: 'Theme', exact: true });
+      await page
+        .locator('.e3-stage-readout')
+        .filter({ hasText: /Foldkit/i })
+        .waitFor();
+      expect(await app.getAttribute('data-theme')).toBe('paper');
+      expect(await dropdown.inputValue()).toBe('paper');
+      const minimap = page.getByRole('img', { name: 'Minimap of the radar from above' });
+      expect(await minimap.evaluate((node) => node.namespaceURI)).toBe(
+        'http://www.w3.org/2000/svg',
+      );
+      expect(await minimap.getAttribute('viewBox')).toBe('-1.08 -1.08 2.16 2.16');
+      await minimap.locator('path[aria-label="Fly to Tools"]').dispatchEvent('click');
+      await page.waitForURL((url) => url.searchParams.get('view') === 'cluster:tools');
+
+      const search = page.getByRole('searchbox', { name: 'Search entries' });
+      const chooser = page.getByRole('combobox', { name: 'Category' });
+      await chooser.selectOption('techniques');
+      await page.waitForURL((url) => url.searchParams.get('category') === 'techniques');
+      await page.getByRole('button', { name: 'Clear filters' }).press('Enter');
+      await page.waitForURL((url) => !url.searchParams.has('category'));
+      expect(await chooser.inputValue()).toBe('all');
+      const timeline = page.getByRole('region', { name: 'Timeline' });
+      const edition = timeline.getByRole('slider', { name: 'Edition' });
+      await timeline.getByRole('button', { name: 'Play', exact: true }).press('Enter');
+      await page.waitForFunction(
+        () => document.querySelector<HTMLInputElement>('.e3-range')?.value !== '0',
+      );
+      expect(await edition.inputValue()).not.toBe('0');
+
+      const tour = page.getByRole('region', { name: 'Tour' });
+      await tour.getByRole('button', { name: '● Record' }).press('Enter');
+      await search.fill('effect');
+      await page.waitForURL((url) => url.searchParams.get('q') === 'effect');
+      await dropdown.selectOption('blueprint');
+      await page.waitForURL((url) => url.searchParams.get('theme') === 'blueprint');
+      expect(await page.evaluate(() => localStorage.getItem('radar-theme'))).toBe('blueprint');
+      await tour.getByRole('button', { name: '■ Stop', exact: true }).press('Enter');
+      await tour.getByText('2 moves ready').waitFor();
+      const saving = page.waitForEvent('download');
+      await tour.getByRole('button', { name: 'Save', exact: true }).press('Enter');
+      const download = await saving;
+      expect(download.suggestedFilename()).toMatch(/^radar-tour-.*\.json$/);
+      const recording = await readFile(await download.path());
+      const picking = page.waitForEvent('filechooser');
+      await tour.getByRole('button', { name: 'Load…', exact: true }).click();
+      const picker = await picking;
+      await picker.setFiles({ name: 'tour.json', mimeType: 'application/json', buffer: recording });
+      await page.locator('.e3-stage-readout').filter({ hasText: 'Tour loaded' }).waitFor();
+      await tour.getByRole('button', { name: '▶ Play', exact: true }).press('Enter');
+      await tour.getByText('2 moves ready').waitFor();
+      expect(await search.inputValue()).toBe('effect');
+      expect(await dropdown.inputValue()).toBe('blueprint');
+
+      await tour.getByRole('button', { name: '● Record' }).focus();
+      for (const key of [
+        'ArrowUp',
+        'ArrowUp',
+        'ArrowDown',
+        'ArrowDown',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowLeft',
+        'ArrowRight',
+        'b',
+        'a',
+      ]) {
+        await page.keyboard.press(key);
+      }
+      await page.locator('.e3-stage-readout').filter({ hasText: "Conway's Law" }).waitFor();
+
+      const original = await canvas.elementHandle();
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        original,
+      );
+      await page.goto(`${siteOrigin}/three-scenes/radar-default/`);
+      await page.locator('.e3-app[data-theme="blueprint"]').waitFor();
+      expect(await dropdown.inputValue()).toBe('blueprint');
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  75_000,
+);

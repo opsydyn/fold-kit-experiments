@@ -15,6 +15,13 @@ export const Ring = Schema.Literals(['adopt', 'trial', 'assess', 'caution']);
 export type Ring = typeof Ring.Type;
 export const categoryIds = Category.literals;
 export const ringIds = Ring.literals;
+export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
+export type CategoryFilter = typeof CategoryFilter.Type;
+
+/** The reader points with a mouse or pen that can hover, or with a touch. */
+export const PointerInput = Schema.Literals(['hover', 'touch']);
+export type PointerInput = typeof PointerInput.Type;
+
 export const categoryLabels = {
   techniques: 'Techniques',
   tools: 'Tools',
@@ -85,9 +92,11 @@ export type RadarEntry = typeof Entry.Type;
 export type RadarRelationship = typeof Relationship.Type;
 export type RadarEdition = typeof Edition.Type;
 export type RadarDataset = typeof Dataset.Type;
-export type RadarData =
-  | Readonly<{ _tag: 'Ready'; dataset: RadarDataset }>
-  | Readonly<{ _tag: 'Failure'; reason: string }>;
+export const RadarData = Schema.TaggedUnion({
+  Ready: { dataset: Dataset },
+  Failure: { reason: Schema.String },
+});
+export type RadarData = typeof RadarData.Type;
 
 export function decodeRadarDataset(input: unknown): RadarData {
   const decoded = Schema.decodeUnknownOption(Dataset)(input);

@@ -1,13 +1,12 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-import { Category, Ring } from './data';
-import { CategoryFilter, PointerInput } from './model';
+import { SceneStart } from '../effect-ui-scene';
+import { Category, CategoryFilter, PointerInput, Ring } from './data';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   HoveredBlip: { key: Schema.String },
   LeftBlip: { key: Schema.String },
   ClickedBlip: { key: Schema.String },
@@ -58,6 +57,7 @@ export const Message = defineMessageUnion({
   ClickedZoom: { direction: Schema.Literals(['in', 'out']) },
   ClickedRelationships: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  MountedRadar: {},
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

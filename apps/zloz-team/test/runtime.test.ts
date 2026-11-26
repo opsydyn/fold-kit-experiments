@@ -3481,6 +3481,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         finalX = await alpha(pageA).getAttribute('data-flow-x');
         finalY = await alpha(pageA).getAttribute('data-flow-y');
         expect(finalX).not.toBe(previewX);
+        expect(finalY).not.toBe(previewY);
         expect(selectionWrites).toHaveLength(1);
         expect(await exportedGraph()).toEqual(beforeSelection);
       } finally {
@@ -3492,8 +3493,24 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await poll(async () => selectionWrites.length === 2);
       expect(await alpha(pageA).getAttribute('data-flow-x')).toBe(finalX);
       expect(await alpha(pageA).getAttribute('data-flow-y')).toBe(finalY);
-      await poll(async () => (await alpha(pageB).getAttribute('data-flow-x')) === finalX);
-      expect(await exportedGraph()).not.toEqual(beforeSelection);
+      const savedPosition = (await exportedGraph()).nodes.find((node) => node.id === 'a')?.position;
+      expect(savedPosition).toEqual({ x: Number(finalX), y: Number(finalY) });
+      const savedVersion = String(Number(beforeSelectionVersion) + 2);
+      const confirmsBothMoves = async (page: Page) =>
+        poll(async () => {
+          const version = await page
+            .locator('[data-confirmed-version]')
+            .getAttribute('data-confirmed-version');
+          return (
+            version === savedVersion &&
+            (await alpha(page).getAttribute('data-flow-x')) === finalX &&
+            (await alpha(page).getAttribute('data-flow-y')) === finalY
+          );
+        });
+      await Promise.all([confirmsBothMoves(pageA), confirmsBothMoves(pageB)]);
+      await pageB.reload();
+      await saved(pageB);
+      await confirmsBothMoves(pageB);
       const firstMoveGraph = {
         ...beforeSelection,
         nodes: beforeSelection.nodes.map((node) =>

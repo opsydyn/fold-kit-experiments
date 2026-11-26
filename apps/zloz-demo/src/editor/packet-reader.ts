@@ -20,7 +20,6 @@ import {
   zlozDddGroup,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { ReadReviewPacket } from './command';
 import { Message } from './message';
@@ -28,6 +27,7 @@ import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { receiptAllowsMessage } from './receipt-review';
 import { workbenchThemes } from './theme';
+import type { Return } from './transition';
 export type PacketReviewPreview = Readonly<{
   scope: string;
   id: number;
@@ -95,7 +95,7 @@ function request(
     packetPreview: preview(model, result.state),
   };
   return result.read && file
-    ? { model: next, commands: [ReadReviewPacket({ ...result.read, file })] }
+    ? { model: next, commands: [ReadReviewPacket.make({ ...result.read, file })] }
     : { model: next };
 }
 const tags = new Set([

@@ -2,8 +2,9 @@ import { parseEditions, serializeEditions, updateEditor } from '@opsydyn/foldkit
 import { Story } from 'foldkit';
 import { expect, test } from 'vitest';
 
+import { workbenchTransitionCommands } from '../src/editor/foldkit-command-host';
 import { Message } from '../src/editor/message';
-import { init } from '../src/editor/model';
+import { init, type Model } from '../src/editor/model';
 import { update } from '../src/editor/update';
 
 test('named capture and example editions preserve earlier captures and canonical archives', () => {
@@ -68,7 +69,10 @@ test(
     const examples = update(init().model, Message.ClickedOrderHistory()).model;
     const surface = { width: 390, height: 700 };
     Story.story(
-      update,
+      (model: Model, message: Message) => {
+        const transition = update(model, message);
+        return { model: transition.model, commands: workbenchTransitionCommands(transition) };
+      },
       Story.given(examples),
       Story.message(Message.SelectedHistoryEdition({ id: 'order-evolved' })),
       Story.message(

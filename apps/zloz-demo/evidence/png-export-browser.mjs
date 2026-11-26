@@ -81,6 +81,34 @@ async function run() {
     if (file) await writeFile(evidence(file), bytes);
     return { bytes, png: PNG.sync.read(bytes) };
   };
+  // Hold only the next rasterizer decode so Cancel must interrupt its live command.
+  await page.evaluate(() => {
+    const decode = HTMLImageElement.prototype.decode;
+    HTMLImageElement.prototype.decode = function () {
+      if (!this.src.startsWith('blob:')) return decode.call(this);
+      HTMLImageElement.prototype.decode = decode;
+      const url = this.src;
+      const revoke = URL.revokeObjectURL;
+      URL.revokeObjectURL = (released) => {
+        revoke(released);
+        if (released === url) {
+          URL.revokeObjectURL = revoke;
+          document.documentElement.dataset.pngTestReleased = 'true';
+        }
+      };
+      document.documentElement.dataset.pngTestDecoding = 'true';
+      return new Promise(() => {});
+    };
+  });
+  await accept().check();
+  await action('render').click();
+  await expect(page.locator('html')).toHaveAttribute('data-png-test-decoding', 'true');
+  await action('cancel').click();
+  await expect(page.locator('html')).toHaveAttribute('data-png-test-released', 'true', {
+    timeout: 3000,
+  });
+  await expect(preview()).toHaveCount(0);
+  await expect(action('download')).toBeDisabled();
   await render();
   const light = await download('png-export-model.png');
   expect(light.png.data[3]).toBe(255);
@@ -300,6 +328,7 @@ async function run() {
     model: { width: light.png.width, height: light.png.height, bytes: light.bytes.length },
     viewport: { width: crop.png.width, height: crop.png.height, bytes: crop.bytes.length },
     previewDownloadEqual: true,
+    cancelledRenderReleasedObjectUrl: true,
     cleanup: { urls: native.urls, canvases: native.canvases },
     nativeOutcomes: Object.fromEntries(
       Object.entries(native.results).map(([key, value]) => [

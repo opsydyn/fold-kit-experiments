@@ -1,3 +1,4 @@
+import { Command } from '@effect/ui';
 import type {
   ZlozPngRenderPayload,
   ZlozPngArtifact,
@@ -7,7 +8,6 @@ import { parseEditions, parseModelDocument } from '@opsydyn/foldkit-zloz';
 import { parseGraph, parseSnapshot } from '@opsydyn/foldkit-zloz';
 import { renderPngExport, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import { Data, Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { alchemyTextLimits } from './alchemy-text';
 import { editionArchiveByteLimit } from './history';
@@ -15,9 +15,8 @@ import { Message } from './message';
 import { ThemePreference } from './model';
 import { themePreferenceStorageKey } from './theme-preference';
 
-export const LoadThemePreference = Command.define('LoadThemePreference', {
-  messages: [Message.LoadedThemePreference],
-  execute: Effect.try(() => globalThis.localStorage.getItem(themePreferenceStorageKey)).pipe(
+export const LoadThemePreference = Command.make('LoadThemePreference', { args: {} }, () =>
+  Effect.try(() => globalThis.localStorage.getItem(themePreferenceStorageKey)).pipe(
     Effect.match({
       onSuccess: (stored) =>
         Message.LoadedThemePreference({
@@ -26,12 +25,12 @@ export const LoadThemePreference = Command.define('LoadThemePreference', {
       onFailure: () => Message.LoadedThemePreference({ themePreference: 'system' }),
     }),
   ),
-});
+);
 
-export const SaveThemePreference = Command.define('SaveThemePreference', {
-  args: { themePreference: ThemePreference },
-  messages: [Message.CompletedColorSchemeSave, Message.FailedColorSchemeSave],
-  execute: ({ themePreference }) =>
+export const SaveThemePreference = Command.make(
+  'SaveThemePreference',
+  { args: { themePreference: ThemePreference } },
+  ({ themePreference }) =>
     Effect.try(() =>
       globalThis.localStorage.setItem(themePreferenceStorageKey, themePreference),
     ).pipe(
@@ -40,19 +39,20 @@ export const SaveThemePreference = Command.define('SaveThemePreference', {
         onFailure: () => Message.FailedColorSchemeSave(),
       }),
     ),
-});
+);
 
-export const ArrangeFlow = Command.define('ArrangeFlow', {
-  args: {
-    json: Schema.String,
-    requestId: Schema.String,
-    revision: Schema.Number,
-    engine: Schema.Literals(['elk', 'force']),
-    direction: Schema.Literals(['RIGHT', 'DOWN']),
+export const ArrangeFlow = Command.make(
+  'ArrangeFlow',
+  {
+    args: {
+      json: Schema.String,
+      requestId: Schema.String,
+      revision: Schema.Number,
+      engine: Schema.Literals(['elk', 'force']),
+      direction: Schema.Literals(['RIGHT', 'DOWN']),
+    },
   },
-  interrupt: true,
-  messages: [Message.SucceededLayout, Message.FailedLayout],
-  execute: ({ json, requestId, revision, direction, engine }) =>
+  ({ json, requestId, revision, direction, engine }) =>
     Effect.tryPromise(async () => {
       const request = { requestId, revision, graph: parseGraph(json) };
       if (engine === 'force') {
@@ -69,42 +69,35 @@ export const ArrangeFlow = Command.define('ArrangeFlow', {
         onFailure: () => Message.FailedLayout({ requestId }),
       }),
     ),
-});
-export const SaveZloz = Command.define('SaveZloz', {
-  args: { json: Schema.String },
-  messages: [Message.SucceededSave, Message.FailedStorage],
-  execute: ({ json }) =>
-    Effect.try(() =>
-      globalThis.localStorage.setItem('opsydyn.foldkit-flow.release-sample.v1', json),
-    ).pipe(
-      Effect.match({
-        onSuccess: () => Message.SucceededSave(),
-        onFailure: () => Message.FailedStorage(),
-      }),
-    ),
-});
-export const LoadZloz = Command.define('LoadZloz', {
-  args: { id: Schema.Number },
-  messages: [Message.SucceededImport, Message.FailedImport],
-  execute: ({ id }) =>
-    Effect.try(() => {
-      const json =
-        globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null';
-      parseSnapshot(json);
-      return json;
-    }).pipe(
-      Effect.match({
-        onSuccess: (json) => Message.SucceededImport({ id, json }),
-        onFailure: () => Message.FailedImport({ id }),
-      }),
-    ),
-});
+);
+export const SaveZloz = Command.make('SaveZloz', { args: { json: Schema.String } }, ({ json }) =>
+  Effect.try(() =>
+    globalThis.localStorage.setItem('opsydyn.foldkit-flow.release-sample.v1', json),
+  ).pipe(
+    Effect.match({
+      onSuccess: () => Message.SucceededSave(),
+      onFailure: () => Message.FailedStorage(),
+    }),
+  ),
+);
+export const LoadZloz = Command.make('LoadZloz', { args: { id: Schema.Number } }, ({ id }) =>
+  Effect.try(() => {
+    const json =
+      globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null';
+    parseSnapshot(json);
+    return json;
+  }).pipe(
+    Effect.match({
+      onSuccess: (json) => Message.SucceededImport({ id, json }),
+      onFailure: () => Message.FailedImport({ id }),
+    }),
+  ),
+);
 
-export const ImportZloz = Command.define('ImportZloz', {
-  args: { id: Schema.Number, file: Schema.instanceOf(File) },
-  interrupt: true,
-  messages: [Message.SucceededImport, Message.FailedImport],
-  execute: ({ id, file }) =>
+export const ImportZloz = Command.make(
+  'ImportZloz',
+  { args: { id: Schema.Number, file: Schema.instanceOf(File) } },
+  ({ id, file }) =>
     Effect.tryPromise(() =>
       file.text().then((text) => {
         parseSnapshot(text);
@@ -116,12 +109,12 @@ export const ImportZloz = Command.define('ImportZloz', {
         onFailure: () => Message.FailedImport({ id }),
       }),
     ),
-});
+);
 
-export const ExportFlow = Command.define('ExportFlow', {
-  args: { json: Schema.String },
-  messages: [Message.CompletedExport, Message.FailedExport],
-  execute: ({ json }) =>
+export const ExportFlow = Command.make(
+  'ExportFlow',
+  { args: { json: Schema.String } },
+  ({ json }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -137,12 +130,12 @@ export const ExportFlow = Command.define('ExportFlow', {
         onFailure: () => Message.FailedExport(),
       }),
     ),
-});
+);
 
-export const ExportZlozModel = Command.define('ExportZlozModel', {
-  args: { json: Schema.String },
-  messages: [Message.CompletedExport, Message.FailedExport],
-  execute: ({ json }) =>
+export const ExportZlozModel = Command.make(
+  'ExportZlozModel',
+  { args: { json: Schema.String } },
+  ({ json }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -158,12 +151,12 @@ export const ExportZlozModel = Command.define('ExportZlozModel', {
         onFailure: () => Message.FailedExport(),
       }),
     ),
-});
+);
 
-export const ExportMermaidBundle = Command.define('ExportMermaidBundle', {
-  args: { json: Schema.String },
-  messages: [Message.CompletedMermaidDownload, Message.FailedMermaidDownload],
-  execute: ({ json }) =>
+export const ExportMermaidBundle = Command.make(
+  'ExportMermaidBundle',
+  { args: { json: Schema.String } },
+  ({ json }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -178,12 +171,12 @@ export const ExportMermaidBundle = Command.define('ExportMermaidBundle', {
         onFailure: () => Message.FailedMermaidDownload(),
       }),
     ),
-});
+);
 
-export const ExportReviewPacket = Command.define('ExportReviewPacket', {
-  args: { json: Schema.String },
-  messages: [Message.CompletedReviewPacketDownload, Message.FailedReviewPacketDownload],
-  execute: ({ json }) =>
+export const ExportReviewPacket = Command.make(
+  'ExportReviewPacket',
+  { args: { json: Schema.String } },
+  ({ json }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -198,12 +191,12 @@ export const ExportReviewPacket = Command.define('ExportReviewPacket', {
         onFailure: () => Message.FailedReviewPacketDownload(),
       }),
     ),
-});
+);
 
-export const ExportZlozEditions = Command.define('ExportZlozEditions', {
-  args: { json: Schema.String },
-  messages: [Message.CompletedExportEditions, Message.FailedExportEditions],
-  execute: ({ json }) =>
+export const ExportZlozEditions = Command.make(
+  'ExportZlozEditions',
+  { args: { json: Schema.String } },
+  ({ json }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -219,16 +212,15 @@ export const ExportZlozEditions = Command.define('ExportZlozEditions', {
         onFailure: () => Message.FailedExportEditions(),
       }),
     ),
-});
+);
 
 class EditionArchiveTooLarge extends Data.TaggedError('EditionArchiveTooLarge')<{
   readonly byteLimit: number;
 }> {}
-export const ImportZlozEditions = Command.define('ImportZlozEditions', {
-  args: { id: Schema.Number, file: Schema.instanceOf(File) },
-  interrupt: { keyFields: ['id'], toKey: ({ id }) => String(id) },
-  messages: [Message.SucceededEditionArchiveImport, Message.FailedEditionArchiveImport],
-  execute: ({ id, file }) =>
+export const ImportZlozEditions = Command.make(
+  'ImportZlozEditions',
+  { args: { id: Schema.Number, file: Schema.instanceOf(File) }, group: ['id'] },
+  ({ id, file }) =>
     Effect.tryPromise(() => file.arrayBuffer()).pipe(
       Effect.filterOrFail(
         (buffer) => buffer.byteLength <= editionArchiveByteLimit,
@@ -242,13 +234,12 @@ export const ImportZlozEditions = Command.define('ImportZlozEditions', {
         onFailure: () => Message.FailedEditionArchiveImport({ id }),
       }),
     ),
-});
+);
 
-export const ImportZlozModel = Command.define('ImportZlozModel', {
-  args: { id: Schema.Number, file: Schema.instanceOf(File) },
-  interrupt: { keyFields: ['id'], toKey: ({ id }) => String(id) },
-  messages: [Message.SucceededModelDocumentImport, Message.FailedModelDocumentImport],
-  execute: ({ id, file }) =>
+export const ImportZlozModel = Command.make(
+  'ImportZlozModel',
+  { args: { id: Schema.Number, file: Schema.instanceOf(File) }, group: ['id'] },
+  ({ id, file }) =>
     Effect.tryPromise(() => file.arrayBuffer()).pipe(
       Effect.filterOrFail(
         (buffer) => buffer.byteLength <= editionArchiveByteLimit,
@@ -264,18 +255,20 @@ export const ImportZlozModel = Command.define('ImportZlozModel', {
         onFailure: () => Message.FailedModelDocumentImport({ id }),
       }),
     ),
-});
+);
 
-export const DownloadConversionReceipt = Command.define('DownloadConversionReceipt', {
-  args: {
-    json: Schema.String,
-    sequence: Schema.Number,
-    modelId: Schema.String,
-    epoch: Schema.Number,
-    receiptId: Schema.String,
+export const DownloadConversionReceipt = Command.make(
+  'DownloadConversionReceipt',
+  {
+    args: {
+      json: Schema.String,
+      sequence: Schema.Number,
+      modelId: Schema.String,
+      epoch: Schema.Number,
+      receiptId: Schema.String,
+    },
   },
-  messages: [Message.CompletedConversionReceiptDownload, Message.FailedConversionReceiptDownload],
-  execute: ({ json, sequence, modelId, epoch, receiptId }) =>
+  ({ json, sequence, modelId, epoch, receiptId }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -290,17 +283,19 @@ export const DownloadConversionReceipt = Command.define('DownloadConversionRecei
         onFailure: () => Message.FailedConversionReceiptDownload({ modelId, epoch, receiptId }),
       }),
     ),
-});
+);
 
-export const DownloadC4Receipt = Command.define('DownloadC4Receipt', {
-  args: {
-    json: Schema.String,
-    index: Schema.Number,
-    modelId: Schema.String,
-    epoch: Schema.Number,
+export const DownloadC4Receipt = Command.make(
+  'DownloadC4Receipt',
+  {
+    args: {
+      json: Schema.String,
+      index: Schema.Number,
+      modelId: Schema.String,
+      epoch: Schema.Number,
+    },
   },
-  messages: [Message.CompletedC4ReceiptDownload, Message.FailedC4ReceiptDownload],
-  execute: ({ json, index, modelId, epoch }) =>
+  ({ json, index, modelId, epoch }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -315,12 +310,12 @@ export const DownloadC4Receipt = Command.define('DownloadC4Receipt', {
         onFailure: () => Message.FailedC4ReceiptDownload({ modelId, epoch, index }),
       }),
     ),
-});
+);
 
-export const ReadConversionReceipt = Command.define('ReadConversionReceipt', {
-  args: { id: Schema.Number, file: Schema.instanceOf(File) },
-  messages: [Message.SucceededConversionReceiptRead, Message.FailedConversionReceiptRead],
-  execute: ({ id, file }) =>
+export const ReadConversionReceipt = Command.make(
+  'ReadConversionReceipt',
+  { args: { id: Schema.Number, file: Schema.instanceOf(File) } },
+  ({ id, file }) =>
     Effect.gen(function* () {
       if (file.size > editionArchiveByteLimit)
         return yield* Effect.fail(
@@ -338,19 +333,21 @@ export const ReadConversionReceipt = Command.define('ReadConversionReceipt', {
         onFailure: () => Message.FailedConversionReceiptRead({ id }),
       }),
     ),
-});
+);
 
-export const DownloadSvg = Command.define('DownloadSvg', {
-  args: {
-    svg: Schema.String,
-    fileName: Schema.String,
-    scope: Schema.String,
-    generation: Schema.Number,
-    key: Schema.String,
-    run: Schema.Number,
+export const DownloadSvg = Command.make(
+  'DownloadSvg',
+  {
+    args: {
+      svg: Schema.String,
+      fileName: Schema.String,
+      scope: Schema.String,
+      generation: Schema.Number,
+      key: Schema.String,
+      run: Schema.Number,
+    },
   },
-  messages: [Message.CompletedSvgDownload, Message.FailedSvgDownload],
-  execute: ({ svg, fileName, scope, generation, key, run }) =>
+  ({ svg, fileName, scope, generation, key, run }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
       const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
@@ -362,17 +359,19 @@ export const DownloadSvg = Command.define('DownloadSvg', {
         onFailure: () => Message.FailedSvgDownload({ scope, generation, key, run }),
       }),
     ),
-});
+);
 
-export const ReadReviewPacket = Command.define('ReadReviewPacket', {
-  args: {
-    scope: Schema.String,
-    run: Schema.Number,
-    maxBytes: Schema.Number,
-    file: Schema.instanceOf(File),
+export const ReadReviewPacket = Command.make(
+  'ReadReviewPacket',
+  {
+    args: {
+      scope: Schema.String,
+      run: Schema.Number,
+      maxBytes: Schema.Number,
+      file: Schema.instanceOf(File),
+    },
   },
-  messages: [Message.SucceededReviewPacketRead, Message.FailedReviewPacketRead],
-  execute: ({ scope, run, maxBytes, file }) =>
+  ({ scope, run, maxBytes, file }) =>
     Effect.gen(function* () {
       if (file.size > maxBytes)
         return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
@@ -386,17 +385,19 @@ export const ReadReviewPacket = Command.define('ReadReviewPacket', {
         onFailure: () => Message.FailedReviewPacketRead({ scope, run }),
       }),
     ),
-});
+);
 
-export const ReadPatchFile = Command.define('ReadPatchFile', {
-  args: {
-    scope: Schema.String,
-    run: Schema.Number,
-    maxBytes: Schema.Number,
-    file: Schema.instanceOf(File),
+export const ReadPatchFile = Command.make(
+  'ReadPatchFile',
+  {
+    args: {
+      scope: Schema.String,
+      run: Schema.Number,
+      maxBytes: Schema.Number,
+      file: Schema.instanceOf(File),
+    },
   },
-  messages: [Message.SucceededPatchRead, Message.FailedPatchRead],
-  execute: ({ scope, run, maxBytes, file }) =>
+  ({ scope, run, maxBytes, file }) =>
     Effect.gen(function* () {
       if (file.size > maxBytes)
         return yield* Effect.fail(new EditionArchiveTooLarge({ byteLimit: maxBytes }));
@@ -410,16 +411,18 @@ export const ReadPatchFile = Command.define('ReadPatchFile', {
         onFailure: () => Message.FailedPatchRead({ scope, run }),
       }),
     ),
-});
+);
 
-export const DownloadPatchArtifact = Command.define('DownloadPatchArtifact', {
-  args: {
-    scope: Schema.String,
-    json: Schema.String,
-    kind: Schema.Literals(['proposal', 'receipt']),
+export const DownloadPatchArtifact = Command.make(
+  'DownloadPatchArtifact',
+  {
+    args: {
+      scope: Schema.String,
+      json: Schema.String,
+      kind: Schema.Literals(['proposal', 'receipt']),
+    },
   },
-  messages: [Message.CompletedPatchDownload, Message.FailedPatchDownload],
-  execute: ({ scope, json, kind }) =>
+  ({ scope, json, kind }) =>
     Effect.try(() => {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const link = Object.assign(document.createElement('a'), {
@@ -435,13 +438,15 @@ export const DownloadPatchArtifact = Command.define('DownloadPatchArtifact', {
         onFailure: () => Message.FailedPatchDownload({ scope }),
       }),
     ),
-});
+);
 
-export const RenderPng = Command.define('RenderPng', {
-  args: { payload: Schema.Unknown },
-  interrupt: true,
-  messages: [Message.ObservedPngReviewInput],
-  execute: ({ payload: raw }) => {
+export const RenderPng = Command.make(
+  'RenderPng',
+  {
+    args: { scope: Schema.String, run: Schema.Number, payload: Schema.Unknown },
+    group: ['scope', 'run'],
+  },
+  ({ payload: raw }) => {
     // SAFETY: the pure package review controller creates this detached typed payload.
     const payload = raw as ZlozPngRenderPayload;
     return Effect.tryPromise((signal) => renderPngExport(payload.input, { signal })).pipe(
@@ -465,11 +470,11 @@ export const RenderPng = Command.define('RenderPng', {
       }),
     );
   },
-});
-export const DownloadPng = Command.define('DownloadPng', {
-  args: { artifact: Schema.Unknown, fileName: Schema.String },
-  messages: [Message.CompletedPngDownload, Message.FailedPngDownload],
-  execute: ({ artifact, fileName }) =>
+);
+export const DownloadPng = Command.make(
+  'DownloadPng',
+  { args: { artifact: Schema.Unknown, fileName: Schema.String } },
+  ({ artifact, fileName }) =>
     Effect.try(() =>
       downloadPngArtifact(
         /* SAFETY: the package review controller validates the trusted browser artifact. */ artifact as ZlozPngArtifact,
@@ -481,12 +486,12 @@ export const DownloadPng = Command.define('DownloadPng', {
         onFailure: () => Message.FailedPngDownload(),
       }),
     ),
-});
+);
 
-export const ReadAlchemyDescriptor = Command.define('ReadAlchemyDescriptor', {
-  args: { run: Schema.Number, file: Schema.instanceOf(File) },
-  messages: [Message.SucceededAlchemyRead, Message.FailedAlchemyRead],
-  execute: ({ run, file }) =>
+export const ReadAlchemyDescriptor = Command.make(
+  'ReadAlchemyDescriptor',
+  { args: { run: Schema.Number, file: Schema.instanceOf(File) } },
+  ({ run, file }) =>
     Effect.gen(function* () {
       if (file.size > alchemyTextLimits.maxBytes)
         return yield* Effect.fail(
@@ -506,20 +511,22 @@ export const ReadAlchemyDescriptor = Command.define('ReadAlchemyDescriptor', {
         onFailure: () => Message.FailedAlchemyRead({ run }),
       }),
     ),
-});
+);
 
-export const ArrangeAlchemyPreview = Command.define('ArrangeAlchemyPreview', {
-  args: {
-    id: Schema.Number,
-    requestId: Schema.String,
-    revision: Schema.Number,
-    json: Schema.String,
-    labels: Schema.String,
-    headers: Schema.String,
-    direction: Schema.Literals(['RIGHT', 'DOWN']),
+export const ArrangeAlchemyPreview = Command.make(
+  'ArrangeAlchemyPreview',
+  {
+    args: {
+      id: Schema.Number,
+      requestId: Schema.String,
+      revision: Schema.Number,
+      json: Schema.String,
+      labels: Schema.String,
+      headers: Schema.String,
+      direction: Schema.Literals(['RIGHT', 'DOWN']),
+    },
   },
-  messages: [Message.SucceededAlchemyLayout, Message.FailedAlchemyLayout],
-  execute: ({ id, requestId, revision, json, labels, headers, direction }) =>
+  ({ id, requestId, revision, json, labels, headers, direction }) =>
     Effect.tryPromise(async () => {
       // oxlint-disable-next-line linteffect/prevent-dynamic-imports -- ELK is loaded only after an explicit preview layout request; no SDK or providers are loaded.
       const { createElkLayout } = await import('@opsydyn/foldkit-zloz-elk');
@@ -557,4 +564,4 @@ export const ArrangeAlchemyPreview = Command.define('ArrangeAlchemyPreview', {
         onFailure: () => Message.FailedAlchemyLayout({ id, requestId }),
       }),
     ),
-});
+);

@@ -272,7 +272,7 @@ test('the read Command rejects excessive bytes before accessing file contents', 
   }
   const oversized = new TooLarge([' '.repeat(5 * 1024 * 1024 + 1)], 'oversized');
   const response = await Effect.runPromise(
-    ReadConversionReceipt({ id: 92, file: oversized }).effect,
+    ReadConversionReceipt.make({ id: 92, file: oversized }).effect,
   );
   expect(response).toEqual(Message.FailedConversionReceiptRead({ id: 92 }));
   expect(reads).toBe(0);

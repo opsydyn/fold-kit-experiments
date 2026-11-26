@@ -9,13 +9,13 @@ import {
   type DddNodeArchitecture,
   type ZlozEventStormingDddMappingOptions,
 } from '@opsydyn/foldkit-zloz';
-import type { Return } from 'foldkit/update';
 
 import { DownloadConversionReceipt } from './command';
 import { workbenchConversionPolicy } from './editor-policy';
 import type { Message } from './message';
 import type { Model, MappingReviewDraft } from './model';
 import { modelSessionBusy, workbenchDocument } from './model-sessions';
+import type { Return } from './transition';
 
 export type MappingReviewScope = Pick<
   MappingReviewDraft,
@@ -310,7 +310,7 @@ export function downloadWorkbenchConversion(
   return {
     model,
     commands: [
-      DownloadConversionReceipt({
+      DownloadConversionReceipt.make({
         ...input,
         sequence: receipt.sequence,
         json: serializeEventStormingDddConversion(receipt.conversion),

@@ -31,7 +31,6 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { ReadConversionReceipt } from './command';
 import { editionArchiveByteLimit } from './history';
@@ -39,6 +38,7 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { workbenchThemes } from './theme';
+import type { Return } from './transition';
 
 export type ReceiptReview = Readonly<{
   id: number;
@@ -233,7 +233,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
           receiptReadRun: id,
           receiptReviewNotice: 'Opening receipt for read-only comparison…',
         },
-        commands: [ReadConversionReceipt({ id, file })],
+        commands: [ReadConversionReceipt.make({ id, file })],
       };
     }),
     Match.tag('ClickedCancelReceiptRead', (_input): Return<Model, Message> => {

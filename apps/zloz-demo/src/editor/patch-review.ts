@@ -15,7 +15,6 @@ import {
 import { zlozModellingPatchReview } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Result } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { ReadPatchFile, DownloadPatchArtifact } from './command';
 import { workbenchPolicy } from './editor-policy';
@@ -23,6 +22,7 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { packetReviewActive } from './packet-reader';
+import type { Return } from './transition';
 export type PatchWorkbenchState = Readonly<{
   scope: string;
   run: number;
@@ -198,7 +198,7 @@ export function updatePatchWorkbench(model: Model, message: Message): Return<Mod
             notice: 'Reading patch…',
           },
         },
-        commands: [ReadPatchFile({ scope: state.scope, run, file, maxBytes: 1048576 })],
+        commands: [ReadPatchFile.make({ scope: state.scope, run, file, maxBytes: 1048576 })],
       };
     }),
     Match.tag('ClickedPatchReadCancel', (message) => {
@@ -285,7 +285,7 @@ export function updatePatchWorkbench(model: Model, message: Message): Return<Mod
       return {
         model,
         commands: [
-          DownloadPatchArtifact({
+          DownloadPatchArtifact.make({
             scope: state.scope,
             kind: message.kind,
             json: JSON.stringify(value, null, 2),

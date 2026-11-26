@@ -12,7 +12,6 @@ import {
 import { zlozView, zlozDddNode, zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import example from './alchemy-example.json';
 import { alchemyGroupShell } from './alchemy-group-header';
@@ -32,6 +31,7 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { workbenchThemes } from './theme';
+import type { Return } from './transition';
 const own = new Set([
   'ChangedAlchemyText',
   'ClickedAlchemyReview',
@@ -236,7 +236,7 @@ export function updateAlchemyReview(model: Model, message: Message): Return<Mode
             notice: 'Reading descriptor for read-only review…',
           },
         },
-        commands: [ReadAlchemyDescriptor({ run, file })],
+        commands: [ReadAlchemyDescriptor.make({ run, file })],
       };
     }),
     Match.tag('SucceededAlchemyRead', ({ run, json }) =>

@@ -6,12 +6,12 @@ import {
   type ZlozSvgReviewContext,
   type ZlozSvgReviewRequest,
 } from '@opsydyn/foldkit-zloz';
-import type { Return } from 'foldkit/update';
 
 import { DownloadSvg } from './command';
 import type { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
+import type { Return } from './transition';
 export function workbenchSvgContext(
   model: Model,
   format: 'svg' | 'png' = 'svg',
@@ -94,6 +94,6 @@ export function updateWorkbenchSvgReview(
     result = updateSvgReview(svgReviewForScope(model.svgReview, ctx.scope), ctx, request);
   const next = { ...model, svgReview: result.state, notice: result.notice || model.notice };
   return result.payload
-    ? { model: next, commands: [DownloadSvg(result.payload)] }
+    ? { model: next, commands: [DownloadSvg.make(result.payload)] }
     : { model: next };
 }

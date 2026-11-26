@@ -46,6 +46,6 @@ export function updateWorkbenchPacket(
     };
   return {
     model: pauseHistoryPlayback(model),
-    commands: [ExportReviewPacket({ json: JSON.stringify(result.packet, null, 2) })],
+    commands: [ExportReviewPacket.make({ json: JSON.stringify(result.packet, null, 2) })],
   };
 }

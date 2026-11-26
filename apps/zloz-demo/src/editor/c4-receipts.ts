@@ -1,11 +1,11 @@
 import { serializeEventStormingC4Conversion } from '@opsydyn/foldkit-zloz';
 import { Option } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { DownloadC4Receipt } from './command';
 import { editionArchiveByteLimit } from './history';
 import type { Message } from './message';
 import type { Model } from './model';
+import type { Return } from './transition';
 
 type DownloadScope = Readonly<{ modelId: string; epoch: number; index: number }>;
 function matches(model: Model, scope: DownloadScope): boolean {
@@ -33,7 +33,7 @@ export function downloadC4Receipt(model: Model, scope: DownloadScope): Return<Mo
       'Receipt exceeds the 5 MiB reopening limit. Download was not started; provenance remains retained.';
     return { model: { ...model, c4ApplyNotice: notice, notice } };
   }
-  return { model, commands: [DownloadC4Receipt({ ...scope, json: encoded.value })] };
+  return { model, commands: [DownloadC4Receipt.make({ ...scope, json: encoded.value })] };
 }
 export function c4ReceiptDownloadFeedback(
   model: Model,

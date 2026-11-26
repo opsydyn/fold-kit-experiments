@@ -3,9 +3,10 @@ import { Command, Dom, Subscription, Submodel } from 'foldkit';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { defineTaggedUnion } from 'foldkit/schema';
-import { foldChild, type Return } from 'foldkit/update';
+import type { Return } from 'foldkit/update';
 
 import { LoadThemePreference } from './command';
+import { runWorkbenchCommand, workbenchTransitionCommands } from './foldkit-command-host';
 import * as Workbench from './message';
 import { init as initModel, type Model as WorkbenchModel } from './model';
 import { update as updateWorkbench } from './update';
@@ -44,18 +45,6 @@ function readWorkbench(model: Model): Option.Option<WorkbenchModel> {
     },
   });
 }
-const foldWorkbench = foldChild<
-  Model,
-  Message,
-  WorkbenchModel,
-  Workbench.Message,
-  Workbench.Message
->({
-  update: updateWorkbench,
-  read: readWorkbench,
-  write: (_model: Model, workbench: WorkbenchModel) => Model.Ready({ workbench }),
-  toParentMessage: (message: Workbench.Message) => Message.GotWorkbenchMessage({ message }),
-});
 export function update(model: Model, message: Message): Return<Model, Message> {
   return Message.match(message, {
     SucceededIdentity: ({ namespace }) =>
@@ -64,7 +53,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         : {
             model: Model.Ready({ workbench: initModel(namespace).model }),
             commands: [
-              Command.mapMessage(LoadThemePreference(), (message) =>
+              Command.mapMessage(runWorkbenchCommand(LoadThemePreference.make({})), (message) =>
                 Message.GotWorkbenchMessage({ message }),
               ),
             ],
@@ -72,8 +61,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedIdentity: () => ({ model: model._tag === 'Preparing' ? Model.Failed() : model }),
     ClickedRetryIdentity: () => (model._tag === 'Failed' ? init() : { model }),
     GotWorkbenchMessage: ({ message: raw }) => {
-      // SAFETY: h.submodel, Command.mapMessage and Subscription.lift wrap the child Message universe.
-      return foldWorkbench(model, raw);
+      const current = readWorkbench(model);
+      if (Option.isNone(current)) return { model };
+      const next = updateWorkbench(current.value, raw);
+      return {
+        model: next.model === current.value ? model : Model.Ready({ workbench: next.model }),
+        commands: workbenchTransitionCommands(next).map((command) =>
+          Command.mapMessage(command, (message) => Message.GotWorkbenchMessage({ message })),
+        ),
+      };
     },
   });
 }

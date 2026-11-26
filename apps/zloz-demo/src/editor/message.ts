@@ -1,5 +1,5 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import {
   ColorScheme,
@@ -30,7 +30,7 @@ import {
   DiagnosticFlag,
   PortSnapPriority,
 } from './model';
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SelectedC4PlacementMember: {
     modelId: Schema.String,
     epoch: Schema.Number,
@@ -173,7 +173,6 @@ export const Message = defineMessageUnion({
   SucceededModelDocumentImport: { id: Schema.Number, document: Schema.Unknown },
   FailedModelDocumentImport: { id: Schema.Number },
   ClickedCancelModelImport: {},
-  CompletedCancelModelImport: {},
   ClickedModelImportProtection: {},
   ChangedForkName: { name: Schema.String },
   ClickedForkEdition: {},
@@ -184,7 +183,7 @@ export const Message = defineMessageUnion({
   SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
   FailedEditionArchiveImport: { id: Schema.Number },
   ClickedCancelEditionImport: {},
-  CompletedCancelEditionImport: {},
+  CompletedWorkbenchInterrupt: { name: Schema.String },
   ClickedPreviewEditionRestore: {},
   ClickedConfirmEditionRestore: {},
   ClickedCancelEditionRestore: {},

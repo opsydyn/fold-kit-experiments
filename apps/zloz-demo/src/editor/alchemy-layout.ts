@@ -15,7 +15,6 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { Match, Result } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { alchemyGroupHeader, alchemyGroupHeaderSpec } from './alchemy-group-header';
 import { alchemyPreviewLabelSize } from './alchemy-labels';
@@ -23,6 +22,7 @@ import type { AlchemyReviewState } from './alchemy-state';
 import { ArrangeAlchemyPreview } from './command';
 import { Message } from './message';
 import type { Model } from './model';
+import type { Return } from './transition';
 type Review = NonNullable<AlchemyReviewState['review']>;
 export function cancelAlchemyLayout(review: Review | null): Review | null {
   return review &&
@@ -364,7 +364,7 @@ export function updateAlchemyLayout(model: Model, message: Message): Return<Mode
           },
         },
         commands: [
-          ArrangeAlchemyPreview({
+          ArrangeAlchemyPreview.make({
             id: review.id,
             requestId: active.requestId,
             revision: active.revision,

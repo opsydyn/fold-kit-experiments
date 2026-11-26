@@ -1,8 +1,10 @@
+import { Command } from '@effect/ui';
 import { captureEdition, serializeEditions, updateEditor } from '@opsydyn/foldkit-zloz';
-import { Effect } from 'effect';
+import { Effect, Exit, Fiber } from 'effect';
 import { expect, test } from 'vitest';
 
-import { ImportZlozEditions } from '../src/editor/command';
+import { ImportZlozEditions, ImportZlozModel } from '../src/editor/command';
+import { runWorkbenchCommand, interruptWorkbenchCommand } from '../src/editor/foldkit-command-host';
 import { editionArchiveByteLimit, orderEditions } from '../src/editor/history';
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';
@@ -10,14 +12,14 @@ import { update } from '../src/editor/update';
 
 const file = () => new File([serializeEditions(orderEditions())], 'orders.editions.json');
 test('strict bounded file decoding accepts canonical archives and rejects invalid UTF-8, JSON and oversized valid input', async () => {
-  const success = await Effect.runPromise(ImportZlozEditions({ id: 1, file: file() }).effect);
+  const success = await Effect.runPromise(ImportZlozEditions.make({ id: 1, file: file() }).effect);
   expect(success._tag).toBe('SucceededEditionArchiveImport');
   for (const source of [
     new File([new Uint8Array([0xff])], 'bad.json'),
     new File(['{broken'], 'bad.json'),
     new File([' '.repeat(editionArchiveByteLimit), serializeEditions([])], 'huge.json'),
   ]) {
-    const result = await Effect.runPromise(ImportZlozEditions({ id: 2, file: source }).effect);
+    const result = await Effect.runPromise(ImportZlozEditions.make({ id: 2, file: source }).effect);
     expect(result._tag).toBe('FailedEditionArchiveImport');
   }
 });
@@ -130,7 +132,7 @@ test('capturing after import avoids an already imported generated ID', () => {
   expect(captured.editions.map((edition) => edition.id)).toEqual(['edition-1', 'edition-2']);
 });
 
-test('cancellation interrupts only the addressed archive read', async () => {
+test('the current island interrupts only the addressed operation and import token', async () => {
   const started = Promise.withResolvers<void>();
   const pending = Promise.withResolvers<ArrayBuffer>();
   const slow = new File([], 'slow.json');
@@ -140,15 +142,25 @@ test('cancellation interrupts only the addressed archive read', async () => {
       return pending.promise;
     },
   });
-  Effect.runFork(ImportZlozEditions({ id: 41, file: slow }).effect);
-  await started.promise;
-  const other = await Effect.runPromise(
-    ImportZlozEditions.Interrupt({ id: 42 }, (outcome) => outcome).effect,
-  );
-  expect(other._tag).toBe('NotFound');
-  const cancelled = await Effect.runPromise(
-    ImportZlozEditions.Interrupt({ id: 41 }, (outcome) => outcome).effect,
-  );
-  expect(cancelled._tag).toBe('Interrupted');
-  pending.resolve(new ArrayBuffer(0));
+  const task = runWorkbenchCommand(ImportZlozEditions.make({ id: 41, file: slow }));
+  const running = Effect.runFork(task.effect);
+  // oxlint-disable-next-line linteffect/no-try-catch -- Clean up the test-owned Promise even if an assertion throws.
+  try {
+    await started.promise;
+    for (const other of [
+      Command.interrupt(ImportZlozEditions, { id: 42 }),
+      Command.interrupt(ImportZlozModel, { id: 41 }),
+    ]) {
+      await Effect.runPromise(interruptWorkbenchCommand(other).effect);
+      expect(running.pollUnsafe()).toBeUndefined();
+    }
+    const cancelled = Command.interrupt(ImportZlozEditions, { id: 41 });
+    expect(await Effect.runPromise(interruptWorkbenchCommand(cancelled).effect)).toEqual(
+      Message.CompletedWorkbenchInterrupt({ name: 'ImportZlozEditions' }),
+    );
+    expect(Exit.hasInterrupts(await Effect.runPromise(Fiber.await(running)))).toBe(true);
+  } finally {
+    pending.resolve(new ArrayBuffer(0));
+    await Effect.runPromise(Fiber.interrupt(running));
+  }
 });

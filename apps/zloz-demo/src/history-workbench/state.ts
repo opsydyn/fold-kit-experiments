@@ -1,3 +1,4 @@
+import { Command } from '@effect/ui';
 import {
   appendEditionV2,
   captureConnectionDocument,
@@ -30,7 +31,6 @@ import {
   type ZlozHistoryGhostVisibility,
 } from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { ReadHistoryFile, DownloadHistory, byteLimit } from './command';
 import { Message, Theme } from './message';
@@ -39,26 +39,26 @@ import { CreateNativeSession } from './native-command';
 export { Message };
 export const Model = Schema.Struct({
   section: Schema.Literals(['files', 'review', 'playback', 'restore', 'authoring', 'evidence']),
-  native: Schema.Unknown,
-  editor: Schema.Unknown,
-  identity: Schema.Unknown,
-  editions: Schema.Unknown,
+  native: Schema.fromJsonString(Schema.Unknown),
+  editor: Schema.fromJsonString(Schema.Unknown),
+  identity: Schema.fromJsonString(Schema.Unknown),
+  editions: Schema.fromJsonString(Schema.Unknown),
   selectedId: Schema.String,
   baselineId: Schema.String,
   side: Schema.Literals(['baseline', 'selected']),
-  review: Schema.Unknown,
-  playback: Schema.Unknown,
-  cursor: Schema.Unknown,
-  filters: Schema.Unknown,
-  ghosts: Schema.Unknown,
+  review: Schema.fromJsonString(Schema.Unknown),
+  playback: Schema.fromJsonString(Schema.Unknown),
+  cursor: Schema.fromJsonString(Schema.Unknown),
+  filters: Schema.fromJsonString(Schema.Unknown),
+  ghosts: Schema.fromJsonString(Schema.Unknown),
   name: Schema.String,
   minimal: Schema.Boolean,
   minimap: Schema.Boolean,
   protectedRestore: Schema.Boolean,
-  preview: Schema.Unknown,
-  reading: Schema.Unknown,
-  conflict: Schema.Unknown,
-  previousSession: Schema.Unknown,
+  preview: Schema.fromJsonString(Schema.Unknown),
+  reading: Schema.fromJsonString(Schema.Unknown),
+  conflict: Schema.fromJsonString(Schema.Unknown),
+  previousSession: Schema.fromJsonString(Schema.Unknown),
   epoch: Schema.Number,
   run: Schema.Number,
   sequence: Schema.Number,
@@ -149,10 +149,15 @@ export function initialDocument(): ZlozModelDocumentV2 {
     ],
   });
 }
-export function init(): Return<Model, Message> {
+type Transition = Readonly<{
+  model: Model;
+  commands?: readonly Command.Command<Message>[];
+}>;
+
+export function init(): Transition {
   const document = initialDocument();
   return {
-    commands: [CreateNativeSession()],
+    commands: [CreateNativeSession.make({})],
     model: {
       section: 'review',
       native: nativeInitial(),
@@ -286,7 +291,7 @@ function focus(model: Model, request: ZlozHistoryChangeFocusRequestV2): Model {
     notice: 'Revealed change on the chosen side.',
   };
 }
-export function update(model: Model, message: Message): Return<Model, Message> {
+export function update(model: Model, message: Message): Transition {
   if (
     (model.native.inspection || model.native.pending) &&
     ![
@@ -594,10 +599,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           preview: null,
           notice: 'Reading a v2 file; current model remains active until validation succeeds.',
         },
-        commands: [ReadHistoryFile({ token, kind, file })],
+        commands: [ReadHistoryFile.make({ token, kind, file })],
       };
     },
     ClickedCancelRead: () => ({
+      commands: model.reading
+        ? [Command.interrupt(ReadHistoryFile, { token: model.reading.token })]
+        : [],
       model: {
         ...model,
         reading: null,
@@ -676,7 +684,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           : serializeEditionsV2(model.editions);
       return new TextEncoder().encode(json).byteLength > byteLimit
         ? { model: { ...model, notice: 'Download exceeds the 5 MiB reopening limit.' } }
-        : { model, commands: [DownloadHistory({ kind, json })] };
+        : { model, commands: [DownloadHistory.make({ kind, json })] };
     },
     CompletedDownload: () => ({ model: { ...model, notice: 'Validated v2 file downloaded.' } }),
     FailedDownload: () => ({

@@ -96,7 +96,13 @@ test('capture and archive imports use immutable package transactions, conflicts 
   );
   expect(conflict.editions).toBe(model.editions);
   expect(conflict.conflict).not.toBeNull();
-  const cancelled = send(reading.model, Message.ClickedCancelRead());
+  const cancellation = update(reading.model, Message.ClickedCancelRead());
+  expect(cancellation.commands?.[0]).toMatchObject({
+    _tag: 'Interrupt',
+    name: 'ReadHistoryFile',
+    groupKey: JSON.stringify({ token }),
+  });
+  const cancelled = cancellation.model;
   expect(send(cancelled, Message.SucceededArchiveRead({ token, editions: [] }))).toBe(cancelled);
   expect(send(reading.model, Message.FailedRead({ token: token + 1 }))).toBe(reading.model);
   const stale = send(

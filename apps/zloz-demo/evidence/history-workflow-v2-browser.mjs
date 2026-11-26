@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
+const browserName = process.env.ZLOZ_HISTORY_BROWSER ?? 'chromium';
+const engine = { chromium, firefox, webkit }[browserName];
+assert(engine, `Unsupported browser: ${browserName}`);
 const base = process.env.ZLOZ_HISTORY_URL ?? 'http://127.0.0.1:4377';
-const browser = await chromium.launch();
+const output = process.env.ZLOZ_HISTORY_EVIDENCE_DIR
+  ? pathToFileURL(resolve(process.env.ZLOZ_HISTORY_EVIDENCE_DIR) + '/')
+  : new URL('./', import.meta.url);
+const browser = await engine.launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
@@ -13,7 +20,9 @@ async function run() {
   });
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
-  await page.goto(`${base}/history/`);
+  const response = await page.goto(`${base}/history/`);
+  assert.equal(response?.status(), 200);
+  assert.match(await response.text(), /data-effect-ui-state/u);
   await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Architecture through time' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Review / compare', exact: true })).toHaveAttribute(
@@ -35,6 +44,20 @@ async function run() {
     })
     .click();
   assert.equal(await world.getAttribute('style'), before);
+  await page.getByLabel('Show minimap', { exact: true }).check();
+  const overview = page.getByRole('button', { name: 'Diagram overview' });
+  await expect(overview.locator('[data-flow-minimap-viewport]')).toHaveCount(1);
+  await overview.press('ArrowRight');
+  await expect(world).not.toHaveAttribute('style', before);
+  const nudged = await world.getAttribute('style');
+  assert(nudged);
+  await overview.click({ position: { x: 24, y: 24 } });
+  await expect(world).not.toHaveAttribute('style', nudged);
+  const pointed = await world.getAttribute('style');
+  assert(pointed);
+  await overview.press('Enter');
+  await expect(world).not.toHaveAttribute('style', pointed);
+  await page.getByLabel('Show minimap', { exact: true }).uncheck();
   await page.getByLabel('Comparison side').selectOption('baseline');
   await expect(page.getByLabel('Review connection mode')).toHaveText('Review mode: strict');
   await expect(page.locator('[data-zloz-history-node="changed"]')).toHaveAttribute(
@@ -47,7 +70,7 @@ async function run() {
     .getByRole('heading', { name: 'Review and compare', exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('history-workflow-v2-light.png', import.meta.url)),
+    path: fileURLToPath(new URL('history-workflow-v2-light.png', output)),
     fullPage: true,
   });
   await page.getByLabel('Theme', { exact: true }).selectOption('dark');
@@ -56,14 +79,14 @@ async function run() {
     .getByRole('heading', { name: 'Review and compare', exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('history-workflow-v2-dark.png', import.meta.url)),
+    path: fileURLToPath(new URL('history-workflow-v2-dark.png', output)),
     fullPage: true,
   });
   await page.getByLabel('Minimal mode', { exact: true }).check();
   await expect(page.locator('[data-zloz-history-ghosts]')).toHaveCount(0);
   await expect(page.getByLabel('Show comparison ghosts')).toBeChecked();
   await page.screenshot({
-    path: fileURLToPath(new URL('history-workflow-v2-minimal.png', import.meta.url)),
+    path: fileURLToPath(new URL('history-workflow-v2-minimal.png', output)),
     fullPage: true,
   });
   await page.getByLabel('Minimal mode', { exact: true }).uncheck();
@@ -88,7 +111,7 @@ async function run() {
     const pending = page.waitForEvent('download');
     await page.getByRole('button', { name: label, exact: true }).click();
     const file = await pending;
-    const path = fileURLToPath(new URL(name, import.meta.url));
+    const path = fileURLToPath(new URL(name, output));
     await file.saveAs(path);
     return JSON.parse(await readFile(path, 'utf8'));
   }
@@ -129,10 +152,17 @@ async function run() {
   await expect(page.getByLabel('History workflow status')).toContainText(
     'Unsupported or invalid v2',
   );
-  await upload('Open v2 model', model);
+  const withOutline = structuredClone(model);
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- This field is part of the portable v2 authoring contract.
+  withOutline.document.snapshot.graph.nodes[0].appearance = { shape: 'cylinder' };
+  await upload('Open v2 model', withOutline);
   await expect(page.getByLabel('History workflow status')).toContainText('fresh independent Undo');
   await expect(page.getByLabel('Working connection mode')).toHaveText('Working mode: loose');
+  const outline = page.locator('[data-node-outline="cylinder"] svg');
+  await expect(outline.locator('path')).toHaveCount(2);
+  await expect(outline.locator('path').first()).toHaveAttribute('d', /^M0,16 A110,16/u);
   await page.getByRole('button', { name: 'Switch to previous model session', exact: true }).click();
+  await expect(outline).toHaveCount(0);
   await page.getByRole('button', { name: 'Restore / Undo', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Undo working edit', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Undo working edit', exact: true }).click();
@@ -164,18 +194,19 @@ async function run() {
   await expect(page.getByLabel('Review connection mode')).toHaveText('Review mode: loose');
   assert.deepEqual(errors, []);
   await writeFile(
-    new URL('history-workflow-v2-browser.json', import.meta.url),
+    new URL('history-workflow-v2-browser.json', output),
     JSON.stringify(
       {
         result: 'passed',
-        provenance: 'local production build, mounted Chromium',
+        provenance: `local production build, mounted ${browserName}`,
         cases: [
           'mode inspection without camera move',
+          'minimap pointer navigation, keyboard pan and centering while reviewing',
           'baseline/selected ghost geometry and chronological meaning',
           'light/dark/minimal',
           'protected preview and cross-mode Undo/Redo',
           'capture/download/import/conflict/invalid UTF-8',
-          'previous working session history',
+          'authored cylinder outline and previous working session history',
           'play/pause/rewind/reduced motion',
         ],
         pageErrors: errors,

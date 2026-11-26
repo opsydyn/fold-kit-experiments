@@ -1,3 +1,4 @@
+import { Command } from '@effect/ui';
 import {
   captureConnectionDocument,
   captureModelDocumentV2,
@@ -276,7 +277,7 @@ export function nativeHandlers(model: Model) {
   });
   return {
     ClickedStartNativeSession: () =>
-      model.native.sessionId ? { model } : { model, commands: [CreateNativeSession()] },
+      model.native.sessionId ? { model } : { model, commands: [CreateNativeSession.make({})] },
     SucceededNativeSession: ({ id }: { id: string }) =>
       model.native.sessionId || !id.trim()
         ? { model }
@@ -429,7 +430,7 @@ export function nativeHandlers(model: Model) {
       }
       if (new TextEncoder().encode(text).length > nativeByteLimit)
         return notice('Artifact exceeds the 1 MiB download/reopening limit.');
-      return { model, commands: [DownloadNative({ text, kind })] };
+      return { model, commands: [DownloadNative.make({ text, kind })] };
     },
     ChoseNativeFile: ({ kind, files: raw }: { kind: ArtifactKind; files: unknown }) => {
       // SAFETY: OnFileChange supplies browser Files; the Command checks size before reading.
@@ -451,7 +452,7 @@ export function nativeHandlers(model: Model) {
             notice: 'Reading artifact…',
           },
         },
-        commands: [ReadNativeFile({ token, file })],
+        commands: [ReadNativeFile.make({ token, file })],
       };
     },
     SucceededNativeRead: ({ token, text }: { token: number; text: string }) => {
@@ -491,6 +492,9 @@ export function nativeHandlers(model: Model) {
         ? { model }
         : { model: { ...model, native: { ...model.native, pending: null, notice: reason } } },
     ClickedCancelNativeRead: () => ({
+      commands: model.native.pending
+        ? [Command.interrupt(ReadNativeFile, { token: model.native.pending.token })]
+        : [],
       model: {
         ...model,
         native: { ...model.native, pending: null, notice: 'Read cancelled. Late results ignored.' },

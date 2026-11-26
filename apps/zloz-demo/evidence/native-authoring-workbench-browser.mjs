@@ -1,12 +1,19 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
+const browserName = process.env.ZLOZ_HISTORY_BROWSER ?? 'chromium';
+const engine = { chromium, firefox, webkit }[browserName];
+assert(engine, `Unsupported browser: ${browserName}`);
 const base = process.env.ZLOZ_NATIVE_URL ?? 'http://127.0.0.1:4388';
-const browser = await chromium.launch();
-const path = (name) => fileURLToPath(new URL(name, import.meta.url));
+const browser = await engine.launch();
+const output = process.env.ZLOZ_HISTORY_EVIDENCE_DIR
+  ? pathToFileURL(resolve(process.env.ZLOZ_HISTORY_EVIDENCE_DIR) + '/')
+  : new URL('./', import.meta.url);
+const path = (name) => fileURLToPath(new URL(name, output));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
@@ -142,6 +149,7 @@ async function run() {
   assert.deepEqual(errors, []);
   const result = {
     base,
+    browser: browserName,
     viewport: [1440, 1000],
     narrow: [390, 844],
     checks: [

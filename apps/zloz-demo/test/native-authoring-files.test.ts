@@ -25,15 +25,15 @@ test('native file command rejects oversized input before reading and invalid UTF
     }
   }
   const big = new Oversized([' '.repeat(nativeByteLimit + 1)], 'large.json');
-  const rejected = await Effect.runPromise(ReadNativeFile({ token: 7, file: big }).effect);
+  const rejected = await Effect.runPromise(ReadNativeFile.make({ token: 7, file: big }).effect);
   expect(rejected._tag).toBe('FailedNativeRead');
   expect(reads).toBe(0);
   const invalid = await Effect.runPromise(
-    ReadNativeFile({ token: 8, file: new File([new Uint8Array([255])], 'bad.json') }).effect,
+    ReadNativeFile.make({ token: 8, file: new File([new Uint8Array([255])], 'bad.json') }).effect,
   );
   expect(invalid._tag).toBe('FailedNativeRead');
   const valid = await Effect.runPromise(
-    ReadNativeFile({ token: 9, file: new File(['{"version":2}'], 'wire.json') }).effect,
+    ReadNativeFile.make({ token: 9, file: new File(['{"version":2}'], 'wire.json') }).effect,
   );
   expect(valid).toEqual(Message.SucceededNativeRead({ token: 9, text: '{"version":2}' }));
 });
@@ -91,11 +91,36 @@ test('packet download needs current explicit loss consent; reopening does not gr
 });
 
 test('runtime Commands issue distinct page-session identities without external mutable state', async () => {
-  const first = await Effect.runPromise(CreateNativeSession().effect);
-  const second = await Effect.runPromise(CreateNativeSession().effect);
+  const first = await Effect.runPromise(CreateNativeSession.make({}).effect);
+  const second = await Effect.runPromise(CreateNativeSession.make({}).effect);
   expect(first._tag).toBe('SucceededNativeSession');
   expect(second._tag).toBe('SucceededNativeSession');
   if (first._tag !== 'SucceededNativeSession' || second._tag !== 'SucceededNativeSession') return;
   expect(first.id).not.toBe(second.id);
   expect(first.id.length).toBeGreaterThan(0);
+});
+
+test('cancelling a native file read interrupts its token and drops late settlement', () => {
+  const initial = update(
+    init().model,
+    Message.SucceededNativeSession({ id: 'test-session' }),
+  ).model;
+  const authoring = update(initial, Message.SelectedSection({ section: 'authoring' })).model;
+  const command = update(
+    authoring,
+    Message.ChoseNativeFile({
+      kind: 'proposal',
+      files: [new File(['{}'], 'proposal.json')],
+    }),
+  );
+  const pending = command.model.native.pending;
+  expect(pending?.token).toBe(1);
+  const cancelled = update(command.model, Message.ClickedCancelNativeRead());
+  expect(cancelled.commands?.[0]).toMatchObject({
+    _tag: 'Interrupt',
+    name: 'ReadNativeFile',
+    groupKey: JSON.stringify({ token: 1 }),
+  });
+  const late = update(cancelled.model, Message.SucceededNativeRead({ token: 1, text: '{}' }));
+  expect(late.model).toBe(cancelled.model);
 });

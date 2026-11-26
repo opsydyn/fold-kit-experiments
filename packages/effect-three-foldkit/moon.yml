@@ -2,7 +2,7 @@
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
 tasks:
   build:
-    script: 'tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked'
+    script: 'tsc -b && bun build ./src/index.ts ./src/browser.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked'
     deps: ['^:build']
     outputs: ['dist/**/*']
   typecheck:

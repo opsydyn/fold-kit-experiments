@@ -6,11 +6,13 @@ import { Html } from '@effect/ui/html';
 import { Schema } from 'effect';
 import { Window as TestWindow } from 'happy-dom';
 
+import renderer from '../../../packages/astro-effect-ui/src/client.ts';
 import {
   makeEnvironment,
   type EnvironmentHost,
 } from '../../../packages/effect-three-foldkit/src/environment.ts';
 import { ReconciledDetail } from '../../../packages/effect-three-foldkit/src/sceneEvents.ts';
+import { defineEffectThreeMount } from '../../../packages/effect-three-samples/src/effect-ui-scene.ts';
 import {
   box,
   mesh,
@@ -18,8 +20,6 @@ import {
   scene,
   standard,
 } from '../../../packages/effect-three/src/index.ts';
-import renderer from '../src/client.ts';
-import { makeEffectThreeMount } from '../src/effect-three.ts';
 
 const Message = UiSchema.TaggedEnum({
   ClickedSceneUpdate: {},
@@ -59,7 +59,7 @@ test('Effect UI updates the mounted scene and releases its canvas, renderer, and
   const environment = makeEnvironment(dom as unknown as EnvironmentHost, {
     renderer: () => renderers,
   });
-  const SceneMount = makeEffectThreeMount(environment);
+  const SceneMount = defineEffectThreeMount(() => environment);
   const Scene = Html.component({
     name: 'SceneFixture',
     model: Schema.Struct({ x: Schema.Number, status: Schema.String }),

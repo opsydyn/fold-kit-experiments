@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@dimforge/rapier3d-deterministic-compat": "catalog:",
+    "@effect/ui": "catalog:",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/effect-three-rapier": "workspace:*",

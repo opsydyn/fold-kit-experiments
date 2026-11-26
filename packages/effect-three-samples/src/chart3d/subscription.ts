@@ -1,13 +1,13 @@
+import { Subscription } from '@effect/ui';
 /**
  * The page theme as a subscription: the host page owns it (a `data-theme` attribute on
  * the root element, dark when absent or unknown), and this app only follows it. Emits
  * the current theme first, then every change.
  */
 import { type Cause, Effect, Option, Queue, Schema, Stream } from 'effect';
-import { Subscription } from 'foldkit';
 
 import { Message } from './message';
-import { type Model, Theme } from './model';
+import { Theme } from './model';
 
 const themeOf = (root: HTMLElement): Theme =>
   Option.getOrElse(Option.liftPredicate(root.dataset.theme, Schema.is(Theme)), () => 'dark');
@@ -30,11 +30,12 @@ const watchTheme = (queue: Queue.Queue<Theme, Cause.Done>) => {
 // The observer lives in the stream's scope: it disconnects when the subscription ends.
 const themes = Stream.callback<Theme>(watchTheme);
 
-export const subscriptions = Subscription.make<Model, Message>()(() => ({
-  theme: Subscription.persistentEntry(
+export const subscriptions = () => [
+  Subscription.make(
+    'theme',
     themes.pipe(
       Stream.changes,
       Stream.map((theme) => Message.ChangedTheme({ theme })),
     ),
   ),
-}));
+];

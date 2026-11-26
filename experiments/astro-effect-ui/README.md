@@ -1,8 +1,9 @@
 # Astro Effect UI renderer preview
 
-This private package tests direct Effect UI component imports in Astro 7.4.11.
-Its dependencies live outside the root Bun workspace. The fixture pins Effect
-UI to commit `77dcd92` and uses Effect 4.1.6.
+This fixture tests direct Effect UI component imports using the workspace's
+private Astro renderer. The root catalog pins Effect UI to commit `77dcd92`
+and Effect to 4.1.6. Install the fixture dependencies separately to test against
+a packed copy of Viz.
 
 Install the root workspace, then run these commands from this directory.
 
@@ -53,7 +54,11 @@ links and form edits retain their browser behavior during activation. The
 Effect UI integration owns this directive on an Astro site. Use one
 integration that registers `client:interaction` per Astro configuration.
 
-The Effect Three fixture mounts a shared browser scene host through Effect
+The `/three-chart/` fixture uses the same component as the web workbench and
+Three promo routes. Chromium exercises scatter and surface selection, camera
+orbit, WebGL context disposal on navigation, and a fresh mount on return.
+
+The headless Effect Three fixture mounts a shared browser scene host through Effect
 UI mount arguments. A scene update keeps the same canvas and renderer. The
 test uses a recording renderer and checks canvas, renderer, geometry and
 material cleanup after Astro unmounts the island.

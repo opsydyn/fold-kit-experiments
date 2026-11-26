@@ -20,6 +20,7 @@
       "@effect/platform-browser": "4.1.0",
       "@effect/platform-bun": "4.1.0",
       "@effect/platform-node": "4.1.0",
+      "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
       "@effect/vitest": "4.1.0",
       "@foldkit/devtools": "0.171.0",
       "@foldkit/devtools-mcp": "0.26.0",
@@ -122,6 +123,7 @@
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
     "@effect/language-service": "catalog:",
+    "@effect/ui": "catalog:",
     "@foldkit/devtools-mcp": "catalog:",
     "@foldkit/oxlint-plugin": "catalog:",
     "@moonrepo/cli": "2.5.4",

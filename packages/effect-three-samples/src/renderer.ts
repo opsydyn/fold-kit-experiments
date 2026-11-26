@@ -6,7 +6,7 @@
  * Both canvases are transparent, so the host page's surface colour and theme show through.
  */
 import type { RendererFactory } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { webgpuRendererFactory, webglRendererFactory } from '@opsydyn/effect-three-foldkit/browser';
 
 /** What the renderer choice reads of the page: its address's query. */
 export type Page = { readonly location: Pick<Location, 'search'> };
@@ -19,5 +19,5 @@ export const rendererForPage =
   (page: Page) =>
   (canvas: HTMLCanvasElement): RendererFactory =>
     drawsWithWebGpu(page)
-      ? EffectThreeFoldkit.webgpuRendererFactory(canvas, { alpha: true })
-      : EffectThreeFoldkit.webglRendererFactory(canvas, { alpha: true });
+      ? webgpuRendererFactory(canvas, { alpha: true })
+      : webglRendererFactory(canvas, { alpha: true });

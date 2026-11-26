@@ -1,0 +1,8 @@
+tasks:
+  build:
+    # Astro bundles this integration from source. The hash invalidates dependent site builds.
+    script: 'mkdir -p dist && echo "$MOON_TASK_HASH" > dist/moon-pass-through'
+    deps: ['^:build']
+    outputs: ['dist/moon-pass-through']
+  typecheck:
+    script: 'tsc --noEmit'

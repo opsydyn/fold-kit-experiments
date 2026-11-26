@@ -5,8 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { Window as TestWindow } from 'happy-dom';
 import { chromium } from 'playwright';
 
-import renderer from '../src/client';
-import interaction from '../src/directive-interaction';
+import renderer from '../../../packages/astro-effect-ui/src/client';
+import interaction from '../../../packages/astro-effect-ui/src/directive-interaction';
 import { Counter, StaticSummary } from './fixture/src/Counter';
 import { deploymentChart, reportChart } from './fixture/src/ReportChart';
 import { VizBarChart } from './fixture/src/VizBarChart';
@@ -479,6 +479,84 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
         .waitFor({ state: 'attached' });
       await page.waitForFunction(
         () => document.querySelector('output')?.textContent === 'February: 24 reports',
+      );
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  30_000,
+);
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'the maintained Effect UI chart uses WebGL, orbits and releases its context across navigation',
+  async () => {
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.route(`${origin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      await page.goto(`${origin}/three-chart/`);
+      const stage = page.locator('effect-three-scene');
+      const canvas = stage.locator('canvas');
+      const original = await canvas.elementHandle();
+      await page.waitForFunction(() => {
+        const canvas = document.querySelector('effect-three-scene canvas');
+        return (
+          canvas instanceof HTMLCanvasElement &&
+          canvas.getContext('webgl2')?.isContextLost() === false
+        );
+      });
+      await stage.evaluate((node) => {
+        node.addEventListener('scene-reconciled', (event) => {
+          if (event instanceof CustomEvent && event.detail.ops.configured > 0) {
+            node.setAttribute('data-camera-reconciled', 'true');
+          }
+        });
+      });
+      const start = await canvas.screenshot();
+      const box = await canvas.boundingBox();
+      if (!box) throw new Error('Expected the chart canvas to be visible.');
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.55, { steps: 8 });
+      await page.mouse.up();
+      await stage.and(page.locator('[data-camera-reconciled]')).waitFor();
+      expect(await canvas.screenshot()).not.toEqual(start);
+      await stage.evaluate((node) => node.removeAttribute('data-camera-reconciled'));
+      await page.getByRole('button', { name: 'Reset view' }).click();
+      await stage.and(page.locator('[data-camera-reconciled]')).waitFor();
+      await page.getByRole('button', { name: 'Surface' }).press('Enter');
+      await page.locator('button[aria-pressed="true"]').filter({ hasText: 'Surface' }).waitFor();
+      expect(await page.locator('.e3-readout').textContent()).toContain('32 by 32 grid');
+      expect(
+        await original.evaluate(
+          (node) => node === document.querySelector('effect-three-scene canvas'),
+        ),
+      ).toBe(true);
+
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        original,
+      );
+      await page.goBack();
+      await page.waitForURL('**/three-chart/');
+      await canvas.waitFor();
+      expect(await original.evaluate((node) => node.isConnected)).toBe(false);
+      expect(await page.getByRole('button', { name: 'Scatter' }).getAttribute('aria-pressed')).toBe(
+        'true',
       );
       expect(errors).toEqual([]);
     } finally {

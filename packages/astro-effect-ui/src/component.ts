@@ -26,3 +26,13 @@ export function asIslandComponent(value: Component.Any): IslandComponent {
   // The HTML host checks the vocabulary when it renders the component.
   return value as Component.Any & IslandComponent;
 }
+
+/** Describes the props Astro passes while preserving the component the renderer detects. */
+export function astroComponent<C extends Component.Any>(
+  component: C,
+): (props: Component.Props<C>) => void {
+  // SAFETY: Astro dispatches to the Effect UI renderer with these props. Only the
+  // renderer calls the original view with Effect UI's host helpers.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The two hosts expose different call signatures.
+  return component as unknown as (props: Component.Props<C>) => void;
+}

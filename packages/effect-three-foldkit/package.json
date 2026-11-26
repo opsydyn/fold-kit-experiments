@@ -26,6 +26,11 @@
       "bun": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "bun": "./src/browser.ts",
+      "default": "./dist/browser.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -37,7 +42,7 @@
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
     "test:e2e": "bun test ./e2e",
-    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "build": "tsc -b && bun build ./src/index.ts ./src/browser.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
     "api:report": "api-extractor run --local",
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"

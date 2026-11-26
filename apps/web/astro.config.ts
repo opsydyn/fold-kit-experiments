@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import cloudflare from '@astrojs/cloudflare';
+import effectUi from '@opsydyn/astro-effect-ui';
 import foldkit from '@opsydyn/astro-foldkit';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
@@ -28,7 +29,7 @@ const isDevCommand = process.argv.includes('dev');
 export default defineConfig({
   output: 'server',
   devToolbar: { enabled: false },
-  integrations: [foldkit()],
+  integrations: [foldkit(), effectUi({ interaction: false })],
 
   vite: {
     define: { __FIELD_GUIDE_WORKSPACES__: JSON.stringify(inventory) },

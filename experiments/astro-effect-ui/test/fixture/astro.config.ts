@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url';
 
-import effectUi from '@opsydyn/astro-effect-ui';
 import { defineConfig } from 'astro/config';
+
+import effectUi from '../../../../packages/astro-effect-ui/src/index';
 
 export default defineConfig({
   integrations: [effectUi()],

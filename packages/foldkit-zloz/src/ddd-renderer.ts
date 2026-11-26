@@ -1,6 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { architectureNodePresets, type DddNodeArchitecture } from './architecture';
+import { architectureRoleLabel, type DddNodeArchitecture } from './architecture';
 import {
   zlozNodeFrame,
   zlozGroupFrame,
@@ -59,14 +59,6 @@ function part<M>(
   const content = custom === undefined ? fallback() : custom;
   return content === null ? [] : [content];
 }
-function roleName(architecture: DddNodeArchitecture): string {
-  return (
-    architectureNodePresets.find(
-      (preset) =>
-        preset.architecture.family === 'ddd' && preset.architecture.role === architecture.role,
-    )?.label ?? architecture.role
-  );
-}
 
 function artwork<M>(
   h: HtmlBuilder<M>,
@@ -83,7 +75,7 @@ function artwork<M>(
     selected,
     selectionPreview: preview,
   };
-  const label = roleName(architecture);
+  const label = architectureRoleLabel(architecture);
   const content = options.renderBody?.(context, h);
   const subdomain = 'subdomain' in architecture ? architecture.subdomain : undefined;
   const children =

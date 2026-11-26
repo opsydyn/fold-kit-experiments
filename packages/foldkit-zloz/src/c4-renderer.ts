@@ -1,6 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { architectureNodePresets, type C4NodeArchitecture } from './architecture';
+import { architectureRoleLabel, type C4NodeArchitecture } from './architecture';
 import {
   zlozNodeFrame,
   zlozGroupFrame,
@@ -58,14 +58,7 @@ function part<M>(
   const content = custom === undefined ? fallback() : custom;
   return content === null ? [] : [content];
 }
-function roleName(architecture: C4NodeArchitecture): string {
-  return (
-    architectureNodePresets.find(
-      (preset) =>
-        preset.architecture.family === 'c4' && preset.architecture.role === architecture.role,
-    )?.label ?? architecture.role
-  );
-}
+
 function personIcon<M>(h: HtmlBuilder<M>): Html {
   return h.svg(
     [
@@ -111,7 +104,7 @@ function artwork<M>(
   const architecture = node.architecture;
   if (architecture?.family !== 'c4') return h.span([], []);
   const context: ZlozC4ContentContext = { node, architecture, selected, selectionPreview: preview };
-  const label = roleName(architecture);
+  const label = architectureRoleLabel(architecture);
   const content = options.renderBody?.(context, h);
   const technology = 'technology' in architecture ? architecture.technology : undefined;
   const children =

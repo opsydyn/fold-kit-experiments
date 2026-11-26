@@ -1,3 +1,5 @@
+import type { EventStormingNodeArchitecture } from './architecture';
+
 const tokenProperties = {
   eventStormingExternalSystem: '--zloz-event-storming-external-system',
   eventStormingHotspotOpen: '--zloz-event-storming-hotspot-open',
@@ -134,4 +136,21 @@ export function zlozThemeStyle(theme: ZlozTheme): ZlozThemeStyle {
     if (value !== undefined) style[tokenProperties[token]] = value;
   }
   return style;
+}
+
+const eventStormingAccents = {
+  command: 'var(--flow-event-storming-command, #2563eb)',
+  'domain-event': 'var(--flow-event-storming-event, #c2410c)',
+  policy: 'var(--flow-event-storming-policy, #7e22ce)',
+  actor: 'var(--flow-event-storming-actor, #a16207)',
+  'external-system': 'var(--zloz-event-storming-external-system, #0e7490)',
+  hotspot: 'var(--zloz-event-storming-hotspot-open, #be123c)',
+  lane: 'var(--zloz-event-storming-lane, #64748b)',
+};
+
+/** Shared view tokens. A hotspot's resolved status also remains available as visible text. */
+export function eventStormingAccent(architecture: EventStormingNodeArchitecture): string {
+  return architecture.role === 'hotspot' && architecture.status === 'resolved'
+    ? 'var(--zloz-event-storming-hotspot-resolved, #047857)'
+    : eventStormingAccents[architecture.role];
 }

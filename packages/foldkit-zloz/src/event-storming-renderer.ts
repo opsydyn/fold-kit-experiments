@@ -1,7 +1,7 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Authored node shape geometry is a core domain contract. */
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { architectureNodePresets, type EventStormingNodeArchitecture } from './architecture';
+import { architectureRoleLabel, type EventStormingNodeArchitecture } from './architecture';
 import {
   zlozDragHandle,
   zlozNodeFrame,
@@ -13,6 +13,7 @@ import { resolveLayoutGroupHeader, groupHeaderPosition } from './group-header';
 import type { ZlozNodeBodyCache } from './node-body-cache';
 import { nodeShapeGeometry } from './node-shape';
 import { portRenderViews } from './port-render';
+import { eventStormingAccent } from './theme';
 import type { ZlozNode } from './types';
 
 export type ZlozEventStormingContentContext = Readonly<{
@@ -44,18 +45,6 @@ export type ZlozEventStormingNodeOptions<M> = Readonly<{
   ) => readonly Html[] | undefined;
 }>;
 const defaults = Object.freeze({});
-const accents = {
-  command: 'var(--flow-event-storming-command, #2563eb)',
-  'domain-event': 'var(--flow-event-storming-event, #c2410c)',
-  policy: 'var(--flow-event-storming-policy, #7e22ce)',
-  actor: 'var(--flow-event-storming-actor, #a16207)',
-  'external-system': 'var(--zloz-event-storming-external-system, #0e7490)',
-  hotspot: 'var(--zloz-event-storming-hotspot-open, #be123c)',
-  lane: 'var(--zloz-event-storming-lane, #64748b)',
-};
-// ADR 0082: native accents are scoped tokens; semantic hotspot status is separately visible.
-const roleAccent = (role: EventStormingNodeArchitecture['role']) =>
-  Object.entries(accents).find(([key]) => key === role)?.[1];
 function part<M>(
   renderer: ZlozEventStormingContentRenderer<M> | undefined,
   context: ZlozEventStormingContentContext,
@@ -76,12 +65,7 @@ function artwork<M>(
   const architecture = node.architecture;
   if (architecture?.family !== 'event-storming') return h.span([], []);
   const context = { node, architecture, selected, selectionPreview };
-  const role =
-    architectureNodePresets.find(
-      (preset) =>
-        preset.architecture.family === 'event-storming' &&
-        preset.architecture.role === architecture.role,
-    )?.label ?? architecture.role;
+  const role = architectureRoleLabel(architecture);
   const custom = options.renderBody?.(context, h);
   const content =
     custom === undefined
@@ -150,9 +134,7 @@ function artwork<M>(
   const stroke =
     selected || selectionPreview
       ? 'var(--flow-selection, #2563eb)'
-      : architecture.role === 'hotspot' && architecture.status === 'resolved'
-        ? 'var(--zloz-event-storming-hotspot-resolved, #047857)'
-        : (roleAccent(architecture.role) ?? 'var(--flow-node-border, #64748b)');
+      : eventStormingAccent(architecture);
   return h.span(
     [h.DataAttribute('zloz-event-storming-body', node.id), h.Style({ display: 'contents' })],
     [

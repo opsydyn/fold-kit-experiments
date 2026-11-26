@@ -1,23 +1,30 @@
+import { Component } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+import { Layer, Schema } from 'effect';
+
+import { roomEnvironmentLayer } from './command';
 import { Message } from './message';
 import { Model } from './model';
-import { managedResources, subscriptions } from './presence';
+import { roomPresenceLayer, subscriptions } from './presence';
 import { init, update } from './update';
 import { view } from './view';
 
-/**
- * DevTools with the Message schema: in development the Foldkit DevTools MCP server can
- * then dispatch Messages, so an agent can arrange the room (`PlacedPlant`). Camera
- * gestures and presence are left out of the history: they come many a second.
- */
-export const devTools = {
-  Message,
-  excludeFromHistory: [
-    'MadeGesture',
-    'ReportedPoses',
-    'HeardPresence',
-    'TickedPresence',
-    'CompletedSay',
-  ],
-};
+const Room = Html.component({
+  name: 'ThreeRoom',
+  props: Schema.Struct({ assetBase: Schema.optionalKey(Schema.String) }),
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => init(props).model,
+  update: ($, message) => {
+    const next = update($.model, message);
+    return $.set(next.model).run(...(next.commands ?? []));
+  },
+  subscriptions,
+  view,
+});
 
-export { init, managedResources, Message, Model, subscriptions, update, view };
+export default Component.provide(Room, Layer.merge(roomEnvironmentLayer(), roomPresenceLayer()), {
+  server: false,
+  local: true,
+});

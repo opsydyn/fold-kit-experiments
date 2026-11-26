@@ -1,15 +1,15 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
+import { SceneStart } from '../effect-ui-scene';
 import { PlantKind, Vec3 } from './model';
 import { Wire } from './wire';
 
 export const Mode = Schema.Literals(['immersive-vr', 'immersive-ar']);
 export type Mode = typeof Mode.Type;
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   CheckedSupport: { mode: Mode, supported: Schema.Boolean },
   ClickedEnter: { mode: Mode },
   ClickedExit: {},
@@ -44,8 +44,7 @@ export const Message = defineMessageUnion({
   ConnectedRelay: {},
   FailedRelay: { reason: Schema.String },
   LostRelay: {},
-  ReleasedRelay: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

@@ -17,13 +17,12 @@ export const SceneStart = UiSchema.TaggedEnum({
 });
 
 /** Mounts a scene in the element's scope and follows its description argument. */
-export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
+// oxlint-disable-next-line linteffect/no-manual-effect-channels -- Keep the provider requirement generic so a room can share its environment with commands.
+export const defineScopedSceneMount = <R>(environment: Effect.Effect<Environment, never, R>) =>
   Mount.make(
     'EffectThreeScene',
     { args: { scene: SceneSchema.SceneDescription } },
     (element: HTMLElement, { scene }, changes) => {
-      const acquire = Effect.sync(createEnvironment);
-      const environment = Effect.acquireRelease(acquire, (created) => Effect.sync(created.dispose));
       const startup = environment.pipe(
         Effect.flatMap((environment) =>
           mountSceneHost({
@@ -49,6 +48,15 @@ export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
     },
   );
 
+export function scopedSceneEnvironment(createEnvironment: () => Environment) {
+  const acquire = Effect.sync(createEnvironment);
+  const environment = Effect.acquireRelease(acquire, (created) => Effect.sync(created.dispose));
+  return environment.pipe(Effect.withSpan('effect-three.samples.environment'));
+}
+
+export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
+  defineScopedSceneMount(scopedSceneEnvironment(createEnvironment));
+
 /** Connects typed scene events to Effect UI without a registered custom element. */
 export const EffectThreeStage = Html.customElement({
   tag: 'effect-three-scene',
@@ -59,19 +67,27 @@ export const EffectThreeStage = Html.customElement({
     'scene-gesture': SceneSchema.GestureDetail,
     'scene-collision': SceneSchema.CollisionDetail,
     'scene-contact-force': SceneSchema.ContactForceDetail,
+    'scene-asset-loaded': SceneSchema.AssetLoadedDetail,
+    'scene-asset-failed': SceneSchema.AssetFailedDetail,
+    'scene-xr': Schema.Struct({
+      mode: Schema.NullOr(Schema.Literals(['immersive-vr', 'immersive-ar'])),
+    }),
+    'scene-xr-surface': SceneSchema.XrSurfaceDetail,
+    'scene-xr-planes': SceneSchema.XrPlanesDetail,
+    'scene-xr-meshes': SceneSchema.XrMeshesDetail,
+    'scene-xr-moved': SceneSchema.XrMovedDetail,
+    'scene-xr-teleported': SceneSchema.XrTeleportedDetail,
+    'scene-xr-poses': SceneSchema.XrPosesDetail,
   },
 });
 
+export const createLabelledEnvironment = (loadPhysics?: () => Promise<PhysicsEngine>) => {
+  const options = { renderer: rendererForPage(window), labels: troikaLabels() };
+  return makeEnvironment(
+    window,
+    loadPhysics === undefined ? options : { ...options, physics: loadPhysics() },
+  );
+};
+
 export const defineLabelledSceneMount = (loadPhysics?: () => Promise<PhysicsEngine>) =>
-  defineEffectThreeMount(() => {
-    const options = { renderer: rendererForPage(window), labels: troikaLabels() };
-    return makeEnvironment(
-      window,
-      loadPhysics === undefined
-        ? options
-        : {
-            ...options,
-            physics: loadPhysics(),
-          },
-    );
-  });
+  defineEffectThreeMount(() => createLabelledEnvironment(loadPhysics));

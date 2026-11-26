@@ -1,15 +1,17 @@
+import type { Command } from '@effect/ui';
 import { glided, type Gesture, orbit, orbitOptions, teleported } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { CheckSupport, Enter, Exit } from './command';
-import { Message } from './message';
+import type { Message } from './message';
 import { initialModel, type Model, mostPlants, type PlantKind } from './model';
-import { NamePlayer, type RelayService, Say } from './presence';
+import { NamePlayer, Say } from './presence';
 import { quietMilliseconds, type Relay, type Wire } from './wire';
 
-type AppReturn = Return<Model, Message, RelayService>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message, CheckSupport | Enter | Exit | Say>>;
+};
 
 /** A plant of `kind` at `point`, the oldest going once there are too many. */
 const planted = (
@@ -51,7 +53,9 @@ const say = (model: Model, wire: (peer: string) => Wire): AppReturn =>
     onNone: () => ({ model }),
     onSome: (peer) => ({
       model,
-      commands: [Say({ wire: wire(peer), via: Option.isSome(model.relay) ? 'relay' : 'tabs' })],
+      commands: [
+        Say.make({ wire: wire(peer), via: Option.isSome(model.relay) ? 'relay' : 'tabs' }),
+      ],
     }),
   });
 
@@ -88,65 +92,72 @@ const linked = (model: Model, link: Relay['link']): Model => ({
 
 export const init = (props: { readonly assetBase?: string } = {}) => ({
   model: initialModel(props.assetBase ?? '/models/'),
-  commands: [
-    CheckSupport({ mode: 'immersive-vr' }),
-    CheckSupport({ mode: 'immersive-ar' }),
-    NamePlayer(),
-  ],
 });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    CheckedSupport: ({ mode, supported }) => ({
-      model:
-        mode === 'immersive-vr'
-          ? { ...model, vr: support[`${supported}`] }
-          : { ...model, ar: support[`${supported}`] },
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      CheckedSupport: ({ mode, supported }) => ({
+        model:
+          mode === 'immersive-vr'
+            ? { ...model, vr: support[`${supported}`] }
+            : { ...model, ar: support[`${supported}`] },
+      }),
+      ClickedEnter: ({ mode }) => ({
+        model: { ...model, session: 'entering' },
+        commands: [Enter.make({ mode })],
+      }),
+      ClickedExit: () => ({ model, commands: [Exit.make()] }),
+      FailedEnter: () => ({ model: { ...model, session: 'none' } }),
+      // The session's end arrives whoever ends it; what was detected goes with it.
+      // Leaving the session, the player stops being shown to the others.
+      ChangedSession: ({ mode }) =>
+        mode === null
+          ? bye({ ...model, session: 'none', planes: [], meshes: [] })
+          : { model: { ...model, session: mode } },
+      ClickedFloor: ({ point }) => ({ model: planted(model, onFloor(point), model.kind) }),
+      ChoseKind: ({ kind }) => ({ model: { ...model, kind } }),
+      PlacedPlant: ({ at, kind }) => ({ model: planted(model, onFloor(at), kind) }),
+      ClickedPlant: ({ id }) => ({
+        model: Struct.assign(model, { plants: model.plants.filter((plant) => plant.id !== id) }),
+      }),
+      ClickedClear: () => ({ model: { ...model, plants: [] } }),
+      SelectedSurface: ({ surface }) => ({ model: planted(model, surface.point, model.kind) }),
+      DetectedPlanes: ({ detected }) => ({ model: { ...model, planes: detected.planes } }),
+      DetectedMeshes: ({ detected }) => ({ model: { ...model, meshes: detected.meshes } }),
+      Glided: ({ moved }) => ({
+        model: Struct.assign(model, { player: glided(model.player, moved) }),
+      }),
+      Teleported: ({ teleported: arrived }) => ({
+        model: Struct.assign(model, { player: teleported(model.player, arrived) }),
+      }),
+      ReportedPoses: ({ poses }) => say(model, (peer) => ({ _tag: 'Pose', peer, poses })),
+      NamedPlayer: ({ peer, relay }) => ({
+        model: {
+          ...model,
+          self: Option.some(peer),
+          relay: Option.map(relay, (url) => ({ url, link: 'Connecting' as const })),
+        },
+      }),
+      HeardPresence: ({ wire, at }) => ({ model: heard(model, wire, at) }),
+      TickedPresence: ({ at }) => ({ model: swept(model, at) }),
+      LeftPage: () => bye(model),
+      CompletedSay: () => ({ model }),
+      ConnectedRelay: () => ({ model: linked(model, 'Open') }),
+      FailedRelay: () => ({ model: linked(model, 'Lost') }),
+      LostRelay: () => ({ model: linked(model, 'Lost') }),
+      MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+      ReceivedSceneLifecycle: ({ lifecycle }) =>
+        lifecycle._tag === 'FailedScene'
+          ? { model: Struct.assign(model, { sceneFailure: lifecycle.reason }) }
+          : {
+              model,
+              commands: [
+                CheckSupport.make({ mode: 'immersive-vr' }),
+                CheckSupport.make({ mode: 'immersive-ar' }),
+                NamePlayer.make(),
+              ],
+            },
     }),
-    ClickedEnter: ({ mode }) => ({
-      model: { ...model, session: 'entering' },
-      commands: [Enter({ mode })],
-    }),
-    ClickedExit: () => ({ model, commands: [Exit()] }),
-    FailedEnter: () => ({ model: { ...model, session: 'none' } }),
-    // The session's end arrives whoever ends it; what was detected goes with it.
-    // Leaving the session, the player stops being shown to the others.
-    ChangedSession: ({ mode }) =>
-      mode === null
-        ? bye({ ...model, session: 'none', planes: [], meshes: [] })
-        : { model: { ...model, session: mode } },
-    ClickedFloor: ({ point }) => ({ model: planted(model, onFloor(point), model.kind) }),
-    ChoseKind: ({ kind }) => ({ model: { ...model, kind } }),
-    PlacedPlant: ({ at, kind }) => ({ model: planted(model, onFloor(at), kind) }),
-    ClickedPlant: ({ id }) => ({
-      model: modifyFields(model, { plants: (plants) => plants.filter((plant) => plant.id !== id) }),
-    }),
-    ClickedClear: () => ({ model: { ...model, plants: [] } }),
-    SelectedSurface: ({ surface }) => ({ model: planted(model, surface.point, model.kind) }),
-    DetectedPlanes: ({ detected }) => ({ model: { ...model, planes: detected.planes } }),
-    DetectedMeshes: ({ detected }) => ({ model: { ...model, meshes: detected.meshes } }),
-    Glided: ({ moved }) => ({
-      model: modifyFields(model, { player: (player) => glided(player, moved) }),
-    }),
-    Teleported: ({ teleported: arrived }) => ({
-      model: modifyFields(model, { player: (player) => teleported(player, arrived) }),
-    }),
-    ReportedPoses: ({ poses }) => say(model, (peer) => ({ _tag: 'Pose', peer, poses })),
-    NamedPlayer: ({ peer, relay }) => ({
-      model: {
-        ...model,
-        self: Option.some(peer),
-        relay: Option.map(relay, (url) => ({ url, link: 'Connecting' as const })),
-      },
-    }),
-    HeardPresence: ({ wire, at }) => ({ model: heard(model, wire, at) }),
-    TickedPresence: ({ at }) => ({ model: swept(model, at) }),
-    LeftPage: () => bye(model),
-    CompletedSay: () => ({ model }),
-    ConnectedRelay: () => ({ model: linked(model, 'Open') }),
-    FailedRelay: () => ({ model: linked(model, 'Lost') }),
-    LostRelay: () => ({ model: linked(model, 'Lost') }),
-    ReleasedRelay: () => ({ model }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

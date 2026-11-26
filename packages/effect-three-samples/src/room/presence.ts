@@ -6,8 +6,19 @@
  * the tabletop use. Poses are latest-wins, so they go straight out rather than through a
  * lockstep session's turns: no one waits for them, and a lost one is replaced by the next.
  */
-import { Cause, Duration, Effect, Option, Queue, Schema, Stream } from 'effect';
-import { Command, ManagedResource, Subscription } from 'foldkit';
+import { Command, Subscription } from '@effect/ui';
+import {
+  Cause,
+  Context,
+  Duration,
+  Effect,
+  Layer,
+  Option,
+  Queue,
+  Ref,
+  Schema,
+  Stream,
+} from 'effect';
 
 import { Message } from './message';
 import type { Model } from './model';
@@ -21,8 +32,9 @@ export type RelayLink = {
   readonly heard: Queue.Queue<Wire, Cause.Done>;
 };
 
-export const RelaySocket = ManagedResource.tag<RelayLink>()('RoomRelaySocket');
-export type RelayService = ManagedResource.ServiceOf<typeof RelaySocket>;
+class RoomRelay extends Context.Service<RoomRelay, Ref.Ref<Option.Option<RelayLink>>>()(
+  'RoomRelay',
+) {}
 
 const WireText = Schema.fromJsonString(Wire);
 const encodeWireText = Schema.encodeSync(WireText);
@@ -53,46 +65,56 @@ const connect = (url: string, heard: RelayLink['heard']): WebSocket => {
   return socket;
 };
 
-const whenOpen = (socket: WebSocket, opened: () => void, refused: () => void): void => {
-  const giveUp = setTimeout(refused, relayConnectMilliseconds);
-  const settle = (outcome: () => void) => () => {
-    clearTimeout(giveUp);
-    outcome();
-  };
-  socket.addEventListener('open', settle(opened), { once: true });
-  socket.addEventListener('error', settle(refused), { once: true });
-};
+// oxlint-disable-next-line linteffect/no-effect-wrapper-alias -- Own the handshake listeners through success, failure, and cancellation.
+function waitForOpen(socket: WebSocket, url: string) {
+  const ready = Effect.callback<void, string>((resume) => {
+    const opened = () => {
+      cleanup();
+      resume(Effect.void);
+    };
+    const refused = () => {
+      cleanup();
+      resume(Effect.fail(`No relay at ${url}`));
+    };
+    const timeout = setTimeout(refused, relayConnectMilliseconds);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.removeEventListener('open', opened);
+      socket.removeEventListener('error', refused);
+      socket.removeEventListener('close', refused);
+    };
+    socket.addEventListener('open', opened);
+    socket.addEventListener('error', refused);
+    socket.addEventListener('close', refused);
+    return Effect.sync(cleanup);
+  });
+  return ready.pipe(Effect.withSpan('effect-three.room.relay.connect'));
+}
 
-/** The relay socket, for as long as the Model names a relay it has not lost. */
-export const managedResources = ManagedResource.make<Model, Message>()((entry) => ({
-  relay: entry(Schema.Option(Schema.String), {
-    resource: RelaySocket,
-    modelToMaybeRequirements: (model) =>
-      Option.filter(model.relay, (relay) => relay.link !== 'Lost').pipe(
-        Option.map((relay) => relay.url),
-      ),
-    acquire: (url) =>
-      Effect.gen(function* () {
-        const heard = yield* Queue.bounded<Wire, Cause.Done>(relayBacklog);
-        const connecting = Effect.sync(() => connect(url, heard));
-        const socket = yield* Effect.acquireRelease(connecting, (socket) =>
-          Effect.sync(() => socket.close()),
-        );
-        yield* Effect.callback<void, string>((resume) =>
-          whenOpen(
-            socket,
-            () => resume(Effect.void),
-            () => resume(Effect.fail(`No relay at ${url}`)),
-          ),
-        );
-        return { socket, heard };
-      }),
-    release: () => Effect.void,
-    onAcquired: () => Message.ConnectedRelay(),
-    onAcquireError: (reason) => Message.FailedRelay({ reason: String(reason) }),
-    onReleased: () => Message.ReleasedRelay(),
-  }),
-}));
+/** The keyed stream owns the socket, its queue and the service's current link. */
+function relayMessages(url: string) {
+  const connection = Effect.gen(function* () {
+    const active = yield* RoomRelay;
+    const heard = yield* Effect.acquireRelease(
+      Queue.bounded<Wire, Cause.Done>(relayBacklog),
+      Queue.shutdown,
+    );
+    const open = Effect.try({
+      try: () => connect(url, heard),
+      catch: () => `No relay at ${url}`,
+    });
+    const socket = yield* Effect.acquireRelease(open, (socket) =>
+      Effect.sync(() => socket.close()),
+    );
+    yield* waitForOpen(socket, url);
+    yield* Effect.acquireRelease(Ref.set(active, Option.some({ socket, heard })), () =>
+      Ref.set(active, Option.none()),
+    );
+    return Stream.make(Message.ConnectedRelay()).pipe(Stream.concat(relayHeard({ socket, heard })));
+  });
+  const messages = Stream.unwrap(connection);
+  return messages.pipe(Stream.catch((reason) => Stream.succeed(Message.FailedRelay({ reason }))));
+}
 
 // COMMANDS
 
@@ -111,28 +133,40 @@ const sayToTabs = (wire: Wire) => () => {
 };
 
 /** Says something to every other room page: over the channel, or through the relay. */
-export const Say = Command.define('Say', {
+export class Say extends Command.Service<Say>()('Say', {
   args: { wire: Wire, via: Schema.Literals(['tabs', 'relay']) },
-  messages: [Message.CompletedSay],
-  execute: ({ wire, via }) =>
+  success: Message,
+}) {}
+
+const send =
+  (active: Ref.Ref<Option.Option<RelayLink>>) =>
+  ({ wire, via }: { readonly wire: Wire; readonly via: 'tabs' | 'relay' }) =>
     via === 'tabs'
       ? Effect.sync(sayToTabs(wire))
-      : RelaySocket.get.pipe(
-          Effect.map(sayOn(wire)),
-          Effect.orElseSucceed(() => Message.CompletedSay()),
-        ),
-});
+      : Ref.get(active).pipe(
+          Effect.map(
+            Option.match({
+              onNone: () => Message.CompletedSay(),
+              onSome: sayOn(wire),
+            }),
+          ),
+        );
+
+export function roomPresenceLayer() {
+  const relay = Layer.effect(RoomRelay, Ref.make(Option.none<RelayLink>()));
+  const say = Say.toLayer(Effect.map(RoomRelay, send));
+  return say.pipe(Layer.provideMerge(relay));
+}
 
 /** A name for this player, and the relay the page names. */
-export const NamePlayer = Command.define('NamePlayer', {
-  messages: [Message.NamedPlayer],
-  execute: Effect.sync(() =>
+export const NamePlayer = Command.make('NamePlayer', { args: {} }, () =>
+  Effect.sync(() =>
     Message.NamedPlayer({
       peer: crypto.randomUUID().slice(0, 8),
       relay: relayIn(window.location.search),
     }),
   ),
-});
+);
 
 // SUBSCRIPTIONS
 
@@ -166,13 +200,6 @@ const relayHeard = ({ heard }: RelayLink) =>
     Stream.concat(Stream.succeed(Message.LostRelay())),
   );
 
-const heardOnRelay = Stream.unwrap(
-  RelaySocket.get.pipe(
-    Effect.map(relayHeard),
-    Effect.orElseSucceed(() => Stream.empty),
-  ),
-);
-
 const onPageHide = (queue: Queue.Queue<null, Cause.Done>) => () => {
   const listener = () => Queue.offerUnsafe(queue, null);
   window.addEventListener('pagehide', listener);
@@ -187,36 +214,24 @@ const watchLeaving = (queue: Queue.Queue<null, Cause.Done>) => {
   return Effect.acquireRelease(watch, (listener) => Effect.sync(offPageHide(listener)));
 };
 
-/** Where this page hears others: the channel once named without a relay, or the relay. */
-const hearing = (model: Model) => ({
-  tabs: Option.isSome(model.self) && Option.isNone(model.relay),
-  relay: Option.exists(model.relay, (relay) => relay.link === 'Open'),
-});
-
 /** How often players unheard for too long are let go. */
 const sweepMilliseconds = 500;
 
-export const subscriptions = Subscription.make<Model, Message, RelayService>()((entry) => ({
-  leaving: Subscription.persistentEntry(
+export const subscriptions = ({ model }: { readonly model: Model }) => [
+  Subscription.make(
+    'leaving',
     Stream.callback<null>(watchLeaving).pipe(Stream.map(() => Message.LeftPage())),
   ),
-  heardOnChannel: entry(
-    { tabs: Schema.Boolean },
-    {
-      modelToDependencies: (model) => ({ tabs: hearing(model).tabs }),
-      dependenciesToStream: ({ tabs }) => (tabs ? heardOnChannel : Stream.empty),
-    },
-  ),
-  heardOnRelay: entry(
-    { relay: Schema.Boolean },
-    {
-      modelToDependencies: (model) => ({ relay: hearing(model).relay }),
-      dependenciesToStream: ({ relay }) => (relay ? heardOnRelay : Stream.empty),
-    },
-  ),
-  sweep: Subscription.persistentEntry(
+  Option.isSome(model.self) &&
+    Option.isNone(model.relay) &&
+    Subscription.make('tabs', heardOnChannel),
+  Option.isSome(model.relay) &&
+    model.relay.value.link !== 'Lost' &&
+    Subscription.make('relay', model.relay.value.url, relayMessages),
+  Subscription.make(
+    'sweep',
     Stream.tick(Duration.millis(sweepMilliseconds)).pipe(
       Stream.map(() => Message.TickedPresence({ at: Date.now() })),
     ),
   ),
-}));
+];

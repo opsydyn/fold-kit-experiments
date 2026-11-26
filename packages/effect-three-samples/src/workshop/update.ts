@@ -1,12 +1,9 @@
-import { Match, Option } from 'effect';
-import { fail, succeed } from 'foldkit/asyncData';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import { assetIds, initialModel, type Model, type RobotInfo } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 export const init = (props: { readonly assetBase?: string } = {}) => ({
   // The scene asks for its assets (see scene.ts): nothing to run here.
@@ -16,17 +13,19 @@ export const init = (props: { readonly assetBase?: string } = {}) => ({
 /** A level of an asset the scene asked for has loaded: its status settled, by id. */
 const loadedAsset = (model: Model, id: string, info: RobotInfo): Model =>
   Match.value(id).pipe(
-    Match.when(assetIds.robot, () => ({ ...model, robot: succeed(info) })),
-    Match.when(assetIds.floor, () => ({ ...model, floor: succeed(info.final) })),
-    Match.when(assetIds.font, () => ({ ...model, font: succeed(id) })),
+    Match.withReturnType<Model>(),
+    Match.when(assetIds.robot, () => ({ ...model, robot: { _tag: 'Success', data: info } })),
+    Match.when(assetIds.floor, () => ({ ...model, floor: { _tag: 'Success', data: info.final } })),
+    Match.when(assetIds.font, () => ({ ...model, font: { _tag: 'Success', data: id } })),
     Match.orElse(() => model),
   );
 
 const failedAsset = (model: Model, id: string, reason: string): Model =>
   Match.value(id).pipe(
-    Match.when(assetIds.robot, () => ({ ...model, robot: fail(reason) })),
-    Match.when(assetIds.floor, () => ({ ...model, floor: fail(reason) })),
-    Match.when(assetIds.font, () => ({ ...model, font: fail(reason) })),
+    Match.withReturnType<Model>(),
+    Match.when(assetIds.robot, () => ({ ...model, robot: { _tag: 'Failure', error: reason } })),
+    Match.when(assetIds.floor, () => ({ ...model, floor: { _tag: 'Failure', error: reason } })),
+    Match.when(assetIds.font, () => ({ ...model, font: { _tag: 'Failure', error: reason } })),
     Match.orElse(() => model),
   );
 
@@ -52,17 +51,21 @@ const reload = (model: Model): Model => ({
 const whileWanted = (model: Model, next: () => Model): Model => (model.wanted ? next() : model);
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    LoadedAsset: ({ id, final, parts, clips }) => ({
-      model: whileWanted(model, () => loadedAsset(model, id, { parts, clips, final })),
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      LoadedAsset: ({ id, final, parts, clips }) => ({
+        model: whileWanted(model, () => loadedAsset(model, id, { parts, clips, final })),
+      }),
+      FailedAsset: ({ id, reason }) => ({
+        model: whileWanted(model, () => failedAsset(model, id, reason)),
+      }),
+      ClickedClip: ({ clip }) => ({ model: Struct.assign(model, { clip }) }),
+      ChangedSpeed: ({ speed }) => ({ model: Struct.assign(model, { speed }) }),
+      ClickedPart: ({ part }) => ({ model: Struct.assign(model, { part: Option.some(part) }) }),
+      ClickedUnload: () => ({ model: unload(model) }),
+      ClickedReload: () => ({ model: reload(model) }),
+      ReceivedSceneLifecycle: ({ lifecycle }) => ({
+        model: Struct.assign(model, { sceneStatus: lifecycle }),
+      }),
     }),
-    FailedAsset: ({ id, reason }) => ({
-      model: whileWanted(model, () => failedAsset(model, id, reason)),
-    }),
-    ClickedClip: ({ clip }) => ({ model: modifyFields(model, { clip: () => clip }) }),
-    ChangedSpeed: ({ speed }) => ({ model: modifyFields(model, { speed: () => speed }) }),
-    ClickedPart: ({ part }) => ({ model: modifyFields(model, { part: () => Option.some(part) }) }),
-    ClickedUnload: () => ({ model: unload(model) }),
-    ClickedReload: () => ({ model: reload(model) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

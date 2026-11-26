@@ -3,7 +3,7 @@ import { beforeAll, expect, mock, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 
 import { Window as TestWindow } from 'happy-dom';
-import { chromium } from 'playwright';
+import { chromium, type WebSocketRoute } from 'playwright';
 
 import renderer from '../../../packages/astro-effect-ui/src/client';
 import interaction from '../../../packages/astro-effect-ui/src/directive-interaction';
@@ -619,7 +619,6 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
       await readout.filter({ hasText: '10 pins standing' }).waitFor();
       await page.getByRole('slider', { name: 'Speed' }).press('ArrowRight');
       await page.getByRole('button', { name: 'Roll', exact: true }).click();
-      await readout.filter({ hasText: 'Rolling' }).waitFor();
       const link = page.getByRole('link', { name: 'Link to this game' });
       await link.waitFor();
       const fragment = await link.getAttribute('href');
@@ -633,6 +632,115 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
       await readout
         .filter({ hasText: 'Replayed 1 rolls: every one knocked down the same pins' })
         .waitFor();
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  45_000,
+);
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Workshop releases and reloads its assets, and Room scopes its relay to the island',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage();
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const models = new URL('../../../apps/three-promo/public/models/', import.meta.url);
+      const requests: Array<string> = [];
+      await page.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname.startsWith('/models/')) {
+          requests.push(pathname);
+          await route.fulfill({
+            path: new URL(pathname.slice('/models/'.length), models).pathname,
+          });
+          return;
+        }
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+
+      const texture = page.waitForResponse(
+        (response) => response.url().endsWith('tiles.png') && response.ok(),
+      );
+      const sign = page.waitForResponse(
+        (response) => response.url().endsWith('inter-bold.typeface.json') && response.ok(),
+      );
+      await page.goto(`${siteOrigin}/three-scenes/workshop/`);
+      await Promise.all([texture, sign]);
+      const readout = page.locator('.e3-readout');
+      const ready = readout.filter({ hasText: /^Loaded:.*wave and roll/ });
+      await ready.waitFor();
+      expect(requests).toEqual(
+        expect.arrayContaining([
+          '/models/robot-low.glb',
+          '/models/robot.glb',
+          '/models/tiles-low.png',
+          '/models/tiles.png',
+          '/models/inter-bold.typeface.json',
+        ]),
+      );
+      const canvas = page.locator('effect-three-scene canvas');
+      const original = await canvas.elementHandle();
+      await page.getByRole('button', { name: 'Still', exact: true }).press('Enter');
+      expect(
+        await page.getByRole('button', { name: 'Still', exact: true }).getAttribute('aria-pressed'),
+      ).toBe('true');
+      await page.getByRole('button', { name: 'Unload' }).click();
+      await readout.filter({ hasText: 'Unloaded:' }).waitFor();
+      const loadedAgain = page.waitForResponse(
+        (response) => response.url().endsWith('/robot.glb') && response.ok(),
+      );
+      await page.getByRole('button', { name: 'Reload' }).click();
+      await loadedAgain;
+      await ready.waitFor();
+      expect(
+        await original.evaluate(
+          (node) => node === document.querySelector('effect-three-scene canvas'),
+        ),
+      ).toBe(true);
+
+      const connected = Promise.withResolvers<WebSocketRoute>();
+      const disconnected = Promise.withResolvers<void>();
+      const poseSent = Promise.withResolvers<string>();
+      await page.routeWebSocket('wss://room-relay.test/room', (socket) => {
+        socket.onMessage((message) => poseSent.resolve(String(message)));
+        socket.onClose(() => disconnected.resolve());
+        connected.resolve(socket);
+      });
+      await page.goto(`${siteOrigin}/three-scenes/room/?relay=wss%3A%2F%2Froom-relay.test%2Froom`);
+      const relay = await connected.promise;
+      const room = await canvas.elementHandle();
+      const poses = {
+        head: { position: [0, 1.6, 0], quaternion: [0, 0, 0, 1] },
+        left: null,
+        right: null,
+      };
+      relay.send(JSON.stringify({ _tag: 'Pose', peer: 'another', poses }));
+      await readout.filter({ hasText: '1 other player is in the room' }).waitFor();
+      await page
+        .locator('effect-three-scene')
+        .evaluate(
+          (node, detail) => node.dispatchEvent(new CustomEvent('scene-xr-poses', { detail })),
+          poses,
+        );
+      expect(await poseSent.promise).toContain('"_tag":"Pose"');
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await disconnected.promise;
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        room,
+      );
       expect(errors).toEqual([]);
     } finally {
       await browser.close();

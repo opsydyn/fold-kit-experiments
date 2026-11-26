@@ -405,5 +405,54 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "run": 45783550300,
+    "attempt": 1,
+    "commit": "ea040649e4a6a3f8e262b41c638141c60fd32194",
+    "startedAt": "2026-11-26T08:29:10Z",
+    "reportSha256": "0d9bf46d6f43773f26938af5ebbc57018f384f95e3c6091f054039169d5f10f5",
+    "entries": [
+      {
+        "id": "116286ce3a0b8b8c221fa7ba",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "fieldGuide",
+        "genre": "FnValue",
+        "line": 47,
+        "outcome": "caught"
+      },
+      {
+        "id": "04ee581b732e4598d90340fb",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "loadGuide.onSuccess",
+        "genre": "FnValue",
+        "line": 119,
+        "outcome": "caught"
+      },
+      {
+        "id": "72962e88b0007b41cc6e60f9",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "loadGuide.onSuccess",
+        "genre": "FnValue",
+        "line": 119,
+        "outcome": "caught"
+      },
+      {
+        "id": "1fae80fdb213c480e3eea4cf",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "loadGuide.onFailure",
+        "genre": "FnValue",
+        "line": 120,
+        "outcome": "caught"
+      },
+      {
+        "id": "bba3e3b7b3411ae4d92b9f39",
+        "file": "src/apps/mutant-field-guide/archive.ts",
+        "fn": "loadGuide.onFailure",
+        "genre": "FnValue",
+        "line": 120,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

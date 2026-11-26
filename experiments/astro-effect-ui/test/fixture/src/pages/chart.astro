@@ -1,0 +1,19 @@
+---
+import { deploymentChart, reportChart } from '../ReportChart';
+import { VizBarChart } from '../VizBarChart';
+---
+<html lang="en">
+  <head><title>Reports by month</title></head>
+  <body>
+    <main>
+      <h1>Reports by month</h1>
+      <section id="static-chart" aria-label="Static chart"><VizBarChart {...reportChart} interactive={false} /></section>
+      <section id="interactive-chart" aria-label="Interactive chart">
+        <VizBarChart {...reportChart} interactive={true} client:load />
+      </section>
+      <section id="deployment-chart" aria-label="Deployments chart">
+        <VizBarChart {...deploymentChart} client:load />
+      </section>
+    </main>
+  </body>
+</html>

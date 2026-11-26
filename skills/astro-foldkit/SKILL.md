@@ -13,18 +13,18 @@ Commands and remote-data policy. No chart package is required.
 
 Read the consumer's manifest, lockfile and installed package exports before
 choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
-`0.13.0`, FoldKit `0.171.0`, Effect `4.1.0` and Astro `7.4.11`. `0.13.0` peers on FoldKit
+`0.13.0`, FoldKit `0.171.0`, Effect `4.1.6` and Astro `7.4.11`. `0.13.0` peers on FoldKit
 `>=0.170.0 <0.172.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
-release of the integration, not this one. This is a tested
-baseline, not a claim about the latest release. The integration peers on Astro
+release of the integration, not this one. These are the versions pinned by the example. The integration peers on Astro
 `>=5.0.0`, and the repository's CI builds a fixture site with each of Astro 5, 6
 and 7; Astro 4 is unsupported, as FoldKit's Vite plugin needs Vite's environment
 API. For a different version, check its declarations and release notes first.
 Upgrading from FoldKit 0.167: follow the
 [0.170 migration guide](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/migrations/foldkit-0.170.md).
-With FoldKit, pin `@effect/platform-browser` to the same version as `effect` (`4.1.0`
-here). FoldKit 0.171 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
-requires an equal or newer `effect` and fails to resolve against an exact `4.1.0`.
+With FoldKit, pin a browser platform version whose Effect peer range
+accepts the application’s installed Effect version. FoldKit 0.171 accepts the
+`~4.1.0` range for the browser platform, so an unpinned install may select a
+release that requires a newer Effect patch.
 
 Use package imports, including the default integration import from
 `@opsydyn/astro-foldkit`. Do not substitute monorepo source paths. A local

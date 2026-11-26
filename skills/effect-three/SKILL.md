@@ -14,16 +14,17 @@ resource, renderer and listener. This skill works without Astro or another skill
 
 Read the installed versions, export maps and declarations before choosing APIs. The
 [headless example](assets/headless/package.json) targets the published
-`@opsydyn/effect-three@0.6.4` with `three@0.186.1` and `effect@4.1.0`, and needs no
+`@opsydyn/effect-three@0.6.4` with `three@0.186.1` and `effect@4.1.6`, and needs no
 browser. The Foldkit adapter accepts FoldKit `0.167` to `0.170` and is qualified on
-`0.170`. These are qualified baselines, not instructions to downgrade another project.
+`0.170`. Use the consumer’s installed versions to decide which API is available.
 
 The four packages are released together at one version, and `-foldkit`, `-rapier` and
 `-troika` take the core as a peer at exactly that version: install matching versions,
 one core per application. They are `0.x`: a breaking change bumps the minor version.
-With FoldKit, pin `@effect/platform-browser` to the same version as `effect` (`4.1.0`
-here). FoldKit 0.171 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
-requires an equal or newer `effect` and fails to resolve against an exact `4.1.0`.
+With FoldKit, pin a browser platform version whose Effect peer range
+accepts the application’s installed Effect version. FoldKit 0.171 accepts the
+`~4.1.0` range for the browser platform, so an unpinned install may select a
+release that requires a newer Effect patch.
 
 ## Choose the smallest layer
 

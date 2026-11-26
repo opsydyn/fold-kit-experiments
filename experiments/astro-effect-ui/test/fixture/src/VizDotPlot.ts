@@ -1,6 +1,6 @@
 import { Html } from '@effect/ui/html';
 import { compileChecked, decodePlot } from '@opsydyn/foldkit-viz/effect/plot';
-import { Schema } from 'effect';
+import { Result, Schema } from 'effect';
 
 /** The fixture exercises the wire boundary and the circle renderer. */
 export const VizDotPlot = Html.component({
@@ -12,10 +12,8 @@ export const VizDotPlot = Html.component({
   init: () => null,
   update: ($) => $.model,
   view: (h) => {
-    const decoded = decodePlot(h.props.spec);
-    if (decoded._tag === 'Failure') return h.p(decoded.failure.message);
-    const compiled = compileChecked(decoded.success);
-    if (compiled._tag === 'Failure') return h.p(compiled.failure.message);
+    const compiled = decodePlot(h.props.spec).pipe(Result.flatMap(compileChecked));
+    if (Result.isFailure(compiled)) return h.p(compiled.failure.message);
 
     const geometry = compiled.success;
     const dots = geometry.facets

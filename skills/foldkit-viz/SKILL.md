@@ -14,12 +14,9 @@ interaction policy. This skill works without Astro or its integration skill.
 Read the installed version, export map and declarations before selecting APIs. The [pure
 scatter example](assets/scatter/package.json) targets the published
 `@opsydyn/foldkit-viz@0.18.0` contract and installs neither FoldKit, Effect nor Astro.
-Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` in Viz 0.19.1 and Effect 4, and are
-qualified on FoldKit `0.171.0` with Effect `4.1.0`. These are qualified baselines, not
-instructions to downgrade another project. When using the adapters, pin
-`@effect/platform-browser` to the same version as `effect` (`4.1.0` here). FoldKit 0.171
-accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which requires an equal or
-newer `effect` and fails to resolve against an exact `4.1.0`.
+Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.172.0` in Viz 0.19.1 and Effect 4.
+When using these adapters, pin a browser platform version whose Effect peer
+range accepts the application’s installed Effect version.
 
 Every subpath in the table below is published by `0.19.0`; rows marked `0.19.0`+
 need that release or newer. New in `0.19.0`: SVG and PNG export, named and

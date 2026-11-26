@@ -3,7 +3,7 @@
 This fixture tests direct Effect UI component imports using the workspace's
 private Astro renderer. The root catalog pins Effect UI to commit `77dcd92`
 and Effect to 4.1.6. Install the fixture dependencies separately to test against
-a packed copy of Viz.
+packed copies of Viz and Effect Three.
 
 Install the root workspace, then run these commands from this directory.
 
@@ -14,8 +14,8 @@ bun run typecheck
 bun run test
 ```
 
-The setup packs the local Viz build so the preview installs it using the
-same package boundary as an external consumer.
+The setup packs local builds of Viz and its Effect Three peer. The fixtures
+exercise the same package boundaries as an external consumer.
 The tests build an Astro site, inspect its static HTML and exercise the client
 renderer against the built markup in Happy DOM. To test Astro's real
 `ClientRouter` and `client:visible` behavior, install Chromium with

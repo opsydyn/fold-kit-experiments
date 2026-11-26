@@ -1,27 +1,32 @@
 /**
- * The tabletop's own environment: the samples' renderer, plus Rapier's deterministic
- * build, so peers on different machines simulate the same world (ADR-014). With
- * `?physics=worker` the world steps in a worker instead (ADR-017), and agrees with peers
- * whose worlds step in their pages.
+ * Rapier's deterministic build keeps each peer's world in step (ADR-014).
+ * With `?physics=worker` the world steps in a worker instead (ADR-017).
  */
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { makeEnvironment } from '@opsydyn/effect-three-foldkit/browser';
 import { loadRapier } from '@opsydyn/effect-three-rapier/deterministic';
 import { remotePhysics } from '@opsydyn/effect-three-rapier/worker';
+import { Effect } from 'effect';
 
+import { defineScopedSceneMount } from '../effect-ui-scene';
 import { rendererForPage } from '../renderer';
 
-/** Whether the page asks for its physics in a worker. */
-export const physicsInWorker = (page: Window): boolean =>
-  new URL(page.location.href).searchParams.get('physics') === 'worker';
+const createWorker = () =>
+  new Worker(new URL('./physics.worker.ts', import.meta.url), { type: 'module' });
 
-const physicsFor = (page: Window) =>
-  physicsInWorker(page)
-    ? remotePhysics(new Worker(new URL('./physics.worker.ts', import.meta.url), { type: 'module' }))
-    : loadRapier();
+const openWorker = Effect.sync(createWorker);
+const worker = Effect.acquireRelease(openWorker, (active) => Effect.sync(() => active.terminate()));
 
-export const environment = EffectThreeFoldkit.makeEnvironment(window, {
-  renderer: rendererForPage(window),
-  physics: physicsFor(window),
-});
+function* acquireEnvironment() {
+  const inWorker = new URL(window.location.href).searchParams.get('physics') === 'worker';
+  const physics = inWorker ? remotePhysics(yield* worker) : loadRapier();
+  return makeEnvironment(window, { renderer: rendererForPage(window), physics });
+}
 
-export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+const openEnvironment = Effect.gen(acquireEnvironment);
+const scopedEnvironment = Effect.acquireRelease(openEnvironment, (created) =>
+  Effect.sync(created.dispose),
+);
+
+export const sceneMount = defineScopedSceneMount(
+  scopedEnvironment.pipe(Effect.withSpan('effect-three.tabletop.environment')),
+);

@@ -1,8 +1,9 @@
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { Lockstep } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Match, Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
+import { EffectThreeStage } from '../effect-ui-scene';
 import { sceneMount } from './environment';
 import { Message } from './message';
 import type { Model } from './model';
@@ -10,13 +11,15 @@ import { fragmentOf, recordOf } from './replay';
 import { sceneFor } from './scene';
 import type { Relay } from './wire';
 
-type H = HtmlBuilder<Message>;
+type H = Html.H<Message>;
 
-const button = (h: H, label: string, enabled: boolean, message: Message): Html =>
-  h.button(
-    [h.Class('e3-button'), h.Type('button'), h.Disabled(!enabled), h.OnClick(message)],
-    [label],
-  );
+const button = (h: H, label: string, enabled: boolean, message: Message) =>
+  h.button
+    .class('e3-button')
+    .attr('type', 'button')
+    .disabled(!enabled)
+    .on('click', message)
+    .children(label);
 
 const others = (lockstep: Lockstep.Lockstep<unknown>): number =>
   Lockstep.membersAt(lockstep, lockstep.turn).length - 1;
@@ -77,16 +80,16 @@ const together = (model: Model): string => {
 };
 
 /** Who this peer plays with, and a way back to the relay once it has lost it. */
-const session = (model: Model, h: H): Html =>
-  h.p(
-    [h.Class('e3-note e3-together'), h.AriaLive('polite')],
-    [
+const session = (model: Model, h: H) =>
+  h.p
+    .class('e3-note e3-together')
+    .attr('aria-live', 'polite')
+    .children(
       together(model),
       ...(!model.away && Option.exists(model.relay, (relay) => relay.link === 'Lost')
         ? [' ', button(h, 'Reconnect', true, Message.ClickedReconnect())]
         : []),
-    ],
-  );
+    );
 
 /** Where the world is, and whether the other peers' worlds agree with it. */
 const agreement = (model: Model): string => {
@@ -131,48 +134,43 @@ const readout = (model: Model): string =>
   });
 
 /** A link replaying the game so far (in a new tab), or a way back from a replay. */
-const replayLink = (model: Model, h: H): ReadonlyArray<Html> =>
+const replayLink = (model: Model, h: H) =>
   Option.isSome(model.replay)
-    ? [h.a([h.Class('e3-button'), h.Href('?')], ['Play live'])]
+    ? [h.a.class('e3-button').attr('href', '?').children('Play live')]
     : Option.match(recordOf(model), {
         onNone: () => [],
         onSome: (record) => [
-          h.a(
-            [h.Class('e3-button e3-replay-link'), h.Href(fragmentOf(record)), h.Target('_blank')],
-            ['Replay this game'],
-          ),
+          h.a
+            .class('e3-button e3-replay-link')
+            .attr('href', fragmentOf(record))
+            .attr('target', '_blank')
+            .children('Replay this game'),
         ],
       });
 
 const playing = (model: Model): boolean => model.session._tag === 'Live';
 
-export const view = (model: Model, h: H): Document => ({
-  title: 'Tabletop — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onClick: ({ point }) => Message.ClickedTable({ point }),
-          onPhysicsReached: ({ run, step, checksum, snapshot }) =>
-            Message.ReachedStep({ run, step, checksum, snapshot: snapshot ?? null }),
-        },
-        h,
+export const view = (h: H, model: Model) =>
+  h.div.class('e3-sample').children(
+    EffectThreeStage(h)
+      .class('e3-stage')
+      .on('scene-click', ({ point }) => Message.ClickedTable({ point }))
+      .on('scene-physics-reached', ({ run, step, checksum, snapshot }) =>
+        Message.ReachedStep({ run, step, checksum, snapshot: snapshot ?? null }),
+      )
+      .onMount(
+        Mount.map(sceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+          Message.ReceivedSceneLifecycle({ lifecycle }),
+        ),
+      )
+      .children(),
+    h.p.class('e3-readout').attr('aria-live', 'polite').children(readout(model)),
+    session(model, h),
+    h.p.class('e3-note e3-agreement').children(agreement(model)),
+    h.div
+      .class('e3-controls')
+      .children(
+        button(h, 'Rebuild the tower', playing(model), Message.ClickedRebuild()),
+        ...replayLink(model, h),
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      session(model, h),
-      h.p([h.Class('e3-note e3-agreement')], [agreement(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          button(h, 'Rebuild the tower', playing(model), Message.ClickedRebuild()),
-          ...replayLink(model, h),
-        ],
-      ),
-    ],
-  ),
-});
+  );

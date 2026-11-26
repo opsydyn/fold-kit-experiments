@@ -13,9 +13,23 @@
  *   would slow every world: a hidden peer with others steps out, and back in (replaying)
  *   when shown again.
  */
-import { Cause, Clock, Duration, Effect, Match, Option, Queue, Schema, Stream } from 'effect';
-import { Command, ManagedResource, Subscription } from 'foldkit';
+import { Command, Subscription } from '@effect/ui';
+import {
+  Cause,
+  Clock,
+  Context,
+  Duration,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Queue,
+  Ref,
+  Schema,
+  Stream,
+} from 'effect';
 
+import { waitForRelayOpen } from '../relay-connection';
 import { Message } from './message';
 import type { Model } from './model';
 import { recordIn } from './replay';
@@ -29,8 +43,9 @@ export type RelayLink = {
   readonly heard: Queue.Queue<Wire, Cause.Done>;
 };
 
-export const RelaySocket = ManagedResource.tag<RelayLink>()('TabletopRelaySocket');
-export type RelayService = ManagedResource.ServiceOf<typeof RelaySocket>;
+class TabletopRelay extends Context.Service<TabletopRelay, Ref.Ref<Option.Option<RelayLink>>>()(
+  'TabletopRelay',
+) {}
 
 /** A relay message is a `Wire` as JSON text. */
 const WireText = Schema.fromJsonString(Wire);
@@ -63,26 +78,8 @@ const connect = (url: string, heard: RelayLink['heard']): WebSocket => {
   return socket;
 };
 
-/**
- * How long a relay has to answer. FoldKit acquires a managed resource uninterruptibly, so
- * a tab that leaves the relay while it is still connecting waits for the connect to
- * settle: this bounds that wait, and a relay that never answers fails in good time.
- */
+/** How long a relay has to answer. */
 export const relayConnectMilliseconds = 5000;
-
-/**
- * Calls `opened` once `socket` opens, or `refused` if it errors or has not opened within
- * `relayConnectMilliseconds`. Whichever comes first settles the wait.
- */
-const whenOpen = (socket: WebSocket, opened: () => void, refused: () => void): void => {
-  const giveUp = setTimeout(refused, relayConnectMilliseconds);
-  const settle = (outcome: () => void) => () => {
-    clearTimeout(giveUp);
-    outcome();
-  };
-  socket.addEventListener('open', settle(opened), { once: true });
-  socket.addEventListener('error', settle(refused), { once: true });
-};
 
 /** This tab's name in the session, once it has one. */
 export const selfOf = (session: Model['session']): Option.Option<string> =>
@@ -92,42 +89,30 @@ export const selfOf = (session: Model['session']): Option.Option<string> =>
     Live: ({ lockstep }) => Option.some(lockstep.self),
   });
 
-/** The relay socket, for as long as the Model names a relay it has not lost. */
-export const managedResources = ManagedResource.make<Model, Message>()((entry) => ({
-  relay: entry(Schema.Option(Schema.Struct({ url: Schema.String, peer: Schema.String })), {
-    resource: RelaySocket,
-    // A new name is a new socket: a tab that reconnects joins as a newcomer.
-    modelToMaybeRequirements: (model) =>
-      Option.filter(model.relay, (relay) => relay.link !== 'Lost').pipe(
-        Option.flatMap((relay) =>
-          Option.map(selfOf(model.session), (peer) => ({ url: relay.url, peer })),
-        ),
-      ),
-    // The socket closes with the resource's scope.
-    acquire: ({ url }) =>
-      Effect.gen(function* () {
-        const heard = yield* Queue.bounded<Wire, Cause.Done>(relayBacklog);
-        // The socket is the scope's from the start, so a connect that fails or times out
-        // is closed with it.
-        const connecting = Effect.sync(() => connect(url, heard));
-        const socket = yield* Effect.acquireRelease(connecting, (socket) =>
-          Effect.sync(() => socket.close()),
-        );
-        yield* Effect.callback<void, string>((resume) =>
-          whenOpen(
-            socket,
-            () => resume(Effect.void),
-            () => resume(Effect.fail(`No relay at ${url}`)),
-          ),
-        );
-        return { socket, heard };
-      }),
-    release: () => Effect.void,
-    onAcquired: () => Message.ConnectedRelay(),
-    onAcquireError: (reason) => Message.FailedRelay({ reason: String(reason) }),
-    onReleased: () => Message.ReleasedRelay(),
-  }),
-}));
+/** The keyed stream owns the socket, its queue and the service's current link. */
+function relayMessages(url: string) {
+  const connection = Effect.gen(function* () {
+    const active = yield* TabletopRelay;
+    const heard = yield* Effect.acquireRelease(
+      Queue.bounded<Wire, Cause.Done>(relayBacklog),
+      Queue.shutdown,
+    );
+    const open = Effect.try({
+      try: () => connect(url, heard),
+      catch: () => `No relay at ${url}`,
+    });
+    const socket = yield* Effect.acquireRelease(open, (socket) =>
+      Effect.sync(() => socket.close()),
+    );
+    yield* waitForRelayOpen(socket, url, relayConnectMilliseconds);
+    yield* Effect.acquireRelease(Ref.set(active, Option.some({ socket, heard })), () =>
+      Ref.set(active, Option.none()),
+    );
+    return Stream.make(Message.ConnectedRelay()).pipe(Stream.concat(relayHeard({ socket, heard })));
+  });
+  const messages = Stream.unwrap(connection);
+  return messages.pipe(Stream.catch((reason) => Stream.succeed(Message.FailedRelay({ reason }))));
+}
 
 // COMMANDS
 
@@ -150,22 +135,34 @@ const sayToTabs = (wire: Wire) => () => {
  * the relay it is best effort: a socket already gone says nothing, and the others drop
  * this tab when it goes quiet.
  */
-export const Say = Command.define('Say', {
+export class Say extends Command.Service<Say>()('Say', {
   args: { wire: Wire, via: Schema.Literals(['tabs', 'relay']) },
-  messages: [Message.CompletedSay],
-  execute: ({ wire, via }) =>
+  success: Message,
+}) {}
+
+const send =
+  (active: Ref.Ref<Option.Option<RelayLink>>) =>
+  ({ wire, via }: { readonly wire: Wire; readonly via: 'tabs' | 'relay' }) =>
     via === 'tabs'
       ? Effect.sync(sayToTabs(wire))
-      : RelaySocket.get.pipe(
-          Effect.map(sayOn(wire)),
-          Effect.orElseSucceed(() => Message.CompletedSay()),
-        ),
-});
+      : Ref.get(active).pipe(
+          Effect.map(
+            Option.match({
+              onNone: () => Message.CompletedSay(),
+              onSome: sayOn(wire),
+            }),
+          ),
+        );
+
+export function tabletopSessionLayer() {
+  const relay = Layer.effect(TabletopRelay, Ref.make(Option.none<RelayLink>()));
+  const say = Say.toLayer(Effect.map(TabletopRelay, send));
+  return say.pipe(Layer.provideMerge(relay));
+}
 
 /** A name for this tab in the session, the time it was made, and the relay the page names. */
-export const NameTab = Command.define('NameTab', {
-  messages: [Message.NamedTab],
-  execute: Clock.currentTimeMillis.pipe(
+export const NameTab = Command.make('NameTab', { args: {} }, () =>
+  Clock.currentTimeMillis.pipe(
     Effect.map((at) =>
       Message.NamedTab({
         peer: crypto.randomUUID().slice(0, 8),
@@ -176,15 +173,14 @@ export const NameTab = Command.define('NameTab', {
       }),
     ),
   ),
-});
+);
 
 const welcomeWaited = () => Message.WaitedForWelcome();
 
 /** After a new tab has waited long enough to be welcomed. */
-export const WaitForWelcome = Command.define('WaitForWelcome', {
-  messages: [Message.WaitedForWelcome],
-  execute: Effect.sleep(Duration.millis(joinMilliseconds)).pipe(Effect.map(welcomeWaited)),
-});
+export const WaitForWelcome = Command.make('WaitForWelcome', { args: {} }, () =>
+  Effect.sleep(Duration.millis(joinMilliseconds)).pipe(Effect.map(welcomeWaited)),
+);
 
 // SUBSCRIPTIONS
 
@@ -217,14 +213,6 @@ const relayHeard = ({ heard }: RelayLink) =>
     Stream.map(heardWire),
     Stream.concat(Stream.succeed(Message.LostRelay())),
   );
-
-/** What the relay hands on, decoded, then `LostRelay` once its socket closes. */
-const heardOnRelay = Stream.unwrap(
-  RelaySocket.get.pipe(
-    Effect.map(relayHeard),
-    Effect.orElseSucceed(() => Stream.empty),
-  ),
-);
 
 const onPageHide = (queue: Queue.Queue<null, Cause.Done>) => () => {
   const listener = () => Queue.offerUnsafe(queue, null);
@@ -260,35 +248,27 @@ const watchVisibility = (queue: Queue.Queue<boolean, Cause.Done>) => {
 /** The page hidden or shown again. */
 const visibility = Stream.callback<boolean>(watchVisibility);
 
-/** Where this tab hears others: the channel once named without a relay, or the relay. */
-const hearing = (model: Model) => ({
-  tabs: model.session._tag !== 'Offline' && Option.isNone(model.relay),
-  relay: Option.exists(model.relay, (relay) => relay.link === 'Open'),
-});
-
-export const subscriptions = Subscription.make<Model, Message, RelayService>()((entry) => ({
-  leaving: Subscription.persistentEntry(leaving.pipe(Stream.map(() => Message.LeftPage()))),
-  visibility: Subscription.persistentEntry(
-    visibility.pipe(Stream.map((hidden) => Message.ChangedVisibility({ hidden }))),
-  ),
-  heardOnChannel: entry(
-    { tabs: Schema.Boolean },
-    {
-      modelToDependencies: (model) => ({ tabs: hearing(model).tabs }),
-      dependenciesToStream: ({ tabs }) =>
-        tabs ? heardOnChannel.pipe(Stream.map(heardWire)) : Stream.empty,
-    },
-  ),
-  heardOnRelay: entry(
-    { relay: Schema.Boolean },
-    {
-      modelToDependencies: (model) => ({ relay: hearing(model).relay }),
-      dependenciesToStream: ({ relay }) => (relay ? heardOnRelay : Stream.empty),
-    },
-  ),
-  turns: Subscription.persistentEntry(
-    Stream.tick(Duration.millis(turnMilliseconds)).pipe(
-      Stream.map(() => Message.TickedTurn({ at: Date.now() })),
+/** Listen through the relay for the lifetime of this peer's name and address. */
+export const subscriptions = ({ model }: { readonly model: Model }) => {
+  const relay = Option.filter(model.relay, ({ link }) => link !== 'Lost');
+  const peer = selfOf(model.session);
+  return [
+    Subscription.make('leaving', leaving.pipe(Stream.map(() => Message.LeftPage()))),
+    Subscription.make(
+      'visibility',
+      visibility.pipe(Stream.map((hidden) => Message.ChangedVisibility({ hidden }))),
     ),
-  ),
-}));
+    Option.isSome(peer) &&
+      Option.isNone(model.relay) &&
+      Subscription.make('tabs', heardOnChannel.pipe(Stream.map(heardWire))),
+    Option.isSome(relay) &&
+      Option.isSome(peer) &&
+      Subscription.make('relay', [relay.value.url, peer.value], ([url]) => relayMessages(url)),
+    Subscription.make(
+      'turns',
+      Stream.tick(Duration.millis(turnMilliseconds)).pipe(
+        Stream.map(() => Message.TickedTurn({ at: Date.now() })),
+      ),
+    ),
+  ];
+};

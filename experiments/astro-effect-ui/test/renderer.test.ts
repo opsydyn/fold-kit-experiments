@@ -1032,3 +1032,132 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   45_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Tabletop peers agree with worker physics and replay a recorded throw',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const tabletop = `${siteOrigin}/three-scenes/tabletop/`;
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      // The scene host pauses physics with reduced motion.
+      const context = await browser.newContext({ reducedMotion: 'no-preference' });
+      context.setDefaultTimeout(15_000);
+      await context.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      const main = await context.newPage();
+      const workerPage = await context.newPage();
+      const errors: Array<string> = [];
+      for (const page of [main, workerPage]) {
+        page.on('pageerror', (error) => errors.push(error.message));
+      }
+      await main.goto(tabletop);
+      await main.locator('.e3-together').filter({ hasText: 'Playing alone.' }).waitFor();
+      const workerStarted = workerPage.waitForEvent('worker');
+      await workerPage.goto(`${tabletop}?physics=worker&predict=1`);
+      const worker = await workerStarted;
+      for (const page of [main, workerPage]) {
+        await page
+          .locator('.e3-together')
+          .filter({ hasText: 'Playing with 1 other player' })
+          .waitFor();
+        await page
+          .locator('.e3-agreement')
+          .filter({ hasText: /[1-9]\d* checks? agreed/ })
+          .waitFor();
+      }
+      const agreement = await workerPage.locator('.e3-agreement').textContent();
+      const beforeThrow = Number(agreement?.match(/(\d+) checks? agreed/)?.[1]);
+      await main.locator('effect-three-scene canvas').click();
+      for (const page of [main, workerPage]) {
+        await page
+          .locator('.e3-readout')
+          .filter({ hasText: /^1 balls on the table/ })
+          .waitFor();
+      }
+      await main.waitForFunction(() => {
+        const fragment = document.querySelector('.e3-replay-link')?.getAttribute('href');
+        if (!fragment?.startsWith('#replay=')) return false;
+        const encoded = fragment.slice('#replay='.length).replaceAll('-', '+').replaceAll('_', '/');
+        // SAFETY: Tabletop generated this link by encoding its replay record schema.
+        const record = JSON.parse(atob(encoded)) as { inputs: Array<{ input: { _tag: string } }> };
+        return record.inputs.some(({ input }) => input._tag === 'Throw');
+      });
+      await workerPage.waitForFunction((before) => {
+        const report = document.querySelector('.e3-agreement')?.textContent;
+        const matched = Number(report?.match(/(\d+) checks? agreed/)?.[1]);
+        return matched >= before + 2;
+      }, beforeThrow);
+      const fragment = await main
+        .getByRole('link', { name: 'Replay this game' })
+        .getAttribute('href');
+      expect(fragment).toStartWith('#replay=');
+      const workerStopped = worker.waitForEvent('close');
+      await workerPage.getByRole('link', { name: 'Away' }).click();
+      await workerPage.waitForURL('**/away/');
+      await workerStopped;
+      await main.close();
+      await workerPage.goto(`${tabletop}${fragment}`);
+      const readout = workerPage.locator('.e3-readout');
+      await readout.filter({ hasText: 'Replay finished at step' }).waitFor({ timeout: 40_000 });
+      const verdict = await workerPage.locator('.e3-agreement').textContent();
+      expect(verdict).toMatch(/(\d+) of the record's \1 checks matched/);
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  85_000,
+);
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Tabletop opens a new relay after a loss and closes it on navigation',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const relayUrl = 'wss://tabletop-relay.test/session';
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      const transcript: Array<string> = [];
+      const disconnected = Promise.withResolvers<void>();
+      const sockets: Array<WebSocketRoute> = [];
+      await page.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      await page.routeWebSocket(relayUrl, (socket) => {
+        sockets.push(socket);
+        socket.onMessage((raw) => {
+          const text = String(raw);
+          if (text.includes('"_tag":"Hello"')) transcript.push(text);
+        });
+        if (sockets.length === 2) socket.onClose(() => disconnected.resolve());
+      });
+      await page.goto(`${siteOrigin}/three-scenes/tabletop/?relay=${encodeURIComponent(relayUrl)}`);
+      const linked = page
+        .locator('.e3-together')
+        .filter({ hasText: 'Playing alone, through the relay' });
+      await linked.waitFor();
+      expect(transcript).toHaveLength(1);
+      await sockets[0]?.close();
+      await page.getByRole('button', { name: 'Reconnect' }).press('Enter');
+      await linked.waitFor();
+      expect(transcript).toHaveLength(2);
+      expect(transcript[1]).not.toEqual(transcript[0]);
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await disconnected.promise;
+    } finally {
+      await browser.close();
+    }
+  },
+  45_000,
+);

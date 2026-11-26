@@ -13,12 +13,13 @@ import Sculpture from '../../../../../../../packages/effect-three-samples/src/sc
 import Shared from '../../../../../../../packages/effect-three-samples/src/shared/main';
 import Studio from '../../../../../../../packages/effect-three-samples/src/studio/main';
 import Arrange from '../../../../../../../packages/effect-three-samples/src/arrange/main';
+import Tabletop from '../../../../../../../packages/effect-three-samples/src/tabletop/main';
 import Toybox from '../../../../../../../packages/effect-three-samples/src/toybox/main';
 import Bowling from '../../../../../../../packages/effect-three-samples/src/bowling/main';
 import '../../../../../../../packages/effect-three-samples/src/styles.css';
 
 export function getStaticPaths() {
-  return ['gallery', 'bowling', 'room', 'workshop', 'bars', 'city', 'curves', 'hero', 'marbles', 'playground', 'sculpture', 'studio', 'arrange', 'toybox', 'shared'].map((sample) => ({ params: { sample } }));
+  return ['gallery', 'bowling', 'room', 'workshop', 'bars', 'city', 'curves', 'hero', 'marbles', 'playground', 'sculpture', 'studio', 'arrange', 'toybox', 'shared', 'tabletop'].map((sample) => ({ params: { sample } }));
 }
 const { sample } = Astro.params;
 ---
@@ -40,6 +41,7 @@ const { sample } = Astro.params;
       {sample === 'studio' && <Studio client:load />}
       {sample === 'arrange' && <Arrange client:load />}
       {sample === 'shared' && <Shared client:load />}
+      {sample === 'tabletop' && <Tabletop client:load />}
       {sample === 'toybox' && <Toybox client:load />}
       {sample === 'gallery' && <a href="/three-scenes/bowling/">Bowling</a>}
       <a href="/away/">Away</a>

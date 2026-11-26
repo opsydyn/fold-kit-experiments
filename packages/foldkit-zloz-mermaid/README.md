@@ -36,6 +36,11 @@ The four public ZLOZ packages release together, with adapters pinned to the exac
 core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
 verifies registry archives and provenance before advancing to the next package.
 
+The private Effect UI preview exports `groupMermaidReviewV3` from
+`@opsydyn/foldkit-zloz-mermaid/effect-ui`. Pass the native v3 review controls
+and route its requests through `updateGroupMermaidReviewV3` to protect
+source-bound consent and give the host the reviewed download payload.
+
 ## Type contract
 
 - `MermaidExportOptions`: optional direction (`LR | RL | TB | BT`) and loss policy

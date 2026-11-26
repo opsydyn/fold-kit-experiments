@@ -45,6 +45,7 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
     );
     for (const name of [
       'astro',
+      '@effect/ui',
       'react',
       'foldkit',
       'effect',
@@ -54,6 +55,17 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       '@mermaid-js/parser',
     ])
       expect(existsSync(path.join(directory, 'node_modules', name))).toBe(false);
+
+    const viewEntry = await exec(
+      'node',
+      [
+        '--input-type=module',
+        '-e',
+        "import { groupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid/effect-ui'; console.log(typeof groupMermaidReviewV3)",
+      ],
+      { ...options, cwd: directory },
+    );
+    expect(viewEntry.stdout.trim()).toBe('function');
 
     const source = `import { createEditor, createModelEditorV2 } from '@opsydyn/foldkit-zloz';
 import { createReviewPacketV2, parseReviewPacketV2, openReviewPacketV2, createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportConnectionMermaid, type MermaidExportResultV2, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';

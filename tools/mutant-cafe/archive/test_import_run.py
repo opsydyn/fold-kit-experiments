@@ -42,5 +42,8 @@ class ImportRunTests(unittest.TestCase):
         viz = import_run(both, *args, "packages/foldkit-viz")
         self.assertEqual(len(viz), 3)
         self.assertEqual(import_run(viz, *args, "packages/foldkit-viz"), viz)
+        astro = import_run(viz, *args, "packages/astro-foldkit")
+        self.assertEqual(len(astro), 4)
+        self.assertEqual(import_run(astro, *args, "packages/astro-foldkit"), astro)
         with self.assertRaises(ValueError):
             import_run([], *args, "../anywhere")

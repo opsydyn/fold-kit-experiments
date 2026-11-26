@@ -71,7 +71,9 @@ function reviewImage<M>(h: Html.H<M>, kind: 'SVG' | 'PNG', src: string) {
 function reviewFindings<M>(
   h: Html.H<M>,
   kind: 'SVG' | 'PNG',
-  findings: ZlozSvgReviewControls['findings'],
+  findings: ReadonlyArray<
+    Pick<ZlozSvgReviewControls['findings'][number], 'severity' | 'target' | 'reason'>
+  >,
 ) {
   return h.ul
     .attr('aria-label', `${kind} findings`)

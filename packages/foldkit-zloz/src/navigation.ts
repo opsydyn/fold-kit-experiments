@@ -3,10 +3,11 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { ZlozDiagnostics } from './diagnostics';
-import { minimapGeometry } from './geometry';
-import { groupsInPaintOrder, presentEditorGroups, presentVisibleGraph } from './group-presentation';
+import { presentEditorGroups } from './group-presentation';
+import type { ZlozMinimapContext } from './minimap-context';
+export { minimapContext, type ZlozMinimapContext } from './minimap-context';
 import { ZlozMinimapInput } from './mount';
-import type { EditorEvent, EditorState, ZlozMinimapGeometry, ZlozNode } from './types';
+import type { EditorEvent, EditorState, ZlozMinimapGeometry } from './types';
 
 /** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
 export type ZlozWheelNavigation = 'zoom' | 'pan' | 'off';
@@ -35,11 +36,6 @@ export type ZlozViewportControlsContext = Readonly<{
   fitSelectionControl?: boolean;
   zoomAreaControl?: boolean;
   previousViewControl?: boolean;
-}>;
-export type ZlozMinimapContext = Readonly<{
-  state: EditorState;
-  nodes: readonly ZlozNode[];
-  geometry: ZlozMinimapGeometry;
 }>;
 type Attributes<M> = Parameters<HtmlBuilder<M>['button']>[0];
 type Children<M> = Parameters<HtmlBuilder<M>['button']>[1];
@@ -118,21 +114,6 @@ export function zlozViewportControl<M>(
     ],
     children,
   );
-}
-
-/** Collapsed-group presentation, in paint order, shared by default and custom minimaps. */
-export function minimapContext(state: EditorState): ZlozMinimapContext | undefined {
-  if (!state.surface) return undefined;
-  const presentation = presentVisibleGraph(state);
-  if (!presentation.nodes.length) return undefined;
-  return {
-    state,
-    nodes: [
-      ...groupsInPaintOrder(presentation.nodes),
-      ...presentation.nodes.filter((node) => node.kind !== 'group'),
-    ],
-    geometry: minimapGeometry(presentation, state.surface, state.viewport),
-  };
 }
 
 /** Native navigation frame containing a coordinate plane. Attributes style the frame, including padding and borders.

@@ -1,4 +1,4 @@
-import { Mount } from '@effect/ui';
+import { Mount, type View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import type { BrowserInput } from './browser-input';
@@ -7,8 +7,11 @@ import { resolveConnectionPreview } from './connection-preview';
 import { resolveEdgeGeometry } from './edge-geometry';
 import { surfaceInput } from './effect-ui-input';
 import { portBoundaryPosition } from './geometry';
-import { presentVisibleGraph } from './group-presentation';
+import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
+import { nodeShapeGeometry } from './node-shape';
 import { resolveBoxSelection } from './selection-preview';
+import { zlozThemeStyle, type ZlozTheme } from './theme';
 import type { EditorPolicy, EditorState, Port, ZlozNode } from './types';
 
 export { BrowserInput } from './browser-input';
@@ -38,6 +41,9 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
+  theme?: ZlozTheme;
+  worldOverlay?: View.Content<Message> | null;
+  pinchZoom?: boolean;
 }>;
 
 const reconnectOffset = {
@@ -56,6 +62,10 @@ export function graphSurface<Message>(
   const { id, label, descriptionId, onInput, policy, dropRadius = 0 } = options;
   const svg = (tag: string) => new Html.Element<Message>(tag);
   const scene = presentVisibleGraph(editor);
+  const nodes = [
+    ...groupsInPaintOrder(scene.nodes),
+    ...scene.nodes.filter((node) => node.kind !== 'group'),
+  ];
   const preview = resolveConnectionPreview(editor);
   const selection =
     editor.gesture.type === 'box-selection'
@@ -135,7 +145,16 @@ export function graphSurface<Message>(
     .attr('data-flow-connection-drop-radius', String(dropRadius))
     .attr('data-flow-reconnection-drop-radius', String(dropRadius))
     .attr('data-flow-wheel-navigation', options.wheelNavigation ?? 'off')
-    .attr('data-flow-pinch-zoom', 'true')
+    .attr('data-flow-pinch-zoom', String(options.pinchZoom ?? true))
+    .attr('data-flow-grid-snap', String(editor.snapToGrid))
+    .attr('data-flow-grid-spacing', String(editor.gridSpacing))
+    .attr('data-flow-selection-mode', String(editor.selectionMode))
+    .attr('data-flow-zoom-area-mode', String(Boolean(editor.zoomAreaMode)))
+    .attr(
+      'data-flow-fit-animation',
+      editor.fitViewTransition.type === 'fitting' ? String(editor.fitViewTransition.id) : '',
+    )
+    .style(zlozThemeStyle(options.theme ?? {}))
     .onMount(Mount.map(surfaceInput(), onInput))
     .children(
       h.div
@@ -171,7 +190,7 @@ export function graphSurface<Message>(
                   ]
                 : []),
             ),
-          ...scene.nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
+          ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
           ...(selection
             ? [
                 h.div
@@ -186,6 +205,15 @@ export function graphSurface<Message>(
                     height: `${selection.bounds.bottom - selection.bounds.top}px`,
                   })
                   .children(),
+              ]
+            : []),
+          ...(options.worldOverlay
+            ? [
+                h.div
+                  .key('world-overlay')
+                  .attr('data-flow-world-overlay', '')
+                  .style({ pointerEvents: 'none' })
+                  .children(options.worldOverlay),
               ]
             : []),
           ...edgeViews.flatMap(({ label }) => (label ? [label] : [])),
@@ -210,60 +238,91 @@ function nodeView<Message>(
   selecting: boolean,
 ) {
   const note = options.nodeNote?.(node);
-  return h.div
-    .key(node.id)
-    .class('zloz-ui-node')
-    .attr('data-flow-node', node.id)
-    .attr('data-selection-preview', selecting ? 'true' : undefined)
-    .style({
-      left: `${node.position.x}px`,
-      top: `${node.position.y}px`,
-      width: `${node.size.width}px`,
-      height: `${node.size.height}px`,
-    })
-    .children(
-      h.button
-        .class('zloz-ui-node-title')
-        .attr('type', 'button')
-        .attr('data-flow-handle', node.id)
-        .attr('aria-label', `Select ${node.label}`)
-        .attr('aria-pressed', String(editor.selectedNodes.includes(node.id)))
-        .children(node.label),
-      ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
-      ...node.ports.map((port) => {
-        const endpoint = { node: node.id, port: port.id };
-        const point = portBoundaryPosition(node, port.id);
-        const active = editor.connection?.node === node.id && editor.connection.port === port.id;
-        const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
-        const target = drag?.target?.node === node.id && drag.target.port === port.id;
-        const end = portConnectionEnd(editor, port);
-        const reason = editor.readOnly
-          ? 'This diagram is read-only.'
-          : options.policy?.canConnectPort?.(endpoint, editor.graph);
-        const label = options.portLabel?.({ port, end, reason: reason ?? null });
-        return h.button
-          .key(port.id)
-          .class('zloz-ui-port', label !== undefined && 'zloz-ui-port-custom')
+  const selected = editor.selectedNodes.includes(node.id);
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Derive decoration from the authored outline.
+  const outline = node.appearance ? nodeShapeGeometry(node) : null;
+  const svg = (tag: 'svg' | 'path') => new Html.Element<Message>(tag);
+  return (
+    h.div
+      .key(node.id)
+      .class('zloz-ui-node')
+      .attr('data-flow-node', node.id)
+      .attr('data-node-kind', node.kind)
+      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Read the canonical authored geometry.
+      .attr('data-node-outline', outline?.shape)
+      .attr('data-selection-preview', selecting ? 'true' : undefined)
+      .style({
+        left: `${node.position.x}px`,
+        top: `${node.position.y}px`,
+        width: `${node.size.width}px`,
+        height: `${node.size.height}px`,
+      })
+      .children(
+        outline
+          ? svg('svg')
+              .class('zloz-ui-node-outline')
+              .attr('aria-hidden', 'true')
+              .attr('viewBox', `0 0 ${node.size.width} ${node.size.height}`)
+              .children(
+                svg('path').attr('d', outline.outlinePath),
+                ...outline.decorationPaths.map((path) =>
+                  svg('path').attr('d', path).attr('fill', 'none'),
+                ),
+              )
+          : null,
+        h.button
+          .class('zloz-ui-node-title')
           .attr('type', 'button')
-          .attr('data-flow-owner', node.id)
-          .attr('data-flow-port', port.id)
-          .attr('data-flow-port-kind', port.kind)
-          .attr('data-flow-connection-end', end)
-          .attr('data-custom-intent', label !== undefined ? end : undefined)
-          .attr('data-target', target ? 'true' : undefined)
-          .attr(
-            'aria-label',
-            `Connect ${end === 'source' ? 'from' : 'to'} ${node.label}: ${port.label ?? port.id}`,
-          )
-          .attr('aria-pressed', String(active))
-          .attr('title', reason ?? undefined)
-          .disabled(reason != null)
-          .style({ left: `${point.x - node.position.x}px`, top: `${point.y - node.position.y}px` })
-          .children(label ?? '');
-      }),
-    );
+          .attr('data-flow-handle', node.id)
+          .attr('aria-label', `Select ${node.label}`)
+          .attr('aria-pressed', String(selected))
+          .children(node.label),
+        ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
+        ...node.ports.map((port) => {
+          const endpoint = { node: node.id, port: port.id };
+          const point = portBoundaryPosition(node, port.id);
+          const active = editor.connection?.node === node.id && editor.connection.port === port.id;
+          const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
+          const target = drag?.target?.node === node.id && drag.target.port === port.id;
+          const end = portConnectionEnd(editor, port);
+          const reason = editor.readOnly
+            ? 'This diagram is read-only.'
+            : options.policy?.canConnectPort?.(endpoint, editor.graph);
+          const label = options.portLabel?.({ port, end, reason: reason ?? null });
+          return h.button
+            .key(port.id)
+            .class('zloz-ui-port', label !== undefined && 'zloz-ui-port-custom')
+            .attr('type', 'button')
+            .attr('data-flow-owner', node.id)
+            .attr('data-flow-port', port.id)
+            .attr('data-flow-port-kind', port.kind)
+            .attr('data-flow-connection-end', end)
+            .attr('data-custom-intent', label !== undefined ? end : undefined)
+            .attr('data-target', target ? 'true' : undefined)
+            .attr(
+              'aria-label',
+              `Connect ${end === 'source' ? 'from' : 'to'} ${node.label}: ${port.label ?? port.id}`,
+            )
+            .attr('aria-pressed', String(active))
+            .attr('title', reason ?? undefined)
+            .disabled(reason != null)
+            .style({
+              left: `${point.x - node.position.x}px`,
+              top: `${point.y - node.position.y}px`,
+            })
+            .children(label ?? '');
+        }),
+      )
+  );
 }
 
 export { pngReview, svgReview } from './effect-ui-export-review';
 export { zlozLightTheme, zlozDarkTheme } from './theme';
 export { modellingPatchReview } from './effect-ui-patch-review';
+
+export {
+  historyChangeNavigatorV2,
+  historyComparisonV2,
+  historyGhostsV2,
+  historyMinimap,
+} from './effect-ui-history';

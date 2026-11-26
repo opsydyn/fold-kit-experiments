@@ -612,6 +612,18 @@
     "entries": []
   },
   {
+    "workspace": "apps/web",
+    "selected": 0,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 45861878157,
+    "attempt": 1,
+    "commit": "4a8106589310cfae12a71414ecd23c4152eb4051",
+    "startedAt": "2026-11-26T16:46:44Z",
+    "reportSha256": "f17ce39f12eb385b9cb08e86047c8bfbc00e441797d7b91ec71648e13f814993",
+    "entries": []
+  },
+  {
     "workspace": "packages/foldkit-viz",
     "selected": 3,
     "budgetSkipped": 0,

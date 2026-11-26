@@ -688,5 +688,50 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "packages/astro-foldkit",
+    "selected": 6,
+    "budgetSkipped": 2,
+    "failed": false,
+    "run": 45861878391,
+    "attempt": 1,
+    "commit": "4a8106589310cfae12a71414ecd23c4152eb4051",
+    "startedAt": "2026-11-26T16:46:44Z",
+    "reportSha256": "6378d1d4a128e5057ed5d895b72aec9de9c8fcb138075167bd6b832359fcba16",
+    "entries": [
+      {
+        "id": "022078975fd4f41e664ef83d",
+        "file": "src/client-helpers.ts",
+        "fn": "findSingleFoldkitRoot",
+        "genre": "FnValue",
+        "line": 11,
+        "outcome": "caught"
+      },
+      {
+        "id": "3ff6a373228837ef4ee3f8bf",
+        "file": "src/client-helpers.ts",
+        "fn": "findSingleFoldkitRoot",
+        "genre": "FnValue",
+        "line": 11,
+        "outcome": "caught"
+      },
+      {
+        "id": "1e7bd4d1dce1b5a06dc9fa6d",
+        "file": "src/client-helpers.ts",
+        "fn": "shouldSkipMetadata",
+        "genre": "BooleanFlip",
+        "line": 22,
+        "outcome": "caught"
+      },
+      {
+        "id": "dc15c4cd43161e1ed9265b57",
+        "file": "src/client-helpers.ts",
+        "fn": "shouldSkipMetadata",
+        "genre": "BooleanFlip",
+        "line": 22,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

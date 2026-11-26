@@ -66,6 +66,11 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
       { ...options, cwd: directory },
     );
     expect(viewEntry.stdout.trim()).toBe('function');
+    const viewTypes = await readFile(
+      path.join(directory, 'node_modules/@opsydyn/foldkit-zloz-mermaid/dist/effect-ui.d.mts'),
+      'utf8',
+    );
+    expect(viewTypes).toMatch(/from ["']@effect\/ui\/html["']/);
 
     const source = `import { createEditor, createModelEditorV2 } from '@opsydyn/foldkit-zloz';
 import { createReviewPacketV2, parseReviewPacketV2, openReviewPacketV2, createReviewReader, updateReviewReader, resolveReviewReader, parseReviewPacket, type ZlozReviewPacketParseResult, resolveReviewPacketControls, resolveReviewPacketRequest, createReviewPacket, type ZlozReviewPacketResult, exportConnectionMermaid, type MermaidExportResultV2, exportMermaid, type MermaidExportResult } from '@opsydyn/foldkit-zloz-mermaid';

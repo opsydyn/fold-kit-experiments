@@ -22,8 +22,6 @@
   },
   "files": [
     "dist",
-    "src/effect-ui.css",
-    "src/effect-ui.css.d.mts",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
@@ -32,7 +30,7 @@
   ],
   "type": "module",
   "sideEffects": [
-    "./src/effect-ui.css"
+    "./dist/effect-ui.css"
   ],
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -46,8 +44,8 @@
       "import": "./dist/effect-ui.mjs"
     },
     "./effect-ui.css": {
-      "types": "./src/effect-ui.css.d.mts",
-      "default": "./src/effect-ui.css"
+      "types": "./dist/effect-ui.css.d.mts",
+      "default": "./dist/effect-ui.css"
     },
     "./foldkit": {
       "types": "./dist/foldkit.d.mts",

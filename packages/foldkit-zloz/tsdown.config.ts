@@ -7,6 +7,7 @@ export default defineConfig({
     browser: 'src/png-browser.ts',
     coupling: 'src/coupling.ts',
   },
+  copy: ['src/effect-ui.css', 'src/effect-ui.css.d.mts'],
   dts: true,
   format: 'esm',
   outDir: 'dist',

@@ -23,6 +23,7 @@
   "files": [
     "dist",
     "src/effect-ui.css",
+    "src/effect-ui.css.d.mts",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
@@ -44,7 +45,10 @@
       "types": "./dist/effect-ui.d.mts",
       "import": "./dist/effect-ui.mjs"
     },
-    "./effect-ui.css": "./src/effect-ui.css",
+    "./effect-ui.css": {
+      "types": "./src/effect-ui.css.d.mts",
+      "default": "./src/effect-ui.css"
+    },
     "./foldkit": {
       "types": "./dist/foldkit.d.mts",
       "import": "./dist/foldkit.mjs"

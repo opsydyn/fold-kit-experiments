@@ -436,6 +436,12 @@ export function view(h: Html.H<Message>, model: Model) {
             architectureNotation: true,
             resizeHandles: true,
             resizeReadout: !model.minimal,
+            portAnchors: { keyboardTargets: true, snapBypass: 'Alt', guides: !model.minimal },
+            edgeWaypoints: {
+              onEdit: observe,
+              instructions: !model.minimal,
+              measurements: !model.minimal,
+            },
             onToggleGroup: (id) => observe({ type: 'GroupCollapseToggled', id }),
             wheelNavigation: 'zoom',
             pinchZoom: false,

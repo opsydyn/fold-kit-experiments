@@ -7,16 +7,30 @@ import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
 import { resolveEdgeGeometry } from './edge-geometry';
 import { contextMapLabel } from './effect-ui-context-map';
+import {
+  anchorControls,
+  anchorGuides,
+  waypointControls,
+  type NativeWaypointOptions,
+} from './effect-ui-geometry-controls';
 import { surfaceInput } from './effect-ui-input';
 import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
 import { nodeResizeControls, nodeResizeReadout } from './effect-ui-resize';
-import { portBoundaryPosition } from './geometry';
+import { portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
 import { nodeShapeGeometry } from './node-shape';
 import { resolveBoxSelection } from './selection-preview';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
-import type { EditorPolicy, EditorState, Port, ZlozNode } from './types';
+import type {
+  EditorPolicy,
+  EditorState,
+  Port,
+  ZlozNode,
+  ZlozPortAnchorSnapBypassModifier,
+} from './types';
+import { resolveEdgeWaypointControls } from './waypoint-controls';
+import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { BrowserInput } from './browser-input';
 
@@ -46,6 +60,12 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   resizeHandles?: boolean;
   /** Show size during a resize or while a single expanded group is selected. */
   resizeReadout?: boolean;
+  portAnchors?: Readonly<{
+    keyboardTargets?: boolean;
+    guides?: boolean;
+    snapBypass?: ZlozPortAnchorSnapBypassModifier;
+  }>;
+  edgeWaypoints?: NativeWaypointOptions<Message>;
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
@@ -83,7 +103,12 @@ export function graphSurface<Message>(
       : undefined;
   const selecting = new Set(selection?.previewNodeIds);
   const marker = `${id}-arrow`;
-  const edgeViews = scene.edges.map((edge) => {
+  const waypointPreview = options.edgeWaypoints ? resolveEdgeWaypointPreview(editor, policy) : null;
+  const edgeViews = scene.edges.map((stored) => {
+    const edge =
+      waypointPreview?.type === 'allowed' && waypointPreview.edge.id === stored.id
+        ? waypointPreview.edge
+        : stored;
     const route = editor.routes.find((item) => item.id === edge.id);
     const geometry = resolveEdgeGeometry(editor.graph, edge, {
       route: route?.points,
@@ -119,6 +144,14 @@ export function graphSurface<Message>(
           : null;
     return { path, label };
   });
+  const waypointEdge = editor.selectedEdges.length === 1 ? editor.selectedEdges[0] : undefined;
+  const waypoint =
+    options.edgeWaypoints &&
+    !editor.readOnly &&
+    waypointEdge !== undefined &&
+    scene.edges.some(({ id }) => id === waypointEdge)
+      ? resolveEdgeWaypointControls(editor, waypointEdge, policy)
+      : null;
   const handles =
     options.reconnect && !editor.readOnly
       ? scene.edges
@@ -167,6 +200,11 @@ export function graphSurface<Message>(
     .attr('data-flow-pinch-zoom', String(options.pinchZoom ?? true))
     .attr('data-flow-grid-snap', String(editor.snapToGrid))
     .attr('data-flow-grid-spacing', String(editor.gridSpacing))
+    .attr(
+      'data-flow-anchor-keyboard-targets',
+      String(options.portAnchors?.keyboardTargets === true),
+    )
+    .attr('data-flow-port-anchor-snap-bypass', options.portAnchors?.snapBypass)
     .attr('data-flow-selection-mode', String(editor.selectionMode))
     .attr('data-flow-zoom-area-mode', String(Boolean(editor.zoomAreaMode)))
     .attr(
@@ -236,6 +274,13 @@ export function graphSurface<Message>(
               ]
             : []),
           ...edgeViews.flatMap(({ label }) => (label ? [label] : [])),
+          options.portAnchors?.guides ? anchorGuides<Message>(editor, nodes, policy) : null,
+          ...(options.portAnchors
+            ? anchorControls(h, editor, nodes, policy, options.portAnchors.keyboardTargets === true)
+            : []),
+          waypoint && options.edgeWaypoints
+            ? waypointControls(h, waypoint, options.edgeWaypoints)
+            : null,
           ...(handles.length > 0
             ? [
                 svg('svg')
@@ -347,7 +392,7 @@ function nodeView<Message>(
           : []),
         ...node.ports.map((port) => {
           const endpoint = { node: node.id, port: port.id };
-          const point = portBoundaryPosition(node, port.id);
+          const point = portPosition(node, port.id);
           const active = editor.connection?.node === node.id && editor.connection.port === port.id;
           const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
           const target = drag?.target?.node === node.id && drag.target.port === port.id;

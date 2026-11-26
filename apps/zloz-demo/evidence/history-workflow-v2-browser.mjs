@@ -350,6 +350,86 @@ async function run() {
   await expand.click();
   await expect(group.locator('[data-flow-resize]')).toHaveCount(8);
 
+  const orderTitle = container.getByRole('button', { name: 'Select Orders', exact: true });
+  await orderTitle.press('Enter');
+  const anchor = page.getByRole('button', { name: 'Position Orders: out', exact: true });
+  const socket = container.locator('[data-flow-port="out"]');
+  const originalSocket = await socket.getAttribute('style');
+  await expect(anchor).toBeVisible();
+  await anchor.press('ArrowUp');
+  await expect(socket).not.toHaveAttribute('style', originalSocket);
+  await expect(anchor).toBeFocused();
+  await anchor.press('Control+z');
+  await expect(socket).toHaveAttribute('style', originalSocket);
+  await orderTitle.press('Enter');
+  await anchor.press('Home');
+  await expect(socket).not.toHaveAttribute('style', originalSocket);
+  await anchor.press('Control+z');
+  await expect(socket).toHaveAttribute('style', originalSocket);
+  await orderTitle.press('Enter');
+  const anchorBounds = await anchor.boundingBox();
+  assert(anchorBounds);
+  const anchorX = anchorBounds.x + anchorBounds.width / 2;
+  const anchorY = anchorBounds.y + anchorBounds.height / 2;
+  await page.mouse.move(anchorX, anchorY);
+  await page.mouse.down();
+  await page.mouse.move(anchorX + 24, anchorY - 28, { steps: 8 });
+  await expect(page.locator('[data-flow-anchor-guides]')).toHaveCount(1);
+  await page.keyboard.down('Alt');
+  await expect(anchor).toHaveAttribute('data-flow-anchor-bypassed', 'true');
+  await expect(page.locator('[data-flow-anchor-guides]')).toHaveCount(0);
+  await expect(socket).not.toHaveAttribute('style', originalSocket);
+  await page.keyboard.up('Alt');
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(socket).toHaveAttribute('style', originalSocket);
+
+  const path = page.locator('[data-flow-edge="shared-inputs"]');
+  const originalPath = await path.getAttribute('d');
+  const selectConnection = async () => {
+    const center = await path.evaluate((element) => {
+      const point = element.getPointAtLength(element.getTotalLength() / 4);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(element.getScreenCTM());
+      return { x: screen.x, y: screen.y };
+    });
+    await page.mouse.click(center.x, center.y);
+  };
+  await selectConnection();
+  const add = page.getByRole('button', { name: 'Add bend', exact: true });
+  await add.click();
+  const bend = page.getByRole('button', { name: 'Move bend 1', exact: true });
+  await expect(bend).toBeVisible();
+  const addedPath = await path.getAttribute('d');
+  await bend.press('Shift+ArrowDown');
+  await expect(path).not.toHaveAttribute('d', addedPath);
+  await bend.press('Control+z');
+  await expect(path).toHaveAttribute('d', addedPath);
+
+  const startBendDrag = async () => {
+    await selectConnection();
+    const bounds = await bend.boundingBox();
+    assert(bounds);
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 24, y + 34, { steps: 8 });
+    await expect(path).not.toHaveAttribute('d', addedPath);
+  };
+  await startBendDrag();
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(path).toHaveAttribute('d', addedPath);
+  await startBendDrag();
+  await page.mouse.up();
+  await expect(path).not.toHaveAttribute('d', addedPath);
+  await bend.press('Control+z');
+  await expect(path).toHaveAttribute('d', addedPath);
+  await selectConnection();
+  await bend.press('Delete');
+  await expect(bend).toHaveCount(0);
+  await expect(path).toHaveAttribute('d', originalPath);
+
   const reopened = await download('Download v2 model', 'history-workflow-v2-notation.json');
   assert.deepEqual(reopened.document.snapshot.graph, withOutline.document.snapshot.graph);
 
@@ -400,6 +480,7 @@ async function run() {
           'capture/download/import/conflict/invalid UTF-8',
           'C4, DDD and Event Storming notation, strategic direction, and previous working session history',
           'keyboard and pointer resizing, read-only and collapsed group gates, Escape and one Undo',
+          'port anchor keyboard movement, snap targeting, modifier bypass and cancelled drag, waypoint add, preview, cancel, move and removal',
           'play/pause/rewind/reduced motion',
         ],
         pageErrors: errors,

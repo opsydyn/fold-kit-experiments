@@ -399,3 +399,101 @@
 .zloz-ui-node[data-node-outline='cylinder'] .zloz-ui-notation strong {
   font-size: 14px;
 }
+
+.zloz-ui-anchor-handle,
+.zloz-ui-waypoint-handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--flow-node-border, #64748b);
+  border-radius: 4px;
+  background: var(--flow-node-background, #fff);
+  color: var(--flow-node-color, #172033);
+  pointer-events: auto;
+  touch-action: none;
+}
+.zloz-ui-anchor-handle {
+  cursor: grab;
+  z-index: 5;
+}
+.zloz-ui-anchor-handle:is(
+  [data-flow-anchor-snapped],
+  [data-flow-anchor-corner],
+  [data-flow-anchor-midpoint]
+) {
+  border-color: var(--flow-selection, #2563eb);
+}
+.zloz-ui-anchor-handle[data-flow-anchor-bypassed] {
+  border-style: dashed;
+}
+.zloz-ui-waypoint,
+.zloz-ui-waypoint-actions {
+  position: absolute;
+  z-index: 6;
+}
+.zloz-ui-waypoint {
+  transform-origin: top left;
+}
+.zloz-ui-waypoint-handle {
+  border: 2px solid var(--flow-selection, #2563eb);
+  border-radius: 50%;
+  cursor: move;
+}
+.zloz-ui-anchor-handle:disabled,
+.zloz-ui-waypoint-handle:disabled {
+  cursor: not-allowed;
+}
+.zloz-ui-waypoint-readout {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--flow-resize-readout-background, #fff);
+  color: var(--flow-resize-readout-color, #172033);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.zloz-ui-waypoint-actions {
+  transform-origin: bottom right;
+  display: flex;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  gap: 6px;
+  padding: 6px;
+  overflow: auto;
+  border: 1px solid var(--flow-edge, #64748b);
+  border-radius: 8px;
+  background: var(--flow-node-background, #fff);
+  color: var(--flow-node-color, #172033);
+  pointer-events: auto;
+}
+
+.zloz-ui-anchor-guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  overflow: visible;
+  pointer-events: none;
+  fill: var(--flow-node-background, #fff);
+  stroke: var(--flow-alignment-guide, #7c3aed);
+  stroke-width: 2;
+}
+.zloz-ui-anchor-guides [data-flow-anchor-guide-active='true'] {
+  stroke: var(--flow-selection, #2563eb);
+}
+.zloz-ui-waypoint-actions button {
+  padding: 4px 8px;
+  border: 1px solid var(--flow-node-border, #64748b);
+  border-radius: 6px;
+  background: var(--flow-node-background, #fff);
+  color: inherit;
+  font: inherit;
+}
+.zloz-ui-waypoint-actions button:disabled {
+  opacity: 0.55;
+}

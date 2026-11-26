@@ -154,6 +154,12 @@ type Transition = Readonly<{
   commands?: readonly Command.Command<Message>[];
 }>;
 
+const editorOptions = {
+  portAnchorSnapDistance: 0.05,
+  portAnchorCornerSnapDistance: 0.1,
+  portAnchorMidpointSnapDistance: 0.08,
+};
+
 export function init(): Transition {
   const document = initialDocument();
   return {
@@ -162,7 +168,7 @@ export function init(): Transition {
       section: 'review',
       native: nativeInitial(),
       previousSession: null,
-      editor: createModelEditorV2(document),
+      editor: createModelEditorV2(document, editorOptions),
       identity: { id: document.id, name: document.name, origin: document.origin },
       editions: document.editions,
       selectedId: 'loose-evolved',
@@ -234,7 +240,7 @@ function loaded(model: Model, document: ZlozModelDocumentV2): Model {
   return {
     ...model,
     previousSession: { editor: model.editor, identity: model.identity, editions: model.editions },
-    editor: createModelEditorV2(document),
+    editor: createModelEditorV2(document, editorOptions),
     identity: { id: document.id, name: document.name, origin: document.origin },
     editions: document.editions,
     selectedId: document.editions.at(-1)?.id ?? '',

@@ -44,6 +44,11 @@ pointer drags use the same editor policy and Undo history. Set
 The [History workbench](../../apps/zloz-demo/src/history-workbench/view.ts)
 enables the controls on its working model.
 
+Set `portAnchors` to expose port position handles on selected nodes. Set
+`edgeWaypoints.onEdit` to route bend creation, removal and reset to the same
+editor as the canvas input. Optional anchor guides and waypoint measurements
+can follow the host's diagnostics settings.
+
 ## Core
 
 ```ts

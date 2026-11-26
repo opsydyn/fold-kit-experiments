@@ -9,6 +9,7 @@ import { resolveEdgeGeometry } from './edge-geometry';
 import { contextMapLabel } from './effect-ui-context-map';
 import { surfaceInput } from './effect-ui-input';
 import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
+import { nodeResizeControls, nodeResizeReadout } from './effect-ui-resize';
 import { portBoundaryPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
@@ -41,6 +42,10 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   wheelNavigation?: 'off' | 'zoom' | 'pan';
   dropRadius?: number;
   reconnect?: boolean;
+  /** Expose native width controls and eight-direction controls for expanded selected groups. */
+  resizeHandles?: boolean;
+  /** Show size during a resize or while a single expanded group is selected. */
+  resizeReadout?: boolean;
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
@@ -241,6 +246,9 @@ export function graphSurface<Message>(
               ]
             : []),
         ),
+      options.resizeHandles && options.resizeReadout !== false
+        ? nodeResizeReadout(h, editor, nodes)
+        : null,
     );
 }
 
@@ -334,6 +342,9 @@ function nodeView<Message>(
               .children(collapsed ? 'Expand' : 'Collapse')
           : null,
         ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
+        ...(options.resizeHandles
+          ? nodeResizeControls(h, node, editor, options.policy, options.descriptionId)
+          : []),
         ...node.ports.map((port) => {
           const endpoint = { node: node.id, port: port.id };
           const point = portBoundaryPosition(node, port.id);

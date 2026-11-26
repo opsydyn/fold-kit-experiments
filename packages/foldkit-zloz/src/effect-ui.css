@@ -83,6 +83,38 @@
 .zloz-ui-port[aria-pressed='true'] {
   outline: 2px solid var(--blue, #2563eb);
 }
+.zloz-ui-resize {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--flow-node-border, #64748b);
+  border-radius: 5px;
+  padding: 0;
+  background: var(--flow-resize-background, #334155);
+  color: var(--flow-control-color, #fff);
+  font: inherit;
+  line-height: 1;
+  touch-action: none;
+  user-select: none;
+}
+.zloz-ui-resize-readout {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 3;
+  padding: 6px 10px;
+  border: 1px solid var(--flow-node-border, #64748b);
+  border-radius: 6px;
+  background: var(--flow-resize-readout-background, var(--flow-node-background, #fff));
+  color: var(--flow-resize-readout-color, var(--flow-node-color, #172033));
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
 .zloz-ui-node-note {
   font-size: 12px;
   color: var(--muted, #64748b);

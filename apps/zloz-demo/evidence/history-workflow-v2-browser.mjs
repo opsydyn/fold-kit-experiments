@@ -33,6 +33,7 @@ async function run() {
   await expect(page.getByLabel('Working connection mode')).toHaveText('Working mode: strict');
   await page.getByRole('button', { name: 'Review chosen edition', exact: true }).click();
   await expect(page.getByLabel('Review connection mode')).toHaveText('Review mode: loose');
+  await expect(page.locator('[data-flow-surface] [data-flow-resize]')).toHaveCount(0);
   await expect(page.locator('[data-zloz-history-ghosts]')).toHaveCount(1);
   await expect(page.locator('[data-zloz-history-ghosts]')).toHaveAttribute('aria-hidden', 'true');
   const world = page.locator('[data-flow-world-overlay]').locator('xpath=..');
@@ -276,6 +277,79 @@ async function run() {
   await expect(expand).toHaveAttribute('aria-expanded', 'false');
   await expand.click();
   await expect(hotspot).toBeVisible();
+
+  const size = (node) =>
+    node.evaluate((element) => ({ width: element.style.width, height: element.style.height }));
+  const resizeNode = container.getByRole('button', { name: 'Resize Orders', exact: true });
+  const beforeNode = await size(container);
+  await resizeNode.press('ArrowRight');
+  await expect.poll(() => size(container)).toEqual({ width: '225px', height: beforeNode.height });
+  await expect(resizeNode).toBeFocused();
+  await resizeNode.press('Control+z');
+  await expect.poll(() => size(container)).toEqual(beforeNode);
+
+  const group = page.locator('[data-flow-ddd-group="order-context"]');
+  const selectGroup = () =>
+    group.getByRole('button', { name: 'Select Order management', exact: true }).press('Enter');
+  await selectGroup();
+  await expect(group.locator('[data-flow-resize]')).toHaveCount(8);
+  const resizeTop = group.getByRole('button', {
+    name: 'Resize Order management from top',
+    exact: true,
+  });
+  await resizeTop.press('ArrowUp');
+  await expect.poll(() => size(group)).toEqual({ width: '300px', height: '205px' });
+  await expect(group).toHaveCSS('top', '525px');
+  await resizeTop.press('Control+z');
+  await expect(group).toHaveCSS('top', '530px');
+  await expect.poll(() => size(group)).toEqual({ width: '300px', height: '200px' });
+
+  await selectGroup();
+  const resizeCorner = group.getByRole('button', {
+    name: 'Resize Order management from bottom right',
+    exact: true,
+  });
+  const resizeReadout = page.getByRole('status', {
+    name: 'Order management dimensions in graph units',
+  });
+  await expect(resizeReadout).toContainText('300 × 200');
+  await page.getByLabel('Minimal mode', { exact: true }).check();
+  await expect(resizeReadout).toHaveCount(0);
+  await expect(resizeCorner).toBeVisible();
+  await page.getByLabel('Minimal mode', { exact: true }).uncheck();
+  const startResize = async () => {
+    await resizeCorner.scrollIntoViewIfNeeded();
+    const bounds = await resizeCorner.boundingBox();
+    assert(bounds);
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 35, y + 25, { steps: 8 });
+    await expect
+      .poll(async () => Number.parseFloat((await size(group)).width))
+      .toBeGreaterThan(300);
+    await expect(resizeReadout).toBeVisible();
+    await expect(resizeReadout).not.toContainText('300 × 200');
+  };
+  await startResize();
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect.poll(() => size(group)).toEqual({ width: '300px', height: '200px' });
+  await expect(resizeReadout).toContainText('300 × 200');
+  await startResize();
+  await page.mouse.up();
+  await expect.poll(async () => Number.parseFloat((await size(group)).height)).toBeGreaterThan(200);
+  await resizeCorner.press('Control+z');
+  await expect.poll(() => size(group)).toEqual({ width: '300px', height: '200px' });
+
+  await selectGroup();
+  await expect(group.locator('[data-flow-resize]')).toHaveCount(8);
+  await collapse.click();
+  await expect(group.locator('[data-flow-resize]')).toHaveCount(0);
+  await expand.click();
+  await expect(group.locator('[data-flow-resize]')).toHaveCount(8);
+
   const reopened = await download('Download v2 model', 'history-workflow-v2-notation.json');
   assert.deepEqual(reopened.document.snapshot.graph, withOutline.document.snapshot.graph);
 
@@ -325,6 +399,7 @@ async function run() {
           'protected preview and cross-mode Undo/Redo',
           'capture/download/import/conflict/invalid UTF-8',
           'C4, DDD and Event Storming notation, strategic direction, and previous working session history',
+          'keyboard and pointer resizing, read-only and collapsed group gates, Escape and one Undo',
           'play/pause/rewind/reduced motion',
         ],
         pageErrors: errors,

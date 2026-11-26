@@ -37,6 +37,13 @@ revision pinned by the workspace for this preview. For a native v3 editor,
 compose `groupSurfaceV3`, `groupInspectorV3` and `groupClipboardV3` with
 `updateGroupWorkbenchV3` and the same policy in the host.
 
+Pass `resizeHandles: true` to `graphSurface` to expose width controls on nodes
+and directional handles when an expanded group is selected. Arrow keys and
+pointer drags use the same editor policy and Undo history. Set
+`resizeReadout: false` to hide the size display while retaining the controls.
+The [History workbench](../../apps/zloz-demo/src/history-workbench/view.ts)
+enables the controls on its working model.
+
 ## Core
 
 ```ts

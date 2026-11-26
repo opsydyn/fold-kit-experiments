@@ -434,6 +434,8 @@ export function view(h: Html.H<Message>, model: Model) {
                 : 'Working history canvas',
             onInput: observe,
             architectureNotation: true,
+            resizeHandles: true,
+            resizeReadout: !model.minimal,
             onToggleGroup: (id) => observe({ type: 'GroupCollapseToggled', id }),
             wheelNavigation: 'zoom',
             pinchZoom: false,

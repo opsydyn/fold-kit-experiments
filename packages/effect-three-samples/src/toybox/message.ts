@@ -1,11 +1,12 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
+
+import { SceneStart } from '../effect-ui-scene';
 
 export const Vec3 = Schema.Tuple([Schema.Number, Schema.Number, Schema.Number]);
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedToy: { key: Schema.String, direction: Vec3 },
   ClickedDrop: {},
   ClickedTidy: {},
@@ -20,6 +21,6 @@ export const Message = defineMessageUnion({
   FailedVr: {},
   ChangedVrSession: { presenting: Schema.Boolean },
   Glided: { moved: SceneSchema.XrMovedDetail },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

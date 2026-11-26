@@ -1,12 +1,9 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import type { Gesture } from '@opsydyn/effect-three';
 
-// The commands use the page's environment; the update logic under test never runs them.
-await mock.module('../src/toybox/environment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
+import { SceneStart } from '../src/effect-ui-scene';
+
 const { Message } = await import('../src/toybox/message');
 const { init, toyKey, update } = await import('../src/toybox/update');
 const { sceneFor } = await import('../src/toybox/scene');
@@ -61,7 +58,11 @@ test('orbiting ignores gestures that began on a toy', () => {
 });
 
 test('VR: offered only when supported, and following the session', () => {
-  expect(init().commands).toHaveLength(1);
+  const mounted = update(
+    start,
+    Message.ReceivedSceneLifecycle({ lifecycle: SceneStart.StartedScene() }),
+  );
+  expect(mounted.commands).toMatchObject([{ name: 'CheckVr' }]);
   expect(step(start, Message.CheckedVr({ supported: false })).vr).toBe('unavailable');
   const ready = step(start, Message.CheckedVr({ supported: true }));
   expect(ready.vr).toBe('ready');

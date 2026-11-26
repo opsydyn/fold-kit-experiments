@@ -1,24 +1,21 @@
-import { History, Inspector } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
+import { History, Inspector, overlay, tapeMiddle } from '@opsydyn/effect-three';
+import { BoxSelect, MeasuringTape } from '@opsydyn/effect-three-foldkit/browser';
 import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { sceneMount } from '../environment';
+import { inspectorView } from '../effect-ui-inspector';
+import { sceneOverlayLayer, type SceneOverlay, withSceneOverlays } from '../effect-ui-overlays';
+import { EffectThreeStage, unlabelledSceneMount } from '../effect-ui-scene';
 import { Message } from './message';
 import { type Model, Thing } from './model';
 import { sceneFor } from './scene';
 
-const toggle = (h: HtmlBuilder<Message>, label: string, on: boolean, message: Message): Html =>
-  h.button(
-    [h.Class('e3-button'), h.Type('button'), h.AriaPressed(String(on)), h.OnClick(message)],
-    [label],
-  );
+const button = (h: Html.H<Message>, label: string, message: Message) =>
+  h.button.class('e3-button').attr('type', 'button').on('click', message).children(label);
 
-const button = (h: HtmlBuilder<Message>, label: string, enabled: boolean, message: Message): Html =>
-  h.button(
-    [h.Class('e3-button'), h.Type('button'), h.Disabled(!enabled), h.OnClick(message)],
-    [label],
-  );
+const toggle = (h: Html.H<Message>, label: string, on: boolean, message: Message) =>
+  button(h, label, message).attr('aria-pressed', String(on));
 
 const modes = [
   ['translate', 'Move'],
@@ -50,7 +47,7 @@ const placed = (model: Model, { key, placement }: Thing): string =>
 /** What is selected and where, read from the Model. */
 /** What the tape says while measuring. */
 const measurement = (model: Model): string =>
-  Option.match(EffectThreeFoldkit.MeasuringTape.length(model.tape), {
+  Option.match(MeasuringTape.length(model.tape), {
     onNone: () => 'Measuring: click a point on the table or a thing, then another.',
     onSome: (length) =>
       model.tape.tape.to === null
@@ -74,118 +71,106 @@ const readout = (model: Model): string => {
  * The one selected thing's fields, read from the `Thing` schema (its key is how the
  * page finds it, so it is left out), and why the last edit was refused, if it was.
  */
-const inspector = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+const inspector = (model: Model, h: Html.H<Message>) => {
   const selected = model.things.filter((thing) => model.selected.includes(thing.key));
   const [only] = selected;
-  if (only === undefined || selected.length > 1 || model.measuring) return [];
+  if (only === undefined || selected.length > 1 || model.measuring) return undefined;
   const fields = Inspector.fields(Thing, only).filter((field) => field.path[0] !== 'key');
-  return [
-    h.section(
-      [h.Class('e3-inspector-panel'), h.AriaLabel(`${only.key}, inspected`)],
-      [
-        h.h3([], [`Inspector: ${only.key}`]),
-        EffectThreeFoldkit.inspectorView(h, fields, (path, value) =>
-          Message.EditedThing({ key: only.key, path, value }),
-        ),
-        ...Option.match(model.inspectorIssue, {
-          onNone: () => [],
-          onSome: (issue) => [h.p([h.Class('e3-inspector-issue'), h.Role('alert')], [issue])],
-        }),
-      ],
-    ),
-  ];
+  return h.section
+    .class('e3-inspector-panel')
+    .attr('aria-label', `${only.key}, inspected`)
+    .children(
+      h.h3(`Inspector: ${only.key}`),
+      inspectorView(h, fields, (path, value) =>
+        Message.EditedThing({ key: only.key, path, value }),
+      ),
+      Option.match(model.inspectorIssue, {
+        onNone: () => null,
+        onSome: (issue) => h.p.class('e3-inspector-issue').attr('role', 'alert').children(issue),
+      }),
+    );
 };
 
-/** The selection box's outline over the canvas, while one is drawn. */
-const boxOutline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
-  Option.match(EffectThreeFoldkit.BoxSelect.rectangle(model.box), {
-    onNone: () => [],
-    onSome: ({ left, top, width, height }) => [
-      h.div(
-        [
-          h.Class('e3-select-box'),
-          h.AriaHidden(true),
-          h.Style({
-            left: `${left}px`,
-            top: `${top}px`,
-            width: `${width}px`,
-            height: `${height}px`,
-          }),
-        ],
-        [],
-      ),
-    ],
+const boxOutline = (model: Model, h: Html.H<Message>) =>
+  Option.match(BoxSelect.rectangle(model.box), {
+    onNone: () => null,
+    onSome: ({ left, top, width, height }) =>
+      h.div
+        .class('e3-select-box')
+        .attr('aria-hidden', 'true')
+        .style({ left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` })
+        .children(),
   });
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Arrange — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      h.div(
-        [h.Class('e3-select-area')],
-        [
-          EffectThreeFoldkit.view(
-            {
-              scene: sceneFor(model),
-              mount: sceneMount,
-              className: 'e3-stage e3-stage-tall',
-              overlays: EffectThreeFoldkit.MeasuringTape.label(model.tape, h, {
-                unit: 'units',
-                className: 'e3-tape-label',
-              }),
-              onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-              onPointerDown: ({ key, point, ray }) =>
-                Message.PressedScene({ key, point, origin: ray.origin, direction: ray.direction }),
-              onDrag: ({ ray }) =>
-                Message.DraggedScene({ origin: ray.origin, direction: ray.direction }),
-              onDragEnd: () => Message.ReleasedScene(),
-              onClick: ({ key, point }) => Message.ClickedThing({ key, point }),
-              onPointerMove: ({ point }) => Message.MovedOver({ point }),
-              onPointerMissed: () => Message.ClickedNothing(),
-              onPointerEnter: ({ key }) => Message.HoveredScene({ key }),
-              onPointerLeave: ({ key }) => Message.LeftScene({ key }),
-              onGesture: (gesture) => Message.MadeGesture({ gesture }),
-              onGestureEnd: () => Message.EndedGesture(),
-            },
-            h,
+const tapeLabel = (model: Model, h: Html.H<Message>): ReadonlyArray<SceneOverlay<Message>> =>
+  Option.toArray(
+    Option.map(
+      Option.all([
+        MeasuringTape.length(model.tape),
+        Option.fromNullishOr(tapeMiddle(model.tape.tape)),
+      ]),
+      ([length, position]) => ({
+        overlay: overlay({ key: `${model.tape.key}:label`, position, center: true }),
+        content: h.span.class('e3-tape-label').children(`${length.toFixed(2)} units`),
+        pointerEvents: 'none',
+      }),
+    ),
+  );
+
+export const view = (h: Html.H<Message>, model: Model) => {
+  const overlays = tapeLabel(model, h);
+  const scene = withSceneOverlays(sceneFor(model), overlays);
+  return h.div.class('e3-sample').children(
+    h.div.class('e3-select-area').children(
+      EffectThreeStage(h)
+        .class('e3-stage', 'e3-stage-tall')
+        .on('scene-pointer-down', ({ key, point, ray }) =>
+          Message.PressedScene({ key, point, origin: ray.origin, direction: ray.direction }),
+        )
+        .on('scene-drag', ({ ray }) =>
+          Message.DraggedScene({ origin: ray.origin, direction: ray.direction }),
+        )
+        .on('scene-drag-end', Message.ReleasedScene())
+        .on('scene-click', ({ key, point }) => Message.ClickedThing({ key, point }))
+        .on('scene-pointer-move', ({ point }) => Message.MovedOver({ point }))
+        .on('scene-pointer-missed', Message.ClickedNothing())
+        .on('scene-pointer-enter', ({ key }) => Message.HoveredScene({ key }))
+        .on('scene-pointer-leave', ({ key }) => Message.LeftScene({ key }))
+        .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
+        .on('scene-gesture-end', Message.EndedGesture())
+        .onMount(
+          Mount.map(unlabelledSceneMount({ scene }), (lifecycle) =>
+            Message.ReceivedSceneLifecycle({ lifecycle }),
           ),
-          ...boxOutline(model, h),
-        ],
+        )
+        .children(sceneOverlayLayer(h, overlays)),
+      boxOutline(model, h),
+    ),
+    h.p.class('e3-readout').attr('aria-live', 'polite').children(readout(model)),
+    h.div
+      .class('e3-controls')
+      .children(
+        ...modes.map(([mode, label]) =>
+          toggle(h, label, model.gizmo.gizmo.mode === mode, Message.ChoseMode({ mode })),
+        ),
+        toggle(h, 'Local axes', model.gizmo.gizmo.space === 'local', Message.ClickedSpace()),
+        toggle(h, 'Snap', model.snapping, Message.ClickedSnapping()),
+        toggle(h, 'Pivot', model.style === 'pivot', Message.ClickedPivot()),
+        toggle(h, 'Measure', model.measuring, Message.ClickedMeasure()),
+        button(h, 'Undo', Message.ClickedUndo()).disabled(!History.canUndo(model.history)),
+        button(h, 'Redo', Message.ClickedRedo()).disabled(!History.canRedo(model.history)),
+        History.branches(model.history).length > 1
+          ? button(h, branchLabel(model), Message.ClickedBranch())
+          : null,
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          ...modes.map(([mode, label]) =>
-            toggle(h, label, model.gizmo.gizmo.mode === mode, Message.ChoseMode({ mode })),
-          ),
-          toggle(h, 'Local axes', model.gizmo.gizmo.space === 'local', Message.ClickedSpace()),
-          toggle(h, 'Snap', model.snapping, Message.ClickedSnapping()),
-          toggle(h, 'Pivot', model.style === 'pivot', Message.ClickedPivot()),
-          toggle(h, 'Measure', model.measuring, Message.ClickedMeasure()),
-          button(h, 'Undo', History.canUndo(model.history), Message.ClickedUndo()),
-          button(h, 'Redo', History.canRedo(model.history), Message.ClickedRedo()),
-          ...(History.branches(model.history).length > 1
-            ? [button(h, branchLabel(model), true, Message.ClickedBranch())]
-            : []),
-        ],
+    inspector(model, h),
+    h.p
+      .class('e3-note')
+      .children(
+        'Drag a gizmo handle to move the selection. Each finished move is recorded for undo. ',
+        'Drag empty space to orbit or Shift-drag to select several things. Click a corner axis ',
+        'to turn the camera. Pivot changes the gizmo, and Measure turns two scene clicks into a tape. ',
+        'The inspector is generated from the Thing schema, which checks every edit.',
       ),
-      ...inspector(model, h),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          'The gizmo is a Foldkit submodel: its handles are scene nodes, a press and the drag ',
-          'rays after it are Messages, and each move comes back to the page as an OutMessage, ',
-          'so every move can be undone. Drag empty space to orbit; shift-drag it to draw a ',
-          'selection box (another submodel, after Drei’s Select), and the gizmo moves ',
-          'everything selected alike. The axes in the corner turn the camera to look along ',
-          'one: a third submodel, drawn in the scene’s HUD. Pivot swaps the gizmo for Drei’s ',
-          'pivot controls, a fourth: arrows, squares, arcs and spheres all at once. Measure ',
-          'turns clicks into a tape between two points, a fifth. The inspector below the ',
-          'controls is generated from the Thing schema, which checks every edit.',
-        ],
-      ),
-    ],
-  ),
-});
+  );
+};

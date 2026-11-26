@@ -1,13 +1,15 @@
+import type { Command } from '@effect/ui';
 import { type Gesture, glided, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
 import { CheckVr, EnterVr, ExitVr } from './command';
-import { Message } from './message';
+import type { Message } from './message';
 import { homeCamera, initialModel, type Model, mostMarbles, pour, toyAt, type Toy } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message, CheckVr | EnterVr | ExitVr>>;
+};
 
 export const toyKey = (model: Model, toy: Toy): string => `toy:${model.round}:${toy.id}`;
 
@@ -66,45 +68,53 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     ? model
     : { ...model, camera: orbit(model.camera, gesture, orbitLimits) };
 
-export const init = () => ({ model: initialModel, commands: [CheckVr()] });
+export const init = () => ({ model: initialModel });
 
 const vrAvailability = { true: 'ready', false: 'unavailable' } as const;
 const vrSession = { true: 'presenting', false: 'ready' } as const;
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedToy: ({ key, direction }) => ({ model: kick(model, key, direction) }),
-    ClickedDrop: () => ({ model: dropped(model) }),
-    ClickedTidy: () => ({ model: tidied(model) }),
-    ToggledColliders: () => ({
-      model: modifyFields(model, { showColliders: (shown) => !shown }),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      ClickedToy: ({ key, direction }) => ({ model: kick(model, key, direction) }),
+      ClickedDrop: () => ({ model: dropped(model) }),
+      ClickedTidy: () => ({ model: tidied(model) }),
+      ToggledColliders: () => ({
+        model: Struct.evolve(model, { showColliders: (shown) => !shown }),
+      }),
+      ClickedPour: () => ({
+        model: Struct.evolve(model, {
+          marbles: (marbles) => Math.min(mostMarbles, marbles + pour),
+        }),
+      }),
+      Bumped: ({ started, marble }) => ({
+        // Toys bumping into things; marbles roll in and out of contact all the time.
+        model: Struct.evolve(model, { bumps: (bumps) => bumps + Number(started && !marble) }),
+      }),
+      MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+      CheckedVr: ({ supported }) => ({
+        model: Struct.evolve(model, { vr: () => vrAvailability[`${supported}`] }),
+      }),
+      ClickedEnterVr: () => ({
+        model: Struct.evolve(model, { vr: () => 'entering' as const }),
+        commands: [EnterVr.make()],
+      }),
+      ClickedExitVr: () => ({ model, commands: [ExitVr.make()] }),
+      FailedVr: () => ({ model: Struct.evolve(model, { vr: () => 'ready' as const }) }),
+      ChangedVrSession: ({ presenting }) => ({
+        model: Struct.evolve(model, { vr: () => vrSession[`${presenting}`] }),
+      }),
+      // The session glides the player with the sticks (pmndrs/xr's controller locomotion);
+      // when they let go, the Model keeps where they stand.
+      Glided: ({ moved }) => ({
+        model: Struct.evolve(model, { player: (player) => glided(player, moved) }),
+      }),
+      ReceivedSceneLifecycle: ({ lifecycle }) =>
+        lifecycle._tag === 'StartedScene'
+          ? { model, commands: [CheckVr.make()] }
+          : { model: Struct.assign(model, { sceneFailure: lifecycle.reason }) },
     }),
-    ClickedPour: () => ({
-      model: modifyFields(model, { marbles: (marbles) => Math.min(mostMarbles, marbles + pour) }),
-    }),
-    Bumped: ({ started, marble }) => ({
-      // Toys bumping into things; marbles roll in and out of contact all the time.
-      model: modifyFields(model, { bumps: (bumps) => bumps + Number(started && !marble) }),
-    }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
-    CheckedVr: ({ supported }) => ({
-      model: modifyFields(model, { vr: () => vrAvailability[`${supported}`] }),
-    }),
-    ClickedEnterVr: () => ({
-      model: modifyFields(model, { vr: () => 'entering' as const }),
-      commands: [EnterVr()],
-    }),
-    ClickedExitVr: () => ({ model, commands: [ExitVr()] }),
-    FailedVr: () => ({ model: modifyFields(model, { vr: () => 'ready' as const }) }),
-    ChangedVrSession: ({ presenting }) => ({
-      model: modifyFields(model, { vr: () => vrSession[`${presenting}`] }),
-    }),
-    // The session glides the player with the sticks (pmndrs/xr's controller locomotion);
-    // when they let go, the Model keeps where they stand.
-    Glided: ({ moved }) => ({
-      model: modifyFields(model, { player: (player) => glided(player, moved) }),
-    }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );
 
 export { homeCamera };

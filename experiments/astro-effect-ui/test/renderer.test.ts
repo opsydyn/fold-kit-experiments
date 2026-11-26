@@ -883,3 +883,102 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   75_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Studio and Arrange render scene overlays and Toybox runs its physics controls',
+  async () => {
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      page.setDefaultTimeout(9000);
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.route(`${origin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      const stage = page.locator('effect-three-scene');
+      const canvas = stage.locator('canvas[data-engine]');
+      const readout = page.locator('.e3-readout');
+      const go = async (sample: string) => {
+        await page.goto(`${origin}/three-scenes/${sample}/`);
+        await canvas.waitFor();
+      };
+      // The real Three stage consumes these structured hits. Choose world points directly
+      // so the overlay assertion is independent of the browser's viewport and projection.
+      const hit = (key: string, point: readonly [number, number, number]) =>
+        stage.evaluate(
+          (node, detail) => node.dispatchEvent(new CustomEvent('scene-click', { detail })),
+          {
+            key,
+            point,
+            path: [key],
+            button: 0,
+            distance: 5,
+            normal: [0, 1, 0],
+            uv: [0.5, 0.5],
+            ray: { origin: [0, 5, 4], direction: [0, -1, 0] },
+          },
+        );
+
+      await go('studio');
+      await hit('piece:torus', [0, 1, 0]);
+      await readout.filter({ hasText: 'Torus:' }).waitFor();
+      const tag = stage.locator('[data-effect-three-overlay="selected-tag"]');
+      await tag.waitFor();
+      expect(await tag.textContent()).toContain('Torus');
+      const originalPlacement = await tag.evaluate(
+        (node) => node instanceof HTMLElement && node.style.transform,
+      );
+      await page.getByLabel('Studio scene.', { exact: false }).press('ArrowLeft');
+      await page.waitForFunction((transform) => {
+        const tag = document.querySelector('[data-effect-three-overlay="selected-tag"]');
+        return tag instanceof HTMLElement && tag.style.transform !== transform;
+      }, originalPlacement);
+      await page.getByRole('button', { name: 'Orthographic camera' }).press('Enter');
+      await page.getByRole('button', { name: 'Split view' }).waitFor();
+
+      await go('arrange');
+      const position = page.getByRole('spinbutton', { name: 'placement position x', exact: true });
+      await position.fill('1.25');
+      await position.press('Tab');
+      await readout.filter({ hasText: 'crate: at 1.25' }).waitFor();
+      await page.getByRole('button', { name: 'Undo' }).press('Enter');
+      await readout.filter({ hasText: 'crate: at -1.50' }).waitFor();
+      await page.getByRole('button', { name: 'Redo' }).press('Enter');
+      await readout.filter({ hasText: 'crate: at 1.25' }).waitFor();
+      await page.getByRole('button', { name: 'Measure' }).press('Enter');
+      await hit('table', [-0.5, 0, 0]);
+      await hit('table', [0.5, 0, 0]);
+      await readout.filter({ hasText: '1.00 units between the ends' }).waitFor();
+      const tape = stage.locator('[data-effect-three-overlay="tape:label"]');
+      await tape.waitFor();
+      expect(await tape.textContent()).toBe('1.00 units');
+
+      await go('toybox');
+      const originalToys = (await readout.textContent())?.match(/^(\d+) toys/)?.[1];
+      if (originalToys === undefined) throw new Error('Toybox did not show a toy count.');
+      await page.getByRole('button', { name: 'Drop a toy' }).press('Enter');
+      await readout.filter({ hasText: new RegExp(`^${Number(originalToys) + 1} toys`) }).waitFor();
+      await page.getByRole('button', { name: 'Pour marbles' }).press('Enter');
+      await readout.filter({ hasText: '16 marbles' }).waitFor();
+      const original = await canvas.elementHandle();
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        original,
+      );
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  60_000,
+);

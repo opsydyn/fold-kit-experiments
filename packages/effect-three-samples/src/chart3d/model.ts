@@ -3,13 +3,13 @@ import type { Camera } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 
 import { SceneStart } from '../effect-ui-scene';
+import { Theme } from '../pageTheme';
 
 export const Chart = Schema.Literals(['scatter', 'surface']);
 export type Chart = typeof Chart.Type;
 
 /** The page theme, which the chart's axes and labels follow. */
-export const Theme = Schema.Literals(['light', 'dark']);
-export type Theme = typeof Theme.Type;
+export { Theme } from '../pageTheme';
 
 export const Model = Schema.Struct({
   chart: Chart,

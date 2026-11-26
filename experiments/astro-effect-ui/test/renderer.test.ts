@@ -748,3 +748,138 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   45_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'the seven migrated Three demos render and respond to their controls',
+  async () => {
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      page.setDefaultTimeout(8000);
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const font = new URL(
+        '../../../apps/three-promo/public/models/inter-latin-400-normal.woff',
+        import.meta.url,
+      );
+      await page.route(`${origin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname === '/models/inter-latin-400-normal.woff') {
+          await route.fulfill({ path: font.pathname, contentType: 'font/woff' });
+          return;
+        }
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+
+      const stage = page.locator('effect-three-scene');
+      const canvas = stage.locator('canvas');
+      const go = async (demo: string) => {
+        await page.goto(`${origin}/three-scenes/${demo}/`);
+        await stage.locator('canvas[data-engine]').waitFor();
+        expect(
+          await canvas.evaluate(
+            (node) =>
+              node instanceof HTMLCanvasElement && node.getContext('webgl2')?.isContextLost(),
+          ),
+        ).toBe(false);
+      };
+
+      await page.goto(`${origin}/three-scenes/hero/`);
+      await stage.waitFor({ state: 'attached' });
+      expect(await canvas.count()).toBe(0);
+      await stage.scrollIntoViewIfNeeded();
+      await canvas.waitFor();
+      await stage.evaluate((node) => {
+        node.addEventListener('scene-reconciled', () =>
+          node.setAttribute('data-repainted', 'true'),
+        );
+      });
+      await canvas.click();
+      await stage.and(page.locator('[data-repainted]')).waitFor();
+
+      await go('city');
+      await canvas.hover();
+      await page
+        .locator('.e3-readout')
+        .filter({ hasText: /Building \d+ of 10,000/ })
+        .waitFor();
+      await page.getByRole('button', { name: 'New city' }).press('Enter');
+      await page.locator('.e3-readout').filter({ hasText: 'Hover a building' }).waitFor();
+
+      await go('curves');
+      await canvas.scrollIntoViewIfNeeded();
+      const bounds = await canvas.boundingBox();
+      if (!bounds) throw new Error('The curve canvas is not visible.');
+      await stage.evaluate((node) => {
+        node.addEventListener('scene-drag', () => node.setAttribute('data-dragged', 'true'));
+      });
+      const x = bounds.x + bounds.width / 2;
+      const y = bounds.y + bounds.height * 0.594;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + 65, y - 30, { steps: 6 });
+      await page.mouse.up();
+      await stage.and(page.locator('[data-dragged]')).waitFor();
+      const dashes = page.getByRole('button', { name: 'Dashed curve' });
+      await dashes.press('Enter');
+      expect(await dashes.getAttribute('aria-pressed')).toBe('true');
+
+      await go('sculpture');
+      await canvas.click();
+      await page.getByText(/Showing 4 of 4 pieces/).waitFor();
+      await page.getByRole('slider', { name: 'Build history' }).press('Home');
+      await page.getByText(/Showing 0 of 4 pieces/).waitFor();
+      await page.getByRole('button', { name: 'Redo' }).press('Enter');
+      await page.getByText(/Showing 1 of 4 pieces/).waitFor();
+
+      await go('playground');
+      const stat = (label: string) =>
+        page
+          .locator('.e3-stat')
+          .filter({ has: page.getByText(label, { exact: true }) })
+          .locator('dd');
+      await page.getByRole('button', { name: 'Add cube' }).press('Enter');
+      await stat('Created').filter({ hasText: /^1$/ }).waitFor();
+      await page.getByRole('button', { name: 'Remove cube' }).press('Enter');
+      await stat('Removed').filter({ hasText: /^1$/ }).waitFor();
+
+      await go('bars');
+      await page.getByText('Data table', { exact: true }).click();
+      const table = page.getByRole('table');
+      expect(await table.getByRole('columnheader').count()).toBe(4);
+      await page.getByRole('button', { name: 'Search' }).press('Enter');
+      await table.getByRole('columnheader', { name: 'Search' }).waitFor({ state: 'detached' });
+      expect(await table.getByRole('columnheader').count()).toBe(3);
+
+      await go('marbles');
+      await page.getByRole('button', { name: 'Reverse' }).press('Enter');
+      await stat('Wheel').filter({ hasText: 'anticlockwise' }).waitFor();
+      const before = await stat('Gold binned').textContent();
+      await page.getByRole('button', { name: 'Pour gold' }).press('Enter');
+      await page.waitForFunction(
+        (value) =>
+          Array.from(document.querySelectorAll('.e3-stat'))
+            .find((node) => node.querySelector('dt')?.textContent === 'Gold binned')
+            ?.querySelector('dd')?.textContent !== value,
+        before,
+      );
+      const original = await canvas.elementHandle();
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await page.waitForFunction(
+        (node) =>
+          node instanceof HTMLCanvasElement &&
+          !node.isConnected &&
+          node.getContext('webgl2')?.isContextLost(),
+        original,
+      );
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  75_000,
+);

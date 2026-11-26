@@ -3,11 +3,18 @@ import { ClientRouter } from 'astro:transitions';
 import Gallery from '../../../../../../../packages/effect-three-samples/src/gallery/main';
 import Room from '../../../../../../../packages/effect-three-samples/src/room/main';
 import Workshop from '../../../../../../../packages/effect-three-samples/src/workshop/main';
+import Bars from '../../../../../../../packages/effect-three-samples/src/bars/main';
+import City from '../../../../../../../packages/effect-three-samples/src/city/main';
+import Curves from '../../../../../../../packages/effect-three-samples/src/curves/main';
+import Hero from '../../../../../../../packages/effect-three-samples/src/hero/main';
+import Marbles from '../../../../../../../packages/effect-three-samples/src/marbles/main';
+import Playground from '../../../../../../../packages/effect-three-samples/src/playground/main';
+import Sculpture from '../../../../../../../packages/effect-three-samples/src/sculpture/main';
 import Bowling from '../../../../../../../packages/effect-three-samples/src/bowling/main';
 import '../../../../../../../packages/effect-three-samples/src/styles.css';
 
 export function getStaticPaths() {
-  return ['gallery', 'bowling', 'room', 'workshop'].map((sample) => ({ params: { sample } }));
+  return ['gallery', 'bowling', 'room', 'workshop', 'bars', 'city', 'curves', 'hero', 'marbles', 'playground', 'sculpture'].map((sample) => ({ params: { sample } }));
 }
 const { sample } = Astro.params;
 ---
@@ -19,6 +26,13 @@ const { sample } = Astro.params;
       {sample === 'bowling' && <Bowling client:load />}
       {sample === 'room' && <Room client:load />}
       {sample === 'workshop' && <Workshop client:load />}
+      {sample === 'bars' && <Bars client:load />}
+      {sample === 'city' && <City client:load />}
+      {sample === 'curves' && <Curves client:load />}
+      {sample === 'hero' && <div style="margin-top: 140vh"><Hero client:visible /></div>}
+      {sample === 'marbles' && <Marbles client:load />}
+      {sample === 'playground' && <Playground client:load />}
+      {sample === 'sculpture' && <Sculpture client:load />}
       {sample === 'gallery' && <a href="/three-scenes/bowling/">Bowling</a>}
       <a href="/away/">Away</a>
     </main>

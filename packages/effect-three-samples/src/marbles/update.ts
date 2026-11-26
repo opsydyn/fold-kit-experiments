@@ -5,11 +5,9 @@ import {
   orbit,
   orbitOptions,
 } from '@opsydyn/effect-three';
-import { Option } from 'effect';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Option, Struct } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import {
   type Bin,
   type Colour,
@@ -20,7 +18,7 @@ import {
   wheelSpeeds,
 } from './model';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 /** The instances node holding one colour's marbles this round. */
 export const marblesKey = (model: Model, colour: Colour): string =>
@@ -85,28 +83,31 @@ export const init = (props: { readonly assetBase?: string } = {}) => ({
 });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedPour: ({ colour }) => ({ model: poured(model, colour) }),
-    ClickedEmpty: () => ({ model: emptied(model) }),
-    ClickedFaster: () => ({ model: geared(model, 1.5) }),
-    ClickedSlower: () => ({ model: geared(model, 1 / 1.5) }),
-    ClickedReverse: () => ({
-      model: modifyFields(model, { wheelSpeed: (speed) => -speed }),
-    }),
-    ToggledColliders: () => ({
-      model: modifyFields(model, { showColliders: (shown) => !shown }),
-    }),
-    Collided: ({ collision }) => ({ model: binned(model, collision) }),
-    KnockedWheel: ({ force }) => ({
-      model: modifyFields(model, {
-        knocks: (knocks) => knocks + 1,
-        hardest: (hardest) => Math.max(hardest, force),
+  Match.value(message).pipe(
+    Match.withReturnType<AppReturn>(),
+    Match.tagsExhaustive({
+      ClickedPour: ({ colour }) => ({ model: poured(model, colour) }),
+      ClickedEmpty: () => ({ model: emptied(model) }),
+      ClickedFaster: () => ({ model: geared(model, 1.5) }),
+      ClickedSlower: () => ({ model: geared(model, 1 / 1.5) }),
+      ClickedReverse: () => ({
+        model: Struct.evolve(model, { wheelSpeed: (speed) => -speed }),
       }),
+      ToggledColliders: () => ({
+        model: Struct.evolve(model, { showColliders: (shown) => !shown }),
+      }),
+      Collided: ({ collision }) => ({ model: binned(model, collision) }),
+      KnockedWheel: ({ force }) => ({
+        model: Struct.evolve(model, {
+          knocks: (knocks) => knocks + 1,
+          hardest: (hardest) => Math.max(hardest, force),
+        }),
+      }),
+      MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+      // The camera turned by itself; keep where it got to, so the gesture after goes on from there.
+      AutoRotated: ({ turned }) => ({
+        model: Struct.evolve(model, { camera: (camera) => autoRotated(camera, turned) }),
+      }),
+      ReceivedSceneLifecycle: () => ({ model }),
     }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
-    // The camera turned by itself; keep where it got to, so the gesture after goes on from there.
-    AutoRotated: ({ turned }) => ({
-      model: modifyFields(model, { camera: (camera) => autoRotated(camera, turned) }),
-    }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

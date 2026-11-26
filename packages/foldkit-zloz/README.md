@@ -33,7 +33,9 @@ the `surfaceInput` mount to own the surface markup. The host owns the editor
 state and routes `BrowserInput` events to `updateEditor`. The
 [Connections workbench](../../apps/zloz-demo/src/connections/view.ts) shows strict
 and loose sessions, custom port labels, and reconnection. Use the Effect UI
-revision pinned by the workspace for this preview.
+revision pinned by the workspace for this preview. For a native v3 editor,
+compose `groupSurfaceV3`, `groupInspectorV3` and `groupClipboardV3` with
+`updateGroupWorkbenchV3` and the same policy in the host.
 
 ## Core
 

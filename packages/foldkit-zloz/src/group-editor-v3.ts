@@ -129,18 +129,19 @@ export function createGroupEditorV3(
   options: ZlozGroupEditorOptionsV3,
 ): ZlozGroupEditorStateV3 {
   const owned = ownPortableData(options, undefined, 'Group editor options');
+  const historyLimit = isRecord(owned) && 'historyLimit' in owned ? owned.historyLimit : 100;
+  const readOnly = isRecord(owned) && 'readOnly' in owned ? owned.readOnly : false;
   if (
     !isRecord(owned) ||
     Object.keys(owned).some((key) => !['sessionId', 'historyLimit', 'readOnly'].includes(key)) ||
     typeof owned.sessionId !== 'string' ||
     !owned.sessionId.trim() ||
     owned.sessionId.length > 1024 ||
-    ('historyLimit' in owned &&
-      (typeof owned.historyLimit !== 'number' ||
-        !Number.isSafeInteger(owned.historyLimit) ||
-        owned.historyLimit < 0 ||
-        owned.historyLimit > 1000)) ||
-    ('readOnly' in owned && typeof owned.readOnly !== 'boolean')
+    typeof historyLimit !== 'number' ||
+    !Number.isSafeInteger(historyLimit) ||
+    historyLimit < 0 ||
+    historyLimit > 1000 ||
+    typeof readOnly !== 'boolean'
   )
     throw new ZlozError(
       'invalid-edit',
@@ -153,8 +154,8 @@ export function createGroupEditorV3(
     revision: 0,
     document: captureGroupDocumentV3(document),
     history: history([], []),
-    historyLimit: owned.historyLimit ?? 100,
-    readOnly: owned.readOnly ?? false,
+    historyLimit,
+    readOnly,
     activity: Object.freeze({ type: 'idle' }),
   });
 }

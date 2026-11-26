@@ -1,27 +1,25 @@
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 /* oxlint-disable linteffect/no-return-in-arrow -- Pure render callbacks derive geometry and bounded live policy previews; no Effect state transitions occur here. */
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { resolveZlozDiagnostics, visuallyHidden, type ZlozDiagnosticOptions } from './diagnostics';
-import { edgeGeometry, fittedGroupBounds, portPosition } from './geometry';
-import {
-  copyGroupSelectionV3,
-  planGroupPasteV3,
-  type ZlozGroupClipboardPolicyV3,
-} from './group-clipboard-v3';
+import { edgeGeometry, portPosition } from './geometry';
+import type { ZlozGroupClipboardPolicyV3 } from './group-clipboard-v3';
 import { planGroupConnectionV3 } from './group-connection-v3';
 import { captureGroupEditorSourceV3 } from './group-editor-v3';
-import { planGroupOperationV3 } from './group-operations-v3';
-import { planGroupPortEditV3 } from './group-port-edit-v3';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
+import {
+  groupClipboardActionsV3,
+  groupInspectorEntriesV3,
+  type GroupActionV3,
+} from './group-workbench-controls-v3';
 import {
   zlozGroupInteractionViewsV3,
   type ZlozNativeInteractionOptionsV3,
 } from './group-workbench-interactions-v3';
 import {
   groupWorkbenchGraphV3,
-  groupWorkbenchPasteRequestV3,
   groupWorkbenchRoutesV3,
   type ZlozGroupWorkbenchV3,
   type ZlozGroupWorkbenchEventV3,
@@ -119,19 +117,6 @@ export function zlozGroupClipboardV3<M>(
   options: ZlozGroupWorkbenchViewOptionsV3<M>,
   pasteOffset = { x: 40, y: 40 },
 ): Html {
-  const policy = options.policy ?? {},
-    copy = copyGroupSelectionV3(model.editor, model.selectedNodeIds, policy);
-  const request = groupWorkbenchPasteRequestV3(model, pasteOffset);
-  const paste = request ? planGroupPasteV3(model.editor, request, policy) : null;
-  const busy = model.gesture.type !== 'idle' ? 'Finish or cancel the active gesture first.' : null;
-  const copyReason = busy ?? (copy.type === 'blocked' ? copy.reason : null);
-  const pasteReason =
-    busy ??
-    (paste?.type === 'blocked'
-      ? paste.reason
-      : request
-        ? null
-        : 'Copy a selection before pasting.');
   const diagnostics = resolveZlozDiagnostics(options);
   return h.div(
     [
@@ -140,13 +125,8 @@ export function zlozGroupClipboardV3<M>(
       h.Style({ ...zlozThemeStyle(options.theme ?? {}), color: 'var(--flow-node-color, #172033)' }),
     ],
     [
-      zlozGroupActionV3(h, 'Copy selection', { type: 'CopyPressed' }, copyReason, options.onEvent),
-      zlozGroupActionV3(
-        h,
-        'Paste copy',
-        request ? { type: 'GroupPasteRequested', request } : { type: 'PastePressed' },
-        pasteReason,
-        options.onEvent,
+      ...groupClipboardActionsV3(model, options.policy ?? {}, pasteOffset).map(
+        ({ label, event, reason }) => zlozGroupActionV3(h, label, event, reason, options.onEvent),
       ),
       ...model.clipboardFindings.map((f) =>
         h.p([h.DataAttribute('zloz-clipboard-finding', f.code)], [f.reason]),
@@ -170,206 +150,26 @@ export function zlozGroupInspectorV3<M>(
   model: ZlozGroupWorkbenchV3,
   options: ZlozGroupWorkbenchViewOptionsV3<M>,
 ): Html {
-  const policy = options.policy ?? {},
-    source = captureGroupEditorSourceV3(model.editor);
-  const action = (label: string, event: ZlozGroupWorkbenchEventV3) => {
-    const plan =
-      event.type === 'GroupOperationRequested'
-        ? planGroupOperationV3(model.editor, { source, operation: event.operation }, policy)
-        : event.type === 'GroupPortEditRequested'
-          ? planGroupPortEditV3(model.editor, { source, edit: event.edit }, policy)
-          : event.type === 'ConnectionEditRequested'
-            ? planGroupConnectionV3(model.editor, { source, edit: event.edit }, policy)
-            : null;
-    const reason =
-      model.gesture.type !== 'idle'
-        ? 'Finish or cancel the active gesture first.'
-        : plan?.type === 'blocked'
-          ? plan.reason
-          : null;
-    return zlozGroupActionV3(h, label, event, reason, options.onEvent);
-  };
-  const node =
-    model.selectedNodeIds.length === 1
-      ? model.editor.document.graph.nodes.find((n) => n.id === model.selectedNodeIds[0])
-      : undefined;
-  const edge = model.editor.document.graph.edges.find((e) => e.id === model.selectedEdgeId);
-  const selectedNodes = model.editor.document.graph.nodes.filter((n) =>
-    model.selectedNodeIds.includes(n.id),
-  );
-  const groupId = `${model.editor.sessionId}:group:${model.editor.revision + 1}`;
-  const bounds = selectedNodes.length ? fittedGroupBounds(selectedNodes) : null;
-
-  const operation = (
-    label: string,
-    value: Extract<ZlozGroupWorkbenchEventV3, { type: 'GroupOperationRequested' }>['operation'],
-  ) => action(label, { type: 'GroupOperationRequested', operation: value });
+  const action = ({ label, event, reason }: GroupActionV3) =>
+    zlozGroupActionV3(h, label, event, reason, options.onEvent);
   return h.div(
     [
       h.Role('group'),
       h.AriaLabel('V3 modelling controls'),
       h.Style({ ...zlozThemeStyle(options.theme ?? {}), color: 'var(--flow-node-color, #172033)' }),
     ],
-    [
-      ...(bounds
-        ? [
-            operation('Group selected nodes', {
-              operation: 'group',
-              nodeIds: model.selectedNodeIds,
-              node: {
-                id: groupId,
-                label: 'New group',
-                kind: 'group',
-                position: bounds.position,
-                size: bounds.size,
-                ports: [],
-              },
-            }),
-            ...model.editor.document.graph.nodes
-              .filter((n) => n.kind === 'group' && !model.selectedNodeIds.includes(n.id))
-              .map((parent) =>
-                operation(`Move into ${parent.label}`, {
-                  operation: 'reparent',
-                  nodeIds: model.selectedNodeIds,
-                  parentId: parent.id,
-                }),
-              ),
-          ]
-        : []),
-
-      ...(model.selectedNodeIds.length
-        ? [
-            h.p([], [node?.label ?? `${model.selectedNodeIds.length} selected nodes`]),
-            ...[
-              { x: -20, y: 0, label: 'Move left' },
-              { x: 20, y: 0, label: 'Move right' },
-              { x: 0, y: -20, label: 'Move up' },
-              { x: 0, y: 20, label: 'Move down' },
-            ].map(({ x, y, label }) =>
-              operation(label, {
-                operation: 'move',
-                nodeIds: model.selectedNodeIds,
-                delta: { x, y },
-              }),
-            ),
-            operation('Detach from parent', {
-              operation: 'reparent',
-              nodeIds: model.selectedNodeIds,
-              parentId: null,
-            }),
-            operation('Delete selected nodes', {
-              operation: 'delete',
-              nodeIds: model.selectedNodeIds,
-              edgeIds: [],
-            }),
-          ]
-        : [h.p([], ['Select a node or connection to inspect it.'])]),
-      ...(node
-        ? [
-            operation('Wider', {
-              operation: 'resize',
-              id: node.id,
-              size: { ...node.size, width: node.size.width + 20 },
-            }),
-            operation('Narrower', {
-              operation: 'resize',
-              id: node.id,
-              size: { ...node.size, width: Math.max(1, node.size.width - 20) },
-            }),
-            operation('Taller', {
-              operation: 'resize',
-              id: node.id,
-              size: { ...node.size, height: node.size.height + 20 },
-            }),
-            operation('Shorter', {
-              operation: 'resize',
-              id: node.id,
-              size: { ...node.size, height: Math.max(1, node.size.height - 20) },
-            }),
-          ]
-        : []),
-      ...(node?.kind === 'group'
-        ? [
-            action(model.collapsedGroupIds.includes(node.id) ? 'Expand group' : 'Collapse group', {
-              type: 'GroupCollapseToggled',
-              id: node.id,
-            }),
-            operation('Ungroup', { operation: 'ungroup', id: node.id }),
-            action('Add output port', {
-              type: 'GroupPortEditRequested',
-              edit: {
-                operation: 'add',
-                nodeId: node.id,
-                port: {
-                  id: `${node.id}:port:${model.editor.revision + 1}`,
-                  kind: 'output',
-                  side: 'right',
-                  offset: 0.5,
-                },
-              },
-            }),
-            ...node.ports.map((port) =>
-              h.div(
-                [h.Key(port.id)],
-                [
-                  h.p([], [`${port.label ?? port.id} (${port.kind})`]),
-                  action('Anchor at top', {
-                    type: 'GroupPortEditRequested',
-                    edit: {
-                      operation: 'position',
-                      endpoint: { node: node.id, port: port.id },
-                      position: { side: 'top', offset: 0.5 },
-                    },
-                  }),
-                  action('Anchor at right', {
-                    type: 'GroupPortEditRequested',
-                    edit: {
-                      operation: 'position',
-                      endpoint: { node: node.id, port: port.id },
-                      position: { side: 'right', offset: 0.5 },
-                    },
-                  }),
-                  action('Remove port and attached connections', {
-                    type: 'GroupPortEditRequested',
-                    edit: { operation: 'remove', endpoint: { node: node.id, port: port.id } },
-                  }),
-                ],
-              ),
-            ),
-          ]
-        : []),
-      ...(edge
-        ? [
-            h.p([], [edge.label ?? edge.id]),
-            operation('Delete connection', {
-              operation: 'delete',
-              nodeIds: [],
-              edgeIds: [edge.id],
-            }),
-            ...(['source', 'target'] as const).map((end) =>
-              h.details(
-                [],
-                [
-                  h.summary([], [`Reconnect ${end}`]),
-                  ...model.editor.document.graph.nodes.flatMap((n) =>
-                    n.ports.map((port) =>
-                      action(`${n.label}: ${port.label ?? port.id}`, {
-                        type: 'ConnectionEditRequested',
-                        edit: {
-                          operation: 'reconnect',
-                          edgeId: edge.id,
-                          end,
-                          endpoint: { node: n.id, port: port.id },
-                        },
-                      }),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ]
-        : []),
-    ],
+    groupInspectorEntriesV3(model, options.policy ?? {}).map((item) =>
+      Match.value(item).pipe(
+        Match.discriminatorsExhaustive('type')({
+          action,
+          text: ({ label }) => h.p([], [label]),
+          port: ({ id, label, actions }) =>
+            h.div([h.Key(id)], [h.p([], [label]), ...actions.map(action)]),
+          reconnect: ({ end, actions }) =>
+            h.details([], [h.summary([], [`Reconnect ${end}`]), ...actions.map(action)]),
+        }),
+      ),
+    ),
   );
 }
 /** Native v3 surface. Uses the scoped package input resource; never constructs a legacy EditorState. */

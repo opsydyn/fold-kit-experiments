@@ -1,31 +1,25 @@
 import { Mount } from '@effect/ui';
 import { Html } from '@effect/ui/html';
-import { Effect, Queue, Stream } from 'effect';
 
 import type { BrowserInput } from './browser-input';
 import { portConnectionEnd } from './connection-mode';
 import { resolveConnectionPreview } from './connection-preview';
 import { resolveEdgeGeometry } from './edge-geometry';
+import { surfaceInput } from './effect-ui-input';
 import { portBoundaryPosition } from './geometry';
 import { presentVisibleGraph } from './group-presentation';
-import { bindInput } from './input';
 import { resolveBoxSelection } from './selection-preview';
 import type { EditorPolicy, EditorState, Port, ZlozNode } from './types';
 
 export { BrowserInput } from './browser-input';
 
-/** Delivers native ZLOZ input while the host's graph surface is mounted. */
-export const surfaceInput = Mount.makeStream(
-  'ZlozSurfaceInput',
-  { args: {} },
-  (element: HTMLElement) =>
-    Stream.callback<BrowserInput>((queue) => {
-      const bind = Effect.sync(() =>
-        bindInput(element, (event) => Queue.offerUnsafe(queue, event)),
-      );
-      return Effect.acquireRelease(bind, Effect.sync);
-    }),
-);
+export { surfaceInput } from './effect-ui-input';
+export {
+  groupClipboardV3,
+  groupInspectorV3,
+  groupSurfaceV3,
+  type GroupSurfaceOptionsV3,
+} from './effect-ui-group';
 
 type GraphPortContext = Readonly<{
   port: Port;

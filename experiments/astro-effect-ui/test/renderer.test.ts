@@ -1469,3 +1469,98 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   45_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'a native ZLOZ group island preserves layout history and source-bound Mermaid consent',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage({
+        acceptDownloads: true,
+        viewport: { width: 1280, height: 1000 },
+      });
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.route(`${siteOrigin}/**`, (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        return route.fulfill({ path: new URL(path, output).pathname });
+      });
+      const response = await page.goto(`${siteOrigin}/native-group/`);
+      expect(await response?.text()).toContain('data-effect-ui-state');
+      const child = page.locator('[data-flow-node="child"]');
+      const port = page.locator('[data-flow-owner="g"][data-flow-port="out"]');
+      const path = page.locator('[data-flow-edge="boundary-link"]');
+      await page.getByRole('button', { name: 'Select or move Boundary' }).press('Enter');
+      await page.getByRole('button', { name: 'Copy selection', exact: true }).click();
+      await page.locator('[data-zloz-clipboard-finding]').first().waitFor();
+      await page.getByRole('button', { name: 'Paste copy', exact: true }).click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-flow-node]').length === 5);
+      const undo = page.getByRole('button', { name: 'Undo', exact: true });
+      await undo.click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-flow-node]').length === 3);
+      await page.getByRole('button', { name: 'Select or move Boundary' }).press('Enter');
+      await page.getByRole('button', { name: 'Collapse group', exact: true }).click();
+      await child.waitFor({ state: 'detached' });
+      await port.waitFor();
+      await path.waitFor();
+      await page.getByRole('button', { name: 'Expand group', exact: true }).click();
+      await child.waitFor();
+      const originalPosition = await child.evaluate((node) => node.getAttribute('style'));
+      const move = page.getByRole('button', { name: 'Select or move Child', exact: true });
+      const at = (left: string) =>
+        page.waitForFunction(
+          (x) => document.querySelector<HTMLElement>('[data-flow-node="child"]')?.style.left === x,
+          left,
+        );
+      await move.press('ArrowRight');
+      await at('145px');
+      await undo.click();
+      await at('140px');
+      await page.getByRole('button', { name: 'Arrange with ELK' }).click();
+      const arrange = page.getByRole('button', { name: 'Arrange with ELK' });
+      await arrange.and(page.locator('button:enabled')).waitFor();
+      const problem = await page.getByRole('alert').allTextContents();
+      expect(problem).toEqual([]);
+      expect(await page.getByRole('status').allTextContents()).toContain(
+        'Layout applied. One Undo restores the complete document.',
+      );
+      expect(await child.evaluate((node) => node.getAttribute('style'))).not.toBe(originalPosition);
+      await undo.click();
+      await at('140px');
+      expect(await child.evaluate((node) => node.getAttribute('style'))).toBe(originalPosition);
+
+      const panel = page.getByRole('region', { name: 'Native v3 Mermaid export review' });
+      await panel.locator('[data-zloz-mermaid-finding="group-port-attachment-omitted"]').waitFor();
+      const consent = panel.getByRole('checkbox', { name: 'Accept the reported Mermaid losses' });
+      const download = panel.getByRole('button', { name: 'Download Mermaid bundle' });
+      expect(await download.isDisabled()).toBe(true);
+      await consent.check();
+      expect(await download.isEnabled()).toBe(true);
+      await panel.getByRole('combobox', { name: 'Mermaid direction' }).selectOption('TB');
+      expect(await consent.isChecked()).toBe(false);
+      expect(await download.isDisabled()).toBe(true);
+      await consent.check();
+      await page.getByRole('button', { name: 'Toggle export protection' }).click();
+      expect(await download.isDisabled()).toBe(true);
+      await panel.getByText('Export is protected.', { exact: true }).first().waitFor();
+      await page.getByRole('button', { name: 'Toggle export protection' }).click();
+      const exported = page.waitForEvent('download');
+      await download.click();
+      const file = await (await exported).path();
+      const bundle = JSON.parse(await readFile(file, 'utf8'));
+      const preview = await panel.locator('pre').textContent();
+      expect(bundle).toMatchObject({
+        protocol: 'foldkit-zloz-mermaid/v3',
+        direction: 'TB',
+        source: preview,
+        identity: { edges: [{ edgeId: 'boundary-link', sourcePort: 'out', targetPort: 'in' }] },
+      });
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  35_000,
+);

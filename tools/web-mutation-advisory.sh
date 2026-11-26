@@ -11,6 +11,20 @@ git -c core.quotePath=false diff --no-color --no-ext-diff --no-textconv --no-ren
   --diff-filter=AM "$base...HEAD" -- ':(glob)apps/web/src/**/*.ts' \
   | awk '/^diff --git / { body = 0 } /^--- / { body = 1 } body' > "$report_dir/web.diff"
 
+# On a test-only web diff, replay the source modules those tests sit beside.
+# Keep the normal changed-body selection and budget for mixed source/test PRs.
+if git diff --quiet "$base...HEAD" -- ':(glob)apps/web/src/**/*.ts' ':(exclude,glob)apps/web/src/**/*.test.ts'; then
+  git diff --name-only -z --diff-filter=AM "$base...HEAD" -- ':(glob)apps/web/src/**/*.test.ts' > "$report_dir/changed-tests"
+  while IFS= read -r -d '' test_file; do
+    source_file=${test_file%.test.ts}.ts
+    [[ -f "$source_file" && ! -L "$source_file" ]] || continue
+    git ls-files --error-unmatch -- "$source_file" > /dev/null 2>&1 || continue
+    # --no-index exits 1 when it successfully emits a difference.
+    { git -c core.quotePath=false diff --no-index --no-ext-diff --no-textconv -- /dev/null "$source_file" || [[ $? == 1 ]]; } \
+      | awk '/^--- / { body = 1 } body' >> "$report_dir/web.diff"
+  done < "$report_dir/changed-tests"
+fi
+
 cd apps/web
 ../../tools/mutant-cafe/node_modules/.bin/mutant-cafe --advisory --format github \
   --file 'src/**/*.ts' --exclude '**/*.test.ts' --exclude 'src/test/**' \

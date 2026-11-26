@@ -1161,3 +1161,126 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   45_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'Three Editor shares inspector edits, undo, and an opened scene between tabs',
+  async () => {
+    const siteOrigin = 'https://astro-effect-ui.test';
+    const editor = `${siteOrigin}/three-scenes/editor/`;
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const context = await browser.newContext({ reducedMotion: 'reduce' });
+      context.setDefaultTimeout(15_000);
+      await context.route(`${siteOrigin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+      const first = await context.newPage();
+      const second = await context.newPage();
+      const errors: Array<string> = [];
+      const pages = [first, second];
+      for (const page of pages) page.on('pageerror', (error) => errors.push(error.message));
+      await first.goto(editor);
+      await first.getByText('Editing alone.', { exact: false }).waitFor();
+      await second.goto(editor);
+      for (const page of pages) {
+        await page.getByText('Editing with 1 other tab.', { exact: true }).waitFor();
+        await page.locator('effect-three-scene canvas[data-engine]').waitFor();
+      }
+      await first.getByRole('button', { name: '+ Cone', exact: true }).press('Enter');
+      for (const page of pages) {
+        await page.locator('.e3-outline-row').filter({ hasText: 'cone-1' }).waitFor();
+        await page.locator('.e3-outline-row').filter({ hasText: 'light-1' }).press('Enter');
+      }
+      const intensity = first.getByRole('spinbutton', { name: 'intensity', exact: true });
+      const original = await intensity.inputValue();
+      await intensity.fill('20');
+      await intensity.press('Tab');
+      for (const page of pages) {
+        await page
+          .getByRole('button', { name: 'Edited light-1 intensity', exact: true })
+          .and(page.locator('[aria-current="step"]'))
+          .waitFor();
+        expect(
+          await page.getByRole('spinbutton', { name: 'intensity', exact: true }).inputValue(),
+        ).toBe('20');
+      }
+      await second.getByRole('button', { name: 'Undo', exact: true }).press('Enter');
+      for (const page of pages) {
+        await page
+          .getByRole('button', { name: /Added cone/ })
+          .and(page.locator('[aria-current="step"]'))
+          .waitFor();
+        expect(
+          await page.getByRole('spinbutton', { name: 'intensity', exact: true }).inputValue(),
+        ).toBe(original);
+      }
+      await first.getByRole('button', { name: 'Redo', exact: true }).press('Enter');
+      await second
+        .getByRole('button', { name: 'Edited light-1 intensity', exact: true })
+        .and(second.locator('[aria-current="step"]'))
+        .waitFor();
+      const saved = first.waitForEvent('download');
+      await first.getByRole('button', { name: 'Save', exact: true }).press('Enter');
+      const download = await saved;
+      expect(download.suggestedFilename()).toBe('scene.json');
+      const contents = await readFile(await download.path());
+      await first.locator('input[type="file"]').setInputFiles({
+        name: 'broken.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from('{}'),
+      });
+      await first.getByRole('alert').filter({ hasText: 'That file is not a scene' }).waitFor();
+      await second.getByRole('button', { name: 'Delete', exact: true }).press('Enter');
+      await first
+        .locator('.e3-outline-row')
+        .filter({ hasText: 'light-1' })
+        .waitFor({ state: 'detached' });
+      await first.locator('input[type="file"]').setInputFiles({
+        name: 'scene.json',
+        mimeType: 'application/json',
+        buffer: contents,
+      });
+      for (const page of pages) {
+        await page
+          .getByRole('button', { name: 'Opened a file', exact: true })
+          .and(page.locator('[aria-current="step"]'))
+          .waitFor();
+        await page.locator('.e3-outline-row').filter({ hasText: 'light-1' }).press('Enter');
+        expect(
+          await page.getByRole('spinbutton', { name: 'intensity', exact: true }).inputValue(),
+        ).toBe('20');
+      }
+      const withoutWebGl = await context.newPage();
+      await withoutWebGl.addInitScript(() => {
+        Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', { value: () => null });
+      });
+      withoutWebGl.on('pageerror', (error) => errors.push(error.message));
+      const rendererFailed = withoutWebGl.waitForEvent('console', {
+        predicate: (message) => message.text().includes('Error creating WebGL context'),
+      });
+      await withoutWebGl.goto(editor);
+      await rendererFailed;
+      await withoutWebGl.getByText('Editing with 2 other tabs.', { exact: true }).waitFor();
+      await withoutWebGl.getByRole('button', { name: '+ Ring', exact: true }).press('Enter');
+      await second.locator('.e3-outline-row').filter({ hasText: 'ring-1' }).waitFor();
+      const canvas = await first.locator('effect-three-scene canvas').elementHandle();
+      await first.getByRole('link', { name: 'Away' }).click();
+      await first.waitForURL('**/away/');
+      await first.waitForFunction(
+        (element) =>
+          element instanceof HTMLCanvasElement &&
+          !element.isConnected &&
+          element.getContext('webgl2')?.isContextLost(),
+        canvas,
+      );
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  60_000,
+);

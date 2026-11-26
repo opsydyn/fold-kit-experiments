@@ -10,7 +10,7 @@ import { Option } from 'effect';
 
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';
-import { decodeWireText, encodeWireText, managedResources, relayIn } from '../src/editor/session';
+import { decodeWireText, encodeWireText, relayIn, relayRequirements } from '../src/editor/session';
 import { update } from '../src/editor/update';
 import type { Wire } from '../src/editor/wire';
 
@@ -66,8 +66,8 @@ const openedOnRelay = (peer: string): Tab => {
   return tab;
 };
 
-/** What the relay resource asks for, as the runtime reads it from the Model. */
-const relayWanted = (tab: Tab) => managedResources.relay.modelToMaybeRequirements(tab.model);
+/** What the relay subscription asks for, as the runtime reads it from the Model. */
+const relayWanted = (tab: Tab) => relayRequirements(tab.model);
 
 test('a second tab is welcomed with the document, and both apply every edit alike', () => {
   const a = opened('a');

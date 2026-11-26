@@ -18,7 +18,7 @@ import {
   sphere,
   standard,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit/browser';
 import { Array as Arr, Option } from 'effect';
 
 import { markerKey, placementOf, selectableOf } from './document';

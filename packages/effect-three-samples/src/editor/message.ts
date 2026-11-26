@@ -1,14 +1,14 @@
+import { UiSchema } from '@effect/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
+import { SceneStart } from '../effect-ui-scene';
 import { Addable } from './document';
 import { Wire } from './wire';
 
 const Path = Schema.Array(Schema.Union([Schema.String, Schema.Number]));
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   // The scene.
   PressedScene: {
     key: Schema.String,
@@ -54,7 +54,8 @@ export const Message = defineMessageUnion({
   ChoseFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   ReadFile: { text: Schema.String },
   CompletedDownload: {},
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  MountedEditor: {},
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
   // Editing together (see session.ts).
   NamedTab: { peer: Schema.String, at: Schema.Number, relay: Schema.Option(Schema.String) },
   WaitedForWelcome: {},
@@ -66,7 +67,6 @@ export const Message = defineMessageUnion({
   ConnectedRelay: {},
   FailedRelay: { reason: Schema.String },
   LostRelay: {},
-  ReleasedRelay: {},
   ClickedReconnect: {},
 });
 export type Message = typeof Message.Type;

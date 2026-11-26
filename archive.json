@@ -612,6 +612,35 @@
     "entries": []
   },
   {
+    "workspace": "apps/zloz-demo",
+    "selected": 9,
+    "budgetSkipped": 7,
+    "failed": false,
+    "run": 45861878140,
+    "attempt": 1,
+    "commit": "4a8106589310cfae12a71414ecd23c4152eb4051",
+    "startedAt": "2026-11-26T16:46:44Z",
+    "reportSha256": "0a0167308f4c24c9fd17a7675c475394c4a2ecce36841e553b364f4488ae0933",
+    "entries": [
+      {
+        "id": "540cc4f702e0c758be088d29",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      },
+      {
+        "id": "d5223e92e3ce78e8f0b2e676",
+        "file": "src/editor/history.ts",
+        "fn": "historyAllowsMessage",
+        "genre": "BooleanFlip",
+        "line": 15,
+        "outcome": "caught"
+      }
+    ]
+  },
+  {
     "workspace": "apps/web",
     "selected": 0,
     "budgetSkipped": 0,

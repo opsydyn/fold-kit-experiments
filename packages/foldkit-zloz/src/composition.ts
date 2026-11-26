@@ -1,5 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { portConnectionEnd } from './connection-mode';
 import type { ZlozDiagnostics } from './diagnostics';
 import { finitePoint, portAnchor } from './geometry';
 import { ZlozError } from './graph';
@@ -212,20 +213,6 @@ export function zlozDragHandle<M>(
     ],
     children,
   );
-}
-
-/** @internal Shared native/custom activation semantics; authored kind stays unchanged. */
-export function portConnectionEnd(
-  state: Pick<NodeControlState, 'connection' | 'connectionMode'>,
-  port: Port,
-): 'source' | 'target' {
-  return state.connectionMode === 'loose'
-    ? state.connection
-      ? 'target'
-      : 'source'
-    : port.kind === 'output'
-      ? 'source'
-      : 'target';
 }
 
 /** Centers the target on its authored normalized anchor. Style size and contents freely; keep it a direct frame child. */

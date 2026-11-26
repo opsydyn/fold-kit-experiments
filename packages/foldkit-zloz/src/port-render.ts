@@ -1,6 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { zlozPort, portConnectionEnd } from './composition';
+import { zlozPort } from './composition';
+import { portConnectionEnd } from './connection-mode';
 import { portAnchor } from './geometry';
 import type { Endpoint, Point, Port } from './types';
 

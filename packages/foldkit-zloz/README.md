@@ -27,12 +27,13 @@ The tested view baseline is FoldKit 0.170.0 / Effect 4.1.0. Both are optional pe
 ## Effect UI preview
 
 The `effect-ui-next` branch includes `@opsydyn/foldkit-zloz/effect-ui` for
-Effect UI hosts. Its `surfaceInput` mount scopes the native input listeners to
-the graph surface. The host owns the HTML and SVG and routes the mount's
-`BrowserInput` events to `updateEditor`. See the
-[Compose island](../../apps/zloz-promo/src/examples/compose/view.ts) for the
-surface attributes, ports and keyboard controls. Use the Effect UI revision
-pinned by the workspace for this preview.
+Effect UI hosts. Use `graphSurface` with
+`@opsydyn/foldkit-zloz/effect-ui.css` for the shared HTML and SVG view, or use
+the `surfaceInput` mount to own the surface markup. The host owns the editor
+state and routes `BrowserInput` events to `updateEditor`. The
+[Connections workbench](../../apps/zloz-demo/src/connections/view.ts) shows strict
+and loose sessions, custom port labels, and reconnection. Use the Effect UI
+revision pinned by the workspace for this preview.
 
 ## Core
 

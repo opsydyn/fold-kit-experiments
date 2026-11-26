@@ -355,3 +355,15 @@
   border-radius: 4px;
   cursor: pointer;
 }
+
+.zloz-ui-node[data-notation][data-node-outline='cylinder'] .zloz-ui-node-title {
+  padding: 2px 8px;
+}
+.zloz-ui-node[data-node-outline='cylinder'] .zloz-ui-notation {
+  font-size: 10px;
+  line-height: 1.1;
+  gap: 2px;
+}
+.zloz-ui-node[data-node-outline='cylinder'] .zloz-ui-notation strong {
+  font-size: 14px;
+}

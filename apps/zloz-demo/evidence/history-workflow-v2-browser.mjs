@@ -228,7 +228,19 @@ async function run() {
   const container = page.locator('[data-flow-c4-node="a"]');
   await expect(container.locator('.flow-c4-type')).toHaveText('Container · external');
   await expect(container.locator('.flow-c4-technology')).toHaveText('PostgreSQL');
-  await expect(container.locator('.flow-c4-description')).toHaveText('Stores orders');
+  const description = container.locator('.flow-c4-description');
+  await expect(description).toHaveText('Stores orders');
+  await expect
+    .poll(() =>
+      description.evaluate((text) => {
+        const button = text.closest('button');
+        return (
+          button !== null &&
+          text.getBoundingClientRect().bottom <= button.getBoundingClientRect().bottom
+        );
+      }),
+    )
+    .toBe(true);
   await expect(
     container.getByRole('button', { name: 'Select Orders' }),
   ).toHaveAccessibleDescription('Container · external. PostgreSQL. Stores orders');

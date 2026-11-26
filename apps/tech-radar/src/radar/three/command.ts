@@ -8,7 +8,8 @@ import { Command, Dom, File, Navigation } from 'foldkit';
 
 import { Message } from './message';
 import { Theme, ThemeChoice } from './themes';
-import { isRecordable, type Recording } from './tour';
+import { isRecordable } from './tour';
+import { Recording } from './tour-schema';
 import { Typeface, typefaceFrom, typefaceStorage } from './typefaces';
 
 /** Where the choice is kept: Auto is kept as nothing at all. */
@@ -180,12 +181,10 @@ const TourFile = Schema.Struct({
 
 /** A tour, saved as a JSON file named for the day it was saved. */
 export const SaveTour = Command.define('SaveTour', {
-  args: { recording: Schema.Unknown },
+  args: { recording: Recording },
   messages: [Message.CompletedSaveTour],
   execute: ({ recording }) =>
-    // SAFETY: `recording` is the Model's own Recording, passed through the Command's
-    // Schema.Unknown argument because a Recording holds Messages the Model cannot name.
-    Effect.try(() => download(recording as Recording)).pipe(
+    Effect.try(() => download(recording)).pipe(
       Effect.orElseSucceed(() => undefined),
       Effect.map(() => Message.CompletedSaveTour()),
     ),

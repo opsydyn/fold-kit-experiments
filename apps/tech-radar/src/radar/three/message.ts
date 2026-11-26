@@ -4,8 +4,8 @@ import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
+import { CategoryFilter, IconControl, PointerInput } from './controls-schema';
 import { Category, Ring } from './data';
-import { CategoryFilter, IconControl, PointerInput } from './model';
 import { SheetStop } from './sheet';
 import { Shortcut } from './shortcuts';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';

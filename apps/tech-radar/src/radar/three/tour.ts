@@ -15,32 +15,9 @@ import { Message } from './message';
 import { type CategoryFilter, editionsOf, idOfBlip, type Model, positionOf } from './model';
 import { themeLabels } from './themes';
 import { changesBetween, playStep } from './timeline';
+import type { Recording, Tour } from './tour-schema';
 
-/**
- * A recording: where it began, as a deep link, and the moves made from there. A tour the
- * radar writes itself also says what each move is for; a recorded one says what it does.
- */
-export type Recording = Readonly<{
-  start: string;
-  steps: ReadonlyArray<Message>;
-  captions?: ReadonlyArray<string>;
-}>;
-
-/**
- * The recorder: idle; recording; holding a finished recording; or playing one, with the
- * index of the next move, the time until it, and the caption of the move last made.
- */
-export type Tour =
-  | Readonly<{ _tag: 'Idle' }>
-  | Readonly<{ _tag: 'Recording'; recording: Recording }>
-  | Readonly<{ _tag: 'Ready'; recording: Recording }>
-  | Readonly<{
-      _tag: 'Playing';
-      recording: Recording;
-      next: number;
-      wait: number;
-      caption: string;
-    }>;
+export type { Recording, Tour } from './tour-schema';
 
 export const idleTour: Tour = { _tag: 'Idle' };
 

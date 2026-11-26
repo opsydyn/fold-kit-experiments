@@ -93,6 +93,16 @@ describe('appendPoints', () => {
     expect(colours(grown)).toEqual(colours(full));
   });
 
+  it('rejects mark-local data before assigning the new row to an old position', () => {
+    const local: PlotSpec = {
+      ...spec,
+      marks: [{ mark: 'dot', x: 'latency', y: 'payload', dense: true, data: chunk(0, 4) }],
+    };
+    expect(() => appendPoints(compilePlot(local), local, chunk(4, 3), { rowOffset: 4 })).toThrow(
+      'appendPoints: marks[0].data overrides the streamed data',
+    );
+  });
+
   it('drops a highlight, which the caller restyles for the new rows', () => {
     const geometry = compilePlot({ ...spec, data: chunk(0, 10) });
     const dimmed = {

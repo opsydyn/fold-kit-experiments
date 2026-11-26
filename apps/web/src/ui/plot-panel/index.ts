@@ -6,18 +6,19 @@ import type { ChartCommand } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import {
   compilePlot,
   invertAxis,
-  plotTable,
+  plotTables,
+  plotTargets,
+  plotValueFormatter,
   pointerToPlot,
   rowsOf,
 } from '@opsydyn/foldkit-viz/plot';
 import type {
   Channel,
-  Graphic,
   Highlight,
   MarkSpec,
-  PlotAxis,
   PlotGeometry,
   PlotSpec,
+  PlotTarget,
   Row,
   Value,
 } from '@opsydyn/foldkit-viz/plot';
@@ -107,27 +108,17 @@ export type OutMessage = typeof OutMessage.Type;
 
 // TARGETS
 
-/** Something the pointer and keyboard can land on: a dot or a bar of the target mark. */
-export type Target = Readonly<{
-  /** The graphic's position in its mark. */
-  graphic: number;
-  key: string;
-  title: string;
-  /** Its centre, and its extent across x, in plot pixels. */
-  cx: number;
-  cy: number;
-  left: number;
-  right: number;
-  /** The x range it covers in data units: a point for a dot, the edges for a bar. */
-  domain: readonly [number, number];
-  includeEnd: boolean;
-  isBar: boolean;
-}>;
+export type Target = PlotTarget;
 
 type Compiled = Readonly<{ geometry: PlotGeometry; targets: ReadonlyArray<Target> }>;
 
-/** Geometry per spec object: pointer moves reuse it, and a new spec compiles once. */
-const compiledSpecs = new WeakMap<PlotSpec, Compiled>();
+const compiledSpecs = new WeakMap<
+  PlotSpec,
+  {
+    geometry: PlotGeometry;
+    targetsByMark: Map<number, ReadonlyArray<Target>>;
+  }
+>();
 
 /** Ten significant figures, so bin edges inverted from pixels read as their values. */
 const tidy = (n: number): number => Number(n.toPrecision(10));
@@ -135,61 +126,23 @@ const tidy = (n: number): number => Number(n.toPrecision(10));
 const markOf = (spec: PlotSpec, index: number): MarkSpec | undefined => spec.marks[index];
 
 function compile(spec: PlotSpec, markIndex: number): Compiled {
-  const cached = compiledSpecs.get(spec);
-  if (cached !== undefined) return cached;
-  const geometry = compilePlot(spec);
-  const facet = geometry.facets[0];
-  const graphics = facet?.marks.find((m) => m.index === markIndex)?.graphics ?? [];
-  const axis = facet?.x ?? null;
+  const cached = compiledSpecs.get(spec) ?? {
+    geometry: compilePlot(spec),
+    targetsByMark: new Map(),
+  };
+  compiledSpecs.set(spec, cached);
   const mark = markOf(spec, markIndex);
-  const inset = mark?.mark === 'rect' ? (mark.inset ?? 0) : 0;
-  const invert = (pixel: number): number =>
-    axis === null ? Number.NaN : tidy(Number(invertAxis(axis, pixel)));
-  const found = graphics.flatMap((g: Graphic, graphic): ReadonlyArray<Target> => {
-    const title = g.title ?? g.key;
-    if (g.kind === 'circle')
-      return [
-        {
-          graphic,
-          key: g.key,
-          title,
-          cx: g.cx,
-          cy: g.cy,
-          left: g.cx,
-          right: g.cx,
-          domain: [invert(g.cx), invert(g.cx)],
-          includeEnd: true,
-          isBar: false,
-        },
-      ];
-    if (g.kind === 'rect') {
-      const left = g.x - inset,
-        right = g.x + g.width + inset;
-      return [
-        {
-          graphic,
-          key: g.key,
-          title,
-          cx: g.x + g.width / 2,
-          cy: g.y + g.height / 2,
-          left,
-          right,
-          domain: [invert(left), invert(right)],
-          includeEnd: false,
-          isBar: true,
-        },
-      ];
-    }
-    return [];
-  });
-  const sorted = [...found].sort((a, b) => a.cx - b.cx);
-  // The last bar's range includes its upper edge, as the last histogram bin does.
-  const targets = sorted.map((t, i) =>
-    t.isBar && i === sorted.length - 1 ? { ...t, includeEnd: true } : t,
-  );
-  const result = { geometry, targets };
-  compiledSpecs.set(spec, result);
-  return result;
+  const options =
+    mark?.mark === 'rect'
+      ? {
+          mark: markIndex,
+          inset: mark.inset ?? 0,
+          finalIntervalClosed: mark.transform !== undefined,
+        }
+      : { mark: markIndex };
+  const targets = cached.targetsByMark.get(markIndex) ?? plotTargets(cached.geometry, options);
+  cached.targetsByMark.set(markIndex, targets);
+  return { geometry: cached.geometry, targets };
 }
 
 /** The interactive targets, in x order, with their data ranges. */
@@ -495,9 +448,14 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const chart = plotChart(h, geometry, {
     overlay: overlayOf(ring, brush),
     summary: true,
-    table: plotTable(model.spec),
+    tables: plotTables(spec, base),
   });
-  const liveText = Option.match(active, { onNone: () => '', onSome: (t) => t.title });
+  const formatX = spec.x?.format === undefined ? String : plotValueFormatter(spec.x.format);
+  const liveText = Option.match(active, {
+    onNone: () => '',
+    onSome: (t) =>
+      t.isBar ? `${formatX(t.domain[0])} to ${formatX(t.domain[1])}, ${t.title}` : t.title,
+  });
   const handleKeyDown = chartKeyDown((command) =>
     toParentMessage(Message.PressedKeyNav({ command })),
   );

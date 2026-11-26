@@ -112,6 +112,22 @@ describe('DuckDB results', () => {
     expect(fromColumns.palette).toEqual(fromRows.palette);
   });
 
+  it('preserves exact 64-bit SQL identifiers as text in a result and a streamed chunk', async () => {
+    const reader = await connection.runAndReadAll(`
+      select id from (values (9007199254740992::BIGINT), (9007199254740993::BIGINT), (null)) as ids(id)
+      order by id nulls last`);
+    expect(() => fromDuckDB(reader)).toThrow(
+      'column "id" contains a BigInt outside the safe number range',
+    );
+    const options = { bigIntAsText: ['id'] };
+    expect(fromDuckDB(reader, options).columns.id).toEqual([
+      '9007199254740992',
+      '9007199254740993',
+      null,
+    ]);
+    expect(duckdbColumns(['id'], [[1n, 2n]], options).columns.id).toEqual(['1', '2']);
+  });
+
   it('reads a streamed result a chunk at a time, through the JS value converter', async () => {
     const result = await connection.stream('select latency, payload, kind from requests');
     const names = result.columnNames();

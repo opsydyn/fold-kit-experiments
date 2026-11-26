@@ -99,3 +99,35 @@ describe('a million rows', () => {
     expect(binned.ms).toBeLessThan(500);
   });
 });
+
+it('compiles a 40,000-row grouped line with downsampling within 500 ms', () => {
+  const series = Array.from({ length: 40_000 }, (_, x) => ({
+    x,
+    y: Math.sin(x / 100),
+    group: x % 10 === 0 ? 'secondary' : 'primary',
+  }));
+  const { ms, result } = bestOf(() =>
+    compilePlot({
+      width: 800,
+      height: 400,
+      data: series,
+      color: { domain: ['secondary', 'primary'], range: ['#000', '#fff'] },
+      marks: [
+        {
+          mark: 'line',
+          x: 'x',
+          y: 'y',
+          stroke: 'group',
+          z: 'group',
+          transform: { type: 'downsample', method: 'm4' },
+        },
+      ],
+    }),
+  );
+  expect(
+    result.facets[0]?.marks[0]?.graphics.map((graphic) =>
+      graphic.kind === 'path' ? graphic.stroke : undefined,
+    ),
+  ).toEqual(['#000', '#fff']);
+  expect(ms).toBeLessThan(500);
+});

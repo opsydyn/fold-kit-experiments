@@ -18,8 +18,19 @@ import type {
  * I/O boundary: values are parsed here with guards, not cast.
  */
 
+/** A plot rejected an input at a known spec location. */
+export class PlotCompileError extends RangeError {
+  constructor(
+    readonly path: string,
+    detail: string,
+    readonly field?: string,
+  ) {
+    super(`${path}: ${detail}`);
+  }
+}
+
 export const fail = (path: string, message: string): never => {
-  throw new RangeError(`${path}: ${message}`);
+  throw new PlotCompileError(path, message);
 };
 
 // ── Channels ──────────────────────────────────────────────────────────────────
@@ -39,15 +50,27 @@ export const fieldOf = (channel: Channel | undefined): string | undefined =>
 export function read(rows: Rows, channel: Channel, path: string): ReadonlyArray<Value> {
   if (isConstant(channel)) return fillRows(rows, channel.value);
   if (!isText(channel) || channel === '') return fail(path, 'must be a field name or { value }');
-  return columnOf(rows, channel) ?? fail(path, `field "${channel}" is missing from the data`);
+  const values = columnOf(rows, channel);
+  if (values === undefined)
+    throw new PlotCompileError(path, `field "${channel}" is missing from the data`, channel);
+  return values;
 }
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
+const ZONE_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/;
+
+/** Interpret ISO dates, including unzoned date-times, as portable instants. */
+export function plotTimestamp(value: string): number {
+  if (!ISO_DATE.test(value)) return Number.NaN;
+  if (value.length === 10) return Date.parse(value);
+  const dateTime = value.replace(' ', 'T');
+  return Date.parse(ZONE_SUFFIX.test(dateTime) ? dateTime : `${dateTime}Z`);
+}
 
 /** A value as a number on a continuous axis: numbers as they are, ISO dates as epoch ms. */
 export const numeric = (value: Value): number => {
   if (isNumber(value)) return value;
-  if (isText(value) && ISO_DATE.test(value)) return Date.parse(value);
+  if (isText(value)) return plotTimestamp(value);
   return Number.NaN;
 };
 

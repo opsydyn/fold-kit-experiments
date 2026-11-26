@@ -172,9 +172,33 @@ it('leaves points outside a zoomed plot area out of the index', () => {
     ...base,
     data: rows,
     x: { domain: [4, 6] },
+    clip: true,
     marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
   });
   const index = indexPlot(zoomed);
   expect(index.size).toBe(1);
   expect(index.nearest(200, 100)?.row).toBe(1);
 });
+
+it.each([false, true])(
+  'indexes ordinary and dense point centres under the same clip policy (%s)',
+  (clip) => {
+    const points = [
+      { x: 3.99, y: 1 },
+      { x: 5, y: 2 },
+    ];
+    const count = (dense: boolean) =>
+      indexPlot(
+        compilePlot({
+          width: 400,
+          height: 260,
+          data: points,
+          x: { domain: [4, 6] },
+          clip,
+          marks: [{ mark: 'dot', x: 'x', y: 'y', dense }],
+        }),
+      ).size;
+    expect(count(false)).toBe(clip ? 1 : 2);
+    expect(count(true)).toBe(clip ? 1 : 2);
+  },
+);

@@ -8,7 +8,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, posix } from 'node:path';
 
-import { describePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import { describePlot, plotTables } from '@opsydyn/foldkit-viz/plot';
 import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
 import { Result, Schema } from 'effect';
 
@@ -345,7 +345,7 @@ function analysePage(
     const drawn = Result.map(
       drawSpec(spec, data, shownAt),
       ({ plot, geometry, series, selects, brushes }) => ({
-        figure: `<figure class="chart">${plotHtml(geometry, { table: plotTable(plot), summary: true })}</figure>`,
+        figure: `<figure class="chart">${plotHtml(geometry, { tables: plotTables(plot, geometry), summary: true })}</figure>`,
         summary: describePlot(geometry),
         series,
         selects,

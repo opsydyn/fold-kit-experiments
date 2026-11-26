@@ -269,8 +269,9 @@ it('renders through the packed optional adapter with the installed FoldKit host'
         '--no-audit',
         '--no-fund',
         tarball,
-        'foldkit@0.169.0',
-        'effect@4.0.0',
+        'foldkit@0.171.0',
+        'effect@4.1.0',
+        '@effect/platform-browser@4.1.0',
       ],
       { cwd: consumerDir, maxBuffer },
     );
@@ -279,6 +280,12 @@ it('renders through the packed optional adapter with the installed FoldKit host'
       .split('## Composable Cartesian charts')[1]
       ?.match(/```ts\n([\s\S]*?)```/)?.[1];
     if (snippet === undefined) throw new RangeError('Primary Cartesian README example is missing');
+    const effectExample = await readFile(
+      path.join(import.meta.dir, '../../../skills/foldkit-viz/assets/effect-plot.ts'),
+      'utf8',
+    );
+    const effectConsumer = path.join(consumerDir, 'effect-consumer.ts');
+    await writeFile(effectConsumer, effectExample);
     const documentationConsumer = path.join(consumerDir, 'readme-consumer.ts');
     await writeFile(
       documentationConsumer,
@@ -313,6 +320,7 @@ void [mountedFrame, paints];
         '--moduleResolution',
         'Bundler',
         documentationConsumer,
+        effectConsumer,
       ],
       { cwd: consumerDir, maxBuffer },
     );
@@ -330,13 +338,17 @@ const { orbitGeometry: rootOrbit } = await import('@opsydyn/foldkit-viz');
 const { orbitChart } = await import('@opsydyn/foldkit-viz/foldkit/orbit');
 const orbit = orbitGeometry([{ id: 'a', risk: 2, kind: 'core' }, { id: 'b', risk: 8, kind: 'edge' }], { key: d => d.id, value: d => d.risk, halo: d => d.kind }, { size: 120 });
 const orbitHtml = (await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'Orbit host', body: orbitChart(h, { geometry: orbit, title: 'Orbit', description: 'Two modules', coreFill: 'currentColor', haloColour: () => 'gray', nodeStyle: () => ({ fill: 'red', stroke: 'red' }), labelFor: d => d.id }) }) }, { flags: { test: true }, isHydratable: false }))).html;
-console.log(rootOrbit === orbitGeometry && orbitHtml.split('class="chart-orbit-node"').length === 3);`;
+console.log(rootOrbit === orbitGeometry && orbitHtml.split('class="chart-orbit-node"').length === 3);
+const { decodePlot, compileChecked } = await import('@opsydyn/foldkit-viz/effect/plot');
+const spec = decodePlot({ width: 400, height: 240, marks: [{ mark: 'rule', y: { value: 5 } }] });
+const checked = spec._tag === 'Success' && compileChecked(spec.success);
+console.log(checked._tag === 'Success' && checked.success.facets[0].marks[0].graphics.length === 1);`;
     for (const runtime of ['bun', 'node']) {
       const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
         cwd: consumerDir,
         maxBuffer,
       });
-      expect(stdout.trim()).toBe('true\ntrue');
+      expect(stdout.trim()).toBe('true\ntrue\ntrue');
     }
   } finally {
     await fixture.cleanup();

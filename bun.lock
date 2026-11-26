@@ -515,6 +515,7 @@
       "devDependencies": {
         "@duckdb/node-api": "2.0.0-r.1",
         "@opsydyn/effect-three": "workspace:*",
+        "@opsydyn/testing": "workspace:*",
         "@types/node": "^22.0.0",
         "ajv": "8.20.0",
         "apache-arrow": "17.0.0",
@@ -526,6 +527,7 @@
         "tsdown": "^0.21.8",
         "typedoc": "^0.28.19",
         "typescript": "^6.0.3",
+        "vitest": "^5.0.5",
       },
       "peerDependencies": {
         "@opsydyn/effect-three": ">=0.6.4 <0.8.0",

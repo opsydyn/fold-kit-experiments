@@ -498,7 +498,7 @@
     "build": "tsdown",
     "typecheck": "bun run --filter @opsydyn/effect-three build && tsc --noEmit",
     "test": "bun run test:unit && bun run test:package",
-    "test:unit": "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'",
+    "test:unit": "bun test --path-ignore-patterns='**/package-import-smoke.test.ts' --path-ignore-patterns='**/cartesian-scales.test.ts' && vitest run",
     "test:package": "bun test ./test/package-import-smoke.test.ts",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
@@ -513,6 +513,7 @@
   "devDependencies": {
     "@duckdb/node-api": "2.0.0-r.1",
     "@opsydyn/effect-three": "workspace:*",
+    "@opsydyn/testing": "workspace:*",
     "@types/node": "^22.0.0",
     "ajv": "8.20.0",
     "apache-arrow": "17.0.0",
@@ -523,7 +524,8 @@
     "ts-json-schema-generator": "2.9.0",
     "tsdown": "^0.21.8",
     "typedoc": "^0.28.19",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "@opsydyn/effect-three": ">=0.6.4 <0.8.0",

@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 
 /**
  * foldkit-viz keeps its interaction state and math framework-agnostic: only
- * the FoldKit adapters under src/foldkit may import FoldKit or Effect, and no
+ * optional adapters under src/foldkit and src/effect may import their peers, and no
  * module touches the DOM or installs listeners (the roadmap's deliberate
  * non-goals). This scans the source so a stray import fails here.
  */
@@ -33,8 +33,12 @@ describe('framework boundary', () => {
     expect(outsideAdapters.some(({ file }) => file.startsWith('interaction/'))).toBe(true);
   });
 
-  it('keeps FoldKit and Effect imports inside the FoldKit adapters', () => {
-    const offenders = outsideAdapters.filter(({ text }) => FRAMEWORK_IMPORT.test(text));
+  it('keeps FoldKit and Effect imports inside the optional adapters', () => {
+    const offenders = outsideAdapters.filter(
+      ({ file, text }) =>
+        FRAMEWORK_IMPORT.test(text) &&
+        !(file.startsWith('effect/') && !/from\s+['"]foldkit/.test(text)),
+    );
     expect(offenders.map(({ file }) => file)).toEqual([]);
   });
 

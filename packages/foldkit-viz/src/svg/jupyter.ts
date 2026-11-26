@@ -1,5 +1,5 @@
 import { compilePlot } from '../plot/compile.js';
-import { describePlot, plotTable } from '../plot/describe.js';
+import { describePlot, plotTables } from '../plot/describe.js';
 import type { PlotGeometry, PlotSpec } from '../plot/types.js';
 import { plotHtml, plotSvg } from './plot.js';
 import type { PlotHtmlOptions } from './plot.js';
@@ -35,7 +35,7 @@ export function plotMimeBundle(
   geometry: PlotGeometry,
   options: PlotDisplayOptions = {},
 ): PlotMimeBundle {
-  const { table: _table, ...svgOptions } = options;
+  const { table: _table, tables: _tables, ...svgOptions } = options;
   return {
     'text/html': plotHtml(geometry, options),
     'image/svg+xml': plotSvg(geometry, svgOptions),
@@ -54,9 +54,13 @@ export function plotMimeBundle(
  * ```
  */
 export function displayPlot(spec: PlotSpec, options: PlotDisplayOptions = {}): JupyterDisplayable {
-  const bundle = plotMimeBundle(compilePlot(spec), {
+  const geometry = compilePlot(spec);
+  const bundle = plotMimeBundle(geometry, {
     summary: true,
-    table: plotTable(spec),
+    tables:
+      Object.hasOwn(options, 'table') || Object.hasOwn(options, 'tables')
+        ? undefined
+        : plotTables(spec, geometry),
     ...options,
   });
   return { [jupyterDisplay]: () => bundle };

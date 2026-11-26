@@ -133,6 +133,8 @@ export type AccessibleOptions = Readonly<{
   summary?: boolean;
   /** A visually hidden table of the data, such as `plotTable(spec)`. */
   table?: PlotTable;
+  /** Layer tables, such as `plotTables(spec, geometry)`. Takes precedence over `table`. */
+  tables?: ReadonlyArray<PlotTable>;
 }>;
 
 export type PlotChartOptions = Readonly<{
@@ -763,11 +765,11 @@ export function plotFigure<A, N>(
 export function plotExtras<A, N>(
   h: PlotBuilder<A, N>,
   geometry: PlotGeometry,
-  options: Pick<PlotChartOptions, 'legend' | 'palette' | 'table'>,
+  options: Pick<PlotChartOptions, 'legend' | 'palette' | 'table' | 'tables'>,
 ): ReadonlyArray<N> {
   const palette = options.palette ?? currentColorPalette;
   return [
-    ...dataTable(h, options.table),
+    ...(options.tables?.flatMap((table) => dataTable(h, table)) ?? dataTable(h, options.table)),
     ...(options.legend === false ? [] : geometry.legends.map((l) => legend(h, l, palette))),
   ];
 }

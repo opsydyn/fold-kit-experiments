@@ -126,6 +126,9 @@ function refusal(spec: PlotSpec): string | undefined {
   const bad = spec.marks.findIndex((mark) => mark.mark !== 'dot' || mark.dense !== true);
   if (bad >= 0)
     return `appendPoints: marks[${bad}] is a ${spec.marks[bad]?.mark} mark; only dense dot marks append`;
+  const localData = spec.marks.findIndex((mark) => mark.data !== undefined);
+  if (localData >= 0)
+    return `appendPoints: marks[${localData}].data overrides the streamed data; recompile instead`;
   for (const axis of ['x', 'y'] as const)
     if (spec[axis]?.domain === undefined)
       return `appendPoints: ${axis} needs a fixed domain, or a new chunk could move every point; recompile instead`;
@@ -198,8 +201,8 @@ function merged(before: Points | undefined, chunk: Points, rowOffset: number): P
  * Geometry with a chunk of rows appended to its dense dot marks, compiling
  * only the chunk: for data that streams in. The spec must be the one the
  * geometry was compiled from (its data is ignored) with nothing a chunk could
- * change: fixed x and y domains, a fixed colour (and size) domain for a field
- * channel, no facets, and dense dot marks only. Anything else is refused, to
+ * change: fixed x and y domains, a fixed colour domain when colour is mapped,
+ * no mapped radius or facets, and dense dot marks without mark-local data. Anything else is refused, to
  * be recompiled. `rowOffset` is how many rows came before the chunk, so each
  * point's row indexes the whole data. A highlight is dropped: restyle the new
  * geometry with highlightPoints.

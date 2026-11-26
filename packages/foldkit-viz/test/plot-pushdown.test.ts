@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { DuckDBInstance } from '@duckdb/node-api';
 import type { DuckDBConnection } from '@duckdb/node-api';
 
-import { compilePlot, duckdbColumns, pushdown, rowsOf } from '../src/plot/index.js';
+import { compilePlot, duckdbColumns, plotTables, pushdown, rowsOf } from '../src/plot/index.js';
 import type { ColumnTable, PlotSpec } from '../src/plot/index.js';
 
 describe('pushdown', () => {
@@ -49,14 +49,42 @@ describe('pushdown', () => {
     };
   }
 
+  it.each([false, true])(
+    'keeps observation keys when projecting columns (rule %s)',
+    async (rule) => {
+      const spec: PlotSpec = {
+        width: 400,
+        height: 260,
+        marks: [
+          { mark: 'dot', x: 'x', y: 'y', key: 'observation id' },
+          ...(rule ? [{ mark: 'rule', y: { value: 3 } } as const] : []),
+        ],
+      };
+      const from = "(VALUES ('north', 1, 2), ('south', 3, 4)) sample(\"observation id\", x, y)";
+      const expected = compilePlot({
+        ...spec,
+        data: [
+          { 'observation id': 'north', x: 1, y: 2 },
+          { 'observation id': 'south', x: 3, y: 4 },
+        ],
+      });
+      const pushed = await pushdown(spec, { from, query });
+      expect(compilePlot(pushed).facets).toEqual(expected.facets);
+    },
+  );
+
   const base = { width: 480, height: 300 } as const;
 
   it('bins a histogram in the engine, drawing exactly what binning every row locally draws', async () => {
-    const result = await both({
+    const spec: PlotSpec = {
       ...base,
       marks: [{ mark: 'rect', x: 'latency', transform: { type: 'bin', thresholds: 30 } }],
-    });
+    };
+    const result = await both(spec);
     expect(result.pushed).toEqual(result.local);
+    expect(plotTables(result.spec, result.pushed)).toEqual(
+      plotTables({ ...spec, data: local }, result.local),
+    );
     // The engine sends bins, not rows.
     const binned = result.spec.marks[0];
     expect(binned?.data === undefined ? 0 : rowsOf(binned.data).length).toBeLessThan(100);

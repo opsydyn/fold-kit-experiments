@@ -86,23 +86,7 @@ export type SqrtScaleConfig = Readonly<{
 }>;
 
 export function sqrt(config: SqrtScaleConfig): (value: number) => number {
-  const [d0, d1] = config.domain;
-  const [r0, r1] = config.range;
-  const clamp = config.clamp ?? false;
-
-  return (value: number): number => {
-    const span = d1 - d0;
-    const t = span === 0 ? 0 : (value - d0) / span;
-    // D3: x < 0 ? -sqrt(-x) : sqrt(x)
-    const st = t < 0 ? -Math.sqrt(-t) : Math.sqrt(t);
-    let result = r0 + st * (r1 - r0);
-    if (clamp) {
-      const lo = Math.min(r0, r1);
-      const hi = Math.max(r0, r1);
-      result = Math.max(lo, Math.min(hi, result));
-    }
-    return result;
-  };
+  return scalePow({ ...config, exponent: 0.5 });
 }
 
 // ORDINAL SCALE
@@ -357,20 +341,16 @@ export function scalePow(config: {
   exponent?: number;
   clamp?: boolean;
 }): (value: number) => number {
-  const [d0, d1] = config.domain;
-  const [r0, r1] = config.range;
-  const exp = config.exponent ?? 1;
-  const clamp = config.clamp ?? false;
-  const sign = (x: number) => (x < 0 ? -1 : 1);
-  const pow = (x: number) => sign(x) * Math.abs(x) ** exp;
-  const pd0 = pow(d0);
-  const pd1 = pow(d1);
-  const k = (r1 - r0) / (pd1 - pd0);
-  return (value: number): number => {
-    let t = (pow(value) - pd0) * k + r0;
-    if (clamp) t = r1 > r0 ? Math.max(r0, Math.min(r1, t)) : Math.max(r1, Math.min(r0, t));
-    return t;
-  };
+  const {
+    domain: [d0, d1],
+    range,
+    clamp,
+    exponent = 1,
+  } = config;
+  // D3 pow.js applies the signed power before continuous.js normalises the domain.
+  const power = (value: number): number => (value < 0 ? -1 : 1) * Math.abs(value) ** exponent;
+  const project = linear({ domain: [power(d0), power(d1)], range, clamp });
+  return (value) => (Number.isNaN(value) ? Number.NaN : project(power(value)));
 }
 
 /**

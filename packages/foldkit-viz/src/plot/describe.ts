@@ -1,7 +1,9 @@
-import { channelOf, fieldOf, isNumber } from './channels.js';
-import type { ChannelName } from './channels.js';
-import { rowsOf as tableRows } from './columns.js';
+import { channelOf, fieldOf, isConstant, isNumber } from './channels.js';
+import type { AxisName, ChannelName } from './channels.js';
+import { isColumnTable } from './columns.js';
+import { plotValueFormatter } from './format.js';
 import { geoRows } from './geo.js';
+import { binDescriptor } from './marks-rect.js';
 import type {
   Legend,
   MarkGeometry,
@@ -9,7 +11,8 @@ import type {
   PlotAxis,
   PlotGeometry,
   PlotSpec,
-  Row,
+  PrebinnedRect,
+  RectMark,
   Value,
 } from './types.js';
 
@@ -53,13 +56,17 @@ export const readable = (value: number | string): string =>
 function axisPhrase(name: string, axis: PlotAxis | null): string | undefined {
   if (axis === null) return undefined;
   const label = axis.label === '' ? name : axis.label;
+  const format = axis.format === undefined ? undefined : plotValueFormatter(axis.format);
   // A few categories are named in axis order, as a legend's groups are, so the order
   // can be checked without seeing the chart.
   if (axis.type === 'band') {
-    const named = axis.domain.length <= 6 ? `: ${axis.domain.map(readable).join(', ')}` : '';
+    const named =
+      axis.domain.length <= 6 ? `: ${axis.domain.map(format ?? readable).join(', ')}` : '';
     return `${label} in ${plural(axis.domain.length, ['category', 'categories'])}${named}`;
   }
   const [lo = 0, hi = 0] = axis.domain;
+  if (format !== undefined)
+    return `${label} from ${format(lo)} to ${format(hi)}${axis.type === 'log' ? ' on a log scale' : ''}`;
   if (axis.type === 'time')
     return `${label} from ${new Date(Number(lo)).toISOString().slice(0, 10)} to ${new Date(Number(hi)).toISOString().slice(0, 10)}`;
   return `${label} from ${readable(lo)} to ${readable(hi)}${axis.type === 'log' ? ' on a log scale' : ''}`;
@@ -205,8 +212,57 @@ function headingOf(spec: PlotSpec, field: string, channel: ChannelName): string 
 const cell = (value: Value | undefined): string =>
   value === null || value === undefined ? '' : isNumber(value) ? readable(value) : String(value);
 
-const rowsOf = (spec: PlotSpec, mark: MarkSpec): ReadonlyArray<Row> =>
-  mark.mark === 'geo' ? geoRows(mark) : tableRows(mark.data ?? spec.data ?? []);
+type TableColumn = Readonly<{ heading: string; field: string; axis?: AxisName }>;
+type TableOptions = Readonly<{ limit?: number }>;
+
+function sourceColumns(spec: PlotSpec, mark: MarkSpec): ReadonlyArray<TableColumn> {
+  const fields = new Map<string, TableColumn>();
+  for (const name of TABLE_CHANNELS) {
+    const field = fieldOf(channelOf(mark, name));
+    if (field === undefined) continue;
+    const axis = name.startsWith('x') ? 'x' : name.startsWith('y') ? 'y' : undefined;
+    const existing = fields.get(field);
+    if (existing === undefined)
+      fields.set(field, { heading: headingOf(spec, field, name), field, axis });
+    else if (existing.axis === undefined && axis !== undefined)
+      fields.set(field, { ...existing, axis });
+  }
+  if (mark.mark === 'parallel')
+    for (const field of mark.dimensions)
+      if (!fields.has(field)) fields.set(field, { heading: field, field });
+  return [...fields.values()];
+}
+
+const rowLimit = (options: TableOptions): number => Math.max(1, Math.floor(options.limit ?? 200));
+
+function axisCell(spec: PlotSpec, axis: AxisName) {
+  const format = spec[axis]?.format;
+  return format === undefined ? cell : plotValueFormatter(format, `${axis}.format`);
+}
+
+function sourceTable(
+  spec: PlotSpec,
+  mark: MarkSpec,
+  columns: ReadonlyArray<TableColumn>,
+  caption: string,
+  limit: number,
+): PlotTable {
+  const data = mark.mark === 'geo' ? geoRows(mark) : (mark.data ?? spec.data ?? []);
+  const total = data.length;
+  const valueAt = (field: string, row: number) =>
+    isColumnTable(data) ? data.columns[field]?.[row] : data[row]?.[field];
+  const format = { x: axisCell(spec, 'x'), y: axisCell(spec, 'y') };
+  return {
+    caption,
+    headers: columns.map(({ heading }) => heading),
+    rows: Array.from({ length: Math.min(limit, total) }, (_, row) =>
+      columns.map(({ axis, field }) =>
+        (axis === undefined ? cell : format[axis])(valueAt(field, row)),
+      ),
+    ),
+    total,
+  };
+}
 
 /**
  * The data a spec plots, as a table: the first mark that reads fields, with a
@@ -215,33 +271,103 @@ const rowsOf = (spec: PlotSpec, mark: MarkSpec): ReadonlyArray<Row> =>
  * positions, then values and colours). At most `limit` rows (default 200);
  * `total` says how many there are.
  */
-export function plotTable(spec: PlotSpec, options: Readonly<{ limit?: number }> = {}): PlotTable {
+export function plotTable(spec: PlotSpec, options: TableOptions = {}): PlotTable {
   const caption = spec.title ?? 'Chart data';
   for (const mark of spec.marks) {
-    const fields: string[] = [];
-    const headers: string[] = [];
-    for (const name of TABLE_CHANNELS) {
-      const field = fieldOf(channelOf(mark, name));
-      if (field !== undefined && !fields.includes(field)) {
-        fields.push(field);
-        headers.push(headingOf(spec, field, name));
-      }
-    }
-    if (mark.mark === 'parallel')
-      for (const d of mark.dimensions)
-        if (!fields.includes(d)) {
-          fields.push(d);
-          headers.push(d);
-        }
-    if (fields.length === 0) continue;
-    const rows = rowsOf(spec, mark);
-    const limit = Math.max(1, Math.floor(options.limit ?? 200));
-    return {
-      caption,
-      headers,
-      rows: rows.slice(0, limit).map((row) => fields.map((field) => cell(row[field]))),
-      total: rows.length,
-    };
+    const columns = sourceColumns(spec, mark);
+    if (columns.length > 0) return sourceTable(spec, mark, columns, caption, rowLimit(options));
   }
   return { caption, headers: [], rows: [], total: 0 };
+}
+
+function binTable(
+  spec: PlotSpec,
+  geometry: PlotGeometry,
+  mark: RectMark,
+  descriptor: PrebinnedRect,
+  index: number,
+  caption: string,
+  limit: number,
+): PlotTable {
+  const x = spec.x?.label || descriptor.xField || 'X';
+  const y = spec.y?.label || descriptor.yField || 'Y';
+  const twoDimensions = mark.y !== undefined || mark.y1 !== undefined;
+  const { series } = descriptor;
+  const valueLabel = !twoDimensions ? spec.y?.label : undefined;
+  const faceted = spec.facet !== undefined;
+  const formatX = axisCell(spec, 'x');
+  const formatY = axisCell(spec, 'y');
+  const headers = [
+    ...(faceted ? ['Panel'] : []),
+    ...(series === undefined ? [] : [series]),
+    `${x} start`,
+    `${x} end`,
+    ...(twoDimensions ? [`${y} start`, `${y} end`] : []),
+    valueLabel && valueLabel !== descriptor.value ? valueLabel : capitalise(descriptor.value),
+  ];
+  const rows: string[][] = [];
+  let total = 0;
+  for (const facet of geometry.facets) {
+    const layer = facet.marks.find((candidate) => candidate.index === index);
+    for (const graphic of layer?.graphics ?? []) {
+      if (graphic.kind !== 'rect' || graphic.bin === undefined) continue;
+      const bin = graphic.bin;
+      if (total < limit)
+        rows.push([
+          ...(faceted ? [facet.label] : []),
+          ...(series === undefined ? [] : [cell(bin.series)]),
+          ...bin.x.map(formatX),
+          ...(bin.y?.map(formatY) ?? []),
+          (bin.y === undefined ? formatY : cell)(bin.value),
+        ]);
+      total += 1;
+    }
+  }
+  return { caption, headers, rows, total };
+}
+
+/** Accessible tables in layer order, using the geometry compiled from this spec for bins. */
+export function plotTables(
+  spec: PlotSpec,
+  geometry: PlotGeometry,
+  options: TableOptions = {},
+): ReadonlyArray<PlotTable> {
+  const limit = rowLimit(options);
+  const title = spec.title ?? 'Chart data';
+  return spec.marks.flatMap((mark, index): ReadonlyArray<PlotTable> => {
+    const caption = `${title} (layer ${index + 1})`;
+    const descriptor = mark.mark === 'rect' ? binDescriptor(mark) : undefined;
+    if (mark.mark === 'rect' && descriptor !== undefined) {
+      const binCaption =
+        spec.marks.length === 1 ? (spec.title ?? 'Histogram bins') : `${caption} · Bins`;
+      return [binTable(spec, geometry, mark, descriptor, index, binCaption, limit)];
+    }
+    const columns = sourceColumns(spec, mark);
+    if (mark.mark === 'rule') {
+      const axis = mark.x === undefined ? 'y' : 'x';
+      const channel = mark[axis];
+      if (isConstant(channel))
+        return [
+          {
+            caption: `${caption} · Reference rule`,
+            headers: [spec[axis]?.label || axis],
+            rows: [[axisCell(spec, axis)(channel.value)]],
+            total: 1,
+          },
+        ];
+    }
+    if (columns.length === 0) return [];
+    const counts = new Map<string, number>();
+    for (const { heading } of columns) counts.set(heading, (counts.get(heading) ?? 0) + 1);
+    const headings = columns.map((column) => ({
+      ...column,
+      heading:
+        counts.get(column.heading) === 1 ? column.heading : `${column.heading} (${column.field})`,
+    }));
+    const sourceCaption =
+      spec.marks.length === 1 && !('transform' in mark)
+        ? title
+        : `${caption} · ${capitalise(mark.mark)} source data`;
+    return [sourceTable(spec, mark, headings, sourceCaption, limit)];
+  });
 }

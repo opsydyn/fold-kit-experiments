@@ -201,35 +201,39 @@ export function parseColour(colour: string): readonly [number, number, number, n
   throw new RangeError(`webgl/points reads hex, rgb() and rgba() colours, not "${colour}"`);
 }
 
-function compile(gl: PointsGl, type: number, source: string): GlShader {
+function compile(gl: PointsGl, type: number, source: string, shaders: GlShader[]): GlShader {
   const shader = gl.createShader(type);
   if (shader === null) throw new RangeError('webgl/points: the context made no shader');
+  shaders.push(shader);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(shader) ?? '';
-    gl.deleteShader(shader);
     throw new RangeError(`webgl/points: shader did not compile: ${log}`);
   }
   return shader;
 }
 
-function link(gl: PointsGl): GlProgram {
-  const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
-  const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
-  const program = gl.createProgram();
-  if (program === null) throw new RangeError('webgl/points: the context made no program');
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  gl.deleteShader(vertex);
-  gl.deleteShader(fragment);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const log = gl.getProgramInfoLog(program) ?? '';
-    gl.deleteProgram(program);
-    throw new RangeError(`webgl/points: program did not link: ${log}`);
+function link(gl: PointsGl, cleanup: Array<() => void>): GlProgram {
+  const shaders: GlShader[] = [];
+  // oxlint-disable-next-line linteffect/no-try-catch -- The shaders belong to this synchronous link operation.
+  try {
+    const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX, shaders);
+    const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT, shaders);
+    const program = gl.createProgram();
+    if (program === null) throw new RangeError('webgl/points: the context made no program');
+    cleanup.push(() => gl.deleteProgram(program));
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(program) ?? '';
+      throw new RangeError(`webgl/points: program did not link: ${log}`);
+    }
+    return program;
+  } finally {
+    for (const shader of shaders.reverse()) gl.deleteShader(shader);
   }
-  return program;
 }
 
 /** A graphic on the GPU: its buffers hold `capacity` points, of which `points.count` are drawn. */
@@ -277,13 +281,33 @@ export function pointsLayer(
   geometry: PlotGeometry,
   options: PointsLayerOptions = {},
 ): PointsLayer {
+  const cleanup: Array<() => void> = [];
+  const dispose = () => {
+    for (let release = cleanup.pop(); release !== undefined; release = cleanup.pop()) release();
+  };
+  // oxlint-disable-next-line linteffect/no-try-catch -- Release partially acquired native resources before propagating an error.
+  try {
+    return buildPointsLayer(gl, geometry, options, cleanup, dispose);
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+}
+
+function buildPointsLayer(
+  gl: PointsGl,
+  geometry: PlotGeometry,
+  options: PointsLayerOptions,
+  cleanup: Array<() => void>,
+  dispose: () => void,
+): PointsLayer {
   const ratio = options.pixelRatio ?? 1;
   const packed = packedPoints(geometry);
   if (packed.length === 0) throw new RangeError('webgl/points draws dense dot marks only');
-  const program = link(gl);
   const buffer = (data: Float32Array | Uint16Array | Uint8Array, usage: number): GlBuffer => {
     const made = gl.createBuffer();
     if (made === null) throw new RangeError('webgl/points: the context made no buffer');
+    cleanup.push(() => gl.deleteBuffer(made));
     gl.bindBuffer(gl.ARRAY_BUFFER, made);
     gl.bufferData(gl.ARRAY_BUFFER, data, usage);
     return made;
@@ -297,9 +321,16 @@ export function pointsLayer(
     return options.current;
   };
   /** A graphic's colours, one texel each, read by colour index in the fragment shader. */
-  const uploadPalette = (texture: GlTexture, points: Points): void => {
+  const palettePixels = (points: Points): Uint8Array => {
     const swatches = new Uint8Array(points.palette.length * 4);
     points.palette.forEach((paint, i) => swatches.set(parseColour(colourOf(paint)), i * 4));
+    return swatches;
+  };
+  const uploadPalette = (
+    texture: GlTexture,
+    points: Points,
+    swatches = palettePixels(points),
+  ): void => {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -333,9 +364,16 @@ export function pointsLayer(
     a.palette.length === b.palette.length &&
     a.palette.every((colour, i) => colour === b.palette[i]);
 
-  const uploaded: Uploaded[] = packed.map(([points, facet]) => {
+  const prepared = packed.map(([points, facet]) => ({
+    points,
+    facet,
+    swatches: palettePixels(points),
+  }));
+  const program = link(gl, cleanup);
+  const uploaded: Uploaded[] = prepared.map(({ points, facet, swatches }) => {
     const palette = gl.createTexture();
     if (palette === null) throw new RangeError('webgl/points: the context made no texture');
+    cleanup.push(() => gl.deleteTexture(palette));
     gl.bindTexture(gl.TEXTURE_2D, palette);
     for (const [name, value] of [
       [gl.TEXTURE_MIN_FILTER, gl.NEAREST],
@@ -344,7 +382,7 @@ export function pointsLayer(
       [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE],
     ] as const)
       gl.texParameteri(gl.TEXTURE_2D, name, value);
-    uploadPalette(palette, points);
+    uploadPalette(palette, points, swatches);
     return {
       points,
       facet,
@@ -499,13 +537,6 @@ export function pointsLayer(
       }
       gl.disable(gl.SCISSOR_TEST);
     },
-    dispose: () => {
-      for (const layer of uploaded) {
-        for (const made of [layer.position, layer.radius, layer.paint, layer.dimmed])
-          if (made !== null) gl.deleteBuffer(made);
-        gl.deleteTexture(layer.palette);
-      }
-      gl.deleteProgram(program);
-    },
+    dispose,
   };
 }

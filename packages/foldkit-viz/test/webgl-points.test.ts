@@ -204,10 +204,45 @@ describe('pointsLayer', () => {
 
   it('releases everything it made on dispose', () => {
     const { gl, named } = fakeGl();
-    pointsLayer(gl, geometry).dispose();
+    const layer = pointsLayer(gl, geometry);
+    layer.dispose();
+    layer.dispose();
     expect(named('deleteBuffer').length).toBe(named('createBuffer').length);
     expect(named('deleteTexture').length).toBe(named('createTexture').length);
     expect(named('deleteProgram')).toHaveLength(1);
+  });
+
+  it('releases each acquired handle when a later buffer allocation fails', () => {
+    const { gl, calls, named } = fakeGl();
+    let attempts = 0;
+    const failing = { ...gl, createBuffer: () => (++attempts === 2 ? null : gl.createBuffer()) };
+    expect(() => pointsLayer(failing, geometry)).toThrow('the context made no buffer');
+    expect(named('deleteShader')).toHaveLength(2);
+    expect(calls.slice(-3).map(([name]) => name)).toEqual([
+      'deleteBuffer',
+      'deleteTexture',
+      'deleteProgram',
+    ]);
+  });
+
+  it('releases both shaders when the second one fails compilation', () => {
+    const { gl, named } = fakeGl();
+    let compiles = 0;
+    const failing = { ...gl, getShaderParameter: () => ++compiles === 1 };
+    expect(() => pointsLayer(failing, geometry)).toThrow('shader did not compile');
+    expect(named('deleteShader')).toHaveLength(2);
+    expect(named('createProgram')).toHaveLength(0);
+  });
+
+  it('validates the palette before allocating a program', () => {
+    const { gl, named } = fakeGl();
+    const unthemed = compilePlot({
+      ...spec,
+      marks: [{ mark: 'dot', x: 'x', y: 'y', dense: true }],
+    });
+    expect(() => pointsLayer(gl, unthemed)).toThrow('pass the colour as `current`');
+    expect(named('createShader')).toHaveLength(0);
+    expect(named('createTexture')).toHaveLength(0);
   });
 
   it('refuses geometry with no packed points, which belong on a canvas or SVG', () => {

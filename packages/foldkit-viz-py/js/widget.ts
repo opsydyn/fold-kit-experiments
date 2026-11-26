@@ -1,5 +1,5 @@
 import type { ThemeName } from '@opsydyn/foldkit-viz/chart/theme';
-import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
+import { compilePlot, plotTables } from '@opsydyn/foldkit-viz/plot';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
 import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
 
@@ -44,8 +44,9 @@ function draw(model: WidgetModel, el: WidgetElement): void {
   let error = '';
   // oxlint-disable-next-line linteffect/no-try-catch -- An anywidget front end runs outside any Effect runtime, and compilePlot reports a bad spec by throwing.
   try {
-    const options = { summary: true, table: plotTable(spec) };
-    el.innerHTML = plotHtml(compilePlot(spec), theme === null ? options : { ...options, theme });
+    const geometry = compilePlot(spec);
+    const options = { summary: true, tables: plotTables(spec, geometry) };
+    el.innerHTML = plotHtml(geometry, theme === null ? options : { ...options, theme });
   } catch (caught) {
     // SAFETY: compilePlot throws RangeErrors naming the spec path; anything else is reported by its text.
     error = messageOf(caught as Error | string);

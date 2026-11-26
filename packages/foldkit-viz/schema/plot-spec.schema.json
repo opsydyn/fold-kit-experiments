@@ -207,6 +207,9 @@
         "label": {
           "type": "string"
         },
+        "format": {
+          "$ref": "#/definitions/PlotValueFormat"
+        },
         "zero": {
           "type": "boolean"
         },
@@ -242,6 +245,91 @@
         }
       },
       "additionalProperties": false
+    },
+    "PlotValueFormat": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "number",
+                "percent"
+              ]
+            },
+            "locale": {
+              "type": "string"
+            },
+            "digits": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unit"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "locale": {
+              "type": "string"
+            },
+            "digits": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "unit"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "dateTime"
+            },
+            "locale": {
+              "type": "string"
+            },
+            "timeZone": {
+              "type": "string"
+            },
+            "dateStyle": {
+              "type": "string",
+              "enum": [
+                "short",
+                "medium",
+                "long"
+              ]
+            },
+            "timeStyle": {
+              "type": "string",
+              "enum": [
+                "short",
+                "medium",
+                "long"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A portable display format for an axis and the values it describes."
     },
     "ColorScaleSpec": {
       "type": "object",
@@ -1163,6 +1251,10 @@
         "transform": {
           "$ref": "#/definitions/BinTransform"
         },
+        "prebinned": {
+          "$ref": "#/definitions/PrebinnedRect",
+          "description": "Metadata for data already reduced to interval rows, such as SQL pushdown output."
+        },
         "data": {
           "$ref": "#/definitions/PlotData"
         },
@@ -1186,8 +1278,7 @@
       },
       "required": [
         "mark"
-      ],
-      "description": "A rectangle from x1 to x2 and y1 to y2 on continuous axes; a missing x1 or y1 starts at the axis baseline. With a bin transform, `x` (and `y`) are the values to bin and the edges are computed."
+      ]
     },
     "BinTransform": {
       "type": "object",
@@ -1232,6 +1323,29 @@
       ],
       "additionalProperties": false,
       "description": "Bins a rect mark's rows: `x` alone gives a histogram, `x` and `y` a two-dimensional one. Thresholds are a count or, for `x` alone, explicit breaks. Binned rows carry `x1`, `x2` (and `y1`, `y2`), `count` and, for a histogram, `proportion`."
+    },
+    "PrebinnedRect": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "The reduced value field, such as count or proportion."
+        },
+        "xField": {
+          "type": "string"
+        },
+        "yField": {
+          "type": "string"
+        },
+        "series": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false,
+      "description": "A rectangle from x1 to x2 and y1 to y2 on continuous axes; a missing x1 or y1 starts at the axis baseline. With a bin transform, `x` (and `y`) are the values to bin and the edges are computed."
     },
     "BoxMark": {
       "type": "object",

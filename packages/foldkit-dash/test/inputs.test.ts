@@ -267,6 +267,16 @@ describe('choosing a series, and how a series moves (ADR 0117)', () => {
     expect(pointedAt(drawn, targets, sixth.x, sixth.y + 60)).toBeUndefined();
   });
 
+  test('read-outs use the same format as the chart axes', () => {
+    const formatted = {
+      ...lines,
+      x: { format: { kind: 'dateTime', dateStyle: 'short', locale: 'en-GB' } },
+      y: { format: { kind: 'unit', unit: 'millisecond', locale: 'en-GB' } },
+    };
+    const chart = Result.getOrThrow(drawSpec(formatted, new Map([['weekly.json', weekly]]), {}));
+    expect(targetsOf(chart, formatted)[0]?.text).toBe('north, week 04/05/2026: units 10 ms');
+  });
+
   test('a series reports its largest fall and rise in date order, not the rows order', () => {
     const [north, south] = drawn.series;
     expect(north?.fall).toEqual({

@@ -5,14 +5,12 @@
  * frame, and the control points ride along as its parameters: drag one and its path
  * changes at once.
  */
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { makeEnvironment } from '@opsydyn/effect-three-foldkit/browser';
 
+import { defineEffectThreeMount } from '../effect-ui-scene';
 import { rendererForPage } from '../renderer';
 import { ride } from './ride';
 
-export const environment = EffectThreeFoldkit.makeEnvironment(window, {
-  renderer: rendererForPage(window),
-  behaviours: { ride },
-});
-
-export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+export const sceneMount = defineEffectThreeMount(() =>
+  makeEnvironment(window, { renderer: rendererForPage(window), behaviours: { ride } }),
+);

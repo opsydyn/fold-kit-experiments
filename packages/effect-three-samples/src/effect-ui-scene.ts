@@ -4,6 +4,7 @@ import { SceneSchema, type PhysicsEngine } from '@opsydyn/effect-three';
 import {
   makeEnvironment,
   mountSceneHost,
+  sceneEventSchemas,
   type Environment,
 } from '@opsydyn/effect-three-foldkit/browser';
 import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
@@ -60,25 +61,7 @@ export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
 /** Connects typed scene events to Effect UI without a registered custom element. */
 export const EffectThreeStage = Html.customElement({
   tag: 'effect-three-scene',
-  events: {
-    'scene-click': SceneSchema.ButtonDetail,
-    'scene-pointer-missed': SceneSchema.MissDetail,
-    'scene-label-measured': SceneSchema.LabelMeasuredDetail,
-    'scene-gesture': SceneSchema.GestureDetail,
-    'scene-collision': SceneSchema.CollisionDetail,
-    'scene-contact-force': SceneSchema.ContactForceDetail,
-    'scene-asset-loaded': SceneSchema.AssetLoadedDetail,
-    'scene-asset-failed': SceneSchema.AssetFailedDetail,
-    'scene-xr': Schema.Struct({
-      mode: Schema.NullOr(Schema.Literals(['immersive-vr', 'immersive-ar'])),
-    }),
-    'scene-xr-surface': SceneSchema.XrSurfaceDetail,
-    'scene-xr-planes': SceneSchema.XrPlanesDetail,
-    'scene-xr-meshes': SceneSchema.XrMeshesDetail,
-    'scene-xr-moved': SceneSchema.XrMovedDetail,
-    'scene-xr-teleported': SceneSchema.XrTeleportedDetail,
-    'scene-xr-poses': SceneSchema.XrPosesDetail,
-  },
+  events: sceneEventSchemas,
 });
 
 export const createLabelledEnvironment = (loadPhysics?: () => Promise<PhysicsEngine>) => {
@@ -91,3 +74,7 @@ export const createLabelledEnvironment = (loadPhysics?: () => Promise<PhysicsEng
 
 export const defineLabelledSceneMount = (loadPhysics?: () => Promise<PhysicsEngine>) =>
   defineEffectThreeMount(() => createLabelledEnvironment(loadPhysics));
+
+export const unlabelledSceneMount = defineEffectThreeMount(() =>
+  makeEnvironment(window, { renderer: rendererForPage(window) }),
+);

@@ -1,13 +1,14 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+import { SceneStart } from '../effect-ui-scene';
+
+export const Message = UiSchema.TaggedEnum({
   HoveredBuilding: { instance: Schema.String },
   LeftCity: {},
   ClickedBuilding: { instance: Schema.String },
   ClickedNewCity: {},
   ChangedPerformance: { fps: Schema.Number, factor: Schema.Number },
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

@@ -1,4 +1,4 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { ReconciledDetail } from '@opsydyn/effect-three-foldkit/browser';
 import { Option, Schema } from 'effect';
 
 import { Paint, paintAt } from '../palette';
@@ -11,7 +11,7 @@ export const Model = Schema.Struct({
   right: Schema.Array(Cube),
   nextId: Schema.Number,
   hovered: Schema.Option(Schema.String),
-  last: Schema.Option(EffectThreeFoldkit.ReconciledDetail),
+  last: Schema.Option(ReconciledDetail),
 });
 export type Model = typeof Model.Type;
 

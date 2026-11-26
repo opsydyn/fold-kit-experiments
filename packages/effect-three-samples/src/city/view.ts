@@ -1,15 +1,15 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { Option } from 'effect';
-import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { sceneMount } from '../environment';
+import { EffectThreeStage, unlabelledSceneMount } from '../effect-ui-scene';
 import { Message } from './message';
 import { buildingCount, type Model } from './model';
 import { sceneFor } from './scene';
 
 const readout = (model: Model): string =>
   Option.match(model.hovered, {
-    onNone: () => 'Hover a building to name it; click to raise it.',
+    onNone: () => 'Hover a building to name it. Click to raise it.',
     onSome: (index) => `Building ${index + 1} of ${buildingCount.toLocaleString('en')}.`,
   });
 
@@ -20,42 +20,37 @@ const performanceNote = (model: Model): string =>
       `Measured ${fps} fps: drawing at ${Math.round(model.quality * 100)}% resolution.`,
   });
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'City — effect-three',
-  body: h.div(
-    [h.Class('e3-sample')],
-    [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onPointerMove: ({ instance }) => Message.HoveredBuilding({ instance: instance ?? '' }),
-          onPointerLeave: () => Message.LeftCity(),
-          onClick: ({ instance }) => Message.ClickedBuilding({ instance: instance ?? '' }),
-          onPerformanceChange: ({ fps, factor }) => Message.ChangedPerformance({ fps, factor }),
-        },
-        h,
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class('e3-sample').children(
+    EffectThreeStage(h)
+      .class('e3-stage')
+      .on('scene-pointer-move', ({ instance }) =>
+        Message.HoveredBuilding({ instance: instance ?? '' }),
+      )
+      .on('scene-pointer-leave', Message.LeftCity())
+      .on('scene-click', ({ instance }) => Message.ClickedBuilding({ instance: instance ?? '' }))
+      .on('scene-performance', ({ fps, factor }) => Message.ChangedPerformance({ fps, factor }))
+      .onMount(
+        Mount.map(unlabelledSceneMount({ scene: sceneFor(model) }), (lifecycle) =>
+          Message.ReceivedSceneLifecycle({ lifecycle }),
+        ),
+      )
+      .children(),
+    h.p.class('e3-readout').attr('aria-live', 'polite').children(readout(model)),
+    h.div
+      .class('e3-controls')
+      .children(
+        h.button
+          .class('e3-button')
+          .attr('type', 'button')
+          .on('click', Message.ClickedNewCity())
+          .children('New city'),
       ),
-      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-      h.div(
-        [h.Class('e3-controls')],
-        [
-          h.button(
-            [h.Class('e3-button'), h.Type('button'), h.OnClick(Message.ClickedNewCity())],
-            ['New city'],
-          ),
-        ],
+    h.p
+      .class('e3-note')
+      .children(
+        `${buildingCount.toLocaleString('en')} buildings in one instanced mesh and one draw call. `,
+        'Hovering updates only the affected instances. The scene draws when something changes. ',
+        performanceNote(model),
       ),
-      h.p(
-        [h.Class('e3-note')],
-        [
-          `${buildingCount.toLocaleString('en')} buildings in one instanced mesh and one draw call. `,
-          'A hover rewrites one or two instances, not ten thousand, and the scene draws only when ',
-          `something changes. ${performanceNote(model)}`,
-        ],
-      ),
-    ],
-  ),
-});
+  );

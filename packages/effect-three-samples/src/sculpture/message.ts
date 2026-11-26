@@ -1,11 +1,11 @@
-import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
+import { SceneStart } from '../effect-ui-scene';
 import { Paint } from '../palette';
 import { Piece } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedSurface: { key: Schema.String, x: Schema.Number, z: Schema.Number },
   ClickedPaint: { paint: Paint },
   ClickedPiece: { piece: Piece },
@@ -13,6 +13,6 @@ export const Message = defineMessageUnion({
   ClickedUndo: {},
   ClickedRedo: {},
   ClickedClear: {},
-  ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  ReceivedSceneLifecycle: { lifecycle: SceneStart },
 });
 export type Message = typeof Message.Type;

@@ -65,8 +65,8 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "test:unit": "bun test test/unit",
+    "test": "bun run test:unit && bun run test:integration",
+    "test:unit": "bun test --path-ignore-patterns='**/client-helpers.test.ts' test/unit && vitest run",
     "test:integration": "bun test test/integration",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
@@ -78,6 +78,7 @@
     "@foldkit/vite-plugin": "^0.29.0"
   },
   "devDependencies": {
+    "@opsydyn/testing": "workspace:*",
     "@types/node": "^22.0.0",
     "astro": "7.4.11",
     "bun-types": "^1.3.14",
@@ -85,7 +86,8 @@
     "fast-check": "^4.8.0",
     "foldkit": "0.171.0",
     "tsdown": "^0.21.8",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "astro": ">=5.0.0",

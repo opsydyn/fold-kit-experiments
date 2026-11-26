@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 
 import { inertHtml } from 'foldkit/html';
 import type { Document, HtmlBuilder } from 'foldkit/html';

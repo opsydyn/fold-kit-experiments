@@ -268,5 +268,142 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "run": 45779660818,
+    "attempt": 1,
+    "commit": "9705aafb00478305c217547cf57f5ceedef54987",
+    "startedAt": "2026-11-26T08:01:07Z",
+    "reportSha256": "8d7c882c58deb456f1a2e14bd7a1b467d0df18811a35c3d750897ec1c80da201",
+    "entries": [
+      {
+        "id": "330fad78ecdf983880a72819",
+        "file": "src/apps/linked-charts/model.ts",
+        "fn": "pointsWithExperience",
+        "genre": "FnValue",
+        "line": 45,
+        "outcome": "caught"
+      },
+      {
+        "id": "aff04dd1e9d26f6fdd1ff2bc",
+        "file": "src/apps/linked-charts/model.ts",
+        "fn": "pointsWithExperience",
+        "genre": "FnValue",
+        "line": 45,
+        "outcome": "caught"
+      },
+      {
+        "id": "bc6d87d0cbdd3299205678ab",
+        "file": "src/apps/linked-charts/model.ts",
+        "fn": "initChartModels",
+        "genre": "FnValue",
+        "line": 100,
+        "outcome": "caught"
+      },
+      {
+        "id": "0fee714b5daff41ab87d49f1",
+        "file": "src/apps/linked-charts/model.ts",
+        "fn": "initChartModels.toParentModel",
+        "genre": "FnValue",
+        "line": 106,
+        "outcome": "caught"
+      },
+      {
+        "id": "1421d50761e3eb03c0ff4588",
+        "file": "src/apps/linked-charts/update.ts",
+        "fn": "update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "caught"
+      },
+      {
+        "id": "b0e2b3142dd156861c0c2f7e",
+        "file": "src/apps/linked-charts/update.ts",
+        "fn": "update.ChangedMinimumExperience",
+        "genre": "FnValue",
+        "line": 16,
+        "outcome": "caught"
+      },
+      {
+        "id": "3b05a592f3f9e22bb3d1bb00",
+        "file": "src/apps/linked-charts/view.ts",
+        "fn": "view",
+        "genre": "FnValue",
+        "line": 10,
+        "outcome": "caught"
+      },
+      {
+        "id": "1ccad4a3702728015c301f4e",
+        "file": "src/apps/linked-charts/view.ts",
+        "fn": "view.keys.onSome",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "caught"
+      },
+      {
+        "id": "543c93ab935827c402a5a02f",
+        "file": "src/apps/linked-charts/view.ts",
+        "fn": "view.keys.onSome",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "caught"
+      },
+      {
+        "id": "7f50ae07ab4de155728d5dc9",
+        "file": "src/apps/linked-charts/view.ts",
+        "fn": "view.keys.onSome",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "caught"
+      },
+      {
+        "id": "da2d8a7ab2bf3accb2237ee0",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "compile",
+        "genre": "FnValue",
+        "line": 128,
+        "outcome": "caught"
+      },
+      {
+        "id": "815bd4328c6d4f085bdc4985",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "view",
+        "genre": "FnValue",
+        "line": 421,
+        "outcome": "caught"
+      },
+      {
+        "id": "e5e2b9fb9c02a23e01cc91cf",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "view",
+        "genre": "FnValue",
+        "line": 421,
+        "outcome": "caught"
+      },
+      {
+        "id": "3bb87b0b6a1faedb83497ed1",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "view.liveText.onNone",
+        "genre": "FnValue",
+        "line": 455,
+        "outcome": "missed"
+      },
+      {
+        "id": "111f719ca1cc0443dd97215a",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "view.liveText.onSome",
+        "genre": "FnValue",
+        "line": 457,
+        "outcome": "caught"
+      },
+      {
+        "id": "60dabe65f88399478beb16a3",
+        "file": "src/ui/plot-panel/index.ts",
+        "fn": "view.liveText.onSome",
+        "genre": "FnValue",
+        "line": 457,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

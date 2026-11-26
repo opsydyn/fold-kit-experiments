@@ -685,6 +685,7 @@
     },
     "tools/testing": {
       "name": "@opsydyn/testing",
+      "version": "0.0.0",
       "dependencies": {
         "foldkit": "catalog:",
         "vitest": "catalog:",

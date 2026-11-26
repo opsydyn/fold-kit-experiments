@@ -2,6 +2,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import workspace from '../../../../package.json' with { type: 'json' };
 import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
 import { datasetProject } from './dataset-project';
@@ -91,9 +92,9 @@ export async function buildExampleTemplate(
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',
           foldkit: '0.171.0',
-          effect: '4.1.0',
+          effect: workspace.workspaces.catalog.effect,
           // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-          '@effect/platform-browser': '4.1.0',
+          '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
         },
       },
       null,
@@ -161,9 +162,9 @@ export async function buildExampleTemplate(
         '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
         '@opsydyn/dataset-explorer': 'file:./vendor/source-highlighting',
         foldkit: '0.171.0',
-        effect: '4.1.0',
+        effect: workspace.workspaces.catalog.effect,
         // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-        '@effect/platform-browser': '4.1.0',
+        '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
         fflate: '0.8.3',
         '@stackblitz/sdk': '1.11.0',
       },

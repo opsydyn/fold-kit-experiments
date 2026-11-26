@@ -1,5 +1,6 @@
 import { datasetIds, datasets } from '@opsydyn/dataset-explorer/data';
 
+import workspace from '../../../../package.json' with { type: 'json' };
 import type { SourceFile } from './example-project';
 
 /** Adapt the common Vite scaffold to the maintained KeyedQuery example. */
@@ -44,9 +45,9 @@ export function datasetProject(
         dependencies: {
           '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
           foldkit: '0.171.0',
-          effect: '4.1.0',
+          effect: workspace.workspaces.catalog.effect,
           // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-          '@effect/platform-browser': '4.1.0',
+          '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',

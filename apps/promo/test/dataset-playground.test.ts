@@ -16,6 +16,10 @@ test('dataset starter uses the maintained source runtime and matching Vite plugi
   // The dataset explorer takes FoldKit from the workspace catalog.
   expect(datasetPackage.dependencies.foldkit).toBe('catalog:');
   expect(manifest.dependencies.foldkit).toBe(workspace.workspaces.catalog.foldkit);
+  expect(manifest.dependencies.effect).toBe(workspace.workspaces.catalog.effect);
+  expect(manifest.dependencies['@effect/platform-browser']).toBe(
+    workspace.workspaces.catalog['@effect/platform-browser'],
+  );
   expect(manifest.devDependencies['@foldkit/vite-plugin']).toBe(
     astroPackage.dependencies['@foldkit/vite-plugin'].replace(/^\^/, ''),
   );

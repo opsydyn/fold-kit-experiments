@@ -1,10 +1,10 @@
-import foldkit from '@opsydyn/astro-foldkit';
+import effectUi from '@opsydyn/astro-effect-ui';
 import type { AstroUserConfig } from 'astro';
 import { defineConfig } from 'astro/config';
 
 const config: AstroUserConfig = {
   output: 'static',
-  integrations: [foldkit()],
+  integrations: [effectUi()],
   base: process.env.ZLOZ_PROMO_BASE_PATH ?? '/',
   trailingSlash: 'always',
   server: { port: 4329 },

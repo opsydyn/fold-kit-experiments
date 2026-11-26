@@ -24,6 +24,16 @@ For workspace development, use the checked local tarball described in
 for tooling. The view is for browsers; pure imports do not access browser globals.
 The tested view baseline is FoldKit 0.170.0 / Effect 4.1.0. Both are optional peers.
 
+## Effect UI preview
+
+The `effect-ui-next` branch includes `@opsydyn/foldkit-zloz/effect-ui` for
+Effect UI hosts. Its `surfaceInput` mount scopes the native input listeners to
+the graph surface. The host owns the HTML and SVG and routes the mount's
+`BrowserInput` events to `updateEditor`. See the
+[Compose island](../../apps/zloz-promo/src/examples/compose/view.ts) for the
+surface attributes, ports and keyboard controls. Use the Effect UI revision
+pinned by the workspace for this preview.
+
 ## Core
 
 ```ts

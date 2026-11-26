@@ -37,6 +37,10 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
     },
+    "./effect-ui": {
+      "types": "./dist/effect-ui.d.mts",
+      "import": "./dist/effect-ui.mjs"
+    },
     "./foldkit": {
       "types": "./dist/foldkit.d.mts",
       "import": "./dist/foldkit.mjs"
@@ -66,6 +70,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@types/node": "^22.0.0",
     "bun-types": "^1.3.14",
     "effect": "4.1.6",
@@ -78,10 +83,14 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
+    "@effect/ui": "0.0.0",
     "effect": ">=4.1.0 <5.0.0",
     "foldkit": ">=0.170.0 <0.172.0"
   },
   "peerDependenciesMeta": {
+    "@effect/ui": {
+      "optional": true
+    },
     "effect": {
       "optional": true
     },

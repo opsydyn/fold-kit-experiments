@@ -1,5 +1,5 @@
+import type { BrowserInput, ZlozPortAnchorSnapBypassModifier } from './browser-input';
 import { gridSpacing } from './geometry';
-import type { BrowserInput, ZlozPortAnchorSnapBypassModifier } from './input-message';
 import type { Endpoint, Point } from './types';
 
 const mouseReleaseGraceMs = 100;

@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports -- Literal lazy entry is owned by the Astro integration.
-export default lazyApp(() => import('./main'));
+import Compose from './main';
+
+export default astroComponent(Compose);

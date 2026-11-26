@@ -1,9 +1,6 @@
-import { plotChart } from '@opsydyn/foldkit-viz/foldkit/plot';
 import { compilePlot, plotTable } from '@opsydyn/foldkit-viz/plot';
 import type { ColumnTable, PlotSpec } from '@opsydyn/foldkit-viz/plot';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { plotHtml } from '@opsydyn/foldkit-viz/svg/plot';
 
 import type { SummaryOptions } from './summary.js';
 
@@ -18,123 +15,45 @@ export type Report = Readonly<{
 const thousands = (n: number): string => n.toLocaleString('en-US');
 const ms = (n: number): string => `${n.toFixed(1)} ms`;
 
-const chart = (h: HtmlBuilder<never>, spec: PlotSpec): Html =>
-  h.figure(
-    [h.Class('chart')],
-    [plotChart(h, compilePlot(spec), { summary: true, table: plotTable(spec) })],
-  );
+const chart = (spec: PlotSpec): string =>
+  `<figure class="chart">${plotHtml(compilePlot(spec), {
+    summary: true,
+    table: plotTable(spec),
+  })}</figure>`;
 
-const costs = (h: HtmlBuilder<never>, report: Report): Html =>
-  h.table(
-    [h.Class('costs')],
-    [
-      h.caption([], ['What this request cost the server']),
-      h.thead(
-        [],
-        [
-          h.tr(
-            [],
-            ['Step', 'Rows in', 'Rows out', 'Time'].map((t) => h.th([h.Scope('col')], [t])),
-          ),
-        ],
-      ),
-      h.tbody(
-        [],
-        [
-          [
-            'Histogram in Polars',
-            report.requests,
-            report.histogram.bins.length,
-            report.histogram.ms,
-          ],
-          [
-            'Density grid in Polars',
-            report.requests,
-            report.density.cells.length,
-            report.density.ms,
-          ],
-        ].map(([step, rowsIn, rowsOut, time]) =>
-          h.tr(
-            [],
-            [
-              h.th([h.Scope('row')], [String(step)]),
-              h.td([], [thousands(Number(rowsIn))]),
-              h.td([], [thousands(Number(rowsOut))]),
-              h.td([], [ms(Number(time))]),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
+function costs(report: Report): string {
+  const rows = [
+    ['Histogram in Polars', report.histogram.bins.length, report.histogram.ms],
+    ['Density grid in Polars', report.density.cells.length, report.density.ms],
+  ] as const;
+  return `<table class="costs">
+    <caption>What this request cost the server</caption>
+    <thead><tr>
+      <th scope="col">Step</th>
+      <th scope="col">Rows in</th>
+      <th scope="col">Rows out</th>
+      <th scope="col">Time</th>
+    </tr></thead>
+    <tbody>${rows
+      .map(
+        ([step, rowsOut, duration]) => `<tr>
+      <th scope="row">${step}</th>
+      <td>${thousands(report.requests)}</td>
+      <td>${thousands(rowsOut)}</td>
+      <td>${ms(duration)}</td>
+    </tr>`,
+      )
+      .join('')}</tbody>
+  </table>`;
+}
 
-const controls = (h: HtmlBuilder<never>, { binWidth, maxLatency }: SummaryOptions): Html =>
-  h.form(
-    [h.Class('controls'), h.Method('get'), h.Action('/')],
-    [
-      h.label(
-        [],
-        [
-          'Bin width (ms) ',
-          h.input([
-            h.Name('bin'),
-            h.Type('number'),
-            h.Min('5'),
-            h.Max('1000'),
-            h.Value(String(binWidth)),
-          ]),
-        ],
-      ),
-      h.label(
-        [],
-        [
-          'Latency up to (ms) ',
-          h.input([
-            h.Name('max'),
-            h.Type('number'),
-            h.Min('100'),
-            h.Max('20000'),
-            h.Value(String(maxLatency)),
-          ]),
-        ],
-      ),
-      h.button([h.Type('submit')], ['Summarise again']),
-    ],
-  );
-
-/** The page: the summary pattern, its cost, and the two charts it sends. */
-export const pageView = (report: Report, h: HtmlBuilder<never>): Document => ({
-  title: 'Polars summary',
-  body: h.main(
-    [h.Class('page')],
-    [
-      h.h1([], ['Summarise in the engine, plot the summary']),
-      h.p(
-        [],
-        [
-          `/explore sends ${thousands(report.requests)} requests to the browser and draws each one. `,
-          'This page keeps them in a Polars frame on the server, bins them there on each request, ',
-          'and sends only the bins: the same picture from a few hundred rows.',
-        ],
-      ),
-      controls(h, report.options),
-      costs(h, report),
-      chart(h, report.histogram.spec),
-      chart(h, report.density.spec),
-      h.p(
-        [h.Class('note')],
-        [
-          'The histogram spec is plain JSON at ',
-          h.a(
-            [h.Href(`/spec.json?bin=${report.options.binWidth}&max=${report.options.maxLatency}`)],
-            ['/spec.json'],
-          ),
-          ', valid under the plot spec schema foldkit-viz publishes: what a Python or Rust service would send.',
-        ],
-      ),
-    ],
-  ),
-});
+function controls({ binWidth, maxLatency }: SummaryOptions): string {
+  return `<form class="controls" method="get" action="/">
+    <label>Bin width (ms) <input name="bin" type="number" min="5" max="1000" value="${binWidth}"></label>
+    <label>Latency up to (ms) <input name="max" type="number" min="100" max="20000" value="${maxLatency}"></label>
+    <button type="submit">Summarise again</button>
+  </form>`;
+}
 
 const STYLE = `
 :root { color-scheme: light dark; --ink: #1f2937; --muted: #6b7280; --rule: #e5e7eb; --paper: #ffffff; }
@@ -153,16 +72,23 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 sy
 `;
 
 /** The page as an HTML document, rendered on the server with no client script. */
-export async function renderPage(report: Report): Promise<string> {
-  const rendered = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: report }),
-        view: (model: Report, h: HtmlBuilder<never>) => pageView(model, h),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${rendered.title}</title><style>${STYLE}</style></head><body>${rendered.html}</body></html>`;
+export function renderPage(report: Report): string {
+  const { binWidth, maxLatency } = report.options;
+  return `<!doctype html><html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Polars summary</title><style>${STYLE}</style>
+  </head><body><main class="page">
+    <h1>Summarise in the engine, plot the summary</h1>
+    <p>/explore sends ${thousands(report.requests)} requests to the browser and draws each one.
+      This page keeps them in a Polars frame on the server, bins them there on each request,
+      and sends only the bins: the same picture from a few hundred rows.</p>
+    ${controls(report.options)}
+    ${costs(report)}
+    ${chart(report.histogram.spec)}
+    ${chart(report.density.spec)}
+    <p class="note">The histogram spec is plain JSON at
+      <a href="/spec.json?bin=${binWidth}&amp;max=${maxLatency}">/spec.json</a>,
+      valid under the plot spec schema foldkit-viz publishes: what a Python or Rust service would send.</p>
+  </main></body></html>`;
 }

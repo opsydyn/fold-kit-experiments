@@ -11,8 +11,6 @@
   },
   "dependencies": {
     "@opsydyn/foldkit-viz": "workspace:*",
-    "effect": "catalog:",
-    "foldkit": "catalog:",
     "nodejs-polars": "0.26.1"
   },
   "devDependencies": {

@@ -155,12 +155,118 @@ async function run() {
   const withOutline = structuredClone(model);
   // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- This field is part of the portable v2 authoring contract.
   withOutline.document.snapshot.graph.nodes[0].appearance = { shape: 'cylinder' };
+  const architectureNodes = withOutline.document.snapshot.graph.nodes;
+  architectureNodes[0].architecture = {
+    family: 'c4',
+    role: 'container',
+    scope: 'external',
+    technology: 'PostgreSQL',
+    description: 'Stores orders',
+  };
+  architectureNodes.push(
+    {
+      id: 'order-context',
+      label: 'Order management',
+      kind: 'group',
+      position: { x: 80, y: 530 },
+      size: { width: 300, height: 200 },
+      ports: [],
+      architecture: { family: 'ddd', role: 'bounded-context', subdomain: 'core' },
+    },
+    {
+      id: 'billing-hotspot',
+      parentId: 'order-context',
+      label: 'Billing delay',
+      position: { x: 125, y: 595 },
+      size: { width: 220, height: 120 },
+      ports: [],
+      architecture: { family: 'event-storming', role: 'hotspot', status: 'resolved' },
+    },
+  );
+  const contexts = [
+    { id: 'orders-ddd', label: 'Order lifecycle', position: { x: 80, y: 800 } },
+    { id: 'billing-ddd', label: 'Billing ledger', position: { x: 690, y: 800 } },
+    { id: 'catalog-ddd', label: 'Product catalog', position: { x: 690, y: 1110 } },
+  ];
+  architectureNodes.push(
+    ...contexts.map((context) => ({
+      ...context,
+      size: { width: 220, height: 130 },
+      ports: [
+        { id: 'in', kind: 'input', side: 'left', offset: 0.5 },
+        { id: 'out', kind: 'output', side: 'right', offset: 0.5 },
+      ],
+      architecture: { family: 'ddd', role: 'bounded-context' },
+    })),
+  );
+  withOutline.document.snapshot.graph.edges.push(
+    {
+      id: 'order-facts',
+      source: { node: 'orders-ddd', port: 'out' },
+      target: { node: 'billing-ddd', port: 'in' },
+      architecture: {
+        family: 'ddd',
+        scope: 'strategic',
+        role: 'upstream-downstream',
+        upstream: ['open-host-service'],
+        downstream: 'anti-corruption-layer',
+      },
+    },
+    {
+      id: 'product-ids',
+      source: { node: 'orders-ddd', port: 'out' },
+      target: { node: 'catalog-ddd', port: 'in' },
+      architecture: { family: 'ddd', scope: 'strategic', role: 'shared-kernel' },
+    },
+  );
   await upload('Open v2 model', withOutline);
   await expect(page.getByLabel('History workflow status')).toContainText('fresh independent Undo');
   await expect(page.getByLabel('Working connection mode')).toHaveText('Working mode: loose');
   const outline = page.locator('[data-node-outline="cylinder"] svg');
   await expect(outline.locator('path')).toHaveCount(2);
   await expect(outline.locator('path').first()).toHaveAttribute('d', /^M0,16 A110,16/u);
+  const container = page.locator('[data-flow-c4-node="a"]');
+  await expect(container.locator('.flow-c4-type')).toHaveText('Container · external');
+  await expect(container.locator('.flow-c4-technology')).toHaveText('PostgreSQL');
+  await expect(container.locator('.flow-c4-description')).toHaveText('Stores orders');
+  await expect(
+    container.getByRole('button', { name: 'Select Orders' }),
+  ).toHaveAccessibleDescription('Container · external. PostgreSQL. Stores orders');
+  await expect(container.locator('[data-flow-c4-outline]')).toHaveAttribute(
+    'stroke-dasharray',
+    '6 4',
+  );
+  await expect(
+    page.locator('[data-flow-ddd-group="order-context"] .flow-ddd-subdomain'),
+  ).toHaveText('Core subdomain');
+  await expect(
+    page.locator('[data-zloz-event-storming-node="billing-hotspot"] [data-zloz-hotspot-status]'),
+  ).toHaveText('Resolved');
+  const directed = page.locator('[data-zloz-context-map-edge="order-facts"]');
+  const symmetric = page.locator('[data-zloz-context-map-edge="product-ids"]');
+  await expect(directed).toHaveAttribute('marker-end', /url\(#history-v2-\d+-arrow\)/u);
+  await expect(symmetric).toHaveCount(1);
+  await expect(symmetric).not.toHaveAttribute('marker-end', /./u);
+  const contract = page.getByRole('group', {
+    name: /Order lifecycle, Upstream, Open host service to Billing ledger, Downstream, Anti-corruption layer/u,
+  });
+  await expect(contract.getByText('OHS', { exact: true })).toBeAttached();
+  await expect(contract.getByText('ACL', { exact: true })).toBeAttached();
+  await expect(page.locator('[data-zloz-context-map-label="product-ids"]')).toContainText(
+    'Shared kernel',
+  );
+  const hotspot = page.locator('[data-flow-node="billing-hotspot"]');
+  const collapse = page.getByRole('button', { name: 'Collapse Order management' });
+  await expect(collapse).toHaveAttribute('aria-expanded', 'true');
+  await collapse.click();
+  await expect(hotspot).toHaveCount(0);
+  const expand = page.getByRole('button', { name: 'Expand Order management' });
+  await expect(expand).toHaveAttribute('aria-expanded', 'false');
+  await expand.click();
+  await expect(hotspot).toBeVisible();
+  const reopened = await download('Download v2 model', 'history-workflow-v2-notation.json');
+  assert.deepEqual(reopened.document.snapshot.graph, withOutline.document.snapshot.graph);
+
   await page.getByRole('button', { name: 'Switch to previous model session', exact: true }).click();
   await expect(outline).toHaveCount(0);
   await page.getByRole('button', { name: 'Restore / Undo', exact: true }).click();
@@ -206,7 +312,7 @@ async function run() {
           'light/dark/minimal',
           'protected preview and cross-mode Undo/Redo',
           'capture/download/import/conflict/invalid UTF-8',
-          'authored cylinder outline and previous working session history',
+          'C4, DDD and Event Storming notation, strategic direction, and previous working session history',
           'play/pause/rewind/reduced motion',
         ],
         pageErrors: errors,

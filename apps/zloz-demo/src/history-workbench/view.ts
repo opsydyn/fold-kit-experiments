@@ -433,6 +433,8 @@ export function view(h: Html.H<Message>, model: Model) {
                 ? 'Read-only edition preview'
                 : 'Working history canvas',
             onInput: observe,
+            architectureNotation: true,
+            onToggleGroup: (id) => observe({ type: 'GroupCollapseToggled', id }),
             wheelNavigation: 'zoom',
             pinchZoom: false,
             theme: workbenchThemes[scheme],

@@ -1,3 +1,4 @@
+import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
 import type { ZlozDiagnostics } from './diagnostics';
@@ -5,9 +6,12 @@ import type { ZlozPngReviewControls, ZlozPngReviewRequest } from './png-export';
 import type { ZlozSvgReviewControls, ZlozSvgReviewRequest } from './svg-review';
 
 type Settings = ZlozSvgReviewControls['preferences'];
-type Options = Readonly<{
+type Finding = Pick<ZlozSvgReviewControls['findings'][number], 'severity' | 'target' | 'reason'>;
+type Options<M> = Readonly<{
   idPrefix: string;
   diagnostics?: Pick<ZlozDiagnostics, 'instructions' | 'measurements'>;
+  download?: Readonly<{ label: string; className: string }>;
+  renderFinding?: (finding: Finding, h: Html.H<M>) => View.Content<M>;
 }>;
 
 const fields = [
@@ -71,23 +75,24 @@ function reviewImage<M>(h: Html.H<M>, kind: 'SVG' | 'PNG', src: string) {
 function reviewFindings<M>(
   h: Html.H<M>,
   kind: 'SVG' | 'PNG',
-  findings: ReadonlyArray<
-    Pick<ZlozSvgReviewControls['findings'][number], 'severity' | 'target' | 'reason'>
-  >,
+  findings: ReadonlyArray<Finding>,
+  renderFinding: Options<M>['renderFinding'],
 ) {
   return h.ul
     .attr('aria-label', `${kind} findings`)
     .style({ paddingLeft: '18px', overflowWrap: 'anywhere' })
     .children(
       ...findings.map((finding) =>
-        h.li
-          .style({ marginBottom: '8px' })
-          .children(
-            h.strong(
-              `${finding.severity} · ${finding.target.kind}${'id' in finding.target ? ` ${finding.target.id}` : ''}: `,
-            ),
-            finding.reason,
-          ),
+        renderFinding
+          ? renderFinding(finding, h)
+          : h.li
+              .style({ marginBottom: '8px' })
+              .children(
+                h.strong(
+                  `${finding.severity} · ${finding.target.kind}${'id' in finding.target ? ` ${finding.target.id}` : ''}: `,
+                ),
+                finding.reason,
+              ),
       ),
     );
 }
@@ -97,7 +102,7 @@ function acknowledgement<M>(
   kind: 'SVG' | 'PNG',
   accepted: boolean,
   disabled: boolean,
-  message: M,
+  change: (accepted: boolean) => M,
 ) {
   return h.label(
     h.input
@@ -105,7 +110,7 @@ function acknowledgement<M>(
       .checked(accepted)
       .disabled(disabled)
       .attr(`data-zloz-${kind.toLowerCase()}-loss-acceptance`, '')
-      .on('click', message),
+      .on('change', ({ checked }) => change(checked)),
     `Accept the reported ${kind} losses`,
   );
 }
@@ -115,7 +120,7 @@ export function svgReview<M>(
   h: Html.H<M>,
   context: ZlozSvgReviewControls,
   request: (event: ZlozSvgReviewRequest) => M,
-  options: Options,
+  options: Options<M>,
 ) {
   const { identity, result, findings, downloadReason } = context;
   return h.div
@@ -144,7 +149,7 @@ export function svgReview<M>(
           ]
         : []),
       h.p.attr('role', 'status').children(downloadReason ?? 'SVG is ready to download.'),
-      reviewFindings(h, 'SVG', findings),
+      reviewFindings(h, 'SVG', findings, options.renderFinding),
       ...(context.hasLosses
         ? [
             acknowledgement(
@@ -152,21 +157,18 @@ export function svgReview<M>(
               'SVG',
               context.accepted,
               result?.type !== 'written' || context.busy,
-              request({
-                ...identity,
-                type: 'SvgLossAcceptanceChanged',
-                accepted: !context.accepted,
-              }),
+              (accepted) => request({ ...identity, type: 'SvgLossAcceptanceChanged', accepted }),
             ),
           ]
         : []),
       h.button
         .attr('type', 'button')
         .attr('data-zloz-svg-download', '')
+        .class(options.download?.className ?? '')
         .attr('title', downloadReason ?? `Download ${context.fileName}`)
         .disabled(downloadReason !== null)
         .on('click', request({ ...identity, type: 'SvgDownloadRequested' }))
-        .children('Download SVG'),
+        .children(options.download?.label ?? 'Download SVG'),
       ...(options.diagnostics?.measurements === false
         ? []
         : [
@@ -186,7 +188,7 @@ export function pngReview<M>(
   h: Html.H<M>,
   context: ZlozPngReviewControls,
   request: (event: ZlozPngReviewRequest) => M,
-  options: Options,
+  options: Options<M>,
 ) {
   const { identity, svg, plan, artifact, busy, downloadReason } = context;
   const scaleId = `${options.idPrefix}-scale`;
@@ -196,6 +198,7 @@ export function pngReview<M>(
     h.button
       .attr('type', 'button')
       .attr('data-zloz-png-action', kind)
+      .class(kind === 'download' ? (options.download?.className ?? '') : '')
       .attr('title', reason ?? label)
       .disabled(reason !== null)
       .on('click', message)
@@ -233,13 +236,9 @@ export function pngReview<M>(
       h.p
         .attr('role', 'status')
         .children(busy ? 'Rendering PNG…' : (downloadReason ?? 'PNG is ready to download.')),
-      reviewFindings(h, 'PNG', context.findings),
-      acknowledgement(
-        h,
-        'PNG',
-        context.accepted,
-        plan?.type !== 'ready' || busy,
-        request({ ...identity, type: 'PngLossAcceptanceChanged', accepted: !context.accepted }),
+      reviewFindings(h, 'PNG', context.findings, options.renderFinding),
+      acknowledgement(h, 'PNG', context.accepted, plan?.type !== 'ready' || busy, (accepted) =>
+        request({ ...identity, type: 'PngLossAcceptanceChanged', accepted }),
       ),
       busy
         ? action(
@@ -255,7 +254,7 @@ export function pngReview<M>(
             context.renderReason,
           ),
       action(
-        'Download PNG',
+        options.download?.label ?? 'Download PNG',
         'download',
         request({ ...identity, type: 'PngDownloadRequested' }),
         downloadReason,

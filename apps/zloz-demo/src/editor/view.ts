@@ -23,8 +23,6 @@ import {
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
-import { zlozPngReview, zlozPngAction } from '@opsydyn/foldkit-zloz/foldkit';
-import { zlozSvgReview, zlozSvgDownloadButton } from '@opsydyn/foldkit-zloz/foldkit';
 import {
   zlozView,
   zlozDddRelationshipControls,
@@ -119,6 +117,7 @@ import {
   delegatedRelationship,
   workbenchRelationshipOptions,
 } from './event-storming-relationships';
+import { exportReviewPanel } from './export-review';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
 import { mappingReviewPanel } from './mapping-review-view';
@@ -1376,33 +1375,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               model.customPngReview ? 'Use native PNG controls' : 'Use custom PNG controls',
               Message.ClickedCustomPngReview(),
             ),
-            zlozPngReview(
-              h,
-              workbenchPngReview(model),
-              (request) => Message.ObservedPngReviewInput({ request }),
-              {
-                diagnostics,
-                renderDownload: model.customPngReview
-                  ? (context, builder, onRequest) =>
-                      zlozPngAction(
-                        builder,
-                        context,
-                        'download',
-                        onRequest,
-                        [
-                          builder.Style({
-                            background: 'var(--blue)',
-                            color: 'var(--paper)',
-                            padding: '12px',
-                            border: '0',
-                            'border-radius': '8px',
-                          }),
-                        ],
-                        ['↓ Save reviewed PNG'],
-                      )
-                  : undefined,
-              },
-            ),
+            exportReviewPanel(h, {
+              kind: 'png',
+              controls: workbenchPngReview(model),
+              custom: model.customPngReview,
+              diagnostics,
+            }),
           ]
         : [],
     svg:
@@ -1445,56 +1423,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               model.customSvgReview ? 'Use native SVG controls' : 'Use custom SVG controls',
               Message.ClickedCustomSvgReview(),
             ),
-            zlozSvgReview(
-              h,
-              workbenchSvgReview(model),
-              (request) => Message.ObservedSvgReviewInput({ request }),
-              {
-                diagnostics,
-                renderFinding: model.customSvgReview
-                  ? (finding, builder) =>
-                      builder.li(
-                        [
-                          builder.Class('svg-finding-card'),
-                          builder.Style({
-                            border: '1px solid var(--rule)',
-                            padding: '10px',
-                            'border-radius': '8px',
-                            'margin-bottom': '8px',
-                            'list-style': 'none',
-                          }),
-                        ],
-                        [
-                          builder.strong(
-                            [],
-                            [
-                              `${finding.severity.toUpperCase()} · ${finding.target.kind}${'id' in finding.target ? ` ${finding.target.id}` : ''}`,
-                            ],
-                          ),
-                          builder.p([], [finding.reason]),
-                        ],
-                      )
-                  : undefined,
-                renderDownload: model.customSvgReview
-                  ? (context, builder, onRequest) =>
-                      zlozSvgDownloadButton(
-                        builder,
-                        context,
-                        onRequest,
-                        [
-                          builder.Style({
-                            background: 'var(--blue)',
-                            color: 'var(--paper)',
-                            padding: '12px',
-                            'border-radius': '8px',
-                            border: '0',
-                          }),
-                        ],
-                        ['↓ Download reviewed SVG'],
-                      )
-                  : undefined,
-              },
-            ),
+            exportReviewPanel(h, {
+              kind: 'svg',
+              controls: workbenchSvgReview(model),
+              custom: model.customSvgReview,
+              diagnostics,
+            }),
           ]
         : [],
     diagram: [

@@ -53,6 +53,8 @@ async function run() {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('[data-flow-node="review"]').waitFor();
   await section('SVG export');
+  const nativePanel = page.locator('[data-architecture-effect-ui-review="svg"]');
+  await expect(nativePanel.getByRole('group', { name: 'SVG export review' })).toBeVisible();
   await expect(download()).toBeEnabled();
   await expect(page.getByRole('img', { name: 'SVG export preview' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'SVG findings' })).toContainText('unverified');
@@ -63,13 +65,26 @@ async function run() {
   const choose = async (name, value) => {
     const preview = page.getByRole('img', { name: 'SVG export preview' });
     const before = await preview.getAttribute('src');
-    await page.getByRole('combobox', { name, exact: true }).selectOption(value);
+    const control = page.getByRole('combobox', { name, exact: true });
+    await control.focus();
+    await control.selectOption(value);
     await expect(preview).not.toHaveAttribute('src', before);
-    await expect(page.getByRole('combobox', { name, exact: true })).toHaveValue(value);
+    await expect(control).toHaveValue(value);
+    await expect(control).toBeFocused();
   };
   await choose('SVG region', 'viewport');
   await choose('SVG theme', 'dark');
   await choose('SVG background', 'transparent');
+  const oldPanel = await nativePanel.elementHandle();
+  await section('PNG export');
+  await expect(nativePanel).toHaveCount(0);
+  await expect(page.locator('[data-architecture-effect-ui-review="png"]')).toBeVisible();
+  await section('SVG export');
+  await expect(nativePanel.getByRole('combobox', { name: 'SVG background' })).toHaveValue(
+    'transparent',
+  );
+  expect(await oldPanel.evaluate((host) => host.isConnected)).toBe(false);
+  await oldPanel.dispose();
   const previewUri = await page
     .getByRole('img', { name: 'SVG export preview' })
     .getAttribute('src');
@@ -101,12 +116,14 @@ async function run() {
   await section('SVG export');
   await expect(download()).toBeDisabled();
   await expect(check()).not.toBeChecked();
-  await check().check();
+  await check().click();
+  await expect(check()).toBeChecked();
   await expect(download()).toBeEnabled();
   await choose('SVG theme', 'dark');
   await expect(check()).not.toBeChecked();
   await expect(download()).toBeDisabled();
-  await check().check();
+  await check().click();
+  await expect(check()).toBeChecked();
   // Edit then Undo restores graph data but advances source revision: consent must still reset.
   await section('Diagram');
   await button('Insert C4 context pattern').click();
@@ -114,7 +131,8 @@ async function run() {
   await section('SVG export');
   await expect(check()).not.toBeChecked();
   await expect(download()).toBeDisabled();
-  await check().check();
+  await check().click();
+  await expect(check()).toBeChecked();
   await page.getByRole('checkbox', { name: 'Protect SVG downloads', exact: true }).check();
   await expect(download()).toBeDisabled();
   await expect(check()).toBeChecked();

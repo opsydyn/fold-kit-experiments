@@ -60,11 +60,15 @@ async function run() {
   const accept = () =>
     page.getByRole('checkbox', { name: 'Accept the reported PNG losses', exact: true });
   const preview = () => page.getByRole('img', { name: 'PNG export preview' });
+  const acceptLosses = async () => {
+    if (!(await accept().isChecked())) await accept().click();
+    await expect(accept()).toBeChecked();
+  };
   await expect(action('render')).toBeDisabled();
   await expect(action('download')).toBeDisabled();
   await expect(page.getByRole('list', { name: 'PNG findings' })).toContainText('flattens');
   const render = async () => {
-    await accept().check();
+    await acceptLosses();
     await action('render').click();
     await expect(preview()).toBeVisible();
     await expect(action('download')).toBeEnabled();
@@ -100,7 +104,7 @@ async function run() {
       return new Promise(() => {});
     };
   });
-  await accept().check();
+  await acceptLosses();
   await action('render').click();
   await expect(page.locator('html')).toHaveAttribute('data-png-test-decoding', 'true');
   await action('cancel').click();

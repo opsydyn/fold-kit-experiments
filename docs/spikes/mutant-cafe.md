@@ -96,3 +96,13 @@ The web guide reads the public archive on request. Updates become visible after 
 raw-content cache refreshes. When that archive is unavailable, the guide labels its bundled
 Explore and first portrait records. The archive workflow activates when it reaches the
 default branch. A failed archive job can be retried from its Actions run.
+
+The field guide inventories the workspace manifests declared by the root Bun workspace.
+The overview shows the latest archived attempt for each workspace and the outcomes recorded
+in that attempt. Specimen counts include historical observations. Reports written before
+workspace identity was introduced belong to `apps/web` and keep their original specimen URLs.
+
+The Zloz history advisory runs up to two mutants in `apps/zloz-demo/src/editor/history.ts`
+on history-related PRs. Its separate report is archived under `apps/zloz-demo`; its specimen
+links include the workspace path and mutant ID. The archive workflow backfills both qualifying
+advisories when the installing PR reaches main.

@@ -34,3 +34,22 @@ describe('field guide advisory history', () => {
     expect(records.size).toBe(11);
   });
 });
+
+it('keeps a legacy web specimen and the same Zloz ID independently addressable', async () => {
+  const [web] = seed;
+  const [entry] = web!.entries;
+  const workspace = 'apps/zloz-demo';
+  const zloz = { ...web, workspace, entries: [{ ...entry, outcome: 'caught' }] };
+  const empty = { ...zloz, attempt: 2, selected: 0, entries: [] };
+  const { records, latestRuns, offline } = await loadGuide(async () =>
+    Response.json([empty, zloz]),
+  );
+  expect(offline).toBe(false);
+  expect(records.get(entry!.id)?.observations.map((item) => item.outcome)).toEqual(['untested']);
+  expect(
+    records.get(workspace + '/' + entry!.id)?.observations.map((item) => item.outcome),
+  ).toEqual(['caught']);
+  expect(latestRuns.get(workspace)).toMatchObject({ attempt: 2, selected: 0, entries: [] });
+  expect(latestRuns.get('apps/web')?.run).toBe(web!.run);
+  expect(latestRuns.has('packages/foldkit-viz')).toBe(false);
+});

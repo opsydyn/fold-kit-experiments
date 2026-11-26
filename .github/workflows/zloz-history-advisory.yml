@@ -1,0 +1,61 @@
+name: Zloz history mutation advisory
+
+on:
+  pull_request:
+    paths:
+      - 'apps/zloz-demo/src/editor/history.ts'
+      - 'apps/zloz-demo/src/editor/update.ts'
+      - 'apps/zloz-demo/test/history*.test.ts'
+      - '.github/workflows/zloz-history-advisory.yml'
+      - 'tools/mutant-cafe/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zloz-history-mutation-advisory-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zloz-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - run: bun install --frozen-lockfile
+
+      - name: Install the locked mutation tool
+        run: npm ci --prefix tools/mutant-cafe
+
+      - name: Build Zloz dependencies
+        run: bun run --filter @opsydyn/zloz-demo prebuild-packages
+
+      - name: Replay the first two history mutations
+        id: mutation
+        working-directory: apps/zloz-demo
+        run: |
+          ../../tools/mutant-cafe/node_modules/.bin/mutant-cafe --advisory --format github \
+            --file src/editor/history.ts --jobs 1 --max-mutants 2 --baseline-timeout 300 \
+            --output "$RUNNER_TEMP/zloz-mutants"
+
+      - name: Upload mutation outcomes
+        if: ${{ !cancelled() && steps.mutation.outcome != 'skipped' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ github.run_attempt == 1 && 'zloz-history-outcomes' || format('zloz-history-outcomes-{0}', github.run_attempt) }}
+          path: ${{ runner.temp }}/zloz-mutants/outcomes.json
+          if-no-files-found: error

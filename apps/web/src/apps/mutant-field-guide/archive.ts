@@ -13,6 +13,10 @@ const Entry = Schema.Struct({
   outcome: Schema.String,
 });
 const Run = Schema.Struct({
+  workspace: Schema.optionalKey(Schema.String),
+  selected: Schema.optionalKey(Schema.Number),
+  budgetSkipped: Schema.optionalKey(Schema.Number),
+  failed: Schema.optionalKey(Schema.Boolean),
   run: Schema.Number,
   attempt: Schema.Number,
   startedAt: Schema.String,
@@ -28,6 +32,7 @@ interface Observation {
   url?: string;
 }
 interface RecordEntry extends Specimen {
+  workspace: string;
   file: string;
   observations: Observation[];
 }
@@ -40,10 +45,12 @@ const traits = new Map<string, Specimen['kind']>([
 ]);
 
 export function fieldGuide(imported: readonly Run[]) {
+  const latestRuns = new Map<string, Run>();
   const records = new Map<string, RecordEntry>();
   for (const specimen of exploreSpecimens) {
     records.set(specimen.id, {
       ...specimen,
+      workspace: 'apps/web',
       file: 'src/apps/explore/mount.ts',
       observations: originalRuns.map((run) => ({
         label: run.label,
@@ -52,19 +59,26 @@ export function fieldGuide(imported: readonly Run[]) {
     });
   }
   const runs = new Map<string, Run>();
-  for (const run of [...seed, ...imported]) runs.set(run.run + '/' + run.attempt, run);
+  const observations: readonly Run[] = [...seed, ...imported];
+  for (const run of observations) {
+    runs.set([run.workspace ?? 'apps/web', run.run, run.attempt].join('/'), run);
+  }
   for (const run of [...runs.values()].sort(
     (a, b) => a.startedAt.localeCompare(b.startedAt) || a.run - b.run || a.attempt - b.attempt,
   )) {
+    const workspace = run.workspace ?? 'apps/web';
+    latestRuns.set(workspace, run);
     for (const entry of run.entries) {
+      const key = workspace === 'apps/web' ? entry.id : workspace + '/' + entry.id;
       const kind = traits.get(entry.genre) ?? 'other';
       const suffix = entry.id.slice(0, 6);
-      const specimen: RecordEntry = records.get(entry.id) ?? {
+      const specimen: RecordEntry = records.get(key) ?? {
         ...entry,
+        workspace,
         kind,
         name: entry.fn + ' · ' + suffix,
         short: suffix,
-        note: 'Recorded in the web mutation advisory.',
+        note: 'Recorded in the ' + workspace + ' mutation advisory.',
         key:
           kind === 'value'
             ? 'One eye marks a value replacement.'
@@ -81,10 +95,10 @@ export function fieldGuide(imported: readonly Run[]) {
           '/attempts/' +
           run.attempt,
       });
-      records.set(entry.id, specimen);
+      records.set(key, specimen);
     }
   }
-  return records;
+  return { records, latestRuns };
 }
 
 export function loadGuide(fetchArchive: typeof fetch = fetch) {
@@ -102,8 +116,8 @@ export function loadGuide(fetchArchive: typeof fetch = fetch) {
     Effect.flatMap((result) => Effect.tryPromise(() => result.json())),
     Effect.flatMap(decodeRuns),
     Effect.match({
-      onSuccess: (runs) => ({ records: fieldGuide(runs), offline: false }),
-      onFailure: () => ({ records: fieldGuide([]), offline: true }),
+      onSuccess: (runs) => ({ ...fieldGuide(runs), offline: false }),
+      onFailure: () => ({ ...fieldGuide([]), offline: true }),
     }),
     Effect.runPromise,
   );

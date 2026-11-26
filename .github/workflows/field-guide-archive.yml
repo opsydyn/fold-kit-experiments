@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ['.github/workflows/field-guide-archive.yml']
   workflow_run:
-    workflows: ['Web mutation advisory']
+    workflows: ['Web mutation advisory', 'Zloz history mutation advisory']
     types: [completed]
 
 permissions:
@@ -21,28 +21,44 @@ jobs:
       # workflow_run resolves github.sha to trusted default-branch code.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 -B -m unittest discover -s tools/mutant-cafe/archive
-      - name: Import completed advisory
+      - name: Import completed advisories
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_WORKFLOW: ${{ github.event.workflow_run.name }}
           SOURCE_RUN: ${{ github.event.workflow_run.id }}
           SOURCE_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
           SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          # The installing PR can finish its advisory before this listener exists on main.
-          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
-            merged_head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
-              --jq 'map(select(.merged_at != null and .base.ref == "main")) | first | .head.sha // empty')
-            [[ -n "$merged_head" ]] || exit 0
-            observation=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/web-mutation-advisory.yml/runs" \
+          cp tools/mutant-cafe/archive/{import_run.py,publish.sh} "$RUNNER_TEMP/"
+          publish() {
+            case "$1" in
+              web-mutation-advisory.yml) export SOURCE_WORKSPACE=apps/web; artifact=web-mutation-outcomes ;;
+              zloz-history-advisory.yml) export SOURCE_WORKSPACE=apps/zloz-demo; artifact=zloz-history-outcomes ;;
+              *) return 1 ;;
+            esac
+            if [[ "$SOURCE_ATTEMPT" != 1 ]]; then artifact="$artifact-$SOURCE_ATTEMPT"; fi
+            report="$RUNNER_TEMP/report-$SOURCE_RUN"
+            gh run download "$SOURCE_RUN" --name "$artifact" --dir "$report"
+            bash "$RUNNER_TEMP/publish.sh" "$RUNNER_TEMP/import_run.py" "$report/outcomes.json"
+          }
+          if [[ "$GITHUB_EVENT_NAME" == workflow_run ]]; then
+            case "$SOURCE_WORKFLOW" in
+              'Web mutation advisory') publish web-mutation-advisory.yml ;;
+              'Zloz history mutation advisory') publish zloz-history-advisory.yml ;;
+              *) exit 1 ;;
+            esac
+            exit 0
+          fi
+          # Recover completed advisories from the PR that installed the listener.
+          merged_head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq 'map(select(.merged_at != null and .base.ref == "main")) | first | .head.sha // empty')
+          [[ -n "$merged_head" ]] || exit 0
+          for workflow in web-mutation-advisory.yml zloz-history-advisory.yml; do
+            observation=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs" \
               -f head_sha="$merged_head" -f event=pull_request -f status=success -f per_page=1 \
               --jq '.workflow_runs[] | [.id,.run_attempt,.run_started_at,.head_sha] | @tsv')
-            # An in-progress advisory will arrive through workflow_run.
-            [[ -n "$observation" ]] || exit 0
+            [[ -n "$observation" ]] || continue
             read -r SOURCE_RUN SOURCE_ATTEMPT SOURCE_STARTED_AT SOURCE_SHA <<< "$observation"
-          fi
-          artifact=web-mutation-outcomes
-          if [[ "$SOURCE_ATTEMPT" != 1 ]]; then artifact="$artifact-$SOURCE_ATTEMPT"; fi
-          gh run download "$SOURCE_RUN" --name "$artifact" --dir "$RUNNER_TEMP/report"
-          cp tools/mutant-cafe/archive/{import_run.py,publish.sh} "$RUNNER_TEMP/"
-          bash "$RUNNER_TEMP/publish.sh" "$RUNNER_TEMP/import_run.py" "$RUNNER_TEMP/report/outcomes.json"
+            publish "$workflow"
+          done

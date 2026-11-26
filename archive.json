@@ -227,5 +227,46 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "run": 45770886795,
+    "attempt": 1,
+    "commit": "2db6a2c5060af578463e414015e25163f10a2c3e",
+    "startedAt": "2026-11-26T06:49:36Z",
+    "reportSha256": "84b57052eb5168a55aad358c3b3c438e56020efb210113db9b8ba0212b408af9",
+    "entries": [
+      {
+        "id": "50a979cd3355d82d46dead5d",
+        "file": "src/apps/mutant-field-guide/portrait.ts",
+        "fn": "portrait",
+        "genre": "FnValue",
+        "line": 6,
+        "outcome": "caught"
+      },
+      {
+        "id": "00111307125b48500f6a5c3e",
+        "file": "src/apps/mutant-field-guide/portrait.ts",
+        "fn": "portrait.curve",
+        "genre": "FnValue",
+        "line": 20,
+        "outcome": "caught"
+      },
+      {
+        "id": "2150d0d710401d4c2c5274c5",
+        "file": "src/apps/mutant-field-guide/portrait.ts",
+        "fn": "portrait.curve",
+        "genre": "FnValue",
+        "line": 20,
+        "outcome": "caught"
+      },
+      {
+        "id": "39eadee1da290b35b29723c4",
+        "file": "src/apps/mutant-field-guide/portrait.ts",
+        "fn": "portrait.curve",
+        "genre": "FnValue",
+        "line": 20,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

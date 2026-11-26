@@ -1,11 +1,13 @@
 ---
+import WorkspaceOverview from '../../apps/mutant-field-guide/WorkspaceOverview.astro';
 import Cthulhu from '../../apps/mutant-field-guide/Cthulhu.astro';
 import { cthulhuKnot } from '../../apps/mutant-field-guide/cthulhu';
 import Portrait from '../../apps/mutant-field-guide/Portrait.astro';
 import { loadGuide } from '../../apps/mutant-field-guide/archive';
 
-const { records, offline } = await loadGuide();
-const specimen = records.get(Astro.params.specimen ?? '088431c5ccfa86175c2fdbce');
+const { records, latestRuns, offline } = await loadGuide();
+const selectedKey = Astro.params.specimen ?? '088431c5ccfa86175c2fdbce';
+const specimen = records.get(selectedKey);
 if (!specimen) return new Response(offline ? 'Archive temporarily unavailable' : 'Unknown specimen', {
   status: offline ? 503 : 404,
   headers: offline ? { 'Retry-After': '60' } : {},
@@ -24,7 +26,7 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['u
     <header>
       <i class="mark" aria-hidden="true"></i>
       <h1 class="word">Mutant field guide</h1>
-      <a class="back" href="/explore">Explore demo ↗</a>
+      <nav class="back"><a href="#inventory-title">Workspaces</a> · <a href="/explore">Explore demo ↗</a></nav>
     </header>
     <main>
       <div class="hero">
@@ -32,7 +34,7 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['u
         <section aria-labelledby="specimen-name">
           <span class="cap">Specimen {specimen.id.slice(0, 8)}</span>
           <h2 id="specimen-name">{specimen.name}</h2>
-          <code>{specimen.fn} · {specimen.file}:{specimen.line}</code>
+          <code>{specimen.fn} · {specimen.workspace}/{specimen.file}:{specimen.line}</code>
           <p>{specimen.note}</p>
           <ol class="states" aria-label="Recorded test outcomes">
             {specimen.observations.map((run) => (
@@ -44,11 +46,11 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['u
           </ol>
         </section>
       </div>
-      <h3 id="shelf-title">Recorded specimens</h3>
-      <nav class="shelf" aria-labelledby="shelf-title">
-        {[...records.values()].map((entry) => (
-          <a href={'/mutant-field-guide/' + entry.id}
-            aria-current={entry.id === specimen.id ? 'page' : undefined}
+      <h3 id="shelf-title">Recorded specimens <small>· {specimen.workspace}</small></h3>
+      <nav class="shelf" aria-label="Recorded specimens">
+        {[...records].filter(([,entry]) => entry.workspace === specimen.workspace).map(([key,entry]) => (
+          <a href={'/mutant-field-guide/' + key}
+            aria-current={key === selectedKey ? 'page' : undefined}
             aria-label={'Inspect ' + entry.name}>
             <Portrait specimen={entry} />
             {entry.short}
@@ -58,6 +60,7 @@ const outcomeLabels = new Map([['missed', 'Survived'], ['caught', 'Caught'], ['u
       <p class="key">{specimen.key} The markings come from the mutant ID.</p>
       {knot && <Cthulhu id={specimen.id} {knot} />}
       {offline && <p class="key">Showing bundled records. The live archive is unavailable.</p>}
+      <WorkspaceOverview {latestRuns} {records} {offline} />
     </main>
   </body>
 </html>
@@ -233,6 +236,7 @@ main {
   color: var(--sub);
   font-size: 13px;
 }
+.back a { color: inherit; }
 .shelf a {
   text-decoration: none;
 }

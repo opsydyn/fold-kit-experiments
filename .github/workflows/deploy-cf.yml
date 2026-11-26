@@ -8,6 +8,11 @@ on:
     # reaches the live site.
     paths:
       - 'apps/web/**'
+      # The field guide displays the names and paths of all declared workspaces.
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - 'infra/*/package.json'
+      - 'tools/testing/package.json'
       - 'packages/astro-foldkit/**'
       - 'packages/dataset-explorer/**'
       - 'packages/effect-three/**'

@@ -1,5 +1,6 @@
 # Each task is the package script of the same name without its dependency
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
+tags: ['foldkit-vitest']
 tasks:
   build:
     script: 'tsdown'
@@ -13,7 +14,7 @@ tasks:
     deps: ['^:build']
     outputs: ['docs/**/*']
   test:
-    script: "bun test --path-ignore-patterns='**/package-import-smoke.test.ts'"
+    script: "bun test --path-ignore-patterns='**/package-import-smoke.test.ts' --path-ignore-patterns='**/cartesian-scales.test.ts' && vitest run"
   api-check:
     script: 'bun ../../tools/api-surface.ts --check'
     deps: ['build']

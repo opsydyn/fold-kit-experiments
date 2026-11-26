@@ -51,3 +51,13 @@ test('the endless one hides its deep-water portrait behind a keyboard disclosure
   await page.getByRole('link', { name: 'Inspect Fault spine' }).click();
   await expect(page.locator('summary', { hasText: 'Inspect the loop' })).toHaveCount(0);
 });
+
+test('workspace inventory includes measured and unmeasured packages', async ({ page }) => {
+  await page.goto('/mutant-field-guide#inventory-title');
+  const overview = page.getByRole('region', { name: 'Workspaces' });
+  await expect(overview.getByRole('row', { name: /@opsydyn\/web\b/ })).toContainText('apps/web');
+  await expect(overview.getByRole('row', { name: /@opsydyn\/zloz-demo\b/ })).toBeVisible();
+  await expect(overview.getByRole('row', { name: /@opsydyn\/foldkit-viz-py\b/ })).toBeVisible();
+  await overview.getByRole('link', { name: 'View specimens for @opsydyn/web' }).click();
+  await expect(page.getByRole('navigation', { name: 'Recorded specimens' })).toBeVisible();
+});

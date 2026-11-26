@@ -1,9 +1,11 @@
-# Zloz teams
+# ZLOZ Teams
 
 Astro app for the invited-team MVP, alongside the existing public local workbench.
 M1 supplies invited-team onboarding; M2 supplies shared graph operations and the
 optional Alchemy adapter. M3 connects the shared browser editor with create/import,
 live updates, confirmed-state export, conditional Undo, retry and transient presence.
+
+The [ZLOZ product North Star](docs/product-north-star.md) guides Teams design decisions and sets the review gates for the UX roadmap.
 
 From the repository root:
 
@@ -20,7 +22,7 @@ signing secret in ignored local state; retain it to keep sessions across restart
 
 The default stack permits `alchemy dev` only and uses local state and local
 Workers/D1. M4 adds a separate guarded staging entry and hostname; see the
-[staging and recovery runbook](docs/staging-runbook.md). Existing Zloz hosting is
+[staging and recovery runbook](docs/staging-runbook.md). Existing ZLOZ hosting is
 untouched. Alchemy beta.85 needs the explicitly pinned workerd override in
 `tools/dev.ts` and `tools/build.ts` for the 2026-11-11 compatibility date.
 
@@ -130,7 +132,7 @@ so a fresh install does not depend on another app having generated `dist`.
 ## Shared editing (M3)
 
 Open a team and choose **Create or import a diagram**. Imports accept an exported
-Zloz graph JSON file or pasted JSON and always create a new diagram. Supported
+ZLOZ graph JSON file or pasted JSON and always create a new diagram. Supported
 shared edits are add, drag/keyboard move, width resize, rename, connect, delete,
 atomic group/port deletion and **Undo my last edit**. Layout, grouping/reparenting,
 full replacement, rich-text merging and snapshot Redo are outside this slice.

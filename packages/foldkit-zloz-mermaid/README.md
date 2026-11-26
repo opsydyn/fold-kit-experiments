@@ -1,8 +1,8 @@
-# Foldkit Zloz Mermaid
+# ZLOZ Mermaid
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
 Foldkit or Effect dependency is installed by the headless entry. Requires the
-matching Zloz core peer. Export controls, native v3 projections and portable review
+matching ZLOZ core peer. Export controls, native v3 projections and portable review
 packets are included in the linked 0.6.0 release.
 
 ```sh
@@ -32,7 +32,7 @@ bundle. `report` permits losses, never errors. Every result and bundle carries
 `protocol: 'foldkit-flow-mermaid/v1'`. Source is bounded at 32768 UTF-16 code units;
 `mermaidSourceLimit` exposes that bound.
 
-The four public Zloz packages release together, with adapters pinned to the exact
+The four public ZLOZ packages release together, with adapters pinned to the exact
 core version. The [release train](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-zloz.md#release-action)
 verifies registry archives and provenance before advancing to the next package.
 
@@ -43,10 +43,10 @@ verifies registry archives and provenance before advancing to the next package.
 - `MermaidExportResult`: discriminated `converted` with `value: MermaidBundle`,
   or `rejected` with diagnostics and no value. Both carry protocol and diagnostics.
 - `MermaidBundle`: protocol, source, direction, identity and diagnostics. It is a
-  JSON-compatible projection, not canonical Zloz JSON.
+  JSON-compatible projection, not canonical ZLOZ JSON.
 - `MermaidIdentity`: version 1 node aliases/original IDs/port IDs and kinds, plus
   named edge aliases/original IDs/endpoints. Optional `kind: 'group'` and `parentId`
-  preserve group role and original Zloz parent IDs; flat v1 entries are unchanged.
+  preserve group role and original ZLOZ parent IDs; flat v1 entries are unchanged.
   Contains no hidden full graph.
 - `MermaidDiagnostic`: typed code, severity (`loss | error`), dimension
   (`syntax | semantics | identity | layout`), message and nullable subject ID.
@@ -56,7 +56,7 @@ verifies registry archives and provenance before advancing to the next package.
   layout-omitted, identity-map-required.
 
 Keep the complete bundle: source uses deterministic aliases and explicit named
-edges, so source alone cannot preserve arbitrary Zloz/port identities. Identity
+edges, so source alone cannot preserve arbitrary ZLOZ/port identities. Identity
 metadata is versioned for future interoperability; this package does not yet
 provide an importer, bundle decoder or a restore operation.
 
@@ -73,7 +73,7 @@ Layout/dimensions, port geometry/labels/order, architecture semantics, host data
 edge presentation and other authored fields are reported as omitted. Port IDs
 and kinds remain in bundle metadata, not in Mermaid syntax. C4/DDD semantic
 roles are not converted into equivalent Mermaid architecture notation. Treat
-Zloz JSON as authoritative. The workbench exposes source preview, loss consent
+ZLOZ JSON as authoritative. The workbench exposes source preview, loss consent
 scoped to the current revision and complete-bundle download.
 
 ## Verify locally

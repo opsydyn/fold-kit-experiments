@@ -43,6 +43,7 @@ describe('Better Auth organization contract on real local D1', () => {
       '0002_membership_invariants.sql',
       '0003_unique_membership.sql',
       '0004_team_onboarding.sql',
+      '0006_board_name_revision.sql',
     ]) {
       const sql = await Bun.file(new URL(`../migrations/${filename}`, import.meta.url)).text();
       for (const statement of splitSqliteStatements(sql)) await database.prepare(statement).run();

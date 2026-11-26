@@ -1,5 +1,3 @@
-import { expect, test } from 'bun:test';
-
 import {
   createEditor,
   captureModelDocument,
@@ -8,6 +6,7 @@ import {
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
 import { Effect } from 'effect';
+import { expect, test } from 'vitest';
 
 import { ImportZlozModel } from '../src/editor/command';
 import { Message } from '../src/editor/message';

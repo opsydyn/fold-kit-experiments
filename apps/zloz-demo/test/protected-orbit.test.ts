@@ -1,5 +1,3 @@
-import { expect, test } from 'bun:test';
-
 import {
   createEditor,
   resolveConnectionCreation,
@@ -9,6 +7,7 @@ import {
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { workbenchPolicy } from '../src/editor/editor-policy';
 import { createProtectedWorkflowGraph } from '../src/editor/large-workflow';

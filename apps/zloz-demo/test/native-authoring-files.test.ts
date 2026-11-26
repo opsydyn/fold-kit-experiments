@@ -1,7 +1,6 @@
-import { expect, test } from 'bun:test';
-
 import { createReviewPacketV2 } from '@opsydyn/foldkit-zloz-mermaid';
 import { Effect } from 'effect';
+import { expect, test } from 'vitest';
 
 import c4 from '../../../packages/foldkit-zloz/test/fixtures/c4-conversion-v2.json';
 import ddd from '../../../packages/foldkit-zloz/test/fixtures/ddd-conversion-v2.json';

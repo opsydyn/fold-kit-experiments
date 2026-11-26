@@ -80,7 +80,7 @@ Astro means re-qualifying them (`docs/examples/package-skills.md`).
 ```sh
 bun dev                               # demo app → localhost:4321
 bun storybook                         # chart storybook → localhost:6006
-bun run test                          # all workspace scripts, sequentially
+bun run test                          # workspace tests, then package integrations
 bun typecheck                         # all workspaces
 bun run check                         # oxlint + oxfmt --check (both must pass)
 bun run check:fix                     # oxfmt then oxlint --fix

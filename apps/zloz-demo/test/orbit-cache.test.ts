@@ -1,5 +1,3 @@
-import { expect, test } from 'bun:test';
-
 import { createEditor, updateEditor, type EditorState, type ZlozNode } from '@opsydyn/foldkit-zloz';
 import {
   zlozView,
@@ -9,6 +7,7 @@ import {
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
 import { orbitGroup, orbitNode } from '../src/editor/presentation';

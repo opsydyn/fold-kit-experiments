@@ -8,7 +8,7 @@ const edges = contextGraph.edges.map(edge => ({ edge, geometry: resolveEdgeGeome
   <div class="preview-heading"><span class="eyebrow">Order platform / System context</span><span class="preview-kind">C4</span></div>
   <svg viewBox="0 0 750 500" role="img" aria-labelledby="context-title context-description">
     <title id="context-title">An order platform in context</title>
-    <desc id="context-description">A customer places an order. The order platform charges through an external payment system and dispatches through an external delivery system. Static preview of a real Zloz model.</desc>
+    <desc id="context-description">A customer places an order. The order platform charges through an external payment system and dispatches through an external delivery system. Static preview of a real ZLOZ model.</desc>
     <defs><marker id="context-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="var(--muted)" /></marker></defs>
     {edges.map(({ geometry }) => <path d={geometry.path} fill="none" stroke="var(--muted)" stroke-width="2" marker-end="url(#context-arrow)" />)}
     {contextGraph.nodes.map(node => <g transform={`translate(${node.position.x} ${node.position.y})`} data-preview-node={node.id}>

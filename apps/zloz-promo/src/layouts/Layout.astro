@@ -4,11 +4,11 @@ import '@opsydyn/dataset-explorer/highlighting.css';
 import '../styles/site.css';
 import Brand from '../components/Brand.astro';
 import { sitePath } from '../lib/site-path';
-import { repository, viz, three } from '../lib/links';
+import { repository } from '../lib/links';
 interface Props { title?: string; description?: string }
 const {
-  title = 'Foldkit Zloz — Compose systems. Connect ideas.',
-  description = 'Foldkit Zloz is a functional, extensible graph toolkit for interactive node editors, C4 architecture modelling, and Mermaid export.',
+  title = 'ZLOZ — Compose systems. Connect ideas.',
+  description = 'Map system boundaries, connect people and services, and share your architecture as a diagram or Mermaid source.',
 } = Astro.props;
 ---
 <!doctype html>
@@ -40,7 +40,7 @@ const {
         </button>
       </nav></header>
       <main id="main" tabindex="-1"><slot /></main>
-      <footer class="site-footer"><div class="footer-brand"><Brand footer /><span>Part of Foldkit.</span></div><nav aria-label="Family and source"><a href={viz}>Viz</a><a href={three}>Three</a><a href={repository}>GitHub</a><a href={`${repository}/blob/main/packages/foldkit-zloz/LICENSE`}>MIT</a></nav></footer>
+      <footer class="site-footer"><div class="footer-brand"><Brand footer /></div><nav aria-label="Project links"><a href={sitePath('/docs/')}>Docs</a><a href={repository}>GitHub</a><a href={`${repository}/blob/main/packages/foldkit-zloz/LICENSE`}>MIT</a></nav></footer>
     </div>
     <script>
       import { resolveTheme } from '../lib/theme';

@@ -1,0 +1,9 @@
+inheritedBy:
+  tags: ['foldkit-vitest']
+implicitInputs:
+  - '/tools/testing/**/*'
+tasks:
+  prepare-vitest:
+    description: Build workspace dependencies before starting Vitest from the repository root
+    command: noop
+    deps: ['^:build']

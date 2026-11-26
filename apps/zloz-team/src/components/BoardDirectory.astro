@@ -1,0 +1,79 @@
+---
+import Magnifier from '@phosphor-icons/core/assets/regular/magnifying-glass.svg';
+import Plus from '@phosphor-icons/core/assets/regular/plus.svg';
+import Upload from '@phosphor-icons/core/assets/regular/upload-simple.svg';
+import Board from '@phosphor-icons/core/assets/regular/squares-four.svg';
+import { boardSearch, boardSearchSuffix, type TeamView } from '@opsydyn/zloz-server/src/team-contract';
+import NewBoardForm from './NewBoardForm.astro';
+
+interface Props { team: typeof TeamView.Type }
+const { team } = Astro.props;
+const base = `/app/${team.team.id}`;
+const { q, page } = boardSearch(Astro.url.searchParams);
+const pageUrl = (next: number) => base + boardSearchSuffix({ q, page: next });
+const directorySuffix = boardSearchSuffix({ q, page });
+const dates = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'UTC' });
+---
+<section data-directory-path={base + directorySuffix} class="board-directory" aria-labelledby="boards-heading">
+  <header class="directory-header">
+    <h2 id="boards-heading">Boards</h2>
+    {team.role !== 'viewer' && <div class="board-actions">
+      <a class="button-link" href={`${base}/diagrams/new`}><Upload aria-hidden="true" /> Import</a>
+      <button class="primary" type="button" popovertarget="new-board" aria-haspopup="dialog"><Plus aria-hidden="true" /> New board</button>
+    </div>}
+  </header>
+  {team.role !== 'viewer' && <div id="new-board" popover="auto" role="dialog" aria-labelledby="new-board-heading">
+    <h2 id="new-board-heading">New board</h2>
+    <NewBoardForm teamId={team.team.id} creationId={crypto.randomUUID()} dismissible />
+  </div>}
+  <form method="get" action={base} role="search" class="board-search">
+    <label><Magnifier aria-hidden="true" /><input type="search" name="q" aria-label="Search boards" placeholder="Search boards" maxlength="120" value={q} /></label>
+    <button type="submit">Search</button>
+    {q && <a href={base}>Clear</a>}
+  </form>
+  {team.diagrams.length ? <>
+    <div class="board-list-heading" aria-hidden="true"><span>Board name</span><span>Last updated</span></div>
+    <ul class="board-list">{team.diagrams.map((diagram) => <li>
+      <a href={`${base}/diagrams/${diagram.id}${directorySuffix}`}><Board aria-hidden="true" /><span>{diagram.name}</span></a>
+      <time datetime={new Date(diagram.updatedAt).toISOString()} title={new Date(diagram.updatedAt).toUTCString()}>{dates.format(diagram.updatedAt)}</time>
+    </li>)}</ul>
+  </> : <p class="board-empty">{q ? 'No boards match your search.' : page > 1 ? 'No more boards on this page.' : 'No boards yet.'}</p>}
+  {(page > 1 || team.moreDiagrams) && <nav class="board-pages" aria-label="Board pages">
+    {page > 1 && <a href={pageUrl(page - 1)}>Newer boards</a>}
+    <span>Page {page}</span>
+    {team.moreDiagrams && <a href={pageUrl(page + 1)}>Older boards</a>}
+  </nav>}
+  {team.role === 'viewer' && <p class="board-access">You can view these boards. Ask a team owner for editing access.</p>}
+</section>
+
+<script>
+  const directory = document.querySelector<HTMLElement>('.board-directory');
+  const scrollKey = 'zloz-team-directory-return';
+  if (directory) {
+    const path = directory.dataset.directoryPath;
+    directory.querySelector('.board-list')?.addEventListener('click', (event) => {
+      if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0 ||
+          event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest('a') : null;
+      if (!link) return;
+      // oxlint-disable-next-line linteffect/no-try-catch -- Browser storage can be blocked; navigation remains native.
+      try {
+        sessionStorage.setItem(scrollKey, JSON.stringify({ path, board: link.href, y: scrollY }));
+      } catch { /* Storage may be disabled. The board link still works. */ }
+    });
+    window.addEventListener('pageshow', (event) => {
+      // oxlint-disable-next-line linteffect/no-try-catch -- Blocked storage and malformed saved entries fall back to normal page navigation.
+      try {
+        // History traversal and reload already have browser-managed scroll positions.
+        const navigation = performance.getEntriesByType('navigation')[0];
+        if (event.persisted || !(navigation instanceof PerformanceNavigationTiming) || navigation.type !== 'navigate') return;
+        const saved = sessionStorage.getItem(scrollKey);
+        if (!saved) return;
+        sessionStorage.removeItem(scrollKey);
+        const entry = JSON.parse(saved);
+        if (entry?.path === path && entry.board === document.referrer && Number.isFinite(entry.y))
+          window.scrollTo({ top: entry.y, behavior: 'instant' });
+      } catch { /* Ignore unavailable or invalid tab storage. */ }
+    });
+  }
+</script>

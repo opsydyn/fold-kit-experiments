@@ -1,21 +1,34 @@
 ---
+import NewBoardForm from '../../../../components/NewBoardForm.astro';
+import '../../../../styles/boards.css';
 import DiagramImport from '../../../../likec4/app';
 import Shell from '../../../../layouts/Shell.astro';
 import { loadTeam } from '../../../../server/onboarding';
 import { createDiagram } from '../../../../server/create-diagram';
 import { loginPath } from '../../../../server/continuation';
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const blank = Astro.url.searchParams.get('blank') === '1';
 const teamId = Astro.params.teamId ?? '';
 const loaded = await loadTeam(Astro.request, teamId);
 if (loaded._tag === 'Failure' && loaded.status === 401) return Astro.redirect(loginPath(`/app/${teamId}/diagrams/new`), 303);
-if (loaded._tag === 'Failure' || loaded.value.role === 'viewer') return new Response('Diagram creation unavailable', { status: loaded._tag === 'Failure' ? loaded.status : 403 });
+if (loaded._tag === 'Ready' && loaded.value.role === 'viewer') return new Response('Board creation unavailable', { status: 403 });
+if (loaded._tag === 'Failure' && (loaded.status < 500 || Astro.request.method !== 'POST'))
+  return new Response(loaded.message, { status: loaded.status });
+// A transient directory outage can still render the submitted draft. The create endpoint checks membership itself.
+const teamName = loaded._tag === 'Ready' ? loaded.value.team.name : 'boards';
 const outcome = await createDiagram(Astro.request, teamId);
-if (outcome.status === 303) return Astro.redirect(`/app/${teamId}/diagrams/${outcome.id}`, 303);
+if (outcome.status === 303) return Astro.redirect(`/app/${teamId}/diagrams/${outcome.id}${blank && outcome.mode !== 'c4' ? '?view=' + outcome.mode : ''}`, 303);
 Astro.response.status = outcome.status;
 ---
-<Shell title="Create a diagram" wide>
-  <nav><a href={`/app/${teamId}`}>Back to {loaded.value.team.name}</a></nav>
-  <h1>Create a diagram</h1>
-  <p>Start blank or import an exported Zloz graph. Every import creates a new diagram.</p>
+<Shell title={blank ? 'New board' : 'Import a board'} wide>
+  <nav><a href={`/app/${teamId}`}>Back to {teamName}</a></nav>
+  {blank ? <>
+    <h1>New board</h1>
+    {outcome.error && <p role="alert">{outcome.error}</p>}
+    <NewBoardForm teamId={teamId} creationId={outcome.id} name={outcome.name} mode={outcome.mode} />
+  </> : <>
+  <h1>Import a board</h1>
+  <p>Start blank or import an exported ZLOZ graph. Every import creates a new diagram.</p>
   {outcome.error && <p role="alert">{outcome.error}</p>}
   <form method="post" enctype="multipart/form-data" class="create-diagram">
     <input type="hidden" name="creationId" value={outcome.id} />
@@ -27,5 +40,6 @@ Astro.response.status = outcome.status;
   </form>
   <DiagramImport client:load teamId={teamId} creationId={crypto.randomUUID()} />
   <DiagramImport client:load teamId={teamId} creationId={crypto.randomUUID()} format="alchemy" />
+  </>}
 </Shell>
 <style>.create-diagram { display: grid; gap: 20px; } textarea { width: 100%; font: inherit; padding: 10px; } button { justify-self: start; }</style>

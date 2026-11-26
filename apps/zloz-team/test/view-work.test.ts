@@ -348,6 +348,11 @@ test.each(['owner', 'viewer'] as const)(
     expect(rendered.html.match(/<button[^>]*aria-label="Node \d+ → Node \d+"/g)).toHaveLength(500);
     expect(rendered.html).toContain('Node 0 → Node 1');
     expect(rendered.html).toContain('Node 249 → Node 9');
+    for (const menu of ['file', 'edit', 'view', 'arrange', 'help']) {
+      expect(rendered.html).toContain(`popovertarget="board-menu-${menu}"`);
+      expect(rendered.html).toContain(`id="board-menu-${menu}"`);
+    }
+    expect(rendered.html.includes('Team settings')).toBe(role === 'owner');
     // Exercise a confirmed live editor, including all 250 writable resize controls.
     // The budget cannot be met by rendering the unconfirmed read-only opening state.
     expect(declarations).toBeLessThan(4_500);

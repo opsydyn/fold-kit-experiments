@@ -1,22 +1,25 @@
 ---
+import { BoardTitle, boardSearch, boardSearchSuffix } from '@opsydyn/zloz-server/src/team-contract';
 import { Schema } from 'effect';
+import BoardSettings from '../../../../board-settings/app';
 import Editor from '../../../../editor/app';
 import Shell from '../../../../layouts/Shell.astro';
 import { forward, sessionFor } from '../../../../server/backend';
 import { loginPath } from '../../../../server/continuation';
 const teamId = Astro.params.teamId ?? '';
+const requestedView = Astro.url.searchParams.get('view');
+const startingView = requestedView === 'event-storming' || requestedView === 'ddd' ? requestedView : 'c4';
 const diagramId = Astro.params.diagramId ?? '';
 const userSession = await sessionFor(Astro.request);
 if (!userSession) return Astro.redirect(loginPath(`/app/${teamId}/diagrams/${diagramId}`), 303);
 const response = await forward(new Request(new URL(`/api/zloz/diagrams/${teamId}/${diagramId}`, Astro.request.url), { headers: { cookie: Astro.request.headers.get('cookie') ?? '' } }));
 if (!response.ok) return new Response('Diagram unavailable', { status: response.status });
-const opened = Schema.decodeUnknownSync(Schema.Struct({ name: Schema.String, role: Schema.Literals(['owner', 'editor', 'viewer']) }))(await response.json());
+const opened = Schema.decodeUnknownSync(Schema.Struct({ ...BoardTitle.fields, role: Schema.Literals(['owner', 'editor', 'viewer']) }))(await response.json());
 ---
 <Shell title={opened.name} board>
   <div slot="board-title" class="board-title">
-    <nav aria-label="Diagram"><a href={`/app/${teamId}`}>Back to team</a> {opened.role === 'owner' && <a href={`/app/${teamId}/diagrams/${diagramId}/recovery`}>Backup and recovery</a>}</nav>
-    <h1 title={opened.name}>{opened.name}</h1>
+    <BoardSettings client:load teamId={teamId} diagramId={diagramId} role={opened.role} confirmed={{name: opened.name, nameRevision: opened.nameRevision}} back={`/app/${teamId}${boardSearchSuffix(boardSearch(Astro.url.searchParams))}`} />
   </div>
-  <Editor client:load teamId={teamId} diagramId={diagramId} actorId={userSession.user.id} role={opened.role} name={opened.name} />
+  <Editor client:load startingView={startingView} teamId={teamId} diagramId={diagramId} actorId={userSession.user.id} role={opened.role} name={opened.name} nameRevision={opened.nameRevision} />
   <noscript>Enable JavaScript to edit this shared diagram.</noscript>
 </Shell>

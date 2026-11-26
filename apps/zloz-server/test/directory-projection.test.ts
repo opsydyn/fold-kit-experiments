@@ -43,9 +43,30 @@ beforeAll(async () => {
       )
       .bind(team, diagram, `${team}/${diagram}`, 10_000)
       .run();
+  const migration = await Bun.file(
+    new URL('../migrations/0006_board_name_revision.sql', import.meta.url),
+  ).text();
+  await db.prepare(migration).run();
 });
 afterAll(async () => {
   await runtime.dispose();
+});
+
+test('the board-name migration preserves existing directory rows and starts each at revision zero', async () => {
+  const db = await database;
+  expect(
+    (
+      await db
+        .prepare(
+          'SELECT organizationId, diagramId, name, nameRevision FROM diagramDirectory ORDER BY organizationId, diagramId',
+        )
+        .all()
+    ).results,
+  ).toEqual([
+    { organizationId: 'other', diagramId: 'diagram', name: 'other/diagram', nameRevision: 0 },
+    { organizationId: 'team', diagramId: 'diagram', name: 'team/diagram', nameRevision: 0 },
+    { organizationId: 'team', diagramId: 'second', name: 'team/second', nameRevision: 0 },
+  ]);
 });
 
 test('real D1 recency writes have a one-second boundary, remain monotonic and target one row', async () => {

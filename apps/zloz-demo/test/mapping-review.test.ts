@@ -1,9 +1,8 @@
-import { expect, test } from 'bun:test';
-
 import { captureEdition, createHistoryReview, serializeGraph } from '@opsydyn/foldkit-zloz';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { expect, test } from 'vitest';
 
 import { workbenchMappingReview } from '../src/editor/mapping-review';
 import { mappingReviewPanel } from '../src/editor/mapping-review-view';

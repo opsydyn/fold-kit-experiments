@@ -1,6 +1,5 @@
-import { expect, test } from 'bun:test';
-
 import { updateEditor } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { historyChangeNavigatorContext } from '../src/editor/history-navigation';
 import { Message } from '../src/editor/message';

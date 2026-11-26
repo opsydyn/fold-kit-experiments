@@ -945,7 +945,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
 }
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
-    title: 'Group workbench | Foldkit Zloz',
+    title: 'Group workbench | ZLOZ',
     body: Model.match(model, {
       Preparing: () => h.p([h.Role('status')], ['Preparing a new v3 session…']),
       Failed: () =>

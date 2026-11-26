@@ -1,7 +1,7 @@
 # Each task is the package script of the same name without its dependency
 # builds, which moon runs first from `deps`. tools/ci-parity.test.ts checks this.
 # Files outside this folder its tasks read; see .moon/tasks/reads-*.yml.
-tags: ['reads-docs-assets']
+tags: ['reads-docs-assets', 'foldkit-vitest']
 
 tasks:
   build:
@@ -12,5 +12,5 @@ tasks:
     script: 'astro check'
     deps: ['^:build']
   test:
-    script: 'tsc --noEmit -p tsconfig.test.json && bun test ./test'
+    script: 'tsc --noEmit -p tsconfig.test.json && vitest run'
     deps: ['^:build']

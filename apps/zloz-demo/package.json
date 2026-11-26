@@ -8,7 +8,7 @@
     "build": "bun run prebuild-packages && astro build",
     "preview": "astro preview",
     "typecheck": "bun run prebuild-packages && astro check",
-    "test": "tsc --noEmit -p tsconfig.test.json && bun test ./test"
+    "test": "tsc --noEmit -p tsconfig.test.json && vitest run"
   },
   "dependencies": {
     "@fontsource-variable/inter": "catalog:",
@@ -24,7 +24,11 @@
   },
   "devDependencies": {
     "@astrojs/check": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@opsydyn/testing": "workspace:*",
     "bun-types": "catalog:",
-    "typescript": "catalog:"
+    "fast-check": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, test } from 'vitest';
 
 import { Model, Message, update, type ReadyState } from '../src/group-workbench/main';
 import type { NativeReviewEvent } from '../src/group-workbench/review-tools';

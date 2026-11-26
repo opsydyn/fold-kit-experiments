@@ -5,7 +5,8 @@
     "packages": [
       "packages/*",
       "apps/*",
-      "infra/*"
+      "infra/*",
+      "tools/testing"
     ],
     "catalog": {
       "@arethetypeswrong/cli": "0.18.5",
@@ -19,6 +20,7 @@
       "@effect/platform-browser": "4.1.0",
       "@effect/platform-bun": "4.1.0",
       "@effect/platform-node": "4.1.0",
+      "@effect/vitest": "4.1.0",
       "@foldkit/devtools": "0.171.0",
       "@foldkit/devtools-mcp": "0.26.0",
       "@modelcontextprotocol/sdk": "1.29.0",
@@ -93,7 +95,9 @@
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
-    "test": "bun test ./.github/scripts/format-release-changelogs.test.js ./.github/scripts/zloz-release-train.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts ./tools/ci-parity.test.ts ./tools/pre-commit.test.ts && bun run --sequential --filter '*' test",
+    "test": "moon run :test && moon run :integration",
+    "test:p0": "bun run ci:p0",
+    "test:vitest": "moon run '#foldkit-vitest:prepare-vitest' && vitest",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
@@ -107,6 +111,7 @@
     "relay": "bun packages/effect-three-samples/scripts/relay.ts",
     "scene-mcp": "bun packages/effect-three-samples/scripts/scene-mcp.ts",
     "hooks:install": "moon sync vcs-hooks",
+    "ci:p0": "moon run root:p0",
     "ci:check": "moon run :lint root:format root:catalog root:skills :typecheck :test :build :api-check :size-check :schema-check :docs && moon run :integration",
     "ci:effect-three": "moon run effect-three:pack-check effect-three-foldkit:pack-check effect-three-rapier:pack-check effect-three-troika:pack-check effect-three-foldkit:e2e foldkit-dash:e2e",
     "ci:foldkit-zloz": "moon run web:e2e-zloz web:e2e-zloz-native",
@@ -125,7 +130,8 @@
     "@typescript-eslint/utils": "^8.63.0",
     "effect": "catalog:",
     "oxfmt": "^0.57.0",
-    "oxlint": "catalog:"
+    "oxlint": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22.22.0"

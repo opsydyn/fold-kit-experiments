@@ -1529,7 +1529,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     CompletedMermaidDownload: () => ({
       model: {
         ...model,
-        notice: 'Mermaid bundle download started. Keep Zloz JSON as the authoritative document.',
+        notice: 'Mermaid bundle download started. Keep ZLOZ JSON as the authoritative document.',
       },
     }),
     FailedMermaidDownload: () => ({

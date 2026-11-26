@@ -12,9 +12,9 @@ await (async () => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   await page.goto(url);
-  await expect(page).toHaveTitle('Foldkit Zloz API');
+  await expect(page).toHaveTitle('ZLOZ API');
   await expect(page.locator('body')).not.toContainText('FoldKit Flow API');
-  await expect(page.getByRole('heading', { name: 'Foldkit Zloz public contract' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ZLOZ public contract' })).toBeVisible();
   await page.screenshot({
     path: new URL('./naming-api-light.png', import.meta.url).pathname,
     fullPage: false,
@@ -22,13 +22,13 @@ await (async () => {
   for (const module of ['Core', 'FoldKit', 'ELK', 'Force', 'ForceEligibility', 'Mermaid']) {
     const response = await page.goto(new URL(`modules/${module}.html`, url).href);
     expect(response.status()).toBe(200);
-    await expect(page).toHaveTitle(`${module} | Foldkit Zloz API`);
+    await expect(page).toHaveTitle(`${module} | ZLOZ API`);
   }
   expect(errors).toEqual([]);
   await writeFile(
     new URL('./naming-api-browser.json', import.meta.url),
     JSON.stringify(
-      { result: 'pass', url, title: 'Foldkit Zloz API', modules: 6, pageErrors: errors },
+      { result: 'pass', url, title: 'ZLOZ API', modules: 6, pageErrors: errors },
       null,
       2,
     ) + '\n',

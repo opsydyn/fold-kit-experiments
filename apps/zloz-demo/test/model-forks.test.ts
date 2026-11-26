@@ -1,11 +1,10 @@
-import { expect, test } from 'bun:test';
-
 import {
   layoutRequest,
   updateEditor,
   serializeModelDocument,
   parseModelDocument,
 } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';

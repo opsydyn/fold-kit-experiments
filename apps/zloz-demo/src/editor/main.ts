@@ -82,7 +82,7 @@ const workbenchView = Submodel.defineView<WorkbenchModel, Workbench.Message>(
 );
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
-    title: 'Foldkit Zloz',
+    title: 'ZLOZ',
     body: Model.match(model, {
       Preparing: () => h.p([h.Role('status')], ['Preparing workbench…']),
       Failed: () =>

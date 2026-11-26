@@ -1,0 +1,1 @@
+ALTER TABLE diagramDirectory ADD COLUMN nameRevision INTEGER NOT NULL DEFAULT 0;

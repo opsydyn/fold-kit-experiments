@@ -1,6 +1,5 @@
-import { expect, test } from 'bun:test';
-
 import { createEditor, parseGraph, serializeGraph, updateEditor } from '@opsydyn/foldkit-zloz';
+import { expect, test } from 'vitest';
 
 import { createDddOrderGraph } from '../src/editor/ddd-examples';
 import { Message } from '../src/editor/message';

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   parseGraph,
   parseOperationRequest,
+  serializeGraph,
   type ZlozOperationRequest,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
@@ -32,6 +33,7 @@ import decisionWire from '../../../packages/foldkit-zloz-alchemy/test/fixtures/r
 import operationFixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import orderWire from '../../../packages/foldkit-zloz/test/fixtures/order-aggregate-v1.json';
 import { deltaEntries, liveFrames } from '../src/editor/protocol';
+import { createWorkshopNote } from '../src/editor/workshop';
 import { stopLocalStack } from '../tools/stop-local-stack';
 import { makeCouplingStressFixture, qualifyAssessmentUpdates } from './coupling-load';
 import couplingUiFixture from './fixtures/coupling-projection-v1.json';
@@ -234,7 +236,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browserExpect(panel.getByRole('alert')).toContainText('Group storefront has a port');
       await browserExpect(panel.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled();
       const pendingDownload = page.waitForEvent('download');
-      await panel.getByRole('link', { name: 'Download Zloz v3' }).click();
+      await panel.getByRole('link', { name: 'Download ZLOZ v3' }).click();
       const download = await pendingDownload;
       const file = await download.path();
       expect(await Bun.file(file).json()).toMatchObject({
@@ -299,6 +301,481 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browser.close();
     }
   }, 60_000);
+
+  test('team home finds older boards and starts a named workshop across team roles', async () => {
+    const data = await fixture();
+    const path = `/app/${data.organizationId}`;
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const sessionPage = async (cookie: string, colorScheme: 'dark' | 'light') => {
+      const page = await browser.newPage({ colorScheme, viewport: { width: 1280, height: 720 } });
+      const separator = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+        ]);
+      await page.goto(origin + path);
+      return page;
+    };
+    const owner = await sessionPage(data.owner.cookie, 'dark');
+    const editor = await sessionPage(data.editor.cookie, 'light');
+    const viewer = await sessionPage(data.viewer.cookie, 'dark');
+    // Keyboard users can leave the naming panel without creating or losing their place.
+    const launcher = editor.getByRole('button', { name: 'New board', exact: true });
+    await editor.setViewportSize({ width: 390, height: 844 });
+    await launcher.press('Enter');
+    await browserExpect(editor.getByLabel('Board name')).toBeFocused();
+    const panel = await editor.getByRole('dialog', { name: 'New board' }).boundingBox();
+    expect(panel && panel.x >= 0 && panel.x + panel.width <= 390).toBe(true);
+    await editor.keyboard.press('Escape');
+    await browserExpect(launcher).toBeFocused();
+    await browserExpect(editor.getByRole('dialog')).toHaveCount(0);
+    await editor.setViewportSize({ width: 1280, height: 720 });
+    const evidence = process.env.ZLOZ_BOARD_HOME_EVIDENCE;
+    if (evidence) await mkdir(evidence, { recursive: true });
+    const name = 'Returns workshop';
+    for (const page of [owner, editor]) {
+      await page.getByRole('button', { name: 'New board', exact: true }).click();
+      await browserExpect(page.getByLabel('Board name')).toBeFocused();
+      await page.getByLabel('Board name').fill(page === owner ? name : 'Editor workshop');
+      await page.getByLabel('Starting view').selectOption('event-storming');
+      const form = page.getByRole('dialog', { name: 'New board' }).locator('form');
+      const creationId = await form.locator('[name=creationId]').inputValue();
+      if (evidence && page === editor)
+        await page.screenshot({ path: join(evidence, 'new-board-light.png') });
+      if (page === editor) {
+        await page.getByLabel('Board name').fill('   ');
+        await page.getByLabel('Board name').press('Enter');
+        await browserExpect(page.getByRole('alert')).toHaveText(
+          'Enter a board name of up to 120 characters.',
+        );
+        await browserExpect(page.getByLabel('Starting view')).toHaveValue('event-storming');
+        await browserExpect(page.locator('[name=creationId]')).toHaveValue(creationId);
+        await page.getByLabel('Board name').fill('Editor workshop');
+      }
+      await page.getByLabel('Board name').press('Enter');
+      await browserExpect(
+        page.getByRole('button', { name: 'Add event', exact: true }),
+      ).toBeEnabled();
+      await page.getByRole('button', { name: 'Add event', exact: true }).click();
+      await browserExpect(
+        page.getByRole('button', { name: 'Select Domain Event', exact: true }),
+      ).toBeVisible();
+      const repeated = await page.request.post(origin + path + '/diagrams/new?blank=1', {
+        headers: { origin },
+        multipart: {
+          creationId,
+          name: page === owner ? name : 'Editor workshop',
+          mode: 'event-storming',
+        },
+        maxRedirects: 0,
+      });
+      expect(repeated.status()).toBe(303);
+      expect(repeated.headers().location?.split('?')[0]).toBe(path + '/diagrams/' + creationId);
+    }
+    // Push both real boards off page one. The other team's row intentionally matches the search.
+    for (let i = 0; i < 100; i++)
+      expect(
+        (
+          await fixtureCall('/directory', {
+            organizationId: data.organizationId,
+            userId: `Review ${i}`,
+          })
+        ).status,
+      ).toBe(204);
+    expect(
+      (
+        await fixtureCall('/directory', {
+          organizationId: data.otherOrganizationId,
+          userId: name + ' private',
+        })
+      ).status,
+    ).toBe(204);
+    for (const page of [owner, editor, viewer]) {
+      await page.goto(origin + path);
+      await browserExpect(page.getByRole('link', { name, exact: true })).toHaveCount(0);
+      await page.getByRole('link', { name: 'Older boards' }).click();
+      await browserExpect(page.getByRole('link', { name, exact: true })).toBeVisible();
+      if (evidence && page === owner) {
+        await browserExpect(page.getByRole('button', { name: 'My preferences' })).toBeVisible();
+        await page.screenshot({ path: join(evidence, 'older-boards-dark.png') });
+      }
+      await page.getByRole('searchbox', { name: 'Search boards' }).fill('RETURNS');
+      await page.getByRole('searchbox').press('Enter');
+      await browserExpect(page.getByRole('link', { name, exact: true })).toHaveCount(1);
+      await browserExpect(page.getByText(name + ' private')).toHaveCount(0);
+    }
+    await browserExpect(viewer.getByRole('button', { name: 'New board' })).toHaveCount(0);
+    await viewer.getByRole('link', { name, exact: true }).click();
+    await browserExpect(
+      viewer.getByRole('button', { name: 'Select Domain Event', exact: true }),
+    ).toBeVisible();
+    await browserExpect(
+      viewer.getByRole('button', { name: 'Add event', exact: true }),
+    ).toBeDisabled();
+    await viewer.getByRole('link', { name: 'Back to team' }).click();
+    await browserExpect(viewer.getByRole('searchbox')).toHaveValue('RETURNS');
+    await browserExpect(viewer.getByRole('link', { name, exact: true })).toBeVisible();
+  }, 90_000);
+
+  test.each(['browser Back', 'Back to team'] as const)(
+    'a filtered board directory restores its scroll position via %s',
+    async (returnPath) => {
+      const data = await fixture();
+      const teamPath = `/app/${data.organizationId}`;
+      const id = crypto.randomUUID();
+      const cookie = data.editor.cookie;
+      const name = 'Returns workshop';
+      const created = await fetch(`${origin}/api/zloz/diagrams/${data.organizationId}/${id}`, {
+        method: 'POST',
+        headers: { origin, cookie, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: id,
+          name,
+          graph: { version: 1, graph: operationFixture.graph },
+        }),
+      });
+      expect(created.status).toBe(200);
+      for (let i = 0; i < 45; i++) {
+        expect(
+          (
+            await fixtureCall('/directory', {
+              organizationId: data.organizationId,
+              userId: `Returns review ${i}`,
+            })
+          ).status,
+        ).toBe(204);
+      }
+      const browser = await chromium.launch();
+      await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+      const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+      const split = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, split), value: cookie.slice(split + 1), url: origin },
+        ]);
+      const directoryUrl = origin + teamPath + '?q=Returns';
+      await page.goto(directoryUrl);
+      const row = page.getByRole('link', { name, exact: true });
+      await row.scrollIntoViewIfNeeded();
+      const depth = () => page.evaluate(() => window.scrollY);
+      const before = await depth();
+      expect(before).toBeGreaterThan(720);
+      await row.click();
+      await page.getByText('Saved', { exact: true }).waitFor();
+      if (returnPath === 'browser Back') await page.goBack();
+      else await page.getByRole('link', { name: 'Back to team', exact: true }).click();
+      await browserExpect(page).toHaveURL(directoryUrl);
+      await browserExpect(page.getByRole('searchbox')).toHaveValue('Returns');
+      await browserExpect
+        .poll(depth, { message: `Restore the previous directory scroll offset of ${before}px` })
+        .toBeCloseTo(before, 0);
+      await browserExpect(row).toBeInViewport();
+
+      if (returnPath === 'browser Back') {
+        await page.goForward();
+        await page.getByRole('link', { name: 'Back to team', exact: true }).click();
+        await browserExpect.poll(depth).toBeCloseTo(before, 0);
+      }
+      // A fresh directory visit should start at the top.
+      await page.goto(origin + '/app');
+      await page.goto(directoryUrl);
+      await browserExpect.poll(depth).toBe(0);
+    },
+    60_000,
+  );
+
+  test('shared board rename checks roles, preserves a conflicting draft and converges after reload', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const team = '/app/' + data.organizationId;
+    const url = origin + team + '/diagrams/' + id;
+    const api = origin + '/api/zloz/diagrams/' + data.organizationId + '/' + id;
+    const post = (
+      cookie: string,
+      path: string,
+      body:
+        | { name: string; expectedRevision: number }
+        | { operationId: string; name: string; graph: ZlozGraph },
+    ) =>
+      fetch(api + path, {
+        method: 'POST',
+        headers: { cookie, origin, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await post(data.owner.cookie, '', {
+          operationId: id,
+          name: 'Returns',
+          graph: JSON.parse(serializeGraph({ nodes: [], edges: [] })),
+        })
+      ).status,
+    ).toBe(200);
+    const rename = (cookie: string, name: string, expectedRevision = 0) =>
+      post(cookie, '/name', { name, expectedRevision });
+    expect((await rename(data.viewer.cookie, 'Viewer edit')).status).toBe(403);
+    expect((await rename(data.outsider.cookie, 'Other team edit')).status).toBe(403);
+    expect((await rename(data.owner.cookie, '  ')).status).toBe(400);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const open = async (cookie: string) => {
+      const page = await browser.newPage();
+      const separator = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+        ]);
+      await page.goto(url);
+      await page.getByRole('button', { name: 'Board settings' }).click();
+      return page;
+    };
+    const [owner, editor, viewer] = await Promise.all([
+      open(data.owner.cookie),
+      open(data.editor.cookie),
+      open(data.viewer.cookie),
+    ]);
+    const field = (page: Page) => page.getByRole('textbox', { name: 'Board name' });
+    const save = (page: Page) => page.getByRole('button', { name: 'Save board name' }).click();
+    const heading = (page: Page) => page.getByRole('heading', { level: 1 });
+    await browserExpect(field(viewer)).toHaveCount(0);
+    await field(editor).fill('  ');
+    await save(editor);
+    await browserExpect(field(editor)).toBeFocused();
+    await browserExpect(editor.getByText('Enter a board name.')).toBeVisible();
+    await field(editor).fill('Refund approvals');
+    await field(owner).fill('Returns and refunds');
+    await save(owner);
+    for (const page of [owner, editor, viewer])
+      await browserExpect(heading(page)).toHaveText('Returns and refunds', { timeout: 15000 });
+    await save(editor);
+    await browserExpect(field(editor)).toHaveValue('Refund approvals');
+    await browserExpect(editor.getByText(/Someone renamed this board/)).toBeVisible();
+    await browserExpect(heading(editor)).toHaveText('Returns and refunds');
+    await editor.getByRole('button', { name: 'Apply my name' }).click();
+    for (const page of [owner, editor, viewer]) {
+      await browserExpect(heading(page)).toHaveText('Refund approvals', { timeout: 15000 });
+      await page.reload();
+      await browserExpect(heading(page)).toHaveText('Refund approvals');
+      expect(page.url()).toBe(url);
+      await page.goto(origin + team);
+      await browserExpect(
+        page.getByRole('link', { name: 'Refund approvals', exact: true }),
+      ).toHaveAttribute('href', team + '/diagrams/' + id);
+    }
+    const results = await Promise.all([
+      rename(data.owner.cookie, 'A', 2),
+      rename(data.editor.cookie, 'B', 2),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  }, 90_000);
+
+  test('design pass: two editors discover a returns board, follow a fork and loop, rewind a peer edit and return live', async () => {
+    const data = await fixture();
+    const team = `/app/${data.organizationId}`;
+    expect(
+      (
+        await formPost(team, data.owner.cookie, {
+          action: 'role',
+          memberId: data.viewer.memberId,
+          role: 'editor',
+        })
+      ).status,
+    ).toBe(303);
+    const id = crypto.randomUUID();
+    const name = 'Returns desk · refund retry workshop';
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const notes = [
+      ['command', 'refund', 'Issue refund'],
+      ['domain-event', 'declined', 'Refund declined'],
+      ['policy', 'retry', 'Retry payment'],
+      ['domain-event', 'issued', 'Refund issued'],
+    ] as const;
+    const graph: ZlozGraph = {
+      nodes: notes.map(([role, id, label], index) => ({
+        ...createWorkshopNote(role, id, []),
+        label,
+        position: { x: 80 + 230 * (index % 2), y: 60 + 160 * Math.floor(index / 2) },
+      })),
+      edges: (
+        [
+          ['failure', 'refund', 'declined', 'produces'],
+          ['success', 'refund', 'issued', 'produces'],
+          ['handle', 'declined', 'retry', 'activates'],
+          ['retry-charge', 'retry', 'refund', 'triggers'],
+        ] as const
+      ).map(([id, from, to, role]) => ({
+        id,
+        source: { node: from, port: 'out' },
+        target: { node: to, port: 'in' },
+        architecture: { family: 'event-storming', role },
+      })),
+    };
+    const seededBoard = await fetch(api, {
+      method: 'POST',
+      headers: { cookie: data.editor.cookie, origin, 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: id, name, graph: JSON.parse(serializeGraph(graph)) }),
+    });
+    expect(seededBoard.status).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const evidence = process.env.ZLOZ_DESIGN_PASS_EVIDENCE;
+    if (evidence) await mkdir(evidence, { recursive: true });
+    const capture = async (page: Page, file: string) => {
+      if (evidence) await page.screenshot({ path: join(evidence, file + '.png') });
+    };
+    const discover = async (cookie: string, colorScheme: 'light' | 'dark') => {
+      const page = await browser.newPage({
+        viewport: { width: 1440, height: 900 },
+        colorScheme,
+        reducedMotion: 'reduce',
+      });
+      page.setDefaultTimeout(10000);
+      const equals = cookie.indexOf('=');
+      await page
+        .context()
+        .addCookies([
+          { name: cookie.slice(0, equals), value: cookie.slice(equals + 1), url: origin },
+        ]);
+      await page.goto(origin + team);
+      const search = page.getByRole('searchbox', { name: 'Search boards' });
+      await search.fill('refund retry');
+      await search.press('Enter');
+      const board = page.getByRole('link', { name, exact: true });
+      await browserExpect(board).toBeVisible();
+      await capture(page, 'dashboard-' + colorScheme);
+      await board.click();
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+      return page;
+    };
+    const reviewer = await discover(data.editor.cookie, 'light');
+    const peer = await discover(data.viewer.cookie, 'dark');
+    const node = (page: Page, label: string) =>
+      page.getByRole('button', { name: 'Select ' + label, exact: true });
+    const renameNode = async (page: Page, before: string, after: string) => {
+      await page.getByLabel('Inspector view', { exact: true }).selectOption('selection');
+      await node(page, before).press('Enter');
+      await page.getByLabel('Node label', { exact: true }).fill(after);
+      await page.getByRole('button', { name: 'Rename node', exact: true }).click();
+      await browserExpect(node(page, after)).toBeVisible();
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+    };
+    await renameNode(reviewer, 'Retry payment', 'Retry refund');
+    await browserExpect(node(peer, 'Retry refund')).toBeVisible();
+    const writes: string[] = [];
+    reviewer.on('request', (req) => {
+      if (req.method() === 'POST' && req.url() === api + '/operations') writes.push(req.url());
+    });
+    await reviewer.getByLabel('Inspector view', { exact: true }).selectOption('journey');
+    await reviewer.getByLabel('Starting note').selectOption('refund');
+    const overview = reviewer.getByRole('img', { name: 'Journey overview' });
+    await browserExpect(overview).toBeVisible();
+    const follow = async (label: string, step: string) => {
+      await reviewer.getByRole('button', { name: 'Follow ' + label, exact: true }).press('Enter');
+      await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(step);
+      await browserExpect(reviewer.locator('#journey-current-note')).toBeFocused();
+    };
+    await follow('Produces → Refund issued', 'Step 2 · Refund issued');
+    await browserExpect(reviewer.getByText(/End of this path/)).toBeVisible();
+    await reviewer.getByRole('button', { name: 'Back one step' }).press('Enter');
+    await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(
+      'Step 1 · Issue refund',
+    );
+    await follow('Produces → Refund declined', 'Step 2 · Refund declined');
+    await follow('Activates → Retry refund', 'Step 3 · Retry refund');
+    await follow('Triggers → Issue refund', 'Step 4 · Issue refund');
+    await browserExpect(reviewer.locator('#journey-current-note')).toContainText(
+      'Revisited · first seen at step 1',
+    );
+    await capture(reviewer, 'journey-loop');
+    const layoutMetrics = () =>
+      reviewer.evaluate(() => {
+        const back = Array.from(document.querySelectorAll('button'))
+          .find((button) => button.textContent === 'Back one step')
+          ?.getBoundingClientRect();
+        return {
+          width: innerWidth,
+          height: innerHeight,
+          documentWidth: document.documentElement.scrollWidth,
+          documentHeight: document.documentElement.scrollHeight,
+          scrollY,
+          backBottom: back?.bottom,
+          overviewTop: document.querySelector('.journey-overview')?.getBoundingClientRect().top,
+          overviewBottom: document.querySelector('.journey-overview')?.getBoundingClientRect()
+            .bottom,
+        };
+      });
+    const pinned = async () => {
+      await browserExpect(reviewer.getByRole('button', { name: 'Back one step' })).toBeInViewport({
+        ratio: 1,
+      });
+      await browserExpect(reviewer.locator('.journey-overview')).toBeInViewport({ ratio: 1 });
+      const trail = reviewer.getByRole('region', { name: 'Journey trail' });
+      const before = await layoutMetrics();
+      const positions = await trail.evaluate((element) => {
+        element.scrollTop = 0;
+        const top = element.scrollTop;
+        element.scrollTop = element.scrollHeight;
+        return [top, element.scrollTop];
+      });
+      expect(positions[1]).toBeGreaterThan(positions[0]!);
+      expect(await layoutMetrics()).toEqual(before);
+      await browserExpect(reviewer.locator('.journey-overview')).toBeInViewport({ ratio: 1 });
+      await browserExpect(reviewer.getByRole('button', { name: 'Back one step' })).toBeInViewport({
+        ratio: 1,
+      });
+      return before;
+    };
+    const desktop = await pinned();
+    await reviewer.setViewportSize({ width: 390, height: 844 });
+    await browserExpect(overview).toBeVisible();
+    await reviewer.getByRole('button', { name: 'Back one step' }).press('Enter');
+    await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(
+      'Step 3 · Retry refund',
+    );
+    await follow('Triggers → Issue refund', 'Step 4 · Issue refund');
+    const narrow = await pinned();
+    await capture(reviewer, 'journey-narrow');
+    if (evidence)
+      await writeFile(join(evidence, 'layout.json'), JSON.stringify({ desktop, narrow }, null, 2));
+    expect(narrow.documentWidth).toBe(narrow.width);
+    await reviewer.setViewportSize({ width: 1440, height: 900 });
+
+    await renameNode(peer, 'Refund declined', 'Refund delayed');
+    await browserExpect(node(reviewer, 'Refund delayed')).toBeVisible();
+    await reviewer.getByRole('button', { name: 'History', exact: true }).click();
+    const review = reviewer.getByRole('region', { name: 'Board history' });
+    const scrub = review.getByRole('slider', { name: 'Review version' });
+    await browserExpect(review).toContainText('Live version 2');
+    await scrub.press('End');
+    await scrub.press('ArrowLeft');
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    await browserExpect(node(reviewer, 'Refund declined')).toBeVisible();
+    await renameNode(peer, 'Refund delayed', 'Refund queued');
+    await browserExpect(review).toContainText('Live version 3');
+    await browserExpect(review).toContainText('Read-only · Version 1');
+    await browserExpect(node(reviewer, 'Refund declined')).toBeVisible();
+    await capture(reviewer, 'rewind-pinned');
+    await review.getByRole('button', { name: 'Back to live' }).press('Enter');
+    for (const page of [reviewer, peer]) {
+      await browserExpect(node(page, 'Refund queued')).toBeVisible();
+      await browserExpect(node(page, 'Refund declined')).toHaveCount(0);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
+    }
+    expect(writes).toEqual([]);
+    await capture(reviewer, 'returned-live');
+    await capture(peer, 'peer-live');
+    await reviewer.reload();
+    await browserExpect(node(reviewer, 'Refund queued')).toBeVisible();
+    const exported = await reviewer.request.get(api + '/export');
+    expect(exported.ok()).toBe(true);
+    const final = parseGraph(await exported.text());
+    expect(final.edges).toEqual(graph.edges);
+    expect(final.nodes.find((note) => note.id === 'declined')?.label).toBe('Refund queued');
+  }, 120_000);
 
   test('two editors share workshop notes and hotspot status with one-shot feedback', async () => {
     const data = await fixture();
@@ -431,6 +908,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await owner.getByRole('button', { name: 'Resolve hotspot' }).click();
     await browserExpect(badge(editor)).toHaveText('✓ Resolved');
     await editor.getByRole('button', { name: 'Select What needs discussion?' }).click();
+    await viewer.getByRole('button', { name: 'My preferences' }).click();
+    await viewer.getByLabel('Board motion').selectOption('reduce');
+    await viewer.keyboard.press('Escape');
+    await viewer.emulateMedia({ reducedMotion: 'no-preference' });
     await editor.getByRole('button', { name: 'Reopen hotspot' }).click();
     await browserExpect(badge(owner)).toHaveText('Open question');
     await browserExpect(badge(viewer)).toHaveText('Open question');
@@ -513,7 +994,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       .getByLabel('LikeC4 JSON file')
       .setInputFiles(fileURLToPath(new URL('./fixtures/likec4-view.json', import.meta.url)));
     await panel.getByLabel('Static view').selectOption('detail');
-    await browserExpect(panel.getByRole('link', { name: 'Download Zloz v3' })).toBeVisible();
+    await browserExpect(panel.getByRole('link', { name: 'Download ZLOZ v3' })).toBeVisible();
     await browserExpect(apply).toBeDisabled();
 
     const alchemy = {
@@ -885,6 +1366,93 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect(parseGraph(await exported.text())).toEqual({ nodes: [], edges: [] });
   }, 25_000);
 
+  test('command bar keyboard navigation preserves the selected node and board version', async () => {
+    const data = await fixture();
+    const id = crypto.randomUUID();
+    const api = `${origin}/api/zloz/diagrams/${data.organizationId}/${id}`;
+    const cookie = data.editor.cookie;
+    const created = await fetch(api, {
+      method: 'POST',
+      headers: { origin, cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: id,
+        name: 'Keyboard workshop',
+        graph: { version: 1, graph: operationFixture.graph },
+      }),
+    });
+    expect(created.status).toBe(200);
+    const browser = await chromium.launch();
+    await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
+    const page = await browser.newPage();
+    const separator = cookie.indexOf('=');
+    await page
+      .context()
+      .addCookies([
+        { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: origin },
+      ]);
+    let writes = 0;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url() === api + '/operations') writes++;
+    });
+    await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+    await page.getByText('Saved', { exact: true }).waitFor();
+    const button = (name: string) => page.getByRole('button', { name, exact: true });
+    const node = button('Select Alpha');
+    await node.click();
+    await browserExpect(node).toHaveAttribute('aria-pressed', 'true');
+    const frame = page.locator('[data-flow-node="a"][data-flow-x]');
+    const position = () =>
+      frame.evaluate((el) => [el.getAttribute('data-flow-x'), el.getAttribute('data-flow-y')]);
+    const before = await position();
+    const version = page.locator('[data-confirmed-version]');
+    await browserExpect(version).toHaveAttribute('data-confirmed-version', '0');
+    await button('Tools').focus();
+    await page.keyboard.press('Shift+Tab');
+    await browserExpect(button('File')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    const toolbar = page.getByRole('toolbar', { name: 'Board commands' });
+    expect(await toolbar.evaluate((el) => el.contains(document.activeElement))).toBe(false);
+    await page.keyboard.press('Tab');
+    await browserExpect(button('File')).toBeFocused();
+    await page.keyboard.press('Enter');
+    const filePanel = page.getByRole('group', { name: 'File', exact: true });
+    await browserExpect(filePanel).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await browserExpect(button('Edit')).toBeFocused();
+    await browserExpect(filePanel).toBeHidden();
+    await page.keyboard.press('ArrowLeft');
+    await browserExpect(button('File')).toBeFocused();
+    for (const [key, name] of [
+      ['ArrowLeft', 'History'],
+      ['ArrowLeft', 'Help'],
+      ['ArrowRight', 'History'],
+      ['ArrowRight', 'File'],
+      ['ArrowRight', 'Edit'],
+      ['ArrowRight', 'View'],
+      ['ArrowRight', 'Arrange'],
+      ['ArrowLeft', 'View'],
+    ] as const) {
+      await page.keyboard.press(key);
+      await browserExpect(button(name)).toBeFocused();
+    }
+    await page.keyboard.press('Enter');
+    const panel = page.getByRole('group', { name: 'View', exact: true });
+    await browserExpect(panel).toBeVisible();
+    await page.keyboard.press('Tab');
+    await browserExpect(panel.getByRole('button', { name: 'Focus board' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await browserExpect(panel).toBeHidden();
+    await browserExpect(button('View')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await browserExpect(button('Tools')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await browserExpect(button('View')).toBeFocused();
+    await browserExpect(node).toHaveAttribute('aria-pressed', 'true');
+    expect(await position()).toEqual(before);
+    await browserExpect(version).toHaveAttribute('data-confirmed-version', '0');
+    expect(writes).toBe(0);
+  }, 60_000);
+
   test('workspace themes and C4/DDD emphasis are personal, persistent and never author graph changes', async () => {
     const data = await fixture();
     const id = crypto.randomUUID();
@@ -979,7 +1547,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       });
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
-      await page.getByRole('button', { name: 'System theme', exact: true }).waitFor();
+      await page.getByRole('button', { name: 'My preferences', exact: true }).waitFor();
       await page.getByText('Saved', { exact: true }).waitFor();
     }
     const paper = (page: Page) =>
@@ -1043,7 +1611,20 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       .getAttribute('data-confirmed-version');
     expect(await paper(pageA)).toBe('rgb(11, 17, 16)');
     expect(await paper(pageB)).toBe('rgb(244, 245, 241)');
-    expect(await pageA.title()).toBe('Team architecture workspace');
+    expect(await pageA.title()).toBe('Team architecture workspace | ZLOZ');
+    await pageA.getByRole('button', { name: 'My preferences', exact: true }).click();
+    await pageA.getByLabel('Board tool labels').selectOption('labelled');
+    await browserExpect
+      .poll(() =>
+        a
+          .cookies()
+          .then(
+            (cookies) => cookies.find((cookie) => cookie.name === 'zloz-team-tool-labels')?.value,
+          ),
+      )
+      .toBe('labelled');
+    await browserExpect(pageA.locator('.rail-edit-tools button span').first()).toBeVisible();
+    await browserExpect(pageB.locator('.rail-edit-tools button span').first()).toBeHidden();
     await pageA.getByRole('button', { name: 'Dark theme', exact: true }).click();
     await pageA.getByRole('button', { name: 'Dark theme', exact: true }).waitFor();
     await browserExpect
@@ -1053,6 +1634,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           .then((cookies) => cookies.find((cookie) => cookie.name === 'zloz-team-theme')?.value),
       )
       .toBe('dark');
+    await pageA.keyboard.press('Escape');
     const initialHtml = await (await a.request.get(pageA.url())).text();
     expect(initialHtml).toContain('data-team-theme="dark"');
     expect(await paper(pageB)).toBe('rgb(244, 245, 241)');
@@ -1071,7 +1653,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await pageA.getByRole('button', { name: 'Select Product team', exact: true }).click();
     await pageA.getByRole('textbox', { name: 'Node label', exact: true }).waitFor();
     expect(await surface.boundingBox()).toEqual(before);
+    await pageA.getByRole('button', { name: 'My preferences', exact: true }).click();
     await pageA.getByRole('button', { name: 'System theme', exact: true }).click();
+    await pageA.keyboard.press('Escape');
     await pageA.emulateMedia({ colorScheme: 'light' });
     await browserExpect.poll(() => paper(pageA)).toBe('rgb(244, 245, 241)');
     await pageA.emulateMedia({ colorScheme: 'dark' });
@@ -1079,6 +1663,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const screenshots = join(tmpdir(), 'zloz-c4-style-browser');
     await mkdir(screenshots, { recursive: true });
     for (const preference of ['dark', 'light']) {
+      await pageA.getByRole('button', { name: 'My preferences', exact: true }).click();
       await pageA
         .getByRole('button', {
           name: `${preference === 'dark' ? 'Dark' : 'Light'} theme`,
@@ -1088,6 +1673,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await browserExpect
         .poll(() => paper(pageA))
         .toBe(preference === 'dark' ? 'rgb(11, 17, 16)' : 'rgb(244, 245, 241)');
+      await pageA.keyboard.press('Escape');
       const contrast = await pageA.evaluate(() => {
         const rgb = (colour: string) => (colour.match(/[0-9.]+/g) ?? []).slice(0, 3).map(Number);
         const luminance = (colour: string) =>
@@ -1588,9 +2174,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       return picker;
     };
     const editorPicker = await showLibrary(editor);
-    await editorPicker
-      .getByLabel(/Upload and apply icon/)
-      .setInputFiles({ name: 'Payments.png', mimeType: 'image/png', buffer: png });
+    const upload = editorPicker.getByLabel(/Upload and apply icon/);
+    await browserExpect(upload).toBeEnabled();
+    await upload.setInputFiles({ name: 'Payments.png', mimeType: 'image/png', buffer: png });
     await browserExpect(
       editorPicker.getByRole('button', { name: 'Payments', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -2099,6 +2685,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const play = review.getByRole('button', { name: 'Play editions' });
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await browserExpect(play).toBeEnabled();
+    const preferences = page.getByRole('button', { name: 'My preferences', exact: true });
+    await preferences.click();
+    await page.getByLabel('Board motion').selectOption('reduce');
+    await browserExpect(play).toBeDisabled();
+    await page.getByLabel('Board motion').selectOption('system');
+    await browserExpect(play).toBeEnabled();
+    await page.keyboard.press('Escape');
     await play.click();
     await browserExpect(review).toContainText('Read-only · Version 2');
     await browserExpect(review.getByRole('button', { name: 'Pause editions' })).toBeDisabled();
@@ -2524,13 +3117,17 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         });
         expect(await response.json()).toMatchObject({ receipt: { status: 'accepted' } });
       };
-      await editor.page.emulateMedia({ reducedMotion: 'reduce' });
+      await editor.page.getByRole('button', { name: 'My preferences' }).click();
+      await editor.page.getByLabel('Board motion').selectOption('reduce');
+      await editor.page.keyboard.press('Escape');
       await connect('reduced-edge', 'c', 'd', 2);
       await browserExpect.poll(() => motions(owner.page)).toEqual([createdEdge, 'reduced-edge']);
       await browserExpect(
         editor.page.locator('[data-flow-edge-stroke="reduced-edge"]'),
       ).toBeVisible();
-      await editor.page.emulateMedia({ reducedMotion: 'no-preference' });
+      expect(await (await editor.context.request.get(editor.page.url())).text()).toContain(
+        'data-team-motion="reduce"',
+      );
       expect(await motions(editor.page)).toEqual([createdEdge]);
 
       disconnected = true;
@@ -2549,6 +3146,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         editor.page.locator('[data-flow-edge-stroke="offline-edge"]'),
       ).toBeVisible();
       expect(await motions(editor.page)).toEqual([createdEdge]);
+      await editor.page.getByRole('button', { name: 'My preferences' }).click();
+      await browserExpect(editor.page.getByLabel('Board motion')).toHaveValue('reduce');
+      await editor.page.getByLabel('Board motion').selectOption('system');
+      await editor.page.keyboard.press('Escape');
       await connect('next-live-edge', 'b', 'd', 4);
       await browserExpect.poll(() => motions(editor.page)).toEqual([createdEdge, 'next-live-edge']);
       await editor.page.reload();
@@ -2768,6 +3369,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       ).toBe(false);
       await pageA.mouse.move(pressPoint.x, pressPoint.y);
       await pageA.mouse.down();
+      const startBounds = await alpha(pageA).boundingBox();
+      if (!startBounds) throw new Error('Expected a visible node before dragging');
       await pageA.mouse.move(pressPoint.x + 40, pressPoint.y + 10, { steps: 5 });
       const previewX = await alpha(pageA).getAttribute('data-flow-x');
       const previewY = await alpha(pageA).getAttribute('data-flow-y');
@@ -2784,15 +3387,48 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         }
         return route.continue();
       });
-      await pageA.mouse.up();
+      // Arm before releasing. Keep the clock and both layout reads in the originating page.
+      const probe = await alpha(pageA).evaluateHandle((node, start) => {
+        const selector = '[data-flow-node="a"]';
+        const preview = node.getBoundingClientRect();
+        const atPreview = () => {
+          const current = document.querySelector(selector)?.getBoundingClientRect();
+          return current?.x === preview.x && current.y === preview.y;
+        };
+        const frames = new Promise<{
+          firstFrameMs: number;
+          firstAtPreview: boolean;
+          nextAtPreview: boolean;
+        }>((resolve) => {
+          document.addEventListener(
+            'pointerup',
+            (event) => {
+              requestAnimationFrame(() => {
+                const firstFrameMs = performance.now() - event.timeStamp;
+                const firstAtPreview = atPreview();
+                requestAnimationFrame(() =>
+                  resolve({ firstFrameMs, firstAtPreview, nextAtPreview: atPreview() }),
+                );
+              });
+            },
+            { capture: true, once: true },
+          );
+        });
+        return { frames, moved: preview.x !== start.x || preview.y !== start.y };
+      }, startBounds);
       try {
+        await pageA.mouse.up();
         await poll(async () => Boolean(releaseMove));
-        await pageA.evaluate(
-          () =>
-            new Promise<void>((resolve) =>
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-            ),
-        );
+        const sample = await probe.evaluate(async ({ moved, frames }) => ({
+          moved,
+          ...(await frames),
+        }));
+        expect(sample.moved).toBe(true);
+        expect(sample.firstAtPreview).toBe(true);
+        expect(sample.nextAtPreview).toBe(true);
+        expect(Number.isFinite(sample.firstFrameMs)).toBe(true);
+        expect(sample.firstFrameMs).toBeGreaterThanOrEqual(0);
+        console.info('Drag release to first local animation frame (ms):', sample.firstFrameMs);
         // Preparation has completed and the POST is held: the local drag must
         // remain visible without claiming canonical acceptance or Saved.
         expect(await alpha(pageA).getAttribute('data-flow-x')).toBe(previewX);
@@ -2821,6 +3457,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         expect(selectionWrites).toHaveLength(1);
         expect(await exportedGraph()).toEqual(beforeSelection);
       } finally {
+        await probe.dispose();
         if (releaseMove) await releaseMove();
         await pageA.unroute(`${origin}${apiPath}/operations`);
       }
@@ -4441,7 +5078,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const data = await fixture();
     const recipient = await newUser('recipient');
     const path = `/app/${data.organizationId}`;
-    const ownerPage = await fetch(`${origin}${path}`, { headers: { cookie: data.owner.cookie } });
+    const ownerPage = await fetch(`${origin}${path}?view=settings`, {
+      headers: { cookie: data.owner.cookie },
+    });
     expect(ownerPage.status).toBe(200);
     expect(await ownerPage.text()).toContain('Invite a teammate');
     expect(
@@ -4490,7 +5129,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const body = await joined.text();
     expect(body).toContain('viewer');
     expect(body).not.toContain('Invite a teammate');
-    expect(body).toContain('No diagrams yet');
+    expect(body).toContain('No boards yet');
     const repeat = await formPost(joinPath, recipient.cookie, { action: 'accept' });
     expect(repeat.status).toBe(303);
     expect(repeat.headers.get('location')).toBe(path);
@@ -4742,10 +5381,12 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await addSession(target, recipient.cookie);
       const page = await owner.newPage();
       await page.goto(`${origin}/app/${data.organizationId}`);
+      const settings = page.getByRole('link', { name: 'Team settings' });
+      await settings.focus();
+      await settings.press('Enter');
+      await page.waitForURL('**?view=settings');
+      await page.getByRole('link', { name: 'Back to boards' }).focus();
       await page.keyboard.press('Tab');
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('Tab'); // Create/import is now a keyboard-reachable link.
       expect(
         await page
           .getByLabel('Email address', { exact: true })
@@ -4773,13 +5414,23 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await page.screenshot({ path: join(tmpdir(), 'zloz-m1-owner-mobile.png'), fullPage: true });
       const joined = await target.newPage();
       await joined.goto(link);
+      const accept = joined.getByRole('button', { name: 'Accept invitation', exact: true });
+      const preferences = joined.getByRole('button', { name: 'My preferences', exact: true });
+      const stops = [];
+      for (const control of [
+        joined.getByRole('link', { name: 'ZLOZ', exact: true }),
+        preferences,
+        accept,
+      ]) {
+        await joined.keyboard.press('Tab');
+        await browserExpect(control).toBeFocused();
+        stops.push(await control.innerText());
+      }
+      console.info('Invitation tab order:', stops.join(' → '));
+      await joined.keyboard.press('Shift+Tab');
+      await browserExpect(preferences).toBeFocused();
       await joined.keyboard.press('Tab');
-      await joined.keyboard.press('Tab');
-      expect(
-        await joined
-          .getByRole('button', { name: 'Accept invitation' })
-          .evaluate((element) => element === document.activeElement),
-      ).toBe(true);
+      await browserExpect(accept).toBeFocused();
       await Promise.all([
         joined.waitForURL(`**/app/${data.organizationId}`),
         joined.keyboard.press('Enter'),
@@ -5440,9 +6091,11 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect((await read()).document).toEqual(before.document);
     expect((await read()).assessments).toEqual(before.assessments);
     expect(writes).toEqual([]);
+    await owner.getByRole('button', { name: 'My preferences', exact: true }).click();
     await owner.getByRole('button', { name: 'Light theme', exact: true }).click();
     await browserExpect(marks(owner)).toHaveCount(12);
     await owner.getByRole('button', { name: 'Dark theme', exact: true }).click();
+    await owner.keyboard.press('Escape');
     await owner.getByLabel('Canvas emphasis', { exact: true }).selectOption('ddd');
     await browserExpect(marks(owner)).toHaveCount(12);
     expect((await read()).document).toEqual(before.document);

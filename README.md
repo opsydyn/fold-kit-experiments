@@ -1,12 +1,12 @@
 # fold-kit-experiments
 
-A monorepo for [Foldkit](https://foldkit.dev) packages and applications: Astro integration, Viz charts, Three scenes, and Zloz graph and system modelling.
+A monorepo for [Foldkit](https://foldkit.dev) packages and applications: Astro integration, Viz charts, Three scenes, and ZLOZ graph and system modelling.
 
 FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo explores what it looks like to bring that model into Astro, build D3-quality charts without D3, render Three.js scenes as plain data derived from the Model, and ship the results as reusable primitives.
 
 ## Packages
 
-The packages below are published on npm. The four effect-three packages are released together at one version. Zloz's four public packages and two private workspaces are listed separately below.
+The packages below are published on npm. The four effect-three packages are released together at one version. ZLOZ's four public packages and two private workspaces are listed separately below.
 
 | Package                                                           | npm                                                                                                                               | Description                                                                                    |
 | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
@@ -17,17 +17,16 @@ The packages below are published on npm. The four effect-three packages are rele
 | [`@opsydyn/effect-three-rapier`](packages/effect-three-rapier/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-rapier)](https://www.npmjs.com/package/@opsydyn/effect-three-rapier)   | Rapier physics for effect-three: bodies, colliders, joints and motors described as data        |
 | [`@opsydyn/effect-three-troika`](packages/effect-three-troika/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-troika)](https://www.npmjs.com/package/@opsydyn/effect-three-troika)   | troika distance-field labels for effect-three: crisp text at any size, described as data       |
 
-## Foldkit Zloz
+## ZLOZ
 
 **Compose systems. Connect ideas.**
 
-Zloz is Foldkit's functional, extensible graph toolkit for interactive node
-editors, C4 architecture modelling and Mermaid export. Compose graphs and ports,
-model system boundaries, and communicate through portable diagrams. The selected
-Nested frame identity and light/dark styling follow the Viz and Three family.
+Use ZLOZ to map system boundaries, connect people and services, and share
+architecture diagrams. Explore a model in the workbench or edit a board
+together in ZLOZ Teams.
 
-- **Explore:** [Zloz promo](https://opsydyn.github.io/fold-kit-experiments/zloz/)
-  and [Zloz workbench](https://zloz.opsydyn.xyz/).
+- **Explore:** [ZLOZ promo](https://opsydyn.github.io/fold-kit-experiments/zloz/)
+  and [ZLOZ workbench](https://zloz.opsydyn.xyz/).
 - **Try locally:** `bun run dev:zloz-promo` (4329) and
   `bun run dev:zloz-demo` (4327). The promo includes a native Foldkit Compose
   example with selection, connection creation and Undo/Redo; the workbench adds
@@ -44,7 +43,7 @@ Nested frame identity and light/dark styling follow the Viz and Three family.
 
 The package family is `@opsydyn/foldkit-zloz*`. Preferred public types and views use
 `Zloz*` and `zloz*`; deprecated aliases preserve existing code.
-The four public Zloz packages are published on npm as a linked version family.
+The four public ZLOZ packages are published on npm as a linked version family.
 The Effect CLI and Alchemy adapter remain **private workspace packages**.
 Website deployment and npm package publication are separate workflows.
 See [naming and compatibility](docs/zloz-migration.md) for retained saved-data and integration contracts.
@@ -61,7 +60,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import remains separate work. See the
 [release preparation guide](docs/releases/foldkit-zloz.md) for packed-consumer checks.
-The name comes from Polish **Złóż**: fold, assemble, put together; use **Zloz** externally.
+The name comes from Polish **Złóż**: fold, assemble, put together; use **ZLOZ** externally.
 
 ## effect-three
 
@@ -237,7 +236,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run dev:docs`           | Start the docs site at `localhost:4327`               |
 | `bun run dev:polars-summary` | Start the Polars summary server at `localhost:4330`   |
 | `bun run dev:zloz-team`      | Start the local Teams workspace at `localhost:4331`   |
-| `bun run test`               | Run all workspace test scripts sequentially           |
+| `bun run test`               | Run workspace tests, then package integrations        |
 | `bun typecheck`              | Typecheck all workspaces                              |
 | `bun run check`              | oxlint + oxfmt format check                           |
 | `bun run ci:check`           | The CI `check` job, cached (see below)                |
@@ -285,6 +284,7 @@ script built first; and moon ignores every path `.gitignore` does. Package
 scripts keep their dependency builds, so `bun run --filter <package> <script>`
 and the deploy workflows work without moon.
 
+See the [test index](tools/testing/README.md) for individual suites, browser journeys and mutation testing.
 Use `bun run test` at the root: bare `bun test` bypasses the workspace script
 and can traverse vendored reference repositories. To work within a single
 workspace, pass `--filter`:

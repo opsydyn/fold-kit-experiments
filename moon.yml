@@ -39,8 +39,16 @@ tasks:
       - '/.moon/tasks/**/*'
       - '/**/moon.yml'
       - '/**/package.json'
+      - '/vitest.config.ts'
       - '/release-please-config.json'
       - '/.release-please-manifest.json'
+
+  p0:
+    description: Run release-blocking Vitest checks
+    script: vitest run --tags-filter=p0 --reporter=default --reporter=./tools/testing/p0-reporter.ts
+    deps: ['#foldkit-vitest:prepare-vitest']
+    options:
+      cache: false
 
   # Git hooks: never cached, since each reads the working tree or a fresh checkout.
   pre-commit:

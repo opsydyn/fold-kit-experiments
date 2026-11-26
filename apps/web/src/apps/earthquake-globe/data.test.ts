@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -139,7 +140,7 @@ describe('recorded earthquake decoding', () => {
     expect(result.snapshot.warnings['invalid-url']).toBe(1);
   });
   it('keeps real captured bytes and their provenance aligned offline', () => {
-    const raw = readFileSync('src/apps/earthquake-globe/fixtures/usgs-week.geojson');
+    const raw = readFileSync(join(import.meta.dirname, 'fixtures/usgs-week.geojson'));
     const result = loadBundledSnapshot();
     if (result._tag !== 'Ready') throw new Error(result.reason);
     expect(createHash('sha256').update(raw).digest('hex')).toBe(result.snapshot.provenance.sha256);

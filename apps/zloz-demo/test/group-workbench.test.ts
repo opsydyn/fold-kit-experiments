@@ -1,7 +1,7 @@
-import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+import { expect, test } from 'vitest';
 
 import { Message, Model, update, type ReadyState } from '../src/group-workbench/main';
 import { groupMermaidControls } from '../src/group-workbench/mermaid';

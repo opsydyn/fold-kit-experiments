@@ -4,10 +4,14 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const base = process.env.ZLOZ_EVIDENCE_URL ?? 'http://127.0.0.1:4389';
-const output = new URL('./v3-elk/', import.meta.url);
+const evidenceRoot = process.env.ZLOZ_GROUP_EVIDENCE_DIR;
+const output = evidenceRoot
+  ? pathToFileURL(evidenceRoot + '/elk/')
+  : new URL('./v3-elk/', import.meta.url);
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({
   viewport: { width: 1440, height: 960 },
@@ -36,6 +40,7 @@ const screenshot = (name) =>
   page.screenshot({ path: new URL(name, output).pathname, fullPage: true });
 try {
   assert.equal((await page.goto(`${base}/groups/`))?.status(), 200);
+  await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
   await page.locator('[data-flow-surface]').waitFor();
   await page.locator('[data-flow-owner="orders"][data-flow-port="api"]').focus();
   await page.keyboard.press('Enter');

@@ -6,7 +6,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { resolve, sep, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const { PNG } = createRequire(
@@ -14,7 +14,10 @@ const { PNG } = createRequire(
 )('pngjs');
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const core = fileURLToPath(new URL('../../../packages/foldkit-zloz/dist/', import.meta.url));
-const directory = new URL('./v3-png/', import.meta.url);
+const evidenceRoot = process.env.ZLOZ_GROUP_EVIDENCE_DIR;
+const directory = evidenceRoot
+  ? pathToFileURL(evidenceRoot + '/png/')
+  : new URL('./v3-png/', import.meta.url);
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://127.0.0.1'),
@@ -110,6 +113,7 @@ async function saveDownload(name) {
 }
 try {
   assert.equal((await page.goto(`${base}/groups/`))?.status(), 200);
+  await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
   await page.locator('[data-flow-surface]').waitFor();
   await page.locator('[data-flow-owner="orders"][data-flow-port="api"]').focus();
   await page.keyboard.press('Enter');
@@ -195,15 +199,19 @@ try {
   await choose('PNG region', 'viewport');
   await expect(preview()).toHaveCount(0);
   await expect(acceptance).not.toBeChecked();
-  const readout = await page.locator('[data-zloz-png-readout]').innerText(),
-    dimensions = readout.match(/^(\d+) × (\d+)/u);
-  assert(dimensions);
+  // The scoped surface measures its client box on the next native input frame.
+  const dimensions = await page
+    .locator('[data-flow-surface]')
+    .evaluate((element) => ({ width: element.clientWidth * 2, height: element.clientHeight * 2 }));
+  await expect(page.locator('[data-zloz-png-readout]')).toHaveText(
+    `${dimensions.width} × ${dimensions.height}`,
+  );
   await acceptance.check();
   await panel().getByRole('button', { name: 'Render PNG', exact: true }).click();
   await imageReady();
   const crop = await saveDownload('native-viewport-2x.png');
-  assert.equal(crop.width, Number(dimensions[1]));
-  assert.equal(crop.height, Number(dimensions[2]));
+  assert.equal(crop.width, dimensions.width);
+  assert.equal(crop.height, dimensions.height);
   await button('Undo').click();
   await expect.poll(nodes).toEqual(original);
   await expect(preview()).toHaveCount(0);

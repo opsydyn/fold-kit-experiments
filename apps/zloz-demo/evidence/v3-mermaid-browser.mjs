@@ -6,13 +6,16 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { resolve, sep, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { exportGroupMermaidV3 } from '../../../packages/foldkit-zloz-mermaid/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const directory = new URL('./v3-mermaid/', import.meta.url);
+const evidenceRoot = process.env.ZLOZ_GROUP_EVIDENCE_DIR;
+const directory = evidenceRoot
+  ? pathToFileURL(evidenceRoot + '/mermaid/')
+  : new URL('./v3-mermaid/', import.meta.url);
 const oraclePackage = resolve(
   process.env.ZLOZ_MERMAID_ORACLE ?? 'experiments/mermaid-fidelity/node_modules/mermaid',
 );
@@ -113,6 +116,7 @@ async function download(file, kind = 'bundle') {
 }
 try {
   assert.equal((await page.goto(`${base}/groups/`))?.status(), 200);
+  await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
   await page.locator('[data-flow-surface]').waitFor();
   await page.locator('[data-flow-owner="orders"][data-flow-port="api"]').focus();
   await page.keyboard.press('Enter');

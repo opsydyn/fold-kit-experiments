@@ -226,10 +226,20 @@ test('native PNG handoff requires raster consent, supports cancellation/retry an
   expect(started.commands).toHaveLength(1);
   model = started.model;
   const run = ready(model).pngReview.run;
-  model = update(
+  const staleCancellation = update(
+    model,
+    Message.ObservedPngReview({
+      request: { ...view.identity, key: 'stale', type: 'PngRenderCancelled' },
+    }),
+  );
+  expect(staleCancellation.commands).toBeUndefined();
+  expect(ready(staleCancellation.model).pngReview.rendering.type).toBe('pending');
+  const cancelled = update(
     model,
     Message.ObservedPngReview({ request: { ...view.identity, type: 'PngRenderCancelled' } }),
-  ).model;
+  );
+  expect(cancelled.commands).toHaveLength(1);
+  model = cancelled.model;
   expect(ready(model).pngReview.rendering.type).toBe('idle');
   const old = update(
     model,

@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 /* oxlint-disable linteffect/no-return-in-arrow -- Pure host review composition over public versioned package APIs. */
 import {
   applyModellingPatchV3,
@@ -32,9 +33,8 @@ import {
   parseReviewPacketV3,
   type ZlozReviewPacketV3,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { zlozModellingPatchReview } from '@opsydyn/foldkit-zloz/foldkit';
+import { modellingPatchReview } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Match, Schema } from 'effect';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 type Source = Readonly<{ document: ZlozModelDocumentV3; sessionId: string; revision: number }>;
 type Proposal =
   | Readonly<{ kind: 'patch'; patch: ZlozModellingPatchV3 }>
@@ -495,7 +495,7 @@ export function updateNativeReviewTools(
 }
 /** Replaceable host layout over public headless review contracts. Required loss/protection content stays visible in minimal mode. */
 export function nativeReviewToolsView<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   tools: NativeReviewTools,
   editor: ZlozGroupEditorStateV3,
   document: ZlozModelDocumentV3,
@@ -504,79 +504,67 @@ export function nativeReviewToolsView<M>(
   onEvent: (event: NativeReviewEvent) => M,
   onDownload: () => M,
   onFiles: (files: readonly File[]) => M,
-): Html {
+) {
   const review = nativeReviewContext(tools, editor, document, policy, busy),
     event = (label: string, e: NativeReviewEvent, disabled = false) =>
-      h.button([h.Type('button'), h.OnClick(onEvent(e)), h.Disabled(disabled)], [label]);
+      h.button.attr('type', 'button').on('click', onEvent(e)).disabled(disabled).children(label);
   const chosen = tools.proposal;
-  return h.details(
-    [h.DataAttribute('native-v3-review-tools', '')],
-    [
-      h.summary([], ['Native mapping, patches and portable review']),
-      h.p([h.Role('status'), h.AriaLive('polite')], [tools.notice]),
+  return h.details
+    .key('native-review')
+    .attr('data-native-v3-review-tools', '')
+    .children(
+      h.summary.children('Native mapping, patches and portable review'),
+      h.p.attr('role', 'status').attr('aria-live', 'polite').children(tools.notice),
       event('Generate sample patch', { type: 'SamplePatchClicked' }),
-      h.label(
-        [],
-        [
-          'V3 patch or downloaded evidence JSON',
-          h.textarea([
-            h.AriaLabel('V3 patch or evidence JSON'),
-            h.Value(tools.text),
-            h.OnInput((text) => onEvent({ type: 'TextChanged', text })),
-          ]),
-        ],
+      h.label.children(
+        'V3 patch or downloaded evidence JSON',
+        h.textarea
+          .attr('aria-label', 'V3 patch or evidence JSON')
+          .value(tools.text)
+          .on('input', ({ value: text }) => onEvent({ type: 'TextChanged', text }))
+          .children(),
       ),
       event('Review patch', { type: 'PatchReviewed' }),
       event('Reopen evidence read-only', { type: 'OpenEvidenceClicked' }),
-      h.label(
-        [],
-        [
-          'Open downloaded native evidence',
-          h.input([
-            h.Type('file'),
-            h.Accept('application/json,.json'),
-            h.AriaLabel('Open native evidence file'),
-            h.OnFileChange(onFiles),
-          ]),
-        ],
+      h.label.children(
+        'Open downloaded native evidence',
+        h.input
+          .attr('type', 'file')
+          .attr('accept', 'application/json,.json')
+          .attr('aria-label', 'Open native evidence file')
+          .on('change', ({ files }) => onFiles(files)),
       ),
       ...document.snapshot.graph.nodes
         .filter((n) => n.architecture?.family === 'event-storming')
         .map((node) =>
-          h.div(
-            [],
-            [
-              h.strong([], [`Choose meaning for ${node.label}`]),
-              event('C4 system at root', {
-                type: 'C4ChoiceClicked',
-                nodeId: node.id,
-                role: 'software-system',
-              }),
-              event('C4 person at root', {
-                type: 'C4ChoiceClicked',
-                nodeId: node.id,
-                role: 'person',
-              }),
-              event('DDD domain service', {
-                type: 'DddChoiceClicked',
-                nodeId: node.id,
-                role: 'domain-service',
-              }),
-              event('DDD aggregate', {
-                type: 'DddChoiceClicked',
-                nodeId: node.id,
-                role: 'aggregate',
-              }),
-            ],
+          h.div.children(
+            h.strong.children(`Choose meaning for ${node.label}`),
+            event('C4 system at root', {
+              type: 'C4ChoiceClicked',
+              nodeId: node.id,
+              role: 'software-system',
+            }),
+            event('C4 person at root', {
+              type: 'C4ChoiceClicked',
+              nodeId: node.id,
+              role: 'person',
+            }),
+            event('DDD domain service', {
+              type: 'DddChoiceClicked',
+              nodeId: node.id,
+              role: 'domain-service',
+            }),
+            event('DDD aggregate', {
+              type: 'DddChoiceClicked',
+              nodeId: node.id,
+              role: 'aggregate',
+            }),
           ),
         ),
       ...(chosen?.kind === 'c4' || chosen?.kind === 'ddd'
         ? [
-            h.p(
-              [],
-              [
-                'Explicitly retain any workshop meaning or relation that should not be converted. Nothing is dropped to satisfy a mapping.',
-              ],
+            h.p.children(
+              'Explicitly retain any workshop meaning or relation that should not be converted. Nothing is dropped to satisfy a mapping.',
             ),
             ...document.snapshot.graph.nodes
               .filter((n) => n.architecture?.family === 'event-storming')
@@ -597,37 +585,28 @@ export function nativeReviewToolsView<M>(
           ]
         : []),
       ...document.editions.map((e) =>
-        h.div(
-          [],
-          [
-            event(`Review packet against ${e.name}`, { type: 'PacketClicked', baselineId: e.id }),
-            h.details(
-              [],
-              [
-                h.summary([], ['Edition audit findings']),
-                h.pre(
-                  [],
-                  [
-                    JSON.stringify(
-                      {
-                        ddd: compareModelDddRelationshipsV3(document, { baselineId: e.id }),
-                        eventStorming: compareModelEventStormingRelationshipsV3(document, {
-                          baselineId: e.id,
-                        }),
-                      },
-                      null,
-                      2,
-                    ),
-                  ],
-                ),
-              ],
+        h.div.children(
+          event(`Review packet against ${e.name}`, { type: 'PacketClicked', baselineId: e.id }),
+          h.details.children(
+            h.summary.children('Edition audit findings'),
+            h.pre.children(
+              JSON.stringify(
+                {
+                  ddd: compareModelDddRelationshipsV3(document, { baselineId: e.id }),
+                  eventStorming: compareModelEventStormingRelationshipsV3(document, {
+                    baselineId: e.id,
+                  }),
+                },
+                null,
+                2,
+              ),
             ),
-          ],
+          ),
         ),
       ),
       ...(chosen?.kind === 'patch'
         ? [
-            zlozModellingPatchReview(
+            modellingPatchReview(
               h,
               resolveModellingPatchReviewV3(editor, document.id, chosen.patch, {
                 consent: tools.consentKey
@@ -646,40 +625,33 @@ export function nativeReviewToolsView<M>(
           ]
         : chosen
           ? [
-              h.details(
-                [h.Attribute('open', '')],
-                [
-                  h.summary([], ['Provenance, changes, ambiguities and loss findings']),
-                  h.pre(
-                    [],
-                    [
-                      JSON.stringify(
-                        review.details,
-                        (key, value) => (key === 'key' ? undefined : value),
-                        2,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              h.label(
-                [],
-                [
-                  h.input([
-                    h.Type('checkbox'),
-                    h.AriaLabel('Accept native proposal and loss findings'),
-                    h.Checked(review.accepted),
-                    h.Disabled(review.reason !== null),
-                    h.OnClick(
-                      onEvent({
-                        type: 'ConsentChanged',
-                        key: review.key ?? '',
-                        accepted: !review.accepted,
-                      }),
+              h.details
+                .attr('open', '')
+                .children(
+                  h.summary.children('Provenance, changes, ambiguities and loss findings'),
+                  h.pre.children(
+                    JSON.stringify(
+                      review.details,
+                      (key, value) => (key === 'key' ? undefined : value),
+                      2,
                     ),
-                  ]),
-                  'I reviewed this exact source and accept the disclosed losses.',
-                ],
+                  ),
+                ),
+              h.label.children(
+                h.input
+                  .attr('type', 'checkbox')
+                  .attr('aria-label', 'Accept native proposal and loss findings')
+                  .checked(review.accepted)
+                  .disabled(review.reason !== null)
+                  .on(
+                    'click',
+                    onEvent({
+                      type: 'ConsentChanged',
+                      key: review.key ?? '',
+                      accepted: !review.accepted,
+                    }),
+                  ),
+                'I reviewed this exact source and accept the disclosed losses.',
               ),
               event(
                 chosen.kind === 'packet' ? 'Retain reviewed packet' : 'Apply reviewed conversion',
@@ -688,18 +660,22 @@ export function nativeReviewToolsView<M>(
               ),
             ]
           : []),
-      ...(review.reason && chosen ? [h.p([], [review.reason])] : []),
+      ...(review.reason && chosen ? [h.p.children(review.reason)] : []),
       ...(tools.artifact
-        ? [h.button([h.Type('button'), h.OnClick(onDownload())], ['Download retained artifact'])]
+        ? [
+            h.button
+              .attr('type', 'button')
+              .on('click', onDownload())
+              .children('Download retained artifact'),
+          ]
         : []),
       ...(tools.opened
         ? [
-            h.p([], ['Read-only evidence comparison']),
+            h.p.children('Read-only evidence comparison'),
             event('Before', { type: 'EvidenceSideChosen', side: 'before' }),
             event('After', { type: 'EvidenceSideChosen', side: 'after' }),
             event('Return to working canvas', { type: 'CloseEvidenceClicked' }),
           ]
         : []),
-    ],
-  );
+    );
 }

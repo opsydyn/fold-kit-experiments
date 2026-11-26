@@ -1,3 +1,5 @@
+import { Command, UiSchema } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import {
   publishGroupWorkbenchResultV3,
   assessPortableCompatibilityV3,
@@ -46,25 +48,19 @@ import {
   type ZlozGroupMermaidReviewRequestV3,
   type ZlozGroupMermaidDownloadV3,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { zlozGroupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { groupMermaidReviewV3 } from '@opsydyn/foldkit-zloz-mermaid/effect-ui';
 import { renderGroupPngExportV3, downloadPngArtifact } from '@opsydyn/foldkit-zloz/browser';
 import {
-  zlozGroupInspectorV3,
-  zlozGroupClipboardV3,
-  zlozGroupDragHandleV3,
-  zlozSvgReview,
-  zlozPngReview,
-  type ZlozGroupWorkbenchViewOptionsV3,
-  zlozGroupWorkbenchV3,
+  groupClipboardV3,
+  groupInspectorV3,
+  groupSurfaceV3,
+  pngReview,
+  svgReview,
+  type GroupSurfaceOptionsV3,
   zlozDarkTheme,
   zlozLightTheme,
-} from '@opsydyn/foldkit-zloz/foldkit';
+} from '@opsydyn/foldkit-zloz/effect-ui';
 import { Data, Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import { defineTaggedUnion } from 'foldkit/schema';
-import type { Return } from 'foldkit/update';
 
 import { groupMermaidContext, groupMermaidControls, groupMermaidFindingLabel } from './mermaid';
 import { groupPngContext, groupPngControls } from './png';
@@ -109,13 +105,13 @@ export type ReadyState = Readonly<{
   protectMermaid: boolean;
   pendingOpen: Readonly<{ token: number; sessionId: string; revision: number }> | null;
 }>;
-export const Model = defineTaggedUnion({
+export const Model = UiSchema.TaggedEnum({
   Preparing: {},
-  Ready: { state: Schema.Unknown },
+  Ready: { state: Schema.fromJsonString(Schema.Unknown) },
   Failed: {},
 });
 export type Model = typeof Model.Type;
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SucceededIdentity: { id: Schema.String },
   FailedIdentity: {},
   ClickedRetry: {},
@@ -155,22 +151,23 @@ export const Message = defineMessageUnion({
   FailedDownload: {},
 });
 export type Message = typeof Message.Type;
-const AllocateGroupIdentity = Command.define('AllocateGroupIdentity', {
-  messages: [Message.SucceededIdentity, Message.FailedIdentity],
-  execute: Effect.try(() => crypto.randomUUID()).pipe(
+const AllocateGroupIdentity = Command.make('AllocateGroupIdentity', { args: {} }, () =>
+  Effect.try(() => crypto.randomUUID()).pipe(
     Effect.match({
       onSuccess: (id) => Message.SucceededIdentity({ id }),
       onFailure: () => Message.FailedIdentity(),
     }),
   ),
-});
+);
 class ModelInputFailure extends Data.TaggedError('ModelInputFailure')<{
   readonly message: string;
 }> {}
-const OpenGroupModel = Command.define('OpenGroupModel', {
-  args: { text: Schema.String, token: Schema.Number },
-  messages: [Message.SucceededOpen, Message.FailedOpen],
-  execute: ({ text, token }) =>
+const OpenGroupModel = Command.make(
+  'OpenGroupModel',
+  {
+    args: { text: Schema.String, token: Schema.Number },
+  },
+  ({ text, token }) =>
     Effect.try({
       try: () => {
         if (text.length > 1048576 || new TextEncoder().encode(text).length > 1048576)
@@ -186,11 +183,13 @@ const OpenGroupModel = Command.define('OpenGroupModel', {
         onFailure: (reason) => Message.FailedOpen({ reason, token }),
       }),
     ),
-});
-const ReadNativeEvidence = Command.define('ReadNativeEvidence', {
-  args: { file: Schema.Unknown, token: Schema.Number },
-  messages: [Message.SucceededNativeRead, Message.FailedNativeRead],
-  execute: ({ file: raw, token }) => {
+);
+const ReadNativeEvidence = Command.make(
+  'ReadNativeEvidence',
+  {
+    args: { file: Schema.Unknown, token: Schema.Number },
+  },
+  ({ file: raw, token }) => {
     // SAFETY: Only this module's file chooser passes a browser File to this IO Command.
     const file = raw as File;
     return Effect.tryPromise({
@@ -210,11 +209,13 @@ const ReadNativeEvidence = Command.define('ReadNativeEvidence', {
       }),
     );
   },
-});
-const DownloadGroupModel = Command.define('DownloadGroupModel', {
-  args: { text: Schema.String, filename: Schema.String },
-  messages: [Message.CompletedDownload, Message.FailedDownload],
-  execute: ({ text, filename }) =>
+);
+const DownloadGroupModel = Command.make(
+  'DownloadGroupModel',
+  {
+    args: { text: Schema.String, filename: Schema.String },
+  },
+  ({ text, filename }) =>
     Effect.gen(function* () {
       const acquire = Effect.try(() =>
         URL.createObjectURL(new Blob([text], { type: 'application/json' })),
@@ -236,11 +237,13 @@ const DownloadGroupModel = Command.define('DownloadGroupModel', {
         onFailure: () => Message.FailedDownload(),
       }),
     ),
-});
-const DownloadGroupSvg = Command.define('DownloadGroupSvg', {
-  args: { payload: Schema.Unknown },
-  messages: [Message.ObservedSvgReview],
-  execute: ({ payload: raw }) => {
+);
+const DownloadGroupSvg = Command.make(
+  'DownloadGroupSvg',
+  {
+    args: { payload: Schema.Unknown },
+  },
+  ({ payload: raw }) => {
     // SAFETY: Only the native review controller produces this detached, validated download payload.
     const payload = raw as ZlozSvgDownload;
     const identity = {
@@ -277,11 +280,13 @@ const DownloadGroupSvg = Command.define('DownloadGroupSvg', {
       }),
     );
   },
-});
-const DownloadGroupMermaid = Command.define('DownloadGroupMermaid', {
-  args: { payload: Schema.Unknown },
-  messages: [Message.ObservedMermaidReview],
-  execute: ({ payload: raw }) => {
+);
+const DownloadGroupMermaid = Command.make(
+  'DownloadGroupMermaid',
+  {
+    args: { payload: Schema.Unknown },
+  },
+  ({ payload: raw }) => {
     // SAFETY: The native review controller alone constructs this detached source-bound download payload.
     const payload = raw as ZlozGroupMermaidDownloadV3;
     const identity = {
@@ -318,12 +323,14 @@ const DownloadGroupMermaid = Command.define('DownloadGroupMermaid', {
       }),
     );
   },
-});
-const RenderGroupPng = Command.define('RenderGroupPng', {
-  args: { payload: Schema.Unknown },
-  interrupt: true,
-  messages: [Message.ObservedPngReview],
-  execute: ({ payload: raw }) => {
+);
+const RenderGroupPng = Command.make(
+  'RenderGroupPng',
+  {
+    args: { payload: Schema.Unknown },
+    mode: 'switch',
+  },
+  ({ payload: raw }) => {
     // SAFETY: The native package review controller constructs this detached, source-bound job.
     const payload = raw as ZlozGroupPngRenderPayloadV3;
     const identity = {
@@ -351,16 +358,18 @@ const RenderGroupPng = Command.define('RenderGroupPng', {
       }),
     );
   },
-});
-const DownloadGroupPng = Command.define('DownloadGroupPng', {
-  args: {
-    artifact: Schema.Unknown,
-    fileName: Schema.String,
-    scope: Schema.String,
-    key: Schema.String,
+);
+const DownloadGroupPng = Command.make(
+  'DownloadGroupPng',
+  {
+    args: {
+      artifact: Schema.Unknown,
+      fileName: Schema.String,
+      scope: Schema.String,
+      key: Schema.String,
+    },
   },
-  messages: [Message.SettledPngDownload],
-  execute: ({ artifact: raw, fileName, scope, key }) => {
+  ({ artifact: raw, fileName, scope, key }) => {
     // SAFETY: Only a native reviewed browser artifact reaches this download Command.
     const artifact = raw as ZlozPngArtifact;
     return Effect.try(() => downloadPngArtifact(artifact, fileName)).pipe(
@@ -370,11 +379,13 @@ const DownloadGroupPng = Command.define('DownloadGroupPng', {
       }),
     );
   },
-});
-const ArrangeGroupModel = Command.define('ArrangeGroupModel', {
-  args: { request: Schema.Unknown, direction: Schema.Literals(['RIGHT', 'DOWN']) },
-  messages: [Message.SucceededLayout, Message.FailedLayout],
-  execute: ({ request: raw, direction }) => {
+);
+const ArrangeGroupModel = Command.make(
+  'ArrangeGroupModel',
+  {
+    args: { request: Schema.Unknown, direction: Schema.Literals(['RIGHT', 'DOWN']) },
+  },
+  ({ request: raw, direction }) => {
     // SAFETY: Only groupLayoutRequestV3 constructs this Command argument in the typed update below.
     const request = raw as ZlozGroupLayoutRequestV3;
     return Effect.tryPromise(() => createElkGroupLayoutV3({ direction })(request)).pipe(
@@ -385,7 +396,7 @@ const ArrangeGroupModel = Command.define('ArrangeGroupModel', {
       }),
     );
   },
-});
+);
 const initialDocument = () =>
   captureGroupDocumentV3({
     version: 3,
@@ -481,11 +492,13 @@ function policy(state: ReadyState): ZlozGroupEditorPolicyV3 {
       }
     : {};
 }
-export const init = () => ({ model: Model.Preparing(), commands: [AllocateGroupIdentity()] });
-export function update(model: Model, message: Message): Return<Model, Message> {
+type GroupUpdate = { model: Model; commands?: readonly Command.Command<Message>[] };
+
+export const init = () => ({ model: Model.Preparing(), commands: [AllocateGroupIdentity.make()] });
+export function update(model: Model, message: Message): GroupUpdate {
   // SAFETY: Ready is constructed only by ready()/the typed transitions in this module.
   const state = model._tag === 'Ready' ? (model.state as ReadyState) : null;
-  const changed = (next: ReadyState): Return<Model, Message> => ({
+  const changed = (next: ReadyState): GroupUpdate => ({
     model: Model.Ready({ state: next }),
   });
   return Message.match(message, {
@@ -521,7 +534,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             },
           },
         }),
-        commands: [ReadNativeEvidence({ file, token })],
+        commands: [ReadNativeEvidence.make({ file, token })],
       };
     },
     SucceededNativeRead: ({ text, token }) => {
@@ -610,7 +623,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     },
     ClickedNativeDownload: () =>
       state?.nativeTools.artifact
-        ? { model, commands: [DownloadGroupModel(state.nativeTools.artifact)] }
+        ? { model, commands: [DownloadGroupModel.make(state.nativeTools.artifact)] }
         : { model },
     ObservedWorkbenchInput: ({ event }) => {
       if (!state) return { model };
@@ -669,7 +682,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return result.payload
         ? {
             model: Model.Ready({ state: next }),
-            commands: [DownloadGroupMermaid({ payload: result.payload })],
+            commands: [DownloadGroupMermaid.make({ payload: result.payload })],
           }
         : changed(next);
     },
@@ -679,22 +692,29 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const request = raw as ZlozPngReviewRequest;
       const context = groupPngContext(state);
       if (request.type === 'PngRenderSettled' && request.scope !== context.scope) return { model };
-      const result = updateGroupPngReviewV3(
-        pngReviewForScope(state.pngReview, context.scope),
-        context,
-        request,
-      );
+      const review = pngReviewForScope(state.pngReview, context.scope);
+      const result = updateGroupPngReviewV3(review, context, request);
       const next = { ...state, pngReview: result.state, notice: result.notice || state.notice };
+      if (
+        request.type === 'PngRenderCancelled' &&
+        review.rendering.type === 'pending' &&
+        result.state.rendering.type === 'idle'
+      )
+        return { ...changed(next), commands: [Command.interrupt(RenderGroupPng)] };
       return result.payload
         ? {
             model: Model.Ready({ state: next }),
-            commands: [RenderGroupPng({ payload: result.payload })],
+            commands: [RenderGroupPng.make({ payload: result.payload })],
           }
         : result.download
           ? {
               model: Model.Ready({ state: next }),
               commands: [
-                DownloadGroupPng({ ...result.download, scope: context.scope, key: request.key }),
+                DownloadGroupPng.make({
+                  ...result.download,
+                  scope: context.scope,
+                  key: request.key,
+                }),
               ],
             }
           : changed(next);
@@ -732,7 +752,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return result.payload
         ? {
             model: Model.Ready({ state: next }),
-            commands: [DownloadGroupSvg({ payload: result.payload })],
+            commands: [DownloadGroupSvg.make({ payload: result.payload })],
           }
         : changed(next);
     },
@@ -757,7 +777,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             notice: `Arranging native v3 groups ${direction.toLowerCase()}…`,
           },
         }),
-        commands: [ArrangeGroupModel({ request, direction })],
+        commands: [ArrangeGroupModel.make({ request, direction })],
       };
     },
     ClickedCancelLayout: () =>
@@ -891,7 +911,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             },
           },
         }),
-        commands: [OpenGroupModel({ text: state.text, token })],
+        commands: [OpenGroupModel.make({ text: state.text, token })],
       };
     },
     SucceededOpen: ({ document, id, token }) => {
@@ -925,7 +945,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? {
             model,
             commands: [
-              DownloadGroupModel({
+              DownloadGroupModel.make({
                 filename: 'zloz-model-v3.json',
                 text: serializeModelDocumentV3({
                   ...working(state),
@@ -943,347 +963,261 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         : { model },
   });
 }
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  return {
-    title: 'Group workbench | ZLOZ',
-    body: Model.match(model, {
-      Preparing: () => h.p([h.Role('status')], ['Preparing a new v3 session…']),
-      Failed: () =>
-        h.div(
-          [],
-          [
-            h.p([h.Role('alert')], ['Could not allocate a new session.']),
-            h.button([h.OnClick(Message.ClickedRetry())], ['Try again']),
-          ],
-        ),
-      Ready: ({ state: raw }) => {
-        // SAFETY: Ready contains only this module's ReadyState.
-        const state = raw as ReadyState,
-          current = state.evidenceReview ?? state.review?.workbench ?? state.workbench;
-        let options: ZlozGroupWorkbenchViewOptionsV3<Message> = {
-          id: 'group-v3-canvas',
-          resize: true,
-          portAnchors: true,
-          reconnect: true,
-          boxSelection: true,
-          pinchZoom: true,
-          portAnchorSnapBypass: 'Alt',
-          theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
-          minimalMode: state.minimal,
-          policy: policy(state),
-          onEvent: (event: ZlozGroupWorkbenchEventV3) => Message.ObservedWorkbenchInput({ event }),
-        };
-        if (state.svgCustom)
-          options = {
-            ...options,
-            renderNode: (node, selected, builder) =>
-              builder.div(
-                [],
-                [
-                  zlozGroupDragHandleV3(builder, node, selected),
-                  builder.span(
-                    [
-                      builder.DataAttribute('zloz-workshop-badge', ''),
-                      builder.Style({
-                        position: 'absolute',
-                        right: '10px',
-                        top: node.kind === 'group' ? '12px' : 'auto',
-                        bottom: node.kind === 'group' ? 'auto' : '10px',
-                        'pointer-events': 'none',
-                        'font-size': '10px',
-                        'line-height': '14px',
-                        padding: '1px 5px',
-                        'border-radius': '4px',
-                        background: 'var(--flow-selection, #2563eb)',
-                        color: 'var(--flow-control-color, #fff)',
-                      }),
-                    ],
-                    ['Workshop'],
+
+export function view(h: Html.H<Message>, model: Model) {
+  return Model.match(model, {
+    Preparing: () => h.p.attr('role', 'status').children('Preparing a new v3 session…'),
+    Failed: () =>
+      h.div.children(
+        h.p.attr('role', 'alert').children('Could not allocate a new session.'),
+        h.button.on('click', Message.ClickedRetry()).children('Try again'),
+      ),
+    Ready: ({ state: raw }) => {
+      // SAFETY: Ready contains only this module's ReadyState.
+      const state = raw as ReadyState,
+        current = state.evidenceReview ?? state.review?.workbench ?? state.workbench;
+      const options: GroupSurfaceOptionsV3<Message> = {
+        id: 'group-v3-canvas',
+        portAnchorSnapBypass: 'Alt',
+        theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
+        minimalMode: state.minimal,
+        policy: policy(state),
+        onEvent: (event) => Message.ObservedWorkbenchInput({ event }),
+        nodeBadge: () => (state.svgCustom ? 'Workshop' : undefined),
+      };
+      const button = (label: string, message: Message, disabled = false) =>
+        h.button.attr('type', 'button').on('click', message).disabled(disabled).children(label);
+      const report = assessPortableCompatibilityV3(working(state));
+      const comparison = state.review
+        ? compareEditionsV3(
+            state.review.edition,
+            captureEditionV3({
+              id: 'working',
+              name: 'Working',
+              snapshot: state.workbench.editor.document,
+            }),
+          )
+        : null;
+      return h.div
+        .class('flow-workbench group-v3-workbench')
+        .attr('data-flow-workbench-color-scheme', state.theme)
+        .children(
+          h.div.class('workbench-layout').children(
+            h.aside
+              .class('workbench-sidebar')
+              .attr('aria-label', 'Group modelling sidebar')
+              .children(
+                h.div.class('workbench-sidebar-scroll').children(
+                  h.p.class('workbench-eyebrow').children('COMPOSE · CONNECT · COMMUNICATE'),
+                  h.h1.children('V3 group workbench'),
+                  h.p.children('Authored group ports, live policies and complete-document Undo.'),
+                  button(
+                    state.theme === 'light' ? 'Use dark theme' : 'Use light theme',
+                    Message.ClickedTheme(),
                   ),
-                ],
+                  button(
+                    state.minimal ? 'Show diagnostics' : 'Minimal mode',
+                    Message.ClickedMinimal(),
+                  ),
+                  button(
+                    state.locked ? 'Disable protection' : 'Protect service and interface',
+                    Message.ClickedProtection(),
+                  ),
+                  h.p.attr('role', 'status').attr('aria-live', 'polite').children(state.notice),
+                  nativeReviewToolsView(
+                    h,
+                    state.nativeTools,
+                    state.workbench.editor,
+                    working(state),
+                    policy(state),
+                    state.review !== null ||
+                      state.evidenceReview !== null ||
+                      state.pendingLayout !== null ||
+                      state.pendingOpen !== null ||
+                      state.workbench.gesture.type !== 'idle',
+                    (event) => Message.ObservedNativeReview({ event }),
+                    () => Message.ClickedNativeDownload(),
+                    (files) => Message.ChoseNativeEvidenceFiles({ files }),
+                  ),
+                  ...(state.review
+                    ? [
+                        h.h2.children(`Review: ${state.review.edition.name}`),
+                        button('Return to working model', Message.ClickedWorking()),
+                        button('Restore checkpoint', Message.ClickedRestore()),
+                        h.p.children(
+                          `${comparison?.nodes.length ?? 0} node changes; ${comparison?.edges.length ?? 0} connection changes. Mode changed: ${comparison?.modeChange.changed ? 'yes' : 'no'}. Capability changed: ${comparison?.capabilityChange.changed ? 'yes' : 'no'}.`,
+                        ),
+                      ]
+                    : [groupInspectorV3(h, current, options)]),
+                  h.details
+                    .key('clipboard')
+                    .attr('data-zloz-clipboard-panel', '')
+                    .children(
+                      h.summary.children('Clipboard'),
+                      groupClipboardV3(h, current, options, { x: 0, y: 380 }),
+                    ),
+                  h.h2.children('Native v3 ELK layout'),
+                  button(
+                    'Arrange right',
+                    Message.ClickedLayout({ direction: 'RIGHT' }),
+                    state.review !== null || current.gesture.type !== 'idle',
+                  ),
+                  button(
+                    'Arrange down',
+                    Message.ClickedLayout({ direction: 'DOWN' }),
+                    state.review !== null || current.gesture.type !== 'idle',
+                  ),
+                  ...(state.pendingLayout
+                    ? [button('Cancel layout', Message.ClickedCancelLayout())]
+                    : []),
+                  h.p.children(
+                    'Keeps group ports, connections and camera. Each accepted layout is one Undo; current protections are checked again before Apply.',
+                  ),
+                  h.details.key('svg-export').children(
+                    h.summary.children('SVG export review'),
+                    button(
+                      state.svgCustom ? 'Use canonical shells' : 'Show custom workshop shells',
+                      Message.ClickedSvgCustom(),
+                    ),
+                    button(
+                      state.svgRetained ? 'Use canonical edge paths' : 'Use retained ELK routes',
+                      Message.ClickedSvgRetained(),
+                    ),
+                    button(
+                      state.protectSvg ? 'Allow SVG downloads' : 'Protect SVG downloads',
+                      Message.ClickedSvgProtection(),
+                    ),
+                    svgReview(
+                      h,
+                      groupSvgControls(state),
+                      (request) => Message.ObservedSvgReview({ request }),
+                      {
+                        idPrefix: 'group-v3-svg',
+                        diagnostics: {
+                          instructions: !state.minimal,
+                          measurements: !state.minimal,
+                        },
+                      },
+                    ),
+                  ),
+                  h.details
+                    .key('png-export')
+                    .attr('data-native-png-review', '')
+                    .children(
+                      h.summary.children('PNG export review'),
+                      button(
+                        state.svgCustom
+                          ? 'Use canonical PNG shells'
+                          : 'Show custom workshop shells for PNG',
+                        Message.ClickedSvgCustom(),
+                      ),
+                      button(
+                        state.pngRetained
+                          ? 'Use canonical PNG paths'
+                          : 'Use retained ELK routes for PNG',
+                        Message.ClickedPngRetained(),
+                      ),
+                      button(
+                        state.protectPng ? 'Allow PNG export' : 'Protect PNG export',
+                        Message.ClickedPngProtection(),
+                      ),
+                      pngReview(
+                        h,
+                        groupPngControls(state),
+                        (request) => Message.ObservedPngReview({ request }),
+                        {
+                          idPrefix: 'group-v3-png',
+                          diagnostics: {
+                            instructions: !state.minimal,
+                            measurements: !state.minimal,
+                          },
+                        },
+                      ),
+                    ),
+                  h.details.key('mermaid-export').children(
+                    h.summary.children('Mermaid export review'),
+                    button(
+                      state.protectMermaid ? 'Allow Mermaid export' : 'Protect Mermaid export',
+                      Message.ClickedMermaidProtection(),
+                    ),
+                    groupMermaidReviewV3(
+                      h,
+                      groupMermaidControls(state),
+                      (request) => Message.ObservedMermaidReview({ request }),
+                      {
+                        id: 'native-v3-mermaid',
+                        minimalMode: state.minimal,
+                        findingLabel: (finding) => groupMermaidFindingLabel(state, finding),
+                      },
+                    ),
+                  ),
+                  h.h2.children('Editions'),
+                  button(
+                    'Save checkpoint',
+                    Message.ClickedCheckpoint(),
+                    state.review !== null || state.workbench.gesture.type !== 'idle',
+                  ),
+                  ...state.catalogue.editions.map((edition) =>
+                    button(`Review ${edition.name}`, Message.ClickedReview({ id: edition.id })),
+                  ),
+                  h.details.key('portable-model').children(
+                    h.summary.children('Portable v3 model'),
+                    button('Download model', Message.ClickedDownload()),
+                    h.label.children(
+                      'Paste canonical v3 model JSON',
+                      h.textarea
+                        .attr('aria-label', 'Canonical v3 model JSON')
+                        .value(state.text)
+                        .on('input', ({ value: text }) => Message.ChangedText({ text }))
+                        .children(),
+                    ),
+                    button('Open in new session', Message.ClickedOpen()),
+                    h.p.children(
+                      'Workbench input limit: 1 MiB UTF-8. Opening validates every checkpoint before replacing the working session.',
+                    ),
+                  ),
+                  h.details
+                    .key('compatibility')
+                    .children(
+                      h.summary.children('Compatibility and release limits'),
+                      h.ul.children(
+                        ...report.adapters.map((adapter) =>
+                          h.li.children(`${adapter.adapter}: ${adapter.status}. ${adapter.reason}`),
+                        ),
+                      ),
+                      ...report.limits.map((limit) => h.p.children(limit)),
+                    ),
+                ),
               ),
-          };
-        const button = (label: string, message: Message, disabled = false) =>
-          h.button([h.Type('button'), h.OnClick(message), h.Disabled(disabled)], [label]);
-        const report = assessPortableCompatibilityV3(working(state));
-        const comparison = state.review
-          ? compareEditionsV3(
-              state.review.edition,
-              captureEditionV3({
-                id: 'working',
-                name: 'Working',
-                snapshot: state.workbench.editor.document,
-              }),
-            )
-          : null;
-        return h.div(
-          [
-            h.Class('flow-workbench group-v3-workbench'),
-            h.DataAttribute('flow-workbench-color-scheme', state.theme),
-          ],
-          [
-            h.div(
-              [h.Class('workbench-layout')],
-              [
-                h.aside(
-                  [h.Class('workbench-sidebar'), h.AriaLabel('Group modelling sidebar')],
-                  [
-                    h.div(
-                      [h.Class('workbench-sidebar-scroll')],
-                      [
-                        h.p([h.Class('workbench-eyebrow')], ['COMPOSE · CONNECT · COMMUNICATE']),
-                        h.h1([], ['V3 group workbench']),
-                        h.p(
-                          [],
-                          ['Authored group ports, live policies and complete-document Undo.'],
-                        ),
-                        button(
-                          state.theme === 'light' ? 'Use dark theme' : 'Use light theme',
-                          Message.ClickedTheme(),
-                        ),
-                        button(
-                          state.minimal ? 'Show diagnostics' : 'Minimal mode',
-                          Message.ClickedMinimal(),
-                        ),
-                        button(
-                          state.locked ? 'Disable protection' : 'Protect service and interface',
-                          Message.ClickedProtection(),
-                        ),
-                        h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
-                        nativeReviewToolsView(
-                          h,
-                          state.nativeTools,
-                          state.workbench.editor,
-                          working(state),
-                          policy(state),
-                          state.review !== null ||
-                            state.evidenceReview !== null ||
-                            state.pendingLayout !== null ||
-                            state.pendingOpen !== null ||
-                            state.workbench.gesture.type !== 'idle',
-                          (event) => Message.ObservedNativeReview({ event }),
-                          () => Message.ClickedNativeDownload(),
-                          (files) => Message.ChoseNativeEvidenceFiles({ files }),
-                        ),
-                        ...(state.review
-                          ? [
-                              h.h2([], [`Review: ${state.review.edition.name}`]),
-                              button('Return to working model', Message.ClickedWorking()),
-                              button('Restore checkpoint', Message.ClickedRestore()),
-                              h.p(
-                                [],
-                                [
-                                  `${comparison?.nodes.length ?? 0} node changes; ${comparison?.edges.length ?? 0} connection changes. Mode changed: ${comparison?.modeChange.changed ? 'yes' : 'no'}. Capability changed: ${comparison?.capabilityChange.changed ? 'yes' : 'no'}.`,
-                                ],
-                              ),
-                            ]
-                          : [zlozGroupInspectorV3(h, current, options)]),
-                        h.details(
-                          [h.DataAttribute('zloz-clipboard-panel', '')],
-                          [
-                            h.summary([], ['Clipboard']),
-                            zlozGroupClipboardV3(h, current, options, { x: 0, y: 380 }),
-                          ],
-                        ),
-                        h.h2([], ['Native v3 ELK layout']),
-                        button(
-                          'Arrange right',
-                          Message.ClickedLayout({ direction: 'RIGHT' }),
-                          state.review !== null || current.gesture.type !== 'idle',
-                        ),
-                        button(
-                          'Arrange down',
-                          Message.ClickedLayout({ direction: 'DOWN' }),
-                          state.review !== null || current.gesture.type !== 'idle',
-                        ),
-                        ...(state.pendingLayout
-                          ? [button('Cancel layout', Message.ClickedCancelLayout())]
-                          : []),
-                        h.p(
-                          [],
-                          [
-                            'Keeps group ports, connections and camera. Each accepted layout is one Undo; current protections are checked again before Apply.',
-                          ],
-                        ),
-                        h.details(
-                          [],
-                          [
-                            h.summary([], ['SVG export review']),
-                            button(
-                              state.svgCustom
-                                ? 'Use canonical shells'
-                                : 'Show custom workshop shells',
-                              Message.ClickedSvgCustom(),
-                            ),
-                            button(
-                              state.svgRetained
-                                ? 'Use canonical edge paths'
-                                : 'Use retained ELK routes',
-                              Message.ClickedSvgRetained(),
-                            ),
-                            button(
-                              state.protectSvg ? 'Allow SVG downloads' : 'Protect SVG downloads',
-                              Message.ClickedSvgProtection(),
-                            ),
-                            zlozSvgReview(
-                              h,
-                              groupSvgControls(state),
-                              (request) => Message.ObservedSvgReview({ request }),
-                              {
-                                idPrefix: 'group-v3-svg',
-                                diagnostics: {
-                                  instructions: !state.minimal,
-                                  measurements: !state.minimal,
-                                },
-                              },
-                            ),
-                          ],
-                        ),
-                        h.details(
-                          [h.DataAttribute('native-png-review', '')],
-                          [
-                            h.summary([], ['PNG export review']),
-                            button(
-                              state.svgCustom
-                                ? 'Use canonical PNG shells'
-                                : 'Show custom workshop shells for PNG',
-                              Message.ClickedSvgCustom(),
-                            ),
-                            button(
-                              state.pngRetained
-                                ? 'Use canonical PNG paths'
-                                : 'Use retained ELK routes for PNG',
-                              Message.ClickedPngRetained(),
-                            ),
-                            button(
-                              state.protectPng ? 'Allow PNG export' : 'Protect PNG export',
-                              Message.ClickedPngProtection(),
-                            ),
-                            zlozPngReview(
-                              h,
-                              groupPngControls(state),
-                              (request) => Message.ObservedPngReview({ request }),
-                              {
-                                idPrefix: 'group-v3-png',
-                                diagnostics: {
-                                  instructions: !state.minimal,
-                                  measurements: !state.minimal,
-                                },
-                              },
-                            ),
-                          ],
-                        ),
-                        h.details(
-                          [],
-                          [
-                            h.summary([], ['Mermaid export review']),
-                            button(
-                              state.protectMermaid
-                                ? 'Allow Mermaid export'
-                                : 'Protect Mermaid export',
-                              Message.ClickedMermaidProtection(),
-                            ),
-                            zlozGroupMermaidReviewV3(
-                              h,
-                              groupMermaidControls(state),
-                              (request) => Message.ObservedMermaidReview({ request }),
-                              {
-                                id: 'native-v3-mermaid',
-                                minimalMode: state.minimal,
-                                theme: state.theme === 'dark' ? zlozDarkTheme : zlozLightTheme,
-                                renderFinding: (finding, h) => {
-                                  const subject = groupMermaidFindingLabel(state, finding);
-                                  return h.li(
-                                    [
-                                      h.DataAttribute('zloz-mermaid-finding', finding.code),
-                                      h.Title(finding.subject ?? finding.code),
-                                    ],
-                                    [
-                                      h.strong([], [finding.severity + ': ']),
-                                      ...(subject ? [h.strong([], [subject + ': '])] : []),
-                                      finding.message,
-                                    ],
-                                  );
-                                },
-                              },
-                            ),
-                          ],
-                        ),
-                        h.h2([], ['Editions']),
-                        button(
-                          'Save checkpoint',
-                          Message.ClickedCheckpoint(),
-                          state.review !== null || state.workbench.gesture.type !== 'idle',
-                        ),
-                        ...state.catalogue.editions.map((edition) =>
-                          button(
-                            `Review ${edition.name}`,
-                            Message.ClickedReview({ id: edition.id }),
-                          ),
-                        ),
-                        h.details(
-                          [],
-                          [
-                            h.summary([], ['Portable v3 model']),
-                            button('Download model', Message.ClickedDownload()),
-                            h.label(
-                              [],
-                              [
-                                'Paste canonical v3 model JSON',
-                                h.textarea([
-                                  h.AriaLabel('Canonical v3 model JSON'),
-                                  h.Value(state.text),
-                                  h.OnInput((text) => Message.ChangedText({ text })),
-                                ]),
-                              ],
-                            ),
-                            button('Open in new session', Message.ClickedOpen()),
-                            h.p(
-                              [],
-                              [
-                                'Workbench input limit: 1 MiB UTF-8. Opening validates every checkpoint before replacing the working session.',
-                              ],
-                            ),
-                          ],
-                        ),
-                        h.details(
-                          [],
-                          [
-                            h.summary([], ['Compatibility and release limits']),
-                            h.ul(
-                              [],
-                              report.adapters.map((adapter) =>
-                                h.li(
-                                  [],
-                                  [`${adapter.adapter}: ${adapter.status}. ${adapter.reason}`],
-                                ),
-                              ),
-                            ),
-                            ...report.limits.map((limit) => h.p([], [limit])),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                h.section(
-                  [
-                    h.Class('group-v3-stage'),
-                    h.AriaLabel(
-                      state.evidenceReview
-                        ? 'Read-only evidence canvas'
-                        : state.review
-                          ? 'Read-only edition canvas'
-                          : 'Working group canvas',
-                    ),
-                  ],
-                  [zlozGroupWorkbenchV3(h, current, options)],
-                ),
-              ],
-            ),
-          ],
+            h.section
+              .class('group-v3-stage')
+              .attr(
+                'aria-label',
+                state.evidenceReview
+                  ? 'Read-only evidence canvas'
+                  : state.review
+                    ? 'Read-only edition canvas'
+                    : 'Working group canvas',
+              )
+              .children(groupSurfaceV3(h, current, options)),
+          ),
         );
-      },
-    }),
-  };
+    },
+  });
 }
+
+export default Html.component({
+  name: 'ZlozGroupWorkbench',
+  model: Model,
+  message: Message,
+}).make({
+  init: ($) => {
+    const initial = init();
+    return $.set(initial.model).run(...initial.commands);
+  },
+  update: ($, message) => {
+    const next = update($.model, message);
+    return $.set(next.model).run(...(next.commands ?? []));
+  },
+  view,
+});

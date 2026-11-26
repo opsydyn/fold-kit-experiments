@@ -1,12 +1,11 @@
 import { type Gesture, orbit, orbitOptions, perspectiveCamera } from '@opsydyn/effect-three';
-import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { Match, Record, Struct } from 'effect';
 
-import { Message } from './message';
+import type { Message } from './message';
 import { homeCamera, initialModel, type Model, noteLimit, onWall } from './model';
 import { plaques } from './plaques';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = { readonly model: Model };
 
 /** The camera walked up to a plaque, three metres back from it, looking at it. */
 const cameraAt = (degrees: number) =>
@@ -45,14 +44,20 @@ export const init = (props: { readonly assetBase?: string } = {}) => ({
 });
 
 export const update = (model: Model, message: Message): AppReturn =>
-  Message.match<AppReturn>(message, {
-    ClickedPlaque: ({ id }) => ({ model: focused(model, id) }),
-    ClickedAway: () => ({ model: { ...model, focus: null, camera: homeCamera } }),
-    ToggledLights: () => ({ model: modifyFields(model, { lit: (lit) => !lit }) }),
-    ChangedNote: ({ note }) => ({ model: { ...model, note: note.slice(0, noteLimit) } }),
-    MeasuredLabel: ({ measured }) => ({
-      model: { ...model, layouts: { ...model.layouts, [measured.key]: measured.block } },
+  Match.value(message).pipe(
+    Match.tagsExhaustive({
+      ClickedPlaque: ({ id }) => ({ model: focused(model, id) }),
+      ClickedAway: () => ({ model: { ...model, focus: null, camera: homeCamera } }),
+      ToggledLights: () => ({ model: Struct.assign(model, { lit: !model.lit }) }),
+      ChangedNote: ({ note }) => ({ model: { ...model, note: note.slice(0, noteLimit) } }),
+      MeasuredLabel: ({ measured }) => ({
+        model: { ...model, layouts: Record.set(model.layouts, measured.key, measured.block) },
+      }),
+      MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+      ReceivedSceneLifecycle: ({ lifecycle }) => ({
+        model: Struct.assign(model, {
+          sceneFailure: lifecycle._tag === 'FailedScene' ? lifecycle.reason : null,
+        }),
+      }),
     }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
-    ReceivedSceneLifecycle: () => ({ model }),
-  });
+  );

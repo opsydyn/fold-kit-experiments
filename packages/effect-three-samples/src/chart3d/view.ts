@@ -1,23 +1,12 @@
 import { Mount } from '@effect/ui';
 import { Html } from '@effect/ui/html';
-import { SceneSchema } from '@opsydyn/effect-three';
-import { makeEnvironment } from '@opsydyn/effect-three-foldkit/browser';
-import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
 
-import { defineEffectThreeMount } from '../effect-ui-scene';
-import { rendererForPage } from '../renderer';
+import { defineLabelledSceneMount, EffectThreeStage } from '../effect-ui-scene';
 import { Message } from './message';
 import type { Chart, Model } from './model';
 import { scatter, sceneFor, surface } from './scene';
 
-const Stage = Html.customElement({
-  tag: 'effect-three-scene',
-  events: { 'scene-gesture': SceneSchema.GestureDetail },
-});
-
-const SceneMount = defineEffectThreeMount(() =>
-  makeEnvironment(window, { renderer: rendererForPage(window), labels: troikaLabels() }),
-);
+const SceneMount = defineLabelledSceneMount();
 
 const choice = (model: Model, h: Html.H<Message>, chart: Chart, label: string) =>
   h.button
@@ -34,7 +23,7 @@ const summary = (model: Model): string =>
 
 export const view = (h: Html.H<Message>, model: Model) =>
   h.div.class('e3-sample').children(
-    Stage(h)
+    EffectThreeStage(h)
       .class('e3-stage')
       .on('scene-gesture', ({ gesture }) => Message.MadeGesture({ gesture }))
       .onMount(

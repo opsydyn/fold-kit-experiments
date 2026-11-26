@@ -2,6 +2,8 @@ import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 
 /** The ten pins, by the numbers bowlers give them: 1 at the front, 7 to 10 at the back. */
+import { SceneStart } from '../effect-ui-scene';
+
 export const pinIds = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'] as const;
 export type PinId = (typeof pinIds)[number];
 
@@ -23,6 +25,7 @@ export const Shot = Schema.Struct({
 
 export const Model = Schema.Struct({
   assetBase: Schema.String,
+  sceneStatus: Schema.NullOr(SceneStart),
   /** Pins knocked down by each roll so far: the scoresheet is derived from these. */
   rolls: Schema.Array(Schema.Number),
   /** Each fresh rack gets new pin keys, so the pins stand up again. */
@@ -73,6 +76,7 @@ export const homeCamera = perspectiveCamera({
 
 export const initialModel = (assetBase: string): Model => ({
   assetBase,
+  sceneStatus: null,
   rolls: [],
   rack: 0,
   shot: 0,

@@ -1,7 +1,15 @@
 import { Mount, UiSchema } from '@effect/ui';
-import { SceneSchema } from '@opsydyn/effect-three';
-import { mountSceneHost, type Environment } from '@opsydyn/effect-three-foldkit/browser';
+import { Html } from '@effect/ui/html';
+import { SceneSchema, type PhysicsEngine } from '@opsydyn/effect-three';
+import {
+  makeEnvironment,
+  mountSceneHost,
+  type Environment,
+} from '@opsydyn/effect-three-foldkit/browser';
+import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
 import { Effect, Schema, Stream } from 'effect';
+
+import { rendererForPage } from './renderer';
 
 export const SceneStart = UiSchema.TaggedEnum({
   StartedScene: {},
@@ -40,3 +48,30 @@ export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
       );
     },
   );
+
+/** Connects typed scene events to Effect UI without a registered custom element. */
+export const EffectThreeStage = Html.customElement({
+  tag: 'effect-three-scene',
+  events: {
+    'scene-click': SceneSchema.ButtonDetail,
+    'scene-pointer-missed': SceneSchema.MissDetail,
+    'scene-label-measured': SceneSchema.LabelMeasuredDetail,
+    'scene-gesture': SceneSchema.GestureDetail,
+    'scene-collision': SceneSchema.CollisionDetail,
+    'scene-contact-force': SceneSchema.ContactForceDetail,
+  },
+});
+
+export const defineLabelledSceneMount = (loadPhysics?: () => Promise<PhysicsEngine>) =>
+  defineEffectThreeMount(() => {
+    const options = { renderer: rendererForPage(window), labels: troikaLabels() };
+    return makeEnvironment(
+      window,
+      loadPhysics === undefined
+        ? options
+        : {
+            ...options,
+            physics: loadPhysics(),
+          },
+    );
+  });

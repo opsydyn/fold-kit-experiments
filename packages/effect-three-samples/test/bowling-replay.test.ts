@@ -1,11 +1,7 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 import { Option } from 'effect';
 
-await mock.module('../src/bowling/environment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
 const { Message } = await import('../src/bowling/message');
 const { ballKey, init, pinKey, update } = await import('../src/bowling/update');
 const { sceneFor } = await import('../src/bowling/scene');
@@ -65,6 +61,7 @@ test('a replay link carries the record; a malformed one is ignored', () => {
     rolls: [9, 1],
   };
   const link = encode(record);
+  expect(decode('#replay=%ZZ')).toEqual(Option.none());
   expect(link).toBe('#replay=0.08,-0.6,8;-0.12,1.3,9.25|9,1');
   expect(decode(link)).toEqual(Option.some(record));
   for (const bad of [

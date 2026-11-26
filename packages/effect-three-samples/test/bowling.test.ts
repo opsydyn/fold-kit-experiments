@@ -1,10 +1,7 @@
-import { expect, mock, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 
-// The page's environment is not needed by the update logic under test.
-await mock.module('../src/bowling/environment', () => ({
-  environment: {},
-  sceneMount: () => undefined,
-}));
+import { SceneStart } from '../src/effect-ui-scene';
+
 const { Message } = await import('../src/bowling/message');
 const { ballKey, init, pinKey, update } = await import('../src/bowling/update');
 const { sceneFor, sheet } = await import('../src/bowling/scene');
@@ -75,4 +72,26 @@ test('only an aimed ball rolls; the ball carries its impulse once rolled', () =>
   expect(step(rolling, Message.ClickedRoll())).toEqual(rolling);
   const ball = sceneFor(rolling).children.find((child) => child.key === ballKey(rolling));
   expect(ball?._tag === 'Mesh' && ball.body?.impulse?.id).toBe(rolling.shot);
+});
+
+test('browser commands wait for the physics scene to start', () => {
+  const initial = init();
+  expect(initial.commands).toBeUndefined();
+  const unavailable = update(
+    initial.model,
+    Message.ReceivedSceneLifecycle({
+      lifecycle: SceneStart.FailedScene({ reason: 'physics unavailable' }),
+    }),
+  );
+  expect(unavailable.model.sceneStatus).toMatchObject({ reason: 'physics unavailable' });
+  expect(unavailable.commands).toBeUndefined();
+  const mounted = update(
+    initial.model,
+    Message.ReceivedSceneLifecycle({
+      lifecycle: SceneStart.StartedScene(),
+    }),
+  );
+  expect(mounted.commands).toMatchObject([{ name: 'ReadFragment' }]);
+  const fragment = update(mounted.model, Message.ReadFragment({ fragment: '' }));
+  expect(fragment.commands).toMatchObject([{ name: 'RackRest', args: { shot: 0 } }]);
 });

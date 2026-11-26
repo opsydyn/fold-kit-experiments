@@ -1,0 +1,21 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Gallery from '../../../../../../../packages/effect-three-samples/src/gallery/main';
+import Bowling from '../../../../../../../packages/effect-three-samples/src/bowling/main';
+import '../../../../../../../packages/effect-three-samples/src/styles.css';
+
+export function getStaticPaths() {
+  return [{ params: { sample: 'gallery' } }, { params: { sample: 'bowling' } }];
+}
+const gallery = Astro.params.sample === 'gallery';
+---
+<html lang="en">
+  <head><title>{gallery ? 'Gallery' : 'Bowling'}</title><ClientRouter /></head>
+  <body>
+    <main>
+      {gallery ? <Gallery client:load /> : <Bowling client:load />}
+      {gallery && <a href="/three-scenes/bowling/">Bowling</a>}
+      <a href="/away/">Away</a>
+    </main>
+  </body>
+</html>

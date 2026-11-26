@@ -565,3 +565,78 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   },
   30_000,
 );
+
+test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+  'the maintained gallery measures a loaded font and bowling scores a Rapier roll',
+  async () => {
+    const browser = await chromium.launch({
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+    });
+    try {
+      const page = await browser.newPage();
+      const errors: Array<string> = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      const font = new URL(
+        '../../../apps/three-promo/public/models/inter-latin-400-normal.woff',
+        import.meta.url,
+      );
+      await page.route(`${origin}/**`, async (route) => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname === '/models/inter-latin-400-normal.woff') {
+          await route.fulfill({ path: font.pathname, contentType: 'font/woff' });
+          return;
+        }
+        const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+        await route.fulfill({ path: new URL(path, output).pathname });
+      });
+
+      const loaded = page.waitForResponse(
+        (response) => response.url().endsWith('.woff') && response.ok(),
+      );
+      await page.goto(`${origin}/three-scenes/gallery/`);
+      await loaded;
+      const note = page.getByRole('textbox', { name: 'Write on the wall' });
+      const readout = page.locator('.e3-readout');
+      await readout.filter({ hasText: /\d+\.\d+ × \d+\.\d+ units/ }).waitFor();
+      const previous = await readout.textContent();
+      await note.fill('WW');
+      await page.waitForFunction(
+        (text) => document.querySelector('.e3-readout')?.textContent !== text,
+        previous,
+      );
+      await page.getByRole('button', { name: 'Lights off' }).click();
+      await page.getByRole('button', { name: 'Lights on' }).waitFor();
+
+      const canvas = page.locator('effect-three-scene canvas');
+      const gallery = await canvas.elementHandle();
+      const isDisposed = (node: HTMLElement | SVGElement) =>
+        node instanceof HTMLCanvasElement &&
+        !node.isConnected &&
+        node.getContext('webgl2')?.isContextLost();
+      await page.getByRole('link', { name: 'Bowling', exact: true }).click();
+      await page.waitForURL('**/three-scenes/bowling/');
+      await page.waitForFunction(isDisposed, gallery);
+      await readout.filter({ hasText: '10 pins standing' }).waitFor();
+      await page.getByRole('slider', { name: 'Speed' }).press('ArrowRight');
+      await page.getByRole('button', { name: 'Roll', exact: true }).click();
+      await readout.filter({ hasText: 'Rolling' }).waitFor();
+      const link = page.getByRole('link', { name: 'Link to this game' });
+      await link.waitFor();
+      const fragment = await link.getAttribute('href');
+      expect(fragment).toMatch(/^#replay=.*?,8\.25\|(?:[1-9]|10)$/);
+
+      const bowling = await canvas.elementHandle();
+      await page.getByRole('link', { name: 'Away' }).click();
+      await page.waitForURL('**/away/');
+      await page.waitForFunction(isDisposed, bowling);
+      await page.goto(`${origin}/three-scenes/bowling/${fragment}`);
+      await readout
+        .filter({ hasText: 'Replayed 1 rolls: every one knocked down the same pins' })
+        .waitFor();
+      expect(errors).toEqual([]);
+    } finally {
+      await browser.close();
+    }
+  },
+  45_000,
+);

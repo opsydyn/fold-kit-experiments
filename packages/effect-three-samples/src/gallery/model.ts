@@ -7,6 +7,7 @@ export type Block = typeof Block.Type;
 
 export const Model = Schema.Struct({
   assetBase: Schema.String,
+  sceneFailure: Schema.NullOr(Schema.String),
   /** Whether the labels take the scene's lights (a lit material) or troika's own, unlit. */
   lit: Schema.Boolean,
   /** The plaque the camera has walked up to, if any. */
@@ -52,6 +53,7 @@ export const homeCamera = perspectiveCamera({
 
 export const initialModel = (assetBase: string): Model => ({
   assetBase,
+  sceneFailure: null,
   lit: true,
   focus: null,
   note: 'Type here: the panel grows to fit.',

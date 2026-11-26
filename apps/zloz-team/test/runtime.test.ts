@@ -3369,6 +3369,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       ).toBe(false);
       await pageA.mouse.move(pressPoint.x, pressPoint.y);
       await pageA.mouse.down();
+      const startBounds = await alpha(pageA).boundingBox();
+      if (!startBounds) throw new Error('Expected a visible node before dragging');
       await pageA.mouse.move(pressPoint.x + 40, pressPoint.y + 10, { steps: 5 });
       const previewX = await alpha(pageA).getAttribute('data-flow-x');
       const previewY = await alpha(pageA).getAttribute('data-flow-y');
@@ -3385,15 +3387,48 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         }
         return route.continue();
       });
-      await pageA.mouse.up();
+      // Arm before releasing. Keep the clock and both layout reads in the originating page.
+      const probe = await alpha(pageA).evaluateHandle((node, start) => {
+        const selector = '[data-flow-node="a"]';
+        const preview = node.getBoundingClientRect();
+        const atPreview = () => {
+          const current = document.querySelector(selector)?.getBoundingClientRect();
+          return current?.x === preview.x && current.y === preview.y;
+        };
+        const frames = new Promise<{
+          firstFrameMs: number;
+          firstAtPreview: boolean;
+          nextAtPreview: boolean;
+        }>((resolve) => {
+          document.addEventListener(
+            'pointerup',
+            (event) => {
+              requestAnimationFrame(() => {
+                const firstFrameMs = performance.now() - event.timeStamp;
+                const firstAtPreview = atPreview();
+                requestAnimationFrame(() =>
+                  resolve({ firstFrameMs, firstAtPreview, nextAtPreview: atPreview() }),
+                );
+              });
+            },
+            { capture: true, once: true },
+          );
+        });
+        return { frames, moved: preview.x !== start.x || preview.y !== start.y };
+      }, startBounds);
       try {
+        await pageA.mouse.up();
         await poll(async () => Boolean(releaseMove));
-        await pageA.evaluate(
-          () =>
-            new Promise<void>((resolve) =>
-              requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-            ),
-        );
+        const sample = await probe.evaluate(async ({ moved, frames }) => ({
+          moved,
+          ...(await frames),
+        }));
+        expect(sample.moved).toBe(true);
+        expect(sample.firstAtPreview).toBe(true);
+        expect(sample.nextAtPreview).toBe(true);
+        expect(Number.isFinite(sample.firstFrameMs)).toBe(true);
+        expect(sample.firstFrameMs).toBeGreaterThanOrEqual(0);
+        console.info('Drag release to first local animation frame (ms):', sample.firstFrameMs);
         // Preparation has completed and the POST is held: the local drag must
         // remain visible without claiming canonical acceptance or Saved.
         expect(await alpha(pageA).getAttribute('data-flow-x')).toBe(previewX);
@@ -3422,6 +3457,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         expect(selectionWrites).toHaveLength(1);
         expect(await exportedGraph()).toEqual(beforeSelection);
       } finally {
+        await probe.dispose();
         if (releaseMove) await releaseMove();
         await pageA.unroute(`${origin}${apiPath}/operations`);
       }

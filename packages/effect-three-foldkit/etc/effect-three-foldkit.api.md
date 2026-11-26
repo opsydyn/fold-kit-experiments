@@ -4,9 +4,11 @@
 
 ```ts
 
+import { $Array } from 'effect/Schema';
 import { Asset } from '@opsydyn/effect-three';
 import { Behaviour } from '@opsydyn/effect-three';
 import { BodyPose } from '@opsydyn/effect-three';
+import { Boolean as Boolean_2 } from 'effect/Schema';
 import { BufferGeometry } from 'three';
 import { Camera } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
@@ -14,6 +16,7 @@ import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
 import type { FieldPath } from '@opsydyn/effect-three';
 import type { FieldValue } from '@opsydyn/effect-three';
+import { Finite } from 'effect/Schema';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import { Gesture as Gesture_2 } from '@opsydyn/effect-three';
 import { gizmo } from '@opsydyn/effect-three';
@@ -24,8 +27,10 @@ import { Hud } from '@opsydyn/effect-three';
 import { HudAlignment } from '@opsydyn/effect-three';
 import type { InspectedField } from '@opsydyn/effect-three';
 import { LabelEngine } from '@opsydyn/effect-three';
+import { Literals } from 'effect/Schema';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
+import { NullOr } from 'effect/Schema';
 import type { Object3D } from 'three';
 import type { Op } from '@opsydyn/effect-three';
 import { Option as Option_2 } from 'effect';
@@ -44,10 +49,16 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import { String as String_2 } from 'effect/Schema';
+import { Struct } from 'effect/Schema';
+import { TaggedStruct } from 'effect/Schema';
 import { TapeLook } from '@opsydyn/effect-three';
+import { Tuple } from 'effect/Schema';
+import { Union } from 'effect/Schema';
 import { ViewAxis } from '@opsydyn/effect-three';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
+import { withDecodingDefaultKey } from 'effect/Schema';
 import type { Xr } from '@opsydyn/effect-three';
 import type { XrInput } from '@opsydyn/effect-three';
 import { XrSpace } from '@opsydyn/effect-three';
@@ -104,17 +115,17 @@ declare namespace BoxSelect {
     export {
         Box,
         Model,
+        init,
+        drawing,
+        claims,
+        inside,
+        rectangle,
+        DragGesture,
+        Rectangle,
         Message,
         OutMessage,
-        init,
         update,
-        drawing,
-        DragGesture,
-        claims,
-        dragOf,
-        inside,
-        Rectangle,
-        rectangle
+        dragOf
     }
 }
 
@@ -326,12 +337,12 @@ export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 declare namespace MeasuringTape {
     export {
         Model_2 as Model,
-        Message_2 as Message,
-        OutMessage_2 as OutMessage,
         init_2 as init,
-        update_2 as update,
         length_2 as length,
         nodes,
+        Message_2 as Message,
+        OutMessage_2 as OutMessage,
+        update_2 as update,
         label
     }
 }
@@ -339,58 +350,58 @@ declare namespace MeasuringTape {
 // @public (undocumented)
 const Message: MessageUnion<    {
 readonly Dragged: {
-x: Schema.Finite;
-y: Schema.Finite;
-deltaX: Schema.Finite;
-deltaY: Schema.Finite;
-width: Schema.Finite;
-height: Schema.Finite;
+readonly x: Finite;
+readonly y: Finite;
+readonly deltaX: Finite;
+readonly deltaY: Finite;
+readonly width: Finite;
+readonly height: Finite;
 };
 readonly Ended: {
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+readonly fov: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+}>, TaggedStruct<"Orthographic", {
+readonly zoom: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
 }>]>;
-selectable: Schema.$Array<Schema.Struct<{
-readonly key: Schema.String;
-readonly at: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly selectable: $Array<Struct<    {
+readonly key: String_2;
+readonly at: Tuple<readonly [Finite, Finite, Finite]>;
 }>>;
 };
 readonly Cancelled: {};
@@ -402,14 +413,14 @@ type Message = typeof Message.Type;
 // @public (undocumented)
 const Message_2: MessageUnion<    {
 readonly Placed: {
-point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly point: Tuple<readonly [Finite, Finite, Finite]>;
 };
 readonly Pointed: {
-point: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+readonly point: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
 };
 readonly Cleared: {};
 readonly ChoseSnap: {
-snap: Schema.NullOr<Schema.Finite>;
+readonly snap: NullOr<Finite>;
 };
 }>;
 
@@ -419,22 +430,22 @@ type Message_2 = typeof Message_2.Type;
 // @public (undocumented)
 const Message_3: MessageUnion<    {
 readonly Pressed: {
-handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
-point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly handle: Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+readonly point: Tuple<readonly [Finite, Finite, Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
 };
 readonly Dragged: {
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-snap: Schema.Boolean;
+readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
+readonly snap: Boolean_2;
 };
 readonly Released: {};
 readonly Hovered: {
-handle: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+readonly handle: NullOr<Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
 };
 }>;
 
@@ -444,69 +455,69 @@ type Message_3 = typeof Message_3.Type;
 // @public (undocumented)
 const Message_4: MessageUnion<    {
 readonly Pressed: {
-handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly handle: Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+readonly fov: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+}>, TaggedStruct<"Orthographic", {
+readonly zoom: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
 }>]>;
 };
 readonly Dragged: {
-origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly origin: Tuple<readonly [Finite, Finite, Finite]>;
+readonly direction: Tuple<readonly [Finite, Finite, Finite]>;
 };
 readonly Released: {};
 readonly Hovered: {
-handle: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+readonly handle: NullOr<Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
 };
 readonly ChoseMode: {
-mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
+readonly mode: Literals<readonly ["translate", "rotate", "scale"]>;
 };
 readonly ChoseSpace: {
-space: Schema.Literals<readonly ["world", "local"]>;
+readonly space: Literals<readonly ["world", "local"]>;
 };
 }>;
 
@@ -516,52 +527,52 @@ type Message_4 = typeof Message_4.Type;
 // @public (undocumented)
 const Message_5: MessageUnion<    {
 readonly Entered: {
-key: Schema.String;
+readonly key: String_2;
 };
 readonly Left: {
-key: Schema.String;
+readonly key: String_2;
 };
 readonly Pressed: {
-key: Schema.String;
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+readonly key: String_2;
+readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+readonly fov: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+}>, TaggedStruct<"Orthographic", {
+readonly zoom: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
 }>]>;
 };
@@ -715,7 +726,7 @@ export type OnEdit<Message> = (path: FieldPath, value: FieldValue) => Message;
 // @public (undocumented)
 const OutMessage: MessageUnion<    {
 readonly Selected: {
-keys: Schema.$Array<Schema.String>;
+readonly keys: $Array<String_2>;
 };
 }>;
 
@@ -725,9 +736,9 @@ type OutMessage = typeof OutMessage.Type;
 // @public (undocumented)
 const OutMessage_2: MessageUnion<    {
 readonly Measured: {
-from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-to: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-length: Schema.Finite;
+readonly from: Tuple<readonly [Finite, Finite, Finite]>;
+readonly to: Tuple<readonly [Finite, Finite, Finite]>;
+readonly length: Finite;
 };
 }>;
 
@@ -737,17 +748,17 @@ type OutMessage_2 = typeof OutMessage_2.Type;
 // @public (undocumented)
 const OutMessage_3: MessageUnion<    {
 readonly Moved: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
 };
 readonly Finished: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
 };
 }>;
@@ -758,17 +769,17 @@ type OutMessage_3 = typeof OutMessage_3.Type;
 // @public (undocumented)
 const OutMessage_4: MessageUnion<    {
 readonly Moved: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
 };
 readonly Finished: {
-placement: Schema.Struct<{
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly placement: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
 }>;
 };
 }>;
@@ -779,45 +790,45 @@ type OutMessage_4 = typeof OutMessage_4.Type;
 // @public (undocumented)
 const OutMessage_5: MessageUnion<    {
 readonly Turned: {
-camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
-readonly fov: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+readonly camera: Union<readonly [TaggedStruct<"Perspective", {
+readonly fov: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
-}>, Schema.TaggedStruct<"Orthographic", {
-readonly zoom: Schema.Finite;
-readonly near: Schema.Finite;
-readonly far: Schema.Finite;
-readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-readonly damping: Schema.Finite;
-readonly autoRotate: Schema.Finite;
-readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
-readonly intensity: Schema.Finite;
-readonly decay: Schema.Boolean;
-readonly decayRate: Schema.Finite;
-readonly maxYaw: Schema.Finite;
-readonly maxPitch: Schema.Finite;
-readonly maxRoll: Schema.Finite;
-readonly yawFrequency: Schema.Finite;
-readonly pitchFrequency: Schema.Finite;
-readonly rollFrequency: Schema.Finite;
-readonly trigger: Schema.Finite;
+}>, TaggedStruct<"Orthographic", {
+readonly zoom: Finite;
+readonly near: Finite;
+readonly far: Finite;
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly lookAt: Tuple<readonly [Finite, Finite, Finite]>;
+readonly damping: Finite;
+readonly autoRotate: Finite;
+readonly shake: withDecodingDefaultKey<NullOr<Struct<    {
+readonly intensity: Finite;
+readonly decay: Boolean_2;
+readonly decayRate: Finite;
+readonly maxYaw: Finite;
+readonly maxPitch: Finite;
+readonly maxRoll: Finite;
+readonly yawFrequency: Finite;
+readonly pitchFrequency: Finite;
+readonly rollFrequency: Finite;
+readonly trigger: Finite;
 }>>, never>;
 }>]>;
 };
@@ -842,13 +853,13 @@ export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
 declare namespace PivotControls {
     export {
         Model_3 as Model,
-        Message_3 as Message,
-        OutMessage_3 as OutMessage,
         init_3 as init,
-        update_3 as update,
         handleOf,
         held,
-        nodes_2 as nodes
+        nodes_2 as nodes,
+        Message_3 as Message,
+        OutMessage_3 as OutMessage,
+        update_3 as update
     }
 }
 
@@ -1809,13 +1820,13 @@ export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | u
 declare namespace TransformGizmo {
     export {
         Model_4 as Model,
-        Message_4 as Message,
-        OutMessage_4 as OutMessage,
         init_4 as init,
-        update_4 as update,
         handleOf_2 as handleOf,
         held_2 as held,
-        nodes_3 as nodes
+        nodes_3 as nodes,
+        Message_4 as Message,
+        OutMessage_4 as OutMessage,
+        update_4 as update
     }
 }
 
@@ -1895,13 +1906,13 @@ export type ViewConfig<Message> = {
 declare namespace ViewportGizmo {
     export {
         Model_5 as Model,
-        Message_5 as Message,
-        OutMessage_5 as OutMessage,
         init_5 as init,
         axisOf,
-        update_5 as update,
         nodes_4 as nodes,
-        hud
+        hud,
+        Message_5 as Message,
+        OutMessage_5 as OutMessage,
+        update_5 as update
     }
 }
 

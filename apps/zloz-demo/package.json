@@ -11,7 +11,9 @@
     "test": "tsc --noEmit -p tsconfig.test.json && vitest run"
   },
   "dependencies": {
+    "@effect/ui": "catalog:",
     "@fontsource-variable/inter": "catalog:",
+    "@opsydyn/astro-effect-ui": "workspace:*",
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/foldkit-zloz": "workspace:*",
     "@opsydyn/foldkit-zloz-alchemy": "workspace:*",

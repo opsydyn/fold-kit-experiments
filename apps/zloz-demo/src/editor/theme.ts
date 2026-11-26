@@ -5,8 +5,6 @@ import {
   type ZlozTheme,
 } from '@opsydyn/foldkit-zloz/foldkit';
 
-export const themePreferenceStorageKey = 'opsydyn.foldkit-flow.color-scheme.v1';
-
 /** The same neutral/blue family palette as Viz and Three; graph state stays headless. */
 const familyTokens = {
   background: 'var(--paper)',

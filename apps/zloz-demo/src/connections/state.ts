@@ -1,15 +1,14 @@
+import { UiSchema } from '@effect/ui';
 import {
   captureConnectionDocument,
   createEditorFromConnectionDocument,
   updateEditor,
-  type EditorEvent,
   type EditorState,
   type EditorPolicy,
   type ZlozGraph,
 } from '@opsydyn/foldkit-zloz';
+import { BrowserInput } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return } from 'foldkit/update';
 
 export const Session = Schema.Literals(['strict', 'loose']);
 export const PortDesign = Schema.Literals(['native', 'custom']);
@@ -30,8 +29,8 @@ const graph: ZlozGraph = {
 };
 
 export const Model = Schema.Struct({
-  strict: Schema.Unknown,
-  loose: Schema.Unknown,
+  strict: Schema.fromJsonString(Schema.Unknown),
+  loose: Schema.fromJsonString(Schema.Unknown),
   session: Session,
   design: PortDesign,
   scheme: ColorScheme,
@@ -47,8 +46,42 @@ export type Model = Readonly<{
   protectedPort: boolean;
   readOnly: boolean;
 }>;
-export const Message = defineMessageUnion({
-  ObservedInput: { session: Session, event: Schema.Unknown },
+const Edge = { id: Schema.String };
+export const PathStyle = Schema.Literals(['straight', 'stepped', 'smooth']);
+const Event = Schema.Union([
+  BrowserInput,
+  Schema.Struct({ type: Schema.Literal('FitViewClicked') }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeReconnected'),
+    ...Edge,
+    end: Schema.Literals(['source', 'target']),
+    endpoint: Schema.Struct({ node: Schema.String, port: Schema.String }),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgePathStyleChanged'),
+    ...Edge,
+    pathStyle: Schema.NullOr(PathStyle),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeLabelDraftChanged'),
+    ...Edge,
+    text: Schema.String,
+  }),
+  Schema.Struct({
+    type: Schema.Literals([
+      'EdgeLabelEditingStarted',
+      'EdgeLabelSaved',
+      'EdgeLabelCancelled',
+      'EdgeDeleted',
+    ]),
+    ...Edge,
+  }),
+]);
+export type WorkbenchEvent = typeof Event.Type;
+export const decodeBrowserInput = Schema.decodeUnknownSync(BrowserInput);
+
+export const Message = UiSchema.TaggedEnum({
+  ObservedInput: { session: Session, event: Event },
   SelectedSession: { session: Session },
   SelectedDesign: { design: PortDesign },
   SelectedScheme: { scheme: ColorScheme },
@@ -56,24 +89,22 @@ export const Message = defineMessageUnion({
   ClickedReadOnly: {},
 });
 export type Message = typeof Message.Type;
-export const init = (): Return<Model, Message> => ({
-  model: {
-    // oxlint-disable-next-line linteffect/no-resource-without-acquire-release -- Pure validation and immutable editor data; no native resource is acquired.
-    strict: createEditorFromConnectionDocument(
-      captureConnectionDocument({ graph, connectionMode: 'strict' }),
-      { zoomLimits: { minZoom: 0.2, maxZoom: 1.5 } },
-    ),
-    // oxlint-disable-next-line linteffect/no-resource-without-acquire-release -- Pure validation and immutable editor data; no native resource is acquired.
-    loose: createEditorFromConnectionDocument(
-      captureConnectionDocument({ graph, connectionMode: 'loose' }),
-      { zoomLimits: { minZoom: 0.2, maxZoom: 1.5 } },
-    ),
-    session: 'strict',
-    design: 'native',
-    scheme: 'light',
-    protectedPort: true,
-    readOnly: false,
-  },
+export const init = (): Model => ({
+  // oxlint-disable-next-line linteffect/no-resource-without-acquire-release -- Pure validation and immutable editor data; no native resource is acquired.
+  strict: createEditorFromConnectionDocument(
+    captureConnectionDocument({ graph, connectionMode: 'strict' }),
+    { zoomLimits: { minZoom: 0.2, maxZoom: 1.5 } },
+  ),
+  // oxlint-disable-next-line linteffect/no-resource-without-acquire-release -- Pure validation and immutable editor data; no native resource is acquired.
+  loose: createEditorFromConnectionDocument(
+    captureConnectionDocument({ graph, connectionMode: 'loose' }),
+    { zoomLimits: { minZoom: 0.2, maxZoom: 1.5 } },
+  ),
+  session: 'strict',
+  design: 'native',
+  scheme: 'light',
+  protectedPort: true,
+  readOnly: false,
 });
 export const editorFor = (model: Model) => model[model.session];
 export const connectionPolicy = (model: Model): EditorPolicy => ({
@@ -82,35 +113,31 @@ export const connectionPolicy = (model: Model): EditorPolicy => ({
       ? 'Audit input requires approval.'
       : null,
 });
-export function update(model: Model, message: Message): Return<Model, Message> {
+export function update(model: Model, message: Message): Model {
   return Message.match(message, {
-    ObservedInput: ({ session, event: raw }) => {
-      // SAFETY: zlozView and the package's native controls emit EditorEvent; the captured session scopes delayed input.
-      const event = raw as EditorEvent;
-      if (session !== model.session) return { model };
+    ObservedInput: ({ session, event }) => {
+      if (session !== model.session) return model;
       const before = editorFor(model);
       const next = updateEditor(before, event, connectionPolicy(model));
       const editor =
         event.type === 'SurfaceMeasured' && before.surface === null
           ? updateEditor(next, { type: 'FitViewClicked' })
           : next;
-      return { model: { ...model, [session]: editor } };
+      return editor === before ? model : { ...model, [session]: editor };
     },
     SelectedSession: ({ session }) =>
-      editorFor(model).gesture.type !== 'idle' ? { model } : { model: { ...model, session } },
+      editorFor(model).gesture.type !== 'idle' ? model : { ...model, session },
     SelectedDesign: ({ design }) =>
-      editorFor(model).gesture.type !== 'idle' ? { model } : { model: { ...model, design } },
-    SelectedScheme: ({ scheme }) => ({ model: { ...model, scheme } }),
-    ClickedProtection: () => ({ model: { ...model, protectedPort: !model.protectedPort } }),
+      editorFor(model).gesture.type !== 'idle' ? model : { ...model, design },
+    SelectedScheme: ({ scheme }) => ({ ...model, scheme }),
+    ClickedProtection: () => ({ ...model, protectedPort: !model.protectedPort }),
     ClickedReadOnly: () => {
       const readOnly = !model.readOnly;
       return {
-        model: {
-          ...model,
-          readOnly,
-          strict: { ...model.strict, readOnly },
-          loose: { ...model.loose, readOnly },
-        },
+        ...model,
+        readOnly,
+        strict: { ...model.strict, readOnly },
+        loose: { ...model.loose, readOnly },
       };
     },
   });

@@ -1,5 +1,5 @@
 ---
-import { themePreferenceStorageKey } from '../editor/theme';
+import { themePreferenceStorageKey } from '../editor/theme-preference';
 import '@fontsource-variable/inter/wght.css';
 import zlozMark from '../../../../docs/assets/zloz/final/mark.svg?raw';
 interface Props { title?: string; heading?: string; mainLabel?: string; connections?: boolean; history?: boolean }
@@ -13,7 +13,7 @@ const { title = 'Architecture workbench | ZLOZ', heading = 'Architecture workben
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script is:inline define:vars={{ themePreferenceStorageKey }}>
-      // Set the shell color before the FoldKit island starts.
+      // Set the shell color before the island starts.
       function readStoredTheme() {
         // oxlint-disable-next-line linteffect/no-try-catch -- This inline browser script runs before the Effect runtime loads.
         try {
@@ -241,10 +241,18 @@ button, input, select { font: inherit; }
 </style>
 
 <style is:global>
-.connection-lab { height: 100%; min-height: 0; }
+.connection-lab { position: absolute; inset: 0; min-height: 0; }
 .connection-lab-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .connection-lab [data-connection-feedback] { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--ink); }
 .connection-lab .workbench-canvas { display: flex; min-width: 0; min-height: 0; }
-.connection-lab .workbench-canvas > div { width: 100%; }
-.connection-intent-port:disabled { opacity: .6; }
+.connection-lab .zloz-ui-surface {
+  --zloz-ui-height: 100%;
+  --zloz-ui-paper: var(--paper);
+  --zloz-ui-rule: var(--rule);
+  --zloz-ui-panel: var(--panel);
+  --zloz-ui-ink: var(--ink);
+  min-height: 0;
+}
+.connection-edge-actions { display: grid; gap: 8px; margin: 12px 0; }
+.connection-endpoint p { margin-block: 0 8px; font-size: 12px; }
 </style>

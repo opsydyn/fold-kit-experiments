@@ -13,7 +13,7 @@ import { alchemyTextLimits } from './alchemy-text';
 import { editionArchiveByteLimit } from './history';
 import { Message } from './message';
 import { ThemePreference } from './model';
-import { themePreferenceStorageKey } from './theme';
+import { themePreferenceStorageKey } from './theme-preference';
 
 export const LoadThemePreference = Command.define('LoadThemePreference', {
   messages: [Message.LoadedThemePreference],

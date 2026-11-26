@@ -12,7 +12,7 @@ import { deploymentChart, reportChart } from './fixture/src/ReportChart';
 import { VizBarChart } from './fixture/src/VizBarChart';
 
 const fixture = new URL('./fixture/', import.meta.url);
-const output = new URL('dist/', fixture);
+const output = new URL('dist/client/', fixture);
 
 const origin = 'http://astro-effect-ui.test';
 
@@ -47,6 +47,11 @@ test('a static component emits HTML without an island or hydration payload', asy
   const html = await readFile(new URL('static/index.html', output), 'utf8');
   expect(html).toContain('<p>Static summary</p>');
   expect(html).not.toMatch(/<astro-island|<script|data-effect-ui-state/);
+});
+
+test('build-time island state is identified as static for Effect UI hydration', async () => {
+  const html = await readFile(new URL('chart/index.html', output), 'utf8');
+  expect(html).toContain('"~static":true');
 });
 
 test('the client renderer adopts built Astro markup and disposes an island scope', async () => {
@@ -325,6 +330,47 @@ test('removing an interaction island while its module loads discards queued inpu
     await Bun.sleep(0);
     expect(hydrate).not.toHaveBeenCalled();
   } finally {
+    await dom.close();
+  }
+});
+
+test('the built Astro server isolates request props and emits adoptable island state', async () => {
+  const entry = new URL('dist/server/entry.mjs', fixture);
+  const { default: app }: { default: { fetch: (request: Request) => Promise<Response> } } =
+    await import(entry.href);
+  const request = (name: string) =>
+    new Request(`${origin}/request/?name=${encodeURIComponent(name)}`);
+  const [ada, grace] = await Promise.all([
+    app.fetch(request('Ada </script><b>unsafe</b>')),
+    app.fetch(request('Grace')),
+  ]);
+  expect(ada.status).toBe(200);
+  expect(grace.status).toBe(200);
+  const [adaHtml, graceHtml] = await Promise.all([ada.text(), grace.text()]);
+  const dom = new TestWindow({ url: origin });
+  try {
+    dom.document.write(adaHtml);
+    const island = dom.document.querySelector('astro-island');
+    const greeting = island?.querySelector('output');
+    if (!island || !greeting) throw new Error('Expected a hydratable greeting.');
+    expect(greeting.textContent).toBe('Hello, Ada </script><b>unsafe</b>!');
+    expect(island.querySelector('b')).toBeNull();
+    expect(graceHtml).toContain('Hello, Grace!');
+    expect(graceHtml).not.toContain('unsafe');
+    const state = island.querySelector('script[data-effect-ui-state]')?.textContent;
+    expect(state).toContain('unsafe');
+    expect(state).not.toContain('"~static"');
+    expect(state).not.toContain('</script>');
+    const { Greeting } = await import('./fixture/src/Greeting');
+    // SAFETY: Happy DOM supplies the DOM methods the renderer uses.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The declarations differ from lib.dom.
+    const hydrate = renderer(island as unknown as HTMLElement);
+    await hydrate(Greeting, { name: 'Ada </script><b>unsafe</b>' }, {}, { client: 'load' });
+    expect(island.querySelector('output')).toBe(greeting);
+    island.querySelector('button')?.click();
+    await expectEventually(() => greeting.textContent, 'Welcome, Ada </script><b>unsafe</b>!');
+  } finally {
+    dom.document.querySelector('astro-island')?.dispatchEvent(new dom.Event('astro:unmount'));
     await dom.close();
   }
 });

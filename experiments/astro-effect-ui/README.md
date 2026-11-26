@@ -24,6 +24,12 @@ The `/plot/` route exercises Viz's `./effect/plot` package export. It
 renders a composed dot plot and displays the compiler's missing-field
 diagnostic for a second spec on the same page.
 
+The `/request/` route is rendered on demand by the built Astro fetch
+entrypoint. Tests call it with concurrent Request objects and hydrate one
+response against its original markup. The renderer marks prerendered
+island state so Effect UI can handle its query freshness separately from
+request-time state.
+
 The server renders components with Astro's props. A static component emits
 HTML alone. A hydrating component carries Effect UI's serialized state beside
 its mount container. Keep secrets out of component models and query results

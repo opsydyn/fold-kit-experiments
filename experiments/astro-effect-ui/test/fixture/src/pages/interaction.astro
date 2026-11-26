@@ -1,0 +1,8 @@
+---
+import { reportChart } from '../ReportChart';
+import { VizBarChart } from '../VizBarChart';
+---
+<html lang="en">
+  <head><title>Interaction-triggered chart</title></head>
+  <body><VizBarChart {...reportChart} interactive={true} client:interaction /></body>
+</html>

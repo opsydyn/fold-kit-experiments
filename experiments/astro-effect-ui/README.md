@@ -32,5 +32,12 @@ when Astro removes the island. Astro owns the document title and other head
 metadata. The retained-island fixture uses `transition:persist-props` to keep
 the existing instance and its original props.
 
+The `/interaction/` fixture activates on the first interaction. The Astro
+renderer waits for Effect UI to adopt the island before the directive
+replays clicks on retained controls. Deferred removal cancels replay. Native
+links and form edits retain their browser behavior during activation. The
+Effect UI integration owns this directive on an Astro site. Use one
+integration that registers `client:interaction` per Astro configuration.
+
 See [ADR 0128](../../docs/adr/0128-evaluate-a-standalone-astro-effect-ui-renderer.md)
 for the preview scope.

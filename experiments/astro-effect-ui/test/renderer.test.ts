@@ -1,11 +1,12 @@
 /* oxlint-disable linteffect/no-try-catch -- Tests use finally to release browser and DOM resources. */
-import { beforeAll, expect, test } from 'bun:test';
+import { beforeAll, expect, mock, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 
 import { Window as TestWindow } from 'happy-dom';
 import { chromium } from 'playwright';
 
 import renderer from '../src/client';
+import interaction from '../src/directive-interaction';
 import { Counter, StaticSummary } from './fixture/src/Counter';
 import { deploymentChart, reportChart } from './fixture/src/ReportChart';
 import { VizBarChart } from './fixture/src/VizBarChart';
@@ -244,6 +245,90 @@ test('an island can retry after its hydration state fails to parse', async () =>
   }
 });
 
+test('interaction defers Astro hydration and delivers the first click exactly once', async () => {
+  const dom = new TestWindow({ url: origin });
+  try {
+    dom.document.write(await readFile(new URL('interaction/index.html', output), 'utf8'));
+    const island = dom.document.querySelector('astro-island[client="interaction"]');
+    const button = island?.querySelector('button[data-bar-key="feb"]');
+    const svg = island?.querySelector('svg');
+    if (!island || !button || !svg)
+      throw new Error('Expected the server-rendered interaction chart.');
+    expect(island.querySelector('script[data-effect-ui-state]')).not.toBeNull();
+    // SAFETY: Happy DOM implements the island methods used by the renderer and directive.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The declarations differ from lib.dom.
+    const host = island as unknown as HTMLElement;
+    const hydrate = renderer(host);
+    let releaseLoad!: () => void;
+    const held = new Promise<void>((resolve) => {
+      releaseLoad = resolve;
+    });
+    let loads = 0;
+    let deliveries = 0;
+    button.addEventListener('click', () => {
+      deliveries += 1;
+    });
+    const load = async () => {
+      loads += 1;
+      await held;
+      return async () => {
+        await hydrate(
+          VizBarChart,
+          { ...reportChart, interactive: true },
+          {},
+          { client: 'interaction' },
+        );
+      };
+    };
+    interaction(load, { name: 'interaction', value: '' }, host);
+    expect(loads).toBe(0);
+    button.dispatchEvent(new dom.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(loads).toBe(1);
+    expect(deliveries).toBe(0);
+    expect(island.querySelector('output')?.textContent).toBe('No selection');
+    releaseLoad();
+    await expectEventually(
+      () => island.querySelector('output')?.textContent,
+      'February: 24 reports',
+    );
+    expect(island.querySelector('svg')).toBe(svg);
+    expect(deliveries).toBe(1);
+    expect(loads).toBe(1);
+  } finally {
+    dom.document.querySelector('astro-island')?.dispatchEvent(new dom.Event('astro:unmount'));
+    await dom.close();
+  }
+});
+
+test('removing an interaction island while its module loads discards queued input', async () => {
+  const dom = new TestWindow({ url: origin });
+  try {
+    dom.document.write(await readFile(new URL('interaction/index.html', output), 'utf8'));
+    const island = dom.document.querySelector('astro-island[client="interaction"]');
+    const button = island?.querySelector('button[data-bar-key="feb"]');
+    if (!island || !button) throw new Error('Expected the interaction island and its button.');
+    // SAFETY: Happy DOM implements the island methods used by the directive.
+    // oxlint-disable-next-line anti-slop/no-chained-type-assertions -- The declarations differ from lib.dom.
+    const host = island as unknown as HTMLElement;
+    const hydrate = mock(async () => {});
+    let releaseLoad!: (resume: () => Promise<void>) => void;
+    const held = new Promise<() => Promise<void>>((resolve) => {
+      releaseLoad = resolve;
+    });
+    const load = mock(() => held);
+    interaction(load, { name: 'interaction', value: '' }, host);
+    button.dispatchEvent(new dom.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(load).toHaveBeenCalledTimes(1);
+    island.remove();
+    island.dispatchEvent(new dom.Event('astro:unmount'));
+    releaseLoad(hydrate);
+    await Bun.sleep(0);
+    expect(hydrate).not.toHaveBeenCalled();
+  } finally {
+    await dom.close();
+  }
+});
+
 test('client:only mounts without a server render or serialized state', async () => {
   const dom = new TestWindow({ url: origin });
   try {
@@ -340,6 +425,15 @@ test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
           'February: 24 reports',
       );
       expect(await february.getAttribute('aria-pressed')).toBe('true');
+      await page.goto(`${origin}/interaction/`);
+      await page.locator('astro-island[client="interaction"][ssr]').waitFor({ state: 'attached' });
+      await page.getByRole('button', { name: 'February' }).click();
+      await page
+        .locator('astro-island[client="interaction"]:not([ssr])')
+        .waitFor({ state: 'attached' });
+      await page.waitForFunction(
+        () => document.querySelector('output')?.textContent === 'February: 24 reports',
+      );
       expect(errors).toEqual([]);
     } finally {
       await browser.close();

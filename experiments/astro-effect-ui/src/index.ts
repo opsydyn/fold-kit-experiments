@@ -6,7 +6,11 @@ export default function effectUi(): AstroIntegration {
   return {
     name: 'astro-effect-ui',
     hooks: {
-      'astro:config:setup': ({ addRenderer }) => {
+      'astro:config:setup': ({ addClientDirective, addRenderer }) => {
+        addClientDirective({
+          name: 'interaction',
+          entrypoint: fileURLToPath(new URL('./directive-interaction.ts', import.meta.url)),
+        });
         addRenderer({
           name: 'astro-effect-ui',
           serverEntrypoint: fileURLToPath(new URL('./server.ts', import.meta.url)),

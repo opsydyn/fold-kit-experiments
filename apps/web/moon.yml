@@ -13,6 +13,12 @@ tasks:
   test:
     script: 'vitest run'
     deps: ['^:build']
+  integration:
+    script: 'tsc --noEmit -p test/integration && bun test test/integration'
+    # The suite builds Web and its package dependencies through the app script.
+    inputs: ['/packages/**/*', '/apps/web/**/*']
+    options:
+      mutex: 'rebuilds-packages'
   e2e-zloz:
     script: 'playwright test e2e/zloz.spec.ts'
     deps: ['^:build']

@@ -51,7 +51,7 @@ async function qualify() {
   await section('Appearance');
   const design = page.getByRole('combobox', { name: 'Node design', exact: true });
   await design.selectOption('orbits');
-  const artwork = page.locator('[data-architecture-orbit-node="source"] [data-orbit-body]');
+  const artwork = page.locator('[data-flow-node="source"] [data-orbit-body]');
   const draft = button('Select Draft');
   await expect(artwork.locator('circle').first()).toHaveAttribute('stroke', '#38bdf8');
   const initial = await graph();
@@ -82,19 +82,22 @@ async function qualify() {
   await button('Open grouped Onion Architecture').click();
   await section('Appearance');
   await design.selectOption('orbits');
-  const group = page.locator('[data-architecture-orbit-group]').first();
+  const group = page
+    .locator('[data-flow-group]')
+    .filter({ has: page.locator('[data-orbit-body]') })
+    .first();
   await expect(group.locator('[data-orbit-body]')).toBeVisible();
-  const groupId = await group.getAttribute('data-architecture-orbit-group');
+  const groupId = await group.getAttribute('data-flow-group');
   const groupLabel = await group.locator('[data-orbit-body]').textContent();
   await expect(button('Select ' + groupLabel)).toBeVisible();
   await button('Collapse ' + groupLabel).click();
   await expect(page.locator('[data-flow-group="' + groupId + '"]')).toHaveAttribute(
-    'data-flow-collapsed',
+    'data-flow-group-collapsed',
     'true',
   );
   await button('Expand ' + groupLabel).click();
   await expect(page.locator('[data-flow-group="' + groupId + '"]')).toHaveAttribute(
-    'data-flow-collapsed',
+    'data-flow-group-collapsed',
     'false',
   );
   expect(errors).toEqual([]);

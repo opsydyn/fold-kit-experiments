@@ -37,7 +37,7 @@ async function qualify() {
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   const response = await page.goto(
-    'http://127.0.0.1:' + server.address().port + '/qualification/architecture/',
+    'http://127.0.0.1:' + server.address().port + (process.env.ZLOZ_ARCHITECTURE_ROUTE ?? '/'),
   );
   expect(response?.status()).toBe(200);
   const button = (name) => page.getByRole('button', { name, exact: true });

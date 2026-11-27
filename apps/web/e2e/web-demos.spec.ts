@@ -71,3 +71,45 @@ test('Timestamp renders the same server start time while uptime advances', async
   await expect(page.locator('[data-uptime]')).not.toHaveText('00m 00s');
   await expect(start).toHaveAttribute('datetime', startedAt ?? '');
 });
+
+test('Counter hydrates and animates particles before they expire', async ({ page }) => {
+  await page.goto('/');
+  await hydrated(page);
+  const count = page.getByRole('status');
+  await expect(count).toHaveText('0');
+  await page.getByRole('button', { name: '−', exact: true }).press('Enter');
+  await expect(count).toHaveText('-1');
+  const particles = page.locator('svg[aria-hidden="true"] circle');
+  await expect(particles.first()).toBeVisible();
+  await expect(particles).toHaveCount(0);
+  await page.getByRole('button', { name: '+', exact: true }).click();
+  await expect(count).toHaveText('0');
+  await page.getByRole('button', { name: '+', exact: true }).click();
+  await expect(count).toHaveText('1');
+  await page.getByRole('button', { name: 'Reset' }).click();
+  await expect(count).toHaveText('0');
+});
+
+test('Health loads server data, advances uptime, and renders HTTP errors', async ({ page }) => {
+  await page.route('**/api/health', (route) =>
+    route.fulfill({
+      json: {
+        status: 'ok',
+        uptimeSeconds: 12.5,
+        startedAt: '2026-07-07T19:00:00.000Z',
+        timestamp: '2026-07-07T19:00:12.500Z',
+      },
+    }),
+  );
+  await page.goto('/health');
+  await hydrated(page);
+  await expect(page.getByText('ok', { exact: true })).toBeVisible();
+  await expect(page.getByText('Server time', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^1[3-9]\.\ds$/)).toBeVisible();
+
+  await page.unroute('**/api/health');
+  await page.route('**/api/health', (route) => route.fulfill({ status: 503, json: {} }));
+  await page.reload();
+  await hydrated(page);
+  await expect(page.getByRole('alert')).toContainText('error');
+});

@@ -1,6 +1,5 @@
+import type { Command } from '@effect/ui';
 import { Array as Arr, Match, Match as M, Newtype, Option, Result } from 'effect';
-import type { Command } from 'foldkit';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { SpawnParticle } from './command';
 import {
@@ -26,7 +25,10 @@ import { _age, _lifespan, _px, _py, _trail, _vx, _vy } from './particle';
 import type { Hue } from './types';
 import { Milliseconds, Pixels } from './types';
 
-type Return = UpdateReturn<Model, Message>;
+type Return = {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+};
 
 function continueParticle(
   particle: Particle,
@@ -73,11 +75,11 @@ const cappedDelta = (deltaTimeMs: Milliseconds): number =>
   Math.min(Newtype.value(deltaTimeMs) / MS_PER_SECOND, DELTA_SECONDS_CAP);
 
 const directionalBurst = (hue: Hue, angleBase: number): ReadonlyArray<Command.Command<Message>> =>
-  Arr.makeBy(BURST_COUNT, () => SpawnParticle({ x: SPAWN_X, y: SPAWN_Y, hue, angleBase }));
+  Arr.makeBy(BURST_COUNT, () => SpawnParticle.make({ x: SPAWN_X, y: SPAWN_Y, hue, angleBase }));
 
 const radialBurst = (hue: Hue): ReadonlyArray<Command.Command<Message>> =>
   Arr.makeBy(BURST_COUNT, (i) =>
-    SpawnParticle({
+    SpawnParticle.make({
       x: SPAWN_X,
       y: SPAWN_Y,
       hue,

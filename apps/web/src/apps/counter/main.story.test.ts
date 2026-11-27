@@ -1,281 +1,100 @@
-import { Newtype } from 'effect';
-import { Story } from 'foldkit';
-import { describe, expect, test } from 'vitest';
+import { Effect, Newtype } from 'effect';
+import { expect, test } from 'vitest';
 
 import { SpawnParticle } from './command';
-import { BURST_COUNT, DECREMENT_HUE, INCREMENT_HUE, RESET_HUE, SPAWN_X, SPAWN_Y } from './constant';
+import {
+  BURST_COUNT,
+  DECREMENT_HUE,
+  INCREMENT_HUE,
+  LIFESPAN_MAX_MS,
+  LIFESPAN_MIN_MS,
+  RESET_HUE,
+  SPAWN_X,
+  SPAWN_Y,
+  UP_ANGLE,
+} from './constant';
 import { Message } from './message';
 import { init } from './model';
-import type { Hue } from './types';
-import { Milliseconds, ParticleId, PixelsPerSec } from './types';
+import { Count, Milliseconds, ParticleId, PixelsPerSec } from './types';
 import { update } from './update';
 
-const emptyModel = init;
+test.each([
+  [Message.ClickedIncrement(), 1, INCREMENT_HUE],
+  [Message.ClickedDecrement(), -1, DECREMENT_HUE],
+  [Message.ClickedReset(), 0, RESET_HUE],
+] as const)(
+  'applies $0._tag and issues a full burst with the matching hue',
+  (message, count, hue) => {
+    const result = update(init, message);
+    expect(Newtype.value(result.model.count)).toBe(count);
+    expect(result.commands).toHaveLength(BURST_COUNT);
+    for (const command of result.commands ?? []) {
+      expect(command).toMatchObject({
+        name: 'SpawnParticle',
+        args: { x: SPAWN_X, y: SPAWN_Y, hue },
+      });
+    }
+  },
+);
 
-const fakeParticle = (hue: Hue) =>
-  Message.SpawnedParticle({
+const spawned = Message.SpawnedParticle({
+  x: SPAWN_X,
+  y: SPAWN_Y,
+  vx: PixelsPerSec(0),
+  vy: PixelsPerSec(-200),
+  hue: INCREMENT_HUE,
+  lifespanMs: Milliseconds(1000),
+});
+
+const modelWithParticle = update(init, spawned).model;
+
+test('spawned particles receive consecutive IDs and start at the origin of the burst', () => {
+  const { particles } = update(modelWithParticle, spawned).model;
+  expect(particles.map(({ id }) => id)).toEqual([ParticleId(0), ParticleId(1)]);
+  expect(particles[0]).toMatchObject({ hue: INCREMENT_HUE, trail: [{ x: SPAWN_X, y: SPAWN_Y }] });
+});
+
+test('the particle command generates a particle within its configured lifetime', async () => {
+  const command = SpawnParticle.make({
     x: SPAWN_X,
     y: SPAWN_Y,
-    vx: PixelsPerSec(0),
-    vy: PixelsPerSec(-100),
-    hue,
-    lifespanMs: Milliseconds(1000),
+    hue: INCREMENT_HUE,
+    angleBase: UP_ANGLE,
   });
+  const message = await Effect.runPromise(command.effect);
+  expect(message).toMatchObject({ _tag: 'SpawnedParticle', x: SPAWN_X, y: SPAWN_Y });
+  expect(Newtype.value(message.lifespanMs)).toBeGreaterThanOrEqual(Newtype.value(LIFESPAN_MIN_MS));
+  expect(Newtype.value(message.lifespanMs)).toBeLessThan(Newtype.value(LIFESPAN_MAX_MS));
+});
 
-const drainSpawns = (hue: Hue) =>
-  Story.Command.resolveAll(
-    ...Array.from({ length: BURST_COUNT }, () => [SpawnParticle, fakeParticle(hue)] as const),
+test('a frame advances age and position, applies gravity, and issues no commands', () => {
+  const { model, commands } = update(
+    modelWithParticle,
+    Message.TickedFrame({ deltaTimeMs: Milliseconds(16) }),
   );
+  const particle = model.particles[0];
+  expect(Newtype.value(model.elapsedSeconds)).toBeCloseTo(0.016);
+  expect(particle?.ageMs).toBe(16);
+  expect(particle?.vy).toBeGreaterThan(-200);
+  expect(particle?.trail).toHaveLength(2);
+  expect(particle?.trail[1]?.y).toBeLessThan(Newtype.value(SPAWN_Y));
+  expect(commands).toBeUndefined();
+});
 
-describe('update', () => {
-  describe('counter', () => {
-    test('ClickedIncrement increments count', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedIncrement()),
-        drainSpawns(INCREMENT_HUE),
-        Story.model((model) => {
-          expect(model.count).toBe(1);
-        }),
-      );
-    });
-
-    test('ClickedDecrement decrements count', () => {
-      Story.story(
-        update,
-        Story.given({ ...emptyModel, count: 3 }),
-        Story.message(Message.ClickedDecrement()),
-        drainSpawns(DECREMENT_HUE),
-        Story.model((model) => {
-          expect(model.count).toBe(2);
-        }),
-      );
-    });
-
-    test('ClickedReset resets count to zero', () => {
-      Story.story(
-        update,
-        Story.given({ ...emptyModel, count: 5 }),
-        Story.message(Message.ClickedReset()),
-        drainSpawns(RESET_HUE),
-        Story.model((model) => {
-          expect(model.count).toBe(0);
-        }),
-      );
-    });
-
-    test('count can go below zero', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedDecrement()),
-        drainSpawns(DECREMENT_HUE),
-        Story.model((model) => {
-          expect(model.count).toBe(-1);
-        }),
-      );
-    });
-  });
-
-  describe('particle spawning', () => {
-    test('ClickedIncrement spawns BURST_COUNT particles', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedIncrement()),
-        Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
-        drainSpawns(INCREMENT_HUE),
-        Story.model((model) => {
-          expect(model.particles).toHaveLength(BURST_COUNT);
-        }),
-      );
-    });
-
-    test('ClickedDecrement spawns BURST_COUNT particles', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedDecrement()),
-        Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
-        drainSpawns(DECREMENT_HUE),
-        Story.model((model) => {
-          expect(model.particles).toHaveLength(BURST_COUNT);
-        }),
-      );
-    });
-
-    test('ClickedReset spawns BURST_COUNT particles as scatter', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedReset()),
-        Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
-        drainSpawns(RESET_HUE),
-        Story.model((model) => {
-          expect(model.particles).toHaveLength(BURST_COUNT);
-        }),
-      );
-    });
-
-    test('SpawnedParticle appends a particle with the correct hue', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedIncrement()),
-        drainSpawns(INCREMENT_HUE),
-        Story.model((model) => {
-          expect(model.particles[0]?.hue).toBe(INCREMENT_HUE);
-        }),
-      );
-    });
-
-    test('SpawnedParticle assigns sequential ids', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedIncrement()),
-        drainSpawns(INCREMENT_HUE),
-        Story.model((model) => {
-          expect(model.particles[0]?.id).toBe(0);
-          expect(model.particles[1]?.id).toBe(1);
-        }),
-      );
-    });
-
-    test('SpawnedParticle initialises trail at spawn position', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.ClickedIncrement()),
-        drainSpawns(INCREMENT_HUE),
-        Story.model((model) => {
-          expect(model.particles[0]?.trail).toHaveLength(1);
-          expect(model.particles[0]?.trail[0]).toEqual({ x: SPAWN_X, y: SPAWN_Y });
-        }),
-      );
-    });
-  });
-
-  describe('particle physics', () => {
-    const aParticle = {
-      id: ParticleId(0),
-      trail: [{ x: SPAWN_X, y: SPAWN_Y }],
-      hue: INCREMENT_HUE,
-      ageMs: Milliseconds(0),
-      lifespanMs: Milliseconds(1000),
-      vx: PixelsPerSec(0),
-      vy: PixelsPerSec(-200),
-    };
-
-    const modelWithParticle = { ...emptyModel, nextId: ParticleId(1), particles: [aParticle] };
-
-    test('TickedFrame advances particle age by delta', () => {
-      Story.story(
-        update,
-        Story.given(modelWithParticle),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          expect(model.particles[0]?.ageMs).toBe(16);
-        }),
-      );
-    });
-
-    test('TickedFrame appends a trail point', () => {
-      Story.story(
-        update,
-        Story.given(modelWithParticle),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          expect(model.particles[0]?.trail).toHaveLength(2);
-        }),
-      );
-    });
-
-    test('TickedFrame moves particle upward when vy is negative', () => {
-      Story.story(
-        update,
-        Story.given(modelWithParticle),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          const tip = model.particles[0]?.trail[1];
-          expect(tip?.y).toBeLessThan(Newtype.value(SPAWN_Y));
-        }),
-      );
-    });
-
-    test('TickedFrame applies gravity (vy increases toward positive)', () => {
-      Story.story(
-        update,
-        Story.given(modelWithParticle),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          expect(model.particles[0]?.vy).toBeGreaterThan(Newtype.value(aParticle.vy));
-        }),
-      );
-    });
-
-    test('TickedFrame advances elapsedSeconds', () => {
-      Story.story(
-        update,
-        Story.given(emptyModel),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          expect(Newtype.value(model.elapsedSeconds)).toBeCloseTo(0.016);
-        }),
-      );
-    });
-
-    test('TickedFrame removes particles that have expired', () => {
-      Story.story(
-        update,
-        Story.given({
-          ...modelWithParticle,
-          particles: [{ ...aParticle, ageMs: Milliseconds(990) }],
-        }),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.model((model) => {
-          expect(model.particles).toHaveLength(0);
-        }),
-      );
-    });
-
-    test('TickedFrame emits no commands', () => {
-      Story.story(
-        update,
-        Story.given(modelWithParticle),
-        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
-        Story.Command.expectNone(),
-      );
-    });
-  });
-
-  describe('ClickedReset', () => {
-    test('clears existing particles before spawning new ones', () => {
-      Story.story(
-        update,
-        Story.given({
-          ...emptyModel,
-          count: 3,
-          particles: [
-            {
-              id: ParticleId(0),
-              trail: [{ x: SPAWN_X, y: SPAWN_Y }],
-              hue: INCREMENT_HUE,
-              ageMs: Milliseconds(200),
-              lifespanMs: Milliseconds(1000),
-              vx: PixelsPerSec(0),
-              vy: PixelsPerSec(-100),
-            },
-          ],
-        }),
-        Story.message(Message.ClickedReset()),
-        Story.model((model) => {
-          expect(model.count).toBe(0);
-          expect(model.particles).toHaveLength(0);
-        }),
-        drainSpawns(RESET_HUE),
-      );
-    });
-  });
+test('a frame removes expired particles and Reset clears a live burst immediately', () => {
+  const { x, y, vx, vy, hue, lifespanMs } = spawned;
+  const expiring = {
+    id: ParticleId(0),
+    trail: [{ x, y }],
+    vx,
+    vy,
+    hue,
+    lifespanMs,
+    ageMs: Milliseconds(990),
+  };
+  const tick = Message.TickedFrame({ deltaTimeMs: Milliseconds(16) });
+  expect(update({ ...modelWithParticle, particles: [expiring] }, tick).model.particles).toEqual([]);
+  expect(
+    update({ ...modelWithParticle, count: Count(3) }, Message.ClickedReset()).model,
+  ).toMatchObject({ count: Count(0), particles: [] });
 });

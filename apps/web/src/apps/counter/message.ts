@@ -1,8 +1,8 @@
-import { defineMessageUnion } from 'foldkit/message';
+import { UiSchema } from '@effect/ui';
 
 import { HueSchema, MillisecondsSchema, PixelsPerSecSchema, PixelsSchema } from './types';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedDecrement: {},
   ClickedIncrement: {},
   ClickedReset: {},

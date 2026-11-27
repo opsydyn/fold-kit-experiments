@@ -1,5 +1,5 @@
+import { Command } from '@effect/ui';
 import { Effect, Newtype, Random, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import {
   HUE_JITTER,
@@ -12,10 +12,10 @@ import {
 import { Message } from './message';
 import { Hue, HueSchema, Milliseconds, PixelsPerSec, PixelsSchema } from './types';
 
-export const SpawnParticle = Command.define('SpawnParticle', {
-  args: { x: PixelsSchema, y: PixelsSchema, hue: HueSchema, angleBase: Schema.Number },
-  messages: [Message.SpawnedParticle],
-  execute: ({ x, y, hue, angleBase }) =>
+export const SpawnParticle = Command.make(
+  'SpawnParticle',
+  { args: { x: PixelsSchema, y: PixelsSchema, hue: HueSchema, angleBase: Schema.Number } },
+  ({ x, y, hue, angleBase }) =>
     Effect.gen(function* () {
       const jitter = yield* Random.nextBetween(-SPREAD, SPREAD);
       const angle = angleBase + jitter;
@@ -34,4 +34,4 @@ export const SpawnParticle = Command.define('SpawnParticle', {
         lifespanMs: Milliseconds(lifespanMs),
       });
     }),
-});
+);

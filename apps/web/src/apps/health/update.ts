@@ -1,24 +1,19 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
-
 import { Message, type Message as MessageType } from './message';
 import { Model, type Model as ModelType, _elapsedMs } from './model';
 
-type Return = UpdateReturn<ModelType, MessageType>;
-
-export const update = (model: ModelType, message: MessageType): Return =>
+export const update = (model: ModelType, message: MessageType): ModelType =>
   Message.match(message, {
-    FetchedHealth: ({ status, uptimeSeconds, startedAt, timestamp }) => ({
-      model: Model.Loaded({
+    FetchedHealth: ({ status, uptimeSeconds, startedAt, timestamp }) =>
+      Model.Loaded({
         data: { status, uptimeSeconds, startedAt, timestamp },
         elapsedMs: 0,
         sinceLabel: new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
           new Date(startedAt),
         ),
       }),
-    }),
-    FetchFailed: ({ error }) => ({ model: Model.Failed({ error }) }),
+    FetchFailed: ({ error }) => Model.Failed({ error }),
     TickedFrame: ({ deltaTimeMs }) => {
-      if (model._tag !== 'Loaded') return { model: model };
-      return { model: _elapsedMs.modify((ms) => ms + deltaTimeMs)(model) };
+      if (!Model.is('Loaded')(model)) return model;
+      return _elapsedMs.modify((ms) => ms + deltaTimeMs)(model);
     },
   });

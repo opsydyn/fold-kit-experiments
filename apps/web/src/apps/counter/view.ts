@@ -1,6 +1,5 @@
-import { Array as Arr, Newtype, Option } from 'effect';
-import { Canvas } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
+import { Newtype } from 'effect';
 
 import {
   ALPHA_EPSILON,
@@ -22,7 +21,7 @@ import {
 import { Message } from './message';
 import type { Model } from './model';
 import { _count } from './model';
-import type { Particle, Point } from './particle';
+import type { Particle } from './particle';
 import { _age, _hue, _lifespan, _px, _py } from './particle';
 
 import * as styles from './counter.css';
@@ -34,85 +33,72 @@ const fadeAlpha = (particle: Particle): number => {
   return Math.max(0, Math.min(fadeIn, fadeOut));
 };
 
-const trailToInstructions = (trail: ReadonlyArray<Point>): ReadonlyArray<Canvas.PathInstruction> =>
-  Arr.matchLeft(trail, {
-    onEmpty: () => [],
-    onNonEmpty: (head, tail) => [
-      Canvas.MoveTo({ x: _px.get(head), y: _py.get(head) }),
-      ...Arr.map(tail, (p) => Canvas.LineTo({ x: _px.get(p), y: _py.get(p) })),
-    ],
-  });
-
-const particleDrawables = (particle: Particle) => {
-  if (particle.trail.length < 2) return [];
+const particleView = (h: Html.H<Message>, particle: Particle) => {
+  const head = particle.trail.at(-1);
   const fade = fadeAlpha(particle);
-  if (fade < ALPHA_EPSILON) return [];
-
+  if (head === undefined || particle.trail.length < 2 || fade < ALPHA_EPSILON) return undefined;
   const hue = _hue.get(particle);
-  const instructions = trailToInstructions(particle.trail);
+  const path = particle.trail
+    .map((point, index) => `${index === 0 ? 'M' : 'L'}${_px.get(point)},${_py.get(point)}`)
+    .join(' ');
+  const stroke = (lightness: number, alpha: number, width: number) =>
+    h.el('path').attrs({
+      d: path,
+      fill: 'none',
+      stroke: `hsla(${hue}, ${SATURATION}%, ${lightness}%, ${alpha * fade})`,
+      'stroke-width': String(width),
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    });
 
-  const trailDrawables = [
-    Canvas.Path({
-      instructions,
-      stroke: `hsla(${hue}, ${SATURATION}%, ${GLOW_LIGHTNESS}%, ${GLOW_ALPHA * fade})`,
-      lineWidth: GLOW_WIDTH,
-      lineCap: 'Round',
-      lineJoin: 'Round',
-    }),
-    Canvas.Path({
-      instructions,
-      stroke: `hsla(${hue}, ${SATURATION}%, ${CORE_LIGHTNESS}%, ${CORE_ALPHA * fade})`,
-      lineWidth: CORE_WIDTH,
-      lineCap: 'Round',
-      lineJoin: 'Round',
-    }),
-  ];
+  return h
+    .el('g')
+    .key(String(Newtype.value(particle.id)))
+    .children(
+      stroke(GLOW_LIGHTNESS, GLOW_ALPHA, GLOW_WIDTH),
+      stroke(CORE_LIGHTNESS, CORE_ALPHA, CORE_WIDTH),
+      h.el('circle').attrs({
+        cx: String(_px.get(head)),
+        cy: String(_py.get(head)),
+        r: String(HEAD_RADIUS),
+        fill: `hsla(${hue}, ${SATURATION}%, ${HEAD_LIGHTNESS}%, ${HEAD_ALPHA * fade})`,
+      }),
+    );
+};
 
-  const maybeHead = Option.map(Arr.last(particle.trail), (pos) =>
-    Canvas.Circle({
-      x: _px.get(pos),
-      y: _py.get(pos),
-      radius: HEAD_RADIUS,
-      fill: `hsla(${hue}, ${SATURATION}%, ${HEAD_LIGHTNESS}%, ${HEAD_ALPHA * fade})`,
-    }),
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class(styles.scene).children(
+    h
+      .el('svg')
+      .attrs({
+        class: styles.canvas,
+        viewBox: `0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`,
+        preserveAspectRatio: 'none',
+        'aria-hidden': 'true',
+      })
+      .children(model.particles.map((particle) => particleView(h, particle))),
+    h.div
+      .class(styles.overlay)
+      .children(
+        h.output.class(styles.count).children(String(_count.get(model))),
+        h.div
+          .class(styles.controls)
+          .children(
+            h.button
+              .class(styles.button)
+              .attr('type', 'button')
+              .on('click', Message.ClickedDecrement())
+              .children('−'),
+            h.button
+              .class(styles.button)
+              .attr('type', 'button')
+              .on('click', Message.ClickedReset())
+              .children('Reset'),
+            h.button
+              .class(styles.button)
+              .attr('type', 'button')
+              .on('click', Message.ClickedIncrement())
+              .children('+'),
+          ),
+      ),
   );
-
-  return Option.isSome(maybeHead) ? [...trailDrawables, maybeHead.value] : trailDrawables;
-};
-
-const sceneDrawables = (model: Model) => Arr.flatMap(model.particles, particleDrawables);
-
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { div, button, Class, OnClick } = h;
-  return {
-    title: `Counter: ${_count.get(model)}`,
-    body: div(
-      [Class(styles.scene)],
-      [
-        Canvas.view(
-          {
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
-            ['shapes']: sceneDrawables(model),
-            className: styles.canvas,
-          },
-          h,
-        ),
-        div(
-          [Class(styles.overlay)],
-          [
-            div([Class(styles.count)], [String(_count.get(model))]),
-            div(
-              [Class(styles.controls)],
-              [
-                button([OnClick(Message.ClickedDecrement()), Class(styles.button)], ['−']),
-                button([OnClick(Message.ClickedReset()), Class(styles.button)], ['Reset']),
-                button([OnClick(Message.ClickedIncrement()), Class(styles.button)], ['+']),
-              ],
-            ),
-          ],
-        ),
-      ],
-    ),
-  };
-};

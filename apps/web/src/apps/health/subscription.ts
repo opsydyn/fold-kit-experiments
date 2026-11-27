@@ -1,11 +1,14 @@
-import { Subscription } from 'foldkit';
+import { Subscription } from '@effect/ui';
+import { Stream } from 'effect';
 
+import { animationFrames } from '../../ui/shared/animation-frames';
 import { Message } from './message';
-import type { Model } from './model';
+import { Model } from './model';
 
-export const subscriptions = Subscription.make<Model, Message>()((_entry) => ({
-  active: Subscription.animationFrameEntry({
-    isActive: (model) => model._tag === 'Loaded',
-    toMessage: (deltaTimeMs) => Message.TickedFrame({ deltaTimeMs }),
-  }),
-}));
+export const subscriptions = ({ model }: { readonly model: Model }) => [
+  Model.is('Loaded')(model) &&
+    Subscription.make(
+      'HealthFrames',
+      animationFrames.pipe(Stream.map((deltaTimeMs) => Message.TickedFrame({ deltaTimeMs }))),
+    ),
+];

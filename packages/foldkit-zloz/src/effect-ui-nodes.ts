@@ -99,6 +99,18 @@ export function nodeView<Message>(
         options.notationParts,
       )
     : null;
+  const meaning = architecture
+    ? options.notationParts?.describeMeaning?.({
+        node,
+        architecture,
+        selected,
+        selectionPreview: selecting,
+      })
+    : undefined;
+  const description =
+    meaning === undefined && architecture
+      ? notationDescription(node, architecture, options.notationLabels)
+      : (meaning ?? undefined);
   const accent = notationStroke(architecture);
   const group = node.kind === 'group';
   const collapsed = group && editor.collapsedGroups.includes(node.id);
@@ -192,10 +204,7 @@ export function nodeView<Message>(
           selectionDisabledReason,
           moveDisabledReason,
           shell?.title?.className,
-          shell?.title?.description ??
-            (architecture
-              ? notationDescription(node, architecture, options.notationLabels)
-              : undefined),
+          shell?.title?.description ?? description,
           header ? node.id : undefined,
           header ? { ...shell?.title?.style, ...header } : shell?.title?.style,
           architecture && content ? `${content.y}px auto auto ${content.x}px` : undefined,

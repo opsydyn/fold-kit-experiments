@@ -240,12 +240,6 @@ export type {
   ZlozWorldOverlayItemOptions,
   ZlozGroupHeaderOptions,
 } from './composition';
-export { zlozDddNode, zlozDddGroup } from './ddd-renderer';
-export type {
-  ZlozDddContentContext,
-  ZlozDddContentRenderer,
-  ZlozDddNodeOptions,
-} from './ddd-renderer';
 import {
   portLabelViews,
   type ZlozPortLabelOptions,
@@ -2651,13 +2645,6 @@ export type { ZlozViewOptions as FlowViewOptions };
 
 /** @deprecated Use resolveZlozDiagnostics. */
 export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics';
-
-export { zlozEventStormingNode, zlozEventStormingGroup } from './event-storming-renderer';
-export type {
-  ZlozEventStormingContentContext,
-  ZlozEventStormingContentRenderer,
-  ZlozEventStormingNodeOptions,
-} from './event-storming-renderer';
 
 export {
   zlozAuditComparisonControls,

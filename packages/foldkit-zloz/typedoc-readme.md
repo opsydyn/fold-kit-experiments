@@ -500,9 +500,7 @@ Existing membership, world geometry, strict codecs, history and Undo apply.
 is the opt-in causal catalogue for external systems. The original catalogue remains
 unchanged for portable builtin-packet compatibility; hotspots/lanes are not causal
 roles. DDD preview leaves these roles unmapped until explicit retention/mapping and
-loss acceptance. Native artwork is now available through
-{@link FoldKit.zlozEventStormingNode | zlozEventStormingNode} and
-{@link FoldKit.zlozEventStormingGroup | zlozEventStormingGroup}. Portable SVG still
+loss acceptance. Effect UI renders these roles through `graphSurface` with architecture notation enabled. Portable SVG still
 requires a host adapter or explicit fidelity fallback. See the README and
 ADR 0081 for exact role/kind/port, status, conversion and compatibility boundaries.
 

@@ -728,58 +728,31 @@ geometry. Other serializers are not covered by that qualification.
 Run `bun tools/check-zloz-architecture-compat.ts` from this repository to repeat
 the pinned-core check. No migration or registry publication occurs here.
 
-## DDD preset renderers
+## DDD notation
 
 ```ts
-import {
-  zlozView,
-  zlozDddNode,
-  zlozDddGroup,
-  createZlozNodeBodyCache,
-  type ZlozDddNodeOptions,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 
-// Keep options and cache stable per canvas. Call with or without a cache.
-const dddOptions: ZlozDddNodeOptions<Message> = {
-  bodyCache: createZlozNodeBodyCache(),
-  renderBadge: ({ architecture }, h) =>
-    architecture.role === 'aggregate-root' ? h.span([], ['Consistency owner']) : null,
-};
-const canvas = zlozView(h, model.editor, {
+const canvas = graphSurface(h, model.editor, {
   id: 'domain',
   label: 'Ordering domain',
-  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
-  renderNodeShell: (context, h) => zlozDddNode(context, h, dddOptions),
-  renderGroupShell: (context, h) => zlozDddGroup(context, h, dddOptions),
+  onInput: (event) => Message.ObservedZlozInput({ message: event }),
+  architectureNotation: true,
+  notationParts: {
+    renderBadge: ({ architecture }, h) =>
+      architecture.family === 'ddd' && architecture.role === 'aggregate-root'
+        ? h.span.children('Consistency owner')
+        : undefined,
+  },
 });
 ```
 
-The adapter renders all eight existing DDD roles: entity, value object, aggregate
-root, aggregate, domain event, domain service, repository and bounded context.
-Aggregates and explicit bounded-context groups are portless boundaries; ordinary
-context nodes can connect through their ports. Other families return undefined,
-allowing normal rendering or a composed C4 fallback. DDD meaning does not force
-an outline or color notation; authored appearance uses core geometry.
-
-`ZlozDddContentContext` provides the node, narrowed DDD architecture, selection
-and preview state. `renderBadge`, `renderType`, `renderName`, `renderSubdomain`,
-`renderDescription` and `renderBody` customize inert content: undefined keeps the
-default, null omits it. The badge is omitted by default. Bounded contexts display
-optional subdomain classification. Compact group headers omit descriptions by
-default; custom slots can display them with suitable authored space.
-
-Use `renderControls` for interactive content outside the native drag button and
-body cache; undefined keeps native context/collapse/resize controls and an empty
-array omits them. `attributes` owns classes and paint; Model geometry stays
-authoritative. Retain ports from the render context to preserve custom sockets
-and current policy reasons. Scoped theme tokens support light/dark and host
-themes. Minimal mode hides diagnostics, not the model's semantic role labels;
-slots can independently omit those labels while native selection names remain.
-Keep artwork callbacks inert and options stable when using `bodyCache`.
-
-These views introduce no saved fields or business-rule enforcement. Use the
-headless `architectureNodePresets` catalogue to compose a role legend or palette.
-Atomic pattern insertion and typed DDD relationships are separate roadmap slices.
+DDD notation renders entities, value objects, aggregate roots, aggregates,
+domain events, domain services, repositories, bounded contexts and read models.
+Aggregate and bounded-context groups are portless boundaries. Ordinary bounded
+contexts can connect through their ports and display their subdomain
+classification. Authored appearance controls geometry. Use `notationParts` for
+inert artwork and node or group shells for interactive controls.
 
 ## C4 notation
 
@@ -3245,23 +3218,18 @@ The separate DDD `domain-event` role keeps its existing structural meaning.
 
 ```ts
 import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
-import { zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
 
 const result = insertPattern(editor, createArchitecturePattern('event-storming'));
-// In zlozView options:
-const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
+// Enable architectureNotation: true in the Effect UI graphSurface options.
 ```
 
 The starter shows Customer → Place order → Order placed → a policy → Request
 payment. Edges describe an illustrative process; notes do not execute policies or
 enforce causality. Adapt labels, ports, outlines and relationships to your model.
 
-`ZlozEventStormingNodeOptions` offers `renderType`, `renderName`,
-`renderDescription`, `renderBody`, `renderControls`, `attributes` and `bodyCache`.
-Undefined slot results retain defaults, null omits content, and an empty controls
-array hides chrome. Keep interactive UI in `renderControls`; sockets and control
-feedback stay outside cached inert artwork. Compose this renderer with C4/DDD
-renderers using their undefined fallback.
+Customize inert content through `notationParts`. Return `undefined` for default
+artwork or `null` to omit a part. Use the node or group shell to place
+interactive controls alongside the selection button.
 
 Scoped theme tokens `eventStormingCommand`, `eventStormingEvent`,
 `eventStormingPolicy` and `eventStormingActor` override role accents, including
@@ -4578,7 +4546,7 @@ and [browser/download evidence](../../apps/zloz-demo/evidence/png-export.md).
 
 `{ family: 'ddd', role: 'read-model' }` is a native ordinary-node descriptor for an
 explicitly authored query-oriented representation. `architectureNodePresets`,
-`createArchitectureNode`, the optional `zlozDddNode` renderer and its existing
+`createArchitectureNode`, Effect UI DDD notation and its existing
 content/appearance slots support it. It is not a group or a prescribed database
 shape. The role does not make the diagram node read-only; normal editor permissions
 and host policies still govern authoring.
@@ -4819,20 +4787,11 @@ Writable layout remains one Undo; detached read-only layout retains Undo history
 Requests without hints keep their previous shape. Other engines must satisfy these
 bounds too; ELK is the qualified optional adapter.
 
-Pass the same configuration to C4 or DDD group views:
-
-```ts
-zlozDddGroup(context, h, {
-  groupHeader: headers.find((header) => header.id === context.node.id),
-  renderBody: ({ node }, builder) => builder.div([], [node.label, ' · Architecture review']),
-  renderControls: () => [],
-});
-```
-
-Effect UI accepts the same geometry through the `graphSurface` option
-`groupHeader`. Content slots render inside the declared header area and collapsed
-groups use compact headings. Reserve space for adjacent controls using padding.
-Custom shells can use the pure geometry helper.
+Pass the same configuration to `graphSurface` through
+`groupHeader: (node) => headers.find((header) => header.id === node.id)`.
+Content slots render inside the declared header and collapsed groups use compact
+headings. Reserve space for adjacent controls using padding. Custom shells can
+use the pure geometry helper.
 Keep the configuration in your immutable Model and cancel/supersede in-flight
 layout when it changes. A heading preference alone does not change editor revision.
 Space is guaranteed after accepting layout against those hints; applying a larger
@@ -5256,13 +5215,10 @@ import {
   resolveEventStormingWorkshopRequest,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import { zlozEventStormingNode, zlozEventStormingGroup } from '@opsydyn/foldkit-zloz/foldkit';
-import { workshopControls } from '@opsydyn/foldkit-zloz/effect-ui';
+import { graphSurface, workshopControls } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const editor = createEditor(createEventStormingWorkshopPattern());
-// In your zlozView options:
-const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
-const renderGroupShell = (context, h) => zlozEventStormingGroup(context, h);
+// Render the workshop with graphSurface and architectureNotation: true.
 // Resolve against your selected node and current host policy, not a cached permission.
 const context = resolveEventStormingWorkshopControls(selectedEditor, selectedId, { policy });
 const decision = resolveEventStormingWorkshopRequest(selectedEditor, selectedId, request, {
@@ -5279,20 +5235,12 @@ policies itself. Opt into `eventStormingWorkshopRelationshipRules` when using it
 causal edges. Its sample metadata can be used by host protection; core does not
 interpret `workshopStatusLocked` as permission.
 
-`zlozEventStormingNode` renders ordinary notes, external-system dashed outlines,
-and hotspots with text status. `zlozEventStormingGroup` renders portless lanes with
-native selection, drag, collapse, context and resize controls. Both use authored
-core geometry. Hotspots never gain sockets. Existing group membership, world
-positions, clipboard, history and Undo apply unchanged.
-
-`ZlozEventStormingNodeOptions` adds `renderStatus`, `describeMeaning` and
-`groupHeader` to the existing content/body/control/cache composition contract.
-Status and all other content slots return undefined for defaults or null to omit;
-`renderBody` replaces the complete inert content. `renderControls` owns interactive
-content outside the drag handle/cache; an empty array omits chrome. Header geometry
-uses the existing declared/intrinsic contract with matching group ID; collapsed
-lanes use the compact header. Cache only inert artwork; policy-controlled controls
-and sockets remain live. Keep options stable when retaining artwork.
+Effect UI renders process notes, dashed external-system outlines, hotspot status,
+and portless lanes. Node and group controls use the canvas selection, drag,
+collapse, context, and resize behavior. Use `notationParts.renderStatus` to
+customize visible status and `notationParts.describeMeaning` to replace the
+accessible description. Use the canvas `groupHeader` option for declared or
+intrinsic headings.
 
 New scoped theme tokens are `eventStormingExternalSystem`,
 `eventStormingHotspotOpen`, `eventStormingHotspotResolved` and `eventStormingLane`.

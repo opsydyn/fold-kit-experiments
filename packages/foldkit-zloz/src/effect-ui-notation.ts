@@ -59,6 +59,8 @@ type NotationRenderer<M> = (
 
 /** Undefined keeps a native part, and null hides it. Artwork lives inside the selection button. */
 export type NativeNotationParts<M> = Readonly<{
+  /** Replace the authored accessible description or return null to omit it. */
+  describeMeaning?: (context: NativeNotationContext) => string | null | undefined;
   renderBody?: NotationRenderer<M>;
   renderIcon?: NotationRenderer<M>;
   renderBadge?: NotationRenderer<M>;

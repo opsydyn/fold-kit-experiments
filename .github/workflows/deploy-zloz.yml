@@ -7,7 +7,7 @@ on:
       - 'apps/zloz-demo/**'
       - 'infra/zloz/**'
       - 'packages/foldkit-zloz*/**'
-      - 'packages/astro-foldkit/**'
+      - 'packages/astro-effect-ui/**'
       - 'packages/foldkit-viz/**'
       - 'docs/assets/zloz/final/**'
       - 'package.json'

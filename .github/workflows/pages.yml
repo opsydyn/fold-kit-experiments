@@ -36,8 +36,8 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build packages
-        run: bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build
+      - name: Build Viz
+        run: bun run --filter @opsydyn/foldkit-viz build
 
       - name: Build Storybook
         run: bun run --filter @opsydyn/web build-storybook

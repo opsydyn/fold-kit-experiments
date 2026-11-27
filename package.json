@@ -93,7 +93,7 @@
   "scripts": {
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
-    "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
+    "build": "bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
     "test": "moon run :test && moon run :integration",
     "test:p0": "bun run ci:p0",
     "test:vitest": "moon run '#foldkit-vitest:prepare-vitest' && vitest",

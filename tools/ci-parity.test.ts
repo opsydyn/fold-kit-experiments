@@ -545,7 +545,7 @@ const NOT_READS: ReadonlyMap<string, string> = new Map([
     'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
   ],
   [
-    'infra/zloz/alchemy.run.ts :: ../../packages/astro-foldkit/**',
+    'infra/zloz/alchemy.run.ts :: ../../packages/astro-effect-ui/**',
     'a path handed to Alchemy at deploy time; the only moon task, typecheck, does not read it',
   ],
   [

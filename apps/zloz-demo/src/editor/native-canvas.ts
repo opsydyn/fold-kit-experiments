@@ -23,7 +23,7 @@ import type { Model } from './model';
 import { architectureBadgeDesign } from './native-edge-label';
 import { orbitArtwork } from './native-orbit';
 import { architectureNativePanel } from './native-panel';
-import { raisedConnection, raisedEdge } from './presentation';
+import { raisedConnection, raisedEdge, releaseGatePosition } from './presentation';
 import { workbenchThemes } from './theme';
 import { workbenchArchitectureBadge, workbenchHotspotStatus } from './workbench-notation';
 
@@ -76,6 +76,27 @@ function cardControls<M>(
         )
       : null,
   );
+}
+
+function releaseGate<M>(
+  h: Html.H<M>,
+  nodes: readonly ZlozNode[],
+  observe: (event: EditorEvent) => M,
+) {
+  const position = releaseGatePosition(nodes);
+  if (!position) return undefined;
+  return h.div
+    .class('architecture-release-gate')
+    .style({ left: `${position.x}px`, top: `${position.y}px` })
+    .children(
+      h.span.attr('aria-hidden', 'true').attr('data-release-gate-leader', ''),
+      h.button
+        .attr('type', 'button')
+        .attr('aria-label', 'Inspect Review')
+        .attr('data-flow-no-drag', '')
+        .on('click', observe({ type: 'NodeSelected', id: 'review', additive: false }))
+        .children(h.span.children('RELEASE GATE'), h.strong.children('Review required')),
+    );
 }
 
 function graphPaper<M>({ spacing, viewport }: ZlozBackgroundRenderContext, h: Html.H<M>) {
@@ -217,6 +238,11 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
                 })
                 .children()
           : undefined,
+      renderZoomAreaMarquee: ({ viewport }, builder) =>
+        builder.div
+          .class('workbench-zoom-area', 'architecture-native-zoom-area')
+          .style({ borderWidth: `${2 / viewport.zoom}px` })
+          .children(),
       dropRadius: model.snapConnections ? 32 : 0,
       reconnectionDropRadius:
         model.reconnectionSnap === 'match'
@@ -329,12 +355,15 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
         onEdit: observe,
         reconnection: { onEvent: observe },
       },
-      worldOverlay:
-        model.historyReview && history.comparison
-          ? historyGhosts<ReturnType<typeof observe>>(history.comparison, history.ghosts)
-          : model.historyReview
-            ? null
-            : (placementPreview(h, placement) ?? null),
+      renderWorldOverlay: (nodes, builder) => {
+        if (model.historyReview)
+          return history.comparison
+            ? historyGhosts<ReturnType<typeof observe>>(history.comparison, history.ghosts)
+            : undefined;
+        const preview = placementPreview(builder, placement);
+        const gate = model.showWorldAnnotation ? releaseGate(builder, nodes, observe) : undefined;
+        return preview || gate ? builder.div.children(preview, gate) : undefined;
+      },
       renderNodeShell: ({ node, selected, selectionPreview, readOnly }, builder) => {
         if (orbit)
           return {

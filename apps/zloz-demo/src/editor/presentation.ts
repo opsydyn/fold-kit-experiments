@@ -450,10 +450,15 @@ export const raisedConnection: import('@opsydyn/foldkit-zloz').ZlozConnectionGeo
 
 const zlozEvent = (message: EditorEvent) => Message.ObservedZlozInput({ message });
 
+export function releaseGatePosition(nodes: readonly ZlozNode[]) {
+  const review = nodes.find((node) => node.id === 'review');
+  if (!review) return undefined;
+  return { x: review.position.x + review.size.width / 2, y: review.position.y - 14 };
+}
+
 export function releaseGateAnnotation(context: ZlozWorldOverlayContext, h: HtmlBuilder<Message>) {
-  const review = context.nodes.find((node) => node.id === 'review');
-  if (!review) return null;
-  const position = { x: review.position.x + review.size.width / 2, y: review.position.y - 14 };
+  const position = releaseGatePosition(context.nodes);
+  if (!position) return null;
   return h.div(
     [],
     [
@@ -476,7 +481,7 @@ export function releaseGateAnnotation(context: ZlozWorldOverlayContext, h: HtmlB
             [
               h.Type('button'),
               h.AriaLabel('Inspect Review'),
-              h.OnClick(zlozEvent({ type: 'NodeSelected', id: review.id, additive: false })),
+              h.OnClick(zlozEvent({ type: 'NodeSelected', id: 'review', additive: false })),
               h.Style({
                 display: 'grid',
                 gap: '4px',

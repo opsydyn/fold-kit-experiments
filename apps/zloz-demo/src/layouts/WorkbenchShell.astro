@@ -280,6 +280,53 @@ button, input, select { font: inherit; }
     border-color: var(--flow-valid-target, #0f766e);
     background: repeating-linear-gradient(135deg, transparent 0 6px, rgb(15 118 110 / 15%) 6px 9px);
   }
+  .architecture-native-zoom-area {
+    position: absolute;
+    inset: 0;
+    border: 2px dashed var(--flow-selection, #2563eb);
+    border-radius: 8px;
+    background: var(--flow-selection-background, rgb(37 99 235 / 0.12));
+    box-sizing: border-box;
+  }
+
+  .architecture-release-gate {
+    position: absolute;
+    z-index: 1;
+  }
+
+  .architecture-release-gate [data-release-gate-leader] {
+    position: absolute;
+    width: 2px;
+    height: 14px;
+    background: #376855;
+  }
+
+  .architecture-release-gate button {
+    display: grid;
+    gap: 4px;
+    width: 160px;
+    padding: 10px 12px;
+    transform: translate(-50%, -100%);
+    border: 1px solid #4f826e;
+    border-radius: 8px;
+    text-align: left;
+    background: #18392e;
+    color: #fff;
+    box-shadow: 0 3px 10px rgb(23 57 46 / 0.22);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .architecture-release-gate button span {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: #b4ddcb;
+  }
+
+  .architecture-release-gate button strong {
+    font-size: 14px;
+  }
+
   .workbench-canvas .zloz-ui-notation-badge {
     font-size: 10px;
     font-weight: 600;

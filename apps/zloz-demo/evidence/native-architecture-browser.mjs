@@ -220,6 +220,48 @@ async function qualify() {
   if (process.env.ZLOZ_ARCHITECTURE_SCREENSHOT)
     await canvas.screenshot({ path: process.env.ZLOZ_ARCHITECTURE_SCREENSHOT });
   await section('Diagram');
+  await section('Diagnostics');
+  await button('World annotation').click();
+  const gate = canvas.getByRole('button', { name: 'Inspect Review', exact: true });
+  await gate.click();
+  const review = canvas.locator('[data-flow-node="review"]');
+  await expect(button('Select Review')).toHaveAttribute('aria-pressed', 'true');
+  await gate.press('Delete');
+  const gatePosition = async () => {
+    const [annotation, node] = await Promise.all([gate.boundingBox(), review.boundingBox()]);
+    return {
+      gap: node.y - annotation.y - annotation.height,
+      center: annotation.x + annotation.width / 2 - node.x - node.width / 2,
+      width: annotation.width,
+    };
+  };
+  expect((await gatePosition()).gap).toBeCloseTo(14, 0);
+  expect((await gatePosition()).center).toBeCloseTo(0, 0);
+  await section('Navigation');
+  const startWidth = (await gatePosition()).width;
+  await button('Zoom in').click();
+  await expect.poll(async () => (await gatePosition()).width).toBeGreaterThan(startWidth);
+  expect((await gatePosition()).center).toBeCloseTo(0, 0);
+  expect(await snapshot()).toEqual(initial);
+  await section('Diagnostics');
+  await button('World annotation').click();
+  await expect(gate).toHaveCount(0);
+
+  await section('Navigation');
+  const area = button('Zoom to area');
+  await area.click();
+  await canvas.scrollIntoViewIfNeeded();
+  const canvasBounds = await canvas.boundingBox();
+  await page.mouse.move(canvasBounds.x + 70, canvasBounds.y + 320);
+  await page.mouse.down();
+  await page.mouse.move(canvasBounds.x + 400, canvasBounds.y + 530, { steps: 5 });
+  const marquee = canvas.locator('[data-flow-zoom-area-box] .workbench-zoom-area');
+  await expect(marquee).toHaveCSS('border-top-style', 'dashed');
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(marquee).toHaveCount(0);
+  expect(await snapshot()).toEqual(initial);
+
   await button('Open DDD Order aggregate').click();
   await expect(canvas.locator('[data-flow-node="order"]')).toContainText('Consistency owner');
   await expect(button('Select Order')).toHaveAccessibleDescription(/Consistency owner/);

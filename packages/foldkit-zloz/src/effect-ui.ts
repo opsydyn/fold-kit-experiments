@@ -38,7 +38,7 @@ import { boxBounds, portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 import { resolveBoxSelection } from './selection-preview';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
-import type { EditorState } from './types';
+import type { EditorState, ZlozNode } from './types';
 import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
@@ -137,6 +137,11 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
       Readonly<{ measurements?: boolean }>;
     theme?: ZlozTheme;
     worldOverlay?: View.Content<Message> | null;
+    /** Render a world layer against the same visible scene used for drawing and input. */
+    renderWorldOverlay?: (
+      visibleNodes: readonly ZlozNode[],
+      h: Html.H<Message>,
+    ) => View.Content<Message> | null | undefined;
     pinchZoom?: boolean;
     viewportCulling?: ZlozViewportCulling;
     background?: NativeBackground<Message>;
@@ -164,6 +169,9 @@ export function graphSurface<Message>(
   );
   const svg = (tag: string) => new Html.Element<Message>(tag);
   const scene = presentVisibleGraph(editor);
+  const worldOverlay = options.renderWorldOverlay
+    ? options.renderWorldOverlay(scene.nodes, h)
+    : options.worldOverlay;
   const context = options.contextActions
     ? resolveContextMenu(
         editor,
@@ -390,13 +398,13 @@ export function graphSurface<Message>(
               connectionStroke(h, preview, options),
             ),
           ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
-          ...(options.worldOverlay
+          ...(worldOverlay
             ? [
                 h.div
                   .key('world-overlay')
                   .attr('data-flow-world-overlay', '')
                   .style({ pointerEvents: 'none' })
-                  .children(options.worldOverlay),
+                  .children(worldOverlay),
               ]
             : []),
           ...edgeViews.flatMap(({ label }) => (label ? [label] : [])),

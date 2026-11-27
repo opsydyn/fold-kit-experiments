@@ -1,14 +1,29 @@
-import { Option } from 'effect';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import * as PlotPanel from '../../ui/plot-panel/core';
 import { matchingKeys } from '../../ui/shared/inspection';
-import { renderChart } from '../../ui/shared/render-chart.test-helper';
 import { binHolding } from './fold';
 import { Message } from './message';
-import { init, POINTS } from './model';
+import { init, Model, POINTS } from './model';
 import { update } from './update';
 import { view } from './view';
+
+const LinkedFixture = Html.component({
+  name: 'LinkedChartsFixture',
+  props: Model,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($, message) => update($.model, message).model,
+  view,
+});
+async function renderChart(model: typeof Model.Type): Promise<string> {
+  const { html } = await Effect.runPromise(HtmlServer.renderToHtml(LinkedFixture, model));
+  return html;
+}
 
 const initialModel = () => init().model;
 
@@ -86,7 +101,7 @@ describe('linked charts update', () => {
     );
     const keys = matchingKeys(POINTS, Option.getOrThrow(next.inspection));
     expect(keys.length).toBeGreaterThan(0);
-    const html = renderChart<Message>((h) => view(next, h).body);
+    const html = renderChart(next);
     const dots = await opacities(html, '.plot-mark.plot-dot circle');
     expect(dots.filter((o) => o === 1)).toHaveLength(keys.length);
     const node = document.createElement('div');
@@ -96,10 +111,7 @@ describe('linked charts update', () => {
 
   it('emphasises the bin holding a hovered point', async () => {
     const next = hoverPoint(initialModel(), 'salary-30');
-    const bars = await opacities(
-      renderChart<Message>((h) => view(next, h).body),
-      '.plot-mark.plot-rect rect',
-    );
+    const bars = await opacities(renderChart(next), '.plot-mark.plot-rect rect');
     expect(bars.at(-1)).toBe(1);
     expect(bars.slice(0, -1).every((o) => o < 1)).toBe(true);
   });

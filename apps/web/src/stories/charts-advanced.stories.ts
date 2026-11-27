@@ -1,3 +1,4 @@
+import { BrowserHost } from '@effect/ui/html';
 import type { Meta, StoryObj } from '@storybook/html';
 
 import * as AnimatedBarApp from '../apps/animated-bar/main';
@@ -7,7 +8,7 @@ import * as CandlestickApp from '../apps/candlestick/main';
 import * as CorrelationMatrixApp from '../apps/correlation-matrix/main';
 import * as DivergingStackedBarApp from '../apps/diverging-stacked-bar/main';
 import * as HistogramBrushApp from '../apps/histogram-brush/main';
-import * as LinkedChartsApp from '../apps/linked-charts/main';
+import { LinkedCharts as LinkedChartsApp } from '../apps/linked-charts/main';
 import * as PhyllotaxisApp from '../apps/phyllotaxis/main';
 import * as RadarApp from '../apps/radar/main';
 import * as StreamgraphApp from '../apps/streamgraph/main';
@@ -15,6 +16,7 @@ import * as WaterfallApp from '../apps/waterfall/main';
 import * as WindRoseApp from '../apps/wind-rose/main';
 import * as ZoomableLineApp from '../apps/zoomable-line/main';
 import { mountFoldkit } from './mount';
+import { mountEffectUi } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Advanced',
@@ -34,11 +36,12 @@ export const AnimatedBar: StoryObj = {
 
 export const LinkedCharts: StoryObj = {
   name: 'Linked charts',
-  render: () => mountFoldkit(LinkedChartsApp),
+  render: () =>
+    mountEffectUi((host) => BrowserHost.mountEffect(LinkedChartsApp, {}, host, { head: false })),
   parameters: {
     docs: {
       description: {
-        story: 'Scatter + bar sharing selection state — brush/click in one updates the other.',
+        story: 'Pointer and keyboard inspection link a salary scatter plot and histogram.',
       },
     },
   },

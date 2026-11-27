@@ -1,114 +1,85 @@
+import type { Html } from '@effect/ui/html';
 import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import { targetsOf } from '../../ui/plot-panel/core';
+import { view as panel } from '../../ui/plot-panel/effect-ui';
 import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { Message } from './message';
-import { pointsWithExperience } from './model';
-import type { Model } from './model';
+import { pointsWithExperience, type Model } from './model';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+const instruction = {
+  fontSize: '0.75rem',
+  color: '#888',
+  marginBottom: '0.5rem',
+  fontWeight: '600',
+} as const;
+
+export const view = (h: Html.H<Message>, model: Model) => {
   const points = pointsWithExperience(model.minimumExperience);
   const keys = Option.match(model.inspection, {
     onNone: () => [],
     onSome: (inspection) => matchingKeys(points, inspection),
   });
-  const bins = PlotPanel.targetsOf(model.histogram).map((bin) => ({
-    x0: bin.domain[0],
-    x1: bin.domain[1],
-  }));
-  const scatter: Html = PlotPanel.view(
+  const bins = targetsOf(model.histogram).map((bin) => ({ x0: bin.domain[0], x1: bin.domain[1] }));
+
+  const scatterConfig = {
+    model: model.scatter,
+    toParentMessage: (message: import('../../ui/plot-panel/core').Message) =>
+      Message.ReceivedScatterMessage({ message }),
+    ariaLabel: 'Scatter chart — experience vs salary',
+  };
+  const scatter = panel(
     Option.isSome(model.inspection)
-      ? {
-          model: model.scatter,
-          highlight: { field: 'id', values: keys },
-          toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
-          ariaLabel: 'Scatter chart — experience vs salary',
-        }
-      : {
-          model: model.scatter,
-          toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
-          ariaLabel: 'Scatter chart — experience vs salary',
-        },
+      ? { ...scatterConfig, highlight: { field: 'id', values: keys } }
+      : scatterConfig,
     h,
   );
-  const histogram: Html = PlotPanel.view(
+  const histogram = panel(
     {
       model: model.histogram,
       emphasis: matchingBinIndices(points, keys, bins),
-      toParentMessage: (msg) => Message.ReceivedHistogramMessage({ message: msg }),
+      toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
       ariaLabel: 'Histogram — salary distribution',
     },
     h,
   );
-  return {
-    title: 'Linked views — foldkit-viz',
-    body: h.div(
-      [h.Style({ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' })],
-      [
-        h.div(
-          [h.Style({ flexBasis: '100%' })],
-          [
-            h.label(
-              [],
-              [
-                'Minimum years of experience ',
-                h.input([
-                  h.Type('number'),
-                  h.Attribute('min', '0'),
-                  h.Value(String(model.minimumExperience)),
-                  h.OnInput((value) => Message.ChangedMinimumExperience({ years: Number(value) })),
-                ]),
-              ],
-            ),
-            h.p(
-              [h.Role('status')],
-              [
-                points.length === 0
-                  ? 'No observations match the filter.'
-                  : `${points.length} observations`,
-              ],
-            ),
-          ],
+
+  return h.div
+    .style({ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' })
+    .children(
+      h.div.style({ flexBasis: '100%' }).children(
+        h.label(
+          'Minimum years of experience ',
+          h.input
+            .attrs({ type: 'number', min: '0' })
+            .value(String(model.minimumExperience))
+            .on('input', ({ value }) => Message.ChangedMinimumExperience({ years: Number(value) })),
         ),
-        h.div(
-          [h.Style({ flex: '1 1 360px' })],
-          [
-            h.p(
-              [
-                h.Style({
-                  fontSize: '0.75rem',
-                  color: '#888',
-                  marginBottom: '0.5rem',
-                  fontWeight: '600',
-                }),
-              ],
-              ['Experience vs salary. Use the arrow keys to inspect a point.'],
-            ),
-            scatter,
-            ...(Option.isSome(model.inspection)
-              ? [h.p([h.Attribute('aria-live', 'polite')], [`${keys.length} matching points`])]
-              : []),
-          ],
+        h.p
+          .attr('role', 'status')
+          .children(
+            points.length === 0
+              ? 'No observations match the filter.'
+              : `${points.length} observations`,
+          ),
+      ),
+      h.div
+        .style({ flex: '1 1 360px' })
+        .children(
+          h.p
+            .style(instruction)
+            .children('Experience vs salary. Use the arrow keys to inspect a point.'),
+          scatter,
+          Option.isSome(model.inspection) &&
+            h.p.attr('aria-live', 'polite').children(`${keys.length} matching points`),
         ),
-        h.div(
-          [h.Style({ flex: '1 1 340px' })],
-          [
-            h.p(
-              [
-                h.Style({
-                  fontSize: '0.75rem',
-                  color: '#888',
-                  marginBottom: '0.5rem',
-                  fontWeight: '600',
-                }),
-              ],
-              ['Salary distribution. Use the arrow keys to inspect a bin.'],
-            ),
-            histogram,
-          ],
+      h.div
+        .style({ flex: '1 1 340px' })
+        .children(
+          h.p
+            .style(instruction)
+            .children('Salary distribution. Use the arrow keys to inspect a bin.'),
+          histogram,
         ),
-      ],
-    ),
-  };
+    );
 };

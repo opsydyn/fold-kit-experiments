@@ -35,6 +35,12 @@ export {
 } from './endpoint-search-view';
 export type { ZlozEndpointSearchViewOptions } from './endpoint-search-view';
 import {
+  canvasHelpContext,
+  canvasStatusContext,
+  type ZlozCanvasHelpContext,
+  type ZlozCanvasStatusContext,
+} from './canvas-accessibility';
+import {
   resolveConnectionCreation,
   type ZlozConnectionCreationContext,
   type ZlozConnectionCreationOptions,
@@ -129,7 +135,7 @@ export type { ZlozNodeBodyCache } from './node-body-cache';
 
 import {
   zlozConnectionButton,
-  type ZlozConnectionEntry,
+  resolveConnectionList,
   type ZlozConnectionsContext,
 } from './connections';
 export { zlozConnectionButton } from './connections';
@@ -334,28 +340,7 @@ export type { ZlozResizeReadoutContext } from './resize-readout';
 
 export type { ZlozAlignmentGuideContext } from './canvas-decoration';
 
-/** Default canvas guidance and the controls it describes. */
-export type ZlozCanvasHelpContext = Readonly<{
-  defaultText: string;
-  selectionMode: boolean;
-  zoomAreaActive?: boolean;
-  edgeToolbar: boolean;
-  readOnly: boolean;
-  visible: boolean;
-  wheelNavigation: ZlozWheelNavigation;
-  doubleClickZoom?: boolean;
-  spaceToPan?: boolean;
-  middleButtonPan?: boolean;
-}>;
-
-/** Current canvas notice or the summary used when no notice is active. */
-export type ZlozCanvasStatusContext = Readonly<{
-  defaultText: string;
-  notice: string | null;
-  nodeCount: number;
-  connectionCount: number;
-  visible: boolean;
-}>;
+export type { ZlozCanvasHelpContext, ZlozCanvasStatusContext } from './canvas-accessibility';
 
 /** Visible diagram presentation for a host-rendered layer in world coordinates. */
 export type ZlozWorldOverlayContext = Readonly<{
@@ -1092,58 +1077,16 @@ function canvasHelpView<M>(
   edgeToolbar: boolean,
   visible: boolean,
 ): Html {
-  const zoomAreaActive = Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area';
-  const doubleClickZoom = Boolean(options.doubleClickZoom);
-  const spaceToPan = options.spaceToPan === true;
-  const middleButtonPan = options.middleButtonPan === true;
-  const wheelNavigation = options.wheelNavigation ?? 'zoom';
-  const wheelHelp =
-    wheelNavigation === 'pan'
-      ? 'Scroll to pan. Hold Ctrl or Command while scrolling to zoom. '
-      : wheelNavigation === 'zoom'
-        ? 'Scroll to zoom. '
-        : '';
-  const defaultText = [
-    'Drag a node title to move it. ',
-    zoomAreaActive
-      ? 'Drag the background to zoom to an area. '
-      : state.selectionMode
-        ? 'Drag the background to select nodes. '
-        : 'Drag the background to pan, or Shift-drag to select nodes. ',
-    wheelHelp,
-    ...(doubleClickZoom && !zoomAreaActive && !state.selectionMode
-      ? ['Double-click the background to zoom in. ']
-      : []),
-    ...(spaceToPan ? ['Focus the canvas, then hold Space and drag the background to pan. '] : []),
-    ...(middleButtonPan ? ['Middle-drag the background to pan. '] : []),
-    state.connectionMode === 'loose'
-      ? 'Tab to a title, then use arrow keys to move it. Drag from any port to any port, or activate the source then target with Enter or Space. Port kinds stay unchanged. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.'
-      : 'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
-    ...(edgeToolbar
-      ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
-      : []),
-  ].join('');
-  const custom = options.renderCanvasHelp?.(
-    {
-      defaultText,
-      selectionMode: state.selectionMode,
-      zoomAreaActive,
-      readOnly: state.readOnly,
-      edgeToolbar,
-      wheelNavigation,
-      doubleClickZoom,
-      spaceToPan,
-      middleButtonPan,
-      visible,
-    },
-    h,
-  );
+  const context = canvasHelpContext(state, options, edgeToolbar, visible);
+  const custom = options.renderCanvasHelp?.(context, h);
   const attributes = [
     h.Id(descriptionId),
     h.DataAttribute('flow-help', ''),
     ...(visible ? [] : [h.Style(visuallyHidden)]),
   ];
-  return custom === undefined ? h.p(attributes, [defaultText]) : h.div(attributes, [custom]);
+  return custom === undefined
+    ? h.p(attributes, [context.defaultText])
+    : h.div(attributes, [custom]);
 }
 
 function canvasStatusView<M>(
@@ -1154,17 +1097,8 @@ function canvasStatusView<M>(
   connectionCount: number,
   visible: boolean,
 ): Html {
-  const defaultText = notice ?? `${nodeCount} nodes, ${connectionCount} connections`;
-  const custom = options.renderCanvasStatus?.(
-    {
-      defaultText,
-      notice,
-      nodeCount,
-      connectionCount,
-      visible,
-    },
-    h,
-  );
+  const context = canvasStatusContext(notice, nodeCount, connectionCount, visible);
+  const custom = options.renderCanvasStatus?.(context, h);
   return h.div(
     [
       h.DataAttribute('flow-status', ''),
@@ -1172,7 +1106,7 @@ function canvasStatusView<M>(
       h.AriaLive('polite'),
       h.Style(visible ? { 'min-height': '1.5em' } : visuallyHidden),
     ],
-    [custom ?? defaultText],
+    [custom ?? context.defaultText],
   );
 }
 
@@ -1497,37 +1431,6 @@ export type ZlozSidebarParts = Pick<
   'canvasId' | 'help' | 'creation' | 'status' | 'connections'
 >;
 
-function connectionContextAction(
-  state: EditorState,
-  id: string,
-  label: string,
-): ZlozContextTrigger {
-  return {
-    label: `More actions for ${label}`,
-    expanded: state.context?.kind === 'edge' && state.context.id === id,
-    disabled: state.gesture.type !== 'idle',
-    event: { type: 'ContextOpened', context: { kind: 'edge', id, point: { x: 12, y: 12 } } },
-  };
-}
-
-/** Sidebar controls for a host that supplies its own graph surface. */
-export function zlozSidebarParts<M>(
-  h: HtmlBuilder<M>,
-  state: EditorState,
-  options: ZlozViewOptions<M>,
-  toolbarEdgeId?: string,
-): ZlozSidebarParts {
-  return sidebarParts(
-    h,
-    state,
-    options,
-    resolveZlozDiagnostics(options),
-    presentVisibleGraph(state),
-    options.edgeToolbar === true && !state.readOnly,
-    toolbarEdgeId,
-  );
-}
-
 function sidebarParts<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
@@ -1539,35 +1442,13 @@ function sidebarParts<M>(
 ): ZlozSidebarParts {
   const visibleEdges = presentation.edges;
   const connections = () => {
-    const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
-    const compact = !diagnostics.connectionList;
-    const entries = visibleEdges.map((edge): ZlozConnectionEntry => {
-      const selectionDisabledReason = options.canSelectEdge?.(edge, state.graph) ?? undefined;
-      const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
-      const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
-      const label =
-        edge.label ??
-        (compact
-          ? `${sourceLabel} → ${targetLabel}`
-          : `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`);
-      return {
-        edge,
-        label,
-        sourceLabel,
-        targetLabel,
-        selected: state.selectedEdges.includes(edge.id),
-        selectionDisabledReason,
-        contextAction:
-          options.contextActions && !state.readOnly && selectionDisabledReason === undefined
-            ? connectionContextAction(state, edge.id, label)
-            : undefined,
-        toolbarId:
-          toolbarEdgeId === edge.id && selectionDisabledReason === undefined
-            ? `${encodeURIComponent(options.id)}-edge-actions`
-            : undefined,
-      };
+    const context = resolveConnectionList(state, visibleEdges, {
+      ...options,
+      compact: !diagnostics.connectionList,
+      toolbarEdgeId,
     });
-    const custom = options.renderConnections?.({ entries, compact, readOnly: state.readOnly }, h);
+    const { entries, compact } = context;
+    const custom = options.renderConnections?.(context, h);
     return h.div(
       [
         h.Id(`${options.id}-connections`),

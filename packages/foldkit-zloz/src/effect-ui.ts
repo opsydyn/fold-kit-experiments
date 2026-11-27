@@ -43,6 +43,12 @@ import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
+export { canvasHelpContext, canvasStatusContext } from './canvas-accessibility';
+export type { ZlozCanvasHelpContext, ZlozCanvasStatusContext } from './canvas-accessibility';
+export { resolveConnectionList, toolbarControl } from './connections';
+export type { ZlozConnectionsContext } from './connections';
+export { visuallyHidden } from './diagnostics';
+export { presentVisibleGraph } from './group-presentation';
 export { BrowserInput } from './browser-input';
 export type { NativeAlignmentGuide, NativeBackground } from './effect-ui-canvas-decoration';
 export type { ZlozAlignmentGuideContext, ZlozBackgroundRenderContext } from './canvas-decoration';

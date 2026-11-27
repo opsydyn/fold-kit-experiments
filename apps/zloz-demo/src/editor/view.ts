@@ -1,4 +1,5 @@
 import {
+  resolveConnectionCreation,
   resolveEdgeReconnection,
   resolveEventStormingRelationship,
   eventStormingRelationshipRules,
@@ -22,8 +23,13 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
+  canvasHelpContext,
+  canvasStatusContext,
+  presentVisibleGraph,
+  resolveConnectionList,
+} from '@opsydyn/foldkit-zloz/effect-ui';
+import {
   zlozView,
-  zlozSidebarParts,
   zlozThemeStyle,
   zlozDddRelationshipControls,
   zlozDddRelationshipPatternSelect,
@@ -142,6 +148,7 @@ import { nativeEdgeLabel } from './native-edge-label';
 import { nativeEdgeToolbar } from './native-edge-toolbar';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
+import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
 import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
 import { patchWorkbenchPanel } from './patch-review';
@@ -3507,41 +3514,68 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
       editor.selectedEdges.length === 1
         ? editor.selectedEdges[0]
         : undefined;
-    const sidebar = zlozSidebarParts(
-      h,
-      editor,
-      {
-        id: 'flow-demo',
-        label: 'Workflow editor',
-        onEvent: zlozInput,
-        diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
-        minimalMode: model.minimalMode,
-        wheelNavigation: model.wheelNavigation,
-        doubleClickZoom: model.doubleClickZoom,
-        spaceToPan: model.spaceToPan,
-        middleButtonPan: model.middleButtonPan,
-        edgeToolbar: showEdgeToolbar,
-        contextActions: true,
-        canConnect: policy.canConnect,
-        canConnectPort: policy.canConnectPort,
-        canSelectEdge: policy.canSelectEdge,
-        connectionCreation: model.sidebarSection === 'ports' && !model.sidebarCollapsed,
-        renderConnectionCreation: (context, builder) =>
-          nativeConnectionCreation(
-            builder,
-            { ...endpointScope, context },
-            'architecture-effect-ui',
-            'connection-creation',
+    const { nodes, edges } = presentVisibleGraph(editor);
+    const card = model.canvasCopyDesign === 'card';
+    const sidebar = {
+      canvasId: 'flow-demo-surface',
+      help: nativeCanvasHelp(
+        h,
+        {
+          id: 'flow-demo-help',
+          context: canvasHelpContext(
+            editor,
+            model,
+            showEdgeToolbar && !editor.readOnly,
+            diagnostics.instructions,
           ),
-        renderConnections: (context, builder) =>
-          model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,
-        renderCanvasHelp: (context, builder) =>
-          model.canvasCopyDesign === 'card' ? canvasHelpCard(context, builder) : undefined,
-        renderCanvasStatus: (context, builder) =>
-          model.canvasCopyDesign === 'card' ? canvasStatusCard(context, builder) : undefined,
-      },
-      toolbarEdgeId,
-    );
+          card,
+        },
+        'architecture-effect-ui',
+        'canvas-help',
+      ),
+      status: nativeCanvasStatus(
+        h,
+        {
+          context: canvasStatusContext(
+            editor.notice,
+            nodes.length,
+            edges.length,
+            diagnostics.status,
+          ),
+          card,
+        },
+        'architecture-effect-ui',
+        'canvas-status',
+      ),
+      connections: nativeConnections(
+        h,
+        {
+          id: 'flow-demo-connections',
+          context: resolveConnectionList(editor, edges, {
+            ...policy,
+            id: 'flow-demo',
+            compact: !diagnostics.connectionList,
+            contextActions: true,
+            toolbarEdgeId,
+          }),
+          rows: model.connectionListDesign === 'rows',
+          expanded: editor.connectionsExpanded,
+          modelId,
+          epoch,
+        },
+        'architecture-effect-ui',
+        'connection-list',
+      ),
+      creation:
+        model.sidebarSection === 'ports' && !model.sidebarCollapsed
+          ? nativeConnectionCreation(
+              h,
+              { ...endpointScope, context: resolveConnectionCreation(editor, policy) },
+              'architecture-effect-ui',
+              'connection-creation',
+            )
+          : null,
+    };
     return {
       title,
       body: zlozPlacementHost(

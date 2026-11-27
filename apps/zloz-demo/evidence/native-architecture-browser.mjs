@@ -65,24 +65,45 @@ async function qualify() {
     .getByRole('combobox', { name: 'Connection list layout', exact: true })
     .selectOption('rows');
   await section('Diagnostics');
-  await expect(page.locator('[data-flow-help] .canvas-help-card')).toBeVisible();
-  await expect(page.locator('[data-flow-status] .canvas-status-card')).toHaveText(
-    '3 nodes · 1 connection',
-  );
+  const help = page.locator('[data-architecture-effect-ui="canvas-help"] [data-flow-help]');
+  const status = page.locator('[data-architecture-effect-ui="canvas-status"] [data-flow-status]');
+  await expect(help.locator('.canvas-help-card')).toBeVisible();
+  await expect(status).toHaveAttribute('aria-live', 'polite');
+  await expect(status.locator('.canvas-status-card')).toHaveText('3 nodes · 1 connection');
   await expect(canvas).toHaveAccessibleDescription(/Drag a node title/);
   await section('Inspect');
-  const row = page
-    .getByRole('group', { name: 'Connections', exact: true })
-    .getByRole('button', { name: 'Draft → Review', exact: true });
+  const connections = page.locator('[data-architecture-effect-ui="connection-list"]');
+  const list = connections.getByRole('group', { name: 'Connections', exact: true });
+  const row = list.getByRole('button', { name: 'Draft → Review', exact: true });
   await row.press('Enter');
   await expect(row).toHaveAttribute('aria-pressed', 'true');
+  await expect(row).toHaveAttribute('aria-keyshortcuts', 'ArrowUp');
+  const renameEdge = canvas.getByRole('button', { name: 'Rename', exact: true });
   await row.press('ArrowUp');
-  await expect(canvas.getByRole('button', { name: 'Rename', exact: true })).toBeFocused();
+  await expect(renameEdge).toBeFocused();
   await row.press('Shift+F10');
-  await expect(
-    canvas.getByRole('group', { name: 'Edge context actions', exact: true }),
-  ).toBeVisible();
+  const edgeActions = canvas.getByRole('group', { name: 'Edge context actions', exact: true });
+  await expect(edgeActions).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(edgeActions).toHaveCount(0);
+  await section('Diagnostics');
+  await button('Minimal mode').click();
+  await expect(help).toHaveCSS('width', '1px');
+  await expect(status).toHaveCSS('width', '1px');
+  await expect(canvas).toHaveAccessibleDescription(/Drag a node title/);
+  await section('Inspect');
+  const disclosure = connections.getByRole('button', { name: 'Connections', exact: true });
+  await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+  await expect(list).toHaveCount(0);
+  await disclosure.press('Enter');
+  await expect(disclosure).toHaveAttribute('aria-controls', 'flow-demo-connections');
+  await expect(list).toHaveAttribute('data-flow-connections', 'compact');
+  await row.press('Enter');
+  await expect(row).toHaveAttribute('aria-keyshortcuts', 'ArrowUp');
+  await row.press('ArrowUp');
+  await expect(renameEdge).toBeFocused();
+  await section('Diagnostics');
+  await button('Minimal mode').click();
   await section('Ports');
   await expect(
     page.getByRole('combobox', { name: 'New connection source', exact: true }),

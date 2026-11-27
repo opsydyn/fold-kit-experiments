@@ -18,6 +18,8 @@ if (majors.some((major) => !['5', '6', '7'].includes(major)))
 
 const run = (command: string, args: readonly string[], cwd: string) => {
   const result = spawnSync(command, args, { cwd, encoding: 'utf8', env: process.env });
+  if (result.error)
+    throw new Error(`Could not start ${command} in ${cwd}`, { cause: result.error });
   if (result.status !== 0)
     throw new Error(
       `${command} ${args.join(' ')} failed:\n${result.stdout ?? ''}${result.stderr ?? ''}`,

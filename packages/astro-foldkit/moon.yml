@@ -3,7 +3,7 @@
 tasks:
   build:
     script: 'tsdown'
-    deps: ['^:build']
+    deps: ['astro-effect-ui:build']
     outputs: ['dist/**/*']
   typecheck:
     script: 'tsc --noEmit'

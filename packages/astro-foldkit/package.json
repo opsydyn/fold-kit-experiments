@@ -48,7 +48,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "bun run --filter @opsydyn/astro-effect-ui build && tsdown",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:unit": "bun test test/unit",

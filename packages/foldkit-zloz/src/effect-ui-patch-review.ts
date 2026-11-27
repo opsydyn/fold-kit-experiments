@@ -1,5 +1,7 @@
+import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
+import type { ZlozModellingPatchChange } from './modelling-patch';
 import type {
   ZlozModellingPatchReview,
   ZlozModellingPatchReviewRequest,
@@ -11,6 +13,11 @@ export function modellingPatchReview<M>(
   h: Html.H<M>,
   context: ZlozModellingPatchReview | ZlozModellingPatchReviewV3,
   request: (event: ZlozModellingPatchReviewRequest) => M,
+  options: Readonly<{
+    showCounts?: boolean;
+    instructions?: boolean;
+    renderChange?: (change: ZlozModellingPatchChange, h: Html.H<M>) => View.Content<M>;
+  }> = {},
 ) {
   const { preview, key, reason, acknowledged, canApply } = context;
   const summary =
@@ -26,15 +33,19 @@ export function modellingPatchReview<M>(
             h.p(
               `${preview.patch.provenance.actor.kind}: ${preview.patch.provenance.actor.id} · ${preview.patch.provenance.reason}`,
             ),
-            h.p
-              .attr('data-patch-counts', '')
-              .children(
-                `${preview.changes.length} changes · ${preview.losses.length} loss disclosures · source revision ${preview.patch.source.revision}`,
-              ),
+            options.showCounts === false
+              ? null
+              : h.p
+                  .attr('data-patch-counts', '')
+                  .children(
+                    `${preview.changes.length} changes · ${preview.losses.length} loss disclosures · source revision ${preview.patch.source.revision}`,
+                  ),
           ),
         ];
   return h.div.attr('data-patch-review', '').children(
-    h.p('Inspect before/after values and findings. Apply is atomic and adds one Undo.'),
+    options.instructions === false
+      ? null
+      : h.p('Inspect before/after values and findings. Apply is atomic and adds one Undo.'),
     ...summary,
     h.p
       .attr('role', 'status')
@@ -52,11 +63,13 @@ export function modellingPatchReview<M>(
       .children(
         ...(preview.type === 'rejected'
           ? []
-          : preview.changes.map((change) =>
-              h.details(
-                h.summary(`${change.entity} ${change.id} · ${change.operationId}`),
-                h.pre(JSON.stringify({ before: change.before, after: change.after }, null, 2)),
-              ),
+          : preview.changes.map(
+              (change) =>
+                options.renderChange?.(change, h) ??
+                h.details(
+                  h.summary(`${change.entity} ${change.id} · ${change.operationId}`),
+                  h.pre(JSON.stringify({ before: change.before, after: change.after }, null, 2)),
+                ),
             )),
       ),
     ...(key

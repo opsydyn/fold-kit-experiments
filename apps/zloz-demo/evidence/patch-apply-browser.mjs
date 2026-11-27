@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const evidence = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file}`)
+    : fileURLToPath(new URL(file, import.meta.url));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -57,7 +62,10 @@ async function run() {
   await page.locator('[data-flow-node="review"]').waitFor();
   const original = await page.locator('[data-flow-node="source"]').innerText();
   await section('Patch review');
-  await button('Prepare label patch from current model').click();
+  const panel = page.locator('[data-architecture-effect-ui="patch-review"]');
+  await panel
+    .getByRole('button', { name: 'Prepare label patch from current model', exact: true })
+    .click();
   await expect(
     page.getByText('Proposal created from the current source. Working graph unchanged.', {
       exact: true,
@@ -70,10 +78,11 @@ async function run() {
   await acknowledge().focus();
   await acknowledge().press('Space');
   await expect(acknowledge()).toBeChecked();
+  await expect(acknowledge()).toBeFocused();
   await expect(apply()).toBeEnabled();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await apply().scrollIntoViewIfNeeded();
-  await page.screenshot({ path: fileURLToPath(new URL('patch-apply-light.png', import.meta.url)) });
+  await page.screenshot({ path: evidence('patch-apply-light.png') });
   const [proposalFile] = await Promise.all([
     page.waitForEvent('download'),
     button('Download proposal').click(),
@@ -97,7 +106,7 @@ async function run() {
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await apply().scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('patch-apply-dark-protected.png', import.meta.url)),
+    path: evidence('patch-apply-dark-protected.png'),
   });
   await page.getByRole('checkbox', { name: 'Protect patch Apply', exact: true }).uncheck();
   await expect(apply()).toBeEnabled();
@@ -115,10 +124,7 @@ async function run() {
   expect(receipt.patch.source.graph.nodes[0].label).not.toContain('reviewed');
   expect(receipt.revision).toBe(proposal.source.revision + 1);
   expect(receipt.reviewed && receipt.lossesAccepted).toBe(true);
-  await writeFile(
-    fileURLToPath(new URL('patch-applied-receipt.json', import.meta.url)),
-    JSON.stringify(receipt, null, 2) + '\n',
-  );
+  await writeFile(evidence('patch-applied-receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
   await button('Undo').click();
   await expect(page.getByRole('textbox', { name: 'Label for source', exact: true })).toHaveValue(
     'Draft',
@@ -133,17 +139,19 @@ async function run() {
   await expect(page.getByRole('list', { name: 'Patch findings' })).toContainText(
     'authored-data-loss',
   );
-  await acknowledge().check();
+  await acknowledge().click();
+  await expect(acknowledge()).toBeChecked();
   await expect(apply()).toBeEnabled();
   const canvas = await page.locator('[data-flow-surface]').boundingBox();
   expect(canvas.x).toBeGreaterThan(350);
   expect(canvas.width).toBeGreaterThan(1000);
   await page.screenshot({
-    path: fileURLToPath(new URL('patch-apply-minimal.png', import.meta.url)),
+    path: evidence('patch-apply-minimal.png'),
   });
   expect(errors).toEqual([]);
   console.log(
     JSON.stringify({
+      result: 'passed',
       browser: browser.version(),
       checks:
         'native/custom/light/dark/minimal, keyboard acknowledgement, protected Apply, invalid-file retention, actual proposal/receipt downloads, atomic Apply and one Undo, retained provenance, visible canvas',

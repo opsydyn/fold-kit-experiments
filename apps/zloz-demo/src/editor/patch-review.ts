@@ -6,14 +6,13 @@ import {
   resolveModellingPatchReview,
   resolveModellingPatchAcknowledgement,
   applyModellingPatch,
-  type ZlozModellingPatchChange,
   type ZlozModellingPatch,
   type ZlozModellingPatchConsent,
   type ZlozModellingPatchReceipt,
   type ZlozModellingPatchReviewRequest,
 } from '@opsydyn/foldkit-zloz';
-import { zlozModellingPatchReview } from '@opsydyn/foldkit-zloz/foldkit';
-import { Match, Result } from 'effect';
+import { modellingPatchReview } from '@opsydyn/foldkit-zloz/effect-ui';
+import { Match, Result, Schema } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { ReadPatchFile, DownloadPatchArtifact } from './command';
@@ -21,6 +20,8 @@ import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { architectureNativePanel } from './native-panel';
+import { settingCheckbox } from './native-settings';
 import { packetReviewActive } from './packet-reader';
 import type { Return } from './transition';
 export type PatchWorkbenchState = Readonly<{
@@ -306,143 +307,127 @@ export function updatePatchWorkbench(model: Model, message: Message): Return<Mod
   );
 }
 
-export function patchWorkbenchPanel(model: Model, h: HtmlBuilder<Message>) {
-  if (model.sidebarSection !== 'patch' || model.sidebarCollapsed) return [];
-  const state = patchWorkbenchState(model),
-    review = patchWorkbenchReview(model),
-    last = state.receipts.at(-1);
-  const input = (request: ZlozModellingPatchReviewRequest) =>
-    Message.ObservedPatchReviewInput({ scope: state.scope, request });
-  const baseOptions = {
-    showCounts: !model.minimalMode && model.diagnosticsEnabled && model.diagnostics.measurements,
-    instructions: !model.minimalMode && model.diagnosticsEnabled && model.diagnostics.instructions,
-  };
-  const customChange = (change: ZlozModellingPatchChange, builder: HtmlBuilder<Message>) =>
-    builder.details(
-      [builder.Class('patch-change-card')],
-      [
-        builder.summary(
-          [],
-          [builder.strong([], ['Proposed change']), ` · ${change.entity} ${change.id}`],
-        ),
-        builder.pre([], [JSON.stringify({ before: change.before, after: change.after }, null, 2)]),
-      ],
-    );
-  const reviewOptions = state.custom ? { ...baseOptions, renderChange: customChange } : baseOptions;
-  return [
-    h.button(
-      [
-        h.Type('button'),
-        h.Disabled(openReason(model) !== null),
-        h.OnClick(Message.ClickedPatchExample({ scope: state.scope })),
-      ],
-      ['Prepare label patch from current model'],
-    ),
-    h.label(
-      [],
-      [
+const nativePatchReview = architectureNativePanel<Model>(
+  'ArchitecturePatchReview',
+  Schema.is(
+    Schema.Union([
+      Message.cases.ChosePatchFiles,
+      Message.cases.ClickedPatchReadCancel,
+      Message.cases.ClickedPatchExample,
+      Message.cases.ClickedPatchProtection,
+      Message.cases.ClickedCustomPatchControls,
+      Message.cases.ObservedPatchReviewInput,
+      Message.cases.ClickedPatchDownload,
+      Message.cases.ObservedModelInput,
+    ]),
+  ),
+  (h, model, send) => {
+    const state = patchWorkbenchState(model);
+    const review = patchWorkbenchReview(model);
+    const last = state.receipts.at(-1);
+    const blocked = openReason(model) !== null;
+    const diagnostics = !model.minimalMode && model.diagnosticsEnabled;
+    const reviewOptions = {
+      showCounts: diagnostics && model.diagnostics.measurements,
+      instructions: diagnostics && model.diagnostics.instructions,
+    };
+    const button = (label: string, message: Message, disabled = false) =>
+      h.button.attr('type', 'button').disabled(disabled).on('click', send(message)).children(label);
+    return h.div.children(
+      button(
+        'Prepare label patch from current model',
+        Message.ClickedPatchExample({ scope: state.scope }),
+        blocked,
+      ),
+      h.label.children(
         'Open modelling patch',
-        h.input([
-          h.Type('file'),
-          h.Accept('.json,application/json'),
-          h.OnFileChange((files) =>
-            Message.ChosePatchFiles({ scope: state.scope, files: [...files] }),
+        h.input
+          .attr('type', 'file')
+          .attr('accept', '.json,application/json')
+          .value('')
+          .on('change', ({ files }) =>
+            send(Message.ChosePatchFiles({ scope: state.scope, files: [...files] })),
           ),
-        ]),
-      ],
-    ),
-    ...(state.pending
-      ? [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(
-                Message.ClickedPatchReadCancel({ scope: state.scope, run: state.pending.run }),
-              ),
-            ],
-            ['Cancel patch read'],
-          ),
-        ]
-      : []),
-    h.label(
-      [],
-      [
-        h.input([
-          h.Type('checkbox'),
-          h.Checked(state.protected),
-          h.OnClick(Message.ClickedPatchProtection()),
-        ]),
+      ),
+      state.pending
+        ? button(
+            'Cancel patch read',
+            Message.ClickedPatchReadCancel({ scope: state.scope, run: state.pending.run }),
+          )
+        : null,
+      h.label.children(
+        settingCheckbox(h, state.protected, send(Message.ClickedPatchProtection())),
         'Protect patch Apply',
-      ],
-    ),
-    h.button(
-      [h.Type('button'), h.OnClick(Message.ClickedCustomPatchControls())],
-      [state.custom ? 'Use native patch controls' : 'Use custom patch controls'],
-    ),
-    h.p([h.Role('status'), h.AriaLive('polite')], [state.notice]),
-    ...(review ? [zlozModellingPatchReview(h, review, input, reviewOptions)] : []),
-    ...(state.patch
-      ? [
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(
-                Message.ClickedPatchDownload({
-                  scope: state.scope,
-                  kind: 'proposal',
-                  receiptId: '',
-                }),
-              ),
-            ],
-            ['Download proposal'],
-          ),
-        ]
-      : []),
-    ...(last
-      ? [
-          h.p(
-            [],
-            [
+      ),
+      button(
+        state.custom ? 'Use native patch controls' : 'Use custom patch controls',
+        Message.ClickedCustomPatchControls(),
+      ),
+      h.p.attr('role', 'status').attr('aria-live', 'polite').children(state.notice),
+      review
+        ? modellingPatchReview(
+            h,
+            review,
+            (request) => send(Message.ObservedPatchReviewInput({ scope: state.scope, request })),
+            state.custom
+              ? {
+                  ...reviewOptions,
+                  renderChange: (change, builder) =>
+                    builder.details
+                      .class('patch-change-card')
+                      .children(
+                        builder.summary.children(
+                          builder.strong.children('Proposed change'),
+                          ` · ${change.entity} ${change.id}`,
+                        ),
+                        builder.pre.children(
+                          JSON.stringify({ before: change.before, after: change.after }, null, 2),
+                        ),
+                      ),
+                }
+              : reviewOptions,
+          )
+        : null,
+      state.patch
+        ? button(
+            'Download proposal',
+            Message.ClickedPatchDownload({ scope: state.scope, kind: 'proposal', receiptId: '' }),
+          )
+        : null,
+      last
+        ? [
+            h.p.children(
               `Retained receipt · ${last.patch.source.modelId} · ${last.patch.id} · ${last.patch.provenance.reason}`,
-            ],
-          ),
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(
-                Message.ClickedPatchDownload({
-                  scope: state.scope,
-                  kind: 'receipt',
-                  receiptId: receiptId(last),
-                }),
-              ),
-            ],
-            ['Download patch receipt'],
-          ),
-          h.details(
-            [],
-            [
-              h.summary([], ['Receipt source, provenance and result']),
-              h.pre([], [JSON.stringify(last, null, 2)]),
-            ],
-          ),
-        ]
-      : []),
-    h.button(
-      [
-        h.Type('button'),
-        h.Disabled(
-          model.editor.past.length === 0 || model.editor.readOnly || openReason(model) !== null,
-        ),
-        h.OnClick(
-          Message.ObservedModelInput({
-            modelId: model.modelIdentity.id,
-            epoch: model.modelEpoch,
-            message: { type: 'UndoPressed' },
-          }),
-        ),
-      ],
-      ['Undo'],
-    ),
-  ];
+            ),
+            button(
+              'Download patch receipt',
+              Message.ClickedPatchDownload({
+                scope: state.scope,
+                kind: 'receipt',
+                receiptId: receiptId(last),
+              }),
+            ),
+            h.details.children(
+              h.summary.children('Receipt source, provenance and result'),
+              h.pre.children(JSON.stringify(last, null, 2)),
+            ),
+          ]
+        : null,
+      button(
+        'Undo',
+        Message.ObservedModelInput({
+          modelId: model.modelIdentity.id,
+          epoch: model.modelEpoch,
+          message: { type: 'UndoPressed' },
+        }),
+        model.editor.past.length === 0 || model.editor.readOnly || blocked,
+      ),
+    );
+  },
+);
+
+export function patchWorkbenchPanel(model: Model, h: HtmlBuilder<Message>) {
+  return model.sidebarSection === 'patch' && !model.sidebarCollapsed
+    ? [nativePatchReview(h, model, 'architecture-effect-ui', 'patch-review')]
+    : [];
 }

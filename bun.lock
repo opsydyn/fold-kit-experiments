@@ -6,8 +6,10 @@
       "devDependencies": {
         "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
         "@effect/language-service": "catalog:",
+        "@effect/platform-node": "catalog:",
         "@effect/ui": "catalog:",
-        "@foldkit/devtools-mcp": "catalog:",
+        "@effect/ui-devtools": "catalog:",
+        "@effect/ui-kit": "catalog:",
         "@moonrepo/cli": "2.5.4",
         "@opsydyn/oxlint-effect": "catalog:",
         "@oxlint/plugins": "1.79.0",
@@ -445,6 +447,7 @@
         "three": "catalog:",
       },
       "devDependencies": {
+        "@effect/ui-devtools": "catalog:",
         "@modelcontextprotocol/sdk": "catalog:",
         "@types/pngjs": "catalog:",
         "bun-types": "catalog:",
@@ -718,8 +721,9 @@
     "@effect/platform-bun": "4.1.6",
     "@effect/platform-node": "4.1.6",
     "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
+    "@effect/ui-devtools": "https://pkg.pr.new/Effect-TS/ui/@effect/ui-devtools@77dcd92",
+    "@effect/ui-kit": "https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@77dcd92",
     "@effect/vitest": "4.1.6",
-    "@foldkit/devtools-mcp": "0.26.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/b612": "5.3.0",
     "@fontsource/b612-mono": "5.3.0",
@@ -1043,6 +1047,10 @@
 
     "@effect/ui": ["@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92", { "peerDependencies": { "effect": "^4.1.4" } }, "sha512-POm07ahakQr5GHJgOV7/WzFFNuA6WlK/Ycs8x0/5U4eOaqq8w+PeOq2NYTNN6lqZnMZzfoNTcsVu7Mtltftn1Q=="],
 
+    "@effect/ui-devtools": ["@effect/ui-devtools@https://pkg.pr.new/Effect-TS/ui/@effect/ui-devtools@77dcd92", { "peerDependencies": { "@effect/platform-node": "^4.1.4", "@effect/ui": "^0.0.0", "@effect/ui-kit": "^0.0.0", "effect": "^4.1.4" }, "optionalPeers": ["@effect/platform-node"], "bin": { "effect-ui-devtools": "./dist/node/internal/bin.js" } }, "sha512-zYF6ePbbSskH3onSGTj1Z2ZYIIRfdxvCxxLubed0NsOuT0/eYkAksSC/0BEpnDJjtWjlYmV6N9Ke9T1BZJUTVA=="],
+
+    "@effect/ui-kit": ["@effect/ui-kit@https://pkg.pr.new/Effect-TS/ui/@effect/ui-kit@77dcd92", { "peerDependencies": { "@effect/ui": "^0.0.0", "effect": "^4.1.4" } }, "sha512-XLRrtQQeHJ7LxEKpEYZUz/MPoqsLi0pw7gwbMHj6qunsmsOTcC2yg8nq4K/F/cIE6PoySt0CCpWUEx7cxpJpiQ=="],
+
     "@effect/vitest": ["@effect/vitest@4.1.6", "", { "peerDependencies": { "effect": "^4.1.6", "vitest": ">=5.0.0 <6.0.0" } }, "sha512-Knb13gPhDbtOuNUnPXE/Sl+UvrKFHRATwU2vy+DGQCpjK1yI3oy1feQo1g2X8ZdOdc63sJB7HJXCMNsDy8xYvg=="],
 
     "@emmetio/abbreviation": ["@emmetio/abbreviation@2.3.3", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-mgv58UrU3rh4YgbE/TzgLQwJ3pFsHHhCLqY20aJq+9comytTXUDNGG/SMtSeMJdkpxgXSXunBGLD8Boka3JyVA=="],
@@ -1146,9 +1154,6 @@
     "@floating-ui/dom": ["@floating-ui/dom@1.8.0", "", { "dependencies": { "@floating-ui/core": "^1.8.0", "@floating-ui/utils": "^0.2.12" } }, "sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
-
-    "@foldkit/devtools-mcp": ["@foldkit/devtools-mcp@0.26.0", "", { "dependencies": { "@modelcontextprotocol/sdk": "1.29.0", "ws": "^8.21.3" }, "peerDependencies": { "effect": "~4.1.0", "foldkit": ">=0.165.0" }, "bin": { "foldkit-devtools-mcp": "dist/server.js" } }, "sha512-MhIAG28hBsGV43XuXbpschvp+D0UKNTF6YwNCDn7mYHxfaIFx56GONAAvmupuHSxZgEtbEXSmOetMB8vukxSFw=="],
-
 
     "@fontsource-variable/inter": ["@fontsource-variable/inter@5.3.0", "", {}, "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="],
 
@@ -2085,7 +2090,6 @@
     "ee-first": ["ee-first@1.1.1", "", {}, "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="],
 
     "effect": ["effect@4.1.6", "", {}, "sha512-P3CxMsdcSCle/7/FnPILd9GJkNqGtduKam2LX9Xsb8LoOjmeQ9Kmsuh16JwtIthaxLyiTCOzUUt+PZsXIohl+A=="],
-
 
     "electron-to-chromium": ["electron-to-chromium@1.5.356", "", {}, "sha512-9NgFd7m5t5MCJ5rUSjJITUXAH9mEGlrlofnMf4YEr+pz6JlP7cWmTAH+JFmbPnaSW8koVTkuW7pacORWAnA5Yw=="],
 
@@ -3488,7 +3492,6 @@
     "csso/css-tree": ["css-tree@2.2.1", "", { "dependencies": { "mdn-data": "2.0.28", "source-map-js": "^1.0.1" } }, "sha512-OA0mILzGc1kCOCSJerOeqDxDQ4HOh+G8NbOJFOTgOCzpw7fCBubk0fEyxp8AgOL/jvLgYA/uV0cMbe43ElF1JA=="],
 
     "dom-serializer/entities": ["entities@4.5.0", "", {}, "sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw=="],
-
 
     "esast-util-from-js/acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 

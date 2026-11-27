@@ -95,12 +95,13 @@ Astro 7 runs `astro dev` in the background when an agent starts it: stop it with
 `bunx astro dev stop` in the app's directory (`status` and `logs` also work). A test that
 starts a dev server should pass `--ignore-lock` to keep it in the foreground.
 
-`.mcp.json` registers the Foldkit DevTools MCP server (`@foldkit/devtools-mcp`, a root
-dev dependency): with a dev server running, an agent can read a Foldkit app's Model and
-dispatch Messages to apps that export `devTools = { Message }` (the XR room does). It
-joins the newest dev server under the repository, so set `FOLDKIT_PROJECT_ROOT` to the
-app's directory, and pass `runtime_id` on each tool call. Known problems and their
-workarounds: `docs/effect-three/devtools-mcp-notes.md`.
+`.mcp.json` registers the local Effect UI DevTools endpoint and the scene MCP
+server. Run `bun run dev:effect-ui-tools`, then
+`PUBLIC_EFFECT_UI_DEVTOOLS=1 bun run dev:three-promo` and open an editor,
+sculpture, or room example. The overlay and socket are development-only.
+`scene_runtimes` lists sessions. Pass its session ID as `runtime_id` to inspect a
+scene. The tools read the root component by default and accept an explicit
+`instance` from `list_instances`. Dispatch is disabled by default.
 
 ## Dependencies
 

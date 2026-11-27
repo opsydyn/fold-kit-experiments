@@ -1,45 +1,38 @@
-// An MCP server that answers agents with a scene's description rather than the raw Model
-// (roadmap 3): describe, check, preview and diff scenes from saved files, text, or a
-// running Foldkit app read through the Foldkit DevTools MCP server.
-//
-//   bun run scene-mcp
-//
-// It speaks MCP over stdio; the repository's `.mcp.json` registers it as
-// `effect-three-scenes`. For running apps it starts `foldkit-devtools-mcp` itself, with
-// this process's environment (`FOLDKIT_PROJECT_ROOT`, `FOLDKIT_DEVTOOLS_MCP_PORT`).
-import { fileURLToPath } from 'node:url';
-
+// The scene tools read saved descriptions or the model of a local Effect UI app.
+// This server speaks MCP over stdio and reads live sessions via Streamable HTTP.
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { callTool, type DevTools, tools } from './sceneTools.ts';
 
-/** The repository's `foldkit-devtools-mcp`, from this package's place in it. */
-const devToolsBin = fileURLToPath(
-  new URL('../../../node_modules/.bin/foldkit-devtools-mcp', import.meta.url),
-);
+const devToolsUrl = new URL('http://127.0.0.1:4774/mcp');
 
-/** The Foldkit DevTools MCP server, started on the first call that needs a running app. */
+/** Open the local read session lazily. File and text tools work with the inspector stopped. */
 const devToolsClient = (): DevTools => {
   let connected: Promise<Client> | undefined;
   const connect = async (): Promise<Client> => {
     const client = new Client({ name: 'effect-three-scenes', version: '0.0.0' });
-    const env = Object.fromEntries(
-      Object.entries(process.env).flatMap(([key, value]) =>
-        value === undefined ? [] : [[key, value]],
-      ),
-    );
-    await client.connect(new StdioClientTransport({ command: devToolsBin, env }));
+    await client.connect(new StreamableHTTPClientTransport(devToolsUrl));
     return client;
   };
-  return async (tool, args) => {
-    connected ??= connect();
-    const result = await (await connected).callTool({ name: tool, arguments: args });
-    const parts = Array.isArray(result.content) ? result.content : [];
-    return parts.map((part: { readonly text?: unknown }) => String(part.text ?? '')).join('\n');
+  return (tool, args) => {
+    const pending = (connected ??= connect());
+    return pending
+      .then((client) => client.callTool({ name: tool, arguments: args }))
+      .then((result) => {
+        const parts = Array.isArray(result.content) ? result.content : [];
+        return parts.map((part: { readonly text?: unknown }) => String(part.text ?? '')).join('\n');
+      })
+      .catch((error) => {
+        if (connected === pending) {
+          connected = undefined;
+          void pending.then((client) => client.close()).catch(() => undefined);
+        }
+        return `Not connected to Effect UI DevTools at ${devToolsUrl.href}: ${String(error)}`;
+      });
   };
 };
 

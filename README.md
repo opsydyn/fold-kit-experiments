@@ -69,7 +69,7 @@ updates keep every object in place, Effect owns every lifetime (renderers, GPU
 resources, frame loops, listeners), and pointer input comes back as typed FoldKit
 Messages. Animation runs in the frame loop and never reaches `update`.
 
-- **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), the [tech radar](https://techradar.opsydyn.xyz/), or `/effect-three` in the demo app (the sculpture sample has FoldKit DevTools time travel).
+- **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), the [tech radar](https://techradar.opsydyn.xyz/), or `/effect-three` in the demo app (the sculpture sample has its own history slider).
 - **Read it:** the package READMEs ([core](packages/effect-three/README.md), [FoldKit adapter](packages/effect-three-foldkit/README.md), [Rapier](packages/effect-three-rapier/README.md), [troika](packages/effect-three-troika/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
 - **Samples:** [`packages/effect-three-samples`](packages/effect-three-samples/) is shared by the demo app and the promo site.
 
@@ -196,12 +196,18 @@ optional FoldKit peers in Viz remain optional for pure geometry imports.
   Query stale-response handling does not replace request interruption.
 - `/effect-three`: seven effect-three samples. The reconciliation playground
   reports every update's operations and live GPU resources; the sculpture rewinds
-  with FoldKit DevTools time travel; shared resources shows reference-counted
+  through its history slider; shared resources shows reference-counted
   geometry and materials, and releasing a scene's WebGL context on unmount; the 3D bar
   chart places bars with foldkit-viz scales and eases them as the data changes; the
   studio drags pieces in five material kinds under point, spot and hemisphere lights with
   soft shadows; the city draws 10,000 buildings in one instanced mesh, on demand; the workshop loads a
   glTF robot and a texture through Commands and plays its clips.
+
+To inspect the Three editor, sculpture, or room in a local dev session, start
+`bun run dev:effect-ui-tools` and run the promo with
+`PUBLIC_EFFECT_UI_DEVTOOLS=1 bun run dev:three-promo`. The inspector links to a
+loopback MCP endpoint. Use `scene_runtimes` to find the session ID and
+`scene_describe` to inspect a live editor scene.
 
 Promo examples include maintained source and standalone project exports.
 Comparison exports capture panel kinds, IDs, order, linking and the next ID

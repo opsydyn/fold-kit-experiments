@@ -27,6 +27,7 @@
     "./radar/layout": "./src/radar/layout.ts",
     "./shared": "./src/shared/main.ts",
     "./previews": "./src/previews.ts",
+    "./devtools": "./src/devtools.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"
   },
@@ -47,6 +48,7 @@
     "three": "catalog:"
   },
   "devDependencies": {
+    "@effect/ui-devtools": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
     "@types/pngjs": "catalog:",
     "bun-types": "catalog:",

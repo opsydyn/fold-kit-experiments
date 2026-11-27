@@ -1,7 +1,7 @@
 // What the scene MCP server (`scene-mcp.ts`) answers with: a scene's description, its
 // problems, a still of it, or what changed between two. A scene comes from a saved file,
-// from text, or from a running Foldkit app, read through the Foldkit DevTools MCP server
-// at a Model path that holds scene nodes (the editor's `root.nodes`), so an agent asks
+// from text, or from a running Effect UI app, through its local DevTools MCP server
+// at a model path that holds scene nodes (the editor's `nodes`), so an agent asks
 // about the scene rather than reading the raw Model.
 import {
   describeScene,
@@ -16,12 +16,12 @@ import {
   SceneSchema,
   sceneChanges,
 } from '@opsydyn/effect-three';
-import { Option, Result, Schema } from 'effect';
+import { Result, Schema } from 'effect';
 
-/** Arguments the server passes on to a Foldkit DevTools MCP tool. */
-export type DevToolsArgs = Readonly<Record<string, string | boolean>>;
+/** Arguments for the Effect UI DevTools read tools. */
+export type DevToolsArgs = Readonly<Record<string, string | number | ReadonlyArray<string>>>;
 
-/** Calls a Foldkit DevTools MCP tool and answers with its text. */
+/** Calls an Effect UI DevTools MCP tool and returns its text. */
 export type DevTools = (tool: string, args: DevToolsArgs) => Promise<string>;
 
 /** Where a scene is: a file, text, or a running app's Model. */
@@ -29,7 +29,8 @@ const Source = Schema.Struct({
   file: Schema.optionalKey(Schema.String),
   text: Schema.optionalKey(Schema.String),
   runtime_id: Schema.optionalKey(Schema.String),
-  /** The Model path holding the scene's nodes (default `root.nodes`). */
+  instance: Schema.optionalKey(Schema.Int),
+  /** The model path holding the scene's nodes (default `nodes`). */
   nodes_path: Schema.optionalKey(Schema.String),
   /** The Model path holding its camera, if it keeps one. */
   camera_path: Schema.optionalKey(Schema.String),
@@ -53,11 +54,22 @@ const Bare = Schema.fromJsonString(
   }),
 );
 
-/** What `foldkit_get_model` answers for a path holding nodes, or a camera. */
 const NodesAnswer = Schema.fromJsonString(
-  Schema.Struct({ value: Schema.Array(SceneSchema.SceneNode) }),
+  Schema.Struct({ result: Schema.Array(SceneSchema.SceneNode) }),
 );
-const CameraAnswer = Schema.fromJsonString(Schema.Struct({ value: SceneSchema.Camera }));
+const CameraAnswer = Schema.fromJsonString(Schema.Struct({ result: SceneSchema.Camera }));
+const RevisionAnswer = Schema.fromJsonString(Schema.Struct({ result: Schema.Int }));
+const InstancesAnswer = Schema.fromJsonString(
+  Schema.Struct({
+    result: Schema.Array(
+      Schema.Struct({
+        instance: Schema.Int,
+        mounted: Schema.optionalKey(Schema.Int),
+        unmounted: Schema.optionalKey(Schema.Int),
+      }),
+    ),
+  }),
+);
 
 /** The JSON Schema of a scene source, for the tools' inputs. */
 const sourceSchema = {
@@ -71,15 +83,19 @@ const sourceSchema = {
     },
     runtime_id: {
       type: 'string',
-      description: 'A running app: its connectionId from scene_runtimes.',
+      description: 'The Effect UI session id from scene_runtimes.',
+    },
+    instance: {
+      type: 'integer',
+      description: 'The Effect UI instance number, defaulting to the root of the session.',
     },
     nodes_path: {
       type: 'string',
-      description: "The Model path of the app's scene nodes (default root.nodes).",
+      description: 'The dot-separated model path of the scene nodes (default nodes).',
     },
     camera_path: {
       type: 'string',
-      description: "The Model path of the app's camera (for example root.camera), if any.",
+      description: 'The dot-separated model path of the camera (for example camera).',
     },
   },
 } as const;
@@ -89,7 +105,7 @@ export const tools = [
   {
     name: 'scene_runtimes',
     description:
-      'The running Foldkit apps an agent can ask about, by runtime id (through the Foldkit DevTools MCP server).',
+      'The Effect UI sessions available to the scene tools, including their session ids.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
@@ -148,38 +164,72 @@ const fromText = (text: string, where: string): Read =>
 
 /** A DevTools answer decoded by `schema`, or what it said if it is not what was asked. */
 const decodedAnswer = <A>(
-  schema: Schema.Codec<{ readonly value: A }, string>,
+  schema: Schema.Codec<{ readonly result: A }, string>,
   answer: string,
   where: string,
 ): Result.Result<A, string> =>
   Result.match(Schema.decodeUnknownResult(schema)(answer), {
-    onSuccess: ({ value }) => Result.succeed(value),
+    onSuccess: ({ result }) => Result.succeed(result),
     onFailure: (error) =>
       Result.fail(answer.trimStart().startsWith('{') ? `${where}: ${error.message}` : answer),
   });
 
-/** A running app's scene: its nodes (and camera) read from its Model. */
+/** The root is the first instance mounted in an Effect UI session. */
+async function rootInstance(
+  devtools: DevTools,
+  session: string,
+): Promise<Result.Result<number, string>> {
+  const instances = decodedAnswer(
+    InstancesAnswer,
+    await devtools('list_instances', { session }),
+    session,
+  );
+  return Result.flatMap(instances, (entries) => {
+    const root = entries
+      .filter((entry) => entry.unmounted === undefined && entry.mounted !== undefined)
+      .toSorted((left, right) => (left.mounted ?? 0) - (right.mounted ?? 0))[0];
+    return root
+      ? Result.succeed(root.instance)
+      : Result.fail(`No mounted scene instance in Effect UI session ${session}.`);
+  });
+}
+
+/** A running app's nodes and camera are read from one revision of its Model. */
 const fromRuntime = async (
   devtools: DevTools,
-  runtime: string,
+  session: string,
   source: SceneSource,
 ): Promise<Read> => {
-  const nodesPath = source.nodes_path ?? 'root.nodes';
-  const ask = (path: string) =>
-    devtools('foldkit_get_model', { runtime_id: runtime, path, expand: true });
-  const nodes = decodedAnswer(NodesAnswer, await ask(nodesPath), `${runtime} at ${nodesPath}`);
-  const camera = Option.fromNullishOr(source.camera_path);
-  const cameraAnswer = Option.isSome(camera)
-    ? Option.some(
-        decodedAnswer(CameraAnswer, await ask(camera.value), `${runtime} at ${camera.value}`),
-      )
-    : Option.none();
-  return Result.flatMap(nodes, (children: ReadonlyArray<SceneNode>) =>
-    Option.match(cameraAnswer, {
-      onNone: () => Result.succeed(scene({ children })),
-      onSome: (read) => Result.map(read, (found) => scene({ children, camera: found })),
-    }),
+  const instance =
+    source.instance === undefined
+      ? await rootInstance(devtools, session)
+      : Result.succeed(source.instance);
+  if (Result.isFailure(instance)) return Result.fail(instance.failure);
+  const target = { session, instance: instance.success };
+  const revision = decodedAnswer(
+    RevisionAnswer,
+    await devtools('get_state', { ...target, path: ['at'] }),
+    session,
   );
+  if (Result.isFailure(revision)) return Result.fail(revision.failure);
+
+  const ask = (path: string) =>
+    devtools('get_state', {
+      ...target,
+      at: revision.success,
+      path: ['model', ...path.replace(/^root\./, '').split('.')],
+    });
+  const nodesPath = source.nodes_path ?? 'nodes';
+  const nodes = decodedAnswer(NodesAnswer, await ask(nodesPath), `${session} at ${nodesPath}`);
+  if (Result.isFailure(nodes)) return Result.fail(nodes.failure);
+  const children = nodes.success;
+  if (source.camera_path === undefined) return Result.succeed(scene({ children }));
+  const camera = decodedAnswer(
+    CameraAnswer,
+    await ask(source.camera_path),
+    `${session} at ${source.camera_path}`,
+  );
+  return Result.map(camera, (found) => scene({ children, camera: found }));
 };
 
 /** The scene a source names, or why it cannot be had. */
@@ -260,7 +310,7 @@ const sceneTool =
       : answered(await sceneFrom(devtools, source.success), answer);
   };
 
-const runtimes = (devtools: DevTools): Promise<string> => devtools('foldkit_list_runtimes', {});
+const runtimes = (devtools: DevTools): Promise<string> => devtools('list_sessions', {});
 
 const previewTool = async (devtools: DevTools, args: ToolArgs): Promise<string> => {
   const decoded = argsOf(PreviewArgs, args);

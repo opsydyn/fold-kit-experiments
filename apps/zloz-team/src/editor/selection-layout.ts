@@ -1,3 +1,4 @@
+import { UiSchema } from '@effect/ui';
 import {
   applyPreviewLayout,
   createEditor,
@@ -8,7 +9,6 @@ import {
   type ZlozOperationDocument,
 } from '@opsydyn/foldkit-zloz';
 import { Match, Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 export class SelectionLayoutError extends Error {}
 export const Direction = Schema.Literals(['RIGHT', 'DOWN']);
@@ -38,7 +38,7 @@ export const Proposal = Schema.Struct({
   moves: Schema.Array(Move),
 });
 export type Proposal = typeof Proposal.Type;
-export const Task = defineTaggedUnion({
+export const Task = UiSchema.TaggedEnum({
   Closed: {},
   Running: {},
   Ready: { proposal: Proposal },

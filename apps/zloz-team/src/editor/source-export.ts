@@ -1,8 +1,8 @@
+import { UiSchema } from '@effect/ui';
 import { serializeGraph, upgradeGroupDocumentV3, type ZlozGraph } from '@opsydyn/foldkit-zloz';
 import { exportMermaid } from '@opsydyn/foldkit-zloz-mermaid';
 import { Option, Schema } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 export const Kind = Schema.Literals(['mermaid', 'likec4']);
 export type Kind = typeof Kind.Type;
@@ -18,7 +18,7 @@ const details = {
     }),
   ),
 };
-export const Review = defineTaggedUnion({
+export const Review = UiSchema.TaggedEnum({
   Loading: { kind: Kind, version: Schema.Number, run: Schema.Number },
   Rejected: details,
   Ready: {

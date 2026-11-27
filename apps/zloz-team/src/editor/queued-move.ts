@@ -1,6 +1,6 @@
+import { UiSchema } from '@effect/ui';
 import type { ZlozGraphOperation, ZlozOperationDocument } from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 const Targets = Schema.Array(
   Schema.Struct({
@@ -9,7 +9,7 @@ const Targets = Schema.Array(
     position: Schema.Struct({ x: Schema.Number, y: Schema.Number }),
   }),
 ).pipe(Schema.check(Schema.isMinLength(1)));
-export const QueuedMove = defineTaggedUnion({
+export const QueuedMove = UiSchema.TaggedEnum({
   Ready: { nodes: Targets },
   Blocked: { nodes: Targets },
 });

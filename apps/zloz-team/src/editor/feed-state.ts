@@ -1,10 +1,12 @@
+import { UiSchema } from '@effect/ui';
+import type { DiagramFeed } from '@opsydyn/foldkit-zloz-alchemy/delta';
+import type { DiagramRoom, DiagramSession } from '@opsydyn/foldkit-zloz-alchemy/session';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 export const ReconnectDelay = Schema.Literals([0, 1000]);
 export const SocketSlot = Schema.Literals(['a', 'b']);
 export type SocketSlot = typeof SocketSlot.Type;
-export const Connection = defineTaggedUnion({
+export const Connection = UiSchema.TaggedEnum({
   Opening: {},
   Live: {},
   Handoff: { previousRun: Schema.Number, previousDelayMs: ReconnectDelay },
@@ -39,4 +41,28 @@ export function feedDescriptor(model: FeedState, slot: SocketSlot) {
       active: true,
     }),
   });
+}
+
+type BoardFeedState = FeedState &
+  Readonly<{
+    room: DiagramRoom;
+    feedMode: 'legacy' | 'delta';
+    feedSeeds: ReadonlyArray<Readonly<{ run: number; feed: DiagramFeed }>>;
+    session: Pick<DiagramSession, 'confirmed'>;
+  }>;
+
+/** A feed stays bound to its HTTP snapshot cursor for the lifetime of its socket run. */
+export function boardFeedBinding(model: BoardFeedState, slot: SocketSlot) {
+  const descriptor = feedDescriptor(model, slot);
+  const seed = model.feedSeeds.find((entry) => entry.run === descriptor.run);
+  return {
+    ...descriptor,
+    room: model.room,
+    after: model.feedMode === 'delta' && seed ? seed.feed.cursor : null,
+    active:
+      descriptor.active &&
+      Boolean(model.room.generation) &&
+      model.session.confirmed !== null &&
+      (model.feedMode === 'legacy' || Boolean(seed)),
+  };
 }

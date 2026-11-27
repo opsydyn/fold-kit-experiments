@@ -1,3 +1,4 @@
+import { UiSchema } from '@effect/ui';
 import { canonicalOperationValue } from '@opsydyn/foldkit-zloz';
 import {
   contextFingerprint,
@@ -17,7 +18,6 @@ import {
 import { Effect, Option, Schema } from 'effect';
 import { Command } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
 import { pathFor } from './protocol';
@@ -80,7 +80,7 @@ export const init = (): Model => ({
   notice: '',
   clefReview: null,
 });
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ChangedDraft: {
     field: Schema.Literals(['statement', 'rationale', 'evidence', 'openQuestion']),
     text: Schema.String,
@@ -130,7 +130,7 @@ const liveClefProposal = (context: Context, record: RelationshipDecision) => {
 };
 const ReviewWithClef = Command.define('ReviewWithClef', {
   args: { path: Schema.String, serial: Schema.Number, reference: ClefReference },
-  messages: [Message.SettledClefReview],
+  messages: [Message.cases.SettledClefReview],
   execute: ({ path, serial, reference }) => {
     const settled = (result: typeof ClefOutcome.Type) =>
       Message.SettledClefReview({ serial, result });
@@ -182,7 +182,7 @@ export function observe(model: Model, frame: DiagramFrame | null, actorId: strin
 }
 const SaveDecision = Command.define('SaveDecision', {
   args: { path: Schema.String, write: Write },
-  messages: [Message.SettledWrite],
+  messages: [Message.cases.SettledWrite],
   execute: ({ path, write }) => {
     const { operationId, command } = write;
     const settled = (result: Parameters<typeof Message.SettledWrite>[0]['result']) =>

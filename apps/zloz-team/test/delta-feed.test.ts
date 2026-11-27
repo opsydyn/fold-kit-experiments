@@ -4,6 +4,7 @@ import { createOperationDocument, parseGraph } from '@opsydyn/foldkit-zloz';
 import { Effect, Stream } from 'effect';
 
 import fixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
+import { boardFeedBinding } from '../src/editor/feed-state';
 import { init, Message, update } from '../src/editor/main';
 import { deltaEntries, deltaStream } from '../src/editor/protocol';
 const props = {
@@ -96,6 +97,34 @@ test('replacement HTTP bootstrap and stale caught-up markers preserve the live c
   model = update(model, Message.ObservedDelta({ room, run: 1, cursor: 71, delta: noop() })).model;
   expect(model.connection._tag).toBe('Live');
   expect(model.socketSlot).toBe('b');
+});
+
+test('each live feed binding keeps its bootstrap cursor until its own run is replaced', () => {
+  expect(boardFeedBinding(init(props).model, 'a').active).toBe(false);
+
+  const opened = ready();
+  expect(boardFeedBinding(opened, 'a')).toMatchObject({ run: 0, after: 70, active: true });
+  expect(boardFeedBinding(opened, 'b').active).toBe(false);
+  let model = update(opened, Message.ObservedCaughtUp({ room, run: 0, cursor: 70 })).model;
+  model = update(model, Message.ObservedDelta({ room, run: 0, cursor: 71, delta: noop() })).model;
+  expect(boardFeedBinding(model, 'a')).toEqual(boardFeedBinding(opened, 'a'));
+
+  model = update(model, Message.ObservedRenewal({ room, run: 0 })).model;
+  expect(boardFeedBinding(model, 'a')).toMatchObject({ run: 0, after: 70, active: true });
+  expect(boardFeedBinding(model, 'b')).toMatchObject({ run: 1, after: null, active: false });
+
+  model = update(
+    model,
+    Message.SucceededSnapshot({
+      room,
+      run: 1,
+      frame,
+      feed: { ...feed, cursor: 71 },
+      role: 'owner',
+    }),
+  ).model;
+  expect(boardFeedBinding(model, 'a')).toMatchObject({ run: 0, after: 70, active: true });
+  expect(boardFeedBinding(model, 'b')).toMatchObject({ run: 1, after: 71, active: true });
 });
 
 test('wrong targets, malformed deltas and impossible caught-up markers resync without replacing canonical state', () => {

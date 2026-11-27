@@ -1,3 +1,4 @@
+import { UiSchema } from '@effect/ui';
 import {
   createEditor,
   decideOperation,
@@ -46,23 +47,17 @@ import { BoardTitle } from '@opsydyn/zloz-server/src/team-contract';
 import { Effect, Option, Schema, Stream } from 'effect';
 import { Command, Dom, Render, Submodel, Subscription } from 'foldkit';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
 import type { DevToolsConfig } from 'foldkit/runtime';
 import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
-import {
-  motionQuery,
-  motionChangeEvent,
-  prefersReducedMotion,
-  type MotionPreference,
-} from '../appearance/preferences';
 import { publishTitle, titleChanges } from '../board-settings/channel';
 import * as DiagramImport from '../likec4/foldkit';
 import { requestLimit } from '../likec4/review';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';
+import { boardWidths, historyMotion, historyVisibility } from './browser-signals';
 import { createConnectionsView } from './connections-view';
 import { Message as CouplingMessage, OutMessage as CouplingOutMessage } from './coupling/message';
 import * as Coupling from './coupling/model';
@@ -75,7 +70,7 @@ import {
   Connection,
   ReconnectDelay,
   SocketSlot,
-  feedDescriptor,
+  boardFeedBinding,
   isLiveConnection,
   otherSlot,
 } from './feed-state';
@@ -132,7 +127,6 @@ const BoardCommand = Schema.Literals(['File', 'Edit', 'View', 'Arrange', 'Help',
 type BoardCommand = typeof BoardCommand.Type;
 const triggerId = (name: BoardCommand) =>
   name === 'History' ? 'board-history-toggle' : `board-menu-${name.toLowerCase()}-toggle`;
-const compactBoardQuery = '(max-width: 1080px)';
 export const Props = Schema.Struct({
   startingView: Schema.optional(CanvasEmphasis),
   teamId: Schema.String,
@@ -255,7 +249,7 @@ const current = (model: Model, room: DiagramRoom) =>
   model.room.teamId === room.teamId &&
   model.room.diagramId === room.diagramId &&
   model.room.actorId === room.actorId;
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SucceededIdentity: { generation: Schema.String },
   FailedIdentity: {},
   SucceededSnapshot: {
@@ -394,7 +388,7 @@ const RevealHotspots = Command.define('RevealHotspots', {
     run: Schema.Number,
     changes: Schema.Array(Schema.Struct({ id: Schema.String, status: WorkshopStatus })),
   },
-  messages: [Message.CompletedHotspotReveal],
+  messages: [Message.cases.CompletedHotspotReveal],
   execute: ({ run, changes }) => {
     const reveal = Effect.sync(() => revealHotspots(run, changes));
     return Render.afterCommit.pipe(
@@ -405,14 +399,14 @@ const RevealHotspots = Command.define('RevealHotspots', {
 });
 const RevealEdges = Command.define('RevealEdges', {
   args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) },
-  messages: [Message.CompletedEdgeReveal],
+  messages: [Message.cases.CompletedEdgeReveal],
   execute: ({ run, edgeIds }) => {
     const reveal = Effect.sync(() => revealEdgeStrokes(run, edgeIds));
     return Render.afterCommit.pipe(Effect.andThen(reveal), Effect.map(Message.CompletedEdgeReveal));
   },
 });
 const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
-  messages: [Message.CompletedInspectorFocus],
+  messages: [Message.cases.CompletedInspectorFocus],
   execute: Render.afterCommit.pipe(
     Effect.andThen(Dom.focus('#assessment-inspector', { makeFocusable: true })),
     Effect.catchTag('ElementNotFound', () => Effect.void),
@@ -421,7 +415,7 @@ const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
 });
 const FocusBoardControl = Command.define('FocusBoardControl', {
   args: { selector: Schema.String },
-  messages: [Message.CompletedBoardFocus],
+  messages: [Message.cases.CompletedBoardFocus],
   execute: ({ selector }) =>
     Render.afterCommit.pipe(
       Effect.andThen(Dom.focus(selector, { makeFocusable: true })),
@@ -431,7 +425,7 @@ const FocusBoardControl = Command.define('FocusBoardControl', {
 });
 const FocusJourneyNote = Command.define('FocusJourneyNote', {
   args: { triggerId: Schema.String },
-  messages: [Message.CompletedBoardFocus],
+  messages: [Message.cases.CompletedBoardFocus],
   execute: ({ triggerId }) =>
     Effect.gen(function* () {
       yield* Render.afterCommit;
@@ -445,7 +439,7 @@ const FocusJourneyNote = Command.define('FocusJourneyNote', {
 });
 const FocusCommandTrigger = Command.define('FocusCommandTrigger', {
   args: { name: BoardCommand },
-  messages: [Message.CompletedBoardFocus],
+  messages: [Message.cases.CompletedBoardFocus],
   execute: ({ name }) =>
     Effect.gen(function* () {
       yield* Render.afterCommit;
@@ -458,7 +452,7 @@ const FocusCommandTrigger = Command.define('FocusCommandTrigger', {
 });
 const PrepareLikeC4 = Command.define('PrepareLikeC4', {
   args: { run: Schema.Number, document: DiagramDocumentSchema },
-  messages: [Message.SettledSourceExport],
+  messages: [Message.cases.SettledSourceExport],
   execute: ({ run, document }) =>
     Effect.tryPromise(() => SourceExport.prepareLikeC4(document.graph, document.version)).pipe(
       Effect.orElseSucceed(() =>
@@ -480,7 +474,7 @@ const DownloadSource = Command.define('DownloadSource', {
     format: SourceExport.Format,
     contents: Schema.String,
   },
-  messages: [Message.CompletedSourceDownload],
+  messages: [Message.cases.CompletedSourceDownload],
   execute: ({ kind, version, format, contents }) =>
     Effect.try(() => {
       const source = format === 'source';
@@ -505,7 +499,7 @@ function handoffDownload(contents: string, mediaType: string, fileName: string) 
 }
 const LoadSvgIcons = Command.define('LoadSvgIcons', {
   args: { team: Schema.String, run: Schema.Number, references: Schema.Array(Schema.String) },
-  messages: [Message.LoadedSvgIcons],
+  messages: [Message.cases.LoadedSvgIcons],
   execute: ({ team, run, references }) =>
     Effect.tryPromise(() => Svg.loadIcons(team, references)).pipe(
       Effect.match({
@@ -523,7 +517,7 @@ const DownloadSvg = Command.define('DownloadSvg', {
     key: Schema.String,
     run: Schema.Number,
   },
-  messages: [Message.ObservedSvgReview],
+  messages: [Message.cases.ObservedSvgReview],
   execute: ({ svg, fileName, scope, generation, key, run }) => {
     const settled = (outcome: 'succeeded' | 'failed') =>
       Message.ObservedSvgReview({
@@ -549,7 +543,7 @@ const UseIconLibrary = Command.define('UseIconLibrary', {
     target: Schema.NullOr(Schema.Struct({ id: Schema.String, expected: Schema.Number })),
     archive: Schema.NullOr(Schema.String),
   },
-  messages: [Message.SettledIconLibrary],
+  messages: [Message.cases.SettledIconLibrary],
   execute: ({ team, run, file, target, archive }) =>
     Effect.tryPromise({
       try: async () => {
@@ -581,7 +575,7 @@ const PrepareLayoutPreview = Command.define('PrepareLayoutPreview', {
     direction: Layout.Direction,
     method: Layout.Method,
   },
-  messages: [Message.SettledLayoutPreview],
+  messages: [Message.cases.SettledLayoutPreview],
   execute: ({ room, run, document, selection, direction, method }) =>
     Effect.tryPromise({
       try: () =>
@@ -611,7 +605,7 @@ const sharedConnections = createConnectionsView<Message>((id) =>
 const sharedPorts = createPortsView<Message>();
 const sharedNodes = createNodesView<Message>((icon) => Message.FailedIconAsset({ icon }));
 const AllocateDiagramSession = Command.define('AllocateDiagramSession', {
-  messages: [Message.SucceededIdentity, Message.FailedIdentity],
+  messages: [Message.cases.SucceededIdentity, Message.cases.FailedIdentity],
   execute: Effect.try(() => crypto.randomUUID()).pipe(
     Effect.match({
       onSuccess: (generation) => Message.SucceededIdentity({ generation }),
@@ -621,7 +615,7 @@ const AllocateDiagramSession = Command.define('AllocateDiagramSession', {
 });
 const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
   args: { room: Room, run: Schema.optionalKey(Schema.Number) },
-  messages: [Message.SucceededSnapshot, Message.FailedSnapshot],
+  messages: [Message.cases.SucceededSnapshot, Message.cases.FailedSnapshot],
   execute: ({ room, run }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(pathFor(room), {
@@ -650,7 +644,7 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
 });
 const PrepareSharedEdit = Command.define('PrepareSharedEdit', {
   args: { room: Room, request: DiagramRequestSchema },
-  messages: [Message.PreparedEdit, Message.FailedPreparation],
+  messages: [Message.cases.PreparedEdit, Message.cases.FailedPreparation],
   execute: ({ room, request }) =>
     Effect.tryPromise(async () => {
       const input = request;
@@ -659,7 +653,7 @@ const PrepareSharedEdit = Command.define('PrepareSharedEdit', {
 });
 const SubmitSharedEdit = Command.define('SubmitSharedEdit', {
   args: { room: Room, request: DiagramRequestSchema },
-  messages: [Message.SucceededEdit, Message.FailedEdit],
+  messages: [Message.cases.SucceededEdit, Message.cases.FailedEdit],
   execute: ({ room, request }) => {
     const input = request;
     return Effect.tryPromise(async (signal) => {
@@ -685,7 +679,7 @@ const SendDiagramPresence = Command.define('SendDiagramPresence', {
     selection: Schema.Array(Schema.String),
     cursor: Schema.NullOr(Schema.Struct({ x: Schema.Number, y: Schema.Number })),
   },
-  messages: [Message.SucceededPresence, Message.FailedPresence],
+  messages: [Message.cases.SucceededPresence, Message.cases.FailedPresence],
   execute: ({ room, selection, cursor }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(`${pathFor(room)}/presence`, {
@@ -1636,7 +1630,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         update: updateCoupling,
         read: (parent: Model) => Option.some(parent.coupling),
         write: (parent, coupling) => ({ ...parent, coupling }),
-        toParentMessage: (message) => Message.GotCouplingMessage({ room, message }),
+        toParentMessage: (message: CouplingMessage) =>
+          Message.GotCouplingMessage({ room, message }),
         foldOutMessage: (outMessage) =>
           CouplingOutMessage.match(outMessage, {
             SelectedRelationship:
@@ -3994,25 +3989,12 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
       {
         room: Room,
         run: Schema.Number,
-        delay: Schema.Literals([0, 1000]),
+        delay: ReconnectDelay,
         active: Schema.Boolean,
         after: Schema.NullOr(Schema.Number),
       },
       {
-        modelToDependencies: (model) => {
-          const descriptor = feedDescriptor(model, slot);
-          const seed = model.feedSeeds.find((seed) => seed.run === descriptor.run);
-          return {
-            ...descriptor,
-            room: model.room,
-            after: model.feedMode === 'delta' && seed ? seed.feed.cursor : null,
-            active:
-              descriptor.active &&
-              Boolean(model.room.generation) &&
-              session(model).confirmed !== null &&
-              (model.feedMode === 'legacy' || Boolean(seed)),
-          };
-        },
+        modelToDependencies: (model) => boardFeedBinding(model, slot),
         dependenciesToStream: ({ room, run, delay, active, after }) =>
           active
             ? Stream.fromEffect(Effect.sleep(delay)).pipe(
@@ -4047,10 +4029,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
       titleChanges((title) => Message.ObservedBoardTitle({ title })),
     ),
     compactBoard: Subscription.persistentEntry(
-      Dom.streamFromMediaQuery({
-        query: compactBoardQuery,
-        mapMatches: (compact) => Message.ChangedBoardWidth({ compact }),
-      }),
+      boardWidths().pipe(Stream.map((compact) => Message.ChangedBoardWidth({ compact }))),
     ),
     historyPlayback: entry(
       { run: Schema.Number, intervalMs: Schema.Number, active: Schema.Boolean },
@@ -4075,38 +4054,13 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => {
       },
     ),
     historyMotion: Subscription.persistentEntry(
-      Dom.streamFromMediaQuery({
-        query: motionQuery,
-        mapMatches: () => Message.ChangedHistoryMotion({ reducedMotion: prefersReducedMotion() }),
-      }).pipe(
-        Stream.merge(
-          Dom.streamFromEvent({
-            target: (): Dom.TypedEventTarget<{
-              'zloz:motion-preference': CustomEvent<MotionPreference>;
-            }> => document,
-            type: motionChangeEvent,
-            mapEvent: ({ detail }) =>
-              Message.ChangedHistoryMotion({
-                reducedMotion: detail === 'reduce' || window.matchMedia(motionQuery).matches,
-              }),
-          }),
-        ),
+      historyMotion().pipe(
+        Stream.map((reducedMotion) => Message.ChangedHistoryMotion({ reducedMotion })),
       ),
     ),
     historyVisibility: Subscription.persistentEntry(
-      Stream.fromEffect(
-        Effect.sync(() =>
-          Message.ChangedHistoryVisibility({ visible: document.visibilityState === 'visible' }),
-        ),
-      ).pipe(
-        Stream.concat(
-          Dom.streamFromEvent({
-            target: () => document,
-            type: 'visibilitychange',
-            mapEvent: () =>
-              Message.ChangedHistoryVisibility({ visible: document.visibilityState === 'visible' }),
-          }),
-        ),
+      historyVisibility().pipe(
+        Stream.map((visible) => Message.ChangedHistoryVisibility({ visible })),
       ),
     ),
     liveA: feed('a'),

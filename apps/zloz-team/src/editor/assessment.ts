@@ -1,3 +1,4 @@
+import { UiSchema } from '@effect/ui';
 import { canonicalOperationValue } from '@opsydyn/foldkit-zloz';
 import {
   AssessmentRequestSchema,
@@ -14,7 +15,6 @@ import {
 import { Effect, Option, Schema } from 'effect';
 import { Command } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
 
 import { pathFor } from './protocol';
@@ -58,7 +58,7 @@ export const Model = Schema.Union([
 ]);
 export type Model = typeof Model.Type;
 export const init = (): Model => ({ status: 'closed', notice: '' });
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   SelectedRelationship: { id: Schema.String },
   ChangedScope: { field: Schema.Literals(['abstraction', 'horizon']), text: Schema.String },
   ChangedValue: { field: Field, value: Schema.String },
@@ -179,7 +179,7 @@ export function authoredAssessment(draft: Draft): Option.Option<ZlozCouplingAsse
 }
 const AllocateAssessmentSave = Command.define('AllocateAssessmentSave', {
   args: { draft: Draft },
-  messages: [Message.AllocatedSave, Message.FailedAllocation],
+  messages: [Message.cases.AllocatedSave, Message.cases.FailedAllocation],
   execute: ({ draft }) =>
     Effect.try(() => {
       const assessment = authoredAssessment(draft);
@@ -204,7 +204,7 @@ const SubmitAssessmentSave = Command.define('SubmitAssessmentSave', {
     }),
     request: AssessmentRequestSchema,
   },
-  messages: [Message.SettledSave],
+  messages: [Message.cases.SettledSave],
   execute: ({ room, request }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(`${pathFor(room)}/assessments`, {
@@ -272,7 +272,7 @@ export function observe(model: Model, frame: DiagramFrame, actorId: string): Mod
 export function update(model: Model, message: Message, context: Context): Return<Model, Message> {
   const editable = context.editable && !context.graphPending;
   const ready = model.status === 'editing' && model.delivery.status === 'ready';
-  return Message.match<Return<Model, Message>>(message, {
+  return Message.match(message, {
     SelectedRelationship: ({ id }) => ({
       model: model.status === 'closed' && context.frame ? open(context.frame, id) : model,
     }),
@@ -361,7 +361,7 @@ export function update(model: Model, message: Message, context: Context): Return
         return { model };
       return { model, commands: [AllocateAssessmentSave({ draft: model.draft })] };
     },
-    AllocatedSave: ({ request }) => {
+    AllocatedSave: ({ request }): Return<Model, Message> => {
       if (
         !ready ||
         !editable ||
@@ -380,7 +380,7 @@ export function update(model: Model, message: Message, context: Context): Return
         ? { ...model, notice: 'Could not prepare save. Review required fields and retry.' }
         : model,
     }),
-    ClickedRetry: () =>
+    ClickedRetry: (): Return<Model, Message> =>
       model.status === 'editing' && model.delivery.status === 'uncertain' && editable
         ? {
             model: {
@@ -393,7 +393,7 @@ export function update(model: Model, message: Message, context: Context): Return
             ],
           }
         : { model },
-    SettledSave: ({ operationId, reply, status }) => {
+    SettledSave: ({ operationId, reply, status }): Return<Model, Message> => {
       if (
         model.status !== 'editing' ||
         model.delivery.status === 'ready' ||

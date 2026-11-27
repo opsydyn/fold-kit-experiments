@@ -1,14 +1,11 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
-
 import { Message } from './message';
 import type { Model } from './model';
 
-type Return = UpdateReturn<Model, Message>;
-
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
-    InspectedModule: ({ key }) => ({ model: { ...model, inspected: key } }),
+    InspectedModule: ({ key }) => ({ ...model, inspected: key }),
     SelectedModule: ({ key }) => ({
-      model: { ...model, selected: model.selected === key ? null : key },
+      ...model,
+      selected: model.selected === key ? null : key,
     }),
   });

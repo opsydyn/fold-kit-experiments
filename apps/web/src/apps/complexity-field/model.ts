@@ -1,8 +1,6 @@
 import { randomLcg } from '@opsydyn/foldkit-viz/math/random';
 import { Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
 export const Subdomain = Schema.Literals(['core', 'supporting', 'generic']);
 export type Subdomain = typeof Subdomain.Type;
 export const Integration = Schema.Literals(['intrusive', 'contract', 'functional']);
@@ -92,6 +90,9 @@ export const summarise = (modules: ReadonlyArray<Module>) => ({
   },
 });
 
-export const init = (_props: AppInitProps) => ({
-  model: { modules: seedModules(), inspected: null, selected: null, threshold: 8 },
-});
+export const init: Model = {
+  modules: seedModules(),
+  inspected: null,
+  selected: null,
+  threshold: 8,
+};

@@ -190,3 +190,36 @@ test('evolution changes line shape and highlights a focused legend series', asyn
   await expect(log.getByRole('row')).toHaveCount(21);
   await expect(log).toContainText('NEW PERSON');
 });
+
+test('complexity field inspects, selects and clears an orbit mark from the keyboard', async ({
+  page,
+}) => {
+  await page.goto('/complexity-field');
+  const orbit = page.getByRole('group', { name: /^Complexity field\. 42 modules/ });
+  await orbit.scrollIntoViewIfNeeded();
+  await hydrated(page.locator('astro-island').filter({ has: orbit }));
+  const modules = orbit.getByRole('button');
+  await expect(modules).toHaveCount(42);
+  const module = orbit.getByRole('button', { name: /^apim-learn:/ });
+  const readout = page.locator('[aria-live="polite"]');
+  await expect(readout).toContainText('ENGINEERING SYSTEM STANDBY');
+  await module.focus();
+  await expect(readout).toContainText('apim-learn');
+  await module.press('Space');
+  await expect(module).toHaveAttribute('aria-pressed', 'true');
+  await expect(module).toBeFocused();
+  await module.blur();
+  await expect(readout).toContainText('apim-learn');
+  await module.press('Enter');
+  await expect(module).toHaveAttribute('aria-pressed', 'false');
+  await module.blur();
+  await expect(readout).toContainText('ENGINEERING SYSTEM STANDBY');
+
+  const gradientId = await orbit.locator('radialGradient').getAttribute('id');
+  expect(gradientId).toBeTruthy();
+  await expect(orbit.locator('.chart-orbit-core')).toHaveAttribute('fill', `url(#${gradientId})`);
+  await page.getByText('Module table', { exact: true }).click();
+  await expect(
+    page.getByRole('table', { name: 'Modules by systemic risk' }).getByRole('row'),
+  ).toHaveCount(43);
+});

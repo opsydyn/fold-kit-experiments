@@ -3,6 +3,7 @@ import { expect, it } from 'vitest';
 
 import animatedBar from '../animated-bar/app';
 import colorSpaces from '../color-spaces/app';
+import complexityField from '../complexity-field/app';
 import counter from '../counter/app';
 import dataScience from '../data-science/app';
 import earthquakeGlobe from '../earthquake-globe/app';
@@ -22,6 +23,7 @@ import greeting from './app';
 it.each([
   ['Animated Bar', animatedBar],
   ['Color Spaces', colorSpaces],
+  ['Complexity Field', complexityField],
   ['Counter', counter],
   ['Data Science', dataScience],
   ['Earthquake Globe', earthquakeGlobe],

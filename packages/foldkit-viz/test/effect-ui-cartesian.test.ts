@@ -37,8 +37,9 @@ it('server-renders line, labelled points and native hexagon tooltips in projecte
     message: Schema.Never,
   }).make({
     init: () => ({}),
-    view: (h) =>
-      chartFrame(
+    update: ({ model }) => model,
+    view: (h: Html.H<never>) =>
+      chartFrame<never>(
         h,
         {
           layout: geometry.layout,

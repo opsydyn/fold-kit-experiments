@@ -2,8 +2,10 @@ import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import { Schema } from 'effect';
 
-import type { AxisTick, CartesianLayout } from '../chart/cartesian.js';
-import type { ChartTheme } from '../chart/theme.js';
+import type { AxisTick, CartesianLayout, ProjectedDatum } from '../chart/cartesian.js';
+import type { ChartTheme, SeriesStyle } from '../chart/theme.js';
+import { hexagonPath, type HexBin } from '../math/bin2d.js';
+import { symbolPath } from '../shape/symbol.js';
 
 type FrameOptions<M> = Readonly<{
   layout: CartesianLayout;
@@ -149,5 +151,98 @@ export function dataTable<M>(h: Html.H<M>, { caption, headers, rows }: TableOpti
       h.caption(caption),
       h.thead(h.tr(...headers.map((header) => h.th.attr('scope', 'col').children(header)))),
       h.tbody(...rows.map((row) => h.tr(...row.map((value) => h.td(value))))),
+    );
+}
+
+export type LineSeriesOptions = Readonly<{ path: string; style: SeriesStyle }>;
+
+/** Draws a projected line using the resolved series style. */
+export function lineSeries<M>(h: Html.H<M>, { path, style }: LineSeriesOptions) {
+  return h.el('path').attrs({
+    class: 'chart-line-series',
+    d: path,
+    fill: 'none',
+    stroke: style.stroke,
+    'stroke-width': String(style.strokeWidth),
+    'stroke-dasharray': style.dashPattern,
+    opacity: String(style.opacity),
+    'stroke-linejoin': 'round',
+    'stroke-linecap': 'round',
+  });
+}
+
+export type PointSeriesOptions<T, M> = Readonly<{
+  points: ReadonlyArray<ProjectedDatum<T>>;
+  styleFor: (point: ProjectedDatum<T>) => SeriesStyle;
+  labelFor: (datum: T) => string;
+  activeKey: string | null;
+  onInspect?: (key: string) => M;
+}>;
+
+/** Draws keyed symbols without creating a tab stop for every datum. */
+export function pointSeries<T, M>(
+  h: Html.H<M>,
+  { points, styleFor, labelFor, activeKey, onInspect }: PointSeriesOptions<T, M>,
+) {
+  return h
+    .el('g')
+    .attr('class', 'chart-point-series')
+    .children(
+      points.map((point) => {
+        const style = styleFor(point);
+        const active = point.key === activeKey;
+        const radius = style.pointRadius + (active ? 2 : 0);
+        const path = h
+          .el('path')
+          .key(point.key)
+          .attrs({
+            'data-symbol': style.symbol,
+            transform: `translate(${point.x},${point.y})`,
+            d: symbolPath(style.symbol, Math.PI * radius * radius),
+            fill: style.fill,
+            stroke: active ? 'currentColor' : style.stroke,
+            'stroke-width': String(style.strokeWidth),
+            opacity: String(style.opacity),
+            'aria-label': labelFor(point.datum),
+          });
+        if (onInspect === undefined) return path;
+        return path
+          .attr('style', 'cursor:pointer')
+          .on('mouseenter', () => onInspect(point.key))
+          .on('click', () => onInspect(point.key));
+      }),
+    );
+}
+
+export type HexSeriesOptions<T> = Readonly<{
+  bins: ReadonlyArray<HexBin<T>>;
+  radius: number;
+  fillFor: (bin: HexBin<T>) => string;
+  labelFor: (bin: HexBin<T>) => string;
+}>;
+
+/** Draws hexagonal bins at their projected centres with native SVG tooltips. */
+export function hexSeries<T, M>(
+  h: Html.H<M>,
+  { bins, radius, fillFor, labelFor }: HexSeriesOptions<T>,
+) {
+  const d = hexagonPath(radius);
+  return h
+    .el('g')
+    .attr('class', 'chart-hex-series')
+    .children(
+      bins.map((bin) => {
+        const label = labelFor(bin);
+        return h
+          .el('path')
+          .key(`${bin.x},${bin.y}`)
+          .attrs({
+            transform: `translate(${bin.x},${bin.y})`,
+            d,
+            fill: fillFor(bin),
+            'aria-label': label,
+          })
+          .children(h.el('title').children(label));
+      }),
     );
 }

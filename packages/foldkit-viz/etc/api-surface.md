@@ -2053,6 +2053,88 @@ type Space3dSceneOptions = Readonly<{
 function surface3dScene(surface: Surface3d, options: Space3dSceneOptions): GroupNode;
 ```
 
+## ./effect-ui/cartesian
+
+```ts
+function axis<M>(h: Html.H<M>, {
+  layout: {
+    plot,
+    frame
+  },
+  orientation,
+  ticks,
+  label,
+  format,
+  theme
+}: AxisOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+function chartFrame<M>(h: Html.H<M>, {
+  layout: {
+    frame
+  },
+  title,
+  description,
+  theme,
+  onKeyDown
+}: FrameOptions<M>, children: ReadonlyArray<View.Input<M>>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+function dataTable<M>(h: Html.H<M>, {
+  caption,
+  headers,
+  rows
+}: TableOptions): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "table">;
+function grid<M>(h: Html.H<M>, {
+  layout: {
+    plot
+  },
+  xTicks,
+  yTicks,
+  theme
+}: GridOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+function hexSeries<T, M>(h: Html.H<M>, {
+  bins,
+  radius,
+  fillFor,
+  labelFor
+}: HexSeriesOptions<T>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type HexSeriesOptions<T> = Readonly<{
+  bins: ReadonlyArray<HexBin<T>>;
+  radius: number;
+  fillFor: (bin: HexBin<T>) => string;
+  labelFor: (bin: HexBin<T>) => string;
+}>;
+function lineSeries<M>(h: Html.H<M>, {
+  path,
+  style
+}: LineSeriesOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type LineSeriesOptions = Readonly<{
+  path: string;
+  style: SeriesStyle;
+}>;
+function pointSeries<T, M>(h: Html.H<M>, {
+  points,
+  styleFor,
+  labelFor,
+  activeKey,
+  onInspect
+}: PointSeriesOptions<T, M>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type PointSeriesOptions<T, M> = Readonly<{
+  points: ReadonlyArray<ProjectedDatum<T>>;
+  styleFor: (point: ProjectedDatum<T>) => SeriesStyle;
+  labelFor: (datum: T) => string;
+  activeKey: string | null;
+  onInspect?: (key: string) => M;
+}>;
+```
+
+## ./effect-ui/plot
+
+```ts
+function plotCanvas<M>(h: Html.H<M>, geometry: PlotGeometry, options: PlotCanvasOptions<M>): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "figure">;
+type PlotCanvasOptions<M> = PlotChartOptions & CanvasLayer<M> & Readonly<{
+  pointsLayer?: CanvasLayer<M>;
+}>;
+function plotChart<M>(h: Html.H<M>, geometry: PlotGeometry, options?: PlotChartOptions): View.Content<M>;
+```
+
 ## ./effect/plot
 
 ```ts

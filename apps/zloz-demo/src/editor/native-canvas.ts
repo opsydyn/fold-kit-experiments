@@ -2,11 +2,14 @@ import { Html } from '@effect/ui/html';
 import type {
   EditorEvent,
   EditorPolicy,
+  ZlozHistoryComparison,
+  ZlozHistoryGhostVisibility,
   ZlozPlacementControlsContext,
   ZlozNode,
 } from '@opsydyn/foldkit-zloz';
 import {
   graphSurface,
+  historyGhosts,
   placementPreview,
   type GraphSurfaceOptions,
   type ZlozAlignmentGuideContext,
@@ -32,6 +35,10 @@ type Canvas = Readonly<{
   measurements: boolean;
   alignmentGuides: boolean;
   edgeToolbar: boolean;
+  history: Readonly<{
+    comparison: ZlozHistoryComparison | null;
+    ghosts: ZlozHistoryGhostVisibility;
+  }>;
 }>;
 
 function cardControls<M>(
@@ -161,7 +168,7 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
   Schema.is(Message.cases.ObservedModelInput),
   (
     h,
-    { model, policy, placement, scheme, measurements, alignmentGuides, edgeToolbar },
+    { model, policy, placement, scheme, measurements, alignmentGuides, edgeToolbar, history },
     request,
   ) => {
     const state = model.editor;
@@ -173,7 +180,7 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
           message,
         }),
       );
-    const orbit = model.nodeDesign === 'orbits';
+    const orbit = model.historyReview === null && model.nodeDesign === 'orbits';
     const ddd = model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming';
     const compactToolbar = model.nodeToolbarDesign === 'compact';
     const options: GraphSurfaceOptions<ReturnType<typeof observe>> = {
@@ -220,7 +227,7 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
       reconnect: true,
       resizeHandles: true,
       resizeReadout: measurements,
-      architectureNotation: ddd || model.nodeDesign === 'c4',
+      architectureNotation: model.historyReview !== null || ddd || model.nodeDesign === 'c4',
       notationLabels: { badge: workbenchArchitectureBadge, hotspotStatus: workbenchHotspotStatus },
       contextActions: { onEvent: observe, design: model.contextMenuDesign, measurements },
       nodeContextAction: (node) =>
@@ -322,7 +329,12 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
         onEdit: observe,
         reconnection: { onEvent: observe },
       },
-      worldOverlay: placementPreview(h, placement) ?? null,
+      worldOverlay:
+        model.historyReview && history.comparison
+          ? historyGhosts<ReturnType<typeof observe>>(history.comparison, history.ghosts)
+          : model.historyReview
+            ? null
+            : (placementPreview(h, placement) ?? null),
       renderNodeShell: ({ node, selected, selectionPreview, readOnly }, builder) => {
         if (orbit)
           return {

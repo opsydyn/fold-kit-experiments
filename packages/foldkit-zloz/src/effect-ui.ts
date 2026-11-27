@@ -507,6 +507,7 @@ export { modellingPatchReview } from './effect-ui-patch-review';
 export {
   historyChangeNavigatorV2,
   historyComparisonV2,
+  historyGhosts,
   historyGhostsV2,
   historyMinimap,
 } from './effect-ui-history';

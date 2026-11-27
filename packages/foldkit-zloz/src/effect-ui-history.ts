@@ -7,7 +7,8 @@ import type {
   ZlozHistoryChangeFocusRequestV2,
   ZlozHistoryChangeNavigatorContextV2,
 } from './history-change-navigator-v2';
-import { drawHistoryGhosts } from './history-ghost-drawing';
+import type { ZlozHistoryGhostVisibility } from './history-comparison-controls';
+import { drawHistoryGhosts, type HistoryGhostComparison } from './history-ghost-drawing';
 import type { ZlozHistoryPresentationContextV2 } from './history-presentation-v2';
 import { minimapContext } from './minimap-context';
 import type { EditorEvent, EditorState, Point, Size } from './types';
@@ -27,7 +28,11 @@ export function historyComparisonV2<M>(h: Html.H<M>, context: ZlozHistoryPresent
 }
 
 /** Inert world-space marks use the same geometry and visibility as the FoldKit view. */
-export function historyGhostsV2<M>(context: ZlozHistoryPresentationContextV2) {
+export function historyGhosts<M>(
+  comparison: HistoryGhostComparison,
+  visibility: ZlozHistoryGhostVisibility,
+  displaySide: 'baseline' | 'selected' = 'selected',
+) {
   return drawHistoryGhosts<View.Content<M>>(
     (tag, attributes, children, style) => {
       const element = Object.entries(attributes).reduce(
@@ -36,11 +41,15 @@ export function historyGhostsV2<M>(context: ZlozHistoryPresentationContextV2) {
       );
       return (style ? element.style(style) : element).children(children);
     },
-    context.comparison,
-    context.effectiveGhosts,
-    context.displaySide === 'baseline' ? 'Compared' : 'Previous',
-    context.displaySide,
+    comparison,
+    visibility,
+    displaySide === 'baseline' ? 'Compared' : 'Previous',
+    displaySide,
   );
+}
+
+export function historyGhostsV2<M>(context: ZlozHistoryPresentationContextV2) {
+  return historyGhosts<M>(context.comparison, context.effectiveGhosts, context.displaySide);
 }
 
 const changeKinds = ['added', 'removed', 'changed'] as const;

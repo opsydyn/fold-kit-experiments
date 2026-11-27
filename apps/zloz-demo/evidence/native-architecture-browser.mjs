@@ -228,6 +228,46 @@ async function qualify() {
   await expect(canvas.locator('[data-flow-node="timeout-agreement"]')).toContainText(
     'Agreed · resolved',
   );
+  await button('Open DDD Order aggregate').click();
+  await button('Select Order').press('Enter');
+  await button('Select Order').press('ArrowRight');
+  const working = await snapshot();
+  await section('History');
+  await button('Load Order history example').click();
+  await page
+    .getByRole('combobox', { name: 'Rewind to edition', exact: true })
+    .selectOption('order-evolved');
+  await expect(canvas).toHaveClass(/zloz-ui-surface/);
+  await expect(canvas).toHaveAttribute('data-flow-readonly', 'true');
+  await expect(
+    page.getByRole('status', { name: 'Historical edition notice', exact: true }),
+  ).toBeVisible();
+  const ghosts = canvas.locator('[data-zloz-history-ghosts]');
+  await expect(ghosts).toHaveCount(0);
+  await page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true }).check();
+  await expect(ghosts).toHaveAttribute('aria-hidden', 'true');
+  await expect(ghosts.locator('[data-zloz-history-node]')).toHaveCount(5);
+  await expect(ghosts.locator('[data-zloz-history-movement]')).toHaveCount(1);
+  await expect(ghosts.locator('button, [data-flow-port], [tabindex]')).toHaveCount(0);
+  const historicalOrder = canvas.locator('[data-flow-node="order"]');
+  await expect(historicalOrder).toContainText('Sales order');
+  const historicalStyle = await historicalOrder.getAttribute('style');
+  await historicalOrder.locator('[data-flow-handle]').press('Delete');
+  await historicalOrder.locator('[data-flow-handle]').press('ArrowRight');
+  await expect(historicalOrder).toHaveAttribute('style', historicalStyle);
+  await expect(canvas.locator('[data-flow-port]:enabled')).toHaveCount(0);
+  await section('Diagnostics');
+  await button('Minimal mode').click();
+  await expect(ghosts).toHaveCount(0);
+  await button('Minimal mode').click();
+  await expect(ghosts).toHaveCount(1);
+  await section('Navigation');
+  const cameraBefore = await historicalOrder.boundingBox();
+  await button('Zoom in').click();
+  await expect.poll(() => historicalOrder.boundingBox()).not.toEqual(cameraBefore);
+  await button('Back to present').click();
+  await expect(canvas).toHaveAttribute('data-flow-readonly', 'false');
+  expect(await snapshot()).toEqual(working);
   expect(errors).toEqual([]);
   console.log(
     engine + ': native Architecture canvas shares the working model, actions, export and Undo',

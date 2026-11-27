@@ -562,23 +562,23 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
       model.sidebarSection === 'diagram' &&
       !model.sidebarCollapsed
     );
-  const nativeCanvas =
-    useNativeCanvas && model.historyReview === null
-      ? nativeArchitectureCanvas(
-          h,
-          {
-            model,
-            policy,
-            placement: placementControls,
-            scheme: colorScheme,
-            measurements: diagnostics.measurements,
-            alignmentGuides: diagnostics.alignmentGuides,
-            edgeToolbar: showEdgeToolbar,
-          },
-          'architecture-effect-ui',
-          'working-canvas',
-        )
-      : undefined;
+  const nativeCanvas = useNativeCanvas
+    ? nativeArchitectureCanvas(
+        h,
+        {
+          model,
+          policy,
+          placement: placementControls,
+          scheme: colorScheme,
+          measurements: diagnostics.measurements,
+          alignmentGuides: diagnostics.alignmentGuides,
+          edgeToolbar: showEdgeToolbar,
+          history: { comparison, ghosts: comparisonControls.effectiveGhosts },
+        },
+        'architecture-effect-ui',
+        'working-canvas',
+      )
+    : undefined;
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
     !model.minimalMode &&

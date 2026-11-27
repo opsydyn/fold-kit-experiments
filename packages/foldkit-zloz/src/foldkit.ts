@@ -267,8 +267,14 @@ import {
 } from './diagnostics';
 export { resolveZlozDiagnostics } from './diagnostics';
 export type { ZlozDiagnostics, ZlozDiagnosticOptions } from './diagnostics';
+import {
+  doubleClickZoomFactor,
+  type ZlozSelectionMarqueeContext,
+  type ZlozZoomAreaMarqueeContext,
+} from './canvas-gestures';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type ZlozEdgeGeometryPolicy } from './edge-geometry';
+export type { ZlozSelectionMarqueeContext, ZlozZoomAreaMarqueeContext } from './canvas-gestures';
 import { boxBounds, finitePoint, portBoundaryPosition } from './geometry';
 import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
 import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
@@ -294,7 +300,6 @@ import { movementReason } from './movement';
 export type { ZlozBackground, ZlozBackgroundRenderContext } from './background';
 import type {
   AlignmentGuide,
-  BoxSelectionMatch,
   DeletionTargets,
   EditorPolicy,
   ZlozGraph,
@@ -342,25 +347,6 @@ export type ZlozAlignmentGuideContext = Readonly<{
   start: Point;
   end: Point;
   phase: 'drag' | 'resize';
-  viewport: Viewport;
-}>;
-
-/** Normalized selection bounds in graph coordinates and the current camera. */
-export type ZlozSelectionMarqueeContext = Readonly<{
-  bounds: Readonly<{
-    left: number;
-    top: number;
-    right: number;
-    bottom: number;
-  }>;
-  previewNodeIds: readonly string[];
-  match: BoxSelectionMatch;
-  viewport: Viewport;
-}>;
-
-/** Normalized world bounds of the pending camera fit. */
-export type ZlozZoomAreaMarqueeContext = Readonly<{
-  bounds: Readonly<ReturnType<typeof boxBounds>>;
   viewport: Viewport;
 }>;
 
@@ -1683,14 +1669,7 @@ export function zlozView<M>(
   const reconnectionDropRadius = options.reconnectionDropRadius ?? connectionDropRadius;
   if (!Number.isFinite(reconnectionDropRadius) || reconnectionDropRadius < 0)
     throw new RangeError('Reconnection drop radius must be finite and non-negative');
-  const { doubleClickZoom } = options;
-  const doubleClickZoomFactor = doubleClickZoom === true ? 1.25 : doubleClickZoom;
-  if (
-    doubleClickZoomFactor !== undefined &&
-    doubleClickZoomFactor !== false &&
-    (!Number.isFinite(doubleClickZoomFactor) || doubleClickZoomFactor <= 1)
-  )
-    throw new RangeError('Double-click zoom factor must be finite and greater than 1');
+  const doubleClickFactor = doubleClickZoomFactor(options.doubleClickZoom);
   if (options.waypointLabelOffset) finitePoint(options.waypointLabelOffset);
   const diagnostics = resolveZlozDiagnostics(options);
   const presentation = presentVisibleGraph(state);
@@ -2434,7 +2413,7 @@ export function zlozView<M>(
       h.DataAttribute('flow-reconnection-drop-radius', String(reconnectionDropRadius)),
       h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
       h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
-      h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
+      h.DataAttribute('flow-double-click-zoom', String(doubleClickFactor ?? '')),
       h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
       h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
       h.DataAttribute(

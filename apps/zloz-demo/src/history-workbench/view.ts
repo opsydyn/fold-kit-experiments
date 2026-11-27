@@ -15,6 +15,8 @@ import {
   placementHost,
   placementPalette,
   placementPreview,
+  viewportControl,
+  viewportControlActions,
 } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
@@ -49,6 +51,7 @@ export function view(h: Html.H<Message>, model: Model) {
   });
   const scheme = model.theme === 'system' ? (model.systemDark ? 'dark' : 'light') : model.theme;
   const observe = (event: EditorEvent) => Message.ObservedEditor({ epoch: model.epoch, event });
+  const camera = viewportControlActions(editor);
   const placement = historyPlacement(model);
   const onPlacement = (input: ZlozPlacementInput) => Message.ObservedPlacement({ input });
   const button = (text: string, message: Message, disabled = false): View.Content<Message> =>
@@ -174,6 +177,18 @@ export function view(h: Html.H<Message>, model: Model) {
                 .checked(model.minimap)
                 .on('click', Message.ClickedMinimap()),
             ),
+            h.div
+              .key('camera-controls')
+              .class('workbench-actions')
+              .attr('role', 'group')
+              .attr('aria-label', 'Canvas camera controls')
+              .children(
+                ...[
+                  camera.fitView,
+                  camera.previousView,
+                  ...(editor.readOnly ? [] : [camera.zoomArea, camera.selectionMode]),
+                ].map((action) => viewportControl(h, action, observe).children(action.label)),
+              ),
             ...(model.minimap ? [historyMinimap(h, editor, observe)] : []),
             ...(model.section === 'authoring'
               ? [
@@ -467,6 +482,9 @@ export function view(h: Html.H<Message>, model: Model) {
             },
             onToggleGroup: (id) => observe({ type: 'GroupCollapseToggled', id }),
             wheelNavigation: 'zoom',
+            doubleClickZoom: true,
+            spaceToPan: true,
+            middleButtonPan: true,
             pinchZoom: false,
             theme: workbenchThemes[scheme],
             worldOverlay:

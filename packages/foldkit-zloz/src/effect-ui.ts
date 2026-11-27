@@ -2,6 +2,11 @@ import { Mount, type View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import type { BrowserInput } from './browser-input';
+import {
+  doubleClickZoomFactor,
+  type ZlozSelectionMarqueeContext,
+  type ZlozZoomAreaMarqueeContext,
+} from './canvas-gestures';
 import { portConnectionEnd } from './connection-mode';
 import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
@@ -16,7 +21,7 @@ import {
 import { surfaceInput } from './effect-ui-input';
 import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
 import { nodeResizeControls, nodeResizeReadout } from './effect-ui-resize';
-import { portBoundaryPosition, portPosition } from './geometry';
+import { boxBounds, portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
 import { nodeShapeGeometry } from './node-shape';
@@ -33,8 +38,15 @@ import { resolveEdgeWaypointControls } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { BrowserInput } from './browser-input';
+export type { ZlozSelectionMarqueeContext, ZlozZoomAreaMarqueeContext } from './canvas-gestures';
+export {
+  viewportControlActions,
+  type ZlozViewportActions,
+  type ZlozViewportControl,
+} from './viewport-controls';
 
 export { surfaceInput } from './effect-ui-input';
+export { viewportControl } from './effect-ui-viewport-control';
 export {
   groupClipboardV3,
   groupInspectorV3,
@@ -54,6 +66,26 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   descriptionId?: string;
   onInput: (event: BrowserInput) => Message;
   wheelNavigation?: 'off' | 'zoom' | 'pan';
+  /** Background double-click zoom. True uses 1.25. A custom factor must exceed 1. */
+  doubleClickZoom?: boolean | number;
+  spaceToPan?: boolean;
+  middleButtonPan?: boolean;
+  /** Pan near the canvas boundary while dragging nodes or connections. */
+  autoPan?: boolean;
+  /** Keep pointer coordinates relative to the surface's position at pointer down. */
+  stablePointerOrigin?: boolean;
+  /** Show pending node highlights during box selection. Defaults to true. */
+  selectionPreviewHighlights?: boolean;
+  /** Customize the decorative box. Undefined uses the default and null hides it. */
+  renderSelectionMarquee?: (
+    context: ZlozSelectionMarqueeContext,
+    h: Html.H<Message>,
+  ) => View.Content<Message> | null | undefined;
+  /** Customize the decorative camera box. Undefined uses the default and null hides it. */
+  renderZoomAreaMarquee?: (
+    context: ZlozZoomAreaMarqueeContext,
+    h: Html.H<Message>,
+  ) => View.Content<Message> | null | undefined;
   dropRadius?: number;
   reconnect?: boolean;
   /** Expose native width controls and eight-direction controls for expanded selected groups. */
@@ -101,7 +133,17 @@ export function graphSurface<Message>(
     editor.gesture.type === 'box-selection'
       ? resolveBoxSelection(editor, editor.gesture, scene.nodes, policy?.canSelectNode)
       : undefined;
-  const selecting = new Set(selection?.previewNodeIds);
+  const selecting = new Set(
+    options.selectionPreviewHighlights === false ? undefined : selection?.previewNodeIds,
+  );
+  const zoomArea =
+    editor.gesture.type === 'zoom-area'
+      ? {
+          bounds: boxBounds(editor.gesture.origin, editor.gesture.point),
+          viewport: editor.viewport,
+        }
+      : null;
+  const doubleClickFactor = doubleClickZoomFactor(options.doubleClickZoom);
   const marker = `${id}-arrow`;
   const waypointPreview = options.edgeWaypoints ? resolveEdgeWaypointPreview(editor, policy) : null;
   const edgeViews = scene.edges.map((stored) => {
@@ -197,6 +239,12 @@ export function graphSurface<Message>(
     .attr('data-flow-connection-drop-radius', String(dropRadius))
     .attr('data-flow-reconnection-drop-radius', String(dropRadius))
     .attr('data-flow-wheel-navigation', options.wheelNavigation ?? 'off')
+    .attr('data-flow-double-click-zoom', doubleClickFactor?.toString())
+    .attr('data-flow-space-to-pan', String(options.spaceToPan === true))
+    .attr('data-flow-middle-button-pan', String(options.middleButtonPan === true))
+    .attr('data-flow-auto-pan', String(options.autoPan === true))
+    .attr('data-flow-stable-pointer-origin', String(options.stablePointerOrigin === true))
+    .attr('data-flow-gesture', editor.gesture.type)
     .attr('data-flow-pinch-zoom', String(options.pinchZoom ?? true))
     .attr('data-flow-grid-snap', String(editor.snapToGrid))
     .attr('data-flow-grid-spacing', String(editor.gridSpacing))
@@ -248,22 +296,6 @@ export function graphSurface<Message>(
                 : []),
             ),
           ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
-          ...(selection
-            ? [
-                h.div
-                  .key('selection')
-                  .class('zloz-ui-selection')
-                  .attr('data-flow-selection-box', '')
-                  .attr('aria-hidden', 'true')
-                  .style({
-                    left: `${selection.bounds.left}px`,
-                    top: `${selection.bounds.top}px`,
-                    width: `${selection.bounds.right - selection.bounds.left}px`,
-                    height: `${selection.bounds.bottom - selection.bounds.top}px`,
-                  })
-                  .children(),
-              ]
-            : []),
           ...(options.worldOverlay
             ? [
                 h.div
@@ -290,11 +322,55 @@ export function graphSurface<Message>(
                   .children(...handles),
               ]
             : []),
+          selection
+            ? gestureMarquee(
+                h,
+                'selection',
+                selection.bounds,
+                options.renderSelectionMarquee?.(
+                  { ...selection, match: editor.boxSelectionMatch, viewport: editor.viewport },
+                  h,
+                ),
+              )
+            : null,
+          zoomArea
+            ? gestureMarquee(
+                h,
+                'zoom-area',
+                zoomArea.bounds,
+                options.renderZoomAreaMarquee?.(zoomArea, h),
+              )
+            : null,
         ),
       options.resizeHandles && options.resizeReadout !== false
         ? nodeResizeReadout(h, editor, nodes)
         : null,
     );
+}
+
+function gestureMarquee<Message>(
+  h: Html.H<Message>,
+  kind: 'selection' | 'zoom-area',
+  bounds: ZlozZoomAreaMarqueeContext['bounds'],
+  content: View.Content<Message> | null | undefined,
+) {
+  if (content === null) return null;
+  return h.div
+    .key(kind)
+    .class(
+      'zloz-ui-marquee',
+      kind === 'selection' ? 'zloz-ui-selection' : '',
+      content === undefined ? 'zloz-ui-marquee--default' : '',
+    )
+    .attr(`data-flow-${kind}-box`, '')
+    .attr('aria-hidden', 'true')
+    .style({
+      left: `${bounds.left}px`,
+      top: `${bounds.top}px`,
+      width: `${bounds.right - bounds.left}px`,
+      height: `${bounds.bottom - bounds.top}px`,
+    })
+    .children(content);
 }
 
 function nodeView<Message>(

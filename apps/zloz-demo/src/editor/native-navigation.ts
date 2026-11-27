@@ -1,5 +1,6 @@
 import { defaultFitViewPadding, defaultZoomLimits, type EditorEvent } from '@opsydyn/foldkit-zloz';
-import { resolveZlozDiagnostics, viewportControlActions } from '@opsydyn/foldkit-zloz/foldkit';
+import { viewportControl, viewportControlActions } from '@opsydyn/foldkit-zloz/effect-ui';
+import { resolveZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
 
 import { Message } from './message';
@@ -38,13 +39,8 @@ export const nativeViewportControls = architectureNativePanel<NavigationState>(
       minimalMode: model.minimalMode,
       diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
     });
-    const button = (action: typeof actions.zoomIn, label = action.label) => {
-      const control = h.button
-        .key(action.event.type + ':' + action.label)
-        .attr('type', 'button')
-        .attr('aria-label', action.label)
-        .attr('aria-pressed', action.pressed === undefined ? undefined : String(action.pressed))
-        .disabled(action.disabled)
+    const button = (action: typeof actions.zoomIn, label = action.label) =>
+      viewportControl(h, action, (event) => request(observed(model, event)))
         .style(
           compact
             ? {
@@ -70,20 +66,7 @@ export const nativeViewportControls = architectureNativePanel<NavigationState>(
                 borderRadius: '6px',
               },
         )
-        .on('click', request(observed(model, action.event)));
-      const canCancel =
-        action.event.type === 'ZoomAreaModeToggled' && action.pressed && !action.disabled;
-      return control
-        .on(
-          'keydown',
-          ({ key }) =>
-            key === 'Escape' && canCancel
-              ? request(observed(model, { type: 'GestureCancelled' }))
-              : undefined,
-          { preventDefault: true },
-        )
         .children(label);
-    };
     return h.div
       .attr('role', compact ? 'navigation' : 'group')
       .attr('aria-label', 'Viewport controls')

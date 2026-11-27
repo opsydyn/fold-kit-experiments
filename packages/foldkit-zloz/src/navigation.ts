@@ -3,31 +3,20 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { ZlozDiagnostics } from './diagnostics';
-import { presentEditorGroups } from './group-presentation';
 import type { ZlozMinimapContext } from './minimap-context';
 export { minimapContext, type ZlozMinimapContext } from './minimap-context';
 import { ZlozMinimapInput } from './mount';
 import type { EditorEvent, EditorState, ZlozMinimapGeometry } from './types';
+import type { ZlozViewportActions, ZlozViewportControl } from './viewport-controls';
+export {
+  viewportControlActions,
+  type ZlozViewportActions,
+  type ZlozViewportControl,
+} from './viewport-controls';
 
 /** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
 export type ZlozWheelNavigation = 'zoom' | 'pan' | 'off';
 
-/** A Model-derived action; consumers supply the content and appearance. */
-export type ZlozViewportControl = Readonly<{
-  label: string;
-  event: EditorEvent;
-  disabled: boolean;
-  pressed?: boolean;
-}>;
-export type ZlozViewportActions = Readonly<{
-  zoomIn: ZlozViewportControl;
-  zoomOut: ZlozViewportControl;
-  fitView: ZlozViewportControl;
-  fitSelection: ZlozViewportControl;
-  zoomArea: ZlozViewportControl;
-  previousView: ZlozViewportControl;
-  selectionMode: ZlozViewportControl;
-}>;
 export type ZlozViewportControlsContext = Readonly<{
   state: EditorState;
   diagnostics: ZlozDiagnostics;
@@ -39,54 +28,6 @@ export type ZlozViewportControlsContext = Readonly<{
 }>;
 type Attributes<M> = Parameters<HtmlBuilder<M>['button']>[0];
 type Children<M> = Parameters<HtmlBuilder<M>['button']>[1];
-
-/** Camera controls remain available for read-only inspection. */
-export function viewportControlActions(state: EditorState): ZlozViewportActions {
-  const point = { x: (state.surface?.width ?? 0) / 2, y: (state.surface?.height ?? 0) / 2 };
-  const unavailable = !state.surface || state.gesture.type !== 'idle';
-  const nodes = state.visibility?.hiddenNodeIds?.length
-    ? presentEditorGroups(state).nodes
-    : state.graph.nodes;
-  return {
-    zoomIn: {
-      label: 'Zoom in',
-      event: { type: 'Zoomed', point, factor: 1.25 },
-      disabled: unavailable || state.viewport.zoom >= state.zoomLimits.maxZoom,
-    },
-    zoomOut: {
-      label: 'Zoom out',
-      event: { type: 'Zoomed', point, factor: 1 / 1.25 },
-      disabled: unavailable || state.viewport.zoom <= state.zoomLimits.minZoom,
-    },
-    fitView: {
-      label: 'Fit view',
-      event: { type: 'FitViewClicked' },
-      disabled: unavailable || nodes.length === 0,
-    },
-    fitSelection: {
-      label: 'Fit selection',
-      event: { type: 'FitSelectionClicked' },
-      disabled: unavailable || (!state.selectedNodes.length && !state.selectedEdges.length),
-    },
-    zoomArea: {
-      label: 'Zoom to area',
-      event: { type: 'ZoomAreaModeToggled' },
-      disabled: unavailable,
-      pressed: Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area',
-    },
-    previousView: {
-      label: 'Back to previous view',
-      event: { type: 'PreviousViewClicked' },
-      disabled: unavailable || !state.previousViewport,
-    },
-    selectionMode: {
-      label: 'Box select',
-      event: { type: 'SelectionModeToggled' },
-      disabled: unavailable,
-      pressed: state.selectionMode,
-    },
-  };
-}
 
 /** Unstyled native button with Zloz's action semantics and accessible name. */
 export function zlozViewportControl<M>(

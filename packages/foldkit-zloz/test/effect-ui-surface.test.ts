@@ -141,3 +141,73 @@ test('native geometry controls expose protection without disabling the connectio
   );
   expect(document.querySelectorAll('[data-flow-waypoint-actions] button:disabled')).toHaveLength(3);
 });
+
+test('native marquee customization receives world geometry and keeps highlight policy independent', async () => {
+  const editor = createEditor(
+    {
+      nodes: [
+        {
+          id: 'selected',
+          label: 'Selected',
+          position: { x: 30, y: 40 },
+          size: { width: 50, height: 60 },
+          ports: [],
+        },
+      ],
+      edges: [],
+    },
+    { viewport: { x: 20, y: 30, zoom: 2 } },
+  );
+  const started = updateEditor(editor, {
+    type: 'BoxSelectionStarted',
+    pointer: 1,
+    point: { x: 220, y: 250 },
+  });
+  const dragging = updateEditor(started, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 40, y: 70 },
+  });
+  const component = Html.component({
+    name: 'NativeCustomMarquee',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      h.div(
+        graphSurface(h, dragging, {
+          id: 'custom-marquee',
+          label: 'Custom marquee',
+          selectionPreviewHighlights: false,
+          renderSelectionMarquee: ({ bounds, previewNodeIds, viewport }, builder) =>
+            builder.span.children(
+              `${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}@${viewport.zoom}: ${previewNodeIds.join(',')}`,
+            ),
+          onInput: ({ type }) => type,
+        }),
+        graphSurface(h, dragging, {
+          id: 'hidden-marquee',
+          label: 'Hidden marquee',
+          renderSelectionMarquee: () => null,
+          onInput: ({ type }) => type,
+        }),
+      ),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  const custom = document.querySelector('#custom-marquee-surface');
+  const hidden = document.querySelector('#hidden-marquee-surface');
+  expect(custom?.querySelector('[data-flow-selection-box]')?.textContent).toBe(
+    '10,20,100,110@2: selected',
+  );
+  expect(custom?.querySelector('[data-selection-preview="true"]')).toBeNull();
+  expect(hidden?.querySelector('[data-flow-selection-box]')).toBeNull();
+  expect(
+    hidden?.querySelector('[data-selection-preview="true"]')?.getAttribute('data-flow-node'),
+  ).toBe('selected');
+});

@@ -3,7 +3,11 @@ import { Mount } from 'foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { bindBoxMeasurement, type BoxMeasurementBatch } from './box-measurement-mount';
+import {
+  bindBoxMeasurement,
+  groupHeaderMeasurementTarget,
+  type BoxMeasurementBatch,
+} from './box-measurement-mount';
 import { ZlozError } from './graph';
 import type {
   ZlozGroupHeaderMeasurementRequest,
@@ -17,13 +21,7 @@ export function bindGroupHeaderMeasurement(
   emit: (batch: BoxMeasurementBatch) => void,
   timeoutMs = 3000,
 ): () => void {
-  return bindBoxMeasurement(probe, ids, emit, timeoutMs, {
-    attribute: 'data-zloz-group-header',
-    scope: 'data-zloz-group-header-measurement-scope',
-    noun: 'group heading',
-    plural: 'group headings',
-    title: 'Group heading',
-  });
+  return bindBoxMeasurement(probe, ids, emit, timeoutMs, groupHeaderMeasurementTarget);
 }
 const Message = defineMessageUnion({ ObservedGroupHeaderMeasurement: { result: Schema.Unknown } });
 const Measure = Mount.define('ZlozGroupHeaderMeasurement', {

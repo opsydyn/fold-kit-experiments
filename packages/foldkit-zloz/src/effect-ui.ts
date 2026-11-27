@@ -521,3 +521,5 @@ export {
 } from './effect-ui-history';
 
 export { placementHost, placementPalette, placementPreview } from './effect-ui-placement';
+
+export { groupHeaderMeasurementProbe, labelMeasurementProbe } from './effect-ui-measurement';

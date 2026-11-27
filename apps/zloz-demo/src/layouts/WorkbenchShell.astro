@@ -256,6 +256,46 @@ button, input, select { font: inherit; }
     --zloz-ui-height: 100%;
   }
 
+  .alchemy-native-measurement-scope { height: 100%; }
+  .alchemy-native-relation-badge,
+  .alchemy-native-group-heading {
+    box-sizing: border-box;
+    border: 1px solid var(--flow-node-border, #64748b);
+    background: var(--flow-node-background, #fff);
+    color: var(--flow-node-color, #172033);
+  }
+  .alchemy-native-relation-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    white-space: nowrap;
+    line-height: 18px;
+  }
+  .alchemy-native-relation-badge[data-label-detail='expanded'] { padding: 10px 14px; font-size: 14px; }
+  .alchemy-native-relation-badge span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .alchemy-native-relation-badge span:last-child {
+    font-size: 10px;
+    font-weight: 650;
+    padding-inline: 4px;
+    border-radius: 3px;
+    background: var(--flow-group-background, #e2e8f0);
+  }
+  .alchemy-native-group-heading {
+    display: block;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .alchemy-native-group-heading > * { display: block; font-size: 13px; line-height: 22px; }
+  .alchemy-native-group-heading > :first-child { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .alchemy-native-group-heading > strong { font-size: 22px; line-height: 30px; }
+  .alchemy-native-group-heading > :nth-child(4) { font-size: 12px; }
+
   [data-architecture-effect-ui='working-canvas'] {
     width: 100%;
     min-width: 0;

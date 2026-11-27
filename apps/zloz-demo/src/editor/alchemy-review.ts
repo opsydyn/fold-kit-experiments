@@ -30,6 +30,7 @@ import { ReadAlchemyDescriptor } from './command';
 import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeAlchemyCanvas } from './native-alchemy';
 import { workbenchThemes } from './theme';
 import type { Return } from './transition';
 const own = new Set([
@@ -464,11 +465,22 @@ export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     ],
   );
 }
-export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
   const review = model.alchemyReview.review;
   if (!review) return h.div([], []);
   const scheme =
     model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
+  const labels =
+    review.layout.labels.measurement.type === 'pending' &&
+    alchemyLabelContext(model).type === 'pending'
+      ? review.layout.labels.measurement.request
+      : undefined;
+  const headings =
+    review.layout.header === 'measured' &&
+    review.layout.heading.measurement.type === 'pending' &&
+    alchemyHeadingContext(model).type === 'pending'
+      ? review.layout.heading.measurement.request
+      : undefined;
   return h.div(
     [h.Key(`alchemy:${review.id}`), h.Class('receipt-canvas alchemy-canvas')],
     [
@@ -495,45 +507,52 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
           ),
         ],
       ),
-      zlozView(h, review.editor, {
-        id: `alchemy-${review.id}`,
-        label: 'Read-only Domain descriptor diagram',
-        height: 'fill',
-        theme: workbenchThemes[scheme ?? 'light'],
-        diagnostics: false,
-        renderEdgeLabel: (context, builder) =>
-          alchemyRelationBadge(
-            context,
-            builder,
-            review.layout.labels.mode === 'measured' ? review.layout.labels.detail : undefined,
-          ),
-        groupHeaderMeasurement:
-          review.layout.header === 'measured' &&
-          review.layout.heading.measurement.type === 'pending' &&
-          alchemyHeadingContext(model).type === 'pending'
-            ? {
-                request: review.layout.heading.measurement.request,
-                onMeasured: (result: ZlozGroupHeaderMeasurementResult) =>
-                  Message.ObservedAlchemyHeadings({ id: review.id, result }),
-              }
-            : undefined,
-        labelMeasurement:
-          review.layout.labels.measurement.type === 'pending' &&
-          alchemyLabelContext(model).type === 'pending'
-            ? {
-                request: review.layout.labels.measurement.request,
-                onMeasured: (result: ZlozLabelMeasurementResult) =>
-                  Message.ObservedAlchemyLabels({ id: review.id, result }),
-              }
-            : undefined,
-        background: { type: 'dots' },
-        renderNodeShell: (context, builder) =>
-          zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
-        renderGroupShell: (context, builder) =>
-          alchemyGroupShell(context, builder, review.layout.header, review.layout.heading.detail),
-        renderLayout: (parts) => parts.canvas,
-        onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
-      }),
+      native
+        ? nativeAlchemyCanvas(
+            h,
+            { review, scheme: scheme ?? 'light', headings, labels },
+            'architecture-detached-review',
+            `alchemy-${review.id}`,
+          )
+        : zlozView(h, review.editor, {
+            id: `alchemy-${review.id}`,
+            label: 'Read-only Domain descriptor diagram',
+            height: 'fill',
+            theme: workbenchThemes[scheme ?? 'light'],
+            diagnostics: false,
+            renderEdgeLabel: (context, builder) =>
+              alchemyRelationBadge(
+                context,
+                builder,
+                review.layout.labels.mode === 'measured' ? review.layout.labels.detail : undefined,
+              ),
+            groupHeaderMeasurement: headings
+              ? {
+                  request: headings,
+                  onMeasured: (result: ZlozGroupHeaderMeasurementResult) =>
+                    Message.ObservedAlchemyHeadings({ id: review.id, result }),
+                }
+              : undefined,
+            labelMeasurement: labels
+              ? {
+                  request: labels,
+                  onMeasured: (result: ZlozLabelMeasurementResult) =>
+                    Message.ObservedAlchemyLabels({ id: review.id, result }),
+                }
+              : undefined,
+            background: { type: 'dots' },
+            renderNodeShell: (context, builder) =>
+              zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
+            renderGroupShell: (context, builder) =>
+              alchemyGroupShell(
+                context,
+                builder,
+                review.layout.header,
+                review.layout.heading.detail,
+              ),
+            renderLayout: (parts) => parts.canvas,
+            onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
+          }),
     ],
   );
 }

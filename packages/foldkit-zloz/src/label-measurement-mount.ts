@@ -3,7 +3,11 @@ import { Mount } from 'foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { bindBoxMeasurement, type BoxMeasurementBatch } from './box-measurement-mount';
+import {
+  bindBoxMeasurement,
+  labelMeasurementTarget,
+  type BoxMeasurementBatch,
+} from './box-measurement-mount';
 import { ZlozError } from './graph';
 import type { ZlozLabelMeasurementRequest, ZlozLabelMeasurementResult } from './label-measurement';
 
@@ -16,13 +20,7 @@ export function bindLabelMeasurement(
   emit: (batch: BoxMeasurementBatch) => void,
   timeoutMs = 3000,
 ): () => void {
-  return bindBoxMeasurement(probe, edgeIds, emit, timeoutMs, {
-    attribute: 'data-zloz-measured-label',
-    scope: 'data-zloz-label-measurement-scope',
-    noun: 'label',
-    plural: 'labels',
-    title: 'Label',
-  });
+  return bindBoxMeasurement(probe, edgeIds, emit, timeoutMs, labelMeasurementTarget);
 }
 const Message = defineMessageUnion({ ObservedLabelMeasurement: { result: Schema.Unknown } });
 const Measure = Mount.define('ZlozLabelMeasurement', {

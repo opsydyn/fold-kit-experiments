@@ -404,6 +404,56 @@ async function qualify() {
   await expect(receiptCanvas).toHaveCount(0);
   expect(await snapshot()).toEqual(working);
 
+  await section('Domain review');
+  const domain = page.getByRole('region', { name: 'Domain review settings', exact: true });
+  await domain.getByRole('button', { name: 'Review bank example', exact: true }).click();
+  const descriptor = page.getByRole('region', {
+    name: 'Read-only Domain descriptor diagram',
+    exact: true,
+  });
+  await expect(descriptor).toHaveAttribute('data-flow-readonly', 'true');
+  await expect(descriptor.locator('[data-flow-node]:not([data-flow-group])')).toHaveCount(7);
+  await expect(descriptor.locator('[data-flow-group]')).toHaveCount(1);
+  const heading = domain.getByRole('combobox', { name: 'Group heading', exact: true });
+  await heading.selectOption('expanded');
+  const groupHeading = descriptor.locator('[data-zloz-group-header]');
+  await expect(groupHeading).toContainText('Source identity retained');
+  await expect(groupHeading).toHaveCSS('width', '640px');
+  await expect(groupHeading).toHaveCSS('height', '112px');
+
+  await heading.selectOption('measured');
+  await domain.getByRole('button', { name: 'Measure group headings', exact: true }).click();
+  const headingStatus = domain.getByLabel('Heading measurement status', { exact: true });
+  await expect(headingStatus).toHaveText('Measured 1 group headings. Arrange to apply.');
+  await domain
+    .getByRole('combobox', { name: 'Label sizing', exact: true })
+    .selectOption('measured');
+  await domain.getByRole('button', { name: 'Measure label bounds', exact: true }).click();
+  const labelStatus = domain.getByLabel('Label measurement status', { exact: true });
+  await expect(labelStatus).toHaveText('Measured 8 rendered labels. Arrange to apply.');
+  await expect(headingStatus).toHaveText('Measured 1 group headings. Arrange to apply.');
+  const nodesBeforeLayout = await descriptor
+    .locator('[data-flow-node]')
+    .evaluateAll((nodes) => nodes.map(({ style }) => [style.left, style.top]));
+  await domain.getByRole('button', { name: 'Arrange preview with ELK', exact: true }).click();
+  await expect(domain.getByLabel('Preview layout mode', { exact: true })).toHaveText(
+    'ELK preview geometry',
+    { timeout: 30000 },
+  );
+  await expect(headingStatus).toContainText('Measured group headings applied');
+  expect(
+    await descriptor
+      .locator('[data-flow-node]')
+      .evaluateAll((nodes) => nodes.map(({ style }) => [style.left, style.top])),
+  ).not.toEqual(nodesBeforeLayout);
+  await button('Fit descriptor diagram').click();
+  await page
+    .getByRole('region', { name: 'Diagram canvas', exact: true })
+    .getByRole('button', { name: 'Return to working model', exact: true })
+    .click();
+  await expect(descriptor).toHaveCount(0);
+  expect(await snapshot()).toEqual(working);
+
   expect(errors).toEqual([]);
   console.log(
     engine + ': native Architecture canvas shares the working model, actions, export and Undo',

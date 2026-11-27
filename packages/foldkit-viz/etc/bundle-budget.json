@@ -13,6 +13,8 @@
   "./chart/theme": 1024,
   "./effect-three/space3d": 1536,
   "./effect-ui/cartesian": 2560,
+  "./effect-ui/orbit": 3584,
+  "./effect-ui/paint": 1024,
   "./effect-ui/plot": 6656,
   "./effect/plot": 65536,
   "./foldkit/cartesian": 3072,

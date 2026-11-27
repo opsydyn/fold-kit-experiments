@@ -1,39 +1,14 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-export type GradientStop = Readonly<{ offset: number; colour: string; opacity?: number }>;
-export type GradientOptions = Readonly<{ id: string; stops: ReadonlyArray<GradientStop> }>;
-export type PatternOptions = Readonly<{ id: string; colour: string; spacing: number }>;
+import { gradientStops, validateDotPattern, validateHatch } from '../svg/paint-validation.js';
+import type { GradientOptions, PatternOptions } from '../svg/paint-validation.js';
 
-function validId(id: string): void {
-  if (!/^[A-Za-z][A-Za-z0-9_.:-]*$/.test(id))
-    throw new RangeError('Paint id must be a non-empty SVG identifier');
-}
-function positive(value: number): void {
-  if (!Number.isFinite(value) || value <= 0)
-    throw new RangeError('Paint dimensions must be finite and positive');
-}
+export type { GradientStop, GradientOptions, PatternOptions } from '../svg/paint-validation.js';
+
 function stops<M>(h: HtmlBuilder<M>, options: GradientOptions): ReadonlyArray<Html> {
-  validId(options.id);
-  let previous = -1;
-  if (options.stops.length === 0) throw new RangeError('Gradient requires at least one stop');
-  return options.stops.map((stop) => {
-    const opacity = stop.opacity ?? 1;
-    if (
-      !Number.isFinite(stop.offset) ||
-      stop.offset < previous ||
-      stop.offset < 0 ||
-      stop.offset > 1 ||
-      !Number.isFinite(opacity) ||
-      opacity < 0 ||
-      opacity > 1
-    )
-      throw new RangeError('Gradient stops must be ordered within [0, 1]');
-    previous = stop.offset;
-    return h.stop(
-      [h.Offset(String(stop.offset)), h.StopColor(stop.colour), h.StopOpacity(String(opacity))],
-      [],
-    );
-  });
+  return gradientStops(options).map(({ offset, colour, opacity }) =>
+    h.stop([h.Offset(String(offset)), h.StopColor(colour), h.StopOpacity(String(opacity))], []),
+  );
 }
 /** Return definitions to compose inside <defs>. IDs are caller-owned and must
  * be unique in the document. CSS variables and currentColor are supported.
@@ -42,12 +17,8 @@ export function dotPattern<M>(
   h: HtmlBuilder<M>,
   options: PatternOptions & Readonly<{ radius?: number }>,
 ): Html {
-  validId(options.id);
-  positive(options.spacing);
   const radius = options.radius ?? 1;
-  positive(radius);
-  if (radius * 2 >= options.spacing)
-    throw new RangeError('Dot diameter must be smaller than spacing');
+  validateDotPattern(options.id, options.spacing, radius);
   return h.pattern(
     [
       h.Id(options.id),
@@ -72,12 +43,9 @@ export function hatchPattern<M>(
   h: HtmlBuilder<M>,
   options: PatternOptions & Readonly<{ strokeWidth?: number; angle?: number }>,
 ): Html {
-  validId(options.id);
-  positive(options.spacing);
-  const strokeWidth = options.strokeWidth ?? 1,
-    angle = options.angle ?? 45;
-  positive(strokeWidth);
-  if (!Number.isFinite(angle)) throw new RangeError('Hatch angle must be finite');
+  const strokeWidth = options.strokeWidth ?? 1;
+  const angle = options.angle ?? 45;
+  validateHatch(options.id, options.spacing, strokeWidth, angle);
   return h.pattern(
     [
       h.Id(options.id),

@@ -2125,6 +2125,89 @@ type PointSeriesOptions<T, M> = Readonly<{
 }>;
 ```
 
+## ./effect-ui/orbit
+
+```ts
+type OrbitCentreLine = Readonly<{
+  text: string;
+  colour: string;
+  size?: number;
+}>;
+function orbitChart<T, M>(h: Html.H<M>, options: OrbitChartOptions<T, M>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type OrbitChartOptions<T, M> = Readonly<{
+  geometry: OrbitGeometry<T>;
+  title: string;
+  description: string;
+  coreFill: string;
+  coreStroke?: string;
+  haloColour: (key: string) => string;
+  nodeStyle: (node: OrbitNode<T>) => OrbitNodeStyle;
+  labelFor: (datum: T) => string;
+  centre?: ReadonlyArray<OrbitCentreLine>;
+  pulse?: Readonly<{
+    radius: number;
+    colour: string;
+  }>;
+  defs?: View.Children<M, never>;
+  activeKey?: string | null;
+  selectedKey?: string | null;
+  onInspect?: (key: string | null) => M;
+  onSelect?: (key: string) => M;
+}>;
+type OrbitNodeStyle = Readonly<{
+  fill: string;
+  stroke: string;
+}>;
+```
+
+## ./effect-ui/paint
+
+```ts
+function dotPattern<M>(h: Html.H<M>, {
+  id,
+  colour,
+  spacing,
+  radius
+}: PatternOptions & Readonly<{
+  radius?: number;
+}>): _$_effect_ui_View0.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type GradientOptions = Readonly<{
+  id: string;
+  stops: ReadonlyArray<GradientStop>;
+}>;
+type GradientStop = Readonly<{
+  offset: number;
+  colour: string;
+  opacity?: number;
+}>;
+function hatchPattern<M>(h: Html.H<M>, {
+  id,
+  colour,
+  spacing,
+  strokeWidth,
+  angle
+}: PatternOptions & Readonly<{
+  strokeWidth?: number;
+  angle?: number;
+}>): _$_effect_ui_View0.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+function linearGradient<M>(h: Html.H<M>, options: GradientOptions & Readonly<{
+  x1?: string;
+  y1?: string;
+  x2?: string;
+  y2?: string;
+}>): _$_effect_ui_View0.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type PatternOptions = Readonly<{
+  id: string;
+  colour: string;
+  spacing: number;
+}>;
+function radialGradient<M>(h: Html.H<M>, options: GradientOptions & Readonly<{
+  cx?: string;
+  cy?: string;
+  radius?: string;
+}>): _$_effect_ui_View0.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+```
+
 ## ./effect-ui/plot
 
 ```ts

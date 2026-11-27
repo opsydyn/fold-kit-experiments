@@ -16,6 +16,8 @@ export default defineConfig({
     'foldkit/orbit': 'src/foldkit/orbit.ts',
     'effect/plot': 'src/effect/plot.ts',
     'effect-ui/cartesian': 'src/effect-ui/cartesian.ts',
+    'effect-ui/orbit': 'src/effect-ui/orbit.ts',
+    'effect-ui/paint': 'src/effect-ui/paint.ts',
     'effect-ui/plot': 'src/effect-ui/plot.ts',
     'foldkit/plot': 'src/foldkit/plot.ts',
     'foldkit/keyboard': 'src/foldkit/keyboard.ts',

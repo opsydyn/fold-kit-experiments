@@ -199,6 +199,12 @@
       "effect-ui/cartesian": [
         "./dist/effect-ui/cartesian.d.mts"
       ],
+      "effect-ui/orbit": [
+        "./dist/effect-ui/orbit.d.mts"
+      ],
+      "effect-ui/paint": [
+        "./dist/effect-ui/paint.d.mts"
+      ],
       "effect-ui/plot": [
         "./dist/effect-ui/plot.d.mts"
       ],
@@ -459,6 +465,14 @@
     "./effect-ui/cartesian": {
       "types": "./dist/effect-ui/cartesian.d.mts",
       "import": "./dist/effect-ui/cartesian.mjs"
+    },
+    "./effect-ui/orbit": {
+      "types": "./dist/effect-ui/orbit.d.mts",
+      "import": "./dist/effect-ui/orbit.mjs"
+    },
+    "./effect-ui/paint": {
+      "types": "./dist/effect-ui/paint.d.mts",
+      "import": "./dist/effect-ui/paint.mjs"
     },
     "./effect-ui/plot": {
       "types": "./dist/effect-ui/plot.d.mts",

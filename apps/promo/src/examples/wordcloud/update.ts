@@ -1,4 +1,4 @@
-import type { Return } from 'foldkit/update';
+import type { Command } from '@effect/ui';
 
 import { MeasureWords } from './command';
 import { initialSettings } from './domain';
@@ -6,15 +6,30 @@ import type { Settings } from './domain';
 import { Message } from './message';
 import { Measurement } from './model';
 import type { Model } from './model';
-const remeasure = (model: Model, settings: Settings): Return<Model, Message> => {
+interface Transition {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Issued<Message, never, never, 'Effect'>>;
+}
+
+const remeasure = (model: Model, settings: Settings): Transition => {
   const revision = model.revision + 1;
   return {
     model: { ...model, settings, revision, activeKey: null, measurement: Measurement.Loading() },
-    commands: [MeasureWords({ revision, words: model.words, settings })],
+    commands: [MeasureWords.make({ revision, words: model.words, settings })],
   };
 };
-export const update = (model: Model, message: Message): Return<Model, Message> =>
+export const update = (model: Model, message: Message): Transition =>
   Message.match(message, {
+    MountedCloud: () => ({
+      model,
+      commands: [
+        MeasureWords.make({
+          revision: model.revision,
+          words: model.words,
+          settings: model.settings,
+        }),
+      ],
+    }),
     SucceededMeasurement: ({ revision, measurements }) => ({
       model:
         revision === model.revision
@@ -48,7 +63,10 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
         : { model };
     },
     RecordedWidth: ({ width }) => ({
-      model: Number.isFinite(width) && width >= 220 ? { ...model, width, activeKey: null } : model,
+      model:
+        Number.isFinite(width) && width >= 220 && width !== model.width
+          ? { ...model, width, activeKey: null }
+          : model,
     }),
     InspectedWord: ({ key }) => ({
       model: model.words.some((d) => d.id === key) ? { ...model, activeKey: key } : model,

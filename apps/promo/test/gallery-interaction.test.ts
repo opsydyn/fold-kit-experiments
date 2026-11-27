@@ -18,7 +18,7 @@ it('bar controls change grouping/orientation without replacing input data', () =
   expect(updateBars(horizontal, Bars.ClickedReset()).mode).toBe('grouped');
 });
 it('cloud layout controls retain measurements; font controls request a new revision', () => {
-  const initial = initCloud({ words });
+  const initial = updateCloud(initCloud({ words }), Cloud.MountedCloud());
   expect(initial.commands).toHaveLength(1);
   const rotated = updateCloud(initial.model, Cloud.SelectedRotation({ rotate: true }));
   expect(rotated.model.settings.rotate).toBe(true);
@@ -41,7 +41,7 @@ it('cloud layout controls retain measurements; font controls request a new revis
   expect(current.model.measurement._tag).toBe('Ready');
 });
 it('invalid numeric controls leave settings intact and width updates are finite', () => {
-  const initial = initCloud({ words }).model;
+  const initial = initCloud({ words });
   expect(updateCloud(initial, Cloud.ChangedPadding({ value: 'NaN' })).model).toBe(initial);
   expect(updateCloud(initial, Cloud.ChangedSize({ value: '999' })).model).toBe(initial);
   expect(updateCloud(initial, Cloud.RecordedWidth({ width: 0 })).model).toBe(initial);

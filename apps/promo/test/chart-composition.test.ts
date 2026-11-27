@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { Document, HtmlBuilder } from 'foldkit/html';
@@ -92,7 +93,20 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Histogram.init({ sources: [], templateUrl: null }).model,
     Histogram.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const histogramHtml = await render<Histogram.Message>((h) => Histogram.view(histogram, h));
+  const HistogramFixture = Html.component({
+    name: 'HistogramFixture',
+    model: Histogram.Model,
+    props: Histogram.Model,
+    message: Histogram.Message,
+  }).make({
+    init: ({ props }) => props,
+    update: ($) => $.model,
+    view: Histogram.view,
+  });
+  const { html: histogramHtml } = await Effect.runPromise(
+    HtmlServer.renderToHtml(HistogramFixture, histogram),
+  );
+
   expect(histogramHtml).toContain('viewBox="0 0 324 290"');
   expect(histogramHtml).toContain('Illustrative histogram values');
 });

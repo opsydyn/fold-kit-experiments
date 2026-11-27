@@ -6,7 +6,7 @@ import workspace from '../../../../package.json' with { type: 'json' };
 import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
 import { datasetProject } from './dataset-project';
-import { standaloneEffectOverrides } from './standalone-effect';
+import { effectUiEntry, standaloneEffectOverrides } from './standalone-effect';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
@@ -60,15 +60,28 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
+  const nativeHistogram = example === 'histogram';
+  const foldkitRuntime = {
+    foldkit: '0.171.0',
+    '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
+  };
+  const effectUiRuntime = { '@effect/ui': workspace.workspaces.catalog['@effect/ui'] };
+  const runtime = nativeHistogram ? effectUiRuntime : foldkitRuntime;
+  const sourceExports = nativeHistogram
+    ? {
+        './source-ui': './source-ui.ts',
+        './source-line-core': './source-line-core.ts',
+        './highlighting-core': './highlighting-core.ts',
+      }
+    : { './source-lines': './source-lines.ts', './highlighting': './highlighting.ts' };
   // Bundle the private shared renderer so exported examples do not require a workspace.
   if (example !== 'datasets') {
     const highlightingRoot = dirname(
       fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/highlighting')),
     );
     for (const name of [
-      'source-lines.ts',
+      ...(nativeHistogram ? ['source-ui.ts'] : ['source-lines.ts', 'highlighting.ts']),
       'source-line-core.ts',
-      'highlighting.ts',
       'highlighting-core.ts',
       'highlighting-engine.ts',
       'highlighting-browser.ts',
@@ -86,18 +99,15 @@ export async function buildExampleTemplate(
         private: true,
         type: 'module',
         exports: {
-          './source-lines': './source-lines.ts',
-          './highlighting': './highlighting.ts',
+          ...sourceExports,
           './highlighting.css': './highlighting.css',
         },
         dependencies: {
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',
-          foldkit: '0.171.0',
+          ...runtime,
           effect: workspace.workspaces.catalog.effect,
-          // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-          '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
         },
       },
       null,
@@ -107,7 +117,7 @@ export async function buildExampleTemplate(
   const modules = [
     'chart/cartesian',
     'chart/theme',
-    ...(example === 'datasets' ? [] : ['foldkit/cartesian']),
+    ...(example === 'datasets' || nativeHistogram ? [] : ['foldkit/cartesian']),
     ...{
       line: ['math/scale', 'shape/line', 'shape/path'],
       datasets: ['shape/symbol'],
@@ -143,6 +153,10 @@ export async function buildExampleTemplate(
     null,
     2,
   );
+  const devDependencies = nativeHistogram
+    ? { vite: '8.3.1', typescript: '6.0.3' }
+    : { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' };
+  const overrides = nativeHistogram ? undefined : standaloneEffectOverrides;
   files['package.json'] = JSON.stringify(
     {
       name: 'foldkit-viz-live-' + example,
@@ -164,15 +178,13 @@ export async function buildExampleTemplate(
       dependencies: {
         '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
         '@opsydyn/dataset-explorer': 'file:./vendor/source-highlighting',
-        foldkit: '0.171.0',
+        ...runtime,
         effect: workspace.workspaces.catalog.effect,
-        // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
-        '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
         fflate: '0.8.3',
         '@stackblitz/sdk': '1.11.0',
       },
-      devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' },
-      overrides: standaloneEffectOverrides,
+      devDependencies,
+      overrides,
       stackblitz: { installDependencies: true, startCommand: 'npm start' },
     },
     null,
@@ -232,6 +244,19 @@ export async function buildExampleTemplate(
       ':root { color-scheme: light dark; --text:#151619; --muted:#5d6574; --border:#d9dce1; --surface:#fff; background:#f4f6f8; color:var(--text); font-family:system-ui,sans-serif; } * { box-sizing:border-box; } body { margin:0; } main { max-width:1160px; margin:auto; padding:24px 16px; } h1 { font-size:24px; letter-spacing:0; } @media(prefers-color-scheme:dark) { :root { --text:#f4f2ed; --muted:#adb6c7; --border:#43464b; --surface:#232529; background:#17191c; } }';
     files['README.md'] =
       '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+  }
+  if (nativeHistogram) {
+    files['vite.config.ts'] =
+      "import { defineConfig } from 'vite';\nexport default defineConfig({});\n";
+    files['src/entry.ts'] = effectUiEntry(
+      sources,
+      'Histogram',
+      'chart.css',
+      '{ sources, templateUrl: null }',
+    );
+    files['README.md'] = files['README.md']
+      .replace('optional FoldKit layers', 'Effect UI views')
+      .replace('FoldKit, Effect,', 'Effect UI, Effect,');
   }
   if (example === 'datasets') return datasetProject(files, sources);
   return files;

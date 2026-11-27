@@ -10,6 +10,7 @@ import { SourceName } from '@opsydyn/dataset-explorer/source';
 import { Schema } from 'effect';
 import { chromium } from 'playwright';
 
+import { projectFiles as histogramFiles } from '../src/examples/histogram/project';
 import { buildExampleTemplate } from '../src/lib/example-project';
 import type { SourceFile } from '../src/lib/example-project';
 import { verifyDatasetSwitch } from './dataset-browser-scenario';
@@ -45,11 +46,15 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
   test(`${example} exported project installs, typechecks and builds outside the workspace`, async () => {
     const directory = await mkdtemp(join(tmpdir(), `foldkit-standalone-${example}-`));
     try {
-      const files = await buildExampleTemplate(await maintainedSources(example), example);
-      if (example === 'datasets') {
-        expect(files['package.json']).toContain('"@effect/ui"');
-        expect(files['package.json']).not.toContain('"foldkit"');
-        expect(files['src/entry.ts']).toContain('BrowserHost');
+      const template = await buildExampleTemplate(await maintainedSources(example), example);
+      const files =
+        example === 'histogram'
+          ? histogramFiles(template, { dataset: 'clustered', binCount: 11 })
+          : template;
+      if (example === 'datasets' || example === 'histogram') {
+        expect(template['package.json']).toContain('"@effect/ui"');
+        expect(template['package.json']).not.toContain('"foldkit"');
+        expect(template['src/entry.ts']).toContain('BrowserHost');
       }
       for (const [name, contents] of Object.entries(files)) {
         const file = join(directory, name);
@@ -67,12 +72,42 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
           '-e',
           example === 'datasets'
             ? "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof symbolPath);"
-            : "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/foldkit/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);",
+            : example === 'histogram'
+              ? "import { histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { bin } from '@opsydyn/foldkit-viz/math/bin'; console.log(typeof histogramGeometry, lightTheme.labelSize, typeof bin);"
+              : "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/foldkit/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);",
         ],
         options,
       );
       expect(stdout.trim()).toBe('function 12 function');
       expect(await readdir(join(directory, 'dist'))).toContain('index.html');
+      if (example === 'histogram' && process.env.HISTOGRAM_BROWSER === '1') {
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const origin = 'http://histogram-standalone.test';
+          await page.route(origin + '/**', async (request) => {
+            const path = new URL(request.request().url()).pathname.slice(1);
+            await request.fulfill({ path: join(directory, 'dist', path || 'index.html') });
+          });
+          await page.goto(origin);
+          const slider = page.getByRole('slider', { name: /Number of bins/ });
+          await slider.waitFor();
+          expect(await slider.inputValue()).toBe('11');
+          expect(
+            await page.getByRole('button', { name: 'Clustered' }).getAttribute('aria-pressed'),
+          ).toBe('true');
+          const chart = page.getByRole('img', { name: /Illustrative histogram/ });
+          expect(await chart.locator('.chart-bar-series rect').count()).toBe(11);
+          expect(await chart.locator('desc').evaluate((node) => node.namespaceURI)).toBe(
+            'http://www.w3.org/2000/svg',
+          );
+          await slider.press('ArrowRight');
+          await chart.locator('.chart-bar-series rect').nth(11).waitFor({ state: 'attached' });
+          expect(await page.getByRole('button', { name: 'Download project' }).count()).toBe(0);
+        } finally {
+          await browser.close();
+        }
+      }
       if (example === 'datasets' && process.env.DATASET_BROWSER === '1') {
         const browser = await chromium.launch();
         try {

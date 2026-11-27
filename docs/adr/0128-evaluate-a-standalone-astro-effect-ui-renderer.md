@@ -52,3 +52,17 @@ owns the host's children. Closing hides the host to retain in-page edits.
 Restart replaces its key and releases the old mount. Unmount removes the
 iframe and aborts the template fetch. The download link is available in
 the initial HTML.
+
+## Promo Histogram
+
+Astro renders the same Effect UI component used by the Histogram starter.
+Viz remains responsible for binning and chart geometry. The component owns
+measured width, dataset, bin count and export feedback. Its export command
+captures settings when requested and the download generator applies those
+settings to the starter. Dataset Explorer and Histogram share the Effect UI
+source renderer, highlighter and scoped hash listener. The npm starter uses
+the same SVG metadata host as the Dataset Explorer starter.
+
+The FoldKit source renderer remains available to the examples that still
+consume it. Histogram's starter vendors the Effect UI source renderer and
+the pure Viz modules used by its geometry.

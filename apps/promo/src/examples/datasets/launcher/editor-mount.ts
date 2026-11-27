@@ -1,6 +1,6 @@
+import { Mount } from '@effect/ui';
 import sdk from '@stackblitz/sdk';
 import { Data, Effect, Schema } from 'effect';
-import { Mount } from 'foldkit';
 
 import { Message } from './message';
 
@@ -25,7 +25,7 @@ async function connectEditor(
     target,
     {
       title: 'Foldkit Viz — Dataset explorer',
-      description: 'Edit the native FoldKit chart and preview the result.',
+      description: 'Edit the Effect UI chart and preview the result.',
       template: 'node',
       files,
     },
@@ -45,15 +45,15 @@ async function connectEditor(
   await connection;
 }
 
-// FoldKit retains the host; StackBlitz only owns its children. Mount's scope
+// Effect UI retains the host; StackBlitz only owns its children. Mount's scope
 // cleans the frame and aborts pending preparation when the host is removed.
-export const EmbedDatasetEditor = Mount.define('EmbedDatasetEditor', {
-  args: { templateUrl: Schema.String, revision: Schema.Number },
-  messages: [Message.SucceededEditor, Message.FailedEditor],
-  execute: ({ element, templateUrl, revision }) =>
+export const EmbedDatasetEditor = Mount.make(
+  'EmbedDatasetEditor',
+  { args: { templateUrl: Schema.String, revision: Schema.Number } },
+  (element: HTMLDivElement, { templateUrl, revision }) =>
     Effect.gen(function* () {
       const target = yield* Effect.acquireRelease(
-        Effect.sync(() => element.appendChild(document.createElement('div'))),
+        Effect.sync(() => element.appendChild(element.ownerDocument.createElement('div'))),
         () => Effect.sync(() => element.replaceChildren()),
       );
       yield* Effect.tryPromise({
@@ -72,4 +72,4 @@ export const EmbedDatasetEditor = Mount.define('EmbedDatasetEditor', {
         }),
       ),
     ),
-});
+);

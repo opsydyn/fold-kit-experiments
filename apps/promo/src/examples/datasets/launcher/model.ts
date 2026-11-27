@@ -1,7 +1,7 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
-export const Status = defineTaggedUnion({
+export const Status = UiSchema.TaggedEnum({
   Ready: {},
   Pending: {},
   Opened: {},
@@ -13,12 +13,12 @@ export const Props = Schema.Struct({
   downloadUrl: Schema.optional(Schema.String),
 });
 export type Props = typeof Props.Type;
-export const EditorStatus = defineTaggedUnion({
+export const EditorStatus = UiSchema.TaggedEnum({
   Loading: {},
   Ready: {},
   Failed: { error: Schema.String },
 });
-export const Editor = defineTaggedUnion({
+export const Editor = UiSchema.TaggedEnum({
   Idle: {},
   Session: { revision: Schema.Number, status: EditorStatus },
 });

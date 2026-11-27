@@ -49,7 +49,7 @@ test('preparation failure preserves the template and allows retry', () => {
 
 test('malformed template and network failure return actionable messages', async () => {
   for (const templateUrl of ['data:application/json,%7B%22file%22%3A42%7D', 'invalid://template']) {
-    const result = await Effect.runPromise(OpenPlayground({ templateUrl }).effect);
+    const result = await Effect.runPromise(OpenPlayground.make({ templateUrl }).effect);
     expect(result).toEqual(
       Message.FailedPlayground({
         error: 'Could not open StackBlitz. Please try again or download the project.',

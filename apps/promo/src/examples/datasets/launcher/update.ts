@@ -1,11 +1,16 @@
-import type { Return } from 'foldkit/update';
+import type { Command } from '@effect/ui';
 
 import { OpenPlayground } from './command';
 import { Message } from './message';
 import { Editor, EditorStatus, Status } from './model';
 import type { Model } from './model';
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
+interface Transition {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Issued<Message, never, never, 'Effect'>>;
+}
+
+export const update = (model: Model, message: Message): Transition =>
   Message.match(message, {
     ClickedEditor: () =>
       model.embeddedEditor
@@ -45,7 +50,7 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     FailedPlayground: ({ error }) => ({ model: { ...model, status: Status.Failed({ error }) } }),
   });
 
-const restart = (model: Model, revision: number): Return<Model, Message> => ({
+const restart = (model: Model, revision: number): Transition => ({
   model: {
     ...model,
     editorVisible: true,
@@ -57,7 +62,7 @@ const finishEditor = (
   model: Model,
   revision: number,
   status: typeof EditorStatus.Type,
-): Return<Model, Message> =>
+): Transition =>
   Editor.match(model.editor, {
     Idle: () => ({ model }),
     Session: (session) =>
@@ -66,7 +71,7 @@ const finishEditor = (
         : { model },
   });
 
-const open = (model: Model): Return<Model, Message> => ({
+const open = (model: Model): Transition => ({
   model: { ...model, status: Status.Pending() },
-  commands: [OpenPlayground({ templateUrl: model.templateUrl })],
+  commands: [OpenPlayground.make({ templateUrl: model.templateUrl })],
 });

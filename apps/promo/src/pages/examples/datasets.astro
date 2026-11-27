@@ -13,8 +13,7 @@ import { datasetSources } from '../../lib/dataset-sources';
     <p>Switch stations. Refresh without losing the chart. Watch a late response arrive — and leave the newer snapshot untouched.</p>
     <p class="small-note">Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client.</p>
   </section>
-  <DatasetLauncher client:load noMeta embeddedEditor={import.meta.env.PUBLIC_EMBED_EDITOR !== 'false'} downloadUrl={sitePath('/downloads/dataset-explorer.zip')} templateUrl={sitePath('/downloads/dataset-template.json')} />
-  <noscript><p><a href={sitePath('/downloads/dataset-explorer.zip')} download>Download standalone project ↓</a></p></noscript>
+  <DatasetLauncher client:load embeddedEditor={import.meta.env.PUBLIC_EMBED_EDITOR !== 'false'} downloadUrl={sitePath('/downloads/dataset-explorer.zip')} templateUrl={sitePath('/downloads/dataset-template.json')} />
   <section class="live-example" aria-label="Interactive dataset explorer">
     <DatasetExplorer client:load transport="fixtures" fixturesUrl={sitePath('/datasets/')} sources={datasetSources} />
     <noscript><p>Loading observations requires JavaScript.</p></noscript>

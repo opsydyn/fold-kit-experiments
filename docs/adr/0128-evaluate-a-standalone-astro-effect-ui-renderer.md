@@ -45,3 +45,10 @@ migrate. The standalone export copies the explorer's Effect UI sources and
 the pure Viz modules it imports. Its browser entry supplies SVG metadata
 creation for the pinned preview, since its npm install does not apply the
 monorepo's Bun patch.
+
+The Promo editor launcher is a separate Effect UI island. Effect UI owns
+the revision-keyed host and its mount scope, while the StackBlitz SDK
+owns the host's children. Closing hides the host to retain in-page edits.
+Restart replaces its key and releases the old mount. Unmount removes the
+iframe and aborts the template fetch. The download link is available in
+the initial HTML.

@@ -1,0 +1,181 @@
+import type { View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+
+import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
+import { portSockets, type GraphPortOptions } from './effect-ui-ports';
+import { nodeResizeControls } from './effect-ui-resize';
+import { withDescendants } from './group-presentation';
+import { movementReason } from './movement';
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
+import { nodeShapeGeometry } from './node-shape';
+import type { EditorState, ZlozNode } from './types';
+
+export type NativeNodeShellContext = Readonly<{
+  node: ZlozNode;
+  selected: boolean;
+  collapsed: boolean;
+  dropTarget: boolean;
+  selectionPreview: boolean;
+  readOnly: boolean;
+  moveDisabledReason: string | undefined;
+  selectionDisabledReason: string | undefined;
+}>;
+
+export type NativeNodeShell<M> = Readonly<{
+  className?: string;
+  style?: Html.Style;
+  /** Set false to replace the built-in outline with custom artwork. */
+  outline?: boolean;
+  title?: Readonly<{
+    className?: string;
+    style?: Html.Style;
+    description?: string;
+    content?: string | View.Content<M>;
+  }>;
+  body?: string | View.Content<M>;
+}>;
+
+type NodeShellRenderer<M> = (
+  context: NativeNodeShellContext,
+  h: Html.H<M>,
+) => NativeNodeShell<M> | undefined;
+
+export type NativeNodeOptions<M> = GraphPortOptions<M> &
+  Readonly<{
+    descriptionId?: string;
+    /** Expose native width controls and eight-direction controls for expanded selected groups. */
+    resizeHandles?: boolean;
+    nodeNote?: (node: ZlozNode) => string;
+    architectureNotation?: boolean;
+    onToggleGroup?: (id: string) => M;
+    /** Change presentation while retaining the keyed frame and the native controller buttons. */
+    renderNodeShell?: NodeShellRenderer<M>;
+    renderGroupShell?: NodeShellRenderer<M>;
+  }>;
+
+export function nodeView<Message>(
+  h: Html.H<Message>,
+  editor: EditorState,
+  options: NativeNodeOptions<Message>,
+  node: ZlozNode,
+  selecting: boolean,
+) {
+  const note = options.nodeNote?.(node);
+  const selected = editor.selectedNodes.includes(node.id);
+  const architecture = options.architectureNotation ? node.architecture : undefined;
+  const prefix = architecture && notationPrefix(architecture);
+  const notation = architecture ? notationView(h, node, architecture) : null;
+  const accent = notationStroke(architecture);
+  const group = node.kind === 'group';
+  const collapsed = group && editor.collapsedGroups.includes(node.id);
+  const toggle = group ? options.onToggleGroup : undefined;
+  const dropTarget = editor.gesture.type === 'node-drag' && editor.gesture.dropParent === node.id;
+  const selectionDisabledReason = options.policy?.canSelectNode?.(node, editor.graph) ?? undefined;
+  const canMoveNode = options.policy?.canMoveNode;
+  const moveDisabledReason =
+    group && canMoveNode
+      ? (movementReason(editor.graph, withDescendants(editor.graph, [node.id]), canMoveNode) ??
+        undefined)
+      : (canMoveNode?.(node, editor.graph) ?? undefined);
+  const shell = (group ? options.renderGroupShell : options.renderNodeShell)?.(
+    {
+      node,
+      selected,
+      collapsed,
+      dropTarget,
+      selectionPreview: selecting,
+      readOnly: editor.readOnly,
+      moveDisabledReason,
+      selectionDisabledReason,
+    },
+    h,
+  );
+
+  const hasOutline = architecture ? !group : node.appearance !== undefined;
+  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Use the authored outline geometry.
+  const outline = hasOutline ? nodeShapeGeometry(node) : null;
+  const content = outline?.contentBounds;
+  const svg = (tag: 'svg' | 'path') => new Html.Element<Message>(tag);
+  return (
+    h.div
+      .key(node.id)
+      .class('zloz-ui-node', shell?.className)
+      .attr('data-flow-node', node.id)
+      .attr('data-flow-group', group ? node.id : undefined)
+      .attr('data-flow-group-drop-target', dropTarget ? '' : undefined)
+      .attr('data-node-kind', node.kind)
+      .attr('data-flow-group-collapsed', group ? String(collapsed) : undefined)
+      .attr('data-notation', architecture?.family)
+      .attr(prefix ? `data-${prefix}-${group ? 'group' : 'node'}` : 'data-node-id', node.id)
+      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Read the canonical authored geometry.
+      .attr('data-node-outline', outline?.shape)
+      .attr('data-selection-preview', selecting ? 'true' : undefined)
+      .attr('data-flow-selection-preview', selecting ? 'true' : undefined)
+      .style({
+        ...shell?.style,
+        left: `${node.position.x}px`,
+        top: `${node.position.y}px`,
+        width: `${node.size.width}px`,
+        height: `${node.size.height}px`,
+        '--zloz-ui-notation-accent': accent,
+      })
+      .children(
+        outline && shell?.outline !== false
+          ? svg('svg')
+              .class('zloz-ui-node-outline')
+              .attr('aria-hidden', 'true')
+              .attr('viewBox', `0 0 ${node.size.width} ${node.size.height}`)
+              .children(
+                svg('path')
+                  .attr('d', outline.outlinePath)
+                  .attr('stroke-dasharray', notationDash(architecture, selecting))
+                  .attr('vector-effect', 'non-scaling-stroke')
+                  .attr(prefix ? `data-${prefix}-outline` : 'data-outline', ''),
+                ...outline.decorationPaths.map((path) =>
+                  svg('path')
+                    .attr('d', path)
+                    .attr('fill', 'none')
+                    .attr(prefix ? `data-${prefix}-cap` : 'data-outline-decoration', ''),
+                ),
+              )
+          : null,
+        h.button
+          .key('title')
+          .class('zloz-ui-node-title', shell?.title?.className)
+          .attr('type', 'button')
+          .attr('data-flow-handle', node.id)
+          .attr('aria-label', `Select ${node.label}`)
+          .attr('aria-description', shell?.title?.description ?? notation?.accessibleDescription)
+          .attr('title', selectionDisabledReason ?? moveDisabledReason)
+          .attr('data-flow-move-locked', moveDisabledReason === undefined ? undefined : '')
+          .disabled(selectionDisabledReason !== undefined)
+          .attr('aria-pressed', String(selected))
+          .style({
+            inset: architecture && content ? `${content.y}px auto auto ${content.x}px` : undefined,
+            width: architecture && content ? `${content.width}px` : undefined,
+            height: architecture && content ? `${content.height}px` : undefined,
+            ...shell?.title?.style,
+            cursor: moveDisabledReason === undefined ? shell?.title?.style?.cursor : 'pointer',
+          })
+          .children(shell?.title?.content ?? notation?.content ?? node.label),
+        toggle && !editor.readOnly
+          ? h.button
+              .key('collapse-toggle')
+              .class('zloz-ui-collapse-toggle')
+              .attr('type', 'button')
+              .attr('data-flow-no-drag', '')
+              .attr('aria-label', `${collapsed ? 'Expand' : 'Collapse'} ${node.label}`)
+              .attr('aria-expanded', String(!collapsed))
+              .disabled(editor.gesture.type !== 'idle')
+              .on('click', toggle(node.id))
+              .children(collapsed ? 'Expand' : 'Collapse')
+          : null,
+        shell?.body,
+        ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
+        ...(options.resizeHandles
+          ? nodeResizeControls(h, node, editor, options.policy, options.descriptionId)
+          : []),
+        ...portSockets(h, editor, node, options),
+      )
+  );
+}

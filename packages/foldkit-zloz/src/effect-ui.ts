@@ -24,16 +24,15 @@ import {
   type NativeWaypointOptions,
 } from './effect-ui-geometry-controls';
 import { surfaceInput } from './effect-ui-input';
-import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
-import { portLabels, portSockets, type GraphPortOptions } from './effect-ui-ports';
-import { nodeResizeControls, nodeResizeReadout } from './effect-ui-resize';
+import { nodeView, type NativeNodeOptions } from './effect-ui-nodes';
+import { portLabels } from './effect-ui-ports';
+import { nodeResizeReadout } from './effect-ui-resize';
 import { boxBounds, portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
-// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
-import { nodeShapeGeometry } from './node-shape';
 import { resolveBoxSelection } from './selection-preview';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
-import type { EditorState, ZlozNode } from './types';
+import type { EditorState } from './types';
+import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 import { resolveEdgeWaypointControls } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
@@ -80,13 +79,14 @@ export type { NativePortAnchors } from './effect-ui-geometry-controls';
 export type { ZlozPortLabelContext, ZlozPortLabelOptions } from './port-label-presentation';
 export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
 export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
+export type { NativeNodeShell, NativeNodeShellContext } from './effect-ui-nodes';
+export type { ZlozViewportCulling } from './viewport-culling';
 
-export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
+export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
   NativeEdgePresentation<Message> &
   Readonly<{
     id: string;
     label: string;
-    descriptionId?: string;
     onInput: (event: BrowserInput) => Message;
     wheelNavigation?: 'off' | 'zoom' | 'pan';
     /** Background double-click zoom. True uses 1.25. A custom factor must exceed 1. */
@@ -113,8 +113,6 @@ export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
     /** Defaults to the creation radius. Zero requires an exact reconnection target. */
     reconnectionDropRadius?: number;
     reconnect?: boolean;
-    /** Expose native width controls and eight-direction controls for expanded selected groups. */
-    resizeHandles?: boolean;
     /** Show size during a resize or while a single expanded group is selected. */
     resizeReadout?: boolean;
     portAnchors?: NativePortAnchors<Message>;
@@ -124,12 +122,10 @@ export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
     /** Enable context actions from secondary click or the keyboard. */
     contextActions?: Omit<NativeContextMenuOptions<Message>, 'id'> &
       Readonly<{ measurements?: boolean }>;
-    nodeNote?: (node: ZlozNode) => string;
-    architectureNotation?: boolean;
-    onToggleGroup?: (id: string) => Message;
     theme?: ZlozTheme;
     worldOverlay?: View.Content<Message> | null;
     pinchZoom?: boolean;
+    viewportCulling?: ZlozViewportCulling;
   }>;
 
 const reconnectOffset = {
@@ -160,9 +156,17 @@ export function graphSurface<Message>(
         policy?.canResizeNode,
       )
     : undefined;
+  const routes = new Map(editor.routes.map((route) => [route.id, route]));
+  const canvas = viewportItems(
+    editor,
+    scene,
+    routes,
+    Boolean(options.edgeGeometry || options.renderEdge || options.edgeEditing?.renderLabel),
+    options.viewportCulling,
+  );
   const nodes = [
-    ...groupsInPaintOrder(scene.nodes),
-    ...scene.nodes.filter((node) => node.kind !== 'group'),
+    ...groupsInPaintOrder(canvas.nodes),
+    ...canvas.nodes.filter((node) => node.kind !== 'group'),
   ];
   const preview = resolveConnectionPreview(editor, options.connectionGeometry);
   const selection =
@@ -182,12 +186,12 @@ export function graphSurface<Message>(
   const doubleClickFactor = doubleClickZoomFactor(options.doubleClickZoom);
   const marker = `${id}-arrow`;
   const waypointPreview = options.edgeWaypoints ? resolveEdgeWaypointPreview(editor, policy) : null;
-  const edgeViews = scene.edges.map((stored) => {
+  const edgeViews = canvas.edges.map((stored) => {
     const edge =
       waypointPreview?.type === 'allowed' && waypointPreview.edge.id === stored.id
         ? waypointPreview.edge
         : stored;
-    const route = editor.routes.find((item) => item.id === edge.id);
+    const route = routes.get(edge.id);
     const geometry = resolveEdgeGeometry(editor.graph, edge, {
       policy: options.edgeGeometry,
       route: route?.points,
@@ -463,104 +467,6 @@ function gestureMarquee<Message>(
       height: `${bounds.bottom - bounds.top}px`,
     })
     .children(content);
-}
-
-function nodeView<Message>(
-  h: Html.H<Message>,
-  editor: EditorState,
-  options: GraphSurfaceOptions<Message>,
-  node: ZlozNode,
-  selecting: boolean,
-) {
-  const note = options.nodeNote?.(node);
-  const selected = editor.selectedNodes.includes(node.id);
-  const architecture = options.architectureNotation ? node.architecture : undefined;
-  const prefix = architecture && notationPrefix(architecture);
-  const notation = architecture ? notationView(h, node, architecture) : null;
-  const accent = notationStroke(architecture);
-  const group = node.kind === 'group';
-  const collapsed = group && editor.collapsedGroups.includes(node.id);
-  const toggle = group ? options.onToggleGroup : undefined;
-  const hasOutline = architecture ? !group : node.appearance !== undefined;
-  // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Use the authored outline geometry.
-  const outline = hasOutline ? nodeShapeGeometry(node) : null;
-  const content = outline?.contentBounds;
-  const svg = (tag: 'svg' | 'path') => new Html.Element<Message>(tag);
-  return (
-    h.div
-      .key(node.id)
-      .class('zloz-ui-node')
-      .attr('data-flow-node', node.id)
-      .attr('data-node-kind', node.kind)
-      .attr('data-flow-group-collapsed', group ? String(collapsed) : undefined)
-      .attr('data-notation', architecture?.family)
-      .attr(prefix ? `data-${prefix}-${group ? 'group' : 'node'}` : 'data-node-id', node.id)
-      // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Read the canonical authored geometry.
-      .attr('data-node-outline', outline?.shape)
-      .attr('data-selection-preview', selecting ? 'true' : undefined)
-      .style({
-        left: `${node.position.x}px`,
-        top: `${node.position.y}px`,
-        width: `${node.size.width}px`,
-        height: `${node.size.height}px`,
-        '--zloz-ui-notation-accent': accent,
-      })
-      .children(
-        outline
-          ? svg('svg')
-              .class('zloz-ui-node-outline')
-              .attr('aria-hidden', 'true')
-              .attr('viewBox', `0 0 ${node.size.width} ${node.size.height}`)
-              .children(
-                svg('path')
-                  .attr('d', outline.outlinePath)
-                  .attr('stroke-dasharray', notationDash(architecture, selecting))
-                  .attr('vector-effect', 'non-scaling-stroke')
-                  .attr(prefix ? `data-${prefix}-outline` : 'data-outline', ''),
-                ...outline.decorationPaths.map((path) =>
-                  svg('path')
-                    .attr('d', path)
-                    .attr('fill', 'none')
-                    .attr(prefix ? `data-${prefix}-cap` : 'data-outline-decoration', ''),
-                ),
-              )
-          : null,
-        h.button
-          .class('zloz-ui-node-title')
-          .attr('type', 'button')
-          .attr('data-flow-handle', node.id)
-          .attr('aria-label', `Select ${node.label}`)
-          .attr('aria-description', notation?.accessibleDescription)
-          .attr('aria-pressed', String(selected))
-          .style(
-            architecture && content
-              ? {
-                  inset: `${content.y}px auto auto ${content.x}px`,
-                  width: `${content.width}px`,
-                  height: `${content.height}px`,
-                }
-              : {},
-          )
-          .children(notation?.content ?? node.label),
-        toggle && !editor.readOnly
-          ? h.button
-              .key('collapse-toggle')
-              .class('zloz-ui-collapse-toggle')
-              .attr('type', 'button')
-              .attr('data-flow-no-drag', '')
-              .attr('aria-label', `${collapsed ? 'Expand' : 'Collapse'} ${node.label}`)
-              .attr('aria-expanded', String(!collapsed))
-              .disabled(editor.gesture.type !== 'idle')
-              .on('click', toggle(node.id))
-              .children(collapsed ? 'Expand' : 'Collapse')
-          : null,
-        ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
-        ...(options.resizeHandles
-          ? nodeResizeControls(h, node, editor, options.policy, options.descriptionId)
-          : []),
-        ...portSockets(h, editor, node, options),
-      )
-  );
 }
 
 export { pngReview, svgReview } from './effect-ui-export-review';

@@ -95,11 +95,14 @@ export function architectureNativePanel<A>(
     value: A,
     attribute: string,
     id: string,
+    inline = false,
   ) {
     const snapshot = new PanelSnapshot(value);
-    const host = h.div([
+    const frame = inline ? h.span : h.div;
+    const host = frame([
       h.Key(`native:${attribute}:${id}`),
       h.DataAttribute(attribute, id),
+      ...(inline ? [h.Style({ display: 'contents' })] : []),
       {
         _tag: 'OnCustomEvent',
         name: panelEvent,

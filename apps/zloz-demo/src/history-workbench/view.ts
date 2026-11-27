@@ -473,6 +473,7 @@ export function view(h: Html.H<Message>, model: Model) {
             onInput: observe,
             contextActions: { onEvent: observe, measurements: !model.minimal },
             architectureNotation: true,
+            viewportCulling: true,
             resizeHandles: true,
             resizeReadout: !model.minimal,
             portAnchors: { keyboardTargets: true, snapBypass: 'Alt', guides: !model.minimal },

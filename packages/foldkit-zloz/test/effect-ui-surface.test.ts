@@ -539,3 +539,88 @@ test('native custom edge artwork shares geometry with its hit area and label', a
     'M110,50 L310,50',
   );
 });
+
+test('native node shells retain core controls and keep focused nodes through culling', async () => {
+  const createNode = (id: string, x: number) => ({
+    id,
+    label: id,
+    position: { x, y: 40 },
+    size: { width: 100, height: 80 },
+    ports: [{ id: 'out', kind: 'output' as const, side: 'right' as const, offset: 0.5 }],
+  });
+  const state = updateEditor(
+    createEditor({
+      nodes: [
+        { ...createNode('Locked', 160), parentId: 'Group' },
+        { ...createNode('Group', 160), kind: 'group', ports: [] },
+        createNode('Focused', 400),
+        createNode('Offscreen', 600),
+        createNode('Unselectable', 280),
+      ],
+      edges: [],
+    }),
+    { type: 'SurfaceMeasured', size: { width: 360, height: 200 } },
+  );
+  const focused = updateEditor(state, { type: 'NodeFocusChanged', id: 'Focused' });
+  const component = Html.component({
+    name: 'NativeCustomShell',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      graphSurface(h, focused, {
+        id: 'node-shells',
+        label: 'Node shells',
+        viewportCulling: { overscan: 0 },
+        onInput: ({ type }) => type,
+        onToggleGroup: () => 'collapse',
+        renderNodeShell: ({ node }, h) => ({
+          className: 'custom-node',
+          style: { left: '0px', padding: '0px' },
+          title: { content: h.strong.children(node.label) },
+        }),
+        renderGroupShell: ({ collapsed }, h) => ({
+          className: 'custom-group',
+          body: h.span.children(collapsed ? 'Collapsed artwork' : 'Expanded artwork'),
+        }),
+        policy: {
+          canMoveNode: ({ id }) => (id === 'Locked' ? 'Movement is protected.' : null),
+          canSelectNode: ({ id }) => (id === 'Unselectable' ? 'Selection is protected.' : null),
+        },
+      }),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  expect(document.querySelector('[data-flow-node="Offscreen"]')).toBeNull();
+  const focusedFrame = document.querySelector<HTMLDivElement>('[data-flow-node="Focused"]');
+  expect(focusedFrame?.classList.contains('custom-node')).toBe(true);
+  expect(focusedFrame?.style.left).toBe('400px');
+  expect(focusedFrame?.querySelector('[data-flow-handle] strong')?.textContent).toBe('Focused');
+  const locked = document.querySelector<HTMLButtonElement>('[data-flow-handle="Locked"]');
+  expect(locked?.disabled).toBe(false);
+  expect(locked?.hasAttribute('data-flow-move-locked')).toBe(true);
+  expect(locked?.getAttribute('title')).toBe('Movement is protected.');
+  expect(
+    document.querySelector<HTMLButtonElement>('[data-flow-handle="Unselectable"]')?.disabled,
+  ).toBe(true);
+  const lockedGroup = document.querySelector<HTMLButtonElement>('[data-flow-handle="Group"]');
+  expect(lockedGroup?.disabled).toBe(false);
+  expect(lockedGroup?.getAttribute('title')).toBe('Movement is protected.');
+  expect(
+    document.querySelector('[data-flow-node="Group"]')?.classList.contains('custom-group'),
+  ).toBe(true);
+  expect(document.querySelector('[data-flow-node="Group"]')?.textContent).toContain(
+    'Expanded artwork',
+  );
+  expect(
+    document.querySelector('[aria-label="Collapse Group"]')?.getAttribute('aria-expanded'),
+  ).toBe('true');
+  expect(
+    focusedFrame?.querySelector('[data-flow-port="out"]')?.getAttribute('data-flow-owner'),
+  ).toBe('Focused');
+});

@@ -1,47 +1,14 @@
 import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
-import { Match, Option, Schema } from 'effect';
-import type { RootContent } from 'hast';
+import { Option, Schema } from 'effect';
 
-import { codeTree } from './highlighting-core';
 import { Message } from './message';
 import type { Model } from './model';
 import { sourceContent, SourceName } from './source';
+import { highlightedCode } from './source-ui';
 
 export const sourcePanel = (h: Html.H<Message>, model: Model): View.Input<Message> => {
   if (model.sources.length === 0) return undefined;
-  const render = (node: RootContent): View.Input<Message> =>
-    Match.value(node).pipe(
-      Match.when({ type: 'text' }, ({ value }) => value),
-      Match.when({ type: 'element' }, (node) => {
-        const { className, id, href, ariaLabel, dataLine } = node.properties;
-        const attributes = {
-          class: Array.isArray(className) ? className.join(' ') : undefined,
-          id: id === undefined ? undefined : String(id),
-          tabindex: id === undefined ? undefined : '-1',
-        };
-        const children = node.children.flatMap((child) =>
-          child.type === 'element' || child.type === 'text' ? [render(child)] : [],
-        );
-        return node.tagName === 'a'
-          ? h.a
-              .attrs({
-                ...attributes,
-                href: String(href),
-                'aria-label': String(ariaLabel),
-                'data-line': String(dataLine),
-              })
-              .children(...children)
-          : h.span.attrs(attributes).children(...children);
-      }),
-      Match.orElse(() => undefined),
-    );
-  const tree = codeTree(
-    sourceContent(model),
-    model.activeFile,
-    model.highlightedSource,
-    model.activeFile,
-  );
   return h.section
     .class('query-panel query-source')
     .attr('aria-label', 'Running source')
@@ -76,6 +43,16 @@ export const sourcePanel = (h: Html.H<Message>, model: Model): View.Input<Messag
       h.pre
         .class('query-source-code syntax-highlight')
         .attrs({ tabindex: '0', 'aria-label': model.activeFile })
-        .children(h.code(...tree.children.map(render))),
+        .children(
+          h.code(
+            ...highlightedCode(
+              h,
+              sourceContent(model),
+              model.activeFile,
+              model.highlightedSource,
+              model.activeFile,
+            ),
+          ),
+        ),
     );
 };

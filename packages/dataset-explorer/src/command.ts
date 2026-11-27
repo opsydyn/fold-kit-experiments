@@ -1,11 +1,11 @@
 import { Command } from '@effect/ui';
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import { Request } from './data';
-import { highlightedTree, loadHighlighter } from './highlighting-core';
 import { Message } from './message';
 import { execute, DatasetQuery } from './query';
-import { SourceLine, sourceLineId } from './source-line-core';
+import { SourceLine } from './source-line-core';
+import { focusSourceLine, highlightSource } from './source-ui';
 
 export const FetchDatasetSnapshot = Command.make(
   'FetchDatasetSnapshot',
@@ -21,45 +21,18 @@ export const FetchDatasetSnapshot = Command.make(
     ),
 );
 
-const load = Effect.tryPromise({ try: loadHighlighter, catch: () => 'Highlighting unavailable' });
-const cached = Effect.cached(load);
-// Initialise the cache cell. I/O only starts when a browser command reads it.
-// oxlint-disable-next-line linteffect/no-run-effect-outside-boundary
-const highlighter = Effect.runSync(cached);
-
 export const HighlightSource = Command.make(
   'HighlightSource',
   { args: { source: Schema.String, language: Schema.String } },
   ({ source, language }) =>
-    highlighter.pipe(
-      Effect.result,
-      Effect.map((loaded) =>
-        Message.SettledHighlightedSource({
-          highlightedSource: {
-            source,
-            language,
-            tree: highlightedTree(
-              source,
-              language,
-              Result.isSuccess(loaded) ? loaded.success : undefined,
-            ),
-          },
-        }),
-      ),
+    highlightSource(source, language).pipe(
+      Effect.map((highlightedSource) => Message.SettledHighlightedSource({ highlightedSource })),
     ),
 );
 
 export const FocusSourceLine = Command.make(
   'FocusSourceLine',
   { args: SourceLine.fields },
-  ({ name, line }) =>
-    Effect.callback<Message>((resume) => {
-      const frame = requestAnimationFrame(() => {
-        const element = document.getElementById(sourceLineId(name, line));
-        element?.scrollIntoView({ block: 'start' });
-        element?.focus({ preventScroll: true });
-        resume(Effect.succeed(Message.CompletedSourceLineFocus()));
-      });
-      return Effect.sync(() => cancelAnimationFrame(frame));
-    }),
+  (location) =>
+    focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
 );

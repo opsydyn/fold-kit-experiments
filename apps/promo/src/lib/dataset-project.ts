@@ -2,18 +2,13 @@ import { datasetIds, datasets } from '@opsydyn/dataset-explorer/data';
 
 import workspace from '../../../../package.json' with { type: 'json' };
 import type { SourceFile } from './example-project';
+import { effectUiEntry } from './standalone-effect';
 
 /** Adapt the common Vite scaffold to the maintained Effect UI example. */
 export function datasetProject(
   template: Readonly<Record<string, string>>,
   sources: ReadonlyArray<SourceFile>,
 ) {
-  const imports = sources
-    .map(({ name }, index) => `import source${index} from './${name}?raw';`)
-    .join('\n');
-  const sourceList = sources
-    .map(({ name }, index) => `{ name: '${name}', content: source${index} }`)
-    .join(',\n');
   const fixtures = Object.fromEntries(
     datasetIds.map((dataset) => [
       `public/datasets/${dataset}.json`,
@@ -76,37 +71,12 @@ export function datasetProject(
     'index.html':
       '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dataset explorer — Foldkit Viz</title></head><body><main><header><p class="eyebrow">EFFECT UI / DATASET CACHE</p><h1>Data that remembers.</h1><p>Switch stations, refresh the chart and inspect the running source.</p><p>Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client.</p></header><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>',
     'vite.config.ts': "import { defineConfig } from 'vite';\nexport default defineConfig({});\n",
-    'src/entry.ts': `import { Renderer } from '@effect/ui';
-import { BrowserHost, Html } from '@effect/ui/html';
-import { Effect, Fiber } from 'effect';
-import { DatasetExplorer } from './main';
-import './explorer.css';
-import './standalone.css';
-${imports}
-const container = document.getElementById('app');
-if (!container) throw new Error('Missing example container');
-const sources = [
-${sourceList}
-] as const;
-
-// The pinned preview cannot infer the namespace of SVG metadata during DOM creation.
-const native = BrowserHost.makeHost(document);
-const host = {
-  ...native,
-  createElement: (tag: string) => tag === 'title' || tag === 'desc'
-    ? document.createElementNS('http://www.w3.org/2000/svg', tag)
-    : native.createElement(tag),
-};
-const run = Renderer.mount(DatasetExplorer, { transport: 'fixtures', sources }, container, { head: false }).pipe(
-  Effect.provide(Renderer.layer(host)),
-  Effect.provideService(Html.Host, BrowserHost.htmlHost),
-  Effect.andThen(Effect.never),
-  Effect.ensuring(Effect.sync(native.dispose)),
-  Effect.scoped,
-);
-const fiber = Effect.runFork(run);
-import.meta.hot?.dispose(() => Effect.runFork(Fiber.interrupt(fiber)));
-`,
+    'src/entry.ts': effectUiEntry(
+      sources,
+      'DatasetExplorer',
+      'explorer.css',
+      "{ transport: 'fixtures', sources }",
+    ),
     'src/standalone.css': standaloneStyles,
     'README.md': readme,
     'vendor/foldkit-viz/LICENSE': mitLicence,

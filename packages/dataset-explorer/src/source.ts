@@ -5,6 +5,7 @@ import { DatasetQuery, status } from './query';
 
 export const SourceName = Schema.Literals([
   'source-line-core.ts',
+  'source-ui.ts',
   'highlighting-core.ts',
   'highlighting-engine.ts',
   'highlighting-browser.ts',

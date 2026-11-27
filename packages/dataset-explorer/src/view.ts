@@ -1,6 +1,6 @@
 import { Mount } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
-import { Effect, Option, Queue, Stream } from 'effect';
+import { Stream } from 'effect';
 
 import { hourLabel, snapshotChart } from './chart';
 import { datasetIds, datasets } from './data';
@@ -9,28 +9,14 @@ import { MeasureDatasetChart } from './measurement';
 import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery, status } from './query';
-import { parseSourceLine } from './source-line-core';
+import { sourceLineChanges } from './source-ui';
 import { sourcePanel } from './source-view';
 
 const ObserveExplorer = Mount.makeStream('ObserveExplorer', { args: {} }, (element: HTMLElement) =>
-  Stream.callback<Message>((queue) => {
-    const subscribe = Effect.sync(() => {
-      const window = element.ownerDocument.defaultView;
-      const navigate = () =>
-        Option.map(parseSourceLine(window?.location.hash ?? ''), (line) =>
-          Queue.offerUnsafe(queue, Message.NavigatedSourceLine(line)),
-        );
-      window?.addEventListener('hashchange', navigate);
-      Queue.offerUnsafe(queue, Message.MountedExplorer());
-      navigate();
-      return () => window?.removeEventListener('hashchange', navigate);
-    });
-    return Effect.acquireRelease(subscribe, (close) => Effect.sync(close)).pipe(
-      // Leave the hash listener attached for the lifetime of this mount.
-      // oxlint-disable-next-line linteffect/no-effect-never
-      Effect.andThen(Effect.never),
-    );
-  }),
+  Stream.concat(
+    Stream.make(Message.MountedExplorer()),
+    Stream.map(sourceLineChanges(element), Message.NavigatedSourceLine),
+  ),
 );
 
 export const view = (h: Html.H<Message>, model: Model) => {

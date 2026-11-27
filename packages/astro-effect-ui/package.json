@@ -1,5 +1,6 @@
 {
   "name": "@opsydyn/astro-effect-ui",
+  "version": "1.0.0-next.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -7,7 +8,8 @@
     "./component": "./src/component.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsdown && bun tools/stage-package.ts"
   },
   "dependencies": {
     "@effect/ui": "catalog:",
@@ -16,6 +18,8 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "tsdown": "catalog:",
     "typescript": "catalog:"
   }
 }

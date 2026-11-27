@@ -1,20 +1,11 @@
 import { expect, test } from 'bun:test';
-import { init, Message, update } from './main';
-import * as islandModule from './main';
-import * as pageModule from './page-main';
 
-test('initialises from public flags and increments without mutating the old model', () => {
-  const initial = init({ title: 'Counter' }).model;
-  const next = update(initial, Message.ClickedIncrement());
-  expect(next.model).toEqual({ title: 'Counter', count: 1 });
-  expect(initial.count).toBe(0);
-});
+import { HtmlServer } from '@effect/ui/html';
+import { Effect } from 'effect';
 
-test('rejects invalid serialized flags', () => {
-  expect(() => init({ title: 42 } as never)).toThrow();
-});
+import { Counter } from './main';
 
-test('only the page module exposes the runtime Flags contract', () => {
-  expect('Flags' in islandModule).toBe(false);
-  expect(pageModule.Flags).toBeDefined();
+test('renders the public start value without a browser', async () => {
+  const rendered = HtmlServer.renderToHtml(Counter, { start: 7 }, { static: true });
+  expect((await Effect.runPromise(rendered)).html).toContain('Count: 7');
 });

@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-// Pre-rendered at build time and shipped without JavaScript.
-export default lazyApp<{ start?: number }>(() => import('./main'), { prerender: true });
+import { Counter } from './main';
+
+export default astroComponent(Counter);

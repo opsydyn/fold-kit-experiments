@@ -3,6 +3,7 @@
 tasks:
   build:
     script: 'tsdown'
+    deps: ['^:build']
     outputs: ['dist/**/*']
   typecheck:
     script: 'tsc --noEmit'
@@ -16,7 +17,14 @@ tasks:
     deps: ['build']
     # Rebuilds and packs packages itself, so it runs after the parallel checks,
     # one at a time, and its inputs cover everything it rebuilds.
-    inputs: ['/packages/**/*']
+    inputs:
+      [
+        '/packages/astro-foldkit/**/*',
+        '/packages/astro-effect-ui/**/*',
+        '/tools/astro-compat.ts',
+        '/package.json',
+        '/bun.lock',
+      ]
     options:
       mutex: 'rebuilds-packages'
   compat:

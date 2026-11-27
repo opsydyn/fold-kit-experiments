@@ -2,7 +2,13 @@ import { fileURLToPath } from 'node:url';
 
 import type { AstroIntegration } from 'astro';
 
-type EffectUiOptions = { readonly interaction?: boolean };
+export type EffectUiOptions = { readonly interaction?: boolean };
+
+const extension = import.meta.url.endsWith('.ts') ? 'ts' : 'mjs';
+
+function entrypoint(name: 'client' | 'server' | 'directive-interaction'): string {
+  return fileURLToPath(new URL(`./${name}.${extension}`, import.meta.url));
+}
 
 export default function effectUi({ interaction = true }: EffectUiOptions = {}): AstroIntegration {
   return {
@@ -12,13 +18,13 @@ export default function effectUi({ interaction = true }: EffectUiOptions = {}): 
         if (interaction) {
           addClientDirective({
             name: 'interaction',
-            entrypoint: fileURLToPath(new URL('./directive-interaction.ts', import.meta.url)),
+            entrypoint: entrypoint('directive-interaction'),
           });
         }
         addRenderer({
           name: 'astro-effect-ui',
-          serverEntrypoint: fileURLToPath(new URL('./server.ts', import.meta.url)),
-          clientEntrypoint: fileURLToPath(new URL('./client.ts', import.meta.url)),
+          serverEntrypoint: entrypoint('server'),
+          clientEntrypoint: entrypoint('client'),
         });
       },
     },

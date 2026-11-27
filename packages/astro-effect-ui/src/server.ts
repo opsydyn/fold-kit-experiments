@@ -7,7 +7,7 @@ import { asIslandComponent, IslandRendererError, type IslandProps } from './comp
 
 type RenderContext = Readonly<{
   result?: Readonly<{
-    createAstro: (props: IslandProps, slots: null) => Readonly<{ isPrerendered: boolean }>;
+    createAstro?: (props: IslandProps, slots: null) => Readonly<{ isPrerendered: boolean }>;
   }>;
 }>;
 
@@ -23,7 +23,7 @@ export default {
   ) {
     if (Object.keys(slots).length > 0)
       throw new IslandRendererError({ message: 'Astro Effect UI slots are unsupported.' });
-    const isPrerendered = this?.result?.createAstro({}, null).isPrerendered ?? false;
+    const isPrerendered = this?.result?.createAstro?.({}, null)?.isPrerendered ?? false;
     const rendered = await Effect.runPromise(
       HtmlServer.renderToHtml(asIslandComponent(component), props, { static: isPrerendered }),
     );

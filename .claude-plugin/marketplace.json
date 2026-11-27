@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "foldkit-packages",
-      "description": "Skills for building with @opsydyn/astro-foldkit, @opsydyn/foldkit-viz and the effect-three packages: Astro islands and pages, chart geometry, and 3D scenes kept in a FoldKit Model.",
+      "description": "Skills for building with @opsydyn/astro-effect-ui, @opsydyn/foldkit-viz and the effect-three packages: Astro islands and pages, chart geometry, and 3D scenes kept in a FoldKit Model.",
       "author": { "name": "Alan P Currie" },
       "category": "development",
       "homepage": "https://github.com/opsydyn/fold-kit-experiments/tree/main/skills",

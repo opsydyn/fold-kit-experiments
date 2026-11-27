@@ -1,12 +1,15 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, zlozViewportControl, zlozMinimap, viewportControlActions } from '../src/foldkit';
-import { createEditor, updateEditor, type EditorEvent } from '../src/index';
+import {
+  graphSurface,
+  historyMinimap,
+  viewportControl,
+  viewportControlActions,
+} from '../src/effect-ui';
+import { createEditor, updateEditor } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const initial = createEditor({
   nodes: [
@@ -36,79 +39,39 @@ test('navigation actions retain Model guards, read-only inspection and current c
   expect(updateEditor(busy, { type: 'ViewportNudged', delta: { x: 20, y: 0 } })).toBe(busy);
 });
 
-test('custom navigation shells compose public primitives with the host builder and honor feature gates', async () => {
-  const render = async (minimalMode = false) => {
-    const result = await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: state }),
-          view: (model, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Navigation',
-            body: zlozView(h, model, {
-              id: 'nav',
-              label: 'Navigation',
-              onEvent: (event) => event,
-              viewportControls: true,
-              minimap: true,
-              minimalMode,
-              renderViewportControls: (context, builder) =>
-                builder.nav(
-                  [builder.AriaLabel('Custom navigation')],
-                  [
-                    zlozViewportControl(
-                      builder,
-                      { ...context.actions.fitView, label: 'Frame graph' },
-                      (event) => event,
-                      [builder.Class('custom-fit')],
-                      ['Frame graph'],
-                    ),
-                  ],
-                ),
-              renderMinimap: (context, builder) =>
-                zlozMinimap(
-                  builder,
-                  context,
-                  (event) => event,
-                  [
-                    builder.Style({
-                      width: '210px',
-                      height: '130px',
-                      border: '8px solid red',
-                      padding: '12px',
-                    }),
-                  ],
-                  context.nodes.map((node) =>
-                    builder.rect(
-                      [
-                        builder.X(String(node.position.x)),
-                        builder.Y(String(node.position.y)),
-                        builder.Width(String(node.size.width)),
-                        builder.Height(String(node.size.height)),
-                      ],
-                      [],
-                    ),
-                  ),
-                ),
-            }),
-          }),
-        },
-        { flags: {}, isHydratable: false },
+test('navigation primitives compose beside a read-only canvas and are omitted when gated', async () => {
+  for (const shown of [true, false]) {
+    const result = await renderEffectUi((h) =>
+      h.div.children(
+        shown
+          ? h.aside.children(
+              viewportControl(
+                h,
+                viewportControlActions(state).fitView,
+                ({ type }) => type,
+              ).children('Host fit'),
+              historyMinimap(h, state, ({ type }) => type),
+            )
+          : null,
+        graphSurface(
+          h,
+          { ...state, readOnly: true },
+          {
+            id: 'navigation',
+            label: 'Navigation',
+            wheelNavigation: 'pan',
+            onInput: ({ type }) => type,
+          },
+        ),
       ),
     );
-    const window = new Window();
-    window.document.body.innerHTML = result.html;
-    return window.document;
-  };
-  const document = await render();
-  expect(document.querySelector('[aria-label="Custom navigation"]')?.textContent).toBe(
-    'Frame graph',
-  );
-  expect(document.querySelector('.custom-fit')?.getAttribute('type')).toBe('button');
-  const map = document.querySelector('[data-flow-minimap]');
-  expect(map?.getAttribute('preserveAspectRatio')).toBe('none');
-  expect(map?.querySelector('[data-flow-minimap-viewport]')).toBeNull();
-  expect(map?.parentElement?.getAttribute('aria-label')).toBe('Diagram overview');
-  expect(map?.parentElement?.getAttribute('style')).toContain('border: 8px solid red');
-  expect((await render(true)).querySelector('[data-flow-minimap]')).toBeNull();
+    const { document } = new Window();
+    document.body.innerHTML = result.html;
+    expect(document.querySelectorAll('[data-flow-surface]')).toHaveLength(1);
+    expect(
+      document.querySelector('[data-flow-surface]')?.getAttribute('data-flow-wheel-navigation'),
+    ).toBe('pan');
+    expect(document.querySelectorAll('[data-flow-minimap-viewport]')).toHaveLength(shown ? 1 : 0);
+    expect(document.body.textContent.includes('Host fit')).toBe(shown);
+  }
 });

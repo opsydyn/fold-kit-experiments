@@ -2,7 +2,7 @@ import type { Html } from '@effect/ui/html';
 
 import type { ZlozConnectionCreationFieldContext } from './connection-creation';
 import type { ZlozEdgeReconnectionContext } from './edge-reconnection';
-import { resolveEndpointChoices } from './endpoint-search';
+import { resolveEndpointChoices, type ZlozEndpointChoiceGroup } from './endpoint-search';
 import type { EditorEvent } from './types';
 
 type EndpointField = ZlozConnectionCreationFieldContext | ZlozEdgeReconnectionContext;
@@ -10,6 +10,8 @@ type EndpointField = ZlozConnectionCreationFieldContext | ZlozEdgeReconnectionCo
 export type NativeEndpointFieldOptions<M> = Readonly<{
   id: string;
   heading?: string;
+  groupByNode?: boolean;
+  groupLabel?: (group: ZlozEndpointChoiceGroup<EndpointField['entries'][number]>) => string;
   search?: Readonly<{
     label: string;
     query: string;
@@ -22,7 +24,7 @@ export type NativeEndpointFieldOptions<M> = Readonly<{
 export function endpointField<M>(
   h: Html.H<M>,
   field: EndpointField,
-  { id, heading, search, onEvent }: NativeEndpointFieldOptions<M>,
+  { id, heading, search, onEvent, groupByNode = true, groupLabel }: NativeEndpointFieldOptions<M>,
 ) {
   const choices = resolveEndpointChoices<EndpointField['entries'][number]>(field.entries, {
     query: search?.query,
@@ -41,6 +43,15 @@ export function endpointField<M>(
   const reasonsId = `${id}-reasons`;
   const cancel = () =>
     creation?.cancel.reason === null ? onEvent(creation.cancel.event) : undefined;
+  const option = (choice: EndpointField['entries'][number]) =>
+    h.option
+      .key(choice.value)
+      .attr('value', choice.value)
+      .selected(choice.value === field.value)
+      .disabled(choice.reason !== null)
+      .children(
+        `${choice.label}${choice.hidden ? ' (hidden)' : ''}${choice.reason ? ' — unavailable' : ''}`,
+      );
   const select = h.select
     .id(`${id}-select`)
     .attr('aria-label', field.label)
@@ -56,24 +67,20 @@ export function endpointField<M>(
     .on('keydown', ({ key }) => (key === 'Escape' ? cancel() : undefined), { preventDefault: true })
     .children(
       creation
-        ? h.option.key('placeholder').attr('value', '').children(creation.placeholder)
+        ? h.option
+            .key('placeholder')
+            .attr('value', '')
+            .selected(field.value === '')
+            .children(creation.placeholder)
         : null,
-      ...choices.groups.map(({ id, label, entries }) =>
-        h.optgroup
-          .key(id)
-          .attr('label', label)
-          .children(
-            ...entries.map((choice) =>
-              h.option
-                .key(choice.value)
-                .attr('value', choice.value)
-                .disabled(choice.reason !== null)
-                .children(
-                  `${choice.label}${choice.hidden ? ' (hidden)' : ''}${choice.reason ? ' — unavailable' : ''}`,
-                ),
-            ),
-          ),
-      ),
+      ...(groupByNode
+        ? choices.groups.map((group) =>
+            h.optgroup
+              .key(group.id)
+              .attr('label', groupLabel?.(group) ?? group.label)
+              .children(...group.entries.map(option)),
+          )
+        : choices.entries.map(option)),
     );
   return h.div
     .key(id)

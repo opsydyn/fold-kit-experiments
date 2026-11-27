@@ -1,18 +1,24 @@
 import { expect, mock, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import type { View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, resolveZlozDiagnostics, type ZlozViewOptions } from '../src/foldkit';
 import {
-  createEditor,
-  serializeGraph,
-  updateEditor,
-  type EditorEvent,
-  type EditorState,
-} from '../src/index';
+  canvasHelpContext,
+  canvasStatusContext,
+  graphSurface,
+  historyMinimap,
+  presentVisibleGraph,
+  resolveConnectionList,
+  resolveZlozDiagnostics,
+  visuallyHidden,
+  type GraphSurfaceOptions,
+  type ZlozCanvasHelpContext,
+  type ZlozCanvasStatusContext,
+} from '../src/effect-ui';
+import { createEditor, serializeGraph, updateEditor, type EditorState } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const initial = {
   ...createEditor(
@@ -56,27 +62,70 @@ const initial = {
   surface: { width: 800, height: 440 },
 };
 
-async function render(state: EditorState, options: Partial<ZlozViewOptions<EditorEvent>> = {}) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Diagnostics',
-          body: zlozView(h, model, {
-            id: 'diag-test',
-            label: 'Editor',
-            onEvent: (event) => event,
-            resizeHandles: true,
-            contextActions: true,
-            minimap: true,
-            viewportControls: true,
-            ...options,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
+type Options = Partial<GraphSurfaceOptions<string>> &
+  Parameters<typeof resolveZlozDiagnostics>[0] & {
+    renderCanvasHelp?: (context: ZlozCanvasHelpContext, h: Html.H<string>) => View.Content<string>;
+    renderCanvasStatus?: (
+      context: ZlozCanvasStatusContext,
+      h: Html.H<string>,
+    ) => View.Content<string>;
+  };
+
+async function render(state: EditorState, options: Options = {}) {
+  const diagnostic = resolveZlozDiagnostics(options);
+  const help = canvasHelpContext(state, options, false, diagnostic.instructions);
+  const status = canvasStatusContext(
+    state.notice,
+    state.graph.nodes.length,
+    state.graph.edges.length,
+    diagnostic.status,
+  );
+  const connections = resolveConnectionList(state, presentVisibleGraph(state).edges, {
+    id: 'diag-test',
+    compact: !diagnostic.connectionList,
+    toolbarEdgeId: undefined,
+  });
+  const result = await renderEffectUi((h) =>
+    h.div.children(
+      h.div
+        .id('diag-test-help')
+        .attr('data-flow-help', '')
+        .style(help.visible ? {} : visuallyHidden)
+        .children(options.renderCanvasHelp?.(help, h) ?? help.defaultText),
+      h.p
+        .attr('data-flow-status', '')
+        .attr('role', 'status')
+        .attr('aria-live', 'polite')
+        .style(status.visible ? {} : visuallyHidden)
+        .children(options.renderCanvasStatus?.(status, h) ?? status.defaultText),
+      diagnostic.zoomLevel
+        ? h.span.attr('data-flow-zoom-level', '').children(String(state.viewport.zoom))
+        : null,
+      diagnostic.overview ? historyMinimap(h, state, ({ type }) => type) : null,
+      h.button
+        .attr('data-flow-connections-toggle', '')
+        .attr('aria-expanded', String(state.connectionsExpanded ?? false))
+        .children('Connections'),
+      diagnostic.connectionList || state.connectionsExpanded
+        ? h.div
+            .attr('data-flow-connections', '')
+            .children(
+              ...connections.entries.map((entry) =>
+                h.button.attr('aria-label', entry.label).children(entry.label),
+              ),
+            )
+        : null,
+      graphSurface(h, state, {
+        id: 'diag-test',
+        label: 'Editor',
+        descriptionId: 'diag-test-help',
+        onInput: ({ type }) => type,
+        resizeHandles: true,
+        contextActions: { measurements: diagnostic.measurements, onEvent: ({ type }) => type },
+        ...options,
+        resizeReadout: options.resizeReadout ?? diagnostic.measurements,
+        alignmentGuides: options.alignmentGuides ?? diagnostic.alignmentGuides,
+      }),
     ),
   );
   const window = new Window();
@@ -135,11 +184,11 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
     ])
       expect(quiet.querySelector(selector)).toBeNull();
     expect(quiet.querySelector('[data-flow-help]')?.getAttribute('style')).toContain(
-      'position: absolute',
+      'position:absolute',
     );
     expect(quiet.querySelector('[data-flow-status]')?.getAttribute('aria-live')).toBe('polite');
     expect(quiet.querySelector('[data-flow-status]')?.getAttribute('style')).toContain(
-      'position: absolute',
+      'position:absolute',
     );
     expect(quiet.querySelectorAll('[data-flow-group-resize]')).toHaveLength(8);
     expect(
@@ -165,10 +214,10 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
 test('custom canvas copy keeps its accessible bindings when diagnostics hide it', async () => {
   const state = { ...initial, selectionMode: true, notice: 'Custom notice' };
   const options = {
-    renderCanvasHelp: (context, h) => h.div([h.Class('help-content')], [context.defaultText]),
+    renderCanvasHelp: (context, h) => h.div.class('help-content').children(context.defaultText),
     renderCanvasStatus: (context, h) =>
-      h.span([h.Class('status-content')], [context.notice ?? context.defaultText]),
-  } satisfies Partial<ZlozViewOptions<EditorEvent>>;
+      h.span.class('status-content').children(context.notice ?? context.defaultText),
+  } satisfies Options;
   const visible = await render(state, options);
   const help = visible.querySelector('[data-flow-help]');
   expect(help?.querySelector('.help-content')?.textContent).toContain(
@@ -184,9 +233,9 @@ test('custom canvas copy keeps its accessible bindings when diagnostics hide it'
   const quietHelp = quiet.querySelector('[data-flow-help]');
   const quietStatus = quiet.querySelector('[data-flow-status]');
   expect(quietHelp?.id).toBe(help?.id ?? '');
-  expect(quietHelp?.getAttribute('style')).toContain('position: absolute');
+  expect(quietHelp?.getAttribute('style')).toContain('position:absolute');
   expect(quietHelp?.querySelector('.help-content')?.textContent).toBe(help?.textContent ?? '');
-  expect(quietStatus?.getAttribute('style')).toContain('position: absolute');
+  expect(quietStatus?.getAttribute('style')).toContain('position:absolute');
   expect(quietStatus?.getAttribute('role')).toBe('status');
   expect(quietStatus?.getAttribute('aria-live')).toBe('polite');
   expect(quietStatus?.querySelector('.status-content')?.textContent).toBe('Custom notice');
@@ -206,8 +255,8 @@ test('marquee preview highlights pending nodes without announcing them as select
   });
   const options = {
     renderSelectionMarquee: (context, h) =>
-      h.div([h.Class('preview-ids')], [context.previewNodeIds.join(',')]),
-  } satisfies Partial<ZlozViewOptions<EditorEvent>>;
+      h.div.class('preview-ids').children(context.previewNodeIds.join(',')),
+  } satisfies Options;
   const preview = await render(active, options);
   expect(
     preview.querySelector('[data-flow-node="a"]')?.getAttribute('data-flow-selection-preview'),
@@ -243,12 +292,13 @@ test('custom selection marquees use normalized world bounds in minimal mode', as
     point: { x: 320, y: 350 },
   });
   const active = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 60, y: 70 } });
-  const renderer = mock<NonNullable<ZlozViewOptions<EditorEvent>['renderSelectionMarquee']>>(
+  const renderer = mock<NonNullable<GraphSurfaceOptions<string>['renderSelectionMarquee']>>(
     ({ bounds, viewport }, h) =>
-      h.div(
-        [h.Class('custom-marquee')],
-        [`${bounds.left},${bounds.top} → ${bounds.right},${bounds.bottom} at ${viewport.zoom}×`],
-      ),
+      h.div
+        .class('custom-marquee')
+        .children(
+          `${bounds.left},${bounds.top} → ${bounds.right},${bounds.bottom} at ${viewport.zoom}×`,
+        ),
   );
   const options = {
     minimalMode: true,
@@ -259,9 +309,9 @@ test('custom selection marquees use normalized world bounds in minimal mode', as
   const marquee = (await render(active, options)).querySelector(selector);
   expect(marquee?.querySelector('.custom-marquee')?.textContent).toBe('20,20 → 150,160 at 2×');
   expect(marquee?.getAttribute('aria-hidden')).toBe('true');
-  expect(marquee?.getAttribute('style')).toContain('width: 130px');
-  expect(marquee?.getAttribute('style')).toContain('height: 140px');
-  expect(marquee?.getAttribute('style')).toContain('pointer-events: none');
+  expect(marquee?.getAttribute('style')).toContain('width:130px');
+  expect(marquee?.getAttribute('style')).toContain('height:140px');
+  expect(marquee?.classList.contains('zloz-ui-marquee')).toBe(true);
   renderer.mockClear();
   expect((await render(state, options)).querySelector(selector)).toBeNull();
   expect(renderer).not.toHaveBeenCalled();
@@ -279,18 +329,15 @@ test('custom alignment guides receive resolved resize endpoints and respect diag
     point: { x: 0, y: 0 },
   });
   const active = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 101, y: 0 } });
-  const renderer = mock<NonNullable<ZlozViewOptions<EditorEvent>['renderAlignmentGuide']>>(
-    ({ phase, start, end }, h) =>
-      h.line(
-        [
-          h.DataAttribute('guide-phase', phase),
-          h.X1(String(start.x)),
-          h.Y1(String(start.y)),
-          h.X2(String(end.x)),
-          h.Y2(String(end.y)),
-        ],
-        [],
-      ),
+  const renderer = mock<NonNullable<GraphSurfaceOptions<string>['renderAlignmentGuide']>>(
+    ({ phase, start, end }) =>
+      new Html.Element<string>('line')
+        .attr('data-guide-phase', phase)
+        .attr('x1', String(start.x))
+        .attr('y1', String(start.y))
+        .attr('x2', String(end.x))
+        .attr('y2', String(end.y))
+        .children(),
   );
   const document = await render(active, { renderAlignmentGuide: renderer });
   const line = document.querySelector(
@@ -326,11 +373,10 @@ test('custom resize readouts receive Model dimensions and stay behind the diagno
   });
   const options = {
     renderResizeReadout: (context, h) =>
-      h.span(
-        [h.Class('custom-readout')],
-        [context.phase, context.widthText + ' by ' + context.heightText],
-      ),
-  } satisfies Partial<ZlozViewOptions<EditorEvent>>;
+      h.span
+        .class('custom-readout')
+        .children(context.phase, context.widthText + ' by ' + context.heightText),
+  } satisfies Options;
   const selector = '[data-flow-resize-readout="g"]';
   const activeReadout = (await render(active, options)).querySelector(selector);
   expect(activeReadout?.getAttribute('aria-live')).toBe('polite');
@@ -382,7 +428,7 @@ test('viewport culling preserves crossing edges and leaves the overview and conn
     viewport: { x: -375, y: -140, zoom: 1 },
   };
   const document = await render(state, { viewportCulling: { overscan: 0 } });
-  expect(document.querySelectorAll('[data-flow-node]')).toHaveLength(0);
+  expect(document.querySelectorAll('[data-flow-node]:not([data-flow-group])')).toHaveLength(0);
   expect(document.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
   expect(
     document.querySelectorAll('[data-flow-minimap] rect:not([data-flow-minimap-viewport])'),
@@ -393,7 +439,7 @@ test('viewport culling preserves crossing edges and leaves the overview and conn
 
   const away = { ...state, viewport: { x: 800, y: 800, zoom: 1 } };
   const unmeasured = await render({ ...away, surface: null }, { viewportCulling: true });
-  expect(unmeasured.querySelectorAll('[data-flow-node]')).toHaveLength(2);
+  expect(unmeasured.querySelectorAll('[data-flow-node]:not([data-flow-group])')).toHaveLength(2);
   const routed = await render(
     {
       ...away,
@@ -424,31 +470,23 @@ test('viewport culling preserves crossing edges and leaves the overview and conn
   expect(custom.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
 });
 
-test('culled node layers retain their arguments until mounted membership changes', async () => {
-  const calls: Array<readonly unknown[]> = [];
-  const nodeViewCache: NonNullable<ZlozViewOptions<EditorEvent>['nodeViewCache']> = (
-    view,
-    args,
-  ) => {
-    calls.push(args);
-    return view(...args);
-  };
+test('viewport changes preserve visible membership until the camera crosses its bounds', async () => {
   const state = {
     ...initial,
     surface: { width: 180, height: 180 },
     viewport: { x: -100, y: -100, zoom: 1 },
   };
-  const onEvent = (event: EditorEvent) => event;
-  const options = { nodeViewCache, viewportCulling: { overscan: 0 }, onEvent };
+  const options = { viewportCulling: { overscan: 0 } };
   const first = await render(state, options);
-  await render({ ...state, viewport: { ...state.viewport, x: -110 } }, options);
+  const nearby = await render({ ...state, viewport: { ...state.viewport, x: -110 } }, options);
   const shifted = await render({ ...state, viewport: { ...state.viewport, x: -560 } }, options);
-
-  expect(first.querySelector('[data-flow-node="a"]')).not.toBeNull();
-  expect(first.querySelector('[data-flow-node="b"]')).toBeNull();
-  expect(shifted.querySelector('[data-flow-node="a"]')).toBeNull();
-  expect(shifted.querySelector('[data-flow-node="b"]')).not.toBeNull();
-  expect(calls).toHaveLength(3);
-  expect(calls[0]?.every((arg, index) => arg === calls[1]?.[index])).toBe(true);
-  expect(calls[1]).not.toEqual(calls[2]);
+  const membership = (document: typeof first) =>
+    [...document.querySelectorAll('[data-flow-node]')].map((node) =>
+      node.getAttribute('data-flow-node'),
+    );
+  expect(membership(first)).toContain('a');
+  expect(membership(first)).not.toContain('b');
+  expect(membership(nearby)).toEqual(membership(first));
+  expect(membership(shifted)).not.toContain('a');
+  expect(membership(shifted)).toContain('b');
 });

@@ -1,13 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozPortAnchorHandle, zlozView } from '../src/foldkit';
 import * as Zloz from '../src/index';
 import type { EditorEvent, EditorPolicy, ZlozGraph, PortAnchorSnapOverrides } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const { createEditor, updateEditor } = Zloz;
 const graph: ZlozGraph = {
@@ -182,44 +179,30 @@ test('public settings resolution inherits absent fields, honors zero and validat
 test('composable handle feedback exposes captured settings without re-evaluating the host callback', async () => {
   const initialState = { ...initial(), selectedNodes: ['n'] };
   const preview = updateEditor(updateEditor(initialState, start(), policy), move(15, 50));
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: preview }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Overrides',
-          body: zlozView(h, model, {
-            id: 'overrides',
-            label: 'Overrides',
-            onEvent: (event) => event,
-            portAnchorHandles: true,
-            renderPortAnchorHandle: (context, builder) => {
-              if (!context.active) {
-                expect(context.snapSettings).toBeUndefined();
-                return undefined;
-              }
-              expect(context.snapSettings).toEqual({
-                distance: 0,
-                cornerDistance: 0,
-                midpointDistance: 18,
-                hysteresis: 6,
-              });
-              if (model.gesture.type === 'port-anchor-drag')
-                expect(context.snapSettings).not.toBe(model.gesture.snapSettings);
-              return zlozPortAnchorHandle(
-                builder,
-                context,
-                [builder.Class('custom-profile')],
-                [`Midpoint radius ${context.snapSettings?.midpointDistance}`],
-              );
-            },
-          }),
-        }),
+  const result = await renderCanvas(preview, {
+    id: 'overrides',
+    label: 'Overrides',
+    portAnchors: {
+      renderHandle: (context) => {
+        if (!context.active) {
+          expect(context.snapSettings).toBeUndefined();
+          return undefined;
+        }
+        expect(context.snapSettings).toEqual({
+          distance: 0,
+          cornerDistance: 0,
+          midpointDistance: 18,
+          hysteresis: 6,
+        });
+        if (preview.gesture.type === 'port-anchor-drag')
+          expect(context.snapSettings).not.toBe(preview.gesture.snapSettings);
+        return {
+          className: 'custom-profile',
+          content: `Midpoint radius ${context.snapSettings?.midpointDistance}`,
+        };
       },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+    },
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   const handle = window.document.querySelector('.custom-profile');

@@ -1,20 +1,17 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import { edgeToolbarBand } from '../src/edge-toolbar-placement';
-import { zlozEdgeEndpointField, zlozView } from '../src/foldkit';
+import { endpointField, graphSurface } from '../src/effect-ui';
 import {
   createEditor,
   resolveEdgeReconnection,
   updateEditor,
-  type EditorEvent,
   type EditorPolicy,
   type ZlozGraph,
 } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const graph: ZlozGraph = {
   nodes: ['a', 'b', 'c', 'd'].map((id, i) => ({
@@ -241,43 +238,31 @@ test('missing current ports stay labeled and endpoint identities cannot collide 
 test('native controls expose visible reasons and toolbar reconnection is opt-in', async () => {
   const results = [];
   for (const toolbar of [true, false]) {
+    const model = { ...state(), selectedEdges: ['ab'], edgeLabelDraft: null };
     results.push(
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: { ...state(), selectedEdges: ['ab'], edgeLabelDraft: null } }),
-            view: (model, h: HtmlBuilder<EditorEvent>) => ({
-              title: 'Endpoints',
-              body: h.div(
-                [],
-                [
-                  zlozEdgeEndpointField(
-                    h,
-                    targetContext({
-                      canConnectPort: ({ node }) => (node === 'd' ? 'D is protected.' : null),
-                    }),
-                    (event) => event,
-                    { idPrefix: 'custom' },
-                  ),
-                  zlozEdgeEndpointField(
-                    h,
-                    targetContext({ canConnectPort: () => 'Closed.' }),
-                    (event) => event,
-                    { idPrefix: 'empty' },
-                  ),
-                  zlozView(h, model, {
-                    id: 'endpoints',
-                    label: 'Diagram',
-                    onEvent: (event) => event,
-                    edgeToolbar: true,
-                    edgeReconnection: toolbar,
-                  }),
-                ],
-              ),
+      await renderEffectUi((h) =>
+        h.div.children(
+          endpointField(
+            h,
+            targetContext({
+              canConnectPort: ({ node }) => (node === 'd' ? 'D is protected.' : null),
             }),
-          },
-          { flags: {}, isHydratable: false },
+            { id: 'custom-ab-target', onEvent: ({ type }) => type },
+          ),
+          endpointField(h, targetContext({ canConnectPort: () => 'Closed.' }), {
+            id: 'empty-ab-target',
+            onEvent: ({ type }) => type,
+          }),
+          graphSurface(h, model, {
+            id: 'endpoints',
+            label: 'Diagram',
+            onInput: ({ type }) => type,
+            edgeEditing: {
+              onEdit: ({ type }) => type,
+              toolbar: true,
+              reconnection: toolbar ? { onEvent: ({ type }) => type } : undefined,
+            },
+          }),
         ),
       ),
     );

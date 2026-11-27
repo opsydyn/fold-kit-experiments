@@ -1,3 +1,4 @@
+import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
 import { selectedNodeActions } from './context-menu-context';
@@ -5,12 +6,14 @@ import {
   nodeToolbarContext,
   nodeToolbarPosition,
   type ZlozNodeToolbarOptions,
+  type ZlozNodeToolbarContext,
 } from './node-toolbar-layout';
 import type { EditorEvent, EditorPolicy, EditorState, ZlozNode } from './types';
 
 export type NativeNodeToolbar<M> = ZlozNodeToolbarOptions &
   Readonly<{
     compact?: boolean;
+    render?: (context: ZlozNodeToolbarContext, h: Html.H<M>) => View.Content<M> | null | undefined;
     onEvent: (event: EditorEvent) => M;
   }>;
 
@@ -38,6 +41,8 @@ export function nodeToolbar<M>(
     options,
     selectedNodeActions(state, policy?.canDelete),
   );
+  const custom = options.render?.(context, h);
+  if (custom === null) return null;
   const { x, y, translate } = nodeToolbarPosition(context);
   return h.div
     .key('node-toolbar')
@@ -48,14 +53,15 @@ export function nodeToolbar<M>(
     .attr('data-flow-no-drag', '')
     .style({ left: `${x}px`, top: `${y}px`, translate })
     .children(
-      ...[context.actions.duplicate, context.actions.deleteNode].map((action) =>
-        h.button
-          .key(action.label)
-          .attr('type', 'button')
-          .attr('title', action.disabledReason)
-          .disabled(action.disabledReason !== undefined)
-          .on('click', options.onEvent(action.event))
-          .children(action.label),
-      ),
+      custom ??
+        [context.actions.duplicate, context.actions.deleteNode].map((action) =>
+          h.button
+            .key(action.label)
+            .attr('type', 'button')
+            .attr('title', action.disabledReason)
+            .disabled(action.disabledReason !== undefined)
+            .on('click', options.onEvent(action.event))
+            .children(action.label),
+        ),
     );
 }

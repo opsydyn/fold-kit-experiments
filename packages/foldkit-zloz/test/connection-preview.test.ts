@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Html } from '@effect/ui/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, type ZlozViewOptions } from '../src/foldkit';
+import type { GraphSurfaceOptions } from '../src/effect-ui';
 import {
   createEditor,
   updateEditor,
@@ -13,6 +11,7 @@ import {
   type EditorState,
 } from '../src/index';
 import type { EditorEvent } from '../src/types';
+import { renderCanvas } from './render-effect-ui';
 
 const graph = {
   nodes: [
@@ -208,47 +207,23 @@ test('reconnection retains authored path style and projects a fixed hidden endpo
 async function renderPreview(
   state: EditorState,
   hidden = false,
-  radii: Pick<ZlozViewOptions<EditorEvent>, 'connectionDropRadius' | 'reconnectionDropRadius'> = {},
+  radii: Pick<GraphSurfaceOptions<string>, 'dropRadius' | 'reconnectionDropRadius'> = {},
 ) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Preview',
-          body: zlozView(h, model, {
-            id: 'preview',
-            label: 'Connections',
-            onEvent: (event) => event,
-            ...radii,
-            minimalMode: true,
-            connectionGeometry: ({ source, target }) => ({
-              path: `M${source.x},${source.y} Q200,-50 ${target.x},${target.y}`,
-              labelPosition: undefined,
-            }),
-            renderConnection: (context, builder) =>
-              builder.g(
-                [],
-                hidden
-                  ? []
-                  : [
-                      builder.path(
-                        [
-                          builder.D(context.path),
-                          builder.Stroke(context.stroke),
-                          builder.DataAttribute('custom-preview-state', context.feedback.type),
-                        ],
-                        [],
-                      ),
-                    ],
-              ),
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const result = await renderCanvas(state, {
+    ...radii,
+    connectionGeometry: ({ source, target }) => ({
+      path: `M${source.x},${source.y} Q200,-50 ${target.x},${target.y}`,
+      labelPosition: undefined,
+    }),
+    renderConnection: (context) =>
+      hidden
+        ? null
+        : new Html.Element<string>('path')
+            .attr('d', context.path)
+            .attr('stroke', context.stroke)
+            .attr('data-custom-preview-state', context.feedback.type)
+            .children(),
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -257,8 +232,8 @@ async function renderPreview(
 test('reconnection radius inherits the connection radius and accepts an explicit zero', async () => {
   for (const [radii, [connectionRadius, reconnectionRadius]] of [
     [{}, ['0', '0']],
-    [{ connectionDropRadius: 32 }, ['32', '32']],
-    [{ connectionDropRadius: 32, reconnectionDropRadius: 0 }, ['32', '0']],
+    [{ dropRadius: 32 }, ['32', '32']],
+    [{ dropRadius: 32, reconnectionDropRadius: 0 }, ['32', '0']],
     [{ reconnectionDropRadius: 48 }, ['0', '48']],
   ] as const) {
     const document = await renderPreview(start(), false, radii);
@@ -278,7 +253,7 @@ test('preview geometry and SVG slots use the host builder, remain decorative, an
   const document = await renderPreview(ready);
   const preview = document.querySelector('[data-flow-connection-preview]');
   expect(preview?.getAttribute('data-flow-connection-state')).toBe('valid');
-  expect(preview?.getAttribute('style')).toContain('pointer-events: none');
+  expect(preview?.getAttribute('style')).toContain('pointer-events:none');
   expect(preview?.getAttribute('aria-hidden')).toBe('true');
   expect(preview?.querySelector('path')?.getAttribute('d')).toBe('M100,40 Q200,-50 300,140');
   expect(

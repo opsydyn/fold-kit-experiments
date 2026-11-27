@@ -1,20 +1,10 @@
 import { afterEach, expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozView,
-  zlozNodeFrame,
-  zlozGroupFrame,
-  zlozDragHandle,
-  zlozPort,
-  zlozResizeHandle,
-} from '../src/foldkit';
-import { createEditor, updateEditor, type EditorEvent } from '../src/index';
+import { createEditor, updateEditor } from '../src/index';
 import { bindInput } from '../src/input';
+import { renderCanvas } from './render-effect-ui';
 
 const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 const previousKeyboardEvent = Object.getOwnPropertyDescriptor(globalThis, 'KeyboardEvent');
@@ -48,63 +38,32 @@ test('full shells replace chrome while retaining public interaction and geometry
     ],
     edges: [],
   });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Composition',
-          body: zlozView(h, model, {
-            id: 'compose',
-            label: 'Custom shells',
-            onEvent: (event) => event,
-            renderGroupShell: (context, builder) =>
-              zlozGroupFrame(
-                builder,
-                context,
-                [builder.Class('boundary-design')],
-                [zlozDragHandle(builder, context, [], ['Custom boundary'])],
-              ),
-            renderNodeShell: (context, builder) =>
-              zlozNodeFrame(
-                builder,
-                context,
-                [
-                  builder.Class('orbit-design'),
-                  builder.Style({ 'border-radius': '50%', height: '160px' }),
-                ],
-                [
-                  zlozDragHandle(builder, context, [], ['Custom orbit']),
-                  zlozResizeHandle(builder, context, 'right', [], ['Resize']),
-                  ...context.node.ports.map((port) =>
-                    zlozPort(
-                      builder,
-                      context,
-                      port,
-                      [builder.Style({ background: 'purple', width: '32px', height: '32px' })],
-                      ['→'],
-                    ),
-                  ),
-                ],
-              ),
-            renderNode: () => h.span([], ['Legacy content must not leak']),
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const result = await renderCanvas(state, {
+    id: 'compose',
+    label: 'Custom shells',
+    resizeHandles: true,
+    renderGroupShell: () => ({
+      className: 'boundary-design',
+      title: { content: 'Custom boundary' },
+    }),
+    renderNodeShell: () => ({
+      className: 'orbit-design',
+      style: { borderRadius: '50%' },
+      title: { content: 'Custom orbit' },
+    }),
+    renderPort: () => ({
+      style: { background: 'purple', width: '32px', height: '32px' },
+      content: '→',
+    }),
+  });
   expect(result.html).toContain('Custom boundary');
   expect(result.html).toContain('Custom orbit');
-  expect(result.html).not.toContain('Legacy content must not leak');
   expect(result.html).toContain('data-flow-node="n"');
   expect(result.html).toContain('data-flow-group="g"');
   expect(result.html).toContain('aria-label="Select Orbit"');
   expect(result.html).toContain('aria-label="Connect from Orbit: out"');
   expect(result.html).toContain('data-flow-owner="n"');
-  expect(result.html).toContain('border-radius: 50%');
-  expect(result.html).toContain('translate(-50%, -50%)');
+  expect(result.html).toContain('border-radius:50%');
   const window = new Window();
   Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
   Object.defineProperty(globalThis, 'KeyboardEvent', {

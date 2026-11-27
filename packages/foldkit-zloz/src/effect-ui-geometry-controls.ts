@@ -29,7 +29,7 @@ export type NativePortAnchors<M> = ZlozPortAnchorHandleOptions &
     renderHandle?: (
       context: ZlozPortAnchorHandleContext,
       h: Html.H<M>,
-    ) => NativePortControl<M> | undefined;
+    ) => NativePortControl<M> | null | undefined;
     renderGuide?:
       | ((context: ZlozPortAnchorGuideContext, h: Html.H<M>) => View.Content<M> | null | undefined)
       | undefined;
@@ -50,7 +50,7 @@ export function anchorControls<M>(
     policy?.canEditPort,
     options.snapBypass,
     options.keyboardTargets,
-  ).map((context) => {
+  ).flatMap((context) => {
     const {
       node,
       port,
@@ -62,26 +62,29 @@ export function anchorControls<M>(
       snapBypassed,
     } = context;
     const presentation = options.renderHandle?.(context, h);
-    return h.button
-      .key(`anchor:${JSON.stringify([node.id, port.id])}`)
-      .class('zloz-ui-anchor-handle', presentation?.className)
-      .attr('type', 'button')
-      .attr('data-flow-anchor-node', node.id)
-      .attr('data-flow-anchor-port', port.id)
-      .attr('data-flow-anchor-bypassed', snapBypassed ? 'true' : undefined)
-      .attr('data-flow-anchor-snapped', snappedSide ?? undefined)
-      .attr('data-flow-anchor-corner', snappedCorner ?? undefined)
-      .attr('data-flow-anchor-midpoint', snappedMidpoint ?? undefined)
-      .attr('aria-label', `Position ${node.label}: ${port.label ?? port.id}`)
-      .attr(
-        'aria-keyshortcuts',
-        keyboardTargets && !active ? 'PageDown PageUp Home End' : undefined,
-      )
-      .attr('title', portAnchorHandleTitle(context))
-      .attr('aria-describedby', presentation?.describedBy)
-      .disabled(context.disabledReason !== null)
-      .style({ ...presentation?.style, ...position(context.position) })
-      .children(presentation?.content ?? '⋮');
+    if (presentation === null) return [];
+    return [
+      h.button
+        .key(`anchor:${JSON.stringify([node.id, port.id])}`)
+        .class('zloz-ui-anchor-handle', presentation?.className)
+        .attr('type', 'button')
+        .attr('data-flow-anchor-node', node.id)
+        .attr('data-flow-anchor-port', port.id)
+        .attr('data-flow-anchor-bypassed', snapBypassed ? 'true' : undefined)
+        .attr('data-flow-anchor-snapped', snappedSide ?? undefined)
+        .attr('data-flow-anchor-corner', snappedCorner ?? undefined)
+        .attr('data-flow-anchor-midpoint', snappedMidpoint ?? undefined)
+        .attr('aria-label', `Position ${node.label}: ${port.label ?? port.id}`)
+        .attr(
+          'aria-keyshortcuts',
+          keyboardTargets && !active ? 'PageDown PageUp Home End' : undefined,
+        )
+        .attr('title', portAnchorHandleTitle(context))
+        .attr('aria-describedby', presentation?.describedBy)
+        .disabled(context.disabledReason !== null)
+        .style({ ...presentation?.style, ...position(context.position) })
+        .children(presentation?.content ?? '⋮'),
+    ];
   });
 }
 
@@ -134,6 +137,11 @@ export function anchorGuides<M>(
 export type NativeWaypointOptions<M> = Readonly<{
   onEdit: (event: EditorEvent) => M;
   measurements?: boolean;
+  labelOffset?: Point;
+  render?: (
+    context: ZlozEdgeWaypointControlsContext,
+    h: Html.H<M>,
+  ) => View.Content<M> | null | undefined;
   instructions?: boolean;
   presentation?: Readonly<{ className: string; heading: string; marker: string }> | undefined;
 }>;
@@ -143,6 +151,8 @@ export function waypointControls<M>(
   context: ZlozEdgeWaypointControlsContext,
   options: NativeWaypointOptions<M>,
 ) {
+  const custom = options.render?.(context, h);
+  if (custom !== undefined) return custom;
   const inverseZoom = 1 / context.zoom;
   const presentation = options.presentation;
   const action = ({ label, event, reason }: ZlozEdgeWaypointAction) =>

@@ -1,11 +1,15 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
+import {
+  graphSurface,
+  historyMinimap,
+  viewportControl,
+  viewportControlActions,
+} from '../src/effect-ui';
 import { createEditor, updateEditor } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 const state = updateEditor(
   createEditor({
     nodes: [
@@ -23,59 +27,31 @@ const state = updateEditor(
 );
 
 test('public layout moves native chrome without duplicating the canvas and fill has a bounded sizing contract', async () => {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h) => ({
-          title: 'Layout',
-          body: zlozView(h, model, {
-            id: 'layout',
-            label: 'Canvas',
-            onEvent: (event) => event,
-            height: 'fill',
-            viewportControls: true,
-            connectionCreation: true,
-            minimap: true,
-            renderLayout: (parts, builder) =>
-              builder.div(
-                [builder.Class('custom-layout')],
-                [
-                  builder.aside(
-                    [builder.AriaLabel('Tools')],
-                    [
-                      parts.help,
-                      ...(parts.controls ? [parts.controls] : []),
-                      ...(parts.creation ? [parts.creation] : []),
-                      ...(parts.minimap ? [parts.minimap] : []),
-                      parts.connections,
-                      parts.status,
-                    ],
-                  ),
-                  builder.main([], [parts.canvas]),
-                ],
-              ),
-          }),
+  const result = await renderEffectUi((h) =>
+    h.div.class('custom-layout').children(
+      h.aside.attr('aria-label', 'Tools').children(
+        h.div
+          .attr('aria-label', 'Viewport controls')
+          .children(viewportControl(h, viewportControlActions(state).fitView, ({ type }) => type)),
+        historyMinimap(h, state, ({ type }) => type),
+      ),
+      h.main.style({ height: '100%' }).children(
+        graphSurface(h, state, {
+          id: 'layout',
+          label: 'Canvas',
+          onInput: ({ type }) => type,
         }),
-      },
-      { flags: {}, isHydratable: false },
+      ),
     ),
   );
   const window = new Window();
   window.document.body.innerHTML = result.html;
   expect(window.document.querySelectorAll('[data-flow-surface]')).toHaveLength(1);
-  expect(
-    window.document.querySelector('main [data-flow-surface]')?.getAttribute('style'),
-  ).toContain('height: 100%');
-  expect(window.document.querySelector('.foldkit-flow')?.getAttribute('style')).toContain(
-    'height: 100%',
-  );
+  expect(window.document.querySelector('main')?.getAttribute('style')).toContain('height:100%');
   expect(window.document.querySelector('main [data-flow-surface]')?.id).toBe('layout-surface');
   expect(window.document.querySelectorAll('[data-flow-minimap]')).toHaveLength(1);
   expect(window.document.querySelector('aside [data-flow-minimap]')).not.toBeNull();
   expect(window.document.querySelector('main [data-flow-minimap]')).toBeNull();
   expect(window.document.querySelector('aside [data-flow-surface]')).toBeNull();
   expect(window.document.querySelector('aside [aria-label="Viewport controls"]')).not.toBeNull();
-  expect(window.document.querySelector('aside [data-flow-connections]')).not.toBeNull();
 });

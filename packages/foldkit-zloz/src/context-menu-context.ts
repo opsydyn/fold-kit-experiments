@@ -5,7 +5,7 @@ import type {
 } from './context-menu';
 import { resolveDeletion } from './deletion';
 import type { ZlozDiagnostics } from './diagnostics';
-import type { ZlozNodeToolbarContext } from './node-toolbar';
+import type { ZlozNodeToolbarContext } from './node-toolbar-layout';
 import type { DeletionTargets, EditorPolicy, EditorState, ZlozGraph } from './types';
 
 export function deletionReason(

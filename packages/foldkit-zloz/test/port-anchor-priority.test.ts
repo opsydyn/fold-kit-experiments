@@ -1,13 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView } from '../src/foldkit';
 import * as Zloz from '../src/index';
 import type { EditorEvent, EditorPolicy, PortAnchorSnapPriority } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 type MutablePriorityProfile = { priority: PortAnchorSnapPriority };
 
@@ -218,28 +215,17 @@ test('guides retain permitted targets and highlight the winner with captured pri
     };
     const state = { ...initial(priority), selectedNodes: ['n'] };
     const preview = Zloz.updateEditor(Zloz.updateEditor(state, start, policy), moved, policy);
-    const result = await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: preview }),
-          view: (model, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Priority',
-            body: zlozView(h, model, {
-              id: 'priority',
-              label: 'Priority',
-              onEvent: (event) => event,
-              portAnchorGuides: true,
-              renderPortAnchorGuide: (context) => {
-                expect(context.settings.priority).toBe(priority);
-                return undefined;
-              },
-            }),
-          }),
+    const result = await renderCanvas(preview, {
+      id: 'priority',
+      label: 'Priority',
+      portAnchors: {
+        guides: true,
+        renderGuide: (context) => {
+          expect(context.settings.priority).toBe(priority);
+          return undefined;
         },
-        { flags: {}, isHydratable: false },
-      ),
-    );
+      },
+    });
     const window = new Window();
     window.document.body.innerHTML = result.html;
     expect(window.document.querySelectorAll('[data-flow-anchor-guide]')).toHaveLength(2);

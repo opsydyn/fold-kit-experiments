@@ -1,6 +1,6 @@
 # ZLOZ sample
 
-Astro serves the page shell and hydrates a FoldKit editor island. The release
+Astro serves the page shell and hydrates an Effect UI editor island. The release
 workflow starts with a draft, review and publish step. Connect Review to
 Publish, arrange the graph with ELK, then save and reload the draft in your
 browser. This sample edits a diagram of the workflow.
@@ -159,7 +159,7 @@ handle affect its axis only; Shift keeps the larger step. All geometry is owned
 by the ZLOZ package, including legacy corner-event compatibility.
 
 Use **Background** to choose dots, squares, custom graph paper, or no grid.
-Dots are the default. The custom example composes native FoldKit builder nodes
+Dots are the default. The custom example composes native Effect UI nodes
 using the viewport and package grid spacing; it has no external rendering state.
 Changing backgrounds leaves the diagram and Undo history intact. **Snap to grid**
 is independent: group resize edges use the configured grid, with constraints and
@@ -200,11 +200,11 @@ other hosts; the workbench only owns its presentation preferences.
 ### Node/group presentation composition
 
 Use **Node design** to switch between the bundled cards and complete SVG orbit
-shells. The example in `src/editor/presentation.ts` uses the public frame, drag,
-port and resize primitives. Group chrome uses host buttons and typed editor events.
+shells. The example in `src/editor/native-canvas.ts` supplies artwork and host
+controls through the Effect UI surface options.
 It shares the package's measurements, input lifecycle, grouping and history.
 The selector lives in the sample; all interaction primitives ship in
-`@opsydyn/foldkit-zloz/foldkit`.
+`@opsydyn/foldkit-zloz/effect-ui`.
 
 See [composition qualification](evidence/composition.md) for browser evidence and
 current geometry limits.

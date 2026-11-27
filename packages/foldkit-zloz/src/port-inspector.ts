@@ -1,9 +1,8 @@
 import { Option } from 'effect';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { portEditReason } from './port-edit';
 import { resolvePortRemoval } from './port-removal';
-import type { EditorEvent, EditorPolicy, EditorState, Endpoint, ZlozNode, Port } from './types';
+import type { EditorPolicy, EditorState, Endpoint, ZlozNode, Port } from './types';
 
 /** Null reason enables the control. Render the reason with its ID when present. */
 export type ZlozPortControlContext = Readonly<{ reason: string | null; reasonId: string }>;
@@ -29,11 +28,6 @@ export type ZlozPortAdditionContext = Readonly<{
   port: Port;
   control: ZlozPortControlContext;
 }>;
-/** Host Model-owned draft interaction; committing a label still uses PortLabelChanged. */
-export type ZlozPortLabelFormMessages<M> = Readonly<{
-  saved: M;
-  cancelled: M;
-}>;
 
 /** Per-inspector identity and guard copy; custom policy reasons remain host-owned. */
 export type ZlozPortInspectorOptions = Readonly<{
@@ -41,9 +35,6 @@ export type ZlozPortInspectorOptions = Readonly<{
   readOnlyReason?: string;
   busyReason?: string;
 }>;
-
-type Attributes<M> = Parameters<HtmlBuilder<M>['button']>[0];
-type Children<M> = Parameters<HtmlBuilder<M>['button']>[1];
 
 function control(
   state: EditorState,
@@ -145,146 +136,4 @@ export function portAdditionContext(
       options,
     ),
   });
-}
-
-function protectionAttributes<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortControlContext,
-): Attributes<M> {
-  return [
-    h.Disabled(context.reason !== null),
-    ...(context.reason !== null ? [h.AriaDescribedBy(context.reasonId)] : []),
-  ];
-}
-
-/** Host add message keeps identity allocation in update, including rapid repeated clicks. */
-export function zlozPortAddButton<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortAdditionContext,
-  added: M,
-  attributes: Attributes<M>,
-  children: Children<M>,
-): Html {
-  return h.button(
-    [
-      ...attributes,
-      h.Type('button'),
-      ...protectionAttributes(h, context.control),
-      h.OnClick(added),
-    ],
-    children,
-  );
-}
-
-/** Removes this endpoint through the normal atomic reducer event. */
-export function zlozPortRemoveButton<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortInspectorEntry,
-  onEvent: (event: EditorEvent) => M,
-  attributes: Attributes<M>,
-  children: Children<M>,
-): Html {
-  return h.button(
-    [
-      h.AriaLabel(
-        `Remove ${context.port.label ?? context.port.id} port from ${context.node.label}`,
-      ),
-      ...attributes,
-      h.Type('button'),
-      ...protectionAttributes(h, context.removeControl),
-      h.OnClick(onEvent({ type: 'PortRemoved', endpoint: context.endpoint })),
-    ],
-    children,
-  );
-}
-
-/** Opens a host-owned draft; the default native name can be customized through attributes. */
-export function zlozPortLabelEditButton<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortInspectorEntry,
-  edited: M,
-  attributes: Attributes<M>,
-  children: Children<M>,
-): Html {
-  return h.button(
-    [
-      h.AriaLabel(`Edit label for ${context.port.id} port on ${context.node.label}`),
-      ...attributes,
-      h.Type('button'),
-      ...protectionAttributes(h, context.labelControl),
-      h.OnClick(edited),
-    ],
-    children,
-  );
-}
-
-/** Submit commits the host draft; Escape discards it even when policy disables editing. */
-export function zlozPortLabelForm<M>(
-  h: HtmlBuilder<M>,
-  messages: ZlozPortLabelFormMessages<M>,
-  attributes: Parameters<HtmlBuilder<M>['form']>[0],
-  children: Children<M>,
-): Html {
-  return h.form(
-    [
-      ...attributes,
-      h.OnSubmit(messages.saved),
-      h.OnKeyDownPreventDefault((key) =>
-        key === 'Escape' ? Option.some(messages.cancelled) : Option.none(),
-      ),
-    ],
-    children,
-  );
-}
-
-/** Text and events come from the host Model. Attributes can override naming and autofocus. */
-export function zlozPortLabelInput<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortInspectorEntry,
-  draft: string,
-  changed: (text: string) => M,
-  attributes: Parameters<HtmlBuilder<M>['input']>[0],
-): Html {
-  return h.input([
-    h.AriaLabel(`Label for ${context.port.id} port on ${context.node.label}`),
-    h.Autofocus(true),
-    ...attributes,
-    h.Type('text'),
-    h.Value(draft),
-    ...protectionAttributes(h, context.labelControl),
-    h.OnInput(changed),
-  ]);
-}
-
-/** A policy-aware native submit control for zlozPortLabelForm. */
-export function zlozPortLabelSave<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortInspectorEntry,
-  attributes: Attributes<M>,
-  children: Children<M>,
-): Html {
-  return h.button(
-    [...attributes, h.Type('submit'), ...protectionAttributes(h, context.labelControl)],
-    children,
-  );
-}
-
-/** Cancel remains available while a draft is protected. */
-export function zlozPortLabelCancel<M>(
-  h: HtmlBuilder<M>,
-  cancelled: M,
-  attributes: Attributes<M>,
-  children: Children<M>,
-): Html {
-  return h.button([...attributes, h.Type('button'), h.OnClick(cancelled)], children);
-}
-
-/** Unstyled reason content associated with the native controls. Omit it when reason is null. */
-export function zlozPortProtectionReason<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozPortControlContext,
-  attributes: Parameters<HtmlBuilder<M>['span']>[0],
-  children: Children<M> = [context.reason ?? ''],
-): Html {
-  return h.span([...attributes, h.Id(context.reasonId)], children);
 }

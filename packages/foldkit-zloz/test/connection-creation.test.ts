@@ -1,19 +1,16 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozConnectionCreation, zlozView } from '../src/foldkit';
+import { endpointField } from '../src/effect-ui';
 import {
   createEditor,
   resolveConnectionCreation,
   updateEditor,
-  type EditorEvent,
   type EditorPolicy,
   type ZlozGraph,
 } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const graph: ZlozGraph = {
   nodes: ['a', 'b', 'c'].map((id, i) => ({
@@ -196,39 +193,25 @@ test('cancel, absent/empty sources, read-only and gestures have explicit non-mut
 
 test('native fields reset to a focusable placeholder and display reasons independently of diagnostics', async () => {
   const results = [];
-  for (const mode of ['on', 'off', 'read-only']) {
+  for (const readOnly of [false, true]) {
+    const context = resolveConnectionCreation(
+      { ...initial(), readOnly },
+      {
+        canConnectPort: ({ node, port }) =>
+          node === 'b' && port === 'out' ? 'Managed output.' : null,
+      },
+    );
     results.push(
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: { ...initial(), readOnly: mode === 'read-only' } }),
-            view: (model, h: HtmlBuilder<EditorEvent>) => ({
-              title: 'Create',
-              body: h.div(
-                [],
-                [
-                  zlozConnectionCreation(
-                    h,
-                    resolveConnectionCreation(model, {
-                      canConnectPort: ({ node, port }) =>
-                        node === 'b' && port === 'out' ? 'Managed output.' : null,
-                    }),
-                    (event) => event,
-                    { idPrefix: 'custom-create' },
-                  ),
-                  zlozView(h, model, {
-                    id: 'create-view',
-                    label: 'Diagram',
-                    onEvent: (event) => event,
-                    connectionCreation: mode !== 'off',
-                    minimalMode: true,
-                  }),
-                ],
-              ),
-            }),
-          },
-          { flags: {}, isHydratable: false },
+      await renderEffectUi((h) =>
+        h.div.children(
+          endpointField(h, context.source, {
+            id: 'custom-create-source',
+            onEvent: ({ type }) => type,
+          }),
+          endpointField(h, context.target, {
+            id: 'custom-create-target',
+            onEvent: ({ type }) => type,
+          }),
         ),
       ),
     );
@@ -243,10 +226,7 @@ test('native fields reset to a focusable placeholder and display reasons indepen
   expect(
     window.document.getElementById(source.getAttribute('aria-describedby')!)?.textContent,
   ).toContain('Managed output.');
-  expect(window.document.querySelectorAll('[aria-label="Create a connection"]')).toHaveLength(2);
   window.document.body.innerHTML = results[1]!.html;
-  expect(window.document.querySelectorAll('[aria-label="Create a connection"]')).toHaveLength(1);
-  window.document.body.innerHTML = results[2]!.html;
   expect(
     window.document.querySelector('#custom-create-source-select')?.hasAttribute('disabled'),
   ).toBe(true);

@@ -4,6 +4,8 @@ import {
   portAdditionContext,
   portInspectorContext,
   portPositionEditorContext,
+  portPositionInput,
+  portControlReasonId as reasonId,
   type ZlozPortControlContext,
   type ZlozPortInspectorEntry,
   type ZlozPortPositionDraft,
@@ -34,9 +36,6 @@ const focusPortLabel = Mount.make(
     }),
 );
 const editLayout = { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' } as const;
-const reasonId = (control: ZlozPortControlContext) =>
-  control.reason === null ? undefined : control.reasonId;
-
 function reason<M>(h: Html.H<M>, control: ZlozPortControlContext) {
   return control.reason === null
     ? null
@@ -186,29 +185,15 @@ function portRow<M>(
                 ),
               ),
           ),
-          ...editingPosition.inputs.map(({ field, value }) =>
-            h.label.key(field).children(
-              field === 'offset' ? 'Offset ' : field.toUpperCase() + ' ',
-              h.input
-                .attr('type', 'number')
-                .attr('name', field)
-                .attr(
-                  'aria-label',
-                  (field === 'offset' ? 'Offset' : `Anchor ${field.toUpperCase()}`) +
-                    ` for ${description}`,
-                )
-                .attr('aria-describedby', reasonId(positionControl))
-                .attr('min', '0')
-                .attr('max', '1')
-                .attr('step', 'any')
-                .attr('required', '')
-                .attr('value', value)
-                .style({ width: '88px' })
-                .disabled(positionControl.reason !== null)
-                .on('input', ({ value: text }) =>
+          ...editingPosition.inputs.map((input) =>
+            h.label
+              .key(input.field)
+              .children(
+                input.field === 'offset' ? 'Offset ' : input.field.toUpperCase() + ' ',
+                portPositionInput(h, editingPosition, input, ({ field, text }) =>
                   request(Message.ChangedPortPositionNumber({ field, text })),
-                ),
-            ),
+                ).style({ width: '88px' }),
+              ),
           ),
           h.button
             .attr('type', 'submit')

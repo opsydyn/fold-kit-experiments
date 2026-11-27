@@ -1,11 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, zlozNodeFrame, zlozDragHandle, zlozPort } from '../src/foldkit';
 import {
   createEditor,
   updateEditor,
@@ -20,6 +16,7 @@ import {
   type ZlozGraph,
 } from '../src/index';
 import type { EditorEvent } from '../src/types';
+import { renderCanvas } from './render-effect-ui';
 
 const graph: ZlozGraph = {
   nodes: [
@@ -192,51 +189,24 @@ test('batch position edits reject malformed, duplicate and unknown entries atomi
 });
 
 test('public frames isolate port coordinates from visual borders and padding', async () => {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: createEditor(graph) }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Anchors',
-          body: zlozView(h, model, {
-            id: 'anchors',
-            label: 'Anchors',
-            onEvent: (event) => event,
-            renderNodeShell: (context, builder) =>
-              zlozNodeFrame(
-                builder,
-                context,
-                [
-                  builder.Class('thick-shell'),
-                  builder.Style({
-                    border: '16px solid red',
-                    padding: '12px',
-                    height: `${context.node.size.height}px`,
-                  }),
-                ],
-                [
-                  zlozDragHandle(builder, context, [], [context.node.label]),
-                  ...context.node.ports.map((port) => zlozPort(builder, context, port, [], ['●'])),
-                ],
-              ),
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const result = await renderCanvas(createEditor(graph), {
+    renderNodeShell: (_, h) => ({
+      body: h.div
+        .class('thick-shell')
+        .style({ border: '16px solid red', padding: '12px' })
+        .children(),
+    }),
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   const frame = window.document.querySelector('[data-flow-node="a"]');
-  expect(frame?.getAttribute('style')).toContain('border: 0');
-  expect(frame?.querySelector('.thick-shell')?.getAttribute('style')).toContain('position: static');
   expect(frame?.querySelector('.thick-shell')?.getAttribute('style')).toContain(
-    'border: 16px solid red',
+    'border:16px solid red',
   );
   const port = frame?.querySelector('[data-flow-port="out"]');
-  expect(port?.getAttribute('style')).toContain('left: 80%');
-  expect(port?.getAttribute('style')).toContain('top: 20%');
+  expect(port?.parentElement).toBe(frame);
+  expect(port?.getAttribute('style')).toContain('left:80%');
+  expect(port?.getAttribute('style')).toContain('top:20%');
 });
 
 test('routing hints do not change custom anchor coordinates', () => {

@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Option, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Option } from 'effect';
 import { Window } from 'happy-dom';
 
 import {
@@ -11,16 +9,12 @@ import {
   portPositionFromDraft,
   portInspectorContext,
   portPositionEditorContext,
-  zlozPortPositionForm,
-  zlozPortPositionModeSelect,
-  zlozPortPositionSideSelect,
-  zlozPortPositionInput,
-  zlozPortPositionSave,
-  zlozPortPositionCancel,
-  zlozPortProtectionReason,
+  portPositionInput,
+  portControlReasonId,
   type ZlozPortPositionDraft,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import { createEditor, updateEditor } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const port = { id: 'in', kind: 'input', side: 'left', offset: 0.25 } as const;
 
@@ -120,50 +114,35 @@ test('native position inputs retain normalized constraints, custom styling and c
     ],
     edges: [],
   });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<string>) => {
-          const entry = Option.getOrThrow(
-            Option.flatMap(
-              portInspectorContext(model, 'n', {
-                canEditPort: ({ operation }) =>
-                  operation === 'position' ? 'Managed anchors' : null,
-              }),
-              (context) => Option.fromUndefinedOr(context.entries[0]),
-            ),
-          );
-          const context = portPositionEditorContext(entry, {
-            mode: 'anchor',
-            side: 'left',
-            x: '0.2',
-            y: '0.9',
-          });
-          return {
-            title: 'Position fields',
-            body: zlozPortPositionForm(
-              h,
-              { saved: 'save', cancelled: 'cancel' },
-              [],
-              [
-                zlozPortPositionModeSelect(h, context, () => 'mode', []),
-                zlozPortPositionSideSelect(h, context, () => 'side', []),
-                ...context.inputs.map((input) =>
-                  zlozPortPositionInput(h, context, input, () => 'number', [
-                    h.Class('custom-position-field'),
-                  ]),
-                ),
-                zlozPortPositionSave(h, context, [], ['Save']),
-                zlozPortPositionCancel(h, 'cancel', [], ['Cancel']),
-                ...entry.reasons.map((reason) => zlozPortProtectionReason(h, reason, [])),
-              ],
-            ),
-          };
-        },
-      },
-      { flags: {}, isHydratable: false },
+  const entry = Option.getOrThrow(
+    Option.flatMap(
+      portInspectorContext(state, 'n', {
+        canEditPort: ({ operation }) => (operation === 'position' ? 'Managed anchors' : null),
+      }),
+      (context) => Option.fromUndefinedOr(context.entries[0]),
+    ),
+  );
+  const context = portPositionEditorContext(entry, {
+    mode: 'anchor',
+    side: 'left',
+    x: '0.2',
+    y: '0.9',
+  });
+  const result = await renderEffectUi((h) =>
+    h.form.on('submit', 'save').children(
+      ...context.inputs.map((input) =>
+        portPositionInput(h, context, input, ({ field, text }) => field + text).class(
+          'custom-position-field',
+        ),
+      ),
+      h.button
+        .attr('type', 'submit')
+        .disabled(entry.positionControl.reason !== null)
+        .children('Save'),
+      h.button.attr('type', 'button').on('click', 'cancel').children('Cancel'),
+      h.span
+        .id(portControlReasonId(entry.positionControl) ?? '')
+        .children(entry.positionControl.reason),
     ),
   );
   const window = new Window();

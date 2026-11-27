@@ -16,8 +16,6 @@ The reference includes:
 - `@opsydyn/foldkit-zloz/effect-ui`: the graph surface and the V3 group surface,
   inspector and clipboard controls for Effect UI components. C4 notation
   supports artwork slots, group headings and scoped themes.
-- `@opsydyn/foldkit-zloz/foldkit`: view options, node/group shells, public
-  interaction primitives, diagnostics and background contracts.
 - `@opsydyn/foldkit-zloz-elk`: ELK layout options and adapter factory.
 - `@opsydyn/foldkit-zloz-force`: force layout factory and support checks.
 - `@opsydyn/foldkit-zloz-force/eligibility`: the lightweight eligibility entry.
@@ -104,11 +102,10 @@ and [ADR 0023](adr/0023-insert-self-contained-patterns-atomically.md).
 
 Core's `EventStormingNodeArchitecture` adds command, domain-event, policy and actor
 notes to the architecture union. `createArchitecturePattern('event-storming')`
-uses the same atomic insertion API. The `/foldkit` entry exports
-`zlozEventStormingNode`, `ZlozEventStormingNodeOptions`,
-`ZlozEventStormingContentContext` and `ZlozEventStormingContentRenderer`.
-Four scoped `eventStorming*` theme tokens customize role accents; content/control
-slots and artwork caching follow the existing semantic renderer contracts. See
+uses the same atomic insertion API. `graphSurface` renders the notes when
+architecture notation is enabled. Four scoped `eventStorming*` theme tokens
+customize role accents. See
+
 [the package example](../packages/foldkit-zloz/README.md#event-storming-notes)
 and [ADR 0024](adr/0024-add-event-storming-process-notes.md).
 
@@ -298,7 +295,7 @@ existing command diagnostics omit it and retain their original JSON shape.
 
 The optional Mermaid package exports `createReviewReader`, `reviewReaderForScope`,
 `resolveReviewReader` and `updateReviewReader` with typed state, request, side,
-options and update contracts. Its `/foldkit` entry exports `zlozReviewReader` and
+options and update contracts. Its `/effect-ui` entry exports `reviewReader` and
 view options/parts. Hosts own bounded IO, unique model-incarnation scopes and
 detached read-only canvases. Stale, cancelled, invalid or protected reads retain
 the last accepted packet and side; opening grants no model-edit authority.
@@ -332,7 +329,7 @@ and [ADR 0061](adr/0061-decode-versioned-modelling-patch-text-strictly.md).
 
 Core exports `resolveModellingPatchReview`, `resolveModellingPatchAcknowledgement`
 and `applyModellingPatch`, plus identity, consent, options, review/request, receipt
-and Apply-result types. The optional `/foldkit` entry exposes the native review,
+and Apply-result types. The optional `/effect-ui` entry exposes the native review,
 acknowledgement and Apply helpers with nullable slots/layout and diagnostic controls.
 Apply reconstructs current source and policy, requires exact-content acknowledgement,
 and returns the editor and provenance receipt together after one Undo commit.

@@ -1,7 +1,4 @@
-import type { Html, HtmlBuilder } from 'foldkit/html';
-
 import type { ZlozEdgeReconnectionContext } from './edge-reconnection';
-import { edgePathStyles } from './edge-toolbar-placement';
 import type { EdgePathStyle, EditorEvent, ZlozEdge, Point } from './types';
 
 export type ZlozEdgeToolbarAction = Readonly<{
@@ -26,53 +23,3 @@ export type ZlozEdgeToolbarContext = Readonly<{
     changePathStyle: (pathStyle: EdgePathStyle | null) => EditorEvent;
   }>;
 }>;
-
-/** Unstyled native button for a selected edge action. */
-export function zlozEdgeToolbarButton<M>(
-  h: HtmlBuilder<M>,
-  action: ZlozEdgeToolbarAction,
-  onEvent: (event: EditorEvent) => M,
-  attributes: Parameters<HtmlBuilder<M>['button']>[0],
-  children: Parameters<HtmlBuilder<M>['button']>[1],
-): Html {
-  return h.button(
-    [
-      ...attributes,
-      h.Type('button'),
-      h.AriaLabel(action.label),
-      ...(action.disabledReason === undefined
-        ? []
-        : [h.Disabled(true), h.Title(action.disabledReason)]),
-      h.OnClick(onEvent(action.event)),
-    ],
-    children,
-  );
-}
-
-/** Native select bound to the selected edge's current path style. */
-export function zlozEdgePathStyleSelect<M>(
-  h: HtmlBuilder<M>,
-  context: ZlozEdgeToolbarContext,
-  onEvent: (event: EditorEvent) => M,
-  attributes: Parameters<HtmlBuilder<M>['select']>[0],
-): Html {
-  return h.select(
-    [
-      ...attributes,
-      h.AriaLabel('Selected edge path style'),
-      h.OnChange((value) =>
-        onEvent(
-          context.actions.changePathStyle(
-            edgePathStyles.find(({ style }) => style === value)?.style ?? null,
-          ),
-        ),
-      ),
-    ],
-    edgePathStyles.map(({ label, style }) =>
-      h.option(
-        [h.Value(style ?? 'auto'), h.Selected((context.edge.pathStyle ?? null) === style)],
-        [label],
-      ),
-    ),
-  );
-}

@@ -1,23 +1,12 @@
 import { expect, test } from 'bun:test';
+import assert from 'node:assert/strict';
 
-import { Effect, Option, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Option } from 'effect';
 import { Window } from 'happy-dom';
 
-import {
-  portInspectorContext,
-  portAdditionContext,
-  zlozPortAddButton,
-  zlozPortRemoveButton,
-  zlozPortLabelEditButton,
-  zlozPortLabelForm,
-  zlozPortLabelInput,
-  zlozPortLabelSave,
-  zlozPortLabelCancel,
-  zlozPortProtectionReason,
-} from '../src/foldkit';
-import { createEditor, updateEditor, type Port, type EditorEvent } from '../src/index';
+import { portInspectorContext, portAdditionContext, portControlReasonId } from '../src/effect-ui';
+import { createEditor, updateEditor, type Port } from '../src/index';
+import { renderEffectUi } from './render-effect-ui';
 
 const inspect = (...args: Parameters<typeof portInspectorContext>) =>
   Option.getOrUndefined(portInspectorContext(...args));
@@ -107,70 +96,52 @@ test('inspector contexts resolve current capabilities, deletion policy, guards a
 });
 
 test('unstyled inspector primitives retain native forms, custom content and associated protection reasons', async () => {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<string | EditorEvent>) => {
-          const context = inspect(
-            model,
-            'n',
-            { canEditPort: () => 'Managed port' },
-            { idPrefix: 'inspector' },
-          );
-          const entry = Option.getOrThrow(Option.fromUndefinedOr(context?.entries[0]));
-          expect(entry?.reasons).toHaveLength(1);
-          expect(entry?.labelControl.reasonId).toBe(entry?.removeControl.reasonId);
-          const addition = additionContext(
-            model,
-            'n',
-            proposal,
-            { canEditPort: () => 'No new ports' },
-            { idPrefix: 'inspector' },
-          );
-          const proposed = Option.getOrThrow(Option.fromUndefinedOr(addition));
-          const messages = {
-            saved: 'saved',
-            cancelled: 'cancelled',
-            changed: (text: string) => 'draft:' + text,
-          };
-          return {
-            title: 'Custom inspector',
-            body: h.section(
-              [h.Class('custom-layout')],
-              [
-                zlozPortAddButton(h, proposed, 'add', [], ['New socket']),
-                zlozPortRemoveButton(h, entry, (event) => event, [], ['Remove']),
-                zlozPortLabelEditButton(h, entry, 'edit', [], [h.strong([], ['Rename'])]),
-                zlozPortLabelForm(
-                  h,
-                  messages,
-                  [h.Class('custom-form')],
-                  [
-                    zlozPortLabelInput(h, entry, 'Unsaved label', messages.changed, [
-                      h.AriaLabel('Custom draft'),
-                    ]),
-                    zlozPortLabelSave(h, entry, [], ['Apply']),
-                    zlozPortLabelCancel(h, messages.cancelled, [], ['Discard']),
-                  ],
-                ),
-                zlozPortProtectionReason(
-                  h,
-                  entry.labelControl,
-                  [h.Class('custom-badge')],
-                  [h.strong([], ['Managed port'])],
-                ),
-                ...entry.reasons
-                  .filter(({ reasonId }) => reasonId !== entry.labelControl.reasonId)
-                  .map((reason) => zlozPortProtectionReason(h, reason, [])),
-                zlozPortProtectionReason(h, proposed.control, []),
-              ],
-            ),
-          };
-        },
-      },
-      { flags: {}, isHydratable: false },
+  const entry = inspect(
+    state,
+    'n',
+    { canEditPort: () => 'Managed port' },
+    {
+      idPrefix: 'inspector',
+    },
+  )?.entries[0];
+  const proposed = additionContext(state, 'n', proposal, { canEditPort: () => 'No new ports' });
+  assert(entry && proposed);
+  expect(entry.reasons).toHaveLength(1);
+  expect(entry.labelControl.reasonId).toBe(entry.removeControl.reasonId);
+  const result = await renderEffectUi((h) =>
+    h.section.class('custom-layout').children(
+      h.button
+        .attr('type', 'button')
+        .attr('aria-describedby', portControlReasonId(proposed.control))
+        .disabled(proposed.control.reason !== null)
+        .children('New socket'),
+      h.button
+        .attr('type', 'button')
+        .attr('aria-label', 'Remove in port from Review')
+        .attr('aria-describedby', portControlReasonId(entry.removeControl))
+        .disabled(entry.removeControl.reason !== null)
+        .children('Remove'),
+      h.form
+        .class('custom-form')
+        .on('submit', 'save')
+        .children(
+          h.input
+            .attr('type', 'text')
+            .attr('aria-label', 'Custom draft')
+            .value('Unsaved label')
+            .attr('aria-describedby', portControlReasonId(entry.labelControl))
+            .disabled(entry.labelControl.reason !== null),
+          h.button
+            .attr('type', 'submit')
+            .disabled(entry.labelControl.reason !== null)
+            .children('Apply'),
+          h.button.attr('type', 'button').on('click', 'cancel').children('Discard'),
+        ),
+      h.span
+        .id(entry.labelControl.reasonId)
+        .class('custom-badge')
+        .children(h.strong.children(entry.labelControl.reason)),
+      h.span.id(proposed.control.reasonId).children(proposed.control.reason),
     ),
   );
   const window = new Window();

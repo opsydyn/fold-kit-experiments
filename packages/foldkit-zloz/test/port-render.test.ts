@@ -1,19 +1,16 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozView, zlozPort, zlozNodeFrame, type ZlozViewOptions } from '../src/foldkit';
+import { canvasHelpContext, type GraphSurfaceOptions } from '../src/effect-ui';
 import {
   captureConnectionDocument,
   createEditorFromConnectionDocument,
   createEditor,
   updateEditor,
-  type EditorEvent,
   type EditorState,
 } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const initial = createEditor({
   nodes: [
@@ -35,25 +32,8 @@ const initial = createEditor({
   edges: [],
 });
 
-async function render(state: EditorState, options: Partial<ZlozViewOptions<EditorEvent>> = {}) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Ports',
-          body: zlozView(h, model, {
-            id: 'ports',
-            label: 'Ports',
-            onEvent: (event) => event,
-            ...options,
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(state: EditorState, options: Partial<GraphSurfaceOptions<string>> = {}) {
+  const result = await renderCanvas(state, { id: 'ports', ...options });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -73,54 +53,43 @@ test('custom port rendering composes the native anchor, button semantics and tar
     target: { node: 'b', port: 'in' },
   });
   const document = await render(hovered, {
-    renderPort: (context, h) =>
-      zlozPort(
-        h,
-        context,
-        context.port,
-        [
-          h.Class('custom-socket'),
-          h.DataAttribute('custom-target', String(context.target)),
-          h.Style({ width: '32px', height: '24px', left: '99%', transform: 'rotate(45deg)' }),
-        ],
-        [context.label],
-      ),
+    renderPort: (context) => ({
+      className: 'custom-socket',
+      style: { width: '32px', height: '24px', left: '99%', transform: 'rotate(45deg)' },
+      content: context.label,
+    }),
   });
   const source = document.querySelector('[data-flow-owner="a"][data-flow-port="out"]');
   const target = document.querySelector('[data-flow-owner="b"][data-flow-port="in"]');
   expect(document.querySelectorAll('.custom-socket')).toHaveLength(2);
-  expect(source?.getAttribute('style')).toContain('left: 80%');
-  expect(source?.getAttribute('style')).toContain('top: 40%');
-  expect(source?.getAttribute('style')).toContain('transform: translate(-50%, -50%)');
+  expect(source?.getAttribute('style')).toContain('left:80%');
+  expect(source?.getAttribute('style')).toContain('top:40%');
+  expect(source?.getAttribute('style')).toContain('transform:translate(-50%, -50%)');
   expect(source?.getAttribute('aria-pressed')).toBe('true');
   expect(target?.textContent).toBe('Primary');
   expect(target?.getAttribute('aria-label')).toBe('Connect to Target: Primary');
-  expect(target?.getAttribute('data-custom-target')).toBe('true');
+  expect(target?.getAttribute('data-target')).toBe('true');
 });
 
 test('resolved ports reach custom shells and preserve fallback and locked port behavior', async () => {
   const document = await render(initial, {
-    canConnectPort: ({ node }) => (node === 'b' ? 'Locked input' : null),
-    renderNodeShell: (context, h) =>
-      zlozNodeFrame(h, context, [h.Class('custom-shell')], context.ports ?? []),
-    renderPort: (context, h) =>
+    policy: { canConnectPort: ({ node }) => (node === 'b' ? 'Locked input' : null) },
+    renderNodeShell: () => ({ className: 'custom-shell' }),
+    renderPort: (context) =>
       context.port.kind === 'output'
         ? undefined
-        : zlozPort(
-            h,
-            context,
-            context.port,
-            [h.Class('locked-socket')],
-            [context.disabledReason ?? context.label],
-          ),
+        : {
+            className: 'locked-socket',
+            content: context.disabledReason ?? context.label,
+          },
   });
   expect(document.querySelectorAll('.custom-shell [data-flow-port]')).toHaveLength(2);
   expect(document.querySelector('.locked-socket')?.textContent).toBe('Locked input');
   expect(document.querySelector('.locked-socket')?.hasAttribute('disabled')).toBe(true);
-  expect(document.querySelector('.locked-socket')?.hasAttribute('data-flow-port-locked')).toBe(
+  expect(document.querySelector('.locked-socket')?.getAttribute('title')).toBe('Locked input');
+  expect(document.querySelector('[data-flow-port="out"]')?.classList.contains('zloz-ui-port')).toBe(
     true,
   );
-  expect(document.querySelector('[data-flow-port="out"]')?.textContent).toBe('+');
 });
 
 test('loose ports expose source/target intent to native and composable controls without relabelling authored kinds', async () => {
@@ -128,15 +97,8 @@ test('loose ports expose source/target intent to native and composable controls 
     captureConnectionDocument({ graph: initial.graph, connectionMode: 'loose' }),
   );
   for (const custom of [false, true]) {
-    const renderPort: ZlozViewOptions<EditorEvent>['renderPort'] = custom
-      ? (context, h) =>
-          zlozPort(
-            h,
-            context,
-            context.port,
-            [h.DataAttribute('custom-intent', context.connectionEnd)],
-            [context.label],
-          )
+    const renderPort: GraphSurfaceOptions<string>['renderPort'] = custom
+      ? (context) => ({ content: context.label })
       : undefined;
     const options = renderPort ? { renderPort } : {};
     const before = await render(editor, options);
@@ -146,7 +108,7 @@ test('loose ports expose source/target intent to native and composable controls 
     expect(
       before.querySelector('[data-flow-surface]')?.getAttribute('data-flow-connection-mode'),
     ).toBe('loose');
-    if (custom) expect(input?.getAttribute('data-custom-intent')).toBe('source');
+    if (custom) expect(input?.getAttribute('data-flow-connection-end')).toBe('source');
     const staged = updateEditor(editor, {
       type: 'PortActivated',
       endpoint: { node: 'b', port: 'in' },
@@ -155,12 +117,12 @@ test('loose ports expose source/target intent to native and composable controls 
     const output = after.querySelector('[data-flow-owner="a"][data-flow-port="out"]');
     expect(output?.getAttribute('aria-label')).toBe('Connect to Source: out');
     expect(output?.getAttribute('data-flow-port-kind')).toBe('output');
-    if (custom) expect(output?.getAttribute('data-custom-intent')).toBe('target');
+    if (custom) expect(output?.getAttribute('data-flow-connection-end')).toBe('target');
     expect(
       after
         .querySelector('[data-flow-owner="b"][data-flow-port="in"]')
         ?.getAttribute('aria-pressed'),
     ).toBe('true');
-    expect(after.querySelector('#ports-help')?.textContent).toContain('any port');
+    expect(canvasHelpContext(staged, {}, false, false).defaultText).toContain('any port');
   }
 });

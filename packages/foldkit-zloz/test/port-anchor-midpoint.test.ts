@@ -1,18 +1,10 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozPortAnchorHandle, zlozView } from '../src/foldkit';
-import {
-  createEditor,
-  resolvePortAnchorSnap,
-  updateEditor,
-  type EditorEvent,
-  type ZlozGraph,
-} from '../src/index';
+import type { EditorEvent } from '../src/index';
+import { createEditor, resolvePortAnchorSnap, updateEditor, type ZlozGraph } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const options = { size: { width: 200, height: 100 }, zoom: 1, distance: 0, midpointDistance: 12 };
 const graph: ZlozGraph = {
@@ -217,37 +209,20 @@ test('native and custom handles expose midpoint feedback through the public comp
   };
   const preview = move(updateEditor(initial, start), 6, 58);
   for (const custom of [false, true]) {
-    const result = await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: preview }),
-          view: (model, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Midpoints',
-            body: zlozView(h, model, {
-              id: 'midpoints',
-              label: 'Midpoints',
-              onEvent: (event) => event,
-              portAnchorHandles: true,
-              renderPortAnchorHandle: (context, builder) => {
-                expect(context.snappedMidpoint).toBe('left');
-                expect(context.snappedSide).toBeNull();
-                expect(context.snappedCorner).toBeNull();
-                return custom
-                  ? zlozPortAnchorHandle(
-                      builder,
-                      context,
-                      [builder.Class('custom-midpoint')],
-                      [`Centered ${context.snappedMidpoint}`],
-                    )
-                  : undefined;
-              },
-            }),
-          }),
+    const result = await renderCanvas(preview, {
+      id: 'midpoints',
+      label: 'Midpoints',
+      portAnchors: {
+        renderHandle: (context) => {
+          expect(context.snappedMidpoint).toBe('left');
+          expect(context.snappedSide).toBeNull();
+          expect(context.snappedCorner).toBeNull();
+          return custom
+            ? { className: 'custom-midpoint', content: `Centered ${context.snappedMidpoint}` }
+            : undefined;
         },
-        { flags: {}, isHydratable: false },
-      ),
-    );
+      },
+    });
     const window = new Window();
     window.document.body.innerHTML = result.html;
     const handle = window.document.querySelector('[data-flow-anchor-port]');
@@ -255,7 +230,7 @@ test('native and custom handles expose midpoint feedback through the public comp
     expect(handle?.getAttribute('data-flow-anchor-snapped')).toBeNull();
     expect(handle?.getAttribute('data-flow-anchor-corner')).toBeNull();
     expect(handle?.getAttribute('title')).toContain('Snapped to left midpoint. Hold Alt');
-    expect(handle?.textContent).toBe(custom ? 'Centered left' : '⊙');
-    expect(handle?.getAttribute('style')).toContain('touch-action');
+    expect(handle?.textContent).toBe(custom ? 'Centered left' : '⋮');
+    expect(handle?.classList.contains('zloz-ui-anchor-handle')).toBe(true);
   }
 });

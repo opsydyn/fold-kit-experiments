@@ -49,6 +49,7 @@ export type GraphPortOptions<M> = Readonly<{
   portLabels?: boolean | ZlozPortLabelOptions;
   /** Return null to omit this label, or undefined to keep the default. */
   renderPortLabel?: NativePortLabelRenderer<M>;
+  portLabelPlacement?: (context: ZlozPortLabelContext) => ZlozPortLabelOptions | undefined;
   policy?: EditorPolicy;
 }>;
 
@@ -86,7 +87,12 @@ function socketButton<M>(
     .attr('aria-describedby', describedBy)
     .attr('title', reason ?? undefined)
     .disabled(reason !== null)
-    .style({ ...customStyle, left: `${anchorX * 100}%`, top: `${anchorY * 100}%` })
+    .style({
+      ...customStyle,
+      left: `${anchorX * 100}%`,
+      top: `${anchorY * 100}%`,
+      transform: customStyle?.transform === undefined ? undefined : 'translate(-50%, -50%)',
+    })
     .children(content);
 }
 
@@ -152,7 +158,10 @@ export function portLabels<M>(
   return portLabelContexts(nodes, options.portLabels).flatMap((context) => {
     const custom = options.renderPortLabel?.(context, h);
     if (custom === null) return [];
-    const { position, transform } = portLabelLayout(context);
+    const { position, transform } = portLabelLayout({
+      ...context,
+      ...options.portLabelPlacement?.(context),
+    });
     return [
       h.div
         .key(`port-label:${JSON.stringify([context.node.id, context.port.id])}`)

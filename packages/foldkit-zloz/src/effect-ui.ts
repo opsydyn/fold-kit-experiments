@@ -94,6 +94,7 @@ export type {
   ZlozEdgeRenderContext,
 } from './edge-presentation';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
+export { portControlReasonId, portPositionInput } from './effect-ui-port-inspector';
 export { portAdditionContext, portInspectorContext } from './port-inspector';
 export type { ZlozPortControlContext, ZlozPortInspectorEntry } from './port-inspector';
 export {
@@ -149,6 +150,7 @@ export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
 export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
 export type { NativeGroupHeader, NativeNodeShell, NativeNodeShellContext } from './effect-ui-nodes';
 export type { NativeNotationContext, NativeNotationParts } from './effect-ui-notation';
+export type { ZlozNodeToolbarContext } from './node-toolbar-layout';
 export type { NativeNodeToolbar } from './effect-ui-node-toolbar';
 export type { ZlozViewportCulling } from './viewport-culling';
 
@@ -205,6 +207,7 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     renderWorldOverlay?: (
       visibleNodes: readonly ZlozNode[],
       h: Html.H<Message>,
+      context: Pick<EditorState, 'viewport' | 'surface' | 'readOnly'>,
     ) => View.Content<Message> | null | undefined;
     pinchZoom?: boolean;
     viewportCulling?: ZlozViewportCulling;
@@ -234,7 +237,11 @@ export function graphSurface<Message>(
   const svg = (tag: string) => new Html.Element<Message>(tag);
   const scene = presentVisibleGraph(editor);
   const worldOverlay = options.renderWorldOverlay
-    ? options.renderWorldOverlay(scene.nodes, h)
+    ? options.renderWorldOverlay(scene.nodes, h, {
+        viewport: editor.viewport,
+        surface: editor.surface,
+        readOnly: editor.readOnly,
+      })
     : options.worldOverlay;
   const context = options.contextActions
     ? resolveContextMenu(
@@ -313,7 +320,12 @@ export function graphSurface<Message>(
       waypointEdge === edge.id &&
       !scene.hiddenBy.has(edge.source.node) &&
       !scene.hiddenBy.has(edge.target.node)
-        ? waypointLabelPosition(edge, position, editor.viewport.zoom)
+        ? waypointLabelPosition(
+            edge,
+            position,
+            editor.viewport.zoom,
+            options.edgeWaypoints.labelOffset,
+          )
         : position;
     const editing = options.edgeEditing;
     const relationshipLabel =

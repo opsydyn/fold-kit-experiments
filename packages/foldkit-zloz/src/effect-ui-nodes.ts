@@ -200,6 +200,7 @@ export function nodeView<Message>(
           JSON.stringify([surfaceId, 'title', node.id]),
           node.id,
           node.label,
+          options.descriptionId,
           selected,
           selectionDisabledReason,
           moveDisabledReason,
@@ -276,6 +277,7 @@ function nodeTitle<M>(
   _cacheKey: string,
   id: string,
   label: string,
+  descriptionId: string | undefined,
   selected: boolean,
   selectionDisabledReason: string | undefined,
   moveDisabledReason: string | undefined,
@@ -296,6 +298,7 @@ function nodeTitle<M>(
     .attr('data-zloz-group-header', headerId)
     .attr('aria-label', `Select ${label}`)
     .attr('aria-description', description)
+    .attr('aria-describedby', description === undefined ? descriptionId : undefined)
     .attr('title', selectionDisabledReason ?? moveDisabledReason)
     .attr('data-flow-move-locked', moveDisabledReason === undefined ? undefined : '')
     .disabled(selectionDisabledReason !== undefined)

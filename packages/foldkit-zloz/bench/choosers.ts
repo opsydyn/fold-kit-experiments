@@ -3,18 +3,16 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { arch, cpus, release } from 'node:os';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 
-import { zlozConnectionCreationField } from '../src/foldkit';
+import { endpointField } from '../src/effect-ui';
 import {
   createEditor,
   resolveConnectionCreation,
   resolveEdgeReconnection,
   resolveEndpointChoices,
   updateEditor,
-  type EditorEvent,
   type EditorPolicy,
   type ZlozGraph,
 } from '../src/index';
@@ -84,24 +82,26 @@ async function main() {
     for (let i = -warmup; i < samples; i++) {
       let buildMs = 0;
       const start = performance.now();
+      const Fixture = Html.component({
+        name: 'ChooserBench',
+        model: Schema.Null,
+        message: Schema.String,
+      }).make({
+        init: () => null,
+        update: () => null,
+        view: (h) => {
+          const before = performance.now();
+          const body = endpointField(h, context, {
+            id: 'bench',
+            onEvent: ({ type }) => type,
+            search: { label: 'Find a port', query, onChange: (text) => text },
+          });
+          buildMs = performance.now() - before;
+          return body;
+        },
+      });
       const rendered = await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: context }),
-            view: (model, h: HtmlBuilder<EditorEvent>) => {
-              const before = performance.now();
-              const body = zlozConnectionCreationField(h, model, (event) => event, {
-                idPrefix: 'bench',
-                groupByNode: true,
-                query,
-              });
-              buildMs = performance.now() - before;
-              return { title: 'Chooser benchmark', body };
-            },
-          },
-          { flags: {}, isHydratable: false },
-        ),
+        HtmlServer.renderToHtml(Fixture, {}, { static: true }),
       );
       const elapsed = performance.now() - start;
       assert(rendered.html.includes('<optgroup'), 'Grouped field was not rendered');

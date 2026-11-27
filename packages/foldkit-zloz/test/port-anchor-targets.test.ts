@@ -1,22 +1,19 @@
 import { expect, test } from 'bun:test';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozPortAnchorHandle, zlozView } from '../src/foldkit';
+import type { EditorEvent } from '../src/index';
 import {
   createEditor,
   resolvePortAnchorSnap,
   resolvePortAnchorSnapSettings,
   updateEditor,
   ZlozError,
-  type EditorEvent,
   type EditorPolicy,
   type ZlozGraph,
   type PortSide,
 } from '../src/index';
+import { renderCanvas } from './render-effect-ui';
 
 const options = {
   size: { width: 200, height: 100 },
@@ -269,37 +266,20 @@ test('custom feedback receives detached captured target arrays', async () => {
     portAnchorSnap: () => ({ midpointDistance: 12, allowedMidpoints: ['left', 'right'] }),
   });
   const preview = updateEditor(begun, move(7, 50));
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: preview }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Targets',
-          body: zlozView(h, model, {
-            id: 'targets',
-            label: 'Targets',
-            onEvent: (event) => event,
-            portAnchorHandles: true,
-            renderPortAnchorHandle: (context, builder) => {
-              expect(context.snapSettings?.allowedMidpoints).toEqual(['left', 'right']);
-              if (model.gesture.type === 'port-anchor-drag')
-                expect(context.snapSettings?.allowedMidpoints).not.toBe(
-                  model.gesture.snapSettings?.allowedMidpoints,
-                );
-              return zlozPortAnchorHandle(
-                builder,
-                context,
-                [builder.Class('allowed-targets')],
-                ['Left/right only'],
-              );
-            },
-          }),
-        }),
+  const result = await renderCanvas(preview, {
+    id: 'targets',
+    label: 'Targets',
+    portAnchors: {
+      renderHandle: (context) => {
+        expect(context.snapSettings?.allowedMidpoints).toEqual(['left', 'right']);
+        if (preview.gesture.type === 'port-anchor-drag')
+          expect(context.snapSettings?.allowedMidpoints).not.toBe(
+            preview.gesture.snapSettings?.allowedMidpoints,
+          );
+        return { className: 'allowed-targets', content: 'Left/right only' };
       },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+    },
+  });
   const window = new Window();
   window.document.body.innerHTML = result.html;
   expect(

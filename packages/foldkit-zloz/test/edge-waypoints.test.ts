@@ -20,7 +20,7 @@ import {
   serializeModelDocument,
   updateEditor,
 } from '../src/index';
-import { minimapContext } from '../src/navigation';
+import { minimapContext } from '../src/minimap-context';
 import { viewportItems } from '../src/viewport-culling';
 import fixture from './fixtures/waypoints-v1.json';
 

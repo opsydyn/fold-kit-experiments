@@ -6622,23 +6622,15 @@ const result = applyGroupConnectionV3(editor, request, livePolicy);
 ```
 
 `createGroupWorkbenchV3(document, { sessionId })` and
-`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose native/custom
-controls without creating a legacy editor. Keep the returned model in the host
-Foldkit Model. `zlozGroupWorkbenchV3`, `zlozGroupInspectorV3`,
-`zlozGroupActionV3` and `zlozGroupDragHandleV3` are optional `/foldkit` views.
-Use unique view IDs. Custom node content remains beside live ports; compose the
-drag-handle primitive and place custom interactive controls outside its button.
-Theme tokens and existing diagnostics/minimal settings apply. Policy reasons stay
-with protected controls; announcements remain accessible in minimal mode.
-Pointer/touch capture and cleanup use the existing scoped input resource.
+`updateGroupWorkbenchV3(model, event, policy, { grid: 20 })` compose the editor's
+model and event handling. Use `groupSurfaceV3` and `groupInspectorV3` from
+`@opsydyn/foldkit-zloz/effect-ui` with the owning component's HTML builder.
+Pass a unique canvas ID and map the emitted events into the host's messages.
 
-The v3 surface qualifies pointer node movement/connections, keyboard
-selection/nudging/connections, inspector resizing/group-port edits/reconnection,
-collapse and custom content/actions. Direct pointer resize/reconnection,
-port-anchor dragging, box selection, pinch and minimap remain outside this v3
-surface's qualified subset. `captureGroupWorkbenchDocumentV3` captures the live
-camera for save/checkpoint DTOs without mutating the editor. A host can publish
-that camera through the ordinary v3 transaction before capturing an edition.
+The surface supports pointer and keyboard movement, connection editing, group
+collapse, resize and anchor controls. The component owns the graph, permissions
+and undo history. `captureGroupWorkbenchDocumentV3` captures the live camera
+for save or checkpoint DTOs.
 
 ### Canonical v3 models and editions
 
@@ -6914,7 +6906,7 @@ not captured by model/editions/Undo and is reset by a new session.
 occupied node anchors; exact custom placement remains available through the core
 factory. Set `pasteOffset` in controller options for keyboard placement.
 
-Optional `/foldkit` **`zlozGroupClipboardV3(h, model, options, pasteOffset?)`**
+The `/effect-ui` **`groupClipboardV3(h, model, options, pasteOffset?)`**
 composes Copy/Paste controls anywhere in a host's sidebar or custom shell.
 It emits source-bound requests, exposes current denial reasons and retains
 omission/detachment findings in minimal mode. Replace it entirely with headless
@@ -6964,15 +6956,12 @@ Undo frame. Conversion receipts retain the canonical source/target models and
 all archived checkpoint modes/capabilities. Strict receipt decoders recompute the
 recorded target. Imported evidence grants no current edit permission or consent.
 
-The optional `/foldkit` `zlozGroupWorkbenchV3` view now offers `resize`,
-`portAnchors`, `reconnect`, `boxSelection` and `pinchZoom` options. Controls remain
-opt-in; custom `renderResize` and `renderPortAnchor` slots can replace or omit
-handles. Compose `zlozNativeResizeHandleV3` for eight-direction custom handles.
-Keyboard arrows resize or move anchors, the inspector offers keyboard
-reconnection, Shift-background dragging selects visible roots, and Escape
-cancels. Preview geometry never becomes authority; release rechecks live policy.
-Required protection reasons remain visible in minimal mode. Geometry input uses
-a stable pointer origin across surface reflow.
+The `/effect-ui` `groupSurfaceV3` keeps resize, anchor movement,
+reconnection, box selection and pinch zoom enabled by default. Disable any
+of them through the corresponding surface option. Use `renderNode`,
+`renderPort`, `renderEdge`, `renderControls`, `renderResize` and
+`renderPortAnchor` to supply custom content. The surface still owns the
+interaction targets and exposes current protection reasons.
 
 `publishGroupWorkbenchResultV3` composes an already validated native Apply/Undo
 result into transient workbench presentation. It grants no transaction authority.

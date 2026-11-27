@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +25,108 @@ import workshopWire from './fixtures/workshop-v1.json';
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const options = { cwd: root, maxBuffer: 5 * 1024 * 1024 };
+
+async function checkNativeGroupPackage(
+  directory: string,
+  core: string,
+  elk: string,
+  tsc: string,
+): Promise<void> {
+  const work = path.join(directory, 'native-group');
+  await mkdir(work);
+  const native = { ...options, cwd: work };
+  const installedUi = path.dirname(fileURLToPath(import.meta.resolve('@effect/ui/package.json')));
+  const packed = await exec(
+    'npm',
+    ['pack', '--ignore-scripts', '--pack-destination', work, installedUi],
+    native,
+  );
+  const ui = path.join(work, packed.stdout.trim());
+  await writeFile(
+    path.join(work, 'package.json'),
+    JSON.stringify({ private: true, type: 'module' }),
+  );
+  await exec(
+    'npm',
+    ['install', '--ignore-scripts', '--no-audit', '--no-fund', core, elk, ui, 'effect@4.1.6'],
+    native,
+  );
+  expect(existsSync(path.join(work, 'node_modules', 'foldkit'))).toBe(false);
+
+  const entry = path.join(work, 'group.mts');
+  await writeFile(
+    entry,
+    `import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect, Schema } from 'effect';
+import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
+import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
+import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+
+const model = createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}), { sessionId: 'packed-group' });
+async function arrange() {
+  const request = groupLayoutRequestV3(model.editor, 'packed-elk');
+  const result = await createElkGroupLayoutV3({ direction: 'DOWN' })(request);
+  const arranged = applyGroupWorkbenchLayoutV3(model, request, result);
+  if (arranged.editor.history.past.length !== 1 || groupWorkbenchRoutesV3(arranged).length !== 1 ||
+      arranged.editor.document.graph.nodes.find((node) => node.id === 'g')?.ports[0]?.id !== 'out') {
+    throw new Error('Native ELK layout lost its route, group port, or undo entry');
+  }
+  return arranged;
+}
+// The default ELK worker keeps Bun alive. Exercise the packed layout under Node and SSR under both runtimes.
+const arranged = 'Bun' in globalThis ? model : await arrange();
+const selected = updateGroupWorkbenchV3(arranged, { type: 'NodeSelected', id: 'g', additive: false });
+const copied = updateGroupWorkbenchV3(selected, { type: 'CopyPressed' });
+const viewOptions: GroupSurfaceOptionsV3<string> = {
+  id: 'packed-native-v3',
+  minimalMode: true,
+  onEvent: (event: ZlozGroupWorkbenchEventV3) => event.type,
+  policy: { canEditPort: () => 'Published interface is protected.' },
+};
+const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: Schema.String }).make({
+  init: () => null,
+  update: () => null,
+  view: (h) => h.div(
+    groupSurfaceV3(h, copied, viewOptions),
+    groupInspectorV3(h, copied, viewOptions),
+    groupClipboardV3(h, copied, viewOptions),
+  ),
+});
+const { html } = await Effect.runPromise(HtmlServer.renderToHtml(App, {}, { static: true }));
+for (const text of ['data-flow-owner="g"', 'Fit view', 'Copy selection', 'Paste copy',
+  'Published interface is protected.', 'crosses the copied selection']) {
+  if (!html.includes(text)) throw new Error('Missing packed native group view: ' + text);
+}
+console.log('native-group-ok');
+`,
+  );
+  for (const resolution of ['Bundler', 'NodeNext'])
+    await exec(
+      tsc,
+      [
+        '--noEmit',
+        '--strict',
+        '--skipLibCheck',
+        '--target',
+        'ES2022',
+        '--module',
+        resolution === 'NodeNext' ? 'NodeNext' : 'ESNext',
+        '--moduleResolution',
+        resolution,
+        entry,
+      ],
+      native,
+    );
+  await exec(
+    tsc,
+    ['--skipLibCheck', '--target', 'ES2022', '--module', 'NodeNext', '--outDir', 'compiled', entry],
+    native,
+  );
+  for (const runtime of ['bun', 'node']) {
+    const result = await exec(runtime, ['compiled/group.mjs'], { ...native, timeout: 15_000 });
+    expect(result.stdout.trim()).toBe('native-group-ok');
+  }
+}
 
 test('npm tarballs install without workspace links and expose runtime and TypeScript contracts', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'foldkit-zloz-consumer-'));
@@ -521,6 +623,7 @@ console.log('group-v3-ok');
     }
     for (const unwanted of ['foldkit', 'effect', '@effect/ui', 'elkjs', 'react'])
       expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);
+    await checkNativeGroupPackage(directory, core, elk, rootTsc);
     await exec(
       'npm',
       [
@@ -543,30 +646,20 @@ import { zlozDddAuditControls, zlozDddAuditFindingButton } from '@opsydyn/foldki
 import { resolveModellingPatchReview, applyModellingPatch, parseModellingPatch, type ZlozModellingPatchParseResult, captureModellingPatch, dryRunModellingPatch, resolveAuditComparisonControls, type ZlozAuditComparisonControlsContext, compareModelEventStormingRelationships, type ZlozRelationshipAuditComparisonDecision, auditEventStormingRelationships, type ZlozEventStormingRelationshipAudit, resolveEventStormingRelationshipControls, resolveEventStormingRelationshipRequest, createEventStormingPattern, resolveEventStormingRelationship, eventStormingRelationshipPolicy, type EventStormingEdgeArchitecture, fitNodes, resolveHistoryChangeNavigator, resolveHistoryChangeFocus, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, captureModelDocument, serializeModelDocument, parseModelDocument, forkEdition, createModelEditor, type ZlozModelDocument, mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
 import { createPngReview, resolvePngReview, updatePngReview, type ZlozPngReviewContext, captureSvgLayout, planSvgExport, writeSvgExport, type ZlozSvgAdapter, type ZlozSvgLayoutOptions, startGroupHeaderMeasurement, updateGroupHeaderMeasurements, resolveGroupHeaderMeasurements, resolveLayoutGroupHeader, type LayoutGroupHeader, startLabelMeasurement, updateLabelMeasurements, resolveLabelMeasurements, createArchitectureNode, createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, applyPreviewLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type ZlozConnectionGeometryPolicy, resolveEdgeGeometry, type ZlozEdgeGeometryPolicy, type ZlozEdge, type ZlozGraph, type ZlozNode, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelationshipPatternSelect, zlozDddUpstreamRole, zlozDddDownstreamRoleSelect, type ZlozDddRelationshipControlsViewOptions, zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingRelationshipControls, zlozEventStormingRelationshipInference, type ZlozEventStormingRelationshipControlsViewOptions, zlozHistoryChangeNavigator, zlozHistoryChangeButton, type ZlozHistoryChangeNavigatorViewOptions, zlozHistoryComparisonControls, zlozHistoryGhostToggle, type ZlozHistoryComparisonControlsViewOptions, zlozEditionScrubber, zlozEditionScrubberReadout, type ZlozEditionScrubberViewOptions, zlozPlaybackControls, zlozPlaybackControl, zlozPlaybackStatus, type ZlozPlaybackControlsViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozHistoryGhosts, type ZlozHistoryGhostOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
-import { createElkLayout,createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
+import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
-import {zlozGroupWorkbenchV3,zlozGroupInspectorV3,zlozGroupActionV3} from '@opsydyn/foldkit-zloz/foldkit';
-import {createGroupWorkbenchV3,updateGroupWorkbenchV3,captureGroupDocumentV3,groupLayoutRequestV3,applyGroupWorkbenchLayoutV3,groupWorkbenchRoutesV3,type ZlozGroupWorkbenchEventV3} from '@opsydyn/foldkit-zloz';
+import {createGroupWorkbenchV3,captureGroupDocumentV3} from '@opsydyn/foldkit-zloz';
 const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
-const installedV3Request=groupLayoutRequestV3(packedNativeV3.editor,'installed-elk-v3');
-const installedV3Result=await createElkGroupLayoutV3({direction:'DOWN'})(installedV3Request);
-const installedV3Layout=applyGroupWorkbenchLayoutV3(packedNativeV3,installedV3Request,installedV3Result);
-if(installedV3Layout.editor.history.past.length!==1||installedV3Layout.editor.document.graph.nodes.find(n=>n.id==='g')?.ports[0]?.id!=='out'||groupWorkbenchRoutesV3(installedV3Layout).length!==1)throw new Error('Installed native v3 ELK/atomic Apply failed');
-const packedNativeOutputV3=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedNativeV3}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Packed native v3',body:h.div([], [zlozGroupWorkbenchV3(h,model,{id:'packed-native-v3',onEvent:event=>event}),zlozGroupInspectorV3(h,model,{id:'packed-native-v3-inspector',onEvent:event=>event}),zlozGroupActionV3(h,'Custom fit',{type:'FitViewRequested'},null,event=>event)])})},{flags:{},isHydratable:false}));
-if(!packedNativeOutputV3.html.includes('data-flow-owner="g"')||!packedNativeOutputV3.html.includes('Custom fit'))throw new Error('Installed native v3 controls missing');
 import {createSvgReview as createPackedNativeSvgReview,resolveGroupSvgReviewV3 as packedNativeSvgReview,type ZlozSvgReviewRequest} from '@opsydyn/foldkit-zloz';
 import {zlozSvgReview as packedSvgControls} from '@opsydyn/foldkit-zloz/foldkit';
 const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(createPackedNativeSvgReview(packedSvgScope),{scope:packedSvgScope,sourceRevision:0,document:packedNativeV3.editor.document,title:'Native export',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
 const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
 if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
 import {resolveGroupPngReviewV3 as resolvePackedNativePng,type ZlozPngReviewRequest} from '@opsydyn/foldkit-zloz';
-import {zlozPngReview as packedPngReviewUi,zlozGroupClipboardV3 as packedClipboardUi} from '@opsydyn/foldkit-zloz/foldkit';
+import {zlozPngReview as packedPngReviewUi} from '@opsydyn/foldkit-zloz/foldkit';
 const packedPngNative=resolvePackedNativePng(createPngReview('packed-png-native'),{scope:'packed-png-native',sourceRevision:0,document:packedNativeV3.editor.document,title:'Native PNG',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
 const packedPngUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedPngNative}),view:(model,h:HtmlBuilder<ZlozPngReviewRequest>)=>({title:'Packed native PNG review',body:packedPngReviewUi(h,model,event=>event)})},{flags:{},isHydratable:false}));
-const copiedWorkbenchNative=updateGroupWorkbenchV3({...packedNativeV3,selectedNodeIds:['g']},{type:'CopyPressed'});
-const packedClipboardHtml=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:copiedWorkbenchNative}),view:(model,h:HtmlBuilder<ZlozGroupWorkbenchEventV3>)=>({title:'Native clipboard',body:packedClipboardUi(h,model,{id:'clipboard-consumer',onEvent:e=>e})})},{flags:{},isHydratable:false}));
-if(!packedClipboardHtml.html.includes('Copy selection')||!packedClipboardHtml.html.includes('Paste copy'))throw new Error('Installed clipboard controls missing');
 if(!packedPngUi.html.includes('Render PNG')||!packedPngUi.html.includes('Accept the reported PNG losses'))throw new Error('Native PNG review SSR missing');
 
 

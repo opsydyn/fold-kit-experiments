@@ -786,7 +786,7 @@ See [package qualification](../../packages/foldkit-zloz/evidence/v3-png-export.m
 and [browser/download evidence](evidence/v3-png/browser.json).
 
 **Clipboard** in the native `/groups/` sidebar composes package-level
-`zlozGroupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
+`groupClipboardV3`: select a group, **Copy selection**, then **Paste copy**.
 Groups/descendants, sockets, internal edges and world geometry use the native
 headless remapping/planner/Apply contract. External parents are detached and
 crossing edges omitted with visible findings. Repeated placement advances down

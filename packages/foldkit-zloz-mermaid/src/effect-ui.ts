@@ -1,3 +1,4 @@
+/** @module MermaidEffectUI */
 import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 

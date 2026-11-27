@@ -1,3 +1,4 @@
+/** @module EffectUI */
 import { Mount, type View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 

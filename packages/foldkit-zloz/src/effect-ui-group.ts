@@ -1,4 +1,4 @@
-import { Mount } from '@effect/ui';
+import { Mount, type View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 import { Match } from 'effect';
 
@@ -23,7 +23,14 @@ import {
 } from './group-workbench-v3';
 import { portEditReason } from './port-edit';
 import { zlozLightTheme, zlozThemeStyle, type ZlozTheme } from './theme';
-import type { Point, ZlozGraph, ZlozNode, ZlozPortAnchorSnapBypassModifier } from './types';
+import type {
+  Point,
+  Port,
+  ZlozEdge,
+  ZlozGraph,
+  ZlozNode,
+  ZlozPortAnchorSnapBypassModifier,
+} from './types';
 
 export type GroupSurfaceOptionsV3<Message> = ZlozDiagnosticOptions &
   Readonly<{
@@ -34,6 +41,33 @@ export type GroupSurfaceOptionsV3<Message> = ZlozDiagnosticOptions &
     portAnchorSnapBypass?: ZlozPortAnchorSnapBypassModifier;
     onEvent: (event: ZlozGroupWorkbenchEventV3) => Message;
     nodeBadge?: (node: ZlozNode) => string | undefined;
+    resize?: boolean;
+    portAnchors?: boolean;
+    reconnect?: boolean;
+    boxSelection?: boolean;
+    pinchZoom?: boolean;
+    /** Additional content beside the built-in drag handle and sockets. */
+    renderNode?: (node: ZlozNode, selected: boolean, h: Html.H<Message>) => View.Input<Message>;
+    /** Content inside the accessible socket button. */
+    renderPort?: (node: ZlozNode, port: Port, h: Html.H<Message>) => View.Input<Message>;
+    /** Inert SVG artwork. The surface retains the edge's interaction target. */
+    renderEdge?: (
+      edge: ZlozEdge,
+      geometry: ReturnType<typeof edgeGeometry>,
+      h: Html.H<Message>,
+    ) => View.Input<Message>;
+    renderControls?: (model: ZlozGroupWorkbenchV3, h: Html.H<Message>) => View.Input<Message>;
+    renderResize?: (
+      node: ZlozNode,
+      reason: string | null,
+      h: Html.H<Message>,
+    ) => View.Input<Message>;
+    renderPortAnchor?: (
+      node: ZlozNode,
+      port: Port,
+      reason: string | null,
+      h: Html.H<Message>,
+    ) => View.Input<Message>;
   }>;
 
 const position = (point: Point) => ({ left: `${point.x}px`, top: `${point.y}px` });
@@ -70,66 +104,76 @@ function gestureControls<Message>(
       const resizeReason =
         blocked ??
         protectedReason(options.policy?.canResizeNode?.(node, authored), 'Size is protected.');
-      return [
-        h.button
-          .key(`resize:${node.id}`)
-          .class('zloz-ui-group-handle')
-          .attr('type', 'button')
-          .attr('data-flow-resize', node.id)
-          .attr('data-flow-resize-handle', 'bottom-right')
-          .attr('data-zloz-native-resize', '')
-          .attr('aria-label', `Resize ${node.label}, bottom-right`)
-          .attr('title', resizeReason ?? 'Drag or use arrow keys to resize. Escape cancels.')
-          .disabled(resizeReason !== null)
-          .style(position(point))
-          .children('↘'),
-        ...why(`resize-reason:${node.id}`, { x: point.x, y: point.y + 24 }, resizeReason),
-        ...node.ports.flatMap((port) => {
-          const anchor = portPosition(node, port.id);
-          const point = {
-            x: anchor.x + (port.side === 'left' ? -24 : 24),
-            y: anchor.y + (port.side === 'top' ? -24 : port.side === 'bottom' ? 24 : 0),
-          };
-          const reason =
-            blocked ??
-            portEditReason(
-              { operation: 'position', node, port },
-              authored,
-              options.policy?.canEditPort,
-            );
-          const gesture = model.gesture;
-          const active =
-            gesture.type === 'anchor' &&
-            gesture.endpoint.node === node.id &&
-            gesture.endpoint.port === port.id;
-          const key = `anchor:${node.id}:${port.id}`;
-          return [
-            h.button
-              .key(key)
-              .class('zloz-ui-group-handle')
-              .attr('type', 'button')
-              .attr('data-flow-anchor-node', node.id)
-              .attr('data-flow-anchor-port', port.id)
-              .attr('data-flow-anchor-bypassed', active && gesture.bypassed ? 'true' : undefined)
-              .attr(
-                'data-flow-anchor-snapped',
-                active ? (gesture.snap?.side ?? undefined) : undefined,
-              )
-              .attr('data-flow-anchor-corner', active ? gesture.snap?.corner : undefined)
-              .attr('data-flow-anchor-midpoint', active ? gesture.snap?.midpoint : undefined)
-              .attr('aria-label', `Move port anchor ${port.label ?? port.id} on ${node.label}`)
-              .attr('aria-pressed', String(active))
-              .attr('title', reason ?? 'Drag or use arrow keys to move the port anchor.')
-              .disabled(reason !== null)
-              .style(position(point))
-              .children('⋮'),
-            ...why(`${key}:reason`, { x: point.x, y: point.y + 24 }, reason),
-          ];
-        }),
-      ];
+      const resize =
+        options.resize === false
+          ? []
+          : [
+              h.button
+                .key(`resize:${node.id}`)
+                .class('zloz-ui-group-handle')
+                .attr('type', 'button')
+                .attr('data-flow-resize', node.id)
+                .attr('data-flow-resize-handle', 'bottom-right')
+                .attr('data-zloz-native-resize', '')
+                .attr('aria-label', `Resize ${node.label}, bottom-right`)
+                .attr('title', resizeReason ?? 'Drag or use arrow keys to resize. Escape cancels.')
+                .disabled(resizeReason !== null)
+                .style(position(point))
+                .children(options.renderResize?.(node, resizeReason, h) ?? '↘'),
+              ...why(`resize-reason:${node.id}`, { x: point.x, y: point.y + 24 }, resizeReason),
+            ];
+      const anchors =
+        options.portAnchors === false
+          ? []
+          : node.ports.flatMap((port) => {
+              const anchor = portPosition(node, port.id);
+              const point = {
+                x: anchor.x + (port.side === 'left' ? -24 : 24),
+                y: anchor.y + (port.side === 'top' ? -24 : port.side === 'bottom' ? 24 : 0),
+              };
+              const reason =
+                blocked ??
+                portEditReason(
+                  { operation: 'position', node, port },
+                  authored,
+                  options.policy?.canEditPort,
+                );
+              const gesture = model.gesture;
+              const active =
+                gesture.type === 'anchor' &&
+                gesture.endpoint.node === node.id &&
+                gesture.endpoint.port === port.id;
+              const key = `anchor:${node.id}:${port.id}`;
+              return [
+                h.button
+                  .key(key)
+                  .class('zloz-ui-group-handle')
+                  .attr('type', 'button')
+                  .attr('data-flow-anchor-node', node.id)
+                  .attr('data-flow-anchor-port', port.id)
+                  .attr(
+                    'data-flow-anchor-bypassed',
+                    active && gesture.bypassed ? 'true' : undefined,
+                  )
+                  .attr(
+                    'data-flow-anchor-snapped',
+                    active ? (gesture.snap?.side ?? undefined) : undefined,
+                  )
+                  .attr('data-flow-anchor-corner', active ? gesture.snap?.corner : undefined)
+                  .attr('data-flow-anchor-midpoint', active ? gesture.snap?.midpoint : undefined)
+                  .attr('aria-label', `Move port anchor ${port.label ?? port.id} on ${node.label}`)
+                  .attr('aria-pressed', String(active))
+                  .attr('title', reason ?? 'Drag or use arrow keys to move the port anchor.')
+                  .disabled(reason !== null)
+                  .style(position(point))
+                  .children(options.renderPortAnchor?.(node, port, reason, h) ?? '⋮'),
+                ...why(`${key}:reason`, { x: point.x, y: point.y + 24 }, reason),
+              ];
+            });
+      return [...resize, ...anchors];
     });
   const edge = graph.edges.find(({ id }) => id === model.selectedEdgeId);
-  if (!edge) return controls;
+  if (!edge || options.reconnect === false) return controls;
   const points = edgeEndpoints(graph, edge);
   const reconnect = (['source', 'target'] as const).flatMap((end) => {
     const reason =
@@ -184,6 +228,7 @@ function groupNode<Message>(
       ...(badge
         ? [h.span.class('zloz-ui-group-badge').attr('data-zloz-workshop-badge', '').children(badge)]
         : []),
+      options.renderNode?.(node, selected, h),
       ...node.ports.map((port) => {
         const point = portPosition(node, port.id);
         const endpoint = { node: node.id, port: port.id };
@@ -231,7 +276,10 @@ function groupNode<Message>(
           .attr('title', unavailable ?? `${port.label ?? port.id} — activate to connect`)
           .disabled(unavailable !== null || model.editor.readOnly)
           .style(position({ x: point.x - node.position.x, y: point.y - node.position.y }))
-          .children(h.span.attr('aria-hidden', 'true').children(port.kind === 'input' ? '−' : '+'));
+          .children(
+            options.renderPort?.(node, port, h) ??
+              h.span.attr('aria-hidden', 'true').children(port.kind === 'input' ? '−' : '+'),
+          );
       }),
     );
 }
@@ -266,23 +314,27 @@ export function groupSurfaceV3<Message>(
       .disabled(reason !== null)
       .on('click', onEvent(event))
       .children(label);
+  const defaultControls = () =>
+    h.div(
+      action(
+        'Undo',
+        { type: 'UndoPressed' },
+        historyReason ?? (model.editor.history.past.length ? null : 'No earlier edit.'),
+      ),
+      action(
+        'Redo',
+        { type: 'RedoPressed' },
+        historyReason ?? (model.editor.history.future.length ? null : 'No later edit.'),
+      ),
+      action('Fit view', { type: 'FitViewRequested' }),
+    );
+  const controls =
+    options.renderControls === undefined ? defaultControls() : options.renderControls(model, h);
   return h.div
     .class('zloz-ui-group-stage')
     .style(zlozThemeStyle(options.theme ?? zlozLightTheme))
     .children(
-      h.div(
-        action(
-          'Undo',
-          { type: 'UndoPressed' },
-          historyReason ?? (model.editor.history.past.length ? null : 'No earlier edit.'),
-        ),
-        action(
-          'Redo',
-          { type: 'RedoPressed' },
-          historyReason ?? (model.editor.history.future.length ? null : 'No later edit.'),
-        ),
-        action('Fit view', { type: 'FitViewRequested' }),
-      ),
+      controls,
       ...(historyReason ? [h.p(historyReason)] : []),
       h.p
         .id(`${id}-help`)
@@ -305,8 +357,8 @@ export function groupSurfaceV3<Message>(
         .attr('data-flow-port-anchor-snap-bypass', options.portAnchorSnapBypass)
         .attr('data-flow-space-to-pan', 'true')
         .attr('data-flow-middle-button-pan', 'true')
-        .attr('data-flow-pinch-zoom', 'true')
-        .attr('data-flow-box-selection', 'true')
+        .attr('data-flow-pinch-zoom', options.pinchZoom === false ? undefined : 'true')
+        .attr('data-flow-box-selection', options.boxSelection === false ? undefined : 'true')
         .onMount(Mount.map(surfaceInput(), onEvent))
         .children(
           h.div
@@ -342,7 +394,7 @@ export function groupSurfaceV3<Message>(
                       id: edge.id,
                       additive: false,
                     });
-                    return new Html.Element<Message, never, Html.Events>('path')
+                    const target = new Html.Element<Message, never, Html.Events>('path')
                       .key(edge.id)
                       .class('zloz-ui-edge')
                       .attr('d', geometry.path)
@@ -358,11 +410,18 @@ export function groupSurfaceV3<Message>(
                         { preventDefault: true },
                       )
                       .children();
+                    const artwork = options.renderEdge?.(edge, geometry, h);
+                    if (artwork == null || artwork === false) return target;
+                    const decoration = h
+                      .el('g')
+                      .attrs({ 'aria-hidden': 'true', style: 'pointer-events:none' })
+                      .children(artwork);
+                    return h.el('g').key(edge.id).children(decoration, target);
                   }),
               ),
               ...visible.map((node) => groupNode(h, model, node, options)),
               ...gestureControls(h, model, options, geometryGraph, visible),
-              ...(box
+              ...(box && options.boxSelection !== false
                 ? [
                     h.div
                       .class('zloz-ui-selection')

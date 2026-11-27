@@ -15,6 +15,8 @@ The reference includes:
   shape geometry and undoable architecture/appearance events. These are headless
   contracts; opt-in C4 artwork lives in the optional view entry. DDD artwork and
   pattern builders remain subsequent slices.
+- `@opsydyn/foldkit-zloz/effect-ui`: the graph surface and the V3 group surface,
+  inspector and clipboard controls for Effect UI components.
 - `@opsydyn/foldkit-zloz/foldkit`: view options, node/group shells, public
   interaction primitives, diagnostics and background contracts.
   Opt-in `zlozC4Node`/`zlozC4Group` presets expose content/control slots and scoped

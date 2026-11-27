@@ -530,9 +530,8 @@ Use {@link Core.createGroupEditorV3} and the source-bound
 {@link Core.planGroupConnectionV3} / {@link Core.planGroupOperationV3} planners
 for group endpoints and complete atomic Undo. The distinct
 {@link Core.createGroupWorkbenchV3} / {@link Core.updateGroupWorkbenchV3}
-controller composes with {@link FoldKit.zlozGroupWorkbenchV3},
-{@link FoldKit.zlozGroupInspectorV3}, {@link FoldKit.zlozGroupActionV3} and
-{@link FoldKit.zlozGroupDragHandleV3}. Custom content/controls, live policies,
+controller composes with {@link EffectUI.groupSurfaceV3} and
+{@link EffectUI.groupInspectorV3}. Custom content/controls, live policies,
 light/dark tokens and diagnostics remain composable.
 
 {@link Core.captureModelDocumentV3} and its strict codecs preserve independent
@@ -595,7 +594,7 @@ Native v3 session clipboard uses {@link Core.copyGroupSelectionV3},
 node/edge/scoped-port remapping and one full-document Undo. Mode/capability
 mismatches block rather than silently convert. External-parent detachment and
 crossing-edge omissions produce findings. Opaque metadata references are not
-rewritten. {@link FoldKit.zlozGroupClipboardV3} supplies optional composable
+rewritten. {@link EffectUI.groupClipboardV3} supplies optional composable
 controls with visible reasons, including minimal mode. Session clipboard has no OS
 clipboard IO and is not persisted in models or history.
 
@@ -604,7 +603,7 @@ Native v3 Mermaid is available through {@link Mermaid.exportGroupMermaidV3} and
 {@link Mermaid.updateGroupMermaidReviewV3}. Group port artwork and exact attachment
 are explicit projection losses; native identity/mode/capability remain in the
 separate v3 bundle. Full-source/output consent and current policy guard downloads.
-{@link MermaidFoldkit.zlozGroupMermaidReviewV3} composes highlighted source, findings,
+{@link MermaidEffectUI.groupMermaidReviewV3} composes highlighted source, findings,
 consent and download with nullable slots and required reasons in minimal mode.
 {@link FoldKit.zlozThemeStyle} shares scoped token mapping with optional adapters.
 No production Mermaid import, runtime renderer or native packet writer is implied.

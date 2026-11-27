@@ -1,6 +1,6 @@
 ---
-import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
-import { linkedSourceTree } from '@opsydyn/dataset-explorer/source-lines';
+import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting-core';
+import { linkedSourceTree } from '@opsydyn/dataset-explorer/source-line-core';
 import { toHtml } from 'hast-util-to-html';
 import { highlighter as sharedHighlighter } from '../lib/highlighter';
 interface Props { code: string; lang: string; sourceId: string }

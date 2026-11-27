@@ -45,5 +45,9 @@ class ImportRunTests(unittest.TestCase):
         astro = import_run(viz, *args, "packages/astro-foldkit")
         self.assertEqual(len(astro), 4)
         self.assertEqual(import_run(astro, *args, "packages/astro-foldkit"), astro)
+        renderer = import_run(astro, *args, "packages/astro-effect-ui")
+        self.assertEqual(len(renderer), 5)
+        self.assertEqual(renderer[-1]["workspace"], "packages/astro-effect-ui")
+        self.assertEqual(import_run(renderer, *args, "packages/astro-effect-ui"), renderer)
         with self.assertRaises(ValueError):
             import_run([], *args, "../anywhere")

@@ -16,8 +16,9 @@ export function revealEdgeStrokes(run: number, edgeIds: readonly string[]) {
   if (!board) return;
   for (const id of edgeIds) {
     const stroke = board.querySelector(`[data-flow-edge-stroke="${CSS.escape(id)}"]`);
-    if (!(stroke instanceof SVGPathElement) || stroke.getAttribute('stroke-dasharray') !== 'none')
-      continue;
+    if (!(stroke instanceof SVGPathElement)) continue;
+    const dashArray = stroke.getAttribute('stroke-dasharray');
+    if (dashArray !== null && dashArray !== 'none') continue;
     const length = stroke.getTotalLength();
     if (!(length > 0)) continue;
     const dash = String(length);

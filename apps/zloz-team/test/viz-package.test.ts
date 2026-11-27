@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 import { Schema } from 'effect';
 
+import rootManifest from '../../../package.json';
 import vizManifest from '../../../packages/foldkit-viz/package.json';
 import coreManifest from '../../../packages/foldkit-zloz/package.json';
 
@@ -90,7 +91,7 @@ test('packed Viz root and orbit entries typecheck and run without FoldKit/Effect
   }
 }, 120_000);
 
-test('packed Viz and Zloz share the exact 0.170/4.1 parent host with independent SVG definitions', async () => {
+test('packed Viz and Zloz share the pinned Effect UI host with independent SVG definitions', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-viz-host-'));
   // oxlint-disable-next-line linteffect/no-try-catch -- Reclaim only the owned temporary consumer after native verification succeeds or fails.
   try {
@@ -109,23 +110,20 @@ test('packed Viz and Zloz share the exact 0.170/4.1 parent host with independent
         '--no-fund',
         viz,
         core,
-        'foldkit@0.170.0',
-        'effect@4.1.0',
-        '@effect/platform-browser@4.1.0',
+        rootManifest.workspaces.catalog['@effect/ui'],
+        `effect@${rootManifest.workspaces.catalog.effect}`,
       ],
       { cwd: directory, maxBuffer },
     );
-    expect(await versionAt(directory, 'foldkit')).toBe('0.170.0');
-    expect(await versionAt(directory, 'effect')).toBe('4.1.0');
-    expect(await versionAt(directory, '@effect/platform-browser')).toBe('4.1.0');
+    expect(existsSync(path.join(directory, 'node_modules', 'foldkit'))).toBe(false);
+    expect(await versionAt(directory, 'effect')).toBe(rootManifest.workspaces.catalog.effect);
     expect(await versionAt(directory, '@opsydyn/foldkit-viz')).toBe(vizManifest.version);
     expect(await versionAt(directory, '@opsydyn/foldkit-zloz')).toBe(coreManifest.version);
-    const installed = await exec(
-      'npm',
-      ['ls', '--all', '--parseable', 'foldkit', 'effect', '@effect/platform-browser'],
-      { cwd: directory, maxBuffer },
-    );
-    for (const name of ['foldkit', 'effect', '@effect/platform-browser'])
+    const installed = await exec('npm', ['ls', '--all', '--parseable', '@effect/ui', 'effect'], {
+      cwd: directory,
+      maxBuffer,
+    });
+    for (const name of ['@effect/ui', 'effect'])
       expect(
         installed.stdout
           .trim()

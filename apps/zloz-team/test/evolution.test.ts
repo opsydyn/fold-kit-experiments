@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
 
+import { Html } from '@effect/ui/html';
+import { HtmlLocator, HtmlScene } from '@effect/ui/html/testing';
+import { Locator } from '@effect/ui/testing';
 import type { ZlozGraph } from '@opsydyn/foldkit-zloz';
-import { Scene } from 'foldkit';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect, Schema } from 'effect';
 
 import { empty, graphAt, inspect, observe } from '../src/editor/evolution';
 import { view as evolutionView } from '../src/editor/evolution-view';
@@ -128,39 +130,40 @@ test('workshop chart activation opens the selected version with its retained pre
     (current, version) => observe(current, { version, graph: emptyGraph }),
     empty,
   );
-  type Target = { version: number; baseline?: number };
-  const config = {
-    update: (_model: Target, message: Target) => ({ model: message }),
-    view: (model: Target, h: HtmlBuilder<Target>) =>
+  const Target = Schema.Struct({
+    version: Schema.Number,
+    baseline: Schema.optionalKey(Schema.Number),
+  });
+  const fixture = Html.component({
+    name: 'EvolutionActivation',
+    model: Target,
+    message: Target,
+  }).make({
+    init: () => ({ version: -1 }),
+    update: (_state, target) => target,
+    view: (h, model) =>
       model.version >= 0
-        ? h.p([], [`Review ${model.version}, baseline ${model.baseline ?? 'none'}`])
+        ? h.p.children(`Review ${model.version}, baseline ${model.baseline ?? 'none'}`)
         : evolutionView(
             h,
             history,
             'live',
             () => model,
-            (version, baseline) => ({ version, baseline }),
+            (version, baseline) => (baseline === undefined ? { version } : { version, baseline }),
             'available',
             'workshop',
           ),
-  };
-  for (const [version, expected] of [
-    [17, 'Review 17, baseline none'],
-    [18, 'Review 18, baseline 17'],
-  ] as const) {
-    Scene.scene(
-      config,
-      Scene.given({ version: -1 }),
-      Scene.click(`[data-evolution-version="${version}"]`),
-      Scene.expect(Scene.text(expected)).toExist(),
-    );
-  }
-  Scene.scene(
-    config,
-    Scene.given({ version: -1 }),
-    Scene.click('#board-open-history'),
-    Scene.expect(Scene.text('Review 19, baseline 18')).toExist(),
-  );
+  });
+  Effect.gen(function* () {
+    for (const [attribute, value, expected] of [
+      ['data-evolution-version', '17', 'Review 17, baseline none'],
+      ['data-evolution-version', '18', 'Review 18, baseline 17'],
+      ['id', 'board-open-history', 'Review 19, baseline 18'],
+    ] as const) {
+      const scene = yield* HtmlScene.make(fixture, {});
+      scene.click(Locator.attr(attribute, value)).expect(Locator.text(expected)).toExist();
+    }
+  }).pipe(Effect.scoped, Effect.runSync);
 });
 
 test('only Event Storming domain events contribute to the workshop event series', () => {
@@ -187,24 +190,21 @@ test.each([
       (current, version) => observe(current, { version, graph: emptyGraph }),
       empty,
     );
-    Scene.scene(
-      {
-        update: (model: typeof history) => ({ model }),
-        view: (model: typeof history, h: HtmlBuilder<string>) =>
-          evolutionView(
-            h,
-            model,
-            connection,
-            (value) => value,
-            (version) => String(version),
-            availability,
-            'workshop',
-          ),
-      },
-      Scene.given(history),
-      Scene.expect(Scene.role('table', { name: 'Counts at version 8' })).toExist(),
-      Scene.expect(Scene.role('button', { name: 'Open on canvas' })).toBeDisabled(),
-      Scene.expect(Scene.selector('[data-evolution-version]')).toBeAbsent(),
-    );
+    const fixture = Html.component({
+      name: 'EvolutionCounts',
+      model: Schema.Null,
+      message: Schema.String,
+    }).make({
+      init: () => null,
+      update: ($) => $.model,
+      view: (h) =>
+        evolutionView(h, history, connection, (value) => value, String, availability, 'workshop'),
+    });
+    Effect.gen(function* () {
+      const scene = yield* HtmlScene.make(fixture, {});
+      scene.expect(HtmlLocator.role('table', { name: 'Counts at version 8' })).toExist();
+      scene.expect(HtmlLocator.role('button', { name: 'Open on canvas' })).toBeDisabled();
+      scene.expect(Locator.attr('data-evolution-version')).toBeAbsent();
+    }).pipe(Effect.scoped, Effect.runSync);
   },
 );

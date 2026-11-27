@@ -3,20 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build && bun tools/dev.ts",
+    "dev": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-effect-ui build && bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && bun tools/dev.ts",
     "bootstrap": "bun tools/bootstrap.ts",
-    "build": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build && bun tools/build.ts",
-    "typecheck": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build && astro check && tsc --noEmit -p tsconfig.infra.json",
-    "test": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit -p tsconfig.test.json && bun test ./test",
+    "build": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-effect-ui build && bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && bun tools/build.ts",
+    "typecheck": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-effect-ui build && bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && astro check && tsc --noEmit -p tsconfig.infra.json",
+    "test": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-effect-ui build && bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit -p tsconfig.test.json && bun test ./test",
     "plan:staging": "bun tools/staging.ts plan",
     "deploy:staging": "bun tools/staging.ts deploy",
-    "qualify:load": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit -p tsconfig.test.json && ZLOZ_RUN_LOAD=1 bun test test/runtime.test.ts --test-name-pattern \"five-editor declared load\"",
+    "qualify:load": "bun run --filter @opsydyn/foldkit-phosphor build && bun run --filter @opsydyn/foldkit-zloz-alchemy build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/astro-effect-ui build && bun run --filter @opsydyn/foldkit-zloz build && bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit -p tsconfig.test.json && ZLOZ_RUN_LOAD=1 bun test test/runtime.test.ts --test-name-pattern \"five-editor declared load\"",
     "qualify:packed": "bun tools/qualify-packed.ts"
   },
   "dependencies": {
     "@effect/ui": "catalog:",
     "@opsydyn/astro-effect-ui": "workspace:*",
-    "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/foldkit-phosphor": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@opsydyn/foldkit-zloz": "workspace:*",
@@ -26,7 +25,6 @@
     "@vanilla-extract/css": "catalog:",
     "astro": "catalog:",
     "effect": "catalog:",
-    "foldkit": "catalog:",
     "likec4": "catalog:"
   },
   "devDependencies": {
@@ -40,6 +38,7 @@
     "@vanilla-extract/vite-plugin": "catalog:",
     "alchemy": "catalog:infra",
     "bun-types": "catalog:",
+    "happy-dom": "catalog:",
     "playwright": "catalog:",
     "typescript": "catalog:",
     "workerd": "1.20261110.1"

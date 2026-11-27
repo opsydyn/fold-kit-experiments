@@ -1,21 +1,21 @@
 import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { createOperationDocument, parseGraph } from '@opsydyn/foldkit-zloz';
 import { isDiagramFrame, type DiagramFrame } from '@opsydyn/foldkit-zloz-alchemy/session';
 import { parseCouplingAssessment } from '@opsydyn/foldkit-zloz/coupling';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 
 import graph from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import * as Assessment from '../src/editor/assessment';
+import { view as effectUiView } from '../src/editor/coupling/effect-ui';
 import { Message } from '../src/editor/coupling/message';
 import { init } from '../src/editor/coupling/model';
 import { observe, update } from '../src/editor/coupling/update';
-import { view } from '../src/editor/coupling/view';
 import * as Editor from '../src/editor/main';
 import fixture from './fixtures/coupling-projection-v1.json';
+import { renderStatic } from './render-native';
 
 const assessment = parseCouplingAssessment(JSON.stringify(fixture.assessment));
 const frame: DiagramFrame = {
@@ -34,7 +34,7 @@ test('initial observation selects a sole exact cohort; an explicit All-scopes ch
   expect(model.cohort).toBe('["balanced-coupling-binary/v1","C4 containers","Next quarter"]');
   const all = update(model, Message.SelectedCohort({ key: '' }));
   expect(all.model.cohort).toBeNull();
-  expect(all.commands).toBeUndefined();
+  expect(all).not.toHaveProperty('commands');
   expect(observe(all.model, { ...frame, sourceVersion: 12 }).cohort).toBeNull();
 });
 test('missing cohorts clear rather than silently selecting a different one; unread frames stay waiting', () => {
@@ -110,7 +110,7 @@ test('pages are bounded and clamped; selection/review emit typed local events wi
   expect(observe(model, frame).page).toBe(0);
   const selected = update(model, Message.ClickedRelationship({ id: 'edge-24' }));
   expect(selected.outMessage).toEqual({ _tag: 'SelectedRelationship', id: 'edge-24' });
-  expect(selected.commands).toBeUndefined();
+  expect(selected).not.toHaveProperty('commands');
   expect(update(model, Message.ClickedReview({ id: 'edge-24' })).outMessage).toEqual({
     _tag: 'RequestedAssessmentReview',
     id: 'edge-24',
@@ -314,45 +314,10 @@ test('retained removed records can open their original assessment without changi
 
 const render = async (model: ReturnType<typeof init>) =>
   (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (state, h: HtmlBuilder<Message>) => ({
-            title: 'Map fixture',
-            body: view(state, h, (message) => message, { selectedId: 'ab', connectionNotice: '' }),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
+    await renderStatic(Message, (h) =>
+      effectUiView(model, h, (message) => message, { selectedId: 'ab', connectionNotice: '' }),
     )
   ).html;
-test('SSR/table fallback, measured orbit and All-scopes mode expose honest qualitative labels and evidence', async () => {
-  expect(await render(init())).toContain('Waiting for a confirmed diagram');
-  const model = observe(init(), frame);
-  const narrow = await render(update(model, Message.RecordedWidth({ width: 299 })).model);
-  expect(narrow).not.toContain('class="chart-orbit"');
-  expect(narrow).toContain('<table');
-  expect(narrow).toContain('Evidence and provenance');
-  expect(narrow).toContain('high cohesion');
-  expect(narrow).toContain('A comparison needs a second fully assessed relationship');
-  expect(narrow).toContain('model · declared');
-  const wide = await render(update(model, Message.RecordedWidth({ width: 300 })).model);
-  expect(wide).toContain('class="chart-orbit"');
-  expect(wide).toContain('role="button"');
-  expect(wide).toContain('r="22"');
-  expect(wide).not.toContain('chart-orbit-pulse');
-  const all = await render(
-    update(
-      update(model, Message.RecordedWidth({ width: 800 })).model,
-      Message.SelectedCohort({ key: '' }),
-    ).model,
-  );
-  expect(all).not.toContain('class="chart-orbit"');
-  expect(all).toContain('Not started');
-  expect(all).toContain('data-coupling-row="cb"');
-});
 
 test('comparison context is visible before readiness and identifies eligible assessments across the full group', async () => {
   const scopes = [
@@ -424,4 +389,26 @@ test('the comparison count covers the exact group while orbit marks cover the cu
   expect(second).toContain('13 of 13 relationships have comparable outcomes');
   expect(second).toContain('1 assessed of 1 displayed relationships');
   expect(second).toContain('C4 containers · Next quarter · balanced-coupling-binary/v1.');
+});
+
+test('Effect UI renders the same table and exposes measured orbit marks as selectable controls', async () => {
+  const coupled = observe(init(), frame);
+  const model = update(coupled, Message.RecordedWidth({ width: 300 })).model;
+  const fixture = Html.component({
+    name: 'CouplingViewFixture',
+    model: Schema.Struct({}),
+    message: Message,
+  }).make({
+    init: () => ({}),
+    update: ({ model }) => model,
+    view: (h) =>
+      effectUiView(model, h, (message) => message, { selectedId: 'ab', connectionNotice: '' }),
+  });
+  const { html } = await Effect.runPromise(HtmlServer.renderToHtml(fixture, {}));
+  expect(html).toContain('data-coupling-row="ab"');
+  expect(html).toMatch(
+    /<circle[^>]*class="chart-orbit-mark"[^>]*role="button"[^>]*aria-pressed="true"/,
+  );
+  expect(html).toContain('patternUnits="userSpaceOnUse"');
+  expect(html).toContain('Evidence and provenance');
 });

@@ -1,12 +1,11 @@
 import effectUi from '@opsydyn/astro-effect-ui';
-import foldkit from '@opsydyn/astro-foldkit';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
 
 // Alchemy supplies the Cloudflare SSR adapter and private Service Binding.
 export default defineConfig({
   output: 'server',
-  integrations: [foldkit(), effectUi({ interaction: false })],
+  integrations: [effectUi()],
   server: { port: 4331 },
   vite: {
     plugins: [vanillaExtractPlugin()],

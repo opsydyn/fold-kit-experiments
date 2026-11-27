@@ -1,8 +1,8 @@
 import { UiSchema } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { serializeGraph, upgradeGroupDocumentV3, type ZlozGraph } from '@opsydyn/foldkit-zloz';
 import { exportMermaid } from '@opsydyn/foldkit-zloz-mermaid';
-import { Option, Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Schema } from 'effect';
 
 export const Kind = Schema.Literals(['mermaid', 'likec4']);
 export type Kind = typeof Kind.Type;
@@ -68,7 +68,7 @@ export const launcherId = (kind: Kind) => `board-${kind}-open`;
 export const label = (kind: Kind) => (kind === 'likec4' ? 'LikeC4' : 'Mermaid');
 
 export function view<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   review: Review,
   availability: Availability,
   actions: Readonly<{
@@ -79,40 +79,37 @@ export function view<M>(
   }>,
 ) {
   const button = (label: string, action: M, disabled = false) =>
-    h.button([h.Type('button'), h.Disabled(disabled), h.OnClick(action)], [label]);
+    h.button.attr('type', 'button').disabled(disabled).on('click', action).children(label);
   const name = label(review.kind);
   const diagnostics = review._tag === 'Loading' ? [] : review.diagnostics;
   const current = availability === 'current';
   const downloads = review._tag === 'Ready';
   const allowDownload = current && downloads && (review.accepted || diagnostics.length === 0);
-  return h.div(
-    [
-      h.Id('board-mermaid'),
-      h.Class('board-mermaid'),
-      h.Role('region'),
-      h.AriaLabel(`${name} export preview`),
-      h.Tabindex(-1),
-      h.OnKeyDownPreventDefault((key) =>
-        key === 'Escape' ? Option.some(actions.close) : Option.none(),
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('mermaid-review-header')],
-        [
-          h.div(
-            [],
-            [h.h2([], [`${name} export`]), h.p([], [`Confirmed version ${review.version}`])],
+  return h.div
+    .id('board-mermaid')
+    .class('board-mermaid')
+    .attr('role', 'region')
+    .attr('aria-label', `${name} export preview`)
+    .attr('tabindex', String(-1))
+    .on('keydown', ({ key }) => (key === 'Escape' ? actions.close : undefined), {
+      preventDefault: true,
+    })
+    .children(
+      h.div
+        .class('mermaid-review-header')
+        .children(
+          h.div.children(
+            h.h2.children(`${name} export`),
+            h.p.children(`Confirmed version ${review.version}`),
           ),
           button(`Close ${name} preview`, actions.close),
-        ],
-      ),
-      h.div(
-        [h.Class('mermaid-review-body')],
-        [
-          h.p(
-            [h.Role('status')],
-            [
+        ),
+      h.div
+        .class('mermaid-review-body')
+        .children(
+          h.p
+            .attr('role', 'status')
+            .children(
               availability === 'offline'
                 ? `Reconnect to review or download ${name}.`
                 : availability === 'newer'
@@ -124,95 +121,87 @@ export function view<M>(
                     : review._tag === 'Loading'
                       ? 'Preparing LikeC4 preview…'
                       : 'The converter could not export this version.',
-            ],
-          ),
+            ),
           ...(availability === 'newer' ? [button('Review latest version', actions.refresh)] : []),
           ...(diagnostics.length
             ? [
-                h.h3([], ['Conversion diagnostics']),
-                h.ul(
-                  [h.AriaLabel(`${name} conversion diagnostics`)],
-                  diagnostics.map((item, index) =>
-                    h.li(
-                      [h.Key(String(index))],
-                      [
-                        `${item.severity === 'error' ? 'Error' : 'Loss'} · ${item.subject === null ? '' : `${item.subject} · `}${item.message}`,
-                      ],
+                h.h3.children('Conversion diagnostics'),
+                h.ul
+                  .attr('aria-label', `${name} conversion diagnostics`)
+                  .children(
+                    diagnostics.map((item, index) =>
+                      h.li
+                        .key(String(index))
+                        .children(
+                          `${item.severity === 'error' ? 'Error' : 'Loss'} · ${item.subject === null ? '' : `${item.subject} · `}${item.message}`,
+                        ),
                     ),
                   ),
-                ),
               ]
             : []),
           ...(downloads
             ? [
-                h.h3([], [`${name} source`]),
+                h.h3.children(`${name} source`),
                 ...(review.kind === 'mermaid'
-                  ? [h.p([], ['The bundle includes ZLOZ identifiers and conversion diagnostics.'])]
+                  ? [
+                      h.p.children(
+                        'The bundle includes ZLOZ identifiers and conversion diagnostics.',
+                      ),
+                    ]
                   : [
-                      h.p(
-                        [],
-                        [
-                          'The LikeC4 file omits shared assessments, decisions and board appearance.',
-                        ],
+                      h.p.children(
+                        'The LikeC4 file omits shared assessments, decisions and board appearance.',
                       ),
                     ]),
-                h.pre([h.AriaLabel(`${name} source`), h.Tabindex(0)], [review.source]),
+                h.pre
+                  .attr('aria-label', `${name} source`)
+                  .attr('tabindex', String(0))
+                  .children(review.source),
               ]
             : []),
-        ],
-      ),
+        ),
       ...(downloads
         ? [
-            h.div(
-              [h.Class('mermaid-review-footer')],
-              [
-                ...(diagnostics.length
-                  ? [
-                      h.label(
-                        [h.Class('mermaid-consent')],
-                        [
-                          h.input([
-                            h.Type('checkbox'),
-                            h.Checked(current && review.accepted),
-                            h.Disabled(!current),
-                            h.OnClick(actions.accept(!review.accepted)),
-                          ]),
-                          'Allow reported conversion losses',
-                        ],
-                      ),
-                    ]
-                  : []),
-                h.div(
-                  [h.Class('mermaid-download-actions')],
-                  [
-                    button(`Download ${name} source`, actions.download('source'), !allowDownload),
-                    ...(review.kind === 'mermaid'
-                      ? [
-                          button(
-                            'Download Mermaid bundle',
-                            actions.download('bundle'),
-                            !allowDownload,
-                          ),
-                        ]
-                      : []),
-                  ],
+            h.div.class('mermaid-review-footer').children(
+              ...(diagnostics.length
+                ? [
+                    h.label.class('mermaid-consent').children(
+                      h.input
+                        .attr('type', 'checkbox')
+                        .checked(current && review.accepted)
+                        .disabled(!current)
+                        .on('click', actions.accept(!review.accepted)),
+                      'Allow reported conversion losses',
+                    ),
+                  ]
+                : []),
+              h.div
+                .class('mermaid-download-actions')
+                .children(
+                  button(`Download ${name} source`, actions.download('source'), !allowDownload),
+                  ...(review.kind === 'mermaid'
+                    ? [
+                        button(
+                          'Download Mermaid bundle',
+                          actions.download('bundle'),
+                          !allowDownload,
+                        ),
+                      ]
+                    : []),
                 ),
-                ...(current && review.download !== 'idle'
-                  ? [
-                      h.p(
-                        [h.Role('status')],
-                        [
-                          review.download === 'started'
-                            ? 'Download started.'
-                            : `Could not start the ${name} download. Try again.`,
-                        ],
+              ...(current && review.download !== 'idle'
+                ? [
+                    h.p
+                      .attr('role', 'status')
+                      .children(
+                        review.download === 'started'
+                          ? 'Download started.'
+                          : `Could not start the ${name} download. Try again.`,
                       ),
-                    ]
-                  : []),
-              ],
+                  ]
+                : []),
             ),
           ]
         : []),
-    ],
-  );
+    );
 }

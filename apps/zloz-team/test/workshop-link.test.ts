@@ -2,12 +2,11 @@ import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import { createOperationDocument, decideOperation } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
 
 import { workshopLinkDenial } from '../../zloz-server/src/workshop-link';
-import { init, Message, update, view } from '../src/editor/main';
+import { init, Message, update } from '../src/editor/main';
 import { createWorkshopNote } from '../src/editor/workshop';
+import { renderBoard } from './render-native';
 
 const document = createOperationDocument({
   nodes: [
@@ -134,12 +133,7 @@ test('two editors author command → event → policy and recover both links aft
       architecture: { family: 'event-storming', role: 'activates' },
     }),
   );
-  const rendered = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model: peer }), view },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const rendered = await renderBoard(peer);
   expect(rendered.html).toContain('Command produces Domain Event');
   expect(rendered.html).toContain('Domain Event activates Policy');
   expect(rendered.html).toContain('Activates · domain event → policy');
@@ -246,19 +240,7 @@ test('a viewer follows only confirmed typed steps, reveals them locally and reco
   const send = (message: Parameters<typeof update>[1]) => {
     model = update(model, message).model;
   };
-  const panel = async () =>
-    (
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model }),
-            view,
-          },
-          { flags: {}, isHydratable: false },
-        ),
-      )
-    ).html;
+  const panel = async () => (await renderBoard(model)).html;
   send(
     Message.ObservedEditorInput({
       event: { type: 'SurfaceMeasured', size: { width: 800, height: 500 } },
@@ -384,15 +366,7 @@ test('a shared Triggers closes the loop, marks the repeated command and backs up
   const send = (message: Parameters<typeof update>[1]) => {
     viewer = update(viewer, message).model;
   };
-  const render = async () =>
-    (
-      await Effect.runPromise(
-        renderToString(
-          { Flags: Schema.Struct({}), init: () => ({ model: viewer }), view },
-          { flags: {}, isHydratable: false },
-        ),
-      )
-    ).html;
+  const render = async () => (await renderBoard(viewer)).html;
   send(Message.SelectedInspector({ inspector: 'journey' }));
   send(Message.ChoseJourneyStart({ id: 'submit' }));
   send(Message.FollowedJourneyLink({ id: 'produces' }));
@@ -438,15 +412,7 @@ test('a large fork keeps the full trail choices and centres the overview on an o
   const send = (message: Parameters<typeof update>[1]) => {
     model = update(model, message).model;
   };
-  const render = async () =>
-    (
-      await Effect.runPromise(
-        renderToString(
-          { Flags: Schema.Struct({}), init: () => ({ model }), view },
-          { flags: {}, isHydratable: false },
-        ),
-      )
-    ).html;
+  const render = async () => (await renderBoard(model)).html;
   send(Message.SelectedInspector({ inspector: 'journey' }));
   send(Message.ChoseJourneyStart({ id: 'start' }));
   const fork = await render();

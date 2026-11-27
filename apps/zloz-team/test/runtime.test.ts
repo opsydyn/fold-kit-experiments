@@ -193,7 +193,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
 
   const canvasCamera = (page: Page) =>
     page.locator('[data-flow-surface]').evaluate((element) => {
-      const world = element.querySelector('[style*="transform-origin"]');
+      const world = element.querySelector('.zloz-ui-world');
       if (!world) throw new Error('Canvas world is missing');
       const matrix = new DOMMatrix(getComputedStyle(world).transform);
       return {
@@ -693,7 +693,15 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await page.getByLabel('Inspector view', { exact: true }).selectOption('selection');
       await node(page, before).press('Enter');
       await page.getByLabel('Node label', { exact: true }).fill(after);
+      const sent = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url() === api + '/operations',
+        { timeout: 5000 },
+      );
       await page.getByRole('button', { name: 'Rename node', exact: true }).click();
+      expect(parseOperationRequest((await sent).postData() ?? '').operation).toMatchObject({
+        type: 'RenameNode',
+        label: after,
+      });
       await browserExpect(node(page, after)).toBeVisible();
       await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
     };
@@ -1189,6 +1197,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       role: 'editor',
       frame: { document: { version: 0, undo: [] } },
     });
+    const boardPage = await fetch(`${origin}/app/${data.organizationId}/diagrams/${id}`, {
+      headers: { cookie: data.editor.cookie },
+    });
+    expect(boardPage.status).toBe(200);
+    const boardHtml = await boardPage.text();
+    expect(boardHtml.includes('data-flow-surface="shared-diagram"')).toBe(true);
+    expect(boardHtml.includes('aria-label="Board commands"')).toBe(true);
     const url = new URL('/api/zloz/live', origin.replace('http:', 'ws:'));
     url.searchParams.set(
       'read',
@@ -3290,7 +3305,10 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
               ) >= snapshot.frame.document.version,
           );
           await page.getByRole('button', { name: 'Fit view', exact: true }).click();
-          await poll(async () => (await page.locator('[data-flow-node]').count()) === count);
+          await poll(
+            async () =>
+              (await page.locator('[data-flow-node]:not([data-flow-group])').count()) === count,
+          );
         }
       };
       await saved(pageA);
@@ -3324,6 +3342,8 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
           .locator('[data-flow-port="out"]')
           .evaluate((port) => {
             const style = getComputedStyle(port);
+            const socket = port.getBoundingClientRect();
+            const frame = port.closest('[data-flow-node]')!.getBoundingClientRect();
             return {
               width: style.width,
               height: style.height,
@@ -3333,8 +3353,9 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
               cursor: style.cursor,
               pointerEvents: style.pointerEvents,
               position: style.position,
-              right: style.right,
-              bottom: style.bottom,
+              horizontalAnchor: Math.abs(socket.x + socket.width / 2 - frame.right) <= 2,
+              verticalAnchor:
+                Math.abs(socket.y + socket.height / 2 - (frame.y + frame.height / 2)) <= 2,
               translation: [
                 new DOMMatrixReadOnly(style.transform).m41,
                 new DOMMatrixReadOnly(style.transform).m42,
@@ -3350,13 +3371,13 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         cursor: 'crosshair',
         pointerEvents: 'auto',
         position: 'absolute',
-        right: '-24px',
-        bottom: '16px',
+        horizontalAnchor: true,
+        verticalAnchor: true,
         translation: [-12, -12],
       });
       const nodeStyle = (page: typeof pageA) =>
         alpha(page).evaluate((node) => {
-          const shell = getComputedStyle(node.firstElementChild!);
+          const shell = getComputedStyle(node);
           const title = getComputedStyle(node.querySelector('[data-flow-handle]')!);
           return {
             height: shell.height,
@@ -3637,7 +3658,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         async () =>
           (await pageA.locator('[data-save-status]').textContent()) === 'Save outcome unknown',
       );
-      expect(await pageB.locator('[data-flow-node]').count()).toBe(3);
+      expect(await pageB.locator('[data-flow-node]:not([data-flow-group])').count()).toBe(3);
       await pageA.unroute('**/operations');
       await pageA.getByRole('button', { name: 'Retry saved request', exact: true }).click();
       await allNodesVisible(4);
@@ -5777,6 +5798,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       const page = await context.newPage();
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`${origin}/app/${data.organizationId}/diagrams/${id}`);
+      await browserExpect(page.locator('[data-save-status]')).toHaveText('Saved');
       if (index === 2) await page.getByRole('button', { name: 'Inspector', exact: true }).click();
       await page.getByLabel('Assess relationship', { exact: true }).selectOption('ab');
       pages.push(page);

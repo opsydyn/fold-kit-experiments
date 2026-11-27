@@ -1,11 +1,11 @@
+import { UiSchema } from '@effect/ui';
+import { Html, HtmlServer } from '@effect/ui/html';
 import { orbitGeometry } from '@opsydyn/foldkit-viz/chart/orbit';
-import { orbitChart, type OrbitChartOptions } from '@opsydyn/foldkit-viz/foldkit/orbit';
-import { hatchPattern } from '@opsydyn/foldkit-viz/foldkit/paint';
-import { createEditor, serializeGraph, type EditorEvent } from '@opsydyn/foldkit-zloz';
-import { zlozView } from '@opsydyn/foldkit-zloz/foldkit';
+import { orbitChart, type OrbitChartOptions } from '@opsydyn/foldkit-viz/effect-ui/orbit';
+import { hatchPattern } from '@opsydyn/foldkit-viz/effect-ui/paint';
+import { createEditor, serializeGraph } from '@opsydyn/foldkit-zloz';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 
 const check = (condition: boolean, reason: string): void => {
   if (!condition) throw new Error(reason);
@@ -16,9 +16,11 @@ const data = ['intrusive', 'functional', 'model', 'contract'].map((kind) => ({
   label: `${kind} <relationship>`,
 }));
 type Datum = (typeof data)[number];
-type Message =
-  | Readonly<{ _tag: 'ClickedRelationship'; key: string }>
-  | Readonly<{ _tag: 'GotCanvasEvent'; event: EditorEvent }>;
+const Message = UiSchema.TaggedEnum({
+  ClickedRelationship: { key: Schema.String },
+  GotCanvasEvent: { event: Schema.Unknown },
+});
+type Message = typeof Message.Type;
 const editor = createEditor({
   nodes: [
     {
@@ -51,7 +53,7 @@ const geometry = orbitGeometry(
   { key: (d) => d.id, value: () => 1, halo: (d) => d.kind },
   { size: 300, nodeRadius: { min: 22, max: 22 } },
 );
-const options = (h: HtmlBuilder<Message>, id: string): OrbitChartOptions<Datum, Message> => ({
+const options = (h: Html.H<Message>, id: string): OrbitChartOptions<Datum, Message> => ({
   geometry,
   title: 'Relationship layout',
   description: 'Synthetic package compatibility fixture',
@@ -61,34 +63,29 @@ const options = (h: HtmlBuilder<Message>, id: string): OrbitChartOptions<Datum, 
   nodeStyle: () => ({ fill: `url(#${id})`, stroke: 'currentColor' }),
   labelFor: (datum) => datum.label,
 });
-const result = await Effect.runPromise(
-  renderToString(
-    {
-      Flags: Schema.Struct({}),
-      init: () => ({ model: 0 }),
-      view: (_model: number, h: HtmlBuilder<Message>) => ({
-        title: 'One parent builder',
-        body: h.div(
-          [],
-          [
-            zlozView(h, editor, {
-              id: 'qualification-canvas',
-              label: 'Qualification canvas',
-              onEvent: (event): Message => ({ _tag: 'GotCanvasEvent', event }),
-            }),
-            orbitChart(h, {
-              ...options(h, 'qualification-orbit-a-hatch'),
-              selectedKey: 'relationship-model',
-              onSelect: (key): Message => ({ _tag: 'ClickedRelationship', key }),
-            }),
-            orbitChart(h, options(h, 'qualification-orbit-b-hatch')),
-          ],
-        ),
+const Host = Html.component({
+  name: 'PackedVizHost',
+  model: Schema.Null,
+  message: Message,
+}).make({
+  init: () => null,
+  update: ($) => $.model,
+  view: (h) =>
+    h.div.children(
+      graphSurface(h, editor, {
+        id: 'qualification-canvas',
+        label: 'Qualification canvas',
+        onInput: (event) => Message.GotCanvasEvent({ event }),
       }),
-    },
-    { flags: {}, isHydratable: false },
-  ),
-);
+      orbitChart(h, {
+        ...options(h, 'qualification-orbit-a-hatch'),
+        selectedKey: 'relationship-model',
+        onSelect: (key) => Message.ClickedRelationship({ key }),
+      }),
+      orbitChart(h, options(h, 'qualification-orbit-b-hatch')),
+    ),
+});
+const result = await Effect.runPromise(HtmlServer.renderToHtml(Host, {}, { static: true }));
 const html = result.html;
 check(html.includes('id="qualification-canvas-surface"'), 'Render the real Zloz canvas');
 check(html.split('class="chart-orbit-node"').length - 1 === 8, 'Render both four-category orbits');

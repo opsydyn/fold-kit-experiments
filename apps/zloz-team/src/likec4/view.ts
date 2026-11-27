@@ -4,6 +4,15 @@ import { creationBody, requestLimit } from './review';
 import { acceptedGraphText, candidate, Message, type State } from './state';
 
 export function view(h: Html.H<Message>, model: State, blockedReason = '') {
+  return importView(h, model, (message) => message, blockedReason);
+}
+
+export function importView<M>(
+  h: Html.H<M>,
+  model: State,
+  send: (message: Message) => M,
+  blockedReason = '',
+) {
   const disabled = model.submission !== 'idle';
   const review = model.review;
   const ready = review?.status === 'ready' ? review : null;
@@ -36,7 +45,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
           .attr('accept', '.json,application/json')
           .disabled(disabled)
           .value('')
-          .on('change', ({ files }) => Message.SelectedFile({ file: files[0] })),
+          .on('change', ({ files }) => send(Message.SelectedFile({ file: files[0] }))),
       ),
       ...(alchemy
         ? [
@@ -46,12 +55,12 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
                 .value(model.source)
                 .disabled(disabled || model.reading)
                 .attr('maxlength', String(requestLimit))
-                .on('input', ({ value: text }) => Message.ChangedSnapshotText({ text })),
+                .on('input', ({ value: text }) => send(Message.ChangedSnapshotText({ text }))),
             ),
             h.button
               .attr('type', 'button')
               .disabled(disabled || model.reading || !model.source.trim())
-              .on('click', Message.ClickedReviewSnapshot())
+              .on('click', send(Message.ClickedReviewSnapshot()))
               .children('Review snapshot'),
           ]
         : []),
@@ -62,7 +71,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
               'Static view',
               h.select
                 .disabled(disabled)
-                .on('change', ({ value: id }) => Message.SelectedView({ id }))
+                .on('change', ({ value: id }) => send(Message.SelectedView({ id })))
                 .children(
                   h.option
                     .attr('value', '')
@@ -94,7 +103,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
               ? [
                   h.button
                     .attr('type', 'button')
-                    .on('click', Message.FocusedFinding({ resource: null }))
+                    .on('click', send(Message.FocusedFinding({ resource: null })))
                     .children('Show whole stack'),
                 ]
               : []),
@@ -145,7 +154,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
                         h.button
                           .attr('type', 'button')
                           .attr('aria-pressed', String(model.focused === item.subject))
-                          .on('click', Message.FocusedFinding({ resource: item.subject }))
+                          .on('click', send(Message.FocusedFinding({ resource: item.subject })))
                           .children(`Show ${item.subject}`),
                       ]
                     : []),
@@ -180,7 +189,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
                       .value(model.name)
                       .attr('maxlength', String(120))
                       .disabled(disabled)
-                      .on('input', ({ value: value }) => Message.ChangedName({ value })),
+                      .on('input', ({ value: value }) => send(Message.ChangedName({ value }))),
                   ),
                 ]
               : []),
@@ -191,7 +200,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
                       .attr('type', 'checkbox')
                       .checked(model.accepted)
                       .disabled(disabled)
-                      .on('click', Message.ChangedAcknowledgement()),
+                      .on('click', send(Message.ChangedAcknowledgement())),
                     ' I reviewed the import losses',
                   ),
                 ]
@@ -207,7 +216,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
               h.button
                 .attr('type', 'button')
                 .disabled(disabled)
-                .on('click', Message.CancelledPreview())
+                .on('click', send(Message.CancelledPreview()))
                 .children('Cancel preview'),
               h.button
                 .attr('type', 'button')
@@ -216,7 +225,7 @@ export function view(h: Html.H<Message>, model: State, blockedReason = '') {
                     ? Boolean(blockedReason) || emptyImport || !acceptedGraphText(model)
                     : !candidate(model) || model.submission === 'sending',
                 )
-                .on('click', Message.ClickedApply())
+                .on('click', send(Message.ClickedApply()))
                 .children(
                   model.insideBoard
                     ? 'Import into this board'

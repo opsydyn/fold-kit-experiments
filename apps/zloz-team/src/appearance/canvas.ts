@@ -1,4 +1,4 @@
-import type { ZlozTheme } from '@opsydyn/foldkit-zloz/foldkit';
+import type { ZlozTheme } from '@opsydyn/foldkit-zloz/effect-ui';
 
 /** Values follow the document's personal palette. No graph/editor state is retained. */
 export const teamCanvasTheme: ZlozTheme = {

@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import {
   lightTheme,
@@ -10,11 +11,10 @@ import {
   chartFrame,
   dataTable,
   grid,
-  legend,
   lineSeries,
   pointSeries,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { HtmlBuilder } from 'foldkit/html';
+} from '@opsydyn/foldkit-viz/effect-ui/cartesian';
+import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
 
 import { windowSize, type History, type Sample, type SeriesKey } from './evolution';
 
@@ -94,7 +94,7 @@ const theme: ChartTheme = {
 type Row = Readonly<{ key: SeriesKey; label: string; version: number; count: number }>;
 
 function plot<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   samples: readonly Sample[],
   inspected: Sample,
   perspective: Perspective,
@@ -104,7 +104,7 @@ function plot<M>(
     perspective === 'workshop'
       ? workshopSeries
       : architectureSeries.filter(({ key }) => samples.some(({ counts }) => counts[key] > 0));
-  if (active.length === 0) return [h.p([], ['No nodes or relationships in this window.'])];
+  if (active.length === 0) return [h.p.children('No nodes or relationships in this window.')];
 
   const rows: readonly Row[] = samples.flatMap(({ version, counts }) =>
     active.map(({ key, label }) => ({ key, label, version, count: counts[key] })),
@@ -183,30 +183,71 @@ function plot<M>(
               const { plot, x } = geometry.layout;
               const left = Math.max(plot.left, x(version - 0.5));
               const right = Math.min(plot.right, x(version + 0.5));
-              return h.rect(
-                [
-                  h.Key(String(version)),
-                  h.DataAttribute('evolution-version', String(version)),
-                  h.X(String(left)),
-                  h.Y(String(plot.top)),
-                  h.Width(String(right - left)),
-                  h.Height(String(plot.height)),
-                  h.Class('evolution-version-target'),
-                  h.OnClick(onReview(version)),
-                ],
-                [h.title([], [`Review version ${version}`])],
-              );
+              return h
+                .el('rect')
+                .key(String(version))
+                .attr('data-evolution-version', String(version))
+                .attr('x', String(left))
+                .attr('y', String(plot.top))
+                .attr('width', String(right - left))
+                .attr('height', String(plot.height))
+                .attr('class', 'evolution-version-target')
+                .on('click', onReview(version))
+                .children(h.el('title').children(`Review version ${version}`));
             })
           : []),
       ],
     ),
-    legend(h, { entries, theme }),
-    ...(onReview ? [h.p([], ['Select a point to rewind to its version.'])] : []),
+    h.ul
+      .class('chart-legend')
+      .style({
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '16px',
+        padding: '0',
+        margin: '12px 0',
+        listStyle: 'none',
+        color: theme.text,
+        fontFamily: theme.fontFamily,
+        fontSize: `${theme.labelSize}px`,
+      })
+      .children(
+        ...entries.map(({ key, label, style }) =>
+          h.li
+            .key(key)
+            .style({ display: 'flex', alignItems: 'center', gap: '6px' })
+            .children(
+              h
+                .el('svg')
+                .attrs({
+                  width: '20',
+                  height: '20',
+                  viewBox: '-10 -10 20 20',
+                  'aria-hidden': 'true',
+                })
+                .children(
+                  h
+                    .el('path')
+                    .attrs({
+                      'data-symbol': style.symbol,
+                      d: symbolPath(style.symbol, 64),
+                      fill: style.fill,
+                      stroke: style.stroke,
+                      'stroke-width': String(style.strokeWidth),
+                      opacity: String(style.opacity),
+                    })
+                    .children(),
+                ),
+              label,
+            ),
+        ),
+      ),
+    ...(onReview ? [h.p.children('Select a point to rewind to its version.')] : []),
   ];
 }
 
 export function view<M>(
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   history: History,
   connection: 'live' | 'offline' | 'denied',
   onInspect: (value: string) => M,
@@ -222,39 +263,34 @@ export function view<M>(
       version,
       perspective === 'workshop' && first && version > first.version ? version - 1 : undefined,
     );
-  const heading = h.h2([h.Class('rail-heading')], ['Diagram Evolution']);
+  const heading = h.h2.class('rail-heading').children('Diagram Evolution');
   const contents =
     connection === 'denied'
-      ? [h.p([], ['Access ended.'])]
+      ? [h.p.children('Access ended.')]
       : first && last && inspected
         ? [
-            h.p(
-              [h.Class('evolution-window')],
-              [
+            h.p
+              .class('evolution-window')
+              .children(
                 first.version === last.version
                   ? `Version ${last.version}`
                   : `Versions ${first.version}–${last.version}`,
-              ],
-            ),
-            h.p(
-              [],
-              [
-                `This tab · up to ${windowSize} consecutive confirmed versions. Reload starts a new window.`,
-              ],
+              ),
+            h.p.children(
+              `This tab · up to ${windowSize} consecutive confirmed versions. Reload starts a new window.`,
             ),
             ...(history.restartedAfterGap
-              ? [h.p([], ['The window restarted after a gap in confirmed versions.'])]
+              ? [h.p.children('The window restarted after a gap in confirmed versions.')]
               : []),
             ...(connection === 'offline'
               ? [
-                  h.p(
-                    [h.Role('status')],
-                    ['Showing the latest observed counts while reconnecting.'],
-                  ),
+                  h.p
+                    .attr('role', 'status')
+                    .children('Showing the latest observed counts while reconnecting.'),
                 ]
               : []),
             ...(first.version === last.version
-              ? [h.p([], ['The chart appears after another confirmed version arrives.'])]
+              ? [h.p.children('The chart appears after another confirmed version arrives.')]
               : [
                   ...plot(
                     h,
@@ -265,30 +301,24 @@ export function view<M>(
                       ? reviewVersion
                       : undefined,
                   ),
-                  h.label([h.For('board-evolution-version')], ['Inspect version']),
-                  h.select(
-                    [
-                      h.Id('board-evolution-version'),
-                      h.Value(history.inspected === null ? 'latest' : String(history.inspected)),
-                      h.OnChange(onInspect),
-                    ],
-                    [
-                      h.option([h.Value('latest')], [`Latest (v${last.version})`]),
+                  h.label.attr('for', 'board-evolution-version').children('Inspect version'),
+                  h.select
+                    .id('board-evolution-version')
+                    .value(history.inspected === null ? 'latest' : String(history.inspected))
+                    .on('change', ({ value }) => onInspect(value))
+                    .children(
+                      h.option.attr('value', 'latest').children(`Latest (v${last.version})`),
                       ...history.samples.map(({ version }) =>
-                        h.option([h.Value(String(version))], [`Version ${version}`]),
+                        h.option.attr('value', String(version)).children(`Version ${version}`),
                       ),
-                    ],
-                  ),
+                    ),
                 ]),
-            h.button(
-              [
-                h.Id('board-open-history'),
-                h.Type('button'),
-                h.Disabled(connection !== 'live' || availability === 'blocked'),
-                h.OnClick(reviewVersion(inspected.version)),
-              ],
-              ['Open on canvas'],
-            ),
+            h.button
+              .id('board-open-history')
+              .attr('type', 'button')
+              .disabled(connection !== 'live' || availability === 'blocked')
+              .on('click', reviewVersion(inspected.version))
+              .children('Open on canvas'),
             dataTable(h, {
               caption: `Counts at version ${inspected.version}`,
               headers: ['Type', 'Count'],
@@ -297,9 +327,9 @@ export function view<M>(
               ),
             }),
           ]
-        : [h.p([h.Role('status')], ['Waiting for the first confirmed diagram version.'])];
-  return h.section(
-    [h.Class('board-evolution'), h.AriaLabel('Diagram Evolution')],
-    [heading, ...contents],
-  );
+        : [h.p.attr('role', 'status').children('Waiting for the first confirmed diagram version.')];
+  return h.section
+    .class('board-evolution')
+    .attr('aria-label', 'Diagram Evolution')
+    .children(heading, ...contents);
 }

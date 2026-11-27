@@ -243,7 +243,6 @@
       "dependencies": {
         "@effect/ui": "catalog:",
         "@opsydyn/astro-effect-ui": "workspace:*",
-        "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-phosphor": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
         "@opsydyn/foldkit-zloz": "workspace:*",
@@ -253,7 +252,6 @@
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
         "effect": "catalog:",
-        "foldkit": "catalog:",
         "likec4": "catalog:",
       },
       "devDependencies": {
@@ -267,6 +265,7 @@
         "@vanilla-extract/vite-plugin": "catalog:",
         "alchemy": "catalog:infra",
         "bun-types": "catalog:",
+        "happy-dom": "catalog:",
         "playwright": "catalog:",
         "typescript": "catalog:",
         "workerd": "1.20261110.1",

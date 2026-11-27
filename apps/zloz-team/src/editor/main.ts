@@ -1,4 +1,5 @@
-import { UiSchema } from '@effect/ui';
+import { Command, Subscription, UiSchema, type View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import {
   createEditor,
   decideOperation,
@@ -35,34 +36,30 @@ import {
 } from '@opsydyn/foldkit-zloz-alchemy/session';
 import type { DiagramSession, DiagramRoom } from '@opsydyn/foldkit-zloz-alchemy/session';
 import {
-  zlozAggregateView,
-  zlozDragHandle,
-  zlozGroupFrame,
-  zlozSvgReview,
-  zlozSvgReviewSelect,
-  zlozView,
-  zlozWorldOverlayItem,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  canvasStatusContext,
+  graphSurface,
+  historyMinimap,
+  resolveConnectionList,
+  svgReview,
+  viewportControl,
+  viewportControlActions,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 import { BoardTitle } from '@opsydyn/zloz-server/src/team-contract';
 import { Effect, Option, Schema, Stream } from 'effect';
-import { Command, Dom, Render, Submodel, Subscription } from 'foldkit';
-import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
-import type { DevToolsConfig } from 'foldkit/runtime';
-import { foldChild, foldChildInits, type Return } from 'foldkit/update';
 
 import { teamCanvasTheme } from '../appearance/canvas';
 import { teamIcon } from '../appearance/icons';
 import { publishTitle, titleChanges } from '../board-settings/channel';
-import * as DiagramImport from '../likec4/foldkit';
+import * as DiagramImport from '../likec4/board';
 import { requestLimit } from '../likec4/review';
+import { aggregateViewContent } from './aggregate-view';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';
 import { boardWidths, historyMotion, historyVisibility } from './browser-signals';
-import { createConnectionsView } from './connections-view';
+import { view as couplingView } from './coupling/effect-ui';
 import { Message as CouplingMessage, OutMessage as CouplingOutMessage } from './coupling/message';
 import * as Coupling from './coupling/model';
 import { observe as observeCoupling, update as updateCoupling } from './coupling/update';
-import { view as couplingView } from './coupling/view';
 import { revealEdgeStrokes, introducedEdges } from './edge-motion';
 import * as Evolution from './evolution';
 import { view as evolutionView, type Perspective as EvolutionPerspective } from './evolution-view';
@@ -76,10 +73,10 @@ import {
 } from './feed-state';
 import { findMatches, FindTarget } from './find';
 import * as HistoryReview from './history-review';
-import { createNodesView } from './nodes-view';
+import { createConnectionsView } from './native-connections';
+import { nodeShell } from './native-node-shell';
 import * as Opy from './opy';
 import { geometryGraph, pendingGeometryGraph } from './pending-geometry';
-import { createPortsView } from './ports-view';
 import { deltaStream, liveStream, pathFor } from './protocol';
 import {
   advanceGestureBase,
@@ -103,8 +100,6 @@ import {
   WorkshopStatus,
 } from './workshop';
 import { journey, journeyTriggerId, journeyView } from './workshop-journey';
-
-export { slow } from './diagnostics';
 
 const Role = Schema.Literals(['owner', 'editor', 'viewer']);
 const CanvasEmphasis = Schema.Literals(['c4', 'ddd', 'event-storming', 'neutral']);
@@ -372,63 +367,76 @@ export const Message = UiSchema.TaggedEnum({
   CompletedInspectorFocus: {},
 });
 export type Message = typeof Message.Type;
-// Transport still updates the live Model. Avoid retaining/diffing every remote
-// delivery in the debugging history of a large multiplayer document.
-export const devTools = {
-  excludeFromHistory: [
-    'ObservedDelta',
-    'ObservedFrame',
-    'ObservedCaughtUp',
-    'ObservedTick',
-    'SucceededPresence',
-  ] satisfies readonly Message['_tag'][],
-} satisfies DevToolsConfig;
-const RevealHotspots = Command.define('RevealHotspots', {
-  args: {
-    run: Schema.Number,
-    changes: Schema.Array(Schema.Struct({ id: Schema.String, status: WorkshopStatus })),
+type Return<State, Event> = Readonly<{
+  model: State;
+  commands?: readonly Command.Command<Event>[];
+}>;
+
+// oxlint-disable-next-line linteffect/no-effect-wrapper-alias -- The callback registers a frame and provides its native cancellation to Effect.
+function scheduleAfterPaint(resume: Parameters<Parameters<typeof Effect.callback<void>>[0]>[0]) {
+  const frame = requestAnimationFrame(() => resume(Effect.void));
+  return Effect.sync(() => cancelAnimationFrame(frame));
+}
+
+function focusBoardElement(selector: string, makeFocusable = false) {
+  const element = document.querySelector<HTMLElement>(selector);
+  if (!element) return;
+  if (makeFocusable && !element.hasAttribute('tabindex')) element.setAttribute('tabindex', '-1');
+  element.focus();
+}
+
+const RevealHotspots = Command.make(
+  'RevealHotspots',
+  {
+    args: {
+      run: Schema.Number,
+      changes: Schema.Array(Schema.Struct({ id: Schema.String, status: WorkshopStatus })),
+    },
   },
-  messages: [Message.cases.CompletedHotspotReveal],
-  execute: ({ run, changes }) => {
-    const reveal = Effect.sync(() => revealHotspots(run, changes));
-    return Render.afterCommit.pipe(
-      Effect.andThen(reveal),
-      Effect.map(Message.CompletedHotspotReveal),
-    );
-  },
-});
-const RevealEdges = Command.define('RevealEdges', {
-  args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) },
-  messages: [Message.cases.CompletedEdgeReveal],
-  execute: ({ run, edgeIds }) => {
-    const reveal = Effect.sync(() => revealEdgeStrokes(run, edgeIds));
-    return Render.afterCommit.pipe(Effect.andThen(reveal), Effect.map(Message.CompletedEdgeReveal));
-  },
-});
-const FocusAssessmentInspector = Command.define('FocusAssessmentInspector', {
-  messages: [Message.cases.CompletedInspectorFocus],
-  execute: Render.afterCommit.pipe(
-    Effect.andThen(Dom.focus('#assessment-inspector', { makeFocusable: true })),
-    Effect.catchTag('ElementNotFound', () => Effect.void),
-    Effect.map(() => Message.CompletedInspectorFocus()),
-  ),
-});
-const FocusBoardControl = Command.define('FocusBoardControl', {
-  args: { selector: Schema.String },
-  messages: [Message.cases.CompletedBoardFocus],
-  execute: ({ selector }) =>
-    Render.afterCommit.pipe(
-      Effect.andThen(Dom.focus(selector, { makeFocusable: true })),
-      Effect.catchTag('ElementNotFound', () => Effect.void),
-      Effect.map(() => Message.CompletedBoardFocus()),
+  ({ run, changes }) =>
+    Effect.callback<void>(scheduleAfterPaint).pipe(
+      Effect.map(() => {
+        revealHotspots(run, changes);
+        return Message.CompletedHotspotReveal();
+      }),
     ),
-});
-const FocusJourneyNote = Command.define('FocusJourneyNote', {
-  args: { triggerId: Schema.String },
-  messages: [Message.cases.CompletedBoardFocus],
-  execute: ({ triggerId }) =>
+);
+const RevealEdges = Command.make(
+  'RevealEdges',
+  { args: { run: Schema.Number, edgeIds: Schema.Array(Schema.String) } },
+  ({ run, edgeIds }) =>
+    Effect.callback<void>(scheduleAfterPaint).pipe(
+      Effect.map(() => {
+        revealEdgeStrokes(run, edgeIds);
+        return Message.CompletedEdgeReveal();
+      }),
+    ),
+);
+const FocusAssessmentInspector = Command.make('FocusAssessmentInspector', { args: {} }, () =>
+  Effect.callback<void>(scheduleAfterPaint).pipe(
+    Effect.map(() => {
+      focusBoardElement('#assessment-inspector', true);
+      return Message.CompletedInspectorFocus();
+    }),
+  ),
+);
+const FocusBoardControl = Command.make(
+  'FocusBoardControl',
+  { args: { selector: Schema.String } },
+  ({ selector }) =>
+    Effect.callback<void>(scheduleAfterPaint).pipe(
+      Effect.map(() => {
+        focusBoardElement(selector, true);
+        return Message.CompletedBoardFocus();
+      }),
+    ),
+);
+const FocusJourneyNote = Command.make(
+  'FocusJourneyNote',
+  { args: { triggerId: Schema.String } },
+  ({ triggerId }) =>
     Effect.gen(function* () {
-      yield* Render.afterCommit;
+      yield* Effect.callback<void>(scheduleAfterPaint);
       const active = document.activeElement;
       // A removed Follow button leaves focus on the body. A surviving trigger
       // may hand off focus too, unless the reviewer already chose another control.
@@ -436,24 +444,22 @@ const FocusJourneyNote = Command.define('FocusJourneyNote', {
         document.getElementById('journey-current-note')?.focus();
       return Message.CompletedBoardFocus();
     }),
-});
-const FocusCommandTrigger = Command.define('FocusCommandTrigger', {
-  args: { name: BoardCommand },
-  messages: [Message.cases.CompletedBoardFocus],
-  execute: ({ name }) =>
+);
+const FocusCommandTrigger = Command.make(
+  'FocusCommandTrigger',
+  { args: { name: BoardCommand } },
+  ({ name }) =>
     Effect.gen(function* () {
-      yield* Render.afterCommit;
+      yield* Effect.callback<void>(scheduleAfterPaint);
       document.querySelector<HTMLElement>('.board-command-bar :popover-open')?.hidePopover();
-      yield* Dom.focus(`#${triggerId(name)}`).pipe(
-        Effect.catchTag('ElementNotFound', () => Effect.void),
-      );
+      focusBoardElement(`#${triggerId(name)}`);
       return Message.CompletedBoardFocus();
     }),
-});
-const PrepareLikeC4 = Command.define('PrepareLikeC4', {
-  args: { run: Schema.Number, document: DiagramDocumentSchema },
-  messages: [Message.cases.SettledSourceExport],
-  execute: ({ run, document }) =>
+);
+const PrepareLikeC4 = Command.make(
+  'PrepareLikeC4',
+  { args: { run: Schema.Number, document: DiagramDocumentSchema } },
+  ({ run, document }) =>
     Effect.tryPromise(() => SourceExport.prepareLikeC4(document.graph, document.version)).pipe(
       Effect.orElseSucceed(() =>
         SourceExport.Review.Rejected({
@@ -466,16 +472,18 @@ const PrepareLikeC4 = Command.define('PrepareLikeC4', {
       ),
       Effect.map((review) => Message.SettledSourceExport({ run, review })),
     ),
-});
-const DownloadSource = Command.define('DownloadSource', {
-  args: {
-    kind: SourceExport.Kind,
-    version: Schema.Number,
-    format: SourceExport.Format,
-    contents: Schema.String,
+);
+const DownloadSource = Command.make(
+  'DownloadSource',
+  {
+    args: {
+      kind: SourceExport.Kind,
+      version: Schema.Number,
+      format: SourceExport.Format,
+      contents: Schema.String,
+    },
   },
-  messages: [Message.cases.CompletedSourceDownload],
-  execute: ({ kind, version, format, contents }) =>
+  ({ kind, version, format, contents }) =>
     Effect.try(() => {
       const source = format === 'source';
       const extension = kind === 'likec4' ? 'c4' : source ? 'mmd' : 'mermaid.json';
@@ -490,35 +498,37 @@ const DownloadSource = Command.define('DownloadSource', {
         onFailure: () => Message.CompletedSourceDownload({ kind, version, started: false }),
       }),
     ),
-});
+);
 function handoffDownload(contents: string, mediaType: string, fileName: string) {
   const url = URL.createObjectURL(new Blob([contents], { type: mediaType }));
   globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
   const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
   link.click();
 }
-const LoadSvgIcons = Command.define('LoadSvgIcons', {
-  args: { team: Schema.String, run: Schema.Number, references: Schema.Array(Schema.String) },
-  messages: [Message.cases.LoadedSvgIcons],
-  execute: ({ team, run, references }) =>
+const LoadSvgIcons = Command.make(
+  'LoadSvgIcons',
+  { args: { team: Schema.String, run: Schema.Number, references: Schema.Array(Schema.String) } },
+  ({ team, run, references }) =>
     Effect.tryPromise(() => Svg.loadIcons(team, references)).pipe(
       Effect.match({
         onSuccess: (images) => Message.LoadedSvgIcons({ run, images }),
         onFailure: () => Message.LoadedSvgIcons({ run, images: {} }),
       }),
     ),
-});
-const DownloadSvg = Command.define('DownloadSvg', {
-  args: {
-    svg: Schema.String,
-    fileName: Schema.String,
-    scope: Schema.String,
-    generation: Schema.Number,
-    key: Schema.String,
-    run: Schema.Number,
+);
+const DownloadSvg = Command.make(
+  'DownloadSvg',
+  {
+    args: {
+      svg: Schema.String,
+      fileName: Schema.String,
+      scope: Schema.String,
+      generation: Schema.Number,
+      key: Schema.String,
+      run: Schema.Number,
+    },
   },
-  messages: [Message.cases.ObservedSvgReview],
-  execute: ({ svg, fileName, scope, generation, key, run }) => {
+  ({ svg, fileName, scope, generation, key, run }) => {
     const settled = (outcome: 'succeeded' | 'failed') =>
       Message.ObservedSvgReview({
         request: {
@@ -534,17 +544,19 @@ const DownloadSvg = Command.define('DownloadSvg', {
       Effect.match({ onSuccess: () => settled('succeeded'), onFailure: () => settled('failed') }),
     );
   },
-});
-const UseIconLibrary = Command.define('UseIconLibrary', {
-  args: {
-    team: Schema.String,
-    run: Schema.Number,
-    file: Schema.Unknown,
-    target: Schema.NullOr(Schema.Struct({ id: Schema.String, expected: Schema.Number })),
-    archive: Schema.NullOr(Schema.String),
+);
+const UseIconLibrary = Command.make(
+  'UseIconLibrary',
+  {
+    args: {
+      team: Schema.String,
+      run: Schema.Number,
+      file: Schema.Unknown,
+      target: Schema.NullOr(Schema.Struct({ id: Schema.String, expected: Schema.Number })),
+      archive: Schema.NullOr(Schema.String),
+    },
   },
-  messages: [Message.cases.SettledIconLibrary],
-  execute: ({ team, run, file, target, archive }) =>
+  ({ team, run, file, target, archive }) =>
     Effect.tryPromise({
       try: async () => {
         if (archive) await TeamIcons.archive(team, archive);
@@ -565,18 +577,20 @@ const UseIconLibrary = Command.define('UseIconLibrary', {
           Message.SettledIconLibrary({ run, entries: null, notice, applied: null }),
       }),
     ),
-});
-const PrepareLayoutPreview = Command.define('PrepareLayoutPreview', {
-  args: {
-    room: Room,
-    run: Schema.Number,
-    document: DiagramDocumentSchema,
-    selection: Schema.Array(Schema.String),
-    direction: Layout.Direction,
-    method: Layout.Method,
+);
+const PrepareLayoutPreview = Command.make(
+  'PrepareLayoutPreview',
+  {
+    args: {
+      room: Room,
+      run: Schema.Number,
+      document: DiagramDocumentSchema,
+      selection: Schema.Array(Schema.String),
+      direction: Layout.Direction,
+      method: Layout.Method,
+    },
   },
-  messages: [Message.cases.SettledLayoutPreview],
-  execute: ({ room, run, document, selection, direction, method }) =>
+  ({ room, run, document, selection, direction, method }) =>
     Effect.tryPromise({
       try: () =>
         Layout.prepare(
@@ -598,25 +612,22 @@ const PrepareLayoutPreview = Command.define('PrepareLayoutPreview', {
           Message.SettledLayoutPreview({ room, run, result: Layout.Task.Failed({ message }) }),
       }),
     ),
-});
+);
 const sharedConnections = createConnectionsView<Message>((id) =>
   Message.ObservedEditorInput({ event: { type: 'EdgeSelected', id, additive: false } }),
 );
-const sharedPorts = createPortsView<Message>();
-const sharedNodes = createNodesView<Message>((icon) => Message.FailedIconAsset({ icon }));
-const AllocateDiagramSession = Command.define('AllocateDiagramSession', {
-  messages: [Message.cases.SucceededIdentity, Message.cases.FailedIdentity],
-  execute: Effect.try(() => crypto.randomUUID()).pipe(
+const AllocateDiagramSession = Command.make('AllocateDiagramSession', { args: {} }, () =>
+  Effect.try(() => crypto.randomUUID()).pipe(
     Effect.match({
       onSuccess: (generation) => Message.SucceededIdentity({ generation }),
       onFailure: () => Message.FailedIdentity(),
     }),
   ),
-});
-const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
-  args: { room: Room, run: Schema.optionalKey(Schema.Number) },
-  messages: [Message.cases.SucceededSnapshot, Message.cases.FailedSnapshot],
-  execute: ({ room, run }) =>
+);
+const LoadSharedDiagram = Command.make(
+  'LoadSharedDiagram',
+  { args: { room: Room, run: Schema.optionalKey(Schema.Number) } },
+  ({ room, run }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(pathFor(room), {
         signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]),
@@ -641,20 +652,20 @@ const LoadSharedDiagram = Command.define('LoadSharedDiagram', {
         clefShadow: body.clefShadow ?? false,
       });
     }).pipe(Effect.orElseSucceed(() => Message.FailedSnapshot({ room, run, status: 0 }))),
-});
-const PrepareSharedEdit = Command.define('PrepareSharedEdit', {
-  args: { room: Room, request: DiagramRequestSchema },
-  messages: [Message.cases.PreparedEdit, Message.cases.FailedPreparation],
-  execute: ({ room, request }) =>
+);
+const PrepareSharedEdit = Command.make(
+  'PrepareSharedEdit',
+  { args: { room: Room, request: DiagramRequestSchema } },
+  ({ room, request }) =>
     Effect.tryPromise(async () => {
       const input = request;
       return Message.PreparedEdit({ room, request: input, hash: await operationHash(input) });
     }).pipe(Effect.orElseSucceed(() => Message.FailedPreparation({ room }))),
-});
-const SubmitSharedEdit = Command.define('SubmitSharedEdit', {
-  args: { room: Room, request: DiagramRequestSchema },
-  messages: [Message.cases.SucceededEdit, Message.cases.FailedEdit],
-  execute: ({ room, request }) => {
+);
+const SubmitSharedEdit = Command.make(
+  'SubmitSharedEdit',
+  { args: { room: Room, request: DiagramRequestSchema } },
+  ({ room, request }) => {
     const input = request;
     return Effect.tryPromise(async (signal) => {
       const response = await fetch(`${pathFor(room)}/operations`, {
@@ -672,15 +683,17 @@ const SubmitSharedEdit = Command.define('SubmitSharedEdit', {
       Effect.orElseSucceed(() => Message.FailedEdit({ room, operationId: input.operationId })),
     );
   },
-});
-const SendDiagramPresence = Command.define('SendDiagramPresence', {
-  args: {
-    room: Room,
-    selection: Schema.Array(Schema.String),
-    cursor: Schema.NullOr(Schema.Struct({ x: Schema.Number, y: Schema.Number })),
+);
+const SendDiagramPresence = Command.make(
+  'SendDiagramPresence',
+  {
+    args: {
+      room: Room,
+      selection: Schema.Array(Schema.String),
+      cursor: Schema.NullOr(Schema.Struct({ x: Schema.Number, y: Schema.Number })),
+    },
   },
-  messages: [Message.cases.SucceededPresence, Message.cases.FailedPresence],
-  execute: ({ room, selection, cursor }) =>
+  ({ room, selection, cursor }) =>
     Effect.tryPromise(async (signal) => {
       const response = await fetch(`${pathFor(room)}/presence`, {
         method: 'POST',
@@ -695,7 +708,7 @@ const SendDiagramPresence = Command.define('SendDiagramPresence', {
       if (presence.boardTitle) publishTitle(presence.boardTitle);
       return Message.SucceededPresence({ room, peers: presence.peers });
     }).pipe(Effect.orElseSucceed(() => Message.FailedPresence({ room, status: 0 }))),
-});
+);
 
 export function init(raw: typeof Props.Type): Return<Model, Message> {
   const props = Schema.decodeUnknownSync(Props)(raw);
@@ -705,81 +718,65 @@ export function init(raw: typeof Props.Type): Return<Model, Message> {
     actorId: props.actorId,
     generation: '',
   };
-  const children = foldChildInits(
-    { assessment: { model: Assessment.init() }, coupling: { model: Coupling.init() } },
-    {
-      toParentModel: ({ assessment, coupling }): Model => ({
-        ...props,
-        nameRevision: props.nameRevision ?? 0,
-        room,
-        feedMode: 'legacy',
-        feedSeeds: [],
-        feedProgress: [],
-        edgeMotionRun: null,
-        deferredEdgeReveals: [],
-        session: newSession(room),
-        queuedMove: null,
-        moveSaveIssue: null,
-        editor: createEditor({ nodes: [], edges: [] }),
-        base: null,
-        serial: 0,
-        ownEdits: [],
-        draft: '',
-        icons: TeamIcons.initial,
-        failedIconAssets: [],
-        connection: Connection.Opening(),
-        socketRun: 0,
-        socketSlot: 'a',
-        reconnectDelayMs: 0,
-        peers: [],
-        cursor: null,
-        error: '',
-        workshopLink: 'plain' as const,
-        emphasis: props.startingView ?? 'c4',
-        assessment,
-        coupling,
-        inspector: 'selection',
-        journey: { start: '', via: [] },
-        evolution: Evolution.empty,
-        historyReview: null,
-        historyRun: 0,
-        historyReducedMotion: true,
-        historyVisible: false,
-        rails: { tools: true, inspector: true },
-        compactBoard: false,
-        drawer: null,
-        activeBoardCommand: 'File',
-        focusedBoard: false,
-        overviewOpen: false,
-        find: null,
-        sourceExport: null,
-        sourceExportRun: 0,
-        importRun: 0,
-        boardImport: null,
-        svg: null,
-        svgRun: 0,
-        layout: Layout.Task.Closed(),
-        layoutMethod: 'elk',
-        layoutRun: 0,
-        opy: Opy.init(),
-        decisionAuthoring: false,
-        clefShadow: false,
-      }),
-      folds: {
-        assessment: {
-          toParentMessage: (message: Assessment.Message) =>
-            Message.GotAssessmentMessage({ room, message }),
-        },
-        coupling: {
-          toParentMessage: (message: CouplingMessage) =>
-            Message.GotCouplingMessage({ room, message }),
-        },
-      },
-    },
-  );
   return {
-    model: children.model,
-    commands: [...(children.commands ?? []), AllocateDiagramSession()],
+    model: {
+      ...props,
+      nameRevision: props.nameRevision ?? 0,
+      room,
+      feedMode: 'legacy',
+      feedSeeds: [],
+      feedProgress: [],
+      edgeMotionRun: null,
+      deferredEdgeReveals: [],
+      session: newSession(room),
+      queuedMove: null,
+      moveSaveIssue: null,
+      editor: createEditor({ nodes: [], edges: [] }),
+      base: null,
+      serial: 0,
+      ownEdits: [],
+      draft: '',
+      icons: TeamIcons.initial,
+      failedIconAssets: [],
+      connection: Connection.Opening(),
+      socketRun: 0,
+      socketSlot: 'a',
+      reconnectDelayMs: 0,
+      peers: [],
+      cursor: null,
+      error: '',
+      workshopLink: 'plain' as const,
+      emphasis: props.startingView ?? 'c4',
+      assessment: Assessment.init(),
+      coupling: Coupling.init(),
+      inspector: 'selection',
+      journey: { start: '', via: [] },
+      evolution: Evolution.empty,
+      historyReview: null,
+      historyRun: 0,
+      historyReducedMotion: true,
+      historyVisible: false,
+      rails: { tools: true, inspector: true },
+      compactBoard: false,
+      drawer: null,
+      activeBoardCommand: 'File',
+      focusedBoard: false,
+      overviewOpen: false,
+      find: null,
+      sourceExport: null,
+      sourceExportRun: 0,
+      importRun: 0,
+      boardImport: null,
+      svg: null,
+      svgRun: 0,
+      layout: Layout.Task.Closed(),
+      layoutMethod: 'elk',
+      layoutRun: 0,
+      opy: Opy.init(),
+      decisionAuthoring: false,
+      clefShadow: false,
+    },
+    commands: [AllocateDiagramSession.make({})],
   };
 }
 function install(model: Model, state: DiagramSession, receipt?: ZlozOperationReceipt): Model {
@@ -945,7 +942,7 @@ function loadTeamIcons(model: Model, file: File | null = null, archive: string |
   const target = file ? selectedIconTarget(model) : null;
   return {
     model: { ...model, icons: { ...model.icons, run, busy: true, notice: '' } },
-    commands: [UseIconLibrary({ team: model.room.teamId, run, file, target, archive })],
+    commands: [UseIconLibrary.make({ team: model.room.teamId, run, file, target, archive })],
   };
 }
 
@@ -973,7 +970,7 @@ function enqueue(model: Model, operation: ZlozGraphOperation): Return<Model, Mes
       editor: { ...editor(model), gesture: { type: 'idle' }, past: [], future: [] },
       error: '',
     },
-    commands: [PrepareSharedEdit({ room: model.room, request })],
+    commands: [PrepareSharedEdit.make({ room: model.room, request })],
   };
 }
 const opyContext = (model: Model) => ({
@@ -1081,7 +1078,7 @@ function revealJourneyStep(
   );
   return {
     model: revealed.model,
-    commands: [...(revealed.commands ?? []), FocusJourneyNote({ triggerId })],
+    commands: [...(revealed.commands ?? []), FocusJourneyNote.make({ triggerId })],
   };
 }
 
@@ -1125,7 +1122,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               }),
         }),
         commands: [
-          FocusBoardControl({ selector: open ? `#board-${rail}` : `#board-${rail}-toggle` }),
+          FocusBoardControl.make({ selector: open ? `#board-${rail}` : `#board-${rail}-toggle` }),
         ],
       };
     },
@@ -1134,7 +1131,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     NavigatedBoardCommands: ({ name }) => ({
       model: { ...model, activeBoardCommand: name },
-      commands: [FocusCommandTrigger({ name })],
+      commands: [FocusCommandTrigger.make({ name })],
     }),
     ToggledBoardFocus: () => ({
       model: withRailChange(model, {
@@ -1146,7 +1143,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ToggledOverview: () => ({
       model: { ...model, overviewOpen: !model.overviewOpen },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector: model.overviewOpen
             ? '#board-overview-toggle'
             : '#board-overview [data-flow-minimap-frame]',
@@ -1155,7 +1152,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     OpenedFind: () => ({
       model: { ...model, find: '', sourceExport: null, svg: null, layout: Layout.Task.Closed() },
-      commands: [FocusBoardControl({ selector: '#board-find-query' })],
+      commands: [FocusBoardControl.make({ selector: '#board-find-query' })],
     }),
     OpenedSourceExport: ({ kind }) => {
       const confirmed = confirmedExportDocument(model);
@@ -1175,15 +1172,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           layout: Layout.Task.Closed(),
         },
         commands: [
-          ...(kind === 'likec4' ? [PrepareLikeC4({ run, document: confirmed })] : []),
-          FocusBoardControl({ selector: '#board-mermaid' }),
+          ...(kind === 'likec4' ? [PrepareLikeC4.make({ run, document: confirmed })] : []),
+          FocusBoardControl.make({ selector: '#board-mermaid' }),
         ],
       };
     },
     ClosedSourceExport: () => ({
       model: { ...model, sourceExport: null },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector:
             model.sourceExport && railVisible(model, 'tools') && confirmedExportDocument(model)
               ? '#' + SourceExport.launcherId(model.sourceExport.kind)
@@ -1209,7 +1206,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         return { model };
       return {
         model,
-        commands: [DownloadSource({ kind, version, format, contents: review[format] })],
+        commands: [DownloadSource.make({ kind, version, format, contents: review[format] })],
       };
     },
     CompletedSourceDownload: ({ kind, version, started }) => {
@@ -1247,9 +1244,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           layout: Layout.Task.Closed(),
         }),
         commands: [
-          FocusBoardControl({ selector: '#board-svg' }),
+          FocusBoardControl.make({ selector: '#board-svg' }),
           ...(references.length
-            ? [LoadSvgIcons({ team: model.room.teamId, run: svgRun, references })]
+            ? [LoadSvgIcons.make({ team: model.room.teamId, run: svgRun, references })]
             : []),
         ],
       };
@@ -1261,7 +1258,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClosedSvg: () => ({
       model: { ...model, svg: null },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector:
             railVisible(model, 'tools') && confirmedExportDocument(model)
               ? '#board-svg-open'
@@ -1276,7 +1273,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const next = Svg.update(model.svg, available, request as ZlozSvgReviewRequest);
       const updated = { ...model, svg: next.review };
       return next.payload
-        ? { model: updated, commands: [DownloadSvg(next.payload)] }
+        ? { model: updated, commands: [DownloadSvg.make(next.payload)] }
         : { model: updated };
     },
     SelectedLayoutMethod: ({ method }) => ({
@@ -1300,7 +1297,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           svg: null,
         }),
         commands: [
-          PrepareLayoutPreview({
+          PrepareLayoutPreview.make({
             room: model.room,
             run,
             document,
@@ -1308,7 +1305,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             direction: (currentEditor.surface?.width ?? 800) < 600 ? 'DOWN' : 'RIGHT',
             method,
           }),
-          FocusBoardControl({ selector: '#board-layout-preview' }),
+          FocusBoardControl.make({ selector: '#board-layout-preview' }),
         ],
       };
     },
@@ -1319,7 +1316,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     DiscardedLayoutPreview: () => ({
       model: { ...model, layout: Layout.Task.Closed() },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector: railVisible(model, 'tools') ? '#board-layout-open' : '#shared-diagram-surface',
         }),
       ],
@@ -1337,13 +1334,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ...applied,
         commands: [
           ...(applied.commands ?? []),
-          FocusBoardControl({ selector: '#shared-diagram-surface' }),
+          FocusBoardControl.make({ selector: '#shared-diagram-surface' }),
         ],
       };
     },
     ClosedFind: () => ({
       model: { ...model, find: null },
-      commands: [FocusBoardControl({ selector: '#board-find-toggle' })],
+      commands: [FocusBoardControl.make({ selector: '#board-find-toggle' })],
     }),
     ChangedFind: ({ query }) => ({ model: { ...model, find: query } }),
     ChoseFindResult: ({ target, id }) => {
@@ -1359,7 +1356,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: { ...step.model, find: null },
         commands: [
           ...(step.commands ?? []),
-          FocusBoardControl({ selector: '#shared-diagram-surface' }),
+          FocusBoardControl.make({ selector: '#shared-diagram-surface' }),
         ],
       };
     },
@@ -1373,7 +1370,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               rails: { ...model.rails, inspector: true },
               drawer: 'inspector',
             }),
-            commands: [FocusBoardControl({ selector: '#opy-inspector' })],
+            commands: [FocusBoardControl.make({ selector: '#opy-inspector' })],
           }
         : { model },
     ClosedOpy: () => ({
@@ -1383,18 +1380,19 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         drawer: 'tools' as const,
         rails: { ...model.rails, tools: true },
       },
-      commands: [FocusBoardControl({ selector: '#ask-opy' })],
+      commands: [FocusBoardControl.make({ selector: '#ask-opy' })],
     }),
-    GotOpyMessage: ({ room, message: childMessage }) =>
-      current(model, room)
-        ? foldChild({
-            update: (opy: Opy.Model, child: Opy.Message) =>
-              Opy.update(opy, child, opyContext(model)),
-            read: (parent: Model) => Option.some(parent.opy),
-            write: (parent, opy) => ({ ...parent, opy }),
-            toParentMessage: (message) => Message.GotOpyMessage({ room, message }),
-          })(model, childMessage)
-        : { model },
+    GotOpyMessage: ({ room, message: childMessage }) => {
+      if (!current(model, room)) return { model };
+      const result = Opy.update(model.opy, childMessage, opyContext(model));
+      return {
+        model: { ...model, opy: result.model },
+        commands:
+          result.commands?.map((command) =>
+            Command.map(command, (message) => Message.GotOpyMessage({ room, message })),
+          ) ?? [],
+      };
+    },
     ChoseJourneyStart: ({ id }) => {
       const graph = session(model).confirmed?.document.graph;
       if (!graph || model.inspector !== 'journey' || editor(model).gesture.type !== 'idle')
@@ -1435,7 +1433,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (inspector === model.inspector) return { model };
       const next = withRailChange(model, { ...model, inspector });
       return inspector === 'selection' && model.assessment.status === 'editing'
-        ? { model: next, commands: [FocusAssessmentInspector()] }
+        ? { model: next, commands: [FocusAssessmentInspector.make({})] }
         : { model: next };
     },
     SelectedEvolutionVersion: ({ value }) => ({
@@ -1454,13 +1452,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             notice: '',
           },
         },
-        commands: [FocusBoardControl({ selector: '#board-import-format' })],
+        commands: [FocusBoardControl.make({ selector: '#board-import-format' })],
       };
     },
     ClosedBoardImport: () => ({
       model: { ...model, boardImport: null },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector:
             canOpenBoardImport(model) && railVisible(model, 'tools')
               ? '#board-open-import'
@@ -1508,19 +1506,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ...step,
           commands: [
             ...(step.commands ?? []),
-            FocusBoardControl({ selector: '#shared-diagram-surface' }),
+            FocusBoardControl.make({ selector: '#shared-diagram-surface' }),
           ],
         };
       }
-      return foldChild({
-        update: DiagramImport.update,
-        read: () => Option.some(preview.child),
-        write: (parent: Model, child) => ({
-          ...parent,
-          boardImport: { ...preview, child, notice: '' },
-        }),
-        toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
-      })(model, childMessage);
+      const result = DiagramImport.update(preview.child, childMessage);
+      return {
+        model: { ...model, boardImport: { ...preview, child: result.model, notice: '' } },
+        commands:
+          result.commands?.map((command) =>
+            Command.map(command, (message) => Message.GotBoardImportMessage({ run, message })),
+          ) ?? [],
+      };
     },
     OpenedLatestHistory: () => {
       const latest = model.evolution.samples.at(-1);
@@ -1544,14 +1541,14 @@ export function update(model: Model, message: Message): Return<Model, Message> {
                   : HistoryReview.chooseBaseline(review, String(baseline)),
               historyRun: model.historyRun + 1,
             },
-            commands: [FocusBoardControl({ selector: '#history-back-live' })],
+            commands: [FocusBoardControl.make({ selector: '#history-back-live' })],
           }
         : { model };
     },
     ClosedHistory: () => ({
       model: { ...model, historyReview: null, historyRun: model.historyRun + 1 },
       commands: [
-        FocusBoardControl({
+        FocusBoardControl.make({
           selector:
             railVisible(model, 'inspector') && model.inspector === 'evolution'
               ? '#board-open-history'
@@ -1626,88 +1623,83 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     },
     GotCouplingMessage: ({ room, message }) => {
       if (!current(model, room) || !couplingVisible(model)) return { model };
-      return foldChild({
-        update: updateCoupling,
-        read: (parent: Model) => Option.some(parent.coupling),
-        write: (parent, coupling) => ({ ...parent, coupling }),
-        toParentMessage: (message: CouplingMessage) =>
-          Message.GotCouplingMessage({ room, message }),
-        foldOutMessage: (outMessage) =>
-          CouplingOutMessage.match(outMessage, {
-            SelectedRelationship:
-              ({ id }) =>
-              (parent: Model): Return<Model, Message> => {
-                if (isAuthoredGesture(editor(parent).gesture))
-                  return {
-                    model: {
-                      ...parent,
-                      coupling: {
-                        ...parent.coupling,
-                        announcement:
-                          'Finish or cancel the canvas gesture before selecting another relationship.',
-                      },
-                    },
-                  };
-                if (!parent.session.confirmed?.document.graph.edges.some((edge) => edge.id === id))
-                  return { model: parent };
-                return update(
-                  parent,
-                  Message.ObservedEditorInput({
-                    event: { type: 'EdgeSelected', id, additive: false },
-                  }),
-                );
+      const child = updateCoupling(
+        model.coupling,
+        Schema.decodeUnknownSync(CouplingMessage)(message),
+      );
+      const parent = { ...model, coupling: child.model };
+      if (child.outMessage === undefined) return { model: parent, commands: [] };
+      return CouplingOutMessage.match(child.outMessage, {
+        SelectedRelationship: ({ id }): Return<Model, Message> => {
+          if (isAuthoredGesture(editor(parent).gesture))
+            return {
+              model: {
+                ...parent,
+                coupling: {
+                  ...parent.coupling,
+                  announcement:
+                    'Finish or cancel the canvas gesture before selecting another relationship.',
+                },
               },
-            RequestedAssessmentReview:
-              ({ id }) =>
-              (parent: Model): Return<Model, Message> => {
-                if (
-                  parent.assessment.status === 'editing' &&
-                  parent.assessment.draft.target.relationshipId !== id
-                )
-                  return {
-                    model: {
-                      ...parent,
-                      coupling: {
-                        ...parent.coupling,
-                        announcement:
-                          'Close the open assessment explicitly before reviewing another relationship. Your draft and save request are preserved.',
-                      },
-                    },
-                  };
-                const opened = update(
-                  parent,
-                  Message.GotAssessmentMessage({
-                    room: parent.room,
-                    message: Assessment.Message.SelectedRelationship({ id }),
-                  }),
-                );
-                return {
-                  model: {
-                    ...opened.model,
-                    inspector: 'selection',
-                    coupling: { ...opened.model.coupling, width: null },
-                  },
-                  commands: [...(opened.commands ?? []), FocusAssessmentInspector()],
-                };
+            };
+          if (!parent.session.confirmed?.document.graph.edges.some((edge) => edge.id === id))
+            return { model: parent };
+          return update(
+            parent,
+            Message.ObservedEditorInput({
+              event: { type: 'EdgeSelected', id, additive: false },
+            }),
+          );
+        },
+        RequestedAssessmentReview: ({ id }): Return<Model, Message> => {
+          if (
+            parent.assessment.status === 'editing' &&
+            parent.assessment.draft.target.relationshipId !== id
+          )
+            return {
+              model: {
+                ...parent,
+                coupling: {
+                  ...parent.coupling,
+                  announcement:
+                    'Close the open assessment explicitly before reviewing another relationship. Your draft and save request are preserved.',
+                },
               },
-          }),
-      })(model, Schema.decodeUnknownSync(CouplingMessage)(message));
+            };
+          const opened = update(
+            parent,
+            Message.GotAssessmentMessage({
+              room: parent.room,
+              message: Assessment.Message.SelectedRelationship({ id }),
+            }),
+          );
+          return {
+            model: {
+              ...opened.model,
+              inspector: 'selection',
+              coupling: { ...opened.model.coupling, width: null },
+            },
+            commands: [...(opened.commands ?? []), FocusAssessmentInspector.make({})],
+          };
+        },
+      });
     },
     GotAssessmentMessage: ({ room, message }) => {
       if (!current(model, room)) return { model };
       const childMessage = Schema.decodeUnknownSync(Assessment.Message)(message);
-      return foldChild({
-        update: (child: Assessment.Model, message: Assessment.Message) =>
-          Assessment.update(child, message, {
-            room: model.room,
-            frame: model.session.confirmed,
-            editable: model.role !== 'viewer' && model.connection._tag !== 'Denied',
-            graphPending: model.session.pending !== null || model.queuedMove !== null,
-          }),
-        read: (parent: Model) => Option.some(parent.assessment),
-        write: (parent, assessment) => ({ ...parent, assessment }),
-        toParentMessage: (message) => Message.GotAssessmentMessage({ room, message }),
-      })(model, childMessage);
+      const result = Assessment.update(model.assessment, childMessage, {
+        room: model.room,
+        frame: model.session.confirmed,
+        editable: model.role !== 'viewer' && model.connection._tag !== 'Denied',
+        graphPending: model.session.pending !== null || model.queuedMove !== null,
+      });
+      return {
+        model: { ...model, assessment: result.model },
+        commands:
+          result.commands?.map((command) =>
+            Command.map(command, (message) => Message.GotAssessmentMessage({ room, message })),
+          ) ?? [],
+      };
     },
     SelectedWorkshopLink: ({ meaning }) => ({ model: { ...model, workshopLink: meaning } }),
     SelectedCanvasEmphasis: ({ emphasis }) => ({
@@ -1726,7 +1718,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const room = { ...model.room, generation };
       return {
         model: { ...model, room, session: newSession(room) },
-        commands: [LoadSharedDiagram({ room, run: model.socketRun })],
+        commands: [LoadSharedDiagram.make({ room, run: model.socketRun })],
       };
     },
     FailedIdentity: () => ({
@@ -1841,7 +1833,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             },
             commands:
               model.feedMode === 'delta'
-                ? [LoadSharedDiagram({ room, run: model.socketRun + 1 })]
+                ? [LoadSharedDiagram.make({ room, run: model.socketRun + 1 })]
                 : [],
           },
     ObservedDisconnect: ({ room, run, reason }) => {
@@ -1860,7 +1852,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         return {
           model: next,
           commands:
-            model.feedMode === 'delta' ? [LoadSharedDiagram({ room, run: next.socketRun })] : [],
+            model.feedMode === 'delta'
+              ? [LoadSharedDiagram.make({ room, run: next.socketRun })]
+              : [],
         };
       }
       const next = {
@@ -1873,7 +1867,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: next,
         commands:
-          model.feedMode === 'delta' ? [LoadSharedDiagram({ room, run: next.socketRun })] : [],
+          model.feedMode === 'delta' ? [LoadSharedDiagram.make({ room, run: next.socketRun })] : [],
       };
     },
     ObservedTick: ({ room }) => {
@@ -1881,7 +1875,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model,
         commands: [
-          SendDiagramPresence({
+          SendDiagramPresence.make({
             room,
             selection: [...editor(model).selectedNodes, ...editor(model).selectedEdges].slice(
               0,
@@ -1892,7 +1886,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ...(!isLiveConnection(model.connection) ||
           session(model).pending ||
           (model.assessment.status === 'editing' && model.assessment.delivery.status !== 'ready')
-            ? [LoadSharedDiagram({ room, run: model.socketRun })]
+            ? [LoadSharedDiagram.make({ room, run: model.socketRun })]
             : []),
         ],
       };
@@ -2040,11 +2034,14 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? {
             model: next,
             commands: [
-              SubmitSharedEdit({ room: model.room, request: pending.request }),
-              LoadSharedDiagram({ room: model.room, run: next.socketRun }),
+              SubmitSharedEdit.make({ room: model.room, request: pending.request }),
+              LoadSharedDiagram.make({ room: model.room, run: next.socketRun }),
             ],
           }
-        : { model: next, commands: [LoadSharedDiagram({ room: model.room, run: next.socketRun })] };
+        : {
+            model: next,
+            commands: [LoadSharedDiagram.make({ room: model.room, run: next.socketRun })],
+          };
     },
     PreparedEdit: ({ room, request, hash }) => {
       if (!current(model, room) || preparing(model)?.operationId !== request.operationId)
@@ -2052,7 +2049,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const state = beginEdit(session(model), request, hash);
       return {
         model: install(model, state),
-        commands: [SubmitSharedEdit({ room, request })],
+        commands: [SubmitSharedEdit.make({ room, request })],
       };
     },
     FailedPreparation: ({ room }) =>
@@ -2071,14 +2068,14 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             // receiveReply checks exact identity/binding before it can clear the
             // pending request. Keep its accepted version if coverage was evicted.
             model: install(model, receiveReply(session(model), room, reply), reply.receipt),
-            commands: [LoadSharedDiagram({ room, run: model.socketRun })],
+            commands: [LoadSharedDiagram.make({ room, run: model.socketRun })],
           },
     FailedEdit: ({ room, operationId }) =>
       !current(model, room)
         ? { model }
         : {
             model: { ...model, session: unknownEdit(session(model), room, operationId) },
-            commands: [LoadSharedDiagram({ room, run: model.socketRun })],
+            commands: [LoadSharedDiagram.make({ room, run: model.socketRun })],
           },
     ObservedEditorInput: ({ event: raw }) => {
       // SAFETY: only zlozView's typed onEvent callback constructs this message.
@@ -2144,9 +2141,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           },
         };
       if (
-        event.type === 'NodeDragStarted' ||
-        (event.type === 'NodeSelected' &&
-          (!event.additive || result.editor.selectedNodes[0] !== before.selectedNodes[0]))
+        (event.type === 'NodeDragStarted' || event.type === 'NodeSelected') &&
+        result.editor.selectedNodes[0] !== before.selectedNodes[0]
       )
         next = {
           ...next,
@@ -2256,7 +2252,10 @@ function scheduleEdgeReveal(
   ) {
     const changes = changedHotspots(previous.document, confirmed.document);
     if (changes.length)
-      step = { ...step, commands: [...(step.commands ?? []), RevealHotspots({ run, changes })] };
+      step = {
+        ...step,
+        commands: [...(step.commands ?? []), RevealHotspots.make({ run, changes })],
+      };
   }
   const waiting = next.deferredEdgeReveals;
   if (!added.length && !waiting.length) return step;
@@ -2280,7 +2279,7 @@ function scheduleEdgeReveal(
   return {
     model: { ...next, deferredEdgeReveals },
     commands: edgeIds.length
-      ? [...(step.commands ?? []), RevealEdges({ run, edgeIds })]
+      ? [...(step.commands ?? []), RevealEdges.make({ run, edgeIds })]
       : step.commands,
   };
 }
@@ -2380,65 +2379,56 @@ export function saveStatus(model: Model): string {
                 : settledStatus;
 }
 
-const aggregateInspector = createLazy();
-function aggregateView(h: HtmlBuilder<Message>, graph: ZlozGraph, selectedId: string | null) {
-  return zlozAggregateView(h, projectAggregate(graph, selectedId));
+function aggregateView(h: Html.H<Message>, graph: ZlozGraph, selectedId: string | null) {
+  return aggregateViewContent(h, projectAggregate(graph, selectedId));
 }
 
-const sharedCanvas = createLazy();
-const iconPickerToggle = createLazy();
-const iconPickerToggleView = (h: HtmlBuilder<Message>, open: boolean, disabled: boolean) =>
-  h.button(
-    [
-      h.Type('button'),
-      h.Disabled(disabled),
-      h.AriaExpanded(open),
-      h.OnClick(Message.ToggledIconPicker()),
-    ],
-    ['Node icon'],
-  );
+const iconPickerToggleView = (h: Html.H<Message>, open: boolean, disabled: boolean) =>
+  h.button
+    .attr('type', 'button')
+    .disabled(disabled)
+    .attr('aria-expanded', String(open))
+    .on('click', Message.ToggledIconPicker())
+    .children('Node icon');
 const canvasEvent = (event: EditorEvent) => Message.ObservedEditorInput({ event });
-function layoutGhosts(
-  h: HtmlBuilder<Message>,
-  state: EditorState,
-  preview: Layout.Proposal | null,
-) {
+const failedIcon = (icon: string) => Message.FailedIconAsset({ icon });
+function layoutGhosts(h: Html.H<Message>, state: EditorState, preview: Layout.Proposal | null) {
   if (!preview) return [];
   const nodes = new Map(state.graph.nodes.map((node) => [node.id, node]));
   return preview.moves.flatMap(({ id, position }) => {
     const node = nodes.get(id);
     if (!node) return [];
     return [
-      zlozWorldOverlayItem(
-        h,
-        { position },
-        [
-          h.Key(id),
-          h.Class(node.kind === 'group' ? 'layout-ghost layout-ghost-group' : 'layout-ghost'),
-          h.AriaHidden(true),
-          h.DataAttribute('layout-ghost', id),
-          h.DataAttribute('layout-x', String(position.x)),
-          h.DataAttribute('layout-y', String(position.y)),
-          h.Style({ width: `${node.size.width}px`, height: `${node.size.height}px` }),
-        ],
-        [node.label],
-      ),
+      h.div
+        .key(id)
+        .class(node.kind === 'group' ? 'layout-ghost layout-ghost-group' : 'layout-ghost')
+        .attrs({
+          'aria-hidden': 'true',
+          'data-layout-ghost': id,
+          'data-layout-x': String(position.x),
+          'data-layout-y': String(position.y),
+        })
+        .style({
+          position: 'absolute',
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: `${node.size.width}px`,
+          height: `${node.size.height}px`,
+        })
+        .children(node.label),
     ];
   });
 }
-const overviewToggle = createLazy();
-function overviewToggleView(h: HtmlBuilder<Message>, open: boolean, enabled: boolean) {
-  return h.button(
-    [
-      h.Id('board-overview-toggle'),
-      h.Type('button'),
-      h.Disabled(!enabled),
-      h.AriaControls('board-overview'),
-      h.AriaExpanded(open),
-      h.OnClick(Message.ToggledOverview()),
-    ],
-    ['Overview'],
-  );
+
+function overviewToggleView(h: Html.H<Message>, open: boolean, enabled: boolean) {
+  return h.button
+    .id('board-overview-toggle')
+    .attr('type', 'button')
+    .disabled(!enabled)
+    .attr('aria-controls', 'board-overview')
+    .attr('aria-expanded', String(open))
+    .on('click', Message.ToggledOverview())
+    .children('Overview');
 }
 
 const infrastructureSource = Schema.decodeUnknownOption(
@@ -2453,33 +2443,47 @@ const infrastructureSource = Schema.decodeUnknownOption(
   }),
 );
 
-function infrastructureDetails(h: HtmlBuilder<Message>, node: ZlozNode) {
+function infrastructureDetails(h: Html.H<Message>, node: ZlozNode) {
   const decoded = infrastructureSource(node.data);
   if (Option.isNone(decoded)) return [];
   const record = decoded.value.alchemyInfrastructure;
   const omissions = record.omissions;
   return [
-    h.section(
-      [h.AriaLabel('Alchemy source')],
-      [
-        h.h3([], ['Alchemy source']),
-        h.p([], [`${record.stack} · ${record.stage} · ${record.revision}`]),
-        ...(record.type ? [h.p([], [record.type])] : []),
-        ...(omissions.length
-          ? [
-              h.ul(
-                [],
-                omissions.map((item) => h.li([], [item])),
-              ),
-            ]
-          : []),
-      ],
-    ),
+    h.section
+      .attr('aria-label', 'Alchemy source')
+      .children(
+        h.h3.children('Alchemy source'),
+        h.p.children(`${record.stack} · ${record.stage} · ${record.revision}`),
+        ...(record.type ? [h.p.children(record.type)] : []),
+        ...(omissions.length ? [h.ul.children(omissions.map((item) => h.li.children(item)))] : []),
+      ),
   ];
 }
 
+function cameraButton(
+  h: Html.H<Message>,
+  label: string,
+  disabled: boolean,
+  type: 'Zoomed' | 'FitViewClicked' | 'FitSelectionClicked' | 'PreviousViewClicked',
+  x?: number,
+  y?: number,
+  factor?: number,
+) {
+  const event: EditorEvent =
+    type === 'Zoomed' ? { type, point: { x: x ?? 0, y: y ?? 0 }, factor: factor ?? 1 } : { type };
+  return viewportControl(h, { label, disabled, event }, canvasEvent).children(label);
+}
+
+function addNodeButton(h: Html.H<Message>, _key: 'add-node', disabled: boolean) {
+  return h.button
+    .attr('type', 'button')
+    .disabled(disabled)
+    .on('click', Message.ClickedAdd())
+    .children(teamIcon(h, 'plus'), h.span.children('Add node'));
+}
+
 function canvasView(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   state: EditorState,
   disabled: boolean,
   peers: Model['peers'],
@@ -2493,217 +2497,215 @@ function canvasView(
   const onEvent = canvasEvent;
   const canShowOverview =
     overview !== null && Boolean(state.surface) && state.graph.nodes.length > 0;
-  return zlozView(
-    h,
-    { ...state, readOnly: disabled },
-    {
+  const editor = { ...state, readOnly: disabled };
+  const controls = viewportControlActions(editor);
+  const minimap =
+    overview === true && canShowOverview
+      ? historyMinimap(h, editor, onEvent, { onEscape: Message.ToggledOverview() })
+      : null;
+  const connections = resolveConnectionList(editor, editor.graph.edges, {
+    id: 'shared-diagram',
+    compact: false,
+    contextActions: false,
+    toolbarEdgeId: undefined,
+  });
+  const status = canvasStatusContext(
+    editor.notice,
+    editor.graph.nodes.length,
+    editor.graph.edges.length,
+    true,
+  );
+  return h.div.class('board-canvas').children(
+    graphSurface(h, editor, {
       id: 'shared-diagram',
       label: 'Shared team diagram',
-      onEvent,
-      height: 'fill',
+      descriptionId: 'shared-diagram-help',
+      onInput: onEvent,
       theme: teamCanvasTheme,
-      renderCanvasHelp: (_context, builder) =>
-        builder.span(
-          [],
-          [
-            'Drag a node title to move it, or focus its title and use arrow keys. Drag the background to pan and scroll to zoom. Activate an output port, then an input port to connect. Escape cancels a gesture.',
-          ],
-        ),
-      renderConnections: sharedConnections,
-      contextActions: false,
-      nodeToolbar: false,
-      edgeToolbar: false,
-      viewportControls: true,
-      fitSelectionControl: true,
-      previousViewControl: true,
-      resizeHandles: false,
-      minimap: overview === true && canShowOverview,
-      autoPan: false,
+      wheelNavigation: 'zoom',
       stablePointerOrigin: true,
       viewportCulling: true,
-      renderLayout: ({ canvas, canvasId, controls, status, connections, help, minimap }, builder) =>
-        builder.div(
-          [builder.Class('board-canvas')],
-          [
-            canvas,
-            builder.div(
-              [builder.Class('board-navigation')],
-              [
-                ...(controls ? [controls] : []),
-                overviewToggle(overviewToggleView, [builder, minimap !== null, canShowOverview]),
-                builder.div(
-                  [
-                    builder.Id('board-overview'),
-                    builder.Class('board-popover-content board-overview'),
-                    builder.Hidden(minimap === null),
-                    builder.OnKeyDownPreventDefault((key) =>
-                      key === 'Escape' ? Option.some(Message.ToggledOverview()) : Option.none(),
-                    ),
-                  ],
-                  minimap ? [minimap] : [],
-                ),
-                builder.details(
-                  [builder.Class('board-popover')],
-                  [
-                    builder.summary([], ['Browse relationships']),
-                    builder.div([builder.Class('board-popover-content')], [connections]),
-                  ],
-                ),
-                builder.details(
-                  [builder.Class('board-popover')],
-                  [
-                    builder.summary([], ['Canvas help']),
-                    builder.div([builder.Class('board-popover-content')], [help]),
-                  ],
-                ),
-                builder.a(
-                  [builder.Class('board-skip'), builder.Href(`#${canvasId}`)],
-                  ['Skip to canvas'],
-                ),
-              ],
-            ),
-            status,
-          ],
-        ),
-      canResizeNode: (node) =>
-        geometrySaving
-          ? 'Finish saving this move before resizing'
-          : node.kind === 'group'
-            ? 'Group resizing is not shared yet'
-            : null,
-      canConnectPort: () => (geometrySaving ? 'Finish saving this move before connecting' : null),
-      renderPort: sharedPorts,
-      renderNodeShell: (context, builder) =>
-        sharedNodes(context, builder, teamId, failedIconAssets.includes(context.node.icon ?? '')),
-      renderGroupShell: (context, builder) =>
-        zlozGroupFrame(
+      resizeHandles: true,
+      reconnect: true,
+      edgeEditing: { onEdit: onEvent },
+      policy: {
+        canResizeNode: (node) =>
+          geometrySaving
+            ? 'Finish saving this move before resizing'
+            : node.kind === 'group'
+              ? 'Group resizing is not shared yet'
+              : null,
+        canConnectPort: () => (geometrySaving ? 'Finish saving this move before connecting' : null),
+      },
+      renderPort: ({ port, target }) => ({
+        className: target ? 'shared-node-port is-target' : 'shared-node-port',
+        content: port.kind === 'output' ? '+' : '−',
+      }),
+      renderNodeShell: ({ node, selected }, builder) =>
+        nodeShell(
           builder,
-          context,
-          [builder.Class('shared-group')],
-          [
-            zlozDragHandle(
-              builder,
-              context,
-              [builder.Class('shared-group-title')],
-              [context.node.label],
-            ),
-            ...(context.ports ?? []),
-          ],
+          node,
+          selected,
+          teamId,
+          failedIconAssets.includes(node.icon ?? ''),
+          failedIcon,
         ),
-      renderWorldOverlay: (_context, builder) =>
-        builder.div(
-          [],
-          [
-            ...layoutGhosts(builder, state, layoutPreview),
-            ...peers
-              .filter((peer) => peer.connectionId !== generation && peer.cursor !== null)
-              .map((peer) =>
-                zlozWorldOverlayItem(
-                  builder,
-                  { position: peer.cursor!, interactive: false },
-                  [builder.Class('peer-cursor')],
-                  [`↖ ${peer.name}`],
-                ),
-              ),
-          ],
-        ),
-    },
-  );
-}
-
-const boardControls = createLazy();
-const layoutLauncher = createLazy();
-function layoutLauncherView(h: HtmlBuilder<Message>, method: Layout.Method, enabled: boolean) {
-  return h.div(
-    [],
-    [
-      h.label(
-        [h.Class('canvas-mode')],
-        [
-          'Layout action',
-          h.select(
-            [
-              h.Value(method),
-              h.OnChange((value) =>
-                Message.SelectedLayoutMethod({
-                  method: Schema.is(Layout.Method)(value) ? value : method,
-                }),
-              ),
-            ],
-            Layout.Method.literals.map((value) =>
-              h.option([h.Value(value)], [Layout.methods[value].label]),
+      renderGroupShell: () => ({
+        className: 'shared-group',
+        title: { className: 'shared-group-title' },
+      }),
+      renderWorldOverlay: (_nodes, builder) =>
+        builder.div.children(
+          ...layoutGhosts(builder, state, layoutPreview),
+          ...peers
+            .filter((peer) => peer.connectionId !== generation && peer.cursor !== null)
+            .map((peer) =>
+              builder.div
+                .key(peer.connectionId)
+                .class('peer-cursor')
+                .style({
+                  position: 'absolute',
+                  left: `${peer.cursor!.x}px`,
+                  top: `${peer.cursor!.y}px`,
+                })
+                .children(`↖ ${peer.name}`),
             ),
+        ),
+    }),
+    h.div.class('board-navigation').children(
+      h.div
+        .class('board-viewport-controls')
+        .children(
+          ...[
+            controls.zoomIn,
+            controls.zoomOut,
+            controls.fitView,
+            controls.fitSelection,
+            controls.previousView,
+          ].flatMap(({ label, disabled, event }) =>
+            event.type === 'Zoomed'
+              ? [
+                  h.lazy(
+                    cameraButton,
+                    label,
+                    disabled,
+                    event.type,
+                    event.point.x,
+                    event.point.y,
+                    event.factor,
+                  ),
+                ]
+              : event.type === 'FitViewClicked' ||
+                  event.type === 'FitSelectionClicked' ||
+                  event.type === 'PreviousViewClicked'
+                ? [h.lazy(cameraButton, label, disabled, event.type)]
+                : [],
           ),
-        ],
-      ),
-      h.button(
-        [
-          h.Id('board-layout-open'),
-          h.Class('layout-launcher'),
-          h.Type('button'),
-          h.Title(`Select at least ${Layout.methods[method].minimum} sibling nodes or groups`),
-          h.Disabled(!enabled),
-          h.OnClick(Message.ClickedLayoutPreview({ method })),
-        ],
-        ['Preview selection layout'],
-      ),
-    ],
+        ),
+      h.lazy(overviewToggleView, minimap != null, canShowOverview),
+      h.div
+        .id('board-overview')
+        .class('board-popover-content', 'board-overview')
+        .attr('hidden', minimap == null ? '' : undefined)
+        .children(minimap),
+      h.details
+        .class('board-popover')
+        .children(
+          h.summary.children('Browse relationships'),
+          h.div.class('board-popover-content').children(sharedConnections(connections, h)),
+        ),
+      h.details
+        .class('board-popover')
+        .children(
+          h.summary.children('Canvas help'),
+          h.div
+            .id('shared-diagram-help')
+            .class('board-popover-content')
+            .children(
+              'Drag a node title to move it, or focus its title and use arrow keys. Drag the background to pan and scroll to zoom. Activate an output port, then an input port to connect. Escape cancels a gesture.',
+            ),
+        ),
+      h.a.class('board-skip').attr('href', '#shared-diagram-surface').children('Skip to canvas'),
+    ),
+    h.p.attr('role', 'status').attr('data-flow-status', '').children(status.defaultText),
   );
 }
 
-function layoutPanel(model: Model, h: HtmlBuilder<Message>, reason: string | null) {
+function layoutLauncherView(h: Html.H<Message>, method: Layout.Method, enabled: boolean) {
+  return h.div.children(
+    h.label.class('canvas-mode').children(
+      'Layout action',
+      h.select
+        .value(method)
+        .on('change', ({ value }) =>
+          Message.SelectedLayoutMethod({
+            method: Schema.is(Layout.Method)(value) ? value : method,
+          }),
+        )
+        .children(
+          Layout.Method.literals.map((value) =>
+            h.option.attr('value', value).children(Layout.methods[value].label),
+          ),
+        ),
+    ),
+    h.button
+      .id('board-layout-open')
+      .class('layout-launcher')
+      .attr('type', 'button')
+      .attr('title', `Select at least ${Layout.methods[method].minimum} sibling nodes or groups`)
+      .disabled(!enabled)
+      .on('click', Message.ClickedLayoutPreview({ method }))
+      .children('Preview selection layout'),
+  );
+}
+
+function layoutPanel(model: Model, h: Html.H<Message>, reason: string | null) {
   const ready = model.layout._tag === 'Ready';
-  return h.div(
-    [
-      h.Id('board-layout-preview'),
-      h.Class('board-layout-preview'),
-      h.Role('region'),
-      h.AriaLabel('Selection layout preview'),
-      h.Tabindex(-1),
-      h.OnKeyDownPreventDefault((key) =>
-        key === 'Escape' ? Option.some(Message.DiscardedLayoutPreview()) : Option.none(),
-      ),
-    ],
-    [
-      h.p([], [h.strong([], [Layout.methods[model.layoutMethod].label])]),
-      h.p(
-        [h.Role('status')],
-        [
+  return h.div
+    .id('board-layout-preview')
+    .class('board-layout-preview')
+    .attr('role', 'region')
+    .attr('aria-label', 'Selection layout preview')
+    .attr('tabindex', String(-1))
+    .on(
+      'keydown',
+      ({ key }) =>
+        Option.getOrUndefined(
+          key === 'Escape' ? Option.some(Message.DiscardedLayoutPreview()) : Option.none(),
+        ),
+      { preventDefault: true },
+    )
+    .children(
+      h.p.children(h.strong.children(Layout.methods[model.layoutMethod].label)),
+      h.p
+        .attr('role', 'status')
+        .children(
           model.layout._tag === 'Failed'
             ? model.layout.message
             : model.layout._tag === 'Running'
               ? 'Preparing selection layout…'
               : (reason ?? 'Layout preview is visible only to you.'),
-        ],
+        ),
+      h.div.class('layout-preview-actions').children(
+        ...(ready
+          ? [
+              h.button
+                .attr('type', 'button')
+                .disabled(reason !== null)
+                .on('click', Message.ClickedApplyLayout({ run: model.layoutRun }))
+                .children('Apply layout'),
+            ]
+          : []),
+        h.button
+          .attr('type', 'button')
+          .on('click', Message.DiscardedLayoutPreview())
+          .children('Discard layout'),
       ),
-      h.div(
-        [h.Class('layout-preview-actions')],
-        [
-          ...(ready
-            ? [
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Disabled(reason !== null),
-                    h.OnClick(Message.ClickedApplyLayout({ run: model.layoutRun })),
-                  ],
-                  ['Apply layout'],
-                ),
-              ]
-            : []),
-          h.button(
-            [h.Type('button'), h.OnClick(Message.DiscardedLayoutPreview())],
-            ['Discard layout'],
-          ),
-        ],
-      ),
-    ],
-  );
+    );
 }
 
-const sourceExportPanel = createLazy();
 function sourceExportPanelView(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   review: SourceExport.Review,
   availability: SourceExport.Availability,
 ) {
@@ -2716,41 +2718,27 @@ function sourceExportPanelView(
   });
 }
 
-const mermaidExportLauncher = createLazy();
-const likeC4ExportLauncher = createLazy();
-function sourceExportLauncherView(
-  h: HtmlBuilder<Message>,
-  kind: SourceExport.Kind,
-  available: boolean,
-) {
-  return h.button(
-    [
-      h.Id(SourceExport.launcherId(kind)),
-      h.Class('mermaid-launcher'),
-      h.Type('button'),
-      h.Disabled(!available),
-      h.OnClick(Message.OpenedSourceExport({ kind })),
-    ],
-    [`Export ${SourceExport.label(kind)}`],
-  );
+function sourceExportLauncherView(h: Html.H<Message>, kind: SourceExport.Kind, available: boolean) {
+  return h.button
+    .id(SourceExport.launcherId(kind))
+    .class('mermaid-launcher')
+    .attr('type', 'button')
+    .disabled(!available)
+    .on('click', Message.OpenedSourceExport({ kind }))
+    .children(`Export ${SourceExport.label(kind)}`);
 }
 
-const svgLauncher = createLazy();
-function svgLauncherView(h: HtmlBuilder<Message>, available: boolean) {
-  return h.button(
-    [
-      h.Id('board-svg-open'),
-      h.Class('svg-launcher'),
-      h.Type('button'),
-      h.Disabled(!available),
-      h.OnClick(Message.OpenedSvg()),
-    ],
-    ['Export SVG'],
-  );
+function svgLauncherView(h: Html.H<Message>, available: boolean) {
+  return h.button
+    .id('board-svg-open')
+    .class('svg-launcher')
+    .attr('type', 'button')
+    .disabled(!available)
+    .on('click', Message.OpenedSvg())
+    .children('Export SVG');
 }
 
-const workshopJourneyInspector = createLazy();
-function workshopJourneyPanel(h: HtmlBuilder<Message>, graph: ZlozGraph, cursor: Model['journey']) {
+function workshopJourneyPanel(h: Html.H<Message>, graph: ZlozGraph, cursor: Model['journey']) {
   return journeyView(h, journey(graph, cursor), {
     start: (id) => Message.ChoseJourneyStart({ id }),
     follow: (id) => Message.FollowedJourneyLink({ id }),
@@ -2759,9 +2747,9 @@ function workshopJourneyPanel(h: HtmlBuilder<Message>, graph: ZlozGraph, cursor:
       canvasEvent({ type: type === 'node' ? 'NodeRevealRequested' : 'EdgeRevealRequested', id }),
   });
 }
-const evolutionInspector = createLazy();
+
 function evolutionInspectorView(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   history: Evolution.History,
   connection: 'live' | 'offline' | 'denied',
   availability: 'available' | 'blocked',
@@ -2778,106 +2766,71 @@ function evolutionInspectorView(
   );
 }
 
-const svgPanel = createLazy();
-function svgPanelView(h: HtmlBuilder<Message>, review: Svg.Review, availability: Svg.Availability) {
+function svgPanelView(h: Html.H<Message>, review: Svg.Review, availability: Svg.Availability) {
   const controls = Svg.resolve(review, availability);
   const request = (value: ZlozSvgReviewRequest) => Message.ObservedSvgReview({ request: value });
-  return h.div(
-    [
-      h.Id('board-svg'),
-      h.Class('board-svg'),
-      h.Role('region'),
-      h.AriaLabel('SVG export preview'),
-      h.Tabindex(-1),
-      h.OnKeyDownPreventDefault((key) =>
-        key === 'Escape' ? Option.some(Message.ClosedSvg()) : Option.none(),
-      ),
-    ],
-    [
-      h.div(
-        [h.Class('mermaid-review-header')],
-        [
-          h.div([], [h.h2([], ['SVG export']), h.p([], [`Confirmed version ${review.version}`])]),
-          h.button([h.Type('button'), h.OnClick(Message.ClosedSvg())], ['Close SVG preview']),
-        ],
-      ),
-      zlozSvgReview(h, controls, request, {
+  return h.div
+    .id('board-svg')
+    .class('board-svg')
+    .attr('role', 'region')
+    .attr('aria-label', 'SVG export preview')
+    .attr('tabindex', String(-1))
+    .on(
+      'keydown',
+      ({ key }) =>
+        Option.getOrUndefined(key === 'Escape' ? Option.some(Message.ClosedSvg()) : Option.none()),
+      { preventDefault: true },
+    )
+    .children(
+      h.div
+        .class('mermaid-review-header')
+        .children(
+          h.div.children(
+            h.h2.children('SVG export'),
+            h.p.children(`Confirmed version ${review.version}`),
+          ),
+          h.button
+            .attr('type', 'button')
+            .on('click', Message.ClosedSvg())
+            .children('Close SVG preview'),
+        ),
+      svgReview(h, controls, request, {
         idPrefix: 'team-svg',
-        attributes: [h.Class('svg-review')],
+        hideRegion: true,
         diagnostics: { instructions: false, measurements: false },
-        renderSettings: (settings, builder, onRequest) =>
-          builder.div(
-            [builder.Class('svg-review-settings')],
-            [
-              builder.div(
-                [],
-                [
-                  builder.label([builder.For('team-svg-theme')], ['SVG theme']),
-                  zlozSvgReviewSelect(builder, settings, 'themeId', onRequest, [
-                    builder.Id('team-svg-theme'),
-                  ]),
-                ],
+        status: review.notice || 'SVG is ready to download.',
+        showAcceptance: availability === 'current',
+        renderLayout: ({ settings, preview, findings, acceptance, download, status }, builder) => [
+          builder.div
+            .class('mermaid-review-body')
+            .children(
+              builder.div.class('svg-review-settings').children(settings),
+              preview,
+              builder.p.children(
+                'Exports the confirmed graph. Live board controls, custom backgrounds, presence, assessments, decisions and generic icons on non-C4 nodes are omitted.',
               ),
-              builder.div(
-                [],
-                [
-                  builder.label([builder.For('team-svg-background')], ['SVG background']),
-                  zlozSvgReviewSelect(builder, settings, 'backgroundId', onRequest, [
-                    builder.Id('team-svg-background'),
-                  ]),
-                ],
-              ),
-            ],
-          ),
-        renderAcceptance: () => (availability === 'current' ? undefined : null),
-        renderStatus: (state, builder) =>
-          builder.p(
-            [builder.Role('status')],
-            [state.downloadReason ?? (review.notice || 'SVG is ready to download.')],
-          ),
-        renderLayout: (
-          { settings, preview, findings, acceptance, download, status },
-          _context,
-          builder,
-        ) => [
-          builder.div(
-            [builder.Class('mermaid-review-body')],
-            [
-              ...[settings, preview].flatMap((part) => (part ? [part] : [])),
-              builder.p(
-                [],
-                [
-                  'Exports the confirmed graph. Live board controls, custom backgrounds, presence, assessments, decisions and generic icons on non-C4 nodes are omitted.',
-                ],
-              ),
-              ...(findings ? [findings] : []),
-            ],
-          ),
-          builder.div(
-            [builder.Class('mermaid-review-footer svg-review-footer')],
-            [
-              ...[status, acceptance].flatMap((part) => (part ? [part] : [])),
-              ...(availability === 'newer'
-                ? [
-                    builder.button(
-                      [builder.Type('button'), builder.OnClick(Message.OpenedSvg())],
-                      ['Review latest version'],
-                    ),
-                  ]
-                : []),
-              ...(download ? [download] : []),
-            ],
-          ),
+              findings,
+            ),
+          builder.div
+            .class('mermaid-review-footer', 'svg-review-footer')
+            .children(
+              status,
+              acceptance,
+              availability === 'newer'
+                ? builder.button
+                    .attr('type', 'button')
+                    .on('click', Message.OpenedSvg())
+                    .children('Review latest version')
+                : null,
+              download,
+            ),
         ],
       }),
-    ],
-  );
+    );
 }
 
-const commandBar = createLazy();
-
 function commandBarView(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   active: BoardCommand,
   teamId: string,
   role: Model['role'],
@@ -2896,51 +2849,49 @@ function commandBarView(
     (name) => name !== 'History' || (reviewAvailable && !accessEnded),
   );
   const tabStop = commands.includes(active) ? active : 'File';
-  const trigger = (name: BoardCommand) => [
-    h.Id(triggerId(name)),
-    h.Tabindex(name === tabStop ? 0 : -1),
-    h.OnFocus(Message.FocusedBoardCommand({ name })),
-    h.OnKeyDownPreventDefault((key) => {
-      if (key !== 'ArrowLeft' && key !== 'ArrowRight') return Option.none();
-      const offset = key === 'ArrowRight' ? 1 : -1;
-      const index = (commands.indexOf(name) + offset + commands.length) % commands.length;
-      return Option.some(Message.NavigatedBoardCommands({ name: commands[index]! }));
-    }),
-  ];
-  const menu = (name: BoardCommand, contents: (id: string) => ReturnType<typeof h.div>[]) => {
+  const trigger = (name: BoardCommand) =>
+    h.button
+      .attr('type', 'button')
+      .id(triggerId(name))
+      .attr('tabindex', String(name === tabStop ? 0 : -1))
+      .on('focus', Message.FocusedBoardCommand({ name }))
+      .on(
+        'keydown',
+        ({ key }) => {
+          if (key !== 'ArrowLeft' && key !== 'ArrowRight') return undefined;
+          const offset = key === 'ArrowRight' ? 1 : -1;
+          const index = (commands.indexOf(name) + offset + commands.length) % commands.length;
+          return Message.NavigatedBoardCommands({ name: commands[index]! });
+        },
+        { preventDefault: true },
+      );
+  const menu = (name: BoardCommand, contents: (id: string) => readonly View.Input<Message>[]) => {
     const id = `board-menu-${name.toLowerCase()}`;
-    return h.div(
-      [h.Class('board-menu')],
-      [
-        h.button([...trigger(name), h.Type('button'), h.Popovertarget(id)], [name]),
-        h.div(
-          [
-            h.Id(id),
-            h.Popover('auto'),
-            h.Class('board-command-list'),
-            h.AriaLabel(name),
-            h.Role('group'),
-          ],
-          contents(id),
-        ),
-      ],
+    return h.div.class('board-menu').children(
+      trigger(name).attr('popovertarget', id).children(name),
+      h.div
+        .id(id)
+        .attr('popover', 'auto')
+        .class('board-command-list')
+        .attr('aria-label', name)
+        .attr('role', 'group')
+        .children(...contents(id)),
     );
   };
   const action = (id: string, label: string, message: Message, enabled = true) =>
-    h.button(
-      [
-        h.Type('button'),
-        h.Disabled(!enabled || accessEnded),
-        h.Popovertarget(id),
-        h.Popovertargetaction('hide'),
-        h.OnClick(message),
-      ],
-      [label],
-    );
+    h.button
+      .attr('type', 'button')
+      .disabled(!enabled || accessEnded)
+      .attr('popovertarget', id)
+      .attr('popovertargetaction', 'hide')
+      .on('click', message)
+      .children(label);
 
-  return h.div(
-    [h.Class('board-command-bar'), h.Role('toolbar'), h.AriaLabel('Board commands')],
-    [
+  return h.div
+    .class('board-command-bar')
+    .attr('role', 'toolbar')
+    .attr('aria-label', 'Board commands')
+    .children(
       menu('File', (id) => [
         action(id, 'Import into empty board…', Message.OpenedBoardImport(), importAvailable),
         action(
@@ -2955,10 +2906,16 @@ function commandBarView(
           Message.OpenedSourceExport({ kind: 'likec4' }),
           exportAvailable,
         ),
-        ...(exportAvailable ? [h.a([h.Href(exportUrl)], ['Download confirmed JSON'])] : []),
+        ...(exportAvailable
+          ? [h.a.attr('href', exportUrl).children('Download confirmed JSON')]
+          : []),
         action(id, 'Export SVG…', Message.OpenedSvg(), exportAvailable),
         ...(role === 'owner' && !accessEnded
-          ? [h.a([h.Href(`/app/${encodeURIComponent(teamId)}?view=settings`)], ['Team settings'])]
+          ? [
+              h.a
+                .attr('href', `/app/${encodeURIComponent(teamId)}?view=settings`)
+                .children('Team settings'),
+            ]
           : []),
       ]),
       menu('Edit', (id) => [
@@ -2981,38 +2938,26 @@ function commandBarView(
         ),
       ),
       menu('Help', () => [
-        h.p(
-          [],
-          [
-            'Drag the background to pan. Scroll to zoom. Use Find to locate a node or relationship.',
-          ],
+        h.p.children(
+          'Drag the background to pan. Scroll to zoom. Use Find to locate a node or relationship.',
         ),
         ...(role !== 'viewer' && !accessEnded
           ? [
-              h.p(
-                [],
-                [
-                  'Move a node by its title or focus the title and press an arrow key. Escape cancels the gesture.',
-                ],
+              h.p.children(
+                'Move a node by its title or focus the title and press an arrow key. Escape cancels the gesture.',
               ),
             ]
           : []),
       ]),
-      h.button(
-        [
-          h.Type('button'),
-          ...trigger('History'),
-          h.Disabled(accessEnded || !reviewAvailable),
-          h.OnClick(Message.OpenedLatestHistory()),
-        ],
-        ['History'],
-      ),
-    ],
-  );
+      trigger('History')
+        .disabled(accessEnded || !reviewAvailable)
+        .on('click', Message.OpenedLatestHistory())
+        .children('History'),
+    );
 }
 
 function boardControlsView(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   toolsOpen: boolean,
   inspectorOpen: boolean,
   findOpen: boolean,
@@ -3020,101 +2965,79 @@ function boardControlsView(
   accessEnded: boolean,
 ) {
   const railToggle = (rail: typeof Rail.Type, open: boolean, label: string) =>
-    h.button(
-      [
-        h.Type('button'),
-        h.Disabled(accessEnded),
-        h.Id(`board-${rail}-toggle`),
-        h.AriaControls(`board-${rail}`),
-        h.AriaExpanded(open),
-        h.OnClick(Message.ToggledBoardRail({ rail })),
-      ],
-      [label],
-    );
-  return h.div(
-    [h.Class('board-controls')],
-    [
-      railToggle('tools', toolsOpen, 'Tools'),
-      railToggle('inspector', inspectorOpen, 'Inspector'),
-      h.button(
-        [
-          h.Id('board-find-toggle'),
-          h.Type('button'),
-          h.Disabled(accessEnded),
-          h.AriaControls('board-find'),
-          h.AriaExpanded(findOpen),
-          h.OnClick(findOpen ? Message.ClosedFind() : Message.OpenedFind()),
-        ],
-        ['Find'],
-      ),
-      h.button(
-        [h.Type('button'), h.Disabled(accessEnded), h.OnClick(Message.ToggledBoardFocus())],
-        [focused ? 'Exit focus' : 'Focus board'],
-      ),
-    ],
+    h.button
+      .attr('type', 'button')
+      .disabled(accessEnded)
+      .id(`board-${rail}-toggle`)
+      .attr('aria-controls', `board-${rail}`)
+      .attr('aria-expanded', String(open))
+      .on('click', Message.ToggledBoardRail({ rail }))
+      .children(label);
+  return h.div.class('board-controls').children(
+    railToggle('tools', toolsOpen, 'Tools'),
+    railToggle('inspector', inspectorOpen, 'Inspector'),
+    h.button
+      .id('board-find-toggle')
+      .attr('type', 'button')
+      .disabled(accessEnded)
+      .attr('aria-controls', 'board-find')
+      .attr('aria-expanded', String(findOpen))
+      .on('click', findOpen ? Message.ClosedFind() : Message.OpenedFind())
+      .children('Find'),
+    h.button
+      .attr('type', 'button')
+      .disabled(accessEnded)
+      .on('click', Message.ToggledBoardFocus())
+      .children(focused ? 'Exit focus' : 'Focus board'),
   );
 }
 
-const boardImportChildView = Submodel.defineView<
-  { child: typeof DiagramImport.Model.Type; reason: string },
-  typeof DiagramImport.Message.Type
->(({ child, reason }, h) => DiagramImport.view(child, h, reason).body);
-
 function boardImportView(
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   preview: NonNullable<Model['boardImport']>,
 ) {
   const run = model.importRun;
   const reason = boardImportBlockReason(model, preview.version);
-  return h.section(
-    [h.Class('board-import'), h.AriaLabel('Import into this board')],
-    [
-      h.header(
-        [],
-        [
-          h.h2([], ['Import into this board']),
-          h.button([h.Type('button'), h.OnClick(Message.ClosedBoardImport())], ['Close import']),
-        ],
+  return h.section
+    .class('board-import')
+    .attr('aria-label', 'Import into this board')
+    .children(
+      h.header.children(
+        h.h2.children('Import into this board'),
+        h.button
+          .attr('type', 'button')
+          .on('click', Message.ClosedBoardImport())
+          .children('Close import'),
       ),
-      h.div(
-        [h.Class('board-import-content')],
-        [
-          h.label(
-            [],
-            [
-              'Import format',
-              h.select(
-                [
-                  h.Id('board-import-format'),
-                  h.Value(preview.child.format ?? 'likec4'),
-                  h.OnChange((value) =>
-                    Message.ChoseBoardImportFormat({
-                      format: value === 'alchemy' ? 'alchemy' : 'likec4',
-                    }),
-                  ),
-                ],
-                [
-                  h.option([h.Value('likec4')], ['LikeC4']),
-                  h.option([h.Value('alchemy')], ['Alchemy infrastructure']),
-                ],
-              ),
-            ],
-          ),
-          ...(preview.notice ? [h.p([h.Role('alert')], [preview.notice])] : []),
-          h.submodel({
-            slotId: `board-import-${run}`,
-            model: { child: preview.child, reason },
-            view: boardImportChildView,
-            toParentMessage: (message) => Message.GotBoardImportMessage({ run, message }),
-          }),
-        ],
+      h.div.class('board-import-content').children(
+        h.label.children(
+          'Import format',
+          h.select
+            .id('board-import-format')
+            .value(preview.child.format ?? 'likec4')
+            .on('change', ({ value }) =>
+              Message.ChoseBoardImportFormat({
+                format: value === 'alchemy' ? 'alchemy' : 'likec4',
+              }),
+            )
+            .children(
+              h.option.attr('value', 'likec4').children('LikeC4'),
+              h.option.attr('value', 'alchemy').children('Alchemy infrastructure'),
+            ),
+        ),
+        ...(preview.notice ? [h.p.attr('role', 'alert').children(preview.notice)] : []),
+        DiagramImport.view(
+          h,
+          preview.child,
+          (message) => Message.GotBoardImportMessage({ run, message }),
+          reason,
+        ),
       ),
-    ],
-  );
+    );
 }
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+export function view(model: Model, h: Html.H<Message>) {
   const review = historyReview(model);
   if (review) {
     const run = model.historyRun;
@@ -3171,22 +3094,22 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const findLimit = 20;
   return {
     title: `${model.name} | ZLOZ`,
-    body: h.div(
-      [
-        h.Class('shared-editor'),
-        h.DataAttribute('canvas-emphasis', model.emphasis),
-        h.DataAttribute('inspector-mode', model.inspector),
-        h.DataAttribute('tools-open', String(toolsOpen)),
-        h.DataAttribute('inspector-open', String(inspectorOpen)),
-        h.DataAttribute('confirmed-version', String(state.confirmed?.document.version ?? -1)),
-        h.DataAttribute('edge-motion-run', String(model.edgeMotionRun ?? '')),
-      ],
-      [
-        h.div(
-          [h.Class('canvas-toolbar'), h.Role('group'), h.AriaLabel('Board controls')],
-          [
-            commandBar(commandBarView, [
-              h,
+    body: h.div
+      .class('shared-editor')
+      .attr('data-canvas-emphasis', model.emphasis)
+      .attr('data-inspector-mode', model.inspector)
+      .attr('data-tools-open', String(toolsOpen))
+      .attr('data-inspector-open', String(inspectorOpen))
+      .attr('data-confirmed-version', String(state.confirmed?.document.version ?? -1))
+      .attr('data-edge-motion-run', String(model.edgeMotionRun ?? ''))
+      .children(
+        h.div
+          .class('canvas-toolbar')
+          .attr('role', 'group')
+          .attr('aria-label', 'Board controls')
+          .children(
+            h.lazy(
+              commandBarView,
               model.activeBoardCommand,
               model.room.teamId,
               model.role,
@@ -3196,8 +3119,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               !disabled &&
                 (currentEditor.selectedNodes.length > 0 || currentEditor.selectedEdges.length > 0),
               isLiveConnection(model.connection) &&
-              currentEditor.gesture.type === 'idle' &&
-              model.layout._tag !== 'Running'
+                currentEditor.gesture.type === 'idle' &&
+                model.layout._tag !== 'Running'
                 ? currentEditor.selectedNodes.length
                 : 0,
               isLiveConnection(model.connection) &&
@@ -3206,407 +3129,318 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               model.focusedBoard,
               `${pathFor(model.room)}/export`,
               accessEnded,
-            ]),
-            boardControls(boardControlsView, [
-              h,
+            ),
+            h.lazy(
+              boardControlsView,
               toolsOpen,
               inspectorOpen,
               findOpen,
               model.focusedBoard,
               accessEnded,
-            ]),
-            h.div(
-              [h.Class('board-session')],
-              [
-                h.span(
-                  [h.Class('mode-badge')],
-                  [teamIcon(h, model.emphasis === 'c4' ? 'package' : 'cube', 16), modeName],
-                ),
-                h.span(
-                  [h.Role('status'), h.DataAttribute('save-status', status), h.AriaLive('polite')],
-                  [status],
-                ),
-                ...((state.pending?.status === 'uncertain' ||
-                  !isLiveConnection(model.connection)) &&
-                model.connection._tag !== 'Denied'
-                  ? [
-                      h.button(
-                        [h.Type('button'), h.OnClick(Message.ClickedRetry())],
-                        [state.pending ? 'Retry saved request' : 'Reconnect'],
-                      ),
-                    ]
-                  : []),
-                h.details(
-                  [h.Class('board-popover board-presence')],
-                  [
-                    h.summary([], [`Here now · ${model.peers.length}`]),
-                    h.div(
-                      [
-                        h.Class('board-popover-content presence'),
-                        h.AriaLabel('Teammates in this diagram'),
-                      ],
-                      model.peers.length
-                        ? model.peers.map((peer) =>
-                            h.span(
-                              [],
-                              [
-                                `${peer.name}${peer.connectionId === model.room.generation ? ' (you)' : ''}${peer.selection.length ? ` · ${peer.selection.length} selected` : ''}`,
-                              ],
-                            ),
-                          )
-                        : [h.span([], ['No teammates reported yet.'])],
-                    ),
-                  ],
-                ),
-              ],
             ),
-          ],
-        ),
-        h.div(
-          [
-            h.Id('board-find'),
-            h.Class('board-find'),
-            h.Role('search'),
-            h.AriaLabel('Find on board'),
-            h.Hidden(!findOpen),
-            h.OnKeyDownPreventDefault((key) =>
-              key === 'Escape' ? Option.some(Message.ClosedFind()) : Option.none(),
+            h.div.class('board-session').children(
+              h.span
+                .class('mode-badge')
+                .children(teamIcon(h, model.emphasis === 'c4' ? 'package' : 'cube', 16), modeName),
+              h.span
+                .attr('role', 'status')
+                .attr('data-save-status', status)
+                .attr('aria-live', 'polite')
+                .children(status),
+              ...((state.pending?.status === 'uncertain' || !isLiveConnection(model.connection)) &&
+              model.connection._tag !== 'Denied'
+                ? [
+                    h.button
+                      .attr('type', 'button')
+                      .on('click', Message.ClickedRetry())
+                      .children(state.pending ? 'Retry saved request' : 'Reconnect'),
+                  ]
+                : []),
+              h.details.class('board-popover board-presence').children(
+                h.summary.children(`Here now · ${model.peers.length}`),
+                h.div
+                  .class('board-popover-content presence')
+                  .attr('aria-label', 'Teammates in this diagram')
+                  .children(
+                    model.peers.length
+                      ? model.peers.map((peer) =>
+                          h.span.children(
+                            `${peer.name}${peer.connectionId === model.room.generation ? ' (you)' : ''}${peer.selection.length ? ` · ${peer.selection.length} selected` : ''}`,
+                          ),
+                        )
+                      : [h.span.children('No teammates reported yet.')],
+                  ),
+              ),
             ),
-          ],
-          findOpen
-            ? [
-                h.div(
-                  [h.Class('find-controls')],
-                  [
-                    h.label(
-                      [],
-                      [
-                        'Find on board',
-                        h.input([
-                          h.Id('board-find-query'),
-                          h.Type('search'),
-                          h.Value(model.find ?? ''),
-                          h.OnInput((query) => Message.ChangedFind({ query })),
-                        ]),
-                      ],
+          ),
+        h.div
+          .id('board-find')
+          .class('board-find')
+          .attr('role', 'search')
+          .attr('aria-label', 'Find on board')
+          .attr('hidden', !findOpen ? '' : undefined)
+          .on(
+            'keydown',
+            ({ key }) =>
+              Option.getOrUndefined(
+                key === 'Escape' ? Option.some(Message.ClosedFind()) : Option.none(),
+              ),
+            { preventDefault: true },
+          )
+          .children(
+            findOpen
+              ? [
+                  h.div.class('find-controls').children(
+                    h.label.children(
+                      'Find on board',
+                      h.input
+                        .id('board-find-query')
+                        .attr('type', 'search')
+                        .value(model.find ?? '')
+                        .on('input', ({ value: query }) => Message.ChangedFind({ query })),
                     ),
-                    h.button([h.Type('button'), h.OnClick(Message.ClosedFind())], ['Close Find']),
-                  ],
-                ),
-                h.p(
-                  [h.Role('status')],
-                  [
-                    !model.find?.trim()
-                      ? 'Search nodes or relationships by name or ID.'
-                      : matches.length > findLimit
-                        ? `Showing ${findLimit} of ${matches.length} matches. Refine to narrow results.`
-                        : matches.length === 0
-                          ? 'No matches.'
-                          : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'}.`,
-                  ],
-                ),
-                ...(matches.length
-                  ? [
-                      h.ul(
-                        [h.Class('find-results')],
-                        matches
-                          .slice(0, findLimit)
-                          .map(({ target, id, label }) =>
-                            h.li(
-                              [h.Key(`${target}:${id}`)],
-                              [
-                                h.button(
-                                  [
-                                    h.Type('button'),
-                                    h.OnClick(Message.ChoseFindResult({ target, id })),
-                                  ],
-                                  [
-                                    target === 'node'
-                                      ? `Reveal ${label} (${id})`
-                                      : `Reveal connection ${label}`,
-                                  ],
+                    h.button
+                      .attr('type', 'button')
+                      .on('click', Message.ClosedFind())
+                      .children('Close Find'),
+                  ),
+                  h.p
+                    .attr('role', 'status')
+                    .children(
+                      !model.find?.trim()
+                        ? 'Search nodes or relationships by name or ID.'
+                        : matches.length > findLimit
+                          ? `Showing ${findLimit} of ${matches.length} matches. Refine to narrow results.`
+                          : matches.length === 0
+                            ? 'No matches.'
+                            : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'}.`,
+                    ),
+                  ...(matches.length
+                    ? [
+                        h.ul.class('find-results').children(
+                          matches.slice(0, findLimit).map(({ target, id, label }) =>
+                            h.li.key(`${target}:${id}`).children(
+                              h.button
+                                .attr('type', 'button')
+                                .on('click', Message.ChoseFindResult({ target, id }))
+                                .children(
+                                  target === 'node'
+                                    ? `Reveal ${label} (${id})`
+                                    : `Reveal connection ${label}`,
                                 ),
-                              ],
                             ),
                           ),
-                      ),
-                    ]
-                  : []),
-              ]
-            : [],
-        ),
+                        ),
+                      ]
+                    : []),
+                ]
+              : [],
+          ),
         ...(sourceReview
           ? [
-              sourceExportPanel(sourceExportPanelView, [
-                h,
+              h.lazy(
+                sourceExportPanelView,
                 sourceReview,
                 !exportDocument
                   ? 'offline'
                   : exportDocument.version === sourceReview.version
                     ? 'current'
                     : 'newer',
-              ]),
+              ),
             ]
           : []),
-        ...(svg ? [svgPanel(svgPanelView, [h, svg, Svg.availability(svg, exportDocument)])] : []),
+        ...(svg ? [h.lazy(svgPanelView, svg, Svg.availability(svg, exportDocument))] : []),
         ...(!accessEnded && model.boardImport
           ? [boardImportView(model, h, model.boardImport)]
           : []),
-        h.aside(
-          [
-            h.Id('board-tools'),
-            h.Class('tool-rail'),
-            h.AriaLabel('Diagram tools'),
-            h.Hidden(!toolsOpen),
-            h.Tabindex(-1),
-          ],
-          toolsOpen
-            ? [
-                h.h2([h.Class('rail-heading')], ['Diagram tools']),
-                ...(opyAvailable(model)
-                  ? [
-                      h.button(
-                        [
-                          h.Id('ask-opy'),
-                          h.Type('button'),
-                          h.Class('opy-launcher'),
-                          h.OnClick(Message.OpenedOpy()),
-                        ],
-                        ['Ask OPY'],
-                      ),
-                    ]
-                  : []),
-                h.label(
-                  [h.Class('canvas-mode')],
-                  [
+        h.aside
+          .id('board-tools')
+          .class('tool-rail')
+          .attr('aria-label', 'Diagram tools')
+          .attr('hidden', !toolsOpen ? '' : undefined)
+          .attr('tabindex', String(-1))
+          .children(
+            toolsOpen
+              ? [
+                  h.h2.class('rail-heading').children('Diagram tools'),
+                  ...(opyAvailable(model)
+                    ? [
+                        h.button
+                          .id('ask-opy')
+                          .attr('type', 'button')
+                          .class('opy-launcher')
+                          .on('click', Message.OpenedOpy())
+                          .children('Ask OPY'),
+                      ]
+                    : []),
+                  h.label.class('canvas-mode').children(
                     'Canvas emphasis',
-                    h.select(
-                      [
-                        h.Value(model.emphasis),
-                        h.AriaLabel('Canvas emphasis'),
-                        h.OnChange((value) =>
-                          Message.SelectedCanvasEmphasis({
-                            emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
-                          }),
+                    h.select
+                      .value(model.emphasis)
+                      .attr('aria-label', 'Canvas emphasis')
+                      .on('change', ({ value }) =>
+                        Message.SelectedCanvasEmphasis({
+                          emphasis: Schema.is(CanvasEmphasis)(value) ? value : model.emphasis,
+                        }),
+                      )
+                      .children(
+                        CanvasEmphasis.literals.map((emphasis) =>
+                          h.option.attr('value', emphasis).children(canvasModeLabels[emphasis]),
                         ),
-                      ],
-                      CanvasEmphasis.literals.map((emphasis) =>
-                        h.option([h.Value(emphasis)], [canvasModeLabels[emphasis]]),
                       ),
-                    ),
-                  ],
-                ),
-                ...(workshopMode && model.role !== 'viewer'
-                  ? [
-                      h.label(
-                        [h.Class('canvas-mode')],
-                        [
+                  ),
+                  ...(workshopMode && model.role !== 'viewer'
+                    ? [
+                        h.label.class('canvas-mode').children(
                           'Connection meaning',
-                          h.select(
-                            [
-                              h.Value(model.workshopLink),
-                              h.Disabled(disabled),
-                              h.OnChange((value) =>
-                                Message.SelectedWorkshopLink({
-                                  meaning: Schema.is(WorkshopLink)(value)
-                                    ? value
-                                    : model.workshopLink,
-                                }),
-                              ),
-                            ],
-                            [
-                              h.option([h.Value('plain')], ['Plain connection']),
-                              h.option(
-                                [h.Value('produces')],
-                                ['Produces · command → domain event'],
-                              ),
-                              h.option(
-                                [h.Value('activates')],
-                                ['Activates · domain event → policy'],
-                              ),
-                              h.option([h.Value('triggers')], ['Triggers · policy → command']),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ]
-                  : []),
-                h.p(
-                  [h.Class('mode-note')],
-                  [
-                    workshopMode
-                      ? 'Capture what happened and flag questions for the team.'
-                      : 'View applies only to you.',
-                  ],
-                ),
-                h.div(
-                  [h.Class('editor-actions')],
-                  [
-                    h.div(
-                      [h.Class('editor-primary-actions')],
-                      [
-                        ...(workshopMode
-                          ? workshopNotes
-                              .slice(0, 2)
-                              .map(({ role, label }) =>
-                                h.button(
-                                  [
-                                    h.Key(role),
-                                    h.Type('button'),
-                                    h.Disabled(disabled),
-                                    h.OnClick(Message.ClickedAddWorkshopNote({ noteRole: role })),
-                                  ],
-                                  [teamIcon(h, 'plus'), h.span([], [label])],
-                                ),
-                              )
-                          : [
-                              h.button(
-                                [
-                                  h.Type('button'),
-                                  h.Disabled(disabled),
-                                  h.OnClick(Message.ClickedAdd()),
-                                ],
-                                [teamIcon(h, 'plus'), h.span([], ['Add node'])],
-                              ),
-                            ]),
-                        ...(canOpenBoardImport(model) && !model.boardImport
-                          ? [
-                              h.button(
-                                [
-                                  h.Id('board-open-import'),
-                                  h.Type('button'),
-                                  h.OnClick(Message.OpenedBoardImport()),
-                                ],
-                                ['Import…'],
-                              ),
-                            ]
-                          : []),
-                      ],
+                          h.select
+                            .value(model.workshopLink)
+                            .disabled(disabled)
+                            .on('change', ({ value }) =>
+                              Message.SelectedWorkshopLink({
+                                meaning: Schema.is(WorkshopLink)(value)
+                                  ? value
+                                  : model.workshopLink,
+                              }),
+                            )
+                            .children(
+                              h.option.attr('value', 'plain').children('Plain connection'),
+                              h.option
+                                .attr('value', 'produces')
+                                .children('Produces · command → domain event'),
+                              h.option
+                                .attr('value', 'activates')
+                                .children('Activates · domain event → policy'),
+                              h.option
+                                .attr('value', 'triggers')
+                                .children('Triggers · policy → command'),
+                            ),
+                        ),
+                      ]
+                    : []),
+                  h.p
+                    .class('mode-note')
+                    .children(
+                      workshopMode
+                        ? 'Capture what happened and flag questions for the team.'
+                        : 'View applies only to you.',
+                    ),
+                  h.div.class('editor-actions').children(
+                    h.div.class('editor-primary-actions').children(
+                      ...(workshopMode
+                        ? workshopNotes.slice(0, 2).map(({ role, label }) =>
+                            h.button
+                              .key(role)
+                              .attr('type', 'button')
+                              .disabled(disabled)
+                              .on('click', Message.ClickedAddWorkshopNote({ noteRole: role }))
+                              .children(teamIcon(h, 'plus'), h.span.children(label)),
+                          )
+                        : [h.lazy(addNodeButton, 'add-node', disabled)]),
+                      ...(canOpenBoardImport(model) && !model.boardImport
+                        ? [
+                            h.button
+                              .id('board-open-import')
+                              .attr('type', 'button')
+                              .on('click', Message.OpenedBoardImport())
+                              .children('Import…'),
+                          ]
+                        : []),
                     ),
                     ...(workshopMode
                       ? [
-                          h.details(
-                            [h.Class('board-popover')],
-                            [
-                              h.summary([], ['More workshop notes']),
-                              h.div(
-                                [h.Class('board-popover-content')],
-                                workshopNotes
-                                  .slice(2)
-                                  .map(({ role, label }) =>
-                                    h.button(
-                                      [
-                                        h.Key(role),
-                                        h.Type('button'),
-                                        h.Disabled(disabled),
-                                        h.OnClick(
-                                          Message.ClickedAddWorkshopNote({ noteRole: role }),
-                                        ),
-                                      ],
-                                      [label],
-                                    ),
-                                  ),
+                          h.details.class('board-popover').children(
+                            h.summary.children('More workshop notes'),
+                            h.div.class('board-popover-content').children(
+                              workshopNotes.slice(2).map(({ role, label }) =>
+                                h.button
+                                  .key(role)
+                                  .attr('type', 'button')
+                                  .disabled(disabled)
+                                  .on('click', Message.ClickedAddWorkshopNote({ noteRole: role }))
+                                  .children(label),
                               ),
-                            ],
+                            ),
                           ),
                         ]
                       : []),
-                    h.div(
-                      [h.Class('rail-edit-tools'), h.Role('group'), h.AriaLabel('Edit selection')],
-                      [
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.Disabled(disabled || !model.ownEdits.length),
-                            h.Title('Undo my last edit'),
-                            h.AriaLabel('Undo my last edit'),
-                            h.OnClick(Message.ClickedUndo()),
-                          ],
-                          [
+                    h.div
+                      .class('rail-edit-tools')
+                      .attr('role', 'group')
+                      .attr('aria-label', 'Edit selection')
+                      .children(
+                        h.button
+                          .attr('type', 'button')
+                          .disabled(disabled || !model.ownEdits.length)
+                          .attr('title', 'Undo my last edit')
+                          .attr('aria-label', 'Undo my last edit')
+                          .on('click', Message.ClickedUndo())
+                          .children(
                             teamIcon(h, 'arrow-counter-clockwise'),
-                            h.span([], ['Undo my last edit']),
-                          ],
-                        ),
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.Disabled(
-                              disabled ||
-                                (!currentEditor.selectedNodes.length &&
-                                  !currentEditor.selectedEdges.length),
-                            ),
-                            h.Title('Delete selection'),
-                            h.AriaLabel('Delete selection'),
-                            h.OnClick(Message.ClickedDelete()),
-                          ],
-                          [teamIcon(h, 'trash'), h.span([], ['Delete selection'])],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                layoutLauncher(layoutLauncherView, [
-                  h,
-                  model.layoutMethod,
-                  supportedLayoutSelection(model) && model.layout._tag !== 'Running',
-                ]),
-                h.div([h.Class('tool-divider')], []),
-                h.a(
-                  [h.Href(`${pathFor(model.room)}/export`), h.Class('button-link')],
-                  [teamIcon(h, 'download-simple'), 'Export confirmed diagram'],
-                ),
-                mermaidExportLauncher(sourceExportLauncherView, [
-                  h,
-                  'mermaid',
-                  exportDocument !== undefined,
-                ]),
-                likeC4ExportLauncher(sourceExportLauncherView, [
-                  h,
-                  'likec4',
-                  exportDocument !== undefined,
-                ]),
-                svgLauncher(svgLauncherView, [h, exportDocument !== undefined]),
-                h.p([h.Class('role-label')], [`Your role · ${model.role}`]),
-              ]
-            : [],
-        ),
-        h.div(
-          [h.Class('canvas-column')],
-          [
-            h.div(
-              [h.Class('canvas-alerts')],
-              [
+                            h.span.children('Undo my last edit'),
+                          ),
+                        h.button
+                          .attr('type', 'button')
+                          .disabled(
+                            disabled ||
+                              (!currentEditor.selectedNodes.length &&
+                                !currentEditor.selectedEdges.length),
+                          )
+                          .attr('title', 'Delete selection')
+                          .attr('aria-label', 'Delete selection')
+                          .on('click', Message.ClickedDelete())
+                          .children(teamIcon(h, 'trash'), h.span.children('Delete selection')),
+                      ),
+                  ),
+                  h.lazy(
+                    layoutLauncherView,
+                    model.layoutMethod,
+                    supportedLayoutSelection(model) && model.layout._tag !== 'Running',
+                  ),
+                  h.div.class('tool-divider').children(),
+                  h.a
+                    .attr('href', `${pathFor(model.room)}/export`)
+                    .class('button-link')
+                    .children(teamIcon(h, 'download-simple'), 'Export confirmed diagram'),
+                  h.lazy(sourceExportLauncherView, 'mermaid', exportDocument !== undefined),
+                  h.lazy(sourceExportLauncherView, 'likec4', exportDocument !== undefined),
+                  h.lazy(svgLauncherView, exportDocument !== undefined),
+                  h.p.class('role-label').children(`Your role · ${model.role}`),
+                ]
+              : [],
+          ),
+        h.div
+          .class('canvas-column')
+          .children(
+            h.div
+              .class('canvas-alerts')
+              .children(
                 ...(model.error || state.notice
-                  ? [h.p([h.Role('alert')], [model.error || state.notice])]
+                  ? [h.p.attr('role', 'alert').children(model.error || state.notice)]
                   : []),
                 ...(model.role === 'viewer'
-                  ? [h.p([], ['Viewer access. You can explore and export this diagram.'])]
+                  ? [h.p.children('Viewer access. You can explore and export this diagram.')]
                   : []),
                 ...(model.queuedMove?._tag === 'Blocked'
                   ? [
-                      h.p(
-                        [h.Role('alert')],
-                        [
+                      h.p
+                        .attr('role', 'alert')
+                        .children(
                           'A queued move could not be applied safely. Your queued positions are retained; discard them to continue.',
-                        ],
-                      ),
+                        ),
                     ]
                   : []),
                 ...(model.queuedMove?._tag === 'Blocked' && model.connection._tag !== 'Denied'
                   ? [
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.Disabled(isAuthoredGesture(currentEditor.gesture)),
-                          h.OnClick(Message.ClickedDiscardQueuedMove()),
-                        ],
-                        ['Discard queued moves'],
-                      ),
+                      h.button
+                        .attr('type', 'button')
+                        .disabled(isAuthoredGesture(currentEditor.gesture))
+                        .on('click', Message.ClickedDiscardQueuedMove())
+                        .children('Discard queued moves'),
                     ]
                   : []),
-              ],
-            ),
-            sharedCanvas(canvasView, [
+              ),
+            canvasView(
               h,
               currentEditor,
               canvasDisabled,
@@ -3617,65 +3451,54 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               waiting,
               accessEnded ? null : model.overviewOpen,
               !layoutStale && isLiveConnection(model.connection) ? layout : null,
-            ]),
+            ),
             ...(!accessEnded && model.layout._tag !== 'Closed'
               ? [layoutPanel(model, h, layoutReason)]
               : []),
-          ],
-        ),
-        h.aside(
-          [
-            h.Id('board-inspector'),
-            h.Class('editor-inspector'),
-            h.AriaLabel('Selection inspector'),
-            h.Hidden(!inspectorOpen),
-            h.Tabindex(-1),
-          ],
-          inspectorOpen
-            ? [
-                h.div(
-                  [],
-                  [
-                    h.label(
-                      [h.Class('inspector-mode')],
-                      [
-                        'Inspector view',
-                        h.select(
-                          [
-                            h.AriaLabel('Inspector view'),
-                            h.Value(model.inspector),
-                            h.OnChange((value) =>
-                              Message.SelectedInspector({
-                                inspector: Schema.is(Inspector)(value) ? value : model.inspector,
-                              }),
-                            ),
-                          ],
-                          [
-                            h.option([h.Value('selection')], ['Selection and authoring']),
-                            ...(workshopMode
-                              ? [h.option([h.Value('journey')], ['Workshop journey'])]
-                              : []),
-                            h.option([h.Value('aggregate')], ['Aggregate']),
-                            h.option([h.Value('coupling')], ['Balanced Coupling map']),
-                            h.option([h.Value('evolution')], ['Diagram Evolution']),
-                            ...(opyAvailable(model) ? [h.option([h.Value('opy')], ['OPY'])] : []),
-                          ],
+          ),
+        h.aside
+          .id('board-inspector')
+          .class('editor-inspector')
+          .attr('aria-label', 'Selection inspector')
+          .attr('hidden', !inspectorOpen ? '' : undefined)
+          .attr('tabindex', String(-1))
+          .children(
+            inspectorOpen
+              ? [
+                  h.div.children(
+                    h.label.class('inspector-mode').children(
+                      'Inspector view',
+                      h.select
+                        .attr('aria-label', 'Inspector view')
+                        .value(model.inspector)
+                        .on('change', ({ value }) =>
+                          Message.SelectedInspector({
+                            inspector: Schema.is(Inspector)(value) ? value : model.inspector,
+                          }),
+                        )
+                        .children(
+                          h.option.attr('value', 'selection').children('Selection and authoring'),
+                          ...(workshopMode
+                            ? [h.option.attr('value', 'journey').children('Workshop journey')]
+                            : []),
+                          h.option.attr('value', 'aggregate').children('Aggregate'),
+                          h.option.attr('value', 'coupling').children('Balanced Coupling map'),
+                          h.option.attr('value', 'evolution').children('Diagram Evolution'),
+                          ...(opyAvailable(model)
+                            ? [h.option.attr('value', 'opy').children('OPY')]
+                            : []),
                         ),
-                      ],
                     ),
                     ...(showOpy
                       ? [
-                          h.button(
-                            [h.Type('button'), h.OnClick(Message.ClosedOpy())],
-                            ['Close OPY'],
-                          ),
+                          h.button
+                            .attr('type', 'button')
+                            .on('click', Message.ClosedOpy())
+                            .children('Close OPY'),
                         ]
                       : []),
-                  ],
-                ),
-                h.div(
-                  [h.Class('inspector-content')],
-                  [
+                  ),
+                  h.div.class('inspector-content').children(
                     ...(showOpy || model.inspector === 'aggregate'
                       ? showOpy
                         ? [
@@ -3685,33 +3508,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           ]
                         : [
                             model.connection._tag === 'Denied'
-                              ? h.p([], ['Access ended.'])
+                              ? h.p.children('Access ended.')
                               : state.confirmed
-                                ? aggregateInspector(aggregateView, [
-                                    h,
+                                ? h.lazy(
+                                    aggregateView,
                                     state.confirmed.document.graph,
                                     currentEditor.selectedNodes.length === 1
                                       ? (currentEditor.selectedNodes[0] ?? null)
                                       : null,
-                                  ])
-                                : h.p([], ['Opening diagram…']),
+                                  )
+                                : h.p.children('Opening diagram…'),
                           ]
                       : model.inspector === 'journey'
                         ? [
                             accessEnded
-                              ? h.p([], ['Access ended.'])
+                              ? h.p.children('Access ended.')
                               : state.confirmed
-                                ? workshopJourneyInspector(workshopJourneyPanel, [
-                                    h,
+                                ? h.lazy(
+                                    workshopJourneyPanel,
                                     state.confirmed.document.graph,
                                     model.journey,
-                                  ])
-                                : h.p([], ['Opening diagram…']),
+                                  )
+                                : h.p.children('Opening diagram…'),
                           ]
                         : model.inspector === 'evolution'
                           ? [
-                              evolutionInspector(evolutionInspectorView, [
-                                h,
+                              h.lazy(
+                                evolutionInspectorView,
                                 model.evolution,
                                 accessEnded
                                   ? 'denied'
@@ -3722,33 +3545,27 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                   ? 'available'
                                   : 'blocked',
                                 workshopMode ? 'workshop' : 'architecture',
-                              ]),
+                              ),
                             ]
                           : model.inspector === 'coupling'
                             ? [
                                 ...(model.assessment.status === 'editing'
                                   ? [
-                                      h.div(
-                                        [h.Class('coupling-notice')],
-                                        [
-                                          h.p(
-                                            [h.Role('status')],
-                                            [
-                                              `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
-                                            ],
+                                      h.div.class('coupling-notice').children(
+                                        h.p
+                                          .attr('role', 'status')
+                                          .children(
+                                            `Assessment ${model.assessment.draft.target.relationshipId} retained. ${model.assessment.delivery.status === 'uncertain' ? 'Save outcome unknown.' : model.assessment.delivery.status === 'sending' ? 'Sending save.' : model.assessment.notice || 'Your form is preserved.'}`,
                                           ),
-                                          h.button(
-                                            [
-                                              h.Type('button'),
-                                              h.OnClick(
-                                                Message.SelectedInspector({
-                                                  inspector: 'selection',
-                                                }),
-                                              ),
-                                            ],
-                                            ['Return to assessment'],
-                                          ),
-                                        ],
+                                        h.button
+                                          .attr('type', 'button')
+                                          .on(
+                                            'click',
+                                            Message.SelectedInspector({
+                                              inspector: 'selection',
+                                            }),
+                                          )
+                                          .children('Return to assessment'),
                                       ),
                                     ]
                                   : []),
@@ -3768,64 +3585,57 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 ),
                               ]
                             : [
-                                h.h2([h.Class('rail-heading')], ['Selection inspector']),
+                                h.h2.class('rail-heading').children('Selection inspector'),
                                 ...(selected
                                   ? [
-                                      h.label(
-                                        [],
-                                        [
-                                          'Node label',
-                                          h.input([
-                                            h.Value(model.draft),
-                                            h.Disabled(disabled),
-                                            h.Maxlength(500),
-                                            h.OnInput((text) => Message.ChangedLabel({ text })),
-                                          ]),
-                                        ],
+                                      h.label.children(
+                                        'Node label',
+                                        h.input
+                                          .value(model.draft)
+                                          .disabled(disabled)
+                                          .attr('maxlength', String(500))
+                                          .on('input', ({ value: text }) =>
+                                            Message.ChangedLabel({ text }),
+                                          ),
                                       ),
-                                      h.button(
-                                        [
-                                          h.Type('button'),
-                                          h.Disabled(disabled || !model.draft.trim()),
-                                          h.OnClick(Message.ClickedRename()),
-                                        ],
-                                        ['Rename node'],
-                                      ),
+                                      h.button
+                                        .attr('type', 'button')
+                                        .disabled(disabled || !model.draft.trim())
+                                        .on('click', Message.ClickedRename())
+                                        .children('Rename node'),
                                       ...(selectedHotspot &&
                                       selectedHotspotClock?.present &&
                                       model.role !== 'viewer'
                                         ? [
-                                            h.button(
-                                              [
-                                                h.Type('button'),
-                                                h.Disabled(disabled),
-                                                h.OnClick(
-                                                  Message.ClickedHotspotStatus({
-                                                    id: selected.id,
-                                                    expected: selectedHotspotClock.hotspot ?? 0,
-                                                    status:
-                                                      selectedHotspot === 'open'
-                                                        ? 'resolved'
-                                                        : 'open',
-                                                  }),
-                                                ),
-                                              ],
-                                              [
+                                            h.button
+                                              .attr('type', 'button')
+                                              .disabled(disabled)
+                                              .on(
+                                                'click',
+                                                Message.ClickedHotspotStatus({
+                                                  id: selected.id,
+                                                  expected: selectedHotspotClock.hotspot ?? 0,
+                                                  status:
+                                                    selectedHotspot === 'open'
+                                                      ? 'resolved'
+                                                      : 'open',
+                                                }),
+                                              )
+                                              .children(
                                                 selectedHotspot === 'open'
                                                   ? 'Resolve hotspot'
                                                   : 'Reopen hotspot',
-                                              ],
-                                            ),
+                                              ),
                                           ]
                                         : []),
                                       ...infrastructureDetails(h, selected),
                                       ...(model.role !== 'viewer' && selected.kind !== 'group'
                                         ? [
-                                            iconPickerToggle(iconPickerToggleView, [
-                                              h,
+                                            h.lazy(
+                                              iconPickerToggleView,
                                               model.icons.open,
                                               disabled,
-                                            ]),
+                                            ),
                                             ...(model.icons.open && !disabled
                                               ? [
                                                   TeamIcons.view(
@@ -3850,32 +3660,30 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                           ]
                                         : []),
                                       ...selected.ports.map((port) =>
-                                        h.button(
-                                          [
-                                            h.Type('button'),
-                                            h.Disabled(disabled),
-                                            h.OnClick(
-                                              onEvent({
-                                                type: 'PortRemoved',
-                                                endpoint: { node: selected.id, port: port.id },
-                                              }),
-                                            ),
-                                          ],
-                                          [`Remove ${port.id} port`],
-                                        ),
+                                        h.button
+                                          .attr('type', 'button')
+                                          .disabled(disabled)
+                                          .on(
+                                            'click',
+                                            onEvent({
+                                              type: 'PortRemoved',
+                                              endpoint: { node: selected.id, port: port.id },
+                                            }),
+                                          )
+                                          .children(`Remove ${port.id} port`),
                                       ),
                                     ]
                                   : [
-                                      h.p(
-                                        [h.Class('inspector-hint')],
-                                        [
+                                      h.p
+                                        .class('inspector-hint')
+                                        .children(
                                           'Select a node to rename it. Drag to move; use the width handle to resize. Activate an output port, then an input port to connect.',
-                                        ],
-                                      ),
+                                        ),
                                     ]),
-                                h.div(
-                                  [h.Id('assessment-inspector'), h.Tabindex(-1)],
-                                  [
+                                h.div
+                                  .id('assessment-inspector')
+                                  .attr('tabindex', String(-1))
+                                  .children(
                                     Assessment.view(
                                       model.assessment,
                                       {
@@ -3890,35 +3698,25 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                       (message) =>
                                         Message.GotAssessmentMessage({ room: model.room, message }),
                                     ),
-                                  ],
-                                ),
-                                h.div(
-                                  [h.Class('board-facts')],
-                                  [
-                                    h.div(
-                                      [],
-                                      [
-                                        h.strong([], [String(currentEditor.graph.nodes.length)]),
-                                        h.span([], ['Nodes']),
-                                      ],
+                                  ),
+                                h.div
+                                  .class('board-facts')
+                                  .children(
+                                    h.div.children(
+                                      h.strong.children(String(currentEditor.graph.nodes.length)),
+                                      h.span.children('Nodes'),
                                     ),
-                                    h.div(
-                                      [],
-                                      [
-                                        h.strong([], [String(currentEditor.graph.edges.length)]),
-                                        h.span([], ['Connections']),
-                                      ],
+                                    h.div.children(
+                                      h.strong.children(String(currentEditor.graph.edges.length)),
+                                      h.span.children('Connections'),
                                     ),
-                                  ],
-                                ),
+                                  ),
                               ]),
-                  ],
-                ),
-              ]
-            : [],
-        ),
-      ],
-    ),
+                  ),
+                ]
+              : [],
+          ),
+      ),
   };
 }
 function receiveDelta(
@@ -3983,139 +3781,145 @@ function receiveDelta(
   };
   return { model: install(next, state) };
 }
-export const subscriptions = Subscription.make<Model, Message>()((entry) => {
-  const feed = (slot: typeof SocketSlot.Type) =>
-    entry(
-      {
-        room: Room,
-        run: Schema.Number,
-        delay: ReconnectDelay,
-        active: Schema.Boolean,
-        after: Schema.NullOr(Schema.Number),
-      },
-      {
-        modelToDependencies: (model) => boardFeedBinding(model, slot),
-        dependenciesToStream: ({ room, run, delay, active, after }) =>
-          active
-            ? Stream.fromEffect(Effect.sleep(delay)).pipe(
-                Stream.flatMap(() =>
-                  after !== null
-                    ? deltaStream<Message>(
-                        room,
-                        after,
-                        (entry) =>
-                          entry.kind === 'delta'
-                            ? Message.ObservedDelta({
-                                room,
-                                run,
-                                cursor: entry.cursor,
-                                delta: entry.delta,
-                              })
-                            : Message.ObservedCaughtUp({ room, run, cursor: entry.cursor }),
-                        (reason) => Message.ObservedDisconnect({ room, run, reason }),
-                      )
-                    : liveStream<Message>(
-                        room,
-                        (snapshot) => Message.ObservedFrame({ room, run, frame: snapshot.state }),
-                        (reason) => Message.ObservedDisconnect({ room, run, reason }),
-                      ),
-                ),
+const roomKey = ({ teamId, diagramId, actorId, generation }: DiagramRoom) =>
+  [teamId, diagramId, actorId, generation] as const;
+const roomFromKey = ([teamId, diagramId, actorId, generation]: ReturnType<typeof roomKey>) => ({
+  teamId,
+  diagramId,
+  actorId,
+  generation,
+});
+
+function liveFeed(model: Model, slot: typeof SocketSlot.Type) {
+  const binding = boardFeedBinding(model, slot);
+  if (!binding.active) return false as const;
+  return Subscription.make(
+    'board-feed-' + slot,
+    [...roomKey(binding.room), binding.run, binding.delay, binding.after] as const,
+    ([teamId, diagramId, actorId, generation, run, delay, after]) => {
+      const room = roomFromKey([teamId, diagramId, actorId, generation]);
+      const disconnected = (reason: 'lease' | 'failure') =>
+        Message.ObservedDisconnect({ room, run, reason });
+      return Stream.fromEffect(Effect.sleep(delay)).pipe(
+        Stream.flatMap(() =>
+          after === null
+            ? liveStream<Message>(
+                room,
+                (snapshot) => Message.ObservedFrame({ room, run, frame: snapshot.state }),
+                disconnected,
               )
-            : Stream.empty,
-      },
+            : deltaStream<Message>(
+                room,
+                after,
+                (entry) =>
+                  entry.kind === 'delta'
+                    ? Message.ObservedDelta({ room, run, cursor: entry.cursor, delta: entry.delta })
+                    : Message.ObservedCaughtUp({ room, run, cursor: entry.cursor }),
+                disconnected,
+              ),
+        ),
+      );
+    },
+  );
+}
+const boardTitleChanges = Subscription.make(
+  'board-title',
+  titleChanges((title) => Message.ObservedBoardTitle({ title })),
+);
+const boardWidthChanges = Subscription.make(
+  'board-width',
+  boardWidths().pipe(Stream.map((compact) => Message.ChangedBoardWidth({ compact }))),
+);
+const historyMotionChanges = Subscription.make(
+  'board-history-motion',
+  historyMotion().pipe(
+    Stream.map((reducedMotion) => Message.ChangedHistoryMotion({ reducedMotion })),
+  ),
+);
+const historyVisibilityChanges = Subscription.make(
+  'board-history-visibility',
+  historyVisibility().pipe(Stream.map((visible) => Message.ChangedHistoryVisibility({ visible }))),
+);
+const unsavedChanges = Subscription.make(
+  'board-uncommitted-change',
+  Stream.callback<Message>(() => {
+    const target = window;
+    const guard = Effect.sync(() => {
+      const listener = (event: BeforeUnloadEvent) => event.preventDefault();
+      target.addEventListener('beforeunload', listener);
+      return listener;
+    });
+    return Effect.acquireRelease(guard, (listener) =>
+      Effect.sync(() => target.removeEventListener('beforeunload', listener)),
     );
-  return {
-    titleChanges: Subscription.persistentEntry(
-      titleChanges((title) => Message.ObservedBoardTitle({ title })),
-    ),
-    compactBoard: Subscription.persistentEntry(
-      boardWidths().pipe(Stream.map((compact) => Message.ChangedBoardWidth({ compact }))),
-    ),
-    historyPlayback: entry(
-      { run: Schema.Number, intervalMs: Schema.Number, active: Schema.Boolean },
-      {
-        modelToDependencies: (model) => {
-          const cursor = historyReview(model)?.cursor;
-          return {
-            run: model.historyRun,
-            intervalMs: cursor?.intervalMs ?? 2000,
-            active: model.historyVisible && cursor?.status === 'playing',
-          };
-        },
-        dependenciesToStream: ({ run, intervalMs, active }) =>
-          active
-            ? Stream.tick(intervalMs).pipe(
-                Stream.drop(1),
-                Stream.map(() =>
-                  Message.AdvancedHistoryPlayback({ run, milliseconds: intervalMs }),
-                ),
-              )
-            : Stream.empty,
-      },
-    ),
-    historyMotion: Subscription.persistentEntry(
-      historyMotion().pipe(
-        Stream.map((reducedMotion) => Message.ChangedHistoryMotion({ reducedMotion })),
+  }),
+);
+
+export const subscriptions = ({ model }: { readonly model: Model }) => {
+  const cursor = historyReview(model)?.cursor;
+  return [
+    boardTitleChanges,
+    boardWidthChanges,
+    historyMotionChanges,
+    historyVisibilityChanges,
+    model.historyVisible &&
+      cursor?.status === 'playing' &&
+      Subscription.make(
+        'board-history-playback',
+        [model.historyRun, cursor.intervalMs] as const,
+        ([run, milliseconds]) =>
+          Stream.tick(milliseconds).pipe(
+            Stream.drop(1),
+            Stream.map(() => Message.AdvancedHistoryPlayback({ run, milliseconds })),
+          ),
       ),
-    ),
-    historyVisibility: Subscription.persistentEntry(
-      historyVisibility().pipe(
-        Stream.map((visible) => Message.ChangedHistoryVisibility({ visible })),
+    liveFeed(model, 'a'),
+    liveFeed(model, 'b'),
+    Boolean(model.room.generation) &&
+      model.connection._tag === 'Live' &&
+      Subscription.make(
+        'board-feed-renewal',
+        [...roomKey(model.room), model.socketRun] as const,
+        ([teamId, diagramId, actorId, generation, run]) =>
+          Stream.fromEffect(Effect.sleep('20 seconds')).pipe(
+            Stream.map(() =>
+              Message.ObservedRenewal({
+                room: roomFromKey([teamId, diagramId, actorId, generation]),
+                run,
+              }),
+            ),
+          ),
       ),
-    ),
-    liveA: feed('a'),
-    liveB: feed('b'),
-    renewal: entry(
-      { room: Room, run: Schema.Number, active: Schema.Boolean },
-      {
-        modelToDependencies: (model) => ({
-          room: model.room,
-          run: model.socketRun,
-          active: Boolean(model.room.generation) && model.connection._tag === 'Live',
-        }),
-        dependenciesToStream: ({ room, run, active }) =>
-          active
-            ? Stream.fromEffect(Effect.sleep('20 seconds')).pipe(
-                Stream.map(() => Message.ObservedRenewal({ room, run })),
-              )
-            : Stream.empty,
-      },
-    ),
-    tick: entry(
-      { room: Room, active: Schema.Boolean },
-      {
-        modelToDependencies: (model) => ({
-          room: model.room,
-          active: Boolean(model.room.generation) && model.connection._tag !== 'Denied',
-        }),
-        dependenciesToStream: ({ room, active }) =>
-          active
-            ? Stream.tick(3000).pipe(Stream.map(() => Message.ObservedTick({ room })))
-            : Stream.empty,
-      },
-    ),
-    unsaved: entry(
-      { pending: Schema.Boolean },
-      {
-        modelToDependencies: (model) => ({
-          pending: hasUncommittedEdit(model),
-        }),
-        dependenciesToStream: ({ pending }) => {
-          if (!pending) return Stream.empty;
-          return Stream.callback<Message>(() => {
-            const acquire = Effect.sync(() => {
-              const listener = (event: BeforeUnloadEvent) => {
-                event.preventDefault();
-              };
-              window.addEventListener('beforeunload', listener);
-              return listener;
-            });
-            return Effect.acquireRelease(acquire, (listener) =>
-              Effect.sync(() => window.removeEventListener('beforeunload', listener)),
-            );
-          });
-        },
-      },
-    ),
-  };
+    Boolean(model.room.generation) &&
+      model.connection._tag !== 'Denied' &&
+      Subscription.make('board-peer-tick', roomKey(model.room), (key) => {
+        const room = roomFromKey(key);
+        return Stream.tick(3000).pipe(Stream.map(() => Message.ObservedTick({ room })));
+      }),
+    hasUncommittedEdit(model) && unsavedChanges,
+  ];
+};
+
+// The component stores the model exclusively through the editor's init and update.
+function boardModel(value: typeof Model.Type): Model {
+  // SAFETY: The editor owns the coupling and SVG fields that are opaque to the host schema.
+  return value as Model;
+}
+
+export const TeamsBoard = Html.component({
+  name: 'TeamsBoard',
+  model: Model,
+  message: Message,
+  props: Props,
+}).make({
+  init: ({ props, set }) => {
+    const step = init(props);
+    return set(step.model).run(...(step.commands ?? []));
+  },
+  update: ($, event) => {
+    const step = update(boardModel($.model), event);
+    return $.set(step.model).run(...(step.commands ?? []));
+  },
+  subscriptions: ({ model }) => subscriptions({ model: boardModel(model) }),
+  view: (h, model) => view(boardModel(model), h).body,
 });

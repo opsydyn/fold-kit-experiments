@@ -7,12 +7,12 @@ import {
   recoverOperationDocument,
 } from '@opsydyn/foldkit-zloz';
 import { operationHash } from '@opsydyn/foldkit-zloz-alchemy/hash';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
+import { Schema } from 'effect';
 
 import fixture from '../../../packages/foldkit-zloz/test/fixtures/operations-v1.json';
 import { feedDescriptor } from '../src/editor/feed-state';
-import { init, Message, saveStatus, update, view } from '../src/editor/main';
+import { init, Message, saveStatus, update } from '../src/editor/main';
+import { renderBoard } from './render-native';
 
 const props = {
   teamId: 'team',
@@ -41,6 +41,16 @@ const event = (
   model: Parameters<typeof update>[0],
   input: Parameters<typeof Message.ObservedEditorInput>[0]['event'],
 ) => update(model, Message.ObservedEditorInput({ event: input })).model;
+
+test('reselecting the current node preserves a rename draft queued by the input', () => {
+  const selected = event(ready(), { type: 'NodeSelected', id: 'a', additive: false });
+  const editing = update(selected, Message.ChangedLabel({ text: 'New label' })).model;
+  const reselected = event(editing, { type: 'NodeSelected', id: 'a', additive: false });
+  expect(reselected.draft).toBe('New label');
+
+  const other = event(reselected, { type: 'NodeSelected', id: 'b', additive: false });
+  expect(other.draft).toBe('Beta');
+});
 
 test('caught-up replacement snapshots keep the canvas identity while installing source metadata', () => {
   const live = ready();
@@ -958,22 +968,13 @@ test('rewind keeps the historical canvas above its transport as live advances an
     Message.ObservedFrame({ room, run: 0, frame: peer.confirmed }),
   ).model;
   expect(advanced.historyReview).toBe(reviewing.historyReview);
-  const rendered = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: advanced }),
-        view,
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const rendered = await renderBoard(advanced);
   expect(rendered.html).toContain('Read-only · Version 0');
   expect(rendered.html).toContain('Live version 1');
   expect(rendered.html).toContain('Only one version in this session window');
-  expect(rendered.html.indexOf('id="history-diagram"')).toBeGreaterThan(-1);
+  expect(rendered.html.indexOf('id="history-diagram-surface"')).toBeGreaterThan(-1);
   expect(rendered.html.indexOf('id="history-back-live"')).toBeGreaterThan(
-    rendered.html.indexOf('id="history-diagram"'),
+    rendered.html.indexOf('id="history-diagram-surface"'),
   );
   const returned = update(advanced, Message.ClosedHistory()).model;
   expect(returned.historyReview).toBeNull();
@@ -1000,16 +1001,7 @@ test('manual rewind steps across the confirmed window with reduced motion and ke
       event: { type: 'PreviousClicked' },
     }),
   ).model;
-  const rendered = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: stepped }),
-        view,
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const rendered = await renderBoard(stepped);
   expect(rendered.html).toContain('Session window · Versions 0–1');
   expect(rendered.html).toContain('Reduced motion · Step or scrub manually.');
   expect(rendered.html).toContain('Read-only · Version 0');

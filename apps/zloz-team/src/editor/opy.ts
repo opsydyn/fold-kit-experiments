@@ -1,4 +1,6 @@
-import { UiSchema } from '@effect/ui';
+import { Command, UiSchema } from '@effect/ui';
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { canonicalOperationValue } from '@opsydyn/foldkit-zloz';
 import {
   contextFingerprint,
@@ -16,12 +18,13 @@ import {
   sameClefReference,
 } from '@opsydyn/zloz-server/src/clef-contract';
 import { Effect, Option, Schema } from 'effect';
-import { Command } from 'foldkit';
-import type { Html, HtmlBuilder } from 'foldkit/html';
-import type { Return } from 'foldkit/update';
 
 import { pathFor } from './protocol';
 
+type Return<State, Event> = Readonly<{
+  model: State;
+  commands?: readonly Command.Command<Event>[];
+}>;
 const Draft = Schema.Struct({
   context: Schema.NullOr(RelationshipContextSchema),
   statement: Schema.String,
@@ -128,10 +131,10 @@ const liveClefProposal = (context: Context, record: RelationshipDecision) => {
   const target = contextFor(context, record.relationshipId);
   return Option.isSome(target) && sameContext(record.context, target.value);
 };
-const ReviewWithClef = Command.define('ReviewWithClef', {
-  args: { path: Schema.String, serial: Schema.Number, reference: ClefReference },
-  messages: [Message.cases.SettledClefReview],
-  execute: ({ path, serial, reference }) => {
+const ReviewWithClef = Command.make(
+  'ReviewWithClef',
+  { args: { path: Schema.String, serial: Schema.Number, reference: ClefReference } },
+  ({ path, serial, reference }) => {
     const settled = (result: typeof ClefOutcome.Type) =>
       Message.SettledClefReview({ serial, result });
     return Effect.tryPromise(async (signal) => {
@@ -148,7 +151,7 @@ const ReviewWithClef = Command.define('ReviewWithClef', {
       return settled(sameClefReference(reference, advice) ? advice : 'unavailable');
     }).pipe(Effect.orElseSucceed(() => settled('unavailable')));
   },
-});
+);
 const reviewNotice = {
   changed: 'The proposal changed before the review finished.',
   limited: 'Clef is receiving too many requests. Try again shortly.',
@@ -180,10 +183,10 @@ export function observe(model: Model, frame: DiagramFrame | null, actorId: strin
     return model;
   return { ...model, pending: null, notice: '' };
 }
-const SaveDecision = Command.define('SaveDecision', {
-  args: { path: Schema.String, write: Write },
-  messages: [Message.cases.SettledWrite],
-  execute: ({ path, write }) => {
+const SaveDecision = Command.make(
+  'SaveDecision',
+  { args: { path: Schema.String, write: Write } },
+  ({ path, write }) => {
     const { operationId, command } = write;
     const settled = (result: Parameters<typeof Message.SettledWrite>[0]['result']) =>
       Message.SettledWrite({ operationId, result });
@@ -227,7 +230,7 @@ const SaveDecision = Command.define('SaveDecision', {
       );
     }).pipe(Effect.orElseSucceed(() => settled('uncertain')));
   },
-});
+);
 const pendingNotice = {
   sending: 'Saving decision…',
   uncertain: 'Save outcome unknown. Retry the same request.',
@@ -246,7 +249,7 @@ function submit(
   };
   return {
     model: { ...model, serial, pending: { write, status: 'sending' }, notice: '' },
-    commands: [SaveDecision({ path: pathFor(context.room) + '/decisions', write })],
+    commands: [SaveDecision.make({ path: pathFor(context.room) + '/decisions', write })],
   };
 }
 const explain = {
@@ -309,7 +312,10 @@ export function update(model: Model, message: Message, context: Context): Return
         ? {
             model: { ...model, pending: { ...pending, status: 'sending' as const } },
             commands: [
-              SaveDecision({ path: pathFor(context.room) + '/decisions', write: pending.write }),
+              SaveDecision.make({
+                path: pathFor(context.room) + '/decisions',
+                write: pending.write,
+              }),
             ],
           }
         : { model };
@@ -322,7 +328,7 @@ export function update(model: Model, message: Message, context: Context): Return
       return {
         model: { ...model, serial, clefReview: { serial, reference, result: null } },
         commands: [
-          ReviewWithClef({ path: pathFor(context.room) + '/clef-review', serial, reference }),
+          ReviewWithClef.make({ path: pathFor(context.room) + '/clef-review', serial, reference }),
         ],
       };
     },
@@ -366,9 +372,9 @@ export function update(model: Model, message: Message, context: Context): Return
 export function view<M>(
   model: Model,
   context: Context,
-  h: HtmlBuilder<M>,
+  h: Html.H<M>,
   emit: (message: Message) => M,
-): Html {
+) {
   const current = contextFor(context, context.relationshipId);
   const records = reviews(context.frame);
   const available = context.authoring && model.pending === null;
@@ -388,14 +394,11 @@ export function view<M>(
           ? 'Proposal awaiting review'
           : 'Proposal withdrawn';
     const button = (text: string, message: Message, primary = false) =>
-      h.button(
-        [
-          h.Type('button'),
-          h.OnClick(emit(message)),
-          ...(primary ? [h.Class('inspector-primary')] : []),
-        ],
-        [text],
-      );
+      h.button
+        .attr('type', 'button')
+        .on('click', emit(message))
+        .class(primary && 'inspector-primary')
+        .children(text);
     const reference = {
       proposalId: record.proposalId,
       revision: record.revision,
@@ -411,44 +414,36 @@ export function view<M>(
             ? `Clef estimates a ${probability.format(shadow.result.needsEvidenceProbability)} chance that more evidence is needed.`
             : reviewNotice[shadow.result]
         : '';
-    return h.article(
-      [h.Class('opy-card'), h.Key(record.proposalId)],
-      [
-        h.h3([], [record.context.source.label + ' → ' + record.context.target.label]),
-        h.p([h.Class('opy-status')], [status]),
-        ...(fresh ? [] : [h.p([], ['Context changed'])]),
-        h.p([], [record.content.statement]),
-        h.p([], [record.content.rationale]),
-        ...record.content.evidence.map(({ text }) => h.blockquote([], [text])),
+    return h.article
+      .class('opy-card')
+      .key(record.proposalId)
+      .children(
+        h.h3.children(record.context.source.label + ' → ' + record.context.target.label),
+        h.p.class('opy-status').children(status),
+        ...(fresh ? [] : [h.p.children('Context changed')]),
+        h.p.children(record.content.statement),
+        h.p.children(record.content.rationale),
+        ...record.content.evidence.map(({ text }) => h.blockquote.children(text)),
         ...(record.content.openQuestion
-          ? [h.p([], ['Open question · ' + record.content.openQuestion])]
+          ? [h.p.children('Open question · ' + record.content.openQuestion)]
           : []),
-        h.p(
-          [],
-          [
-            `Requested by ${context.actorLabel(record.requestedBy)} · ${record.proposer.kind === 'opy' ? 'Proposed by OPY' : 'Human draft'}`,
-          ],
+        h.p.children(
+          `Requested by ${context.actorLabel(record.requestedBy)} · ${record.proposer.kind === 'opy' ? 'Proposed by OPY' : 'Human draft'}`,
         ),
         ...(record.status === 'accepted'
-          ? [h.p([], [`Accepted by ${context.actorLabel(record.acceptedBy)}`])]
+          ? [h.p.children(`Accepted by ${context.actorLabel(record.acceptedBy)}`)]
           : []),
         ...(liveClefProposal(context, record)
           ? [
-              h.p(
-                [],
-                [
-                  'Send this proposal’s text and evidence to Cloudflare for an advisory shown only in this session.',
-                ],
+              h.p.children(
+                'Send this proposal’s text and evidence to Cloudflare for an advisory shown only in this session.',
               ),
-              h.button(
-                [
-                  h.Type('button'),
-                  h.Disabled(reviewing),
-                  h.OnClick(emit(Message.ClickedClefReview({ reference }))),
-                ],
-                ['Run Clef review'],
-              ),
-              h.p([h.Role('status')], [shadowNotice]),
+              h.button
+                .attr('type', 'button')
+                .disabled(reviewing)
+                .on('click', emit(Message.ClickedClefReview({ reference })))
+                .children('Run Clef review'),
+              h.p.attr('role', 'status').children(shadowNotice),
             ]
           : []),
         ...(record.status === 'proposed' && available && fresh
@@ -473,8 +468,7 @@ export function view<M>(
               ),
             ]
           : []),
-      ],
-    );
+      );
   };
   const editable =
     Option.isSome(current) &&
@@ -483,84 +477,71 @@ export function view<M>(
       (record) => record.relationshipId === context.relationshipId && record.status !== 'withdrawn',
     );
   const reviewed = Option.isSome(current) && sameContext(model.draft.context, current.value);
-  return h.div(
-    [
-      h.Id('opy-inspector'),
-      h.Class('opy-inspector'),
-      h.Role('region'),
-      h.AriaLabel('OPY relationship decisions'),
-    ],
-    [
-      h.div(
-        [h.Class('opy-header')],
-        [h.span([h.Class('opy-lens'), h.AriaHidden(true)], []), h.h2([], ['OPY'])],
-      ),
+  return h.div
+    .id('opy-inspector')
+    .class('opy-inspector')
+    .attr('role', 'region')
+    .attr('aria-label', 'OPY relationship decisions')
+    .children(
+      h.div
+        .class('opy-header')
+        .children(
+          h.span.class('opy-lens').attr('aria-hidden', 'true').children(),
+          h.h2.children('OPY'),
+        ),
       ...records.map(card),
       ...(editable && Option.isSome(current)
         ? [
-            h.div(
-              [h.Class('opy-composer')],
-              [
-                h.p(
-                  [],
-                  [`Draft for ${current.value.source.label} → ${current.value.target.label}`],
+            h.div.class('opy-composer').children(
+              h.p.children(
+                `Draft for ${current.value.source.label} → ${current.value.target.label}`,
+              ),
+              ...fields.map(([field, label, length]) =>
+                h.label.children(
+                  label,
+                  h.textarea
+                    .attr('aria-label', label)
+                    .value(model.draft[field])
+                    .attr('maxlength', String(length))
+                    .disabled(!available)
+                    .on('input', ({ value: text }) => emit(Message.ChangedDraft({ field, text }))),
                 ),
-                ...fields.map(([field, label, length]) =>
-                  h.label(
-                    [],
-                    [
-                      label,
-                      h.textarea([
-                        h.AriaLabel(label),
-                        h.Value(model.draft[field]),
-                        h.Maxlength(length),
-                        h.Disabled(!available),
-                        h.OnInput((text) => emit(Message.ChangedDraft({ field, text }))),
-                      ]),
-                    ],
-                  ),
-                ),
-                ...(model.draft.context && !reviewed
-                  ? [
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.Disabled(!available),
-                          h.OnClick(emit(Message.ReviewedContext())),
-                        ],
-                        ['Review current relationship'],
-                      ),
-                    ]
-                  : []),
-                h.button(
-                  [
-                    h.Class('inspector-primary'),
-                    h.Type('button'),
-                    h.Disabled(
-                      !available ||
-                        !reviewed ||
-                        !model.draft.statement.trim() ||
-                        !model.draft.rationale.trim(),
-                    ),
-                    h.OnClick(emit(Message.ClickedShare())),
-                  ],
-                  ['Share proposal'],
-                ),
-              ],
+              ),
+              ...(model.draft.context && !reviewed
+                ? [
+                    h.button
+                      .attr('type', 'button')
+                      .disabled(!available)
+                      .on('click', emit(Message.ReviewedContext()))
+                      .children('Review current relationship'),
+                  ]
+                : []),
+              h.button
+                .class('inspector-primary')
+                .attr('type', 'button')
+                .disabled(
+                  !available ||
+                    !reviewed ||
+                    !model.draft.statement.trim() ||
+                    !model.draft.rationale.trim(),
+                )
+                .on('click', emit(Message.ClickedShare()))
+                .children('Share proposal'),
             ),
           ]
         : records.length === 0
-          ? [h.p([], ['Select a relationship to draft a decision.'])]
+          ? [h.p.children('Select a relationship to draft a decision.')]
           : []),
-      h.p([h.Role('status')], [model.pending ? pendingNotice[model.pending.status] : model.notice]),
+      h.p
+        .attr('role', 'status')
+        .children(model.pending ? pendingNotice[model.pending.status] : model.notice),
       ...(model.pending?.status === 'uncertain' && context.authoring
         ? [
-            h.button(
-              [h.Type('button'), h.OnClick(emit(Message.ClickedRetry()))],
-              ['Retry decision'],
-            ),
+            h.button
+              .attr('type', 'button')
+              .on('click', emit(Message.ClickedRetry()))
+              .children('Retry decision'),
           ]
         : []),
-    ],
-  );
+    );
 }

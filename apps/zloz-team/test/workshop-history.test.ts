@@ -6,13 +6,13 @@ import {
   decideOperation,
   type ZlozOperationRequest,
 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
+import { Schema } from 'effect';
 
 import { empty, observe } from '../src/editor/evolution';
 import { chooseBaseline, historyView, openHistory } from '../src/editor/history-review';
 import * as Board from '../src/editor/main';
 import { createWorkshopNote } from '../src/editor/workshop';
+import { renderBoard, renderStatic } from './render-native';
 
 const initial = createOperationDocument({
   nodes: [{ ...createWorkshopNote('hotspot', 'question', []), label: 'Retry ownership' }],
@@ -40,23 +40,13 @@ async function compare(
   const history = [before, ...between, after].reduce(observe, empty);
   const state = openHistory(history, after.version, createEditor(after.graph), true)!;
   const compared = chooseBaseline(state, String(before.version));
-  const { html } = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: compared }),
-        view: (model, h) => ({
-          title: 'Comparison',
-          body: historyView(h, model, after.version, {
-            close: 'close',
-            playback: () => 'seek',
-            baseline: () => 'compare',
-            navigate: () => 'navigate',
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
+  const { html } = await renderStatic(Schema.String, (h) =>
+    historyView(h, compared, after.version, {
+      close: 'close',
+      playback: () => 'seek',
+      baseline: () => 'compare',
+      navigate: () => 'navigate',
+    }),
   );
   expect(html).toContain(`>${summary}</text>`);
   expect(html).toContain(`>Retry ownership · ${summary}</li>`);
@@ -174,12 +164,7 @@ test('opening a past evolution point compares the resolved hotspot while live ha
     started,
   );
   const review = Board.update(live, Board.Message.OpenedHistory({ version: 1, baseline: 0 })).model;
-  const { html } = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model: review }), view: Board.view },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const { html } = await renderBoard(review);
   expect(html).toContain('Read-only · Version 1');
   expect(html).toContain('Live version 2');
   expect(html).toContain('Retry ownership · Hotspot · Open → Resolved');

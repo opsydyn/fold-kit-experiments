@@ -341,7 +341,6 @@
         "@opsydyn/foldkit-viz": "workspace:*",
         "@wooorm/starry-night": "^3.11.0",
         "effect": "catalog:",
-        "foldkit": "catalog:",
         "vscode-oniguruma": "catalog:",
       },
       "devDependencies": {

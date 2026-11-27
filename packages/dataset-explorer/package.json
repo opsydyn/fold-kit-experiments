@@ -16,10 +16,8 @@
     "./highlighting-core": "./src/highlighting-core.ts",
     "./source-line-core": "./src/source-line-core.ts",
     "./source-ui": "./src/source-ui.ts",
-    "./highlighting": "./src/highlighting.ts",
     "./highlighting-engine": "./src/highlighting-engine.ts",
-    "./highlighting.css": "./src/highlighting.css",
-    "./source-lines": "./src/source-lines.ts"
+    "./highlighting.css": "./src/highlighting.css"
   },
   "scripts": {
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit"
@@ -29,7 +27,6 @@
     "@opsydyn/foldkit-viz": "workspace:*",
     "@wooorm/starry-night": "^3.11.0",
     "effect": "catalog:",
-    "foldkit": "catalog:",
     "vscode-oniguruma": "catalog:"
   },
   "devDependencies": {

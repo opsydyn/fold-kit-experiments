@@ -1,14 +1,9 @@
 import { expect, test } from 'bun:test';
 
-import { UiSchema } from '@effect/ui';
-import { Match, Schema } from 'effect';
+import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting-core';
+import { createHighlighter } from '@opsydyn/dataset-explorer/highlighting-engine';
+import { Effect, Match, Schema } from 'effect';
 import { toHtml } from 'hast-util-to-html';
-
-import {
-  highlightedTree,
-  highlightingResources,
-} from '../../../packages/dataset-explorer/src/highlighting';
-import { createHighlighter } from '../../../packages/dataset-explorer/src/highlighting-engine';
 
 const highlighter = await createHighlighter();
 const text = (node: import('hast').Root | import('hast').Element): string =>
@@ -158,23 +153,19 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
   expect(frame.commands).toBeUndefined();
 });
 
-test('resource lifecycle messages discard opaque engine and error values', async () => {
-  const Message = UiSchema.TaggedEnum({
-    AcquiredHighlighter: {},
-    FailedHighlighter: {},
-    ReleasedHighlighter: {},
-  });
-  type Model = Readonly<{ id: string }>;
-  const resources = highlightingResources<Model, typeof Message.Type>({
-    acquired: Message.AcquiredHighlighter,
-    failed: Message.FailedHighlighter,
-    released: Message.ReleasedHighlighter,
-  });
-  const entry: import('foldkit/managedResource').ManagedResourceConfig<Model, typeof Message.Type> =
-    resources.sourceHighlighter;
-  expect(entry.onAcquired(highlighter)).toEqual(Message.AcquiredHighlighter());
-  const failed = entry.onAcquireError({ _tag: 'OpaqueEngineFailure', method: () => {} });
-  expect(failed).toEqual(Message.FailedHighlighter());
+test('the native highlighting command returns schema-encodable tokens', async () => {
+  const [{ HighlightSource }, { Message }] = await Promise.all([
+    import('../src/examples/line/command'),
+    import('../src/examples/line/message'),
+  ]);
+  const source = 'const count = 3;';
+  const language = 'view.ts';
+  const result = await Effect.runPromise(HighlightSource.make({ source, language }).effect);
   const codec = Schema.toCodecJson(Message);
-  expect(Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(failed))).toEqual(failed);
+  const restored = Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(result));
+  expect(restored).toEqual(result);
+  expect(result).toMatchObject({
+    _tag: 'SettledHighlightedSource',
+    highlightedSource: { source, language, tree: { type: 'root' } },
+  });
 });

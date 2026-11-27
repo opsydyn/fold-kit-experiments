@@ -12,7 +12,7 @@
     "@alchemy.run/cloudflare": "catalog:infra",
     "@alchemy.run/domain": "catalog:infra",
     "@alchemy.run/sql": "catalog:infra",
-    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/foldkit-zloz": "catalog:published",
     "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
     "alchemy": "catalog:infra",
     "better-auth": "1.7.7",

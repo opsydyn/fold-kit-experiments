@@ -38,7 +38,7 @@
     "@effect/platform-bun": "catalog:",
     "@effect/ui": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:",
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/foldkit-viz": "catalog:published",
     "effect": "catalog:",
     "parse5": "8.0.1"
   },

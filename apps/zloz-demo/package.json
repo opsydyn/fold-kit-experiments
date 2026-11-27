@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-force build && bun run --filter @opsydyn/foldkit-zloz-mermaid build && bun run --filter @opsydyn/foldkit-zloz-alchemy build",
+    "prebuild-packages": "bun run --filter @opsydyn/foldkit-zloz-alchemy build",
     "dev": "bun run prebuild-packages && astro dev",
     "build": "bun run prebuild-packages && astro build",
     "preview": "astro preview",
@@ -13,12 +13,12 @@
   "dependencies": {
     "@effect/ui": "catalog:",
     "@fontsource-variable/inter": "catalog:",
-    "@opsydyn/astro-effect-ui": "workspace:*",
-    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/astro-effect-ui": "catalog:published",
+    "@opsydyn/foldkit-zloz": "catalog:published",
     "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
-    "@opsydyn/foldkit-zloz-elk": "workspace:*",
-    "@opsydyn/foldkit-zloz-force": "workspace:*",
-    "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+    "@opsydyn/foldkit-zloz-elk": "catalog:published",
+    "@opsydyn/foldkit-zloz-force": "catalog:published",
+    "@opsydyn/foldkit-zloz-mermaid": "catalog:published",
     "astro": "catalog:",
     "effect": "catalog:"
   },

@@ -6,9 +6,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-const exec = promisify(execFile),
-  here = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
-  root = path.resolve(here, '../..');
+
+import manifest from '../package.json';
+import { packReleasedCore } from './packed-core';
+
+const exec = promisify(execFile);
+const here = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tsc = path.join(here, 'node_modules/typescript/bin/tsc');
 async function scanEntry(
   directory: string,
@@ -39,21 +42,16 @@ test('packed portable entry has no SDK/Effect runtime or type imports; SDK entry
   try {
     await scanEntry(path.join(here, 'dist'), 'index.mjs');
     await scanEntry(path.join(here, 'dist'), 'index.d.mts');
-    await exec('bun', ['pm', 'pack', '--destination', dir], {
-      cwd: path.join(root, 'packages/foldkit-zloz'),
-    });
+    const core = await packReleasedCore(dir);
     await exec('bun', ['pm', 'pack', '--destination', dir], { cwd: here });
-    const coreManifest = JSON.parse(
-      await readFile(path.join(root, 'packages/foldkit-zloz/package.json'), 'utf8'),
-    );
-    const manifest = JSON.parse(await readFile(path.join(here, 'package.json'), 'utf8'));
     expect(manifest.private).toBe(true);
-    const core = path.join(dir, `opsydyn-foldkit-zloz-${coreManifest.version}.tgz`),
-      adapter = path.join(dir, 'opsydyn-foldkit-zloz-alchemy-0.0.0.tgz');
+    const adapter = path.join(dir, `opsydyn-foldkit-zloz-alchemy-${manifest.version}.tgz`);
     const packedManifest = JSON.parse(
       (await exec('tar', ['-xOf', adapter, 'package/package.json'])).stdout,
     );
-    expect(packedManifest.peerDependencies['@opsydyn/foldkit-zloz']).toBe(coreManifest.version);
+    expect(packedManifest.peerDependencies['@opsydyn/foldkit-zloz']).toBe(
+      manifest.peerDependencies['@opsydyn/foldkit-zloz'],
+    );
     await writeFile(
       path.join(dir, 'package.json'),
       JSON.stringify({ private: true, type: 'module' }),

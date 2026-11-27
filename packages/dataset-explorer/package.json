@@ -20,11 +20,11 @@
     "./highlighting.css": "./src/highlighting.css"
   },
   "scripts": {
-    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@effect/ui": "catalog:",
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/foldkit-viz": "catalog:published",
     "@wooorm/starry-night": "^3.11.0",
     "effect": "catalog:",
     "vscode-oniguruma": "catalog:"

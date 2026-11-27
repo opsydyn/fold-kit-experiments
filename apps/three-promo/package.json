@@ -3,20 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-rapier build && bun run --filter @opsydyn/effect-three-troika build",
-    "dev": "bun run prebuild-packages && astro dev",
-    "build": "bun run prebuild-packages && astro build",
+    "dev": "astro dev",
+    "build": "astro build",
     "preview": "astro preview",
-    "typecheck": "bun run prebuild-packages && astro check"
+    "typecheck": "astro check"
   },
   "dependencies": {
     "@fontsource-variable/inter": "catalog:",
-    "@opsydyn/astro-effect-ui": "workspace:*",
+    "@opsydyn/astro-effect-ui": "catalog:published",
     "@opsydyn/dataset-explorer": "workspace:*",
-    "@opsydyn/effect-three": "workspace:*",
-    "@opsydyn/effect-three-rapier": "workspace:*",
+    "@opsydyn/effect-three": "catalog:published",
+    "@opsydyn/effect-three-rapier": "catalog:published",
     "@opsydyn/effect-three-samples": "workspace:*",
-    "@opsydyn/effect-three-troika": "workspace:*",
+    "@opsydyn/effect-three-troika": "catalog:published",
     "astro": "catalog:",
     "effect": "catalog:",
     "hast-util-to-html": "catalog:",

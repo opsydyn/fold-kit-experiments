@@ -6,22 +6,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
-import coreManifest from '../../foldkit-zloz/package.json';
 import manifest from '../package.json';
 import assessmentFixture from './fixtures/assessment-v1.json';
+import { packReleasedCore } from './packed-core';
 
 const exec = promisify(execFile);
 const here = fileURLToPath(new URL('..', import.meta.url));
-const coreWorkspace = fileURLToPath(new URL('../../foldkit-zloz', import.meta.url));
 test('packed adapter has portable declarations and executes recovery on Node and Bun without workspace links', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'zloz-m4-packed-'));
   const options = { maxBuffer: 5 * 1024 * 1024 };
-  for (const cwd of [coreWorkspace, here])
-    await exec('bun', ['pm', 'pack', '--destination', directory], {
-      ...options,
-      cwd,
-    });
-  const core = path.join(directory, `opsydyn-foldkit-zloz-${coreManifest.version}.tgz`);
+  const core = await packReleasedCore(directory);
+  await exec('bun', ['pm', 'pack', '--destination', directory], { ...options, cwd: here });
   const adapter = path.join(directory, `opsydyn-foldkit-zloz-alchemy-${manifest.version}.tgz`);
   await writeFile(
     path.join(directory, 'package.json'),

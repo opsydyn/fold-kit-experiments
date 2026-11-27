@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/foldkit-viz": "catalog:published",
     "nodejs-polars": "0.26.1"
   },
   "devDependencies": {

@@ -4,18 +4,17 @@
   "description": "A standalone tech radar: the effect-three radar and its full pages, from markdown.",
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-troika build",
     "previews": "bun scripts/previews.ts",
-    "dev": "bun run prebuild-packages && bun run previews && astro dev",
+    "dev": "bun run previews && astro dev",
     "test": "bun test ./test",
-    "typecheck": "bun run prebuild-packages && astro check"
+    "typecheck": "astro check"
   },
   "dependencies": {
     "@effect/ui": "catalog:",
-    "@opsydyn/astro-effect-ui": "workspace:*",
-    "@opsydyn/effect-three": "workspace:*",
-    "@opsydyn/effect-three-troika": "workspace:*",
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/astro-effect-ui": "catalog:published",
+    "@opsydyn/effect-three": "catalog:published",
+    "@opsydyn/effect-three-troika": "catalog:published",
+    "@opsydyn/foldkit-viz": "catalog:published",
     "astro": "catalog:",
     "effect": "catalog:",
     "three": "catalog:"

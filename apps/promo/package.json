@@ -7,10 +7,10 @@
     "#example/frame": "./src/examples/shared/frame.ts"
   },
   "scripts": {
-    "dev": "bun run --filter @opsydyn/foldkit-viz build && astro dev",
-    "build": "bun run --filter @opsydyn/foldkit-viz build && astro build",
+    "dev": "astro dev",
+    "build": "astro build",
     "preview": "astro preview",
-    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && astro check",
+    "typecheck": "astro check",
     "test": "bun test test",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check ."
   },
@@ -18,9 +18,9 @@
     "@duckdb/duckdb-wasm": "catalog:",
     "@effect/ui": "catalog:",
     "@fontsource-variable/inter": "catalog:",
-    "@opsydyn/astro-effect-ui": "workspace:*",
+    "@opsydyn/astro-effect-ui": "catalog:published",
     "@opsydyn/dataset-explorer": "workspace:*",
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/foldkit-viz": "catalog:published",
     "@stackblitz/sdk": "1.11.0",
     "@vanilla-extract/css": "catalog:",
     "astro": "catalog:",

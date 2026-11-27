@@ -2,6 +2,7 @@ import type { View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import type { ZlozConnectionGeometryPolicy, ZlozConnectionPreview } from './connection-preview';
+import type { ZlozContextMapRelationship } from './context-map';
 import type { ZlozEdgeGeometry, ZlozEdgeGeometryPolicy } from './edge-geometry';
 import {
   connectionRenderContext,
@@ -10,13 +11,14 @@ import {
   type ZlozEdgeAppearance,
   type ZlozEdgeRenderContext,
 } from './edge-presentation';
+import { contextMapConnector } from './effect-ui-context-map';
 import type { ZlozEdge } from './types';
 
 export type NativeEdgePresentation<M> = Readonly<{
   edgeGeometry?: ZlozEdgeGeometryPolicy | undefined;
   edgeAppearance?: (edge: ZlozEdge) => ZlozEdgeAppearance;
-  /** Draw decoration using the resolved path. The surface owns pointer selection. */
-  renderEdge?: (context: ZlozEdgeRenderContext, h: Html.H<M>) => View.Content<M> | undefined;
+  /** Draw decoration or return null to hide it. The surface owns pointer selection. */
+  renderEdge?: (context: ZlozEdgeRenderContext, h: Html.H<M>) => View.Content<M> | null | undefined;
   connectionGeometry?: ZlozConnectionGeometryPolicy | undefined;
   /** Draw the current preview, or use null to hide its artwork. */
   renderConnection?: (
@@ -31,7 +33,7 @@ export function edgeStroke<M>(
   geometry: ZlozEdgeGeometry,
   selected: boolean,
   markerEnd: string,
-  notationId: string | undefined,
+  relationship: ZlozContextMapRelationship | null,
   options: NativeEdgePresentation<M>,
 ) {
   const appearance = options.edgeAppearance?.(edge);
@@ -47,18 +49,21 @@ export function edgeStroke<M>(
     markerEnd,
   };
   const path = () => new Html.Element<M>('path');
+  const artwork = options.renderEdge?.(context, h);
   const decoration =
-    options.renderEdge?.(context, h) ??
-    path()
-      .attr('data-flow-edge-stroke', edge.id)
-      .attr('data-zloz-context-map-edge', notationId)
-      .attr('d', geometry.path)
-      .attr('fill', 'none')
-      .attr('stroke', context.stroke)
-      .attr('stroke-width', context.strokeWidth)
-      .attr('stroke-dasharray', context.dashArray === 'none' ? undefined : context.dashArray)
-      .attr('marker-end', markerEnd || undefined)
-      .children();
+    artwork !== undefined
+      ? artwork
+      : relationship
+        ? contextMapConnector(h, context, relationship)
+        : path()
+            .attr('data-flow-edge-stroke', edge.id)
+            .attr('d', geometry.path)
+            .attr('fill', 'none')
+            .attr('stroke', context.stroke)
+            .attr('stroke-width', context.strokeWidth)
+            .attr('stroke-dasharray', context.dashArray === 'none' ? undefined : context.dashArray)
+            .attr('marker-end', markerEnd || undefined)
+            .children();
   return new Html.Element<M>('g')
     .key(`edge:${edge.id}`)
     .children(

@@ -78,10 +78,12 @@ export function edgeLabel<M>(
   const custom = editing
     ? options.renderLabelEditor?.({ ...context, draft }, h)
     : options.renderLabel?.(context, h);
-  if (!editing && custom === undefined && fallback) return fallback;
-  if (!editing && (custom === null || (!label && !(selected && editable) && !custom)))
+  if (!editing && (custom === null || (!label && !(selected && editable) && !custom && !fallback)))
     return undefined;
-  const content = custom ?? edgeLabelControl(h, context, draft, onEdit, options.labelDesign);
+  const content =
+    custom ??
+    (editing ? null : fallback) ??
+    edgeLabelControl(h, context, draft, onEdit, options.labelDesign);
   const { viewport, surface } = state;
   const width = Math.max(0, Math.min(276, (surface?.width ?? 292) - 16));
   const frame =

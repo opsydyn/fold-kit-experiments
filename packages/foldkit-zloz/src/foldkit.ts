@@ -2685,18 +2685,6 @@ export type {
 } from './audit-comparison-controls-view';
 
 export {
-  zlozContextMapConnector,
-  zlozContextMapLabel,
-  zlozContextMapParticipant,
-} from './context-map-view';
-export type {
-  ZlozContextMapConnectorOptions,
-  ZlozContextMapLabelOptions,
-  ZlozContextMapParticipantOptions,
-  ZlozContextMapLabelParts,
-} from './context-map-view';
-
-export {
   zlozDddAuditControls,
   zlozDddAuditEditionSelect,
   zlozDddAuditFindingFilter,

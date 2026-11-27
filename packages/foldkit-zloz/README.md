@@ -3982,31 +3982,17 @@ uses the same factory; `insertPattern` retains its existing policy, remapping an
 one-Undo transaction.
 
 ```ts
-import { createContextMapPattern, resolveContextMapRelationship } from '@opsydyn/foldkit-zloz';
-import {
-  zlozView,
-  zlozContextMapConnector,
-  zlozContextMapLabel,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 
-// In view: resolve from the current displayed graph, including read-only review.
-const meanings = new Map(
-  editor.graph.edges.flatMap((edge) => {
-    const relationship = resolveContextMapRelationship(editor.graph, edge);
-    return relationship ? [[edge.id, relationship] as const] : [];
-  }),
-);
-const canvas = zlozView(h, editor, {
+const canvas = graphSurface(h, editor, {
   id: 'context-map',
   label: 'Context map',
-  onEvent,
-  renderEdge: (context, h) => {
-    const meaning = meanings.get(context.edge.id);
-    return meaning ? zlozContextMapConnector(h, context, meaning) : undefined;
-  },
-  renderEdgeLabel: (context, h) => {
-    const meaning = meanings.get(context.edge.id);
-    return meaning ? zlozContextMapLabel(h, context, meaning, onEvent) : undefined;
+  onInput,
+  contextMapPresentation: true,
+  edgeEditing: { onEdit },
+  contextMapLabelOptions: {
+    renderName: () => null,
+    renderPattern: (relationship, builder) => builder.strong(relationship.pattern),
   },
 });
 ```
@@ -4019,7 +4005,8 @@ Unknown custom meanings have no assumed arrow direction. A known builtin omitted
 from the current convention still shows its authored direction plus an explicit
 restriction. This is presentation of intent, not a DDD audit or technical data flow.
 
-The optional entry also exports `zlozContextMapParticipant`,
+The `/effect-ui` entry exports `contextMapConnector`, `contextMapLabel`,
+`contextMapParticipant`,
 `ZlozContextMapConnectorOptions`, `ZlozContextMapLabelOptions`,
 `ZlozContextMapParticipantOptions` and `ZlozContextMapLabelParts`. All use the host
 builder and existing theme variables. Use `edgeAppearance` for color/width/dashes;
@@ -4028,7 +4015,7 @@ links have no arrow by default. Marker override and a nullable custom path rende
 are explicit choices. Supply matching current edge/relationship contexts.
 
 Label pattern, authored name, both participants, reason and layout are replaceable
-or nullable. Participant name/badge renderers and attributes allow custom visual
+or nullable. Participant name and badge renderers allow custom visual
 language. Parts inside the native edit action must be inert; use the existing
 `renderEdgeLabelEditor` hook for interactive forms. Native actions respect read-only
 and selection restrictions, with full side-role accessible descriptions. Semantic

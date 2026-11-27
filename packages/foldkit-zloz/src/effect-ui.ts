@@ -19,7 +19,7 @@ import {
   type NativeAlignmentGuide,
   type NativeBackground,
 } from './effect-ui-canvas-decoration';
-import { contextMapLabel } from './effect-ui-context-map';
+import { contextMapLabel, type ZlozContextMapLabelOptions } from './effect-ui-context-map';
 import { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
 import { edgeLabel, edgeToolbar, type NativeEdgeEditing } from './effect-ui-edge-editing';
 import { connectionStroke, edgeStroke, type NativeEdgePresentation } from './effect-ui-edges';
@@ -177,6 +177,7 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     renderResizeReadout?: NativeResizeReadout<Message> | undefined;
     /** Defaults to the architecture notation setting. */
     contextMapPresentation?: boolean;
+    contextMapLabelOptions?: ZlozContextMapLabelOptions<Message>;
     portAnchors?: NativePortAnchors<Message> | undefined;
     edgeWaypoints?: NativeWaypointOptions<Message> | undefined;
     nodeToolbar?: NativeNodeToolbar<Message> | undefined;
@@ -286,7 +287,7 @@ export function graphSurface<Message>(
       geometry,
       selected,
       relationship && relationship.direction !== 'directed' ? '' : `url(#${marker})`,
-      relationship?.edge.id,
+      relationship,
       options,
     );
     const selectionDisabledReason = options.edgeEditing
@@ -301,8 +302,23 @@ export function graphSurface<Message>(
       !scene.hiddenBy.has(edge.target.node)
         ? waypointLabelPosition(edge, position, editor.viewport.zoom)
         : position;
+    const editing = options.edgeEditing;
     const relationshipLabel =
-      relationship && displayedLabel ? contextMapLabel(h, relationship, displayedLabel) : null;
+      relationship && displayedLabel
+        ? contextMapLabel(
+            h,
+            relationship,
+            editing ? undefined : displayedLabel,
+            options.contextMapLabelOptions,
+            editing
+              ? {
+                  reason:
+                    selectionDisabledReason ?? (editor.readOnly ? 'Read-only diagram' : undefined),
+                  edit: () => editing.onEdit({ type: 'EdgeLabelEditingStarted', id: edge.id }),
+                }
+              : undefined,
+          )
+        : null;
     const label =
       options.edgeEditing && displayedLabel
         ? edgeLabel(
@@ -644,3 +660,13 @@ export {
   type ZlozHistoryComparisonControlsViewOptions,
   type ZlozHistoryComparisonTextOptions,
 } from './effect-ui-history-comparison';
+
+export {
+  contextMapConnector,
+  contextMapLabel,
+  contextMapParticipant,
+  type ZlozContextMapConnectorOptions,
+  type ZlozContextMapLabelParts,
+  type ZlozContextMapLabelOptions,
+  type ZlozContextMapParticipantOptions,
+} from './effect-ui-context-map';

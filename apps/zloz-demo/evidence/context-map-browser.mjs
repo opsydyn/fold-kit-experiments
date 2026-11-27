@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const screenshotPath = (theme) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `context-map-${engine}-${theme}.png`)
+    : fileURLToPath(new URL(`./context-map-${theme}.png`, import.meta.url));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -75,8 +80,12 @@ async function run() {
   expect(initial.snapshot.graph.edges.length).toBe(4);
   await section('Diagram');
   // Selection remains on the core transparent hit target, independent of decorative paths.
-  await page.locator('[data-flow-edge="orders-billing"]').first().dispatchEvent('click');
-  await label('orders-billing').press('Enter');
+  const hitTarget = page.locator('[data-flow-edge="orders-billing"]').first();
+  await hitTarget.dispatchEvent('click');
+  await expect(hitTarget).toHaveAttribute('data-selected', 'true');
+  await label('orders-billing').focus();
+  await expect(label('orders-billing')).toBeFocused();
+  await page.keyboard.press('Enter');
   const input = page.getByRole('textbox', { name: /Edge label for orders:out-right/u });
   await expect(input).toHaveValue('Order facts');
   await input.fill('Order contract');
@@ -120,7 +129,7 @@ async function run() {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
     await expect(label('orders-billing')).toBeVisible();
     await page.screenshot({
-      path: fileURLToPath(new URL(`./context-map-${theme}.png`, import.meta.url)),
+      path: screenshotPath(theme),
     });
   }
   expect((await modelDownload()).snapshot).toEqual(initial.snapshot);

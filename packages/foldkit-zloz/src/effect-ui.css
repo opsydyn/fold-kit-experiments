@@ -379,6 +379,11 @@
 }
 
 .zloz-ui-context-label {
+  color: var(--flow-node-color, var(--text, #172033));
+  background: var(--flow-node-background, var(--surface, #fff));
+  border: 1px solid var(--flow-node-border, var(--border, #cbd5e1));
+  border-radius: 6px;
+  padding: 4px 6px;
   display: grid;
   justify-items: center;
   gap: 4px;

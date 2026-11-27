@@ -1,27 +1,20 @@
 import { expect, test } from 'bun:test';
-import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozView,
-  zlozContextMapConnector,
-  zlozContextMapLabel,
+  contextMapConnector,
+  graphSurface,
   type ZlozContextMapLabelOptions,
-} from '../src/foldkit';
-import {
-  createContextMapPattern,
-  createEditor,
-  resolveContextMapRelationship,
-  type EditorEvent,
-} from '../src/index';
+} from '../src/effect-ui';
+import { createContextMapPattern, createEditor, resolveContextMapRelationship } from '../src/index';
 async function render({
   blank = false,
   readOnly = false,
   omit = false,
+  omitConnector = false,
   fallback = false,
   protectedSelection = false,
   labelOptions = {},
@@ -29,9 +22,10 @@ async function render({
   blank?: boolean;
   readOnly?: boolean;
   omit?: boolean;
+  omitConnector?: boolean;
   fallback?: boolean;
   protectedSelection?: boolean;
-  labelOptions?: ZlozContextMapLabelOptions<EditorEvent>;
+  labelOptions?: ZlozContextMapLabelOptions<string>;
 } = {}) {
   const graph = createContextMapPattern();
   const value = {
@@ -39,38 +33,36 @@ async function render({
     edges: graph.edges.map((edge) => (blank ? { ...edge, label: '' } : edge)),
   };
   const state = createEditor(value, { readOnly });
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: state }),
-        view: (model, h: HtmlBuilder<EditorEvent>) => ({
-          title: 'Context map',
-          body: zlozView(h, model, {
-            id: 'context-map',
-            label: 'Context map',
-            onEvent: (e) => e,
-            canSelectEdge: protectedSelection ? () => 'Managed selection' : undefined,
-            renderEdge: (context, h) => {
-              const relation = resolveContextMapRelationship(model.graph, context.edge);
-              assert(relation);
-              return zlozContextMapConnector(h, context, relation);
-            },
-            renderEdgeLabel: (context, h) => {
-              const relation = resolveContextMapRelationship(model.graph, context.edge);
-              assert(relation);
-              return fallback
-                ? undefined
-                : omit
-                  ? null
-                  : zlozContextMapLabel(h, context, relation, (e) => e, labelOptions);
-            },
-          }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const ContextMap = Html.component({
+    name: 'ContextMap',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      graphSurface(h, state, {
+        id: 'context-map',
+        label: 'Context map',
+        onInput: (event) => event.type,
+        policy: protectedSelection ? { canSelectEdge: () => 'Managed selection' } : undefined,
+        contextMapPresentation: !fallback,
+        renderEdge: omitConnector
+          ? (edge, h) => {
+              const relationship = resolveContextMapRelationship(state.graph, edge.edge);
+              return relationship
+                ? contextMapConnector(h, edge, relationship, { renderPath: () => null })
+                : undefined;
+            }
+          : undefined,
+        contextMapLabelOptions: labelOptions,
+        edgeEditing: {
+          onEdit: (event) => event.type,
+          renderLabel: omit ? () => null : undefined,
+        },
+      }),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(ContextMap, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -95,6 +87,11 @@ test('directed arrows, symmetric paths and core hit targets share the canonical 
   expect(dom.querySelectorAll('[data-zloz-context-map-label]')).toHaveLength(4);
   expect(dom.querySelector('[aria-label="Open host service"]')?.textContent).toBe('OHS');
   expect(dom.querySelector('[aria-label="Anti-corruption layer"]')?.textContent).toBe('ACL');
+  const emptyArtwork = await render({ omitConnector: true });
+  expect(emptyArtwork.querySelectorAll('[data-zloz-context-map-edge]')).toHaveLength(0);
+  expect(emptyArtwork.querySelector('[data-flow-edge="orders-billing"]')?.getAttribute('d')).toBe(
+    path,
+  );
 });
 test('unlabeled unselected/read-only edges can show semantic content; fallback/null retain previous default visibility', async () => {
   const native = await render({ blank: true });
@@ -120,8 +117,8 @@ test('nullable parts, custom badges and layout compose without removing the nati
       renderSource: () => null,
       renderTarget: () => null,
       renderReason: () => null,
-      renderPattern: (relation, h) => h.strong([], [`Custom ${relation.pattern}`]),
-      renderLayout: (parts, _relation, h) => [h.span([], parts.pattern ? [parts.pattern] : [])],
+      renderPattern: (relation, h) => h.strong(`Custom ${relation.pattern}`),
+      renderLayout: (parts, _relation, h) => [h.span(parts.pattern)],
     },
   });
   expect(dom.querySelector('[data-zloz-context-map-label]')?.textContent).toContain(

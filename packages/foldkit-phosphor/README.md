@@ -1,8 +1,8 @@
 # FoldKit Phosphor
 
-Private first-class workspace adapter for Phosphor Core. Rendering is a pure
-function returning Html through the parent view's builder. No React, second
-runtime, DOM parser, registry, generated IDs or icon-loading effects.
+Private workspace adapter for Phosphor Core. The root prepares SVG attributes
+and artwork as plain data. The Effect UI entry renders that artwork inside its
+parent component tree.
 
 ## Compile selected artwork at build time
 
@@ -33,21 +33,21 @@ application, not an imported browser catalog.
 ## Render in the parent view
 
 ```ts
-import { phosphorIcon } from '@opsydyn/foldkit-phosphor';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import { phosphorIcon } from '@opsydyn/foldkit-phosphor/effect-ui';
+import type { Html } from '@effect/ui/html';
 import { cubeIcon } from './cube';
 
 type Message = { readonly _tag: 'ClickedAddSystem' };
-export const addSystem = (h: HtmlBuilder<Message>): Html =>
-  h.button(
-    [h.OnClick({ _tag: 'ClickedAddSystem' }), h.AriaLabel('Add system')],
-    [phosphorIcon(h, cubeIcon, { size: 20, attributes: [h.Class('tool-icon')] })],
-  );
+export const addSystem = (h: Html.H<Message>) =>
+  h.button
+    .attr('aria-label', 'Add system')
+    .on('click', { _tag: 'ClickedAddSystem' })
+    .children(phosphorIcon(h, cubeIcon, { size: 20, attributes: { class: 'tool-icon' } }));
 ```
 
 Options: `size` (positive number, default 24, or CSS length such as `1em`),
 `colour` (CSS colour including variables), `mirrored` (explicit, default false),
-`label`, and parent-builder `attributes`. Artwork inherits currentColor and
+`label`, and SVG `attributes`. Artwork inherits currentColor and
 preserves Core's duotone opacity. Use CSS colour variables for light/dark themes.
 No global defaults: shared preferences belong to the app's Model and can be
 spread into options.
@@ -57,7 +57,7 @@ owns its accessible name and interactions. For independently meaningful artwork,
 pass a nonempty `label`; this renders role=img with aria-label without title IDs.
 Caller attributes compose on the SVG; adapter geometry, size, focusability and
 label/decorative semantics are applied after them. The adapter adds no event
-listeners or commands. It uses the parent's Message type and creates no builder.
+listeners or commands. The icon uses the parent component's Message type.
 
 Compilation rejects unsupported/active elements and attributes, resources,
 declarations, malformed XML, unexpected viewBoxes, empty artwork and excessive

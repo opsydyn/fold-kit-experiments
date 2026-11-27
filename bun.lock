@@ -508,18 +508,21 @@
         "sax": "catalog:",
       },
       "devDependencies": {
+        "@effect/ui": "catalog:",
         "@phosphor-icons/core": "catalog:",
         "@types/sax": "catalog:",
         "bun-types": "catalog:",
         "effect": "catalog:",
-        "foldkit": "catalog:",
         "happy-dom": "catalog:",
         "tsdown": "catalog:",
         "typescript": "catalog:",
       },
       "peerDependencies": {
-        "foldkit": ">=0.170.0 <0.172.0",
+        "@effect/ui": "0.0.0",
       },
+      "optionalPeers": [
+        "@effect/ui",
+      ],
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",

@@ -2,7 +2,7 @@
   "name": "@opsydyn/foldkit-phosphor",
   "version": "0.1.0",
   "private": true,
-  "description": "Parent-builder Phosphor SVG rendering for FoldKit, with a separate static asset compiler.",
+  "description": "Phosphor SVG artwork for Effect UI, with a separate static asset compiler.",
   "license": "MIT",
   "files": [
     "dist",
@@ -16,6 +16,10 @@
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
+    },
+    "./effect-ui": {
+      "types": "./dist/effect-ui.d.mts",
+      "import": "./dist/effect-ui.mjs"
     },
     "./compile": {
       "types": "./dist/compile.d.mts",
@@ -31,16 +35,21 @@
     "sax": "catalog:"
   },
   "devDependencies": {
+    "@effect/ui": "catalog:",
     "@phosphor-icons/core": "catalog:",
     "@types/sax": "catalog:",
     "bun-types": "catalog:",
     "effect": "catalog:",
-    "foldkit": "catalog:",
     "happy-dom": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {
-    "foldkit": ">=0.170.0 <0.172.0"
+    "@effect/ui": "0.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@effect/ui": {
+      "optional": true
+    }
   }
 }

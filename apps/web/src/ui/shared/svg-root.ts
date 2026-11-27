@@ -11,7 +11,7 @@ export type SvgRootConfig = Readonly<{
 export function svgRoot<M>(
   h: Html.H<M>,
   { width, height, ariaLabel, role = 'img' }: SvgRootConfig,
-  children: ReadonlyArray<View.Content<M>>,
+  children: View.Children<M, never>,
 ) {
   return h
     .el('svg')

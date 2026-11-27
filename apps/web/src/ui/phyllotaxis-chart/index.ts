@@ -142,7 +142,7 @@ export const update = (model: Model, message: Message): Model =>
       model.drag?.pointerId === pointerId ? { ...model, drag: null } : model,
   });
 
-const TrackDrag = Mount.makeStream('TrackPhyllotaxisDrag', { args: {} }, (element: Element) => {
+function dragEvents(element: Element): Stream.Stream<Message> {
   const at = (event: PointerEvent) => ({
     pointerId: event.pointerId,
     ...pointerToPlot({ x: event.clientX, y: event.clientY }, element.getBoundingClientRect(), {
@@ -162,7 +162,11 @@ const TrackDrag = Mount.makeStream('TrackPhyllotaxisDrag', { args: {} }, (elemen
   return Stream.mergeAll<Message, never, never>([started, moved, ...ended], {
     concurrency: 'unbounded',
   });
-});
+}
+
+const TrackDrag = Mount.makeStream('TrackPhyllotaxisDrag', { args: {} }, (node) =>
+  node instanceof Element ? dragEvents(node) : Stream.empty,
+);
 
 // VIEW
 
@@ -277,6 +281,8 @@ export function view(h: Html.H<Message>, { matrix, drag, showMiniMap }: Model, a
       fontSize: '0.65rem',
       message,
     });
+  const clipId = h.id('phyllotaxis-clip');
+  const clip = `url(#${clipId})`;
   const miniMapLabel = showMiniMap ? 'Hide Mini Map' : 'Show Mini Map';
   const miniMapX = Math.round(MINI_TX * MINI_SCALE);
   const miniMapW = Math.round(W * MINI_SCALE);
@@ -289,9 +295,7 @@ export function view(h: Html.H<Message>, { matrix, drag, showMiniMap }: Model, a
   const ground = { x: '0', y: '0', width: String(W), height: String(H) };
 
   return svgRoot(h, { width: W, height: H, ariaLabel, role: 'group' }, [
-    h
-      .el('defs')
-      .children(h.el('clipPath').attr('id', 'ph-clip').children(h.el('rect').attrs(ground))),
+    h.el('defs').children(h.el('clipPath').attr('id', clipId).children(h.el('rect').attrs(ground))),
     h.el('rect').attrs({ ...ground, rx: '14', fill: BG }),
     h
       .el('g')
@@ -313,7 +317,7 @@ export function view(h: Html.H<Message>, { matrix, drag, showMiniMap }: Model, a
       ? h
           .el('g')
           .attrs({
-            'clip-path': 'url(#ph-clip)',
+            'clip-path': clip,
             transform: `scale(${MINI_SCALE}) translate(${MINI_TX}, ${MINI_TY})`,
             'aria-hidden': 'true',
           })
@@ -338,7 +342,7 @@ export function view(h: Html.H<Message>, { matrix, drag, showMiniMap }: Model, a
     text('Clear', clearY, Message.ClickedClear()),
     h
       .el('g')
-      .attr('clip-path', 'url(#ph-clip)')
+      .attr('clip-path', clip)
       .children(
         control(h, {
           label: miniMapLabel,

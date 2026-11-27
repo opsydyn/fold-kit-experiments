@@ -5,7 +5,6 @@ export default defineConfig({
   plugins: ['typescript', 'react'],
   jsPlugins: [
     ...recommended.jsPlugins,
-    { name: 'foldkit', specifier: '@foldkit/oxlint-plugin' },
     { name: 'vanilla-extract', specifier: '@antebudimir/eslint-plugin-vanilla-extract' },
     { name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' },
     { name: 'anti-slop-effect', specifier: './tools/oxlint/anti-slop/effect/index.ts' },
@@ -34,6 +33,7 @@ export default defineConfig({
     'anti-slop/no-chained-type-assertions': 'error',
     'anti-slop/no-conditional-empty-object-spread': 'error',
     'anti-slop/no-known-value-widening': 'error',
+    'anti-slop/no-module-level-mutable-state': 'error',
     'anti-slop/no-module-mocking': 'error',
     'anti-slop/no-object-parameters': 'error',
     'anti-slop/no-reflect-apply': 'error',
@@ -49,16 +49,6 @@ export default defineConfig({
 
     // Effect-specific anti-slop rule for local service constructor ownership
     'anti-slop-effect/no-service-constructor-imports': 'error',
-
-    // Foldkit application conventions
-    'foldkit/no-noop-message': 'error',
-    'foldkit/got-submodel-message-name': 'error',
-    'foldkit/got-prefix-requires-submodel-payload': 'error',
-    'foldkit/no-empty-object-tagged-call': 'error',
-    'foldkit/prefer-callable-message-constructor': 'error',
-    'foldkit/command-binding-matches-name': 'error',
-    'foldkit/no-module-level-mutable-state': 'error',
-    'foldkit/mount-factory-must-use-element': 'error',
 
     // vanilla-extract CSS rules
     'vanilla-extract/no-empty-style-blocks': 'error',

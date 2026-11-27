@@ -7,7 +7,7 @@ import { Effect, Schema } from 'effect';
 import { constructView, declaredView, readyStorage, realKit } from './domain-store-fixture';
 import fixture from './fixtures/domain-view-storage-v1.json';
 
-// oxlint-disable-next-line foldkit/no-module-level-mutable-state -- Test-only schema probe counts calls in serial tests; no application Model or runtime state is held here.
+// oxlint-disable-next-line anti-slop/no-module-level-mutable-state -- Test-only schema probe counts calls in serial tests; no application Model or runtime state is held here.
 let codecChecks = 0;
 const CountedState = Schema.Struct({ total: Schema.Number }).pipe(
   Schema.check(

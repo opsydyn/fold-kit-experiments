@@ -2,7 +2,7 @@ import * as Domain from '@alchemy.run/domain';
 import { Schema } from 'effect';
 
 import { AlchemyAdapterError } from '../../src/descriptor';
-// oxlint-disable-next-line foldkit/no-module-level-mutable-state -- Test-only counter proves the synthetic business handlers were never invoked; it is not application state.
+// oxlint-disable-next-line anti-slop/no-module-level-mutable-state -- Test-only counter proves the synthetic business handlers were never invoked; it is not application state.
 let invoked = 0;
 export const calls = () => invoked;
 export const resetCalls = () => {

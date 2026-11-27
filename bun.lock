@@ -8,7 +8,6 @@
         "@effect/language-service": "catalog:",
         "@effect/ui": "catalog:",
         "@foldkit/devtools-mcp": "catalog:",
-        "@foldkit/oxlint-plugin": "catalog:",
         "@moonrepo/cli": "2.5.4",
         "@opsydyn/oxlint-effect": "catalog:",
         "@oxlint/plugins": "1.79.0",
@@ -721,7 +720,6 @@
     "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@effect/vitest": "4.1.6",
     "@foldkit/devtools-mcp": "0.26.0",
-    "@foldkit/oxlint-plugin": "^0.15.3",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/b612": "5.3.0",
     "@fontsource/b612-mono": "5.3.0",
@@ -1151,7 +1149,6 @@
 
     "@foldkit/devtools-mcp": ["@foldkit/devtools-mcp@0.26.0", "", { "dependencies": { "@modelcontextprotocol/sdk": "1.29.0", "ws": "^8.21.3" }, "peerDependencies": { "effect": "~4.1.0", "foldkit": ">=0.165.0" }, "bin": { "foldkit-devtools-mcp": "dist/server.js" } }, "sha512-MhIAG28hBsGV43XuXbpschvp+D0UKNTF6YwNCDn7mYHxfaIFx56GONAAvmupuHSxZgEtbEXSmOetMB8vukxSFw=="],
 
-    "@foldkit/oxlint-plugin": ["@foldkit/oxlint-plugin@0.15.3", "", { "dependencies": { "effect-oxlint": "^0.3.4 || ^0.4.0" } }, "sha512-LprfdZcR4uIqzTqHhJWT9bjJiS1km4MsN9Yyqk8JcKAEHpAxwgneG3MvA7p5aPXVDpZE/zh5FCGzhRIz1MnscQ=="],
 
     "@fontsource-variable/inter": ["@fontsource-variable/inter@5.3.0", "", {}, "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="],
 
@@ -2089,7 +2086,6 @@
 
     "effect": ["effect@4.1.6", "", {}, "sha512-P3CxMsdcSCle/7/FnPILd9GJkNqGtduKam2LX9Xsb8LoOjmeQ9Kmsuh16JwtIthaxLyiTCOzUUt+PZsXIohl+A=="],
 
-    "effect-oxlint": ["effect-oxlint@0.3.4", "", { "dependencies": { "@oxlint/plugins": "^1.80.0" }, "peerDependencies": { "effect": "^4.0.0-rc.112" } }, "sha512-VaI72NhDI+OBk8rkWBxR3D+k8iQN5KX4caiTRtWR/KDlif4KdxmjPelQqflwwprxkGldEpLry9fQvvzlBWY6bA=="],
 
     "electron-to-chromium": ["electron-to-chromium@1.5.356", "", {}, "sha512-9NgFd7m5t5MCJ5rUSjJITUXAH9mEGlrlofnMf4YEr+pz6JlP7cWmTAH+JFmbPnaSW8koVTkuW7pacORWAnA5Yw=="],
 
@@ -3493,7 +3489,6 @@
 
     "dom-serializer/entities": ["entities@4.5.0", "", {}, "sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw=="],
 
-    "effect-oxlint/@oxlint/plugins": ["@oxlint/plugins@1.83.0", "", {}, "sha512-qD64wr6SS1DL7YbJQ8WWjyUfFfrJsvAy9Vo0sG/PYUQy30w0uemN2h6j4xuvj4noyETDpzcGC20sv+FH7GrN5A=="],
 
     "esast-util-from-js/acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 

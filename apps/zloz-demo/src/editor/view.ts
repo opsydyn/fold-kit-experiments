@@ -108,7 +108,7 @@ import { nativeArchitectureCanvas } from './native-canvas';
 import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-browse';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
-import { architecturePalettePanel } from './native-palette';
+import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
 import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
 import { packetReaderPanel } from './packet-reader';
@@ -278,7 +278,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ).type === 'blocked',
       )?.architecture
     : undefined;
-  const insertionReason = patternInsertionReason(model);
   const placementControls = workbenchPlacement(model);
   const showEdgeToolbar =
     !dddInspectorVisible &&
@@ -1133,65 +1132,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ]
         : [],
     diagram: [
-      h.div(
-        [h.Role('group'), h.AriaLabel('Insert architecture patterns')],
-        [
-          h.p(
-            [],
-            [
-              'Add a pattern beside your diagram. Existing content stays; each insertion is one Undo step.',
-            ],
-          ),
-          h.label(
-            [],
-            [
-              h.input([
-                h.Type('checkbox'),
-                h.Checked(model.protectPatternInsertion),
-                h.OnClick(Message.ClickedPatternInsertionProtection()),
-              ]),
-              'Protect pattern insertion',
-            ],
-          ),
-          h.h3([], ['Placement palette']),
-          button(
-            model.customPalette ? 'Use native palette' : 'Use custom palette',
-            Message.ClickedCustomPalette(),
-          ),
-          architecturePalettePanel(h, {
-            controls: placementControls,
-            diagnostics,
-            custom: model.customPalette,
-          }),
-          button(
-            'Insert C4 context pattern',
-            Message.ClickedInsertPattern({ pattern: 'c4-context' }),
-            insertionReason !== null,
-          ),
-          button(
-            'Insert DDD aggregate pattern',
-            Message.ClickedInsertPattern({ pattern: 'ddd-aggregate' }),
-            insertionReason !== null,
-          ),
-          button(
-            'Insert event-storming pattern',
-            Message.ClickedInsertPattern({ pattern: 'event-storming' }),
-            insertionReason !== null,
-          ),
-          button(
-            'Insert context-map starter',
-            Message.ClickedInsertPattern({ pattern: 'context-map' }),
-            insertionReason !== null,
-          ),
-          ...(insertionReason === null
-            ? []
-            : [
-                h.p(
-                  [h.Role('status'), h.AriaLabel('Pattern insertion protection reason')],
-                  [insertionReason!],
-                ),
-              ]),
-        ],
+      nativePatternInsertion(
+        h,
+        {
+          controls: placementControls,
+          diagnostics,
+          protected: model.protectPatternInsertion,
+          history: model.historyReview !== null,
+          customPalette: model.customPalette,
+          reason: patternInsertionReason(model),
+        },
+        'architecture-effect-ui',
+        'pattern-insertion',
       ),
       ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
         ? [

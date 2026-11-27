@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -61,14 +62,32 @@ async function run() {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await button('Open C4 system context').click();
   const before = await document();
-  await page.getByLabel('Protect pattern insertion', { exact: true }).check();
-  await expect(button('Insert DDD aggregate pattern')).toBeDisabled();
-  await expect(page.getByLabel('Pattern insertion protection reason', { exact: true })).toHaveText(
-    'Pattern insertion is protected in this workspace.',
-  );
+  const patternControls = page
+    .locator('[data-architecture-effect-ui="pattern-insertion"]')
+    .getByRole('group', { name: 'Insert architecture patterns', exact: true });
+  const protect = patternControls.getByRole('checkbox', {
+    name: 'Protect pattern insertion',
+    exact: true,
+  });
+  await protect.press('Space');
+  await expect(
+    patternControls.getByRole('button', { name: 'Insert DDD aggregate pattern', exact: true }),
+  ).toBeDisabled();
+  await expect(
+    patternControls.getByRole('status', {
+      name: 'Pattern insertion protection reason',
+      exact: true,
+    }),
+  ).toHaveText('Pattern insertion is protected in this workspace.');
   expect((await document()).snapshot.graph).toEqual(before.snapshot.graph);
-  await page.getByLabel('Protect pattern insertion', { exact: true }).uncheck();
-  await button('Insert DDD aggregate pattern').click();
+  await expect(protect).toBeChecked();
+  await protect.uncheck();
+  const insertDdd = patternControls.getByRole('button', {
+    name: 'Insert DDD aggregate pattern',
+    exact: true,
+  });
+  await expect(insertDdd).toBeEnabled();
+  await insertDdd.press('Enter');
   const inserted = await document();
   expect(inserted.id).toBe(before.id);
   expect(inserted.editions).toEqual(before.editions);
@@ -90,29 +109,30 @@ async function run() {
   await section('Navigation');
   await button('Fit view').click();
   await section('Diagram');
-  for (const theme of ['Light', 'Dark']) {
-    await page
-      .getByRole('combobox', { name: 'Theme', exact: true })
-      .selectOption(theme.toLowerCase());
-    await page.screenshot({
-      path: fileURLToPath(
-        new URL(`./pattern-insertion-${theme.toLowerCase()}.png`, import.meta.url),
-      ),
-    });
+  for (const theme of ['light', 'dark']) {
+    await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
+    await expect(page.locator('.flow-workbench')).toHaveAttribute(
+      'data-flow-workbench-color-scheme',
+      theme,
+    );
+    if (process.env.ZLOZ_PATTERN_SCREENSHOTS)
+      await page.screenshot({
+        path: resolve(process.env.ZLOZ_PATTERN_SCREENSHOTS, `pattern-insertion-${theme}.png`),
+      });
   }
   expect(errors).toEqual([]);
   console.log(
     JSON.stringify(
       {
         result: 'passed',
-        browser: browser.version(),
+        browser: engine + ' ' + browser.version(),
         checks: [
           'live protection and visible reason',
           'additive DDD insertion preserves existing graph and model identity',
           'one Undo removes complete grouped fragment',
           'Redo restores exact insertion',
           'C4 insertion and independent Undo',
-          'light/dark screenshots',
+          'light/dark workbench theme',
         ],
         pageErrors: errors,
       },

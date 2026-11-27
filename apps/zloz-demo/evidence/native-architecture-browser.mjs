@@ -192,9 +192,43 @@ async function qualify() {
   await expect(canvas.locator('[data-flow-alignment-guide]')).toHaveCount(0);
   expect(await snapshot()).toEqual(initial);
 
+  await section('Inspect');
+  await row.press('Enter');
   await section('Ports');
+  const portSettings = page.locator('[data-architecture-effect-ui="port-settings"]');
+  const lock = portSettings.getByRole('combobox', {
+    name: 'Draft to Review reconnection',
+    exact: true,
+  });
+  const snapRadius = portSettings.getByRole('combobox', {
+    name: 'Reconnection snap radius',
+    exact: true,
+  });
+  const reconnect = canvas.locator('[data-flow-reconnect="draft-review"]');
+  const sourceHandle = reconnect.and(canvas.locator('[data-flow-edge-end="source"]'));
+  const targetHandle = reconnect.and(canvas.locator('[data-flow-edge-end="target"]'));
+  await expect(reconnect).toHaveCount(2);
+  await lock.selectOption('source');
+  await expect(sourceHandle).toHaveCount(0);
+  await expect(targetHandle).toHaveCount(1);
+  await lock.selectOption('target');
+  await expect(sourceHandle).toHaveCount(1);
+  await expect(targetHandle).toHaveCount(0);
+  await lock.selectOption('both');
+  await expect(reconnect).toHaveCount(0);
+  await lock.selectOption('none');
+  await expect(reconnect).toHaveCount(2);
+  await snapRadius.selectOption('wide');
+  await section('Inspect');
+  await section('Ports');
+  await expect(snapRadius).toHaveValue('wide');
+  await snapRadius.selectOption('match');
   await button('Select Review').press('Enter');
-  const dragAnchors = page.getByRole('checkbox', { name: 'Drag port anchors', exact: true });
+  const dragAnchors = portSettings.getByRole('checkbox', {
+    name: 'Drag port anchors',
+    exact: true,
+  });
+  const priority = portSettings.getByRole('combobox', { name: 'Port snap priority', exact: true });
   await dragAnchors.check();
   await page.getByRole('checkbox', { name: 'Snap port anchors to midpoints', exact: true }).check();
   await page.getByRole('checkbox', { name: 'Port snap guides', exact: true }).check();
@@ -210,10 +244,14 @@ async function qualify() {
   await page.mouse.down();
   await page.mouse.move(anchorCenter.x + 4, anchorCenter.y + 18, { steps: 4 });
   const anchorGuides = canvas.locator('[data-flow-anchor-guides]');
+  await expect(dragAnchors).toBeDisabled();
+  await expect(priority).toBeDisabled();
   await expect(anchorGuides).toHaveAttribute('inert', '');
   expect(await anchorGuides.locator('.workbench-snap-guide').count()).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
   await page.mouse.up();
+  await expect(priority).toBeEnabled();
+  await expect(dragAnchors).toBeEnabled();
   await expect(anchorGuides).toHaveCount(0);
   expect(await snapshot()).toEqual(initial);
   await section('Ports');

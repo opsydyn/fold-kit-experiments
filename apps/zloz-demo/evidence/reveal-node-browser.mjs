@@ -43,6 +43,7 @@ async function qualify() {
     const section = (name) => navigation.getByRole('button', { name, exact: true }).click();
     const browse = page.locator('[data-architecture-effect-ui="diagram-search"]');
     const examples = page.locator('[data-architecture-effect-ui="examples"]');
+    const policies = page.locator('[data-architecture-effect-ui="policies"]');
     const search = browse.getByRole('searchbox', { name: 'Find a node', exact: true });
     const surface = page.locator('[data-flow-surface]');
     const node = (id) => surface.locator('[data-flow-node="' + id + '"]');
@@ -63,7 +64,7 @@ async function qualify() {
     await expect(button('Select Draft')).toHaveAttribute('aria-pressed', 'true');
 
     await section('Policies');
-    await page.getByRole('checkbox', { name: 'Hide Review node' }).check();
+    await policies.getByRole('checkbox', { name: 'Hide Review node' }).check();
     await section('Diagram');
     await expect(search).toHaveValue(' PuBLish ');
     await search.fill('review');
@@ -150,7 +151,7 @@ async function qualify() {
       'Revealed connection draft-review.',
     );
     await expect(button('Select Draft')).toHaveAttribute('aria-pressed', 'true');
-    const hideEdge = page.getByRole('checkbox', { name: 'Hide Draft → Review edge' });
+    const hideEdge = policies.getByRole('checkbox', { name: 'Hide Draft → Review edge' });
     await section('Policies');
     await hideEdge.check();
     await section('Diagram');
@@ -160,7 +161,7 @@ async function qualify() {
     await hideEdge.uncheck();
     await section('Diagram');
     await expect(draftReview).toBeVisible();
-    const hideReview = page.getByRole('checkbox', { name: 'Hide Review node' });
+    const hideReview = policies.getByRole('checkbox', { name: 'Hide Review node' });
     await section('Policies');
     await hideReview.check();
     await section('Diagram');

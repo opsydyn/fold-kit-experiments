@@ -23,9 +23,6 @@ import {
   type ZlozSelectionMarqueeContext,
   type ZlozCanvasHelpContext,
   type ZlozCanvasStatusContext,
-  zlozContextDimensionInput,
-  type ZlozContextAction,
-  type ZlozContextMenuContext,
   zlozEdgeEndpointField,
   zlozEdgePathStyleSelect,
   type ZlozEdgeToolbarContext,
@@ -773,89 +770,6 @@ export function compactEdgeToolbar(context: ZlozEdgeToolbarContext, h: HtmlBuild
         ],
         ['Delete edge'],
       ),
-    ],
-  );
-}
-
-export function customContextMenu(context: ZlozContextMenuContext, h: HtmlBuilder<Message>) {
-  const button = (action: ZlozContextAction) =>
-    zlozContextAction(
-      h,
-      action,
-      zlozEvent,
-      [
-        h.Style({
-          'min-height': '36px',
-          padding: '0 8px',
-          'text-align': 'left',
-          'border-radius': '7px',
-          border: '1px solid #a5b4fc',
-          background: action.pressed ? '#3730a3' : 'light-dark(#fff, #2e2d48)',
-          color: action.pressed ? '#fff' : 'light-dark(#312e81, #d9d6ff)',
-          cursor: 'pointer',
-        }),
-      ],
-      [action.label],
-    );
-  const group = context.kind === 'node' ? context.group : undefined;
-  return h.div(
-    [
-      h.Class('custom-context-menu'),
-      h.Style({
-        display: 'grid',
-        gap: '6px',
-        padding: '8px',
-        border: '1px solid #a5b4fc',
-        'border-radius': '12px',
-        background: 'light-dark(#eef2ff, #282940)',
-        color: 'light-dark(#312e81, #d9d6ff)',
-        'box-shadow': '0 4px 12px #312e8133',
-      }),
-    ],
-    [
-      h.strong(
-        [],
-        [context.kind === 'node' ? context.node.label : (context.edge.label ?? 'Connection')],
-      ),
-      ...(context.kind === 'edge'
-        ? [button(context.rename), button(context.deleteEdge)]
-        : [
-            ...(group
-              ? [
-                  ...(group.showMeasurements
-                    ? [
-                        h.label(
-                          [
-                            h.Style({
-                              display: 'grid',
-                              'grid-template-columns': 'auto minmax(0, 1fr)',
-                              gap: '8px',
-                              'align-items': 'center',
-                            }),
-                          ],
-                          [
-                            'Width',
-                            zlozContextDimensionInput(h, group, 'width', zlozEvent, [
-                              h.Style({
-                                width: '100%',
-                                'min-height': '34px',
-                                'box-sizing': 'border-box',
-                              }),
-                            ]),
-                          ],
-                        ),
-                      ]
-                    : []),
-                  ...(group.resizeDisabledReason === undefined
-                    ? []
-                    : [h.small([], [group.resizeDisabledReason])]),
-                  button(group.fit),
-                  button(group.lockProportions),
-                ]
-              : []),
-            button(context.duplicate),
-          ]),
-      button(context.close),
     ],
   );
 }

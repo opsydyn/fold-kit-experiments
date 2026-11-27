@@ -646,3 +646,54 @@
 .zloz-ui-endpoint-reasons {
   font-size: 0.85rem;
 }
+
+.zloz-ui-context-panel {
+  position: absolute;
+  overflow-y: auto;
+  z-index: 3;
+}
+.zloz-ui-context-menu {
+  display: grid;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--flow-node-border, #cbd5e1);
+  border-radius: 8px;
+  background: var(--flow-node-background, #fff);
+  color: var(--flow-node-color, #172033);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+}
+.zloz-ui-context-menu button {
+  min-height: 36px;
+  text-align: left;
+}
+.zloz-ui-context-menu .zloz-ui-context-dimension {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.zloz-ui-context-dimension input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+}
+.zloz-ui-context-menu.custom-context-menu {
+  gap: 6px;
+  padding: 8px;
+  border-color: #a5b4fc;
+  border-radius: 12px;
+  color: light-dark(#312e81, #d9d6ff);
+  background: light-dark(#eef2ff, #282940);
+  box-shadow: 0 4px 12px #312e8133;
+}
+.zloz-ui-context-menu.custom-context-menu button {
+  padding-inline: 8px;
+  border: 1px solid #a5b4fc;
+  border-radius: 7px;
+  color: inherit;
+  background: light-dark(#fff, #2e2d48);
+}
+.zloz-ui-context-menu.custom-context-menu button[aria-pressed='true'] {
+  background: #3730a3;
+  color: #fff;
+}

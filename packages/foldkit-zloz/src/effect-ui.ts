@@ -10,8 +10,10 @@ import {
 import { portConnectionEnd } from './connection-mode';
 import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
+import { contextPanelPlacement, resolveContextMenu } from './context-menu-context';
 import { resolveEdgeGeometry } from './edge-geometry';
 import { contextMapLabel } from './effect-ui-context-map';
+import { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
 import { edgeLabel, edgeToolbar, type NativeEdgeEditing } from './effect-ui-edge-editing';
 import {
   anchorControls,
@@ -47,6 +49,8 @@ export {
 } from './viewport-controls';
 
 export { surfaceInput } from './effect-ui-input';
+export { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
+export type { ZlozContextMenuContext } from './context-menu';
 export { endpointField, type NativeEndpointFieldOptions } from './effect-ui-endpoints';
 export type { NativeEdgeEditing } from './effect-ui-edge-editing';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
@@ -104,6 +108,9 @@ export type GraphSurfaceOptions<Message> = Readonly<{
   edgeWaypoints?: NativeWaypointOptions<Message>;
   /** Enable on-canvas edge labels and optionally the selected-edge toolbar. */
   edgeEditing?: NativeEdgeEditing<Message>;
+  /** Enable context actions from secondary click or the keyboard. */
+  contextActions?: Omit<NativeContextMenuOptions<Message>, 'id'> &
+    Readonly<{ measurements?: boolean }>;
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
@@ -130,6 +137,14 @@ export function graphSurface<Message>(
   const { id, label, descriptionId, onInput, policy, dropRadius = 0 } = options;
   const svg = (tag: string) => new Html.Element<Message>(tag);
   const scene = presentVisibleGraph(editor);
+  const context = options.contextActions
+    ? resolveContextMenu(
+        editor,
+        { measurements: options.contextActions.measurements !== false },
+        policy?.canDelete,
+        policy?.canResizeNode,
+      )
+    : undefined;
   const nodes = [
     ...groupsInPaintOrder(scene.nodes),
     ...scene.nodes.filter((node) => node.kind !== 'group'),
@@ -274,6 +289,7 @@ export function graphSurface<Message>(
     .attr('aria-describedby', descriptionId)
     .attr('tabindex', '0')
     .attr('data-flow-surface', id)
+    .attr('data-flow-context-actions', String(options.contextActions !== undefined))
     .attr('data-flow-readonly', String(editor.readOnly))
     .attr('data-flow-connection-mode', editor.connectionMode ?? 'strict')
     .attr('data-flow-connection-drop-radius', String(dropRadius))
@@ -392,6 +408,23 @@ export function graphSurface<Message>(
             policy,
             options.edgeEditing.onEdit,
           )
+        : null,
+      context && options.contextActions
+        ? h.div
+            .key(
+              `context:${context.kind}:${context.kind === 'node' ? context.node.id : context.edge.id}`,
+            )
+            .class('zloz-ui-context-panel')
+            .attr('role', 'group')
+            .attr(
+              'aria-label',
+              context.kind === 'node' ? 'Node context actions' : 'Edge context actions',
+            )
+            .attr('data-flow-context-panel', '')
+            .attr('data-flow-no-drag', '')
+            .attr('tabindex', '-1')
+            .style(contextPanelPlacement(context))
+            .children(contextMenu(h, context, { ...options.contextActions, id }))
         : null,
       options.resizeHandles && options.resizeReadout !== false
         ? nodeResizeReadout(h, editor, nodes)

@@ -471,6 +471,7 @@ export function view(h: Html.H<Message>, model: Model) {
                 ? 'Read-only edition preview'
                 : 'Working history canvas',
             onInput: observe,
+            contextActions: { onEvent: observe, measurements: !model.minimal },
             architectureNotation: true,
             resizeHandles: true,
             resizeReadout: !model.minimal,

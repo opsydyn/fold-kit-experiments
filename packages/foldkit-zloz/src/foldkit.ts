@@ -139,7 +139,6 @@ import {
   type ZlozContextTrigger,
   type ZlozContextMenuContext,
   type ZlozContextAction,
-  type ZlozGroupContextActions,
 } from './context-menu';
 export { zlozContextAction, zlozContextDimensionInput, zlozContextTrigger } from './context-menu';
 export type {
@@ -272,7 +271,12 @@ import {
   type ZlozSelectionMarqueeContext,
   type ZlozZoomAreaMarqueeContext,
 } from './canvas-gestures';
-import { resolveDeletion } from './deletion';
+import {
+  contextPanelPlacement,
+  deletionReason,
+  resolveContextMenu,
+  selectedNodeActions,
+} from './context-menu-context';
 import { resolveEdgeGeometry, type ZlozEdgeGeometryPolicy } from './edge-geometry';
 export type { ZlozSelectionMarqueeContext, ZlozZoomAreaMarqueeContext } from './canvas-gestures';
 import { boxBounds, finitePoint, portBoundaryPosition } from './geometry';
@@ -300,7 +304,6 @@ import { movementReason } from './movement';
 export type { ZlozBackground, ZlozBackgroundRenderContext } from './background';
 import type {
   AlignmentGuide,
-  DeletionTargets,
   EditorPolicy,
   ZlozGraph,
   EditorEvent,
@@ -644,107 +647,10 @@ function groupResizeTitle(
     ? `Drag to resize with locked proportions; arrow keys adjust by ${step}`
     : `Drag to resize; arrow keys adjust by ${step}`;
 }
-function deletionReason(
-  graph: ZlozGraph,
-  targets: DeletionTargets,
-  canDelete: EditorPolicy['canDelete'],
-): string | undefined {
-  if (!canDelete) return undefined;
-  const decision = resolveDeletion(graph, targets, canDelete);
-  return decision.type === 'blocked' ? decision.reason : undefined;
-}
-
 function deletionExplanation<M>(h: HtmlBuilder<M>, reason: string | undefined): readonly Html[] {
   return reason === undefined
     ? []
     : [h.small([h.Style({ 'flex-basis': '100%', 'overflow-wrap': 'anywhere' })], [reason])];
-}
-
-function selectedNodeActions(
-  state: EditorState,
-  canDelete: EditorPolicy['canDelete'],
-): ZlozNodeToolbarContext['actions'] {
-  return {
-    duplicate: { label: 'Duplicate node', event: { type: 'DuplicatePressed' } },
-    deleteNode: {
-      label: 'Delete node',
-      event: { type: 'DeletePressed' },
-      disabledReason: deletionReason(
-        state.graph,
-        { nodeIds: state.selectedNodes, edgeIds: state.selectedEdges },
-        canDelete,
-      ),
-    },
-  };
-}
-
-function contextMenu(
-  state: EditorState,
-  diagnostics: ZlozDiagnostics,
-  canDelete: EditorPolicy['canDelete'],
-  canResizeNode: EditorPolicy['canResizeNode'],
-): ZlozContextMenuContext | undefined {
-  const context = state.context;
-  if (!context || state.readOnly) return undefined;
-  const close: ZlozContextAction = { label: 'Close', event: { type: 'ContextDismissed' } };
-  const { point, id, kind } = context;
-  if (kind === 'edge') {
-    const edge = state.graph.edges.find((edge) => edge.id === id);
-    if (!edge) return undefined;
-    return {
-      kind,
-      edge,
-      point,
-      close,
-      deleteEdge: {
-        label: 'Delete edge',
-        event: { type: 'EdgeDeleted', id },
-        disabledReason: deletionReason(state.graph, { nodeIds: [], edgeIds: [id] }, canDelete),
-      },
-      rename: { label: 'Rename', event: { type: 'EdgeLabelEditingStarted', id } },
-    };
-  }
-
-  const node = state.graph.nodes.find((node) => node.id === id);
-  if (!node) return undefined;
-  const collapsed = state.collapsedGroups.includes(id);
-  const resizeDisabledReason = canResizeNode?.(node, state.graph) ?? undefined;
-  const group: ZlozGroupContextActions | undefined =
-    node.kind === 'group'
-      ? {
-          node,
-          collapsed,
-          fit: {
-            label: 'Fit group to contents',
-            event: { type: 'GroupFitClicked', id },
-            disabledReason: resizeDisabledReason,
-          },
-          lockProportions: {
-            label: 'Lock proportions',
-            event: { type: 'GroupAspectRatioToggled', id },
-            pressed: node.keepAspectRatio ?? false,
-          },
-          showMeasurements: diagnostics.measurements,
-          dimensionsDisabled:
-            collapsed || state.gesture.type !== 'idle' || resizeDisabledReason !== undefined,
-          resizeDisabledReason,
-          dimensionStep: state.snapToGrid ? state.gridSpacing : 1,
-          changeDimension: (dimension, value) => ({
-            type: 'GroupDimensionChanged',
-            id,
-            dimension,
-            value,
-          }),
-        }
-      : undefined;
-  return {
-    kind,
-    node,
-    point,
-    close,
-    group,
-    ...selectedNodeActions(state, canDelete),
-  };
 }
 
 function defaultContextMenu<M>(
@@ -842,13 +748,10 @@ function contextPanel<M>(
   diagnostics: ZlozDiagnostics,
 ): readonly Html[] {
   const context = options.contextActions
-    ? contextMenu(state, diagnostics, options.canDelete, options.canResizeNode)
+    ? resolveContextMenu(state, diagnostics, options.canDelete, options.canResizeNode)
     : undefined;
   if (!context) return [];
-  const group = context.kind === 'node' ? context.group : undefined;
-  const width = group ? 224 : 172;
-  const height = group ? (group.showMeasurements ? 336 : 228) : 130;
-  const top = `clamp(4px, ${context.point.y}px, max(4px, calc(100% - ${height}px)))`;
+  const placement = contextPanelPlacement(context);
   const id = context.kind === 'node' ? context.node.id : context.edge.id;
   return [
     h.div(
@@ -861,10 +764,10 @@ function contextPanel<M>(
         h.DataAttribute('flow-no-drag', ''),
         h.Style({
           position: 'absolute',
-          left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - ${width + 4}px)))`,
-          top,
-          width: `min(${width}px, calc(100% - 8px))`,
-          'max-height': `calc(100% - ${top} - 4px)`,
+          left: placement.left,
+          top: placement.top,
+          width: placement.width,
+          'max-height': placement.maxHeight,
           'overflow-y': 'auto',
           'z-index': '3',
         }),

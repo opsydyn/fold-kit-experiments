@@ -134,6 +134,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeContextMenu } from './native-context-menu';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
 import { packetReaderPanel } from './packet-reader';
@@ -158,7 +159,6 @@ import {
   releaseGateAnnotation,
   compactNodeToolbar,
   compactEdgeToolbar,
-  customContextMenu,
   connectionRows,
   labeledResizeReadout,
   endpointAlignmentGuide,
@@ -3764,7 +3764,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,
           contextActions: true,
           renderContextMenu: (context, builder) =>
-            model.contextMenuDesign === 'panel' ? customContextMenu(context, builder) : undefined,
+            nativeContextMenu(
+              builder,
+              { context, design: model.contextMenuDesign, modelId, epoch },
+              'architecture-effect-ui',
+              'context-menu',
+            ),
           autoPan: true,
           connectionDropRadius: model.snapConnections ? 32 : 0,
           ...reconnectionRadiusOptions[model.reconnectionSnap],

@@ -6,6 +6,7 @@ import workspace from '../../../../package.json' with { type: 'json' };
 import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
 import { datasetProject } from './dataset-project';
+import { standaloneEffectOverrides } from './standalone-effect';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
@@ -169,6 +170,7 @@ export async function buildExampleTemplate(
         '@stackblitz/sdk': '1.11.0',
       },
       devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' },
+      overrides: standaloneEffectOverrides,
       stackblitz: { installDependencies: true, startCommand: 'npm start' },
     },
     null,

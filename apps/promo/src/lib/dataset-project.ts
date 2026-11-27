@@ -2,6 +2,7 @@ import { datasetIds, datasets } from '@opsydyn/dataset-explorer/data';
 
 import workspace from '../../../../package.json' with { type: 'json' };
 import type { SourceFile } from './example-project';
+import { standaloneEffectOverrides } from './standalone-effect';
 
 /** Adapt the common Vite scaffold to the maintained KeyedQuery example. */
 export function datasetProject(
@@ -53,6 +54,7 @@ export function datasetProject(
           '@types/hast': '3.0.5',
         },
         devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' },
+        overrides: standaloneEffectOverrides,
         stackblitz: { installDependencies: true, startCommand: 'npm start' },
       },
       null,

@@ -1,9 +1,9 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { ChartRole } from './model';
 const pointer = { role: ChartRole, pointerId: Schema.Number, x: Schema.Number, y: Schema.Number };
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ClickedEvent: { key: Schema.String },
   ClickedClearEvent: {},
   CompletedEventBrowserFocus: {},
@@ -34,6 +34,6 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-export type ChangedSignalDataset = Omit<typeof Message.ChangedSignalDataset.Type, 'props'> & {
+export type ChangedSignalDataset = Omit<typeof Message.cases.ChangedSignalDataset.Type, 'props'> & {
   readonly props: import('./quality').Props;
 };

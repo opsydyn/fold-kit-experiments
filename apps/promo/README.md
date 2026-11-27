@@ -2,7 +2,7 @@
 
 The Foldkit Viz promo site, implemented from the approved light and dark
 visual-studio mockups. Static Astro pages render SVG geometry from workspace
-imports of `@opsydyn/foldkit-viz`. Interactive examples use FoldKit islands;
+imports of `@opsydyn/foldkit-viz`. Interactive examples use Effect UI islands;
 the dataset explorer shares a private workspace, and comparison deliberately
 reuses the maintained web workbench and its chart sources.
 
@@ -94,20 +94,20 @@ and large-feed performance remain unqualified.
 
 ## Live line example (v2)
 
-`/examples/line/` embeds a FoldKit island with interpolation, five point-value
+`/examples/line/` embeds an Effect UI island with interpolation, five point-value
 sliders, a Y-axis domain control and reset. Its code viewer shows the maintained
 example files; `settings.ts` follows the current controls. Copy uses the browser
 clipboard with visible failure feedback. Download and Open in StackBlitz capture
-current settings in a complete Vite/FoldKit project.
+current settings in a complete Vite project using Effect UI.
 
-Exports include the complete emitted runtime and declaration closure for geometry, themes, FoldKit layers and their primitives from this checkout, so they
+Exports include the complete emitted runtime and declaration closure for geometry, themes, Effect UI layers and their primitives from this checkout, so they
 run without workspace access or an unpublished npm version. Unzip, run
 `npm install`, then `npm run dev` (Node 22.12+), or use Bun. StackBlitz receives the
 example project when the visitor chooses that action. The exported page follows
 the system colour preference; the promo retains its saved theme toggle.
 
 The build generates `/downloads/line-template.json`; raw code and template
-assembly stay at the Astro build boundary. Browser effects run in FoldKit Commands.
+assembly stay at the Astro build boundary. Browser effects run in Effect UI commands.
 The Edit live tab embeds the same maintained project; see its session behaviour below.
 
 ## Live histogram example (v2)
@@ -121,7 +121,7 @@ Source, copy, reset and exports follow the line example. `settings.ts` captures
 the chosen dataset and bin count, while `data.ts` contains both sample arrays.
 The static `/downloads/histogram-template.json` uses shared project scaffolding
 and includes the complete public-module dependency closure. Each downloaded example owns its
-FoldKit application files so it runs independently of the monorepo.
+Effect UI application files so it runs independently of the monorepo.
 
 ## Interactive scatter
 
@@ -163,16 +163,16 @@ fixtures. Embedded editing is available locally, but disabled on GitHub Pages.
 
 The line example has Controls and Edit live tabs. The editor loads on first selection, captures the current controls, and runs the same standalone Vite project in an embedded StackBlitz editor. Tab switches keep its session alive. Arrow keys, Home and End navigate the tabs.
 
-Code edits belong to the editor session. The running FoldKit Model survives hot reload; reload the preview to apply edited initial defaults. CSS and view edits update the live preview. Restart from controls replaces those edits with a fresh copy of the current control settings. Use StackBlitz's project actions to keep code edits; the promo's Copy file, Download project and Open in StackBlitz actions use the control settings. Standalone exports hide the embedding controls to avoid recursive editors.
+Code edits belong to the editor session. The running Effect UI model survives hot reload; reload the preview to apply edited initial defaults. CSS and view edits update the live preview. Restart from controls replaces those edits with a fresh copy of the current control settings. Use StackBlitz's project actions to keep code edits; the promo's Copy file, Download project and Open in StackBlitz actions use the control settings. Standalone exports hide the embedding controls to avoid recursive editors.
 
-The embed is a FoldKit Mount resource: the runtime owns the host, the SDK owns only its children, and unmounting clears the iframe. Failed connections provide a retry and the existing external StackBlitz action. StackBlitz and package installation require network access and a browser supported by WebContainers.
+The embed is an Effect UI mount resource: the runtime owns the host, the SDK owns only its children, and unmounting clears the iframe. Failed connections provide a retry and the existing external StackBlitz action. StackBlitz and package installation require network access and a browser supported by WebContainers.
 
 Static hosting must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless`. Astro dev and preview send these through `server.headers`. The build includes `public/_headers` for platforms supporting that convention; on other hosts, configure the equivalent response headers explicitly. The embed delegates isolation to the StackBlitz origin, including its initial POST navigation.
 
 ## Composition and source capture
 
 The line, histogram and scatter examples use the public `chart/cartesian`, `chart/theme` and
-optional `foldkit/cartesian` APIs. Measured width is a serialisable Model field,
+optional `effect-ui/cartesian` APIs. Measured width is a serialisable Model field,
 reported by a scoped Mount ResizeObserver. Axes use 12px labels and fewer ticks
 on narrow plots. Theme paints use semantic CSS properties, separate opacity and
 stable keyed styles. Line layers include a reference series and target annotation;
@@ -185,7 +185,7 @@ import aliases. Tests install, typecheck and build each project in an OS tempora
 directory and render the packed optional adapter under Bun and Node.
 
 The composition APIs shipped in `@opsydyn/foldkit-viz` 0.10.0. The current
-workspace targets FoldKit 0.171.0 and Effect 4.1.6. Local checks, hosted
+workspace targets the pinned Effect UI build and Effect 4.1.6. Local checks, hosted
 deployment and npm publication are verified separately.
 
 ## Captured signal comparisons

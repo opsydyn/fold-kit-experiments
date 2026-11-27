@@ -1,5 +1,5 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import type { Sample } from './data';
 import type { EventDataset } from './events';
@@ -11,7 +11,7 @@ export const Bounds = Schema.Struct({
 });
 export type Bounds = typeof Bounds.Type;
 const valued = { value: Schema.Number, bounds: Schema.NullOr(Bounds) };
-export const Reading = defineTaggedUnion({
+export const Reading = UiSchema.TaggedEnum({
   Observed: valued,
   Estimated: { ...valued, method: Schema.String },
   Missing: { reason: Schema.String },

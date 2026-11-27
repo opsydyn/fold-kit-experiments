@@ -1,8 +1,8 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import { axis, chartFrame, grid, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
+import { axis, chartFrame, grid, pointSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 import { selectionContainsValue } from '@opsydyn/foldkit-viz/interaction/selection';
-import { Option, Schema } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { exampleTheme } from '#example/frame';
 
@@ -17,9 +17,8 @@ import type { ReadyModel, ChartRole } from './model';
 import { readingText, sourceFreshness } from './quality';
 import { qualityLayers, qualityLegend, qualityDetails } from './quality-view';
 const labels = { overview: 'Latency overview', latency: 'Latency detail', errors: 'Error detail' };
-const Key = Schema.Literals(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape']);
 const theme = { ...exampleTheme, labelSize: 11 };
-function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): Html {
+function signalChart(m: ReadyModel, role: ChartRole, h: Html.H<Message>): View.Content<Message> {
   const chart = deriveSignalChart(m, role);
   const { geometry, inspected } = chart;
   const { layout } = geometry;
@@ -51,47 +50,43 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
       : [Math.max(plot.left, layout.x(interval[0])), Math.min(plot.right, layout.x(interval[1]))];
   const highlight =
     rect !== null && rect[1] > rect[0]
-      ? h.rect(
-          [
-            h.X(String(rect[0])),
-            h.Y(String(plot.top)),
-            h.Width(String(rect[1] - rect[0])),
-            h.Height(String(plot.height)),
-            h.Fill(colour),
-            h.FillOpacity(brush ? '0.1' : '0.16'),
-            h.Stroke(colour),
-            h.StrokeDasharray(brush ? '3 3' : '1 4'),
-            h.AriaHidden(true),
-          ],
-          [],
-        )
+      ? h
+          .el('rect')
+          .attr('x', String(rect[0]))
+          .attr('y', String(plot.top))
+          .attr('width', String(rect[1] - rect[0]))
+          .attr('height', String(plot.height))
+          .attr('fill', colour)
+          .attr('fill-opacity', brush ? '0.1' : '0.16')
+          .attr('stroke', colour)
+          .attr('stroke-dasharray', brush ? '3 3' : '1 4')
+          .attr('aria-hidden', 'true')
+          .children()
       : null;
   const cursor =
     visiblePin && inspected !== null
-      ? h.line(
-          [
-            h.Class('signal-cursor'),
-            h.X1(String(layout.x(inspected.time))),
-            h.X2(String(layout.x(inspected.time))),
-            h.Y1(String(plot.top)),
-            h.Y2(String(plot.bottom)),
-            h.Stroke(theme.text),
-            h.StrokeDasharray('2 4'),
-            h.AriaHidden(true),
-          ],
-          [],
-        )
+      ? h
+          .el('line')
+          .attr('class', 'signal-cursor')
+          .attr('x1', String(layout.x(inspected.time)))
+          .attr('x2', String(layout.x(inspected.time)))
+          .attr('y1', String(plot.top))
+          .attr('y2', String(plot.bottom))
+          .attr('stroke', theme.text)
+          .attr('stroke-dasharray', '2 4')
+          .attr('aria-hidden', 'true')
+          .children()
       : null;
-  return h.section(
-    [h.Class(`signal-plot signal-plot-${role}`), h.DataAttribute('chart-role', role)],
-    [
-      h.div(
-        [h.Class('signal-plot-heading')],
-        [
-          h.h2([], [labels[role]]),
-          h.span([], [role === 'errors' ? '% / ERROR RATE' : 'ms / RESPONSE TIME']),
-        ],
-      ),
+  return h.section
+    .attr('class', `signal-plot signal-plot-${role}`)
+    .attr('data-chart-role', role)
+    .children(
+      h.div
+        .attr('class', 'signal-plot-heading')
+        .children(
+          h.h2.children(labels[role]),
+          h.span.children(role === 'errors' ? '% / ERROR RATE' : 'ms / RESPONSE TIME'),
+        ),
       chartFrame(
         h,
         {
@@ -102,33 +97,22 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
               ? 'Illustrative static telemetry. Drag to select a time interval.'
               : 'Illustrative static telemetry. Drag to pan. Arrow keys inspect; Home and End move to visible boundaries.',
           theme,
-          interactive: true,
-          onMount: ObserveSignalInput({ role }),
-          onKeyDown: (key) =>
-            Schema.is(Key)(key)
-              ? Option.some(Message.PressedInspectionKey({ role, key }))
-              : Option.none(),
         },
         [
           grid(h, { ...geometry, theme }),
-          h.defs(
-            [],
-            [
-              h.clipPath(
-                [h.Id(`signal-quality-clip-${role}`)],
-                [
-                  h.rect(
-                    [
-                      h.X(String(plot.left)),
-                      h.Y(String(plot.top)),
-                      h.Width(String(plot.width)),
-                      h.Height(String(plot.height)),
-                    ],
-                    [],
-                  ),
-                ],
+          h.el('defs').children(
+            h
+              .el('clipPath')
+              .attr('id', `signal-quality-clip-${role}`)
+              .children(
+                h
+                  .el('rect')
+                  .attr('x', String(plot.left))
+                  .attr('y', String(plot.top))
+                  .attr('width', String(plot.width))
+                  .attr('height', String(plot.height))
+                  .children(),
               ),
-            ],
           ),
           ...qualityLayers(
             m,
@@ -137,14 +121,13 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
             h,
             new Set(deriveComparisonChart(m, role, layout).errorBars.map(({ mark }) => mark.key)),
           ),
-          h.g(
-            [h.Attribute('clip-path', `url(#signal-quality-clip-${role})`)],
-            [
+          h
+            .el('g')
+            .attr('clip-path', `url(#signal-quality-clip-${role})`)
+            .children(
               highlight,
               ...comparisonLayers(m, role, layout, h),
               ...eventGuideLayers(m, role, layout, h),
-
-              // Single observations still have an honest visible mark, even without a line segment.
               pointSeries(h, {
                 points: point,
                 styleFor: (p) =>
@@ -156,8 +139,7 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
                 activeKey: m.inspection.key,
               }),
               cursor,
-            ],
-          ),
+            ),
           axis(h, {
             layout,
             orientation: 'bottom',
@@ -175,52 +157,46 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
               role === 'errors' ? String(Number(value.toPrecision(3))) : String(Math.round(value)),
             theme,
           }),
-          h.rect(
-            [
-              h.DataAttribute('signal-gesture', ''),
-              h.X(String(plot.left)),
-              h.Y(String(plot.top)),
-              h.Width(String(plot.width)),
-              h.Height(String(plot.height)),
-              h.Fill('transparent'),
-              h.Style({
-                'touch-action': 'none',
-                cursor: role === 'overview' ? 'crosshair' : 'grab',
-              }),
-            ],
-            [],
-          ),
+          h
+            .el('rect')
+            .attr('data-signal-gesture', '')
+            .attr('x', String(plot.left))
+            .attr('y', String(plot.top))
+            .attr('width', String(plot.width))
+            .attr('height', String(plot.height))
+            .attr('fill', 'transparent')
+            .attr('style', `touch-action:none;cursor:${role === 'overview' ? 'crosshair' : 'grab'}`)
+            .children(),
         ],
-      ),
+      )
+        .attr('tabindex', '0')
+        .onMount(ObserveSignalInput({ role })),
       ...(chart.noDrawable
-        ? [h.p([h.Class('signal-no-data')], ['No drawable measurements in this view.'])]
+        ? [h.p.attr('class', 'signal-no-data').children('No drawable measurements in this view.')]
         : []),
-      h.ul(
-        [h.Class('signal-reference-list')],
-        [
-          ...baselineReferenceList(m, role, h),
-          ...chart.thresholds.map((t) =>
-            h.li(
-              [h.Key(t.id), h.DataAttribute('threshold-id', t.id)],
-              [`Illustrative reference: ${t.label} · ${t.value} ${role === 'errors' ? '%' : 'ms'}`],
+      h.ul.attr('class', 'signal-reference-list').children(
+        ...baselineReferenceList(m, role, h),
+        ...chart.thresholds.map((t) =>
+          h.li
+            .key(t.id)
+            .attr('data-threshold-id', t.id)
+            .children(
+              `Illustrative reference: ${t.label} · ${t.value} ${role === 'errors' ? '%' : 'ms'}`,
             ),
-          ),
-        ],
+        ),
       ),
-      h.p(
-        [h.Class('signal-input-status')],
-        [
+      h.p
+        .attr('class', 'signal-input-status')
+        .children(
           m.inputStatus[role] === 'Ready'
             ? role === 'overview'
               ? 'Drag a range · tap to inspect'
               : 'Drag to pan · ← → inspect · Home / End'
             : 'Input unavailable · keyboard and range controls remain available',
-        ],
-      ),
-    ],
-  );
+        ),
+    );
 }
-function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
+function readyView(m: ReadyModel, h: Html.H<Message>): View.Content<Message> {
   const inspected = m.records.find((d) => d.id === m.inspection.key);
   const lastIndex = m.records.length - 1;
   const selected = m.selection._tag === 'Interval' ? m.selection.domain : m.bounds;
@@ -233,255 +209,193 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
     m.records.findLastIndex((d) => d.time <= selected[1]),
   );
   const button = (label: string, message: Message, disabled = false) =>
-    h.button([h.Type('button'), h.OnClick(message), h.Disabled(disabled)], [label]);
+    h.button.attr('type', 'button').on('click', message).disabled(disabled).children(label);
   const range = (id: string, label: string, value: number, toMessage: (index: number) => Message) =>
-    h.div(
-      [h.Class('signal-range')],
-      [
-        h.label([h.For(id)], [label, h.span([], [`Record ${value}`])]),
-        h.input([
-          h.Id(id),
-          h.Type('range'),
-          h.Min('0'),
-          h.Max(String(lastIndex)),
-          h.Step('1'),
-          h.Value(String(value)),
-          h.Disabled(lastIndex < 1),
-          h.OnInput((value) => toMessage(Number(value))),
-        ]),
-      ],
+    h.div.attr('class', 'signal-range').children(
+      h.label.attr('for', id).children(label, h.span.children(`Record ${value}`)),
+      h.input
+        .attr('id', id)
+        .attr('type', 'range')
+        .attr('min', '0')
+        .attr('max', String(lastIndex))
+        .attr('step', '1')
+        .attr('value', String(value))
+        .disabled(lastIndex < 1)
+        .on('input', ({ value }) => toMessage(Number(value))),
     );
-  return h.div(
-    [h.Class('signal-desk')],
-    [
-      h.div(
-        [h.Class('signal-meta')],
-        [
-          h.span([], [`${m.records.length} RECORDS · GAPS EXPLICIT`]),
-          h.span([], [`${utc(m.bounds[0]).slice(0, 10)} / UTC`]),
-          h.span([], ['ILLUSTRATIVE · STATIC']),
-        ],
+  return h.div.attr('class', 'signal-desk').children(
+    h.div
+      .attr('class', 'signal-meta')
+      .children(
+        h.span.children(`${m.records.length} RECORDS · GAPS EXPLICIT`),
+        h.span.children(`${utc(m.bounds[0]).slice(0, 10)} / UTC`),
+        h.span.children('ILLUSTRATIVE · STATIC'),
       ),
-      h.section(
-        [
-          h.Class('signal-source-status'),
-          h.DataAttribute('freshness', sourceFreshness(m.snapshot)),
-        ],
-        [
-          h.p([], [`Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}`]),
-          h.p(
-            [],
-            [
-              `As of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
-            ],
+    h.section
+      .attr('class', 'signal-source-status')
+      .attr('data-freshness', sourceFreshness(m.snapshot))
+      .children(
+        h.p.children(`Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}`),
+        h.p.children(
+          `As of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
+        ),
+        h.div
+          .attr('class', 'signal-controls')
+          .children(
+            button('Fresh snapshot', Message.ClickedFreshnessScenario({ scenario: 'Fresh' })),
+            button('Stale snapshot', Message.ClickedFreshnessScenario({ scenario: 'Stale' })),
           ),
-          h.div(
-            [h.Class('signal-controls')],
-            [
-              button('Fresh snapshot', Message.ClickedFreshnessScenario({ scenario: 'Fresh' })),
-              button('Stale snapshot', Message.ClickedFreshnessScenario({ scenario: 'Stale' })),
-            ],
-          ),
-        ],
       ),
-      qualityLegend(h),
-      signalChart(m, 'overview', h),
-      h.div(
-        [h.Class('signal-ranges')],
-        [
-          range('signal-range-start', 'Range start', lo, (index) =>
-            Message.ChangedRangeStart({ index }),
-          ),
-          range('signal-range-end', 'Range end', hi, (index) => Message.ChangedRangeEnd({ index })),
-        ],
+    qualityLegend(h),
+    signalChart(m, 'overview', h),
+    h.div.attr('class', 'signal-ranges').children(
+      range('signal-range-start', 'Range start', lo, (index) =>
+        Message.ChangedRangeStart({ index }),
       ),
-      h.div(
-        [h.Class('signal-controls')],
-        [
-          button('Zoom in', Message.ClickedZoomIn(), m.viewport[1] - m.viewport[0] <= 1000),
-          button(
-            'Zoom out',
-            Message.ClickedZoomOut(),
-            m.viewport[0] === m.bounds[0] && m.viewport[1] === m.bounds[1],
-          ),
-          button('Reset view', Message.ClickedResetView()),
-          button('Clear selection', Message.ClickedClearSelection()),
-          button(
-            'Pin inspection',
-            Message.ClickedPinInspection(),
-            inspected === undefined || m.inspection._tag === 'Pinned',
-          ),
-          button(
-            'Resume inspection',
-            Message.ClickedResumeInspection(),
-            m.inspection._tag === 'Following',
-          ),
-        ],
+      range('signal-range-end', 'Range end', hi, (index) => Message.ChangedRangeEnd({ index })),
+    ),
+    h.div
+      .attr('class', 'signal-controls')
+      .children(
+        button('Zoom in', Message.ClickedZoomIn(), m.viewport[1] - m.viewport[0] <= 1000),
+        button(
+          'Zoom out',
+          Message.ClickedZoomOut(),
+          m.viewport[0] === m.bounds[0] && m.viewport[1] === m.bounds[1],
+        ),
+        button('Reset view', Message.ClickedResetView()),
+        button('Clear selection', Message.ClickedClearSelection()),
+        button(
+          'Pin inspection',
+          Message.ClickedPinInspection(),
+          inspected === undefined || m.inspection._tag === 'Pinned',
+        ),
+        button(
+          'Resume inspection',
+          Message.ClickedResumeInspection(),
+          m.inspection._tag === 'Following',
+        ),
       ),
-      h.div(
-        [h.Class('signal-view-state')],
-        [
-          h.p([], [`View: ${utc(m.viewport[0])} → ${utc(m.viewport[1])}`]),
-          h.p(
-            [],
-            [
-              m.selection._tag === 'Interval'
-                ? `Selection: ${utc(m.selection.domain[0])} → ${utc(m.selection.domain[1])}`
-                : 'Selection: none',
-            ],
-          ),
-        ],
+    h.div
+      .attr('class', 'signal-view-state')
+      .children(
+        h.p.children(`View: ${utc(m.viewport[0])} → ${utc(m.viewport[1])}`),
+        h.p.children(
+          m.selection._tag === 'Interval'
+            ? `Selection: ${utc(m.selection.domain[0])} → ${utc(m.selection.domain[1])}`
+            : 'Selection: none',
+        ),
       ),
-      h.section(
-        [h.Class('signal-inspector'), h.AriaLive('polite')],
-        [
-          h.p([h.Class('signal-inspection-notice')], [inspectionNotice(m)]),
-          h.p(
-            [h.Class('signal-reading-detail')],
-            [
-              `Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision} · as of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
-            ],
+    h.section
+      .attr('class', 'signal-inspector')
+      .attr('aria-live', 'polite')
+      .children(
+        h.p.attr('class', 'signal-inspection-notice').children(inspectionNotice(m)),
+        h.p
+          .attr('class', 'signal-reading-detail')
+          .children(
+            `Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision} · as of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
           ),
-          h.dl(
-            [],
-            [
-              h.div(
-                [],
-                [
-                  h.dt([], ['Observation / UTC']),
-                  h.dd([], [inspected ? `${inspected.id} / ${utc(inspected.time)}` : '—']),
-                ],
-              ),
-              h.div(
-                [],
-                [
-                  h.dt([], ['Latency (ms)']),
-                  h.dd([], [inspected ? readingText(inspected.latency) : '—']),
-                  ...(inspected
-                    ? [
-                        h.p(
-                          [h.Class('signal-reading-detail')],
-                          [qualityDetails(inspected.latency, 'ms')],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-              h.div(
-                [],
-                [
-                  h.dt([], ['Errors (%)']),
-                  h.dd([], [inspected ? readingText(inspected.errors) : '—']),
-                  ...(inspected
-                    ? [
-                        h.p(
-                          [h.Class('signal-reading-detail')],
-                          [qualityDetails(inspected.errors, '%')],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-            ],
+        h.dl.children(
+          h.div.children(
+            h.dt.children('Observation / UTC'),
+            h.dd.children(inspected ? `${inspected.id} / ${utc(inspected.time)}` : '—'),
           ),
-        ],
+          h.div.children(
+            h.dt.children('Latency (ms)'),
+            h.dd.children(inspected ? readingText(inspected.latency) : '—'),
+            ...(inspected
+              ? [
+                  h.p
+                    .attr('class', 'signal-reading-detail')
+                    .children(qualityDetails(inspected.latency, 'ms')),
+                ]
+              : []),
+          ),
+          h.div.children(
+            h.dt.children('Errors (%)'),
+            h.dd.children(inspected ? readingText(inspected.errors) : '—'),
+            ...(inspected
+              ? [
+                  h.p
+                    .attr('class', 'signal-reading-detail')
+                    .children(qualityDetails(inspected.errors, '%')),
+                ]
+              : []),
+          ),
+        ),
       ),
-      comparisonPanel(m, h),
-      eventPanel(m, deriveSignalChart(m, 'latency').geometry.layout, h),
-      signalChart(m, 'latency', h),
-      signalChart(m, 'errors', h),
-      h.details(
-        [h.Class('signal-records')],
-        [
-          h.summary([], [`Raw observations (${m.records.length})`]),
-          h.div(
-            [h.Class('signal-table-scroll')],
-            [
-              h.table(
-                [],
-                [
-                  h.caption(
-                    [],
-                    [
-                      `Illustrative system telemetry. Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}. All records, including those outside the current view.`,
-                    ],
+    comparisonPanel(m, h),
+    eventPanel(m, deriveSignalChart(m, 'latency').geometry.layout, h),
+    signalChart(m, 'latency', h),
+    signalChart(m, 'errors', h),
+    h.details.attr('class', 'signal-records').children(
+      h.summary.children(`Raw observations (${m.records.length})`),
+      h.div.attr('class', 'signal-table-scroll').children(
+        h.table.children(
+          h.caption.children(
+            `Illustrative system telemetry. Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}. All records, including those outside the current view.`,
+          ),
+          h.thead.children(
+            h.tr.children(
+              [
+                'Observation',
+                'Time (UTC)',
+                'Latency (ms)',
+                'Errors (%)',
+                'Latency quality',
+                'Error quality',
+                'State',
+              ].map((label) => h.th.attr('scope', 'col').children(label)),
+            ),
+          ),
+          h.tbody.children(
+            m.records.map((d) => {
+              const active = d.id === m.inspection.key;
+              const selected = selectionContainsValue(m.selection, 'x', d.time);
+              return h.tr
+                .key(d.id)
+                .attr('data-record-id', d.id)
+                .attr(
+                  'class',
+                  active ? 'signal-row-inspected' : selected ? 'signal-row-selected' : '',
+                )
+                .children(
+                  h.th.attr('scope', 'row').children(d.id),
+                  h.td.children(utc(d.time)),
+                  h.td.children(readingText(d.latency)),
+                  h.td.children(readingText(d.errors)),
+                  h.td.children(qualityDetails(d.latency, 'ms')),
+                  h.td.children(qualityDetails(d.errors, '%')),
+                  h.td.children(
+                    `${active ? 'Inspected' : ''}${active && selected ? ' · ' : ''}${selected ? 'Selected' : ''}${!active && !selected ? '—' : ''}`,
                   ),
-                  h.thead(
-                    [],
-                    [
-                      h.tr(
-                        [],
-                        [
-                          'Observation',
-                          'Time (UTC)',
-                          'Latency (ms)',
-                          'Errors (%)',
-                          'Latency quality',
-                          'Error quality',
-                          'State',
-                        ].map((label) => h.th([h.Scope('col')], [label])),
-                      ),
-                    ],
-                  ),
-                  h.tbody(
-                    [],
-                    m.records.map((d) => {
-                      const active = d.id === m.inspection.key;
-                      const selected = selectionContainsValue(m.selection, 'x', d.time);
-                      return h.tr(
-                        [
-                          h.Key(d.id),
-                          h.DataAttribute('record-id', d.id),
-                          h.Class(
-                            active ? 'signal-row-inspected' : selected ? 'signal-row-selected' : '',
-                          ),
-                        ],
-                        [
-                          h.th([h.Scope('row')], [d.id]),
-                          h.td([], [utc(d.time)]),
-                          h.td([], [readingText(d.latency)]),
-                          h.td([], [readingText(d.errors)]),
-                          h.td([], [qualityDetails(d.latency, 'ms')]),
-                          h.td([], [qualityDetails(d.errors, '%')]),
-                          h.td(
-                            [],
-                            [
-                              `${active ? 'Inspected' : ''}${active && selected ? ' · ' : ''}${selected ? 'Selected' : ''}${!active && !selected ? '—' : ''}`,
-                            ],
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ],
+                );
+            }),
           ),
-        ],
+        ),
       ),
-      h.details(
-        [h.Class('signal-source')],
-        [
-          h.summary([], ['Controlled state / source']),
-          h.pre([], [h.code([], [currentSignalSource(m)])]),
-        ],
+    ),
+    h.details
+      .attr('class', 'signal-source')
+      .children(
+        h.summary.children('Controlled state / source'),
+        h.pre.children(h.code.children(currentSignalSource(m))),
       ),
-    ],
   );
 }
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Signal desk — Foldkit Viz',
-  body: Model.match(model, {
+export const view = (h: Html.H<Message>, model: Model) =>
+  Model.match(model, {
     Empty: () =>
-      h.section(
-        [h.Class('signal-desk')],
-        [h.h2([], ['No observations']), h.p([], ['Provide records to explore a signal.'])],
-      ),
+      h.section
+        .attr('class', 'signal-desk')
+        .children(
+          h.h2.children('No observations'),
+          h.p.children('Provide records to explore a signal.'),
+        ),
     Invalid: ({ error }) =>
-      h.section(
-        [h.Class('signal-desk')],
-        [h.h2([], ['Cannot display observations']), h.p([], [error])],
-      ),
+      h.section
+        .attr('class', 'signal-desk')
+        .children(h.h2.children('Cannot display observations'), h.p.children(error)),
     Ready: (m) => readyView(m, h),
-  }),
-});
+  });

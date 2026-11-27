@@ -1,15 +1,12 @@
 import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-
 import { normaliseEventFeed } from '../src/examples/signals/events';
 import { Message } from '../src/examples/signals/message';
-import { init, type Model, type ReadyModel } from '../src/examples/signals/model';
+import { init, type ReadyModel } from '../src/examples/signals/model';
 import { qualityProps } from '../src/examples/signals/quality-data';
 import { update } from '../src/examples/signals/update';
-import { view } from '../src/examples/signals/view';
+import { render } from './signal-render';
 const t0 = 1700000000000;
 const ready = (): ReadyModel => {
   const m = init(structuredClone(qualityProps)).model;
@@ -21,15 +18,7 @@ const step = (m: ReadyModel, message: Message): ReadyModel => {
   assert(next._tag === 'Ready');
   return next;
 };
-const render = async (model: Model): Promise<string> =>
-  (
-    await Effect.runPromise(
-      renderToString(
-        { Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model }), view },
-        { flags: { test: true }, isHydratable: false },
-      ),
-    )
-  ).html;
+
 const panel = (markup: string): string => {
   const found = markup.match(/<section class="signal-events"[\s\S]*?<\/section>/)?.[0];
   assert(found, 'Events panel');

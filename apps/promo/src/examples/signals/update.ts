@@ -1,6 +1,6 @@
+import type { Command } from '@effect/ui';
 import { intervalSelection, SELECTION_NONE } from '@opsydyn/foldkit-viz/interaction/selection';
 import { constrainDomain, panDomain, zoomDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
-import type { Return } from 'foldkit/update';
 
 import { Baseline, captureBaseline } from './baseline';
 import { FocusEventBrowser } from './command';
@@ -9,7 +9,6 @@ import { EventFeed, EventInspection } from './events';
 import { Message } from './message';
 import { Model, Gesture, Inspection, init } from './model';
 import type { ReadyModel, ChartRole } from './model';
-import type { Props } from './quality';
 const cancel = (m: ReadyModel): ReadyModel =>
   Gesture.match(m.gesture, {
     Idle: () => m,
@@ -273,11 +272,11 @@ const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
       };
     },
   });
-export const update = (model: Model, message: Message): Return<Model, Message> => {
+type SignalUpdate = Readonly<{ model: Model; commands?: readonly Command.Command<Message>[] }>;
+
+export const update = (model: Model, message: Message): SignalUpdate => {
   if (message._tag === 'ChangedSignalDataset') {
-    // SAFETY: init schema-decodes and validates the payload before accessing any fields.
-    const props = message.props as Props;
-    return init(props);
+    return init(message.props);
   }
   const next = Model.match(model, {
     Empty: () => model,
@@ -285,6 +284,6 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     Ready: (m) => readyUpdate(m, message),
   });
   if (message._tag === 'ClickedClearEvent' && next !== model)
-    return { model: next, commands: [FocusEventBrowser()] };
+    return { model: next, commands: [FocusEventBrowser.make({})] };
   return { model: next };
 };

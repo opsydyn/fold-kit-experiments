@@ -1,7 +1,8 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import { lineSeries, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
+import { lineSeries, pointSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { exampleTheme } from '#example/frame';
 
@@ -21,25 +22,25 @@ export const qualityDetails = (reading: Reading, unit: string): string => {
     ? detail
     : `${detail} · caller-supplied interval “${b.label}”: ${b.lower} → ${b.upper} ${unit} · support: ${b.support === null ? 'unspecified' : b.support}`;
 };
-export const qualityLegend = (h: HtmlBuilder<Message>): Html =>
-  h.ul(
-    [h.Class('signal-quality-legend'), h.AriaLabel('Signal quality legend')],
-    [
-      h.li([], ['━ Observed · solid']),
-      h.li([], ['◇ Estimated · dashed / hollow diamond']),
-      h.li([], ['M Missing · no measured value']),
-      h.li([], ['! Invalid · raw diagnostic retained']),
-      h.li([], ['G Gap · no records']),
-      h.li([], ['▱ caller-supplied interval · no statistical inference']),
-    ],
-  );
+export const qualityLegend = (h: Html.H<Message>): View.Content<Message> =>
+  h.ul
+    .attr('class', 'signal-quality-legend')
+    .attr('aria-label', 'Signal quality legend')
+    .children(
+      h.li.children('━ Observed · solid'),
+      h.li.children('◇ Estimated · dashed / hollow diamond'),
+      h.li.children('M Missing · no measured value'),
+      h.li.children('! Invalid · raw diagnostic retained'),
+      h.li.children('G Gap · no records'),
+      h.li.children('▱ caller-supplied interval · no statistical inference'),
+    );
 export const qualityLayers = (
   model: ReadyModel,
   role: ChartRole,
   chart: ReturnType<typeof deriveSignalChart>,
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   selectedIntervalKeys: ReadonlySet<string>,
-): ReadonlyArray<Html> => {
+): ReadonlyArray<View.Content<Message>> => {
   const { plot } = chart.geometry.layout,
     layout = chart.geometry.layout;
   const colour =
@@ -52,20 +53,18 @@ export const qualityLayers = (
     {},
     {},
   );
-  const layers: Html[] = [];
+  const layers: View.Content<Message>[] = [];
   for (const band of chart.bands) {
     if (band.path !== null)
       layers.push(
-        h.path(
-          [
-            h.Class('signal-band'),
-            h.D(band.path),
-            h.Fill(colour),
-            h.FillOpacity('0.12'),
-            h.Stroke('none'),
-          ],
-          [],
-        ),
+        h
+          .el('path')
+          .attr('class', 'signal-band')
+          .attr('d', band.path)
+          .attr('fill', colour)
+          .attr('fill-opacity', '0.12')
+          .attr('stroke', 'none')
+          .children(),
       );
     const equal = band.points.every((p) => p.lowerY === p.upperY);
     if (band.points.length === 1 || equal) {
@@ -73,33 +72,30 @@ export const qualityLayers = (
         // Selected intervals are owned by the comparison layer; bands remain intact.
         if (selectedIntervalKeys.has(p.key)) continue;
         layers.push(
-          h.g(
-            [h.Class('signal-interval-mark'), h.AriaLabel(`Supplied interval for ${p.key}`)],
-            [
-              h.line(
-                [
-                  h.X1(String(p.x)),
-                  h.X2(String(p.x)),
-                  h.Y1(String(p.lowerY)),
-                  h.Y2(String(p.upperY)),
-                  h.Stroke(colour),
-                ],
-                [],
-              ),
+          h
+            .el('g')
+            .attr('class', 'signal-interval-mark')
+            .attr('aria-label', `Supplied interval for ${p.key}`)
+            .children(
+              h
+                .el('line')
+                .attr('x1', String(p.x))
+                .attr('x2', String(p.x))
+                .attr('y1', String(p.lowerY))
+                .attr('y2', String(p.upperY))
+                .attr('stroke', colour)
+                .children(),
               ...[...new Set([p.lowerY, p.upperY])].map((y) =>
-                h.line(
-                  [
-                    h.X1(String(p.x - 4)),
-                    h.X2(String(p.x + 4)),
-                    h.Y1(String(y)),
-                    h.Y2(String(y)),
-                    h.Stroke(colour),
-                  ],
-                  [],
-                ),
+                h
+                  .el('line')
+                  .attr('x1', String(p.x - 4))
+                  .attr('x2', String(p.x + 4))
+                  .attr('y1', String(y))
+                  .attr('y2', String(y))
+                  .attr('stroke', colour)
+                  .children(),
               ),
-            ],
-          ),
+            ),
         );
       }
     }
@@ -107,16 +103,14 @@ export const qualityLayers = (
       const path = line(band.points.map((p) => [p.x, p[side]] as const));
       if (path)
         layers.push(
-          h.path(
-            [
-              h.D(path),
-              h.Fill('none'),
-              h.Stroke(colour),
-              h.StrokeWidth('1'),
-              h.StrokeDasharray('1 3'),
-            ],
-            [],
-          ),
+          h
+            .el('path')
+            .attr('d', path)
+            .attr('fill', 'none')
+            .attr('stroke', colour)
+            .attr('stroke-width', '1')
+            .attr('stroke-dasharray', '1 3')
+            .children(),
         );
     }
   }
@@ -167,24 +161,25 @@ export const qualityLayers = (
     };
     const y = layout.y(threshold.value);
     layers.push(
-      h.line(
-        [
-          h.DataAttribute('threshold-id', threshold.id),
-          h.AriaLabel(`${threshold.label}: ${threshold.value} ${role === 'errors' ? '%' : 'ms'}`),
-          h.X1(String(plot.left)),
-          h.X2(String(plot.right)),
-          h.Y1(String(y)),
-          h.Y2(String(y)),
-          h.Stroke(t.stroke),
-          h.StrokeWidth(String(t.strokeWidth)),
-          h.StrokeDasharray(t.dashPattern),
-          h.Opacity(String(t.opacity)),
-        ],
-        [],
-      ),
+      h
+        .el('line')
+        .attr('data-threshold-id', threshold.id)
+        .attr(
+          'aria-label',
+          `${threshold.label}: ${threshold.value} ${role === 'errors' ? '%' : 'ms'}`,
+        )
+        .attr('x1', String(plot.left))
+        .attr('x2', String(plot.right))
+        .attr('y1', String(y))
+        .attr('y2', String(y))
+        .attr('stroke', t.stroke)
+        .attr('stroke-width', String(t.strokeWidth))
+        .attr('stroke-dasharray', t.dashPattern)
+        .attr('opacity', String(t.opacity))
+        .children(),
     );
   }
-  const lane: Html[] = [];
+  const lane: View.Content<Message>[] = [];
   for (const span of [
     ...chart.qualitySpans,
     ...chart.gaps.map((g) => ({ ...g, status: 'Gap' as const, keys: [] })),
@@ -195,43 +190,39 @@ export const qualityLayers = (
       y = plot.bottom + 26;
     const label = span.status === 'Missing' ? 'M' : span.status === 'Invalid' ? '!' : 'G';
     lane.push(
-      h.g(
-        [
-          h.AriaLabel(
-            `${span.status}: ${span.keys.length > 0 ? span.keys.join(', ') : `${span.end - span.start} ms between records`}`,
-          ),
-          h.DataAttribute('quality-status', span.status),
-        ],
-        [
-          h.line(
-            [
-              h.X1(String(x)),
-              h.X2(String(Math.max(x + 2, end))),
-              h.Y1(String(y + 3)),
-              h.Y2(String(y + 3)),
-              h.Stroke('var(--muted)'),
-              h.StrokeWidth('2'),
-              h.StrokeDasharray(
-                span.status === 'Missing' ? '2 2' : span.status === 'Gap' ? '1 4' : '',
-              ),
-            ],
-            [],
-          ),
-          h.text(
-            [
-              h.X(String(Math.min(x + 2, plot.right - 8))),
-              h.Y(String(y + 15)),
-              h.FontSize('10'),
-              h.Fill('var(--text)'),
-            ],
-            [label],
-          ),
-        ],
-      ),
+      h
+        .el('g')
+        .attr(
+          'aria-label',
+          `${span.status}: ${span.keys.length > 0 ? span.keys.join(', ') : `${span.end - span.start} ms between records`}`,
+        )
+        .attr('data-quality-status', span.status)
+        .children(
+          h
+            .el('line')
+            .attr('x1', String(x))
+            .attr('x2', String(Math.max(x + 2, end)))
+            .attr('y1', String(y + 3))
+            .attr('y2', String(y + 3))
+            .attr('stroke', 'var(--muted)')
+            .attr('stroke-width', '2')
+            .attr(
+              'stroke-dasharray',
+              span.status === 'Missing' ? '2 2' : span.status === 'Gap' ? '1 4' : '',
+            )
+            .children(),
+          h
+            .el('text')
+            .attr('x', String(Math.min(x + 2, plot.right - 8)))
+            .attr('y', String(y + 15))
+            .attr('font-size', '10')
+            .attr('fill', 'var(--text)')
+            .children(label),
+        ),
     );
   }
   return [
-    h.g([h.Attribute('clip-path', `url(#signal-quality-clip-${role})`)], layers),
-    h.g([h.Class('signal-quality-lane')], lane),
+    h.el('g').attr('clip-path', `url(#signal-quality-clip-${role})`).children(layers),
+    h.el('g').attr('class', 'signal-quality-lane').children(lane),
   ];
 };

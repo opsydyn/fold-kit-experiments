@@ -1,8 +1,8 @@
-import { defineTaggedUnion } from 'foldkit/schema';
+import { UiSchema } from '@effect/ui';
 
 import { Reading, SignalRecord, SourceSnapshot } from './quality';
 
-export const Baseline = defineTaggedUnion({
+export const Baseline = UiSchema.TaggedEnum({
   None: {},
   Captured: { record: SignalRecord, snapshot: SourceSnapshot },
 });

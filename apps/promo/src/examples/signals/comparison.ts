@@ -1,8 +1,8 @@
+import { UiSchema } from '@effect/ui';
 import type { CartesianLayout } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { errorBarGeometry } from '@opsydyn/foldkit-viz/chart/errorBars';
 import type { ErrorBarMark } from '@opsydyn/foldkit-viz/chart/errorBars';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import { Baseline } from './baseline';
 import type { ReadyModel, ChartRole } from './model';
@@ -10,7 +10,7 @@ import { Reading, readingValue, readingBounds } from './quality';
 import type { SignalRecord } from './quality';
 export type Metric = 'latency' | 'errors';
 const metricSchema = Schema.Literals(['latency', 'errors']);
-export const MetricComparison = defineTaggedUnion({
+export const MetricComparison = UiSchema.TaggedEnum({
   Available: {
     metric: metricSchema,
     current: Reading,

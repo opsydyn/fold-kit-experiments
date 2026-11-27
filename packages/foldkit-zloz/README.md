@@ -406,11 +406,11 @@ Use a fresh scope for each model/controller incarnation.
 
 ```ts
 import { createSvgReview, resolveSvgReview, updateSvgReview } from '@opsydyn/foldkit-zloz';
-import { zlozSvgReview } from '@opsydyn/foldkit-zloz/foldkit';
+import { svgReview } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const review = createSvgReview(context.scope);
 const controls = resolveSvgReview(review, context);
-const view = zlozSvgReview(h, controls, onReviewRequest, { diagnostics });
+const view = svgReview(h, controls, onReviewRequest, { idPrefix: 'diagram-svg', diagnostics });
 // In update, always pass current inputs, rather than a cached controls projection:
 const next = updateSvgReview(review, context, request);
 // Publish next.state. Only next.payload authorizes a host Command to download its
@@ -425,12 +425,10 @@ without revoking approval of unchanged content. Review is a host workflow, not a
 access-control boundary. Keys are exact strings; large-model recomputation costs
 remain unqualified. IO never edits the model or creates an Undo entry.
 
-`zlozSvgReview` includes labeled native choices, a static SVG image preview, findings,
-loss checkbox, guarded download and visible status. Slots replace settings, preview,
-individual/all findings, acceptance, download, status, readout or complete layout:
-`undefined` uses the default and `null` omits a region. Helpers `zlozSvgReviewSelect`,
-`zlozSvgLossCheckbox`, `zlozSvgDownloadButton` and `zlozSvgReviewPreview` support custom
-presentation. Supply distinct `idPrefix` values for concurrent widgets. The controller
+`svgReview` includes labeled native choices, a static SVG image preview, findings,
+loss checkbox, guarded download and visible status. Use `renderLayout` to compose
+these elements and `renderFinding` to customize individual findings. Supply distinct
+`idPrefix` values for concurrent widgets. The controller
 still enforces approval regardless of presentation. Diagnostic instruction/measurement
 settings hide optional prose/readouts, retaining findings and functional controls.
 
@@ -4603,10 +4601,10 @@ const step = updatePngReview(state, context, {
 `state` is created with `createPngReview(context.scope)`; the context supplies the
 live snapshot, revision, scope, title, theme and renderer declarations, plus optional
 choices, font resources, filename, pixel budgets and protection callback. The
-`/foldkit` entry provides `zlozPngReview`, `zlozPngPreview`, `zlozPngAction` and
-nullable settings/preview/findings/acceptance/render/download/status/readout/layout
-slots. Minimal diagnostics hide measurements/instructions without hiding findings
-or protection. Wire the pure lifecycle to your parent Model; browser work belongs
+`/effect-ui` entry provides `pngReview` with labeled settings, preview, findings,
+acceptance and guarded actions. Use `renderLayout` to compose these elements.
+Minimal diagnostics hide measurements and instructions while keeping findings and
+protection visible. Wire the pure lifecycle to your parent Model; browser work belongs
 in Commands. Source/settings/model changes invalidate acceptance and results;
 late/cancelled/previous-generation replies cannot publish. Live protection is
 checked again at completion/download. Export never mutates the graph or Undo.
@@ -6758,7 +6756,7 @@ const context: ZlozGroupSvgReviewContextV3 = {
   renderers: { nodes: 'built-in', edges: 'built-in' },
 };
 const controls = resolveGroupSvgReviewV3(review, context);
-// Render controls with /foldkit's composable zlozSvgReview primitives.
+// Render controls with svgReview from /effect-ui.
 // On a view request, recompute the context from the current Model:
 const next = updateGroupSvgReviewV3(review, context, request);
 // next.payload, when present, is a detached file payload for a host Command.
@@ -6808,7 +6806,7 @@ const context: ZlozGroupPngReviewContextV3 = {
   renderers: { nodes: 'built-in', edges: 'built-in' },
 };
 const controls = resolveGroupPngReviewV3(state, context);
-// Compose /foldkit's zlozPngReview, zlozPngAction and zlozPngPreview.
+// Render controls with pngReview from /effect-ui.
 const next = updateGroupPngReviewV3(state, currentContext, request);
 // When next.payload exists, a Command calls:
 // renderGroupPngExportV3(next.payload.input, { signal }) from /browser.

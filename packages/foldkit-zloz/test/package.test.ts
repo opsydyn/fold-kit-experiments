@@ -58,8 +58,8 @@ async function checkNativeGroupPackage(
     entry,
     `import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
-import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
+import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
+import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, svgReview, pngReview, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
 const model = createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}), { sessionId: 'packed-group' });
@@ -83,6 +83,15 @@ const viewOptions: GroupSurfaceOptionsV3<string> = {
   onEvent: (event: ZlozGroupWorkbenchEventV3) => event.type,
   policy: { canEditPort: () => 'Published interface is protected.' },
 };
+const exportContext = {
+  sourceRevision: 0,
+  document: model.editor.document,
+  title: 'Packed native export',
+  theme: { colorScheme: 'light' },
+  renderers: { nodes: 'built-in', edges: 'built-in' },
+} as const;
+const svg = resolveGroupSvgReviewV3(createSvgReview('packed-svg'), { ...exportContext, scope: 'packed-svg' });
+const png = resolveGroupPngReviewV3(createPngReview('packed-png'), { ...exportContext, scope: 'packed-png' });
 const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: Schema.String }).make({
   init: () => null,
   update: () => null,
@@ -90,11 +99,14 @@ const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: S
     groupSurfaceV3(h, copied, viewOptions),
     groupInspectorV3(h, copied, viewOptions),
     groupClipboardV3(h, copied, viewOptions),
+    svgReview(h, svg, (request) => request.type, { idPrefix: 'packed-svg' }),
+    pngReview(h, png, (request) => request.type, { idPrefix: 'packed-png' }),
   ),
 });
 const { html } = await Effect.runPromise(HtmlServer.renderToHtml(App, {}, { static: true }));
 for (const text of ['data-flow-owner="g"', 'Fit view', 'Copy selection', 'Paste copy',
-  'Published interface is protected.', 'crosses the copied selection']) {
+  'Published interface is protected.', 'crosses the copied selection', 'Download SVG', 'SVG export preview',
+  'Render PNG', 'Accept the reported PNG losses']) {
   if (!html.includes(text)) throw new Error('Missing packed native group view: ' + text);
 }
 console.log('native-group-ok');
@@ -649,20 +661,6 @@ import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelations
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
-import {createGroupWorkbenchV3,captureGroupDocumentV3} from '@opsydyn/foldkit-zloz';
-const packedNativeV3=createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}),{sessionId:'installed-native-v3'});
-import {createSvgReview as createPackedNativeSvgReview,resolveGroupSvgReviewV3 as packedNativeSvgReview,type ZlozSvgReviewRequest} from '@opsydyn/foldkit-zloz';
-import {zlozSvgReview as packedSvgControls} from '@opsydyn/foldkit-zloz/foldkit';
-const packedSvgScope='installed-native-svg',packedSvg=packedNativeSvgReview(createPackedNativeSvgReview(packedSvgScope),{scope:packedSvgScope,sourceRevision:0,document:packedNativeV3.editor.document,title:'Native export',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
-const packedSvgUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedSvg}),view:(model,h:HtmlBuilder<ZlozSvgReviewRequest>)=>({title:'Packed native SVG review',body:packedSvgControls(h,model,event=>event)})},{flags:{},isHydratable:false}));
-if(!packedSvgUi.html.includes('Download SVG')||!packedSvgUi.html.includes('SVG export preview'))throw new Error('Native SVG review controls missing in installed consumer');
-import {resolveGroupPngReviewV3 as resolvePackedNativePng,type ZlozPngReviewRequest} from '@opsydyn/foldkit-zloz';
-import {zlozPngReview as packedPngReviewUi} from '@opsydyn/foldkit-zloz/foldkit';
-const packedPngNative=resolvePackedNativePng(createPngReview('packed-png-native'),{scope:'packed-png-native',sourceRevision:0,document:packedNativeV3.editor.document,title:'Native PNG',theme:{colorScheme:'light'},renderers:{nodes:'built-in',edges:'built-in'}});
-const packedPngUi=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:packedPngNative}),view:(model,h:HtmlBuilder<ZlozPngReviewRequest>)=>({title:'Packed native PNG review',body:packedPngReviewUi(h,model,event=>event)})},{flags:{},isHydratable:false}));
-if(!packedPngUi.html.includes('Render PNG')||!packedPngUi.html.includes('Accept the reported PNG losses'))throw new Error('Native PNG review SSR missing');
-
-
 
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';

@@ -568,7 +568,7 @@ findings share the qualified SVG writer.
 
 Compose {@link Core.resolveGroupSvgReviewV3} and
 {@link Core.updateGroupSvgReviewV3} with shared review state and
-{@link FoldKit.zlozSvgReview}. Exact-artifact loss consent and current policy are
+{@link EffectUI.svgReview}. Exact-artifact loss consent and current policy are
 checked before returning a detached download payload for a Command. Export never
 edits history. SVG is static artwork, not an editable model codec; other adapters
 remain separately scoped. See README and native SVG evidence.
@@ -578,7 +578,7 @@ remain separately scoped. See README and native SVG evidence.
 {@link Core.planGroupPngExportV3} uses the same validated full-document SVG and
 findings, adding explicit rasterization loss and bounded integer output.
 {@link Core.resolveGroupPngReviewV3} / {@link Core.updateGroupPngReviewV3} compose
-with shared PNG review state and {@link FoldKit.zlozPngReview}; consent, full-source
+with shared PNG review state and {@link EffectUI.pngReview}; consent, full-source
 freshness and live protection guard render, completion and download.
 
 `renderGroupPngExportV3` is the optional browser encoder. It rebuilds

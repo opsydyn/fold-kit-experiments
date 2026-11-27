@@ -32,6 +32,22 @@ type SvgReviewOptions<M> = Options<M> &
     ) => View.Input<M>;
   }>;
 
+type PngReviewOptions<M> = Options<M> &
+  Readonly<{
+    renderLayout?: (
+      parts: Readonly<{
+        settings: ReadonlyArray<View.Content<M>>;
+        preview: View.Content<M> | null;
+        status: View.Content<M>;
+        findings: View.Content<M>;
+        acceptance: View.Content<M>;
+        render: View.Content<M>;
+        download: View.Content<M>;
+      }>,
+      h: Html.H<M>,
+    ) => View.Input<M>;
+  }>;
+
 const fields = [
   { key: 'regionId', label: 'region', entries: 'regions' },
   { key: 'themeId', label: 'theme', entries: 'themes' },
@@ -226,7 +242,7 @@ export function pngReview<M>(
   h: Html.H<M>,
   context: ZlozPngReviewControls,
   request: (event: ZlozPngReviewRequest) => M,
-  options: Options<M>,
+  options: PngReviewOptions<M>,
 ) {
   const { identity, svg, plan, artifact, busy, downloadReason } = context;
   const scaleId = `${options.idPrefix}-scale`;
@@ -241,20 +257,8 @@ export function pngReview<M>(
       .disabled(reason !== null)
       .on('click', message)
       .children(label);
-  return h.div
-    .attr('role', 'group')
-    .attr('aria-label', 'PNG export review')
-    .attr('data-zloz-png-review', '')
-    .attr('data-zloz-png-generation', String(identity.generation))
-    .style({ display: 'grid', gap: '8px' })
-    .children(
-      ...(options.diagnostics?.instructions === false
-        ? []
-        : [
-            h.p(
-              'Render canonical model artwork, review the actual PNG, then download the same bytes.',
-            ),
-          ]),
+  const parts = {
+    settings: [
       ...settings(h, options.idPrefix, 'PNG', svg, change),
       h.div(
         h.label.attr('for', scaleId).children('PNG scale'),
@@ -270,33 +274,64 @@ export function pngReview<M>(
             ),
           ),
       ),
-      ...(artifact ? [reviewImage(h, 'PNG', artifact.dataUrl)] : []),
-      h.p
-        .attr('role', 'status')
-        .children(busy ? 'Rendering PNG…' : (downloadReason ?? 'PNG is ready to download.')),
-      reviewFindings(h, 'PNG', context.findings, options.renderFinding),
-      acknowledgement(h, 'PNG', context.accepted, plan?.type !== 'ready' || busy, (accepted) =>
-        request({ ...identity, type: 'PngLossAcceptanceChanged', accepted }),
-      ),
-      busy
-        ? action(
-            'Cancel PNG render',
-            'cancel',
-            request({ ...identity, type: 'PngRenderCancelled' }),
-            null,
-          )
-        : action(
-            'Render PNG',
-            'render',
-            request({ ...identity, type: 'PngRenderRequested' }),
-            context.renderReason,
-          ),
-      action(
-        options.download?.label ?? 'Download PNG',
-        'download',
-        request({ ...identity, type: 'PngDownloadRequested' }),
-        downloadReason,
-      ),
+    ],
+    preview: artifact ? reviewImage(h, 'PNG', artifact.dataUrl) : null,
+    status: h.p
+      .attr('role', 'status')
+      .children(busy ? 'Rendering PNG…' : (downloadReason ?? 'PNG is ready to download.')),
+    findings: reviewFindings(h, 'PNG', context.findings, options.renderFinding),
+    acceptance: acknowledgement(
+      h,
+      'PNG',
+      context.accepted,
+      plan?.type !== 'ready' || busy,
+      (accepted) => request({ ...identity, type: 'PngLossAcceptanceChanged', accepted }),
+    ),
+    render: busy
+      ? action(
+          'Cancel PNG render',
+          'cancel',
+          request({ ...identity, type: 'PngRenderCancelled' }),
+          null,
+        )
+      : action(
+          'Render PNG',
+          'render',
+          request({ ...identity, type: 'PngRenderRequested' }),
+          context.renderReason,
+        ),
+    download: action(
+      options.download?.label ?? 'Download PNG',
+      'download',
+      request({ ...identity, type: 'PngDownloadRequested' }),
+      downloadReason,
+    ),
+  };
+  return h.div
+    .attr('role', 'group')
+    .attr('aria-label', 'PNG export review')
+    .attr('data-zloz-png-review', '')
+    .attr('data-zloz-png-generation', String(identity.generation))
+    .style({ display: 'grid', gap: '8px' })
+    .children(
+      ...(options.diagnostics?.instructions === false
+        ? []
+        : [
+            h.p(
+              'Render canonical model artwork, review the actual PNG, then download the same bytes.',
+            ),
+          ]),
+      options.renderLayout
+        ? options.renderLayout(parts, h)
+        : [
+            ...parts.settings,
+            parts.preview,
+            parts.status,
+            parts.findings,
+            parts.acceptance,
+            parts.render,
+            parts.download,
+          ],
       ...(options.diagnostics?.measurements === false
         ? []
         : [

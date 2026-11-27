@@ -2781,15 +2781,6 @@ export type { ZlozPaletteViewOptions } from './placement-controls-view';
 export { bindPlacementInput } from './placement-input';
 
 export {
-  zlozSvgReview,
-  zlozSvgReviewSelect,
-  zlozSvgReviewPreview,
-  zlozSvgLossCheckbox,
-  zlozSvgDownloadButton,
-} from './svg-review-view';
-export type { ZlozSvgReviewParts, ZlozSvgReviewViewOptions } from './svg-review-view';
-
-export {
   zlozModellingPatchReview,
   zlozModellingPatchAcknowledgement,
   zlozModellingPatchApply,
@@ -2798,9 +2789,6 @@ export type {
   ZlozModellingPatchReviewParts,
   ZlozModellingPatchReviewViewOptions,
 } from './modelling-patch-review-view';
-
-export { zlozPngReview, zlozPngAction, zlozPngPreview } from './png-review-view';
-export type { ZlozPngReviewParts, ZlozPngReviewViewOptions } from './png-review-view';
 
 export {
   zlozDddAuditControls,

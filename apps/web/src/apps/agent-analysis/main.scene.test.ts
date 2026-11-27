@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { EventType } from '@ag-ui/core';
+import { BrowserHost, Html } from '@effect/ui/html';
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { Port, Runtime, Subscription } from 'foldkit';
+import { Effect, Exit, Scope } from 'effect';
 import { afterAll, expect, it, onTestFinished, vi } from 'vitest';
 
 import { initialWire } from '../../server/agent-analysis/fixtures';
@@ -9,10 +10,10 @@ import { startAgentTestServer } from '../../server/agent-analysis/http.test-help
 import { THREAD_ID } from './contract';
 import { Message } from './message';
 import { activeRun, initModel, Model, Session } from './model';
-import { NavigationPort, toNavigationValue } from './navigation';
 import { subscriptionsFor } from './subscription';
 import type { AgentTransportOptions } from './transport';
 import { update } from './update';
+import { view } from './view';
 
 // DOM rendering is synthetic; HTTP, stream and abort ownership stay native.
 const nativeIO = {
@@ -34,59 +35,41 @@ GlobalRegistrator.register();
 Object.assign(globalThis, nativeIO);
 afterAll(() => GlobalRegistrator.unregister());
 
-// A test-only inbound fact Port avoids depending on Task 4's UI or main module.
-const FactPort = Port.inbound(Message);
 async function scene(options: AgentTransportOptions, initial: Model = initModel) {
   const container = document.createElement('div');
-  container.id = 'agent-analysis-scene';
   document.body.append(container);
   let latest = initial;
   const models: Model[] = [];
   const received: Message[] = [];
-  const testFacts = Subscription.make<Model, Message>()(() => ({
-    facts: Port.subscriptionEntry(FactPort, (message) => message),
-  }));
-  const handle = Runtime.embed(
-    Runtime.makeElement({
-      Model,
-      init: () => ({ model: initial }),
-      update: (model: Model, message: Message) => {
-        received.push(message);
-        const result = update(model, message);
-        latest = result.model;
-        models.push(latest);
-        return result;
-      },
-      view: (_model, h) => h.div([], []),
-      subscriptions: Subscription.aggregate(subscriptionsFor(options), testFacts),
-      ports: { inbound: { navigation: NavigationPort, facts: FactPort } },
-      container,
-      devTools: false,
-    }),
-  );
-  onTestFinished(() => {
-    handle.dispose();
+  const component = Html.component({ name: 'AgentFixture', model: Model, message: Message }).make({
+    init: () => initial,
+    update: ({ model }, message) => {
+      received.push(message);
+      latest = update(model, message).model;
+      models.push(latest);
+      return latest;
+    },
+    view,
+    subscriptions: subscriptionsFor(options),
+  });
+  const scope = Scope.makeUnsafe();
+  async function dispose() {
+    await Effect.runPromise(Scope.close(scope, Exit.void));
+  }
+  onTestFinished(async () => {
+    await dispose();
     container.remove();
   });
-  // A boot-time Port fact is queued and confirms subscription readiness.
-  handle.ports.navigation.send(
-    toNavigationValue({ phase: 'coldLoad', path: '/agent-analysis', previousPath: null }),
+  const handle = await Effect.runPromise(
+    Scope.provide(BrowserHost.mountEffect(component, {}, container, { head: false }), scope),
   );
-  await vi.waitFor(() => expect(received.some(({ _tag }) => _tag === 'Navigated')).toBe(true));
-  return {
-    handle,
-    model: () => latest,
-    models,
-    received,
-    send: (message: Message) => handle.ports.facts.send(message),
-  };
+  const navigate = (path: string) =>
+    document.dispatchEvent(
+      Object.assign(new Event('astro:before-swap'), { to: new URL(path, 'http://localhost') }),
+    );
+  return { dispose, navigate, model: () => latest, models, received, send: handle.send };
 }
 
-const navigated = (phase: 'exited' | 'stayed' | 'entered') => ({
-  phase,
-  path: '/charts',
-  previousPath: '/agent-analysis',
-});
 const finished = (runId: string) =>
   Message.ReceivedAgentEvent({
     runId,
@@ -99,7 +82,7 @@ function holdHeaders() {
   const heldFetch: typeof fetch = async (input, init) => {
     const response = await fetch(input, init);
     const signal = init?.signal;
-    if (!signal) throw new Error('Missing owned abort signal');
+    if (!signal) return response;
     signals.push(signal);
     await new Promise<void>((_resolve, reject) => {
       const abort = () => {
@@ -115,7 +98,7 @@ function holdHeaders() {
 }
 
 it.each(['Connecting', 'AwaitingSnapshot', 'Streaming'] as const)(
-  'Port exit in %s retains valid Wire, records RouteExit and aborts without replacement',
+  'Astro route exit in %s retains valid Wire, records RouteExit and aborts without replacement',
   async (phase) => {
     const server = await startAgentTestServer();
     onTestFinished(() => server.close());
@@ -128,7 +111,7 @@ it.each(['Connecting', 'AwaitingSnapshot', 'Streaming'] as const)(
     );
     await vi.waitFor(() => expect(held.signals).toHaveLength(1));
     expect(s.model().session._tag).toBe(phase);
-    s.handle.ports.navigation.send(navigated('exited'));
+    s.navigate('/charts');
     await vi.waitFor(() =>
       expect(s.model().session).toEqual({ _tag: 'Cancelled', runId: 'run-1', cause: 'RouteExit' }),
     );
@@ -170,8 +153,8 @@ it('preserves the same request through real phases, stayed navigation and local 
   s.send(Message.SelectedScenario({ scenario: 'invalid' }));
   s.send(Message.ClickedFilter({ filter: 'Core' }));
   s.send(Message.ClickedService({ id: 'api' }));
-  s.handle.ports.navigation.send(navigated('stayed'));
-  s.handle.ports.navigation.send(navigated('entered'));
+  s.navigate('/agent-analysis/retained');
+  s.navigate('/agent-analysis');
   await vi.waitFor(() =>
     expect(s.model()).toMatchObject({ scenario: 'invalid', filter: 'Core', selectedId: 'api' }),
   );
@@ -216,7 +199,7 @@ it('exit after real completion and queued closure/error facts cannot cancel or m
   await vi.waitFor(() => expect(s.model().session._tag).toBe('Completed'), { timeout: 5000 });
   expect(s.model().accepted).toBe(4);
   const completed = s.model();
-  s.handle.ports.navigation.send(navigated('exited'));
+  s.navigate('/charts');
   s.send(Message.FailedStream({ runId: 'run-1', error: 'queued close' }));
   s.send(finished('run-1'));
   await vi.waitFor(() => expect(s.received.at(-1)).toEqual(finished('run-1')));
@@ -257,15 +240,15 @@ it('replacement disposes the first connection and rejects its queued completion 
   expect(server.requests).toHaveLength(2);
 });
 
-it('runtime disposal closes the active HTTP request once and removes Port delivery', async () => {
+it('runtime disposal closes the active HTTP request once and removes Astro navigation delivery', async () => {
   const server = await startAgentTestServer();
   onTestFinished(() => server.close());
   const s = await scene({ endpoint: server.url, fetch }, { ...initModel, scenario: 'slow' });
   s.send(Message.ClickedRun());
   await vi.waitFor(() => expect(s.model().session._tag).toBe('Streaming'));
   const before = s.model();
-  s.handle.dispose();
-  s.handle.ports.navigation.send(navigated('exited'));
+  await s.dispose();
+  s.navigate('/charts');
   s.send(finished('run-1'));
   await vi.waitFor(() =>
     expect(server.requests[0]?.observations.filter(({ _tag }) => _tag === 'Disposed')).toEqual([

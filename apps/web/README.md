@@ -1,10 +1,10 @@
 # @opsydyn/web
 
-Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts the Astro integration reference apps and the `foldkit/http` example alongside the chart demos.
+Demo app for [`@opsydyn/astro-effect-ui`](../../packages/astro-effect-ui/). It hosts Astro integration examples and interactive chart demos.
 
 ## Apps
 
-**Chart comparison** (`/comparison`) uses `foldChildAt` to compose up to four
+**Chart comparison** (`/comparison`) composes up to four
 scatter/histogram panels with stable IDs. Reorder preserves child state; removed
 IDs ignore late Messages. The parent owns linked range inspection and derived
 overlays, while each chart keeps its own local active point. Scoped Mounts report
@@ -19,15 +19,15 @@ for browser acceptance still outstanding.
 data, failure recovery and stale-response rejection. The same app powers the
 promo's `/examples/datasets/`; request policy stays outside Viz and Astro.
 
-**Counter** (`/`) — increment/decrement with particle burst animations driven by `Subscription.animationFrameEntry`.
+**Counter** (`/`) — increment/decrement with particle burst animations driven by a scoped animation-frame subscription.
 
-**Health dashboard** (`/health`) — polls `/api/health` via `foldkit/http`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
+**Health dashboard** (`/health`) — polls `/api/health` via Effect HTTP, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
 
 **Greeting** (`/greeting`) — validates a branded name at the Astro boundary and
-uses FoldKit `Document.lang` and `Document.dir` to switch the hydrated page
+reflects its locale in the hydrated page metadata to switch
 between English left-to-right and Arabic right-to-left presentation.
 
-**Request diagnostics** (`/request-diagnostics`) — loads latency/error-rate points through `foldkit/http`, renders `@opsydyn/foldkit-viz` histogram and scatter primitives, and uses `foldkit/experimental/machine` for guarded brush filtering.
+**Request diagnostics** (`/request-diagnostics`) — loads latency/error-rate points through Effect HTTP, renders `@opsydyn/foldkit-viz` histogram and scatter primitives, and guards brush filtering with a state machine.
 
 /request-diagnostics demonstrates app-owned interruption. Define an
 interruptible command with a key that identifies the remote resource, record
@@ -37,15 +37,11 @@ a replacement request, while Navigated({ phase: 'exited' }) finishes without
 one. Do not return interruption and replacement commands in the same batch.
 
 Use the same shape for remote filter, brush, or zoom loads. Keep their command
-keys, cancellation policy, and result handling in the consuming FoldKit app;
+keys, cancellation policy, and result handling in the consuming Effect UI app;
 @opsydyn/foldkit-viz receives only data and chart-local messages.
 
 The shared Astro layout serves `lang="en" dir="ltr"` on first paint. On the
-standalone Greeting route, `SelectedLocale` updates the FoldKit Document and
-the runtime applies the selected language and direction to the browser root.
-Greeting intentionally owns this metadata; embedded chart islands continue to
-use `noMeta`, which pins their title while preserving app-owned `lang` and
-`dir` values.
+standalone Greeting route, `SelectedLocale` updates browser metadata through an Effect UI command. Astro owns document metadata for the embedded chart islands.
 
 ## Running
 
@@ -86,4 +82,4 @@ apps/web/
 └── package.json
 ```
 
-Each app follows the FoldKit module split: `model.ts`, `message.ts`, `update.ts`, `view.ts`, `command.ts`, `subscription.ts`, `main.ts`, `app.ts`. The `app.ts` for each registers with FoldKit via `defineApp` from `@opsydyn/astro-foldkit/define-app`.
+App modules separate state, messages, rendering and effects: `model.ts`, `message.ts`, `update.ts`, `view.ts`, `command.ts`, `subscription.ts`, `main.ts`, `app.ts`. Each island registers its Effect UI component with `astroComponent` from `@opsydyn/astro-effect-ui/component`.

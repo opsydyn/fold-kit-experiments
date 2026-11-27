@@ -1,6 +1,7 @@
 import { Component } from '@effect/ui';
 import { expect, it } from 'vitest';
 
+import agentAnalysis from '../agent-analysis/app';
 import animatedBar from '../animated-bar/app';
 import carousel from '../carousel/app';
 import colorSpaces from '../color-spaces/app';
@@ -23,6 +24,7 @@ import zoomableLine from '../zoomable-line/app';
 import greeting from './app';
 
 it.each([
+  ['Agent Analysis', agentAnalysis],
   ['Animated Bar', animatedBar],
   ['Carousel', carousel],
   ['Color Spaces', colorSpaces],

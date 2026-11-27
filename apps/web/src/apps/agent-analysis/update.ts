@@ -8,7 +8,6 @@ import type {
 } from '@ag-ui/core';
 import { Match, Result, Schema } from 'effect';
 import jsonPatch from 'fast-json-patch';
-import type { Return } from 'foldkit/update';
 
 import { THREAD_ID, Wire } from './contract';
 import type { NavigationValue, RunRequest, Scenario } from './contract';
@@ -252,7 +251,7 @@ const receiveEvent = (model: Model, request: RunRequest, event: Event): Model =>
 const receive = (
   model: Model,
   request: RunRequest,
-  message: typeof Message.ReceivedAgentEvent.Type,
+  message: typeof Message.cases.ReceivedAgentEvent.Type,
 ): Model =>
   Match.value(decodeAgentEvent(message)).pipe(
     Match.when({ success: false }, ({ error }) => protocolFailure(model, request, error.message)),
@@ -272,13 +271,16 @@ const selectService = (model: Model, id: string): Model =>
     Match.orElse(() => model),
   );
 
-const receiveCurrent = (model: Model, message: typeof Message.ReceivedAgentEvent.Type): Model =>
+const receiveCurrent = (
+  model: Model,
+  message: typeof Message.cases.ReceivedAgentEvent.Type,
+): Model =>
   Match.value(activeRun(model)).pipe(
     Match.when({ runId: message.runId }, (request) => receive(model, request, message)),
     Match.orElse(() => model),
   );
 
-const failCurrent = (model: Model, message: typeof Message.FailedStream.Type): Model =>
+const failCurrent = (model: Model, message: typeof Message.cases.FailedStream.Type): Model =>
   Match.value(activeRun(model)).pipe(
     Match.when({ runId: message.runId }, (request) =>
       fail(model, request, { _tag: 'Transport', reason: message.error }),
@@ -292,8 +294,8 @@ const navigate = (model: Model, phase: NavigationValue['phase']): Model =>
     Match.orElse(() => model),
   );
 
-export function update(model: Model, message: Message): Return<Model, Message> {
-  const nextModel = Message.match<Model>(message, {
+export function update(model: Model, message: Message) {
+  const nextModel = Message.match(message, {
     ClickedRun: () => beginRun(model, model.scenario),
     ClickedCancel: () => cancel(model, 'User'),
     ClickedRecover: () => recover(model),

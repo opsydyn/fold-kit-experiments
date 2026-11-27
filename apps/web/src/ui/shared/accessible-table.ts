@@ -1,13 +1,7 @@
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 
-type H<M> = HtmlBuilder<M>;
-
-/**
- * CSS class applied to the wrapper — positions the element off-screen
- * so it is available to screen readers but invisible to sighted users.
- * Applied via inline style to avoid requiring a global stylesheet.
- */
-const SR_ONLY_STYLE = {
+const srOnly = {
   position: 'absolute',
   width: '1px',
   height: '1px',
@@ -15,34 +9,20 @@ const SR_ONLY_STYLE = {
   margin: '-1px',
   overflow: 'hidden',
   clip: 'rect(0,0,0,0)',
-  'white-space': 'nowrap',
+  whiteSpace: 'nowrap',
   border: '0',
-} satisfies Readonly<Record<string, string>>;
+} satisfies Html.Style;
 
-/**
- * Wrap a chart SVG in a `<div style="position:relative">` that also contains
- * an `aria-live="polite"` region. Screen readers announce `liveText` whenever
- * it changes (e.g. on hover) without moving keyboard focus.
- *
- * `liveText` should be derived from the current hover state in `view()`:
- * ```typescript
- * const liveText = isActive ? `${bar.label}: ${bar.value}` : '';
- * withAriaLive(h, svgEl, liveText);
- * ```
- */
-export function withAriaLive<M>(h: H<M>, chart: Html, liveText: string): Html {
-  return h.div(
-    [h.Style({ position: 'relative' })],
-    [
+/** Expose the current chart readout to screen readers without moving focus. */
+export function withAriaLive<M>(h: Html.H<M>, chart: View.Input<M>, liveText: string) {
+  return h.div
+    .style({ position: 'relative' })
+    .children(
       chart,
-      h.div(
-        [
-          h.Attribute('aria-live', 'polite'),
-          h.Attribute('aria-atomic', 'true'),
-          h.Style(SR_ONLY_STYLE),
-        ],
-        [liveText],
-      ),
-    ],
-  );
+      h.div
+        .attr('aria-live', 'polite')
+        .attr('aria-atomic', 'true')
+        .style(srOnly)
+        .children(liveText),
+    );
 }

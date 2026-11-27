@@ -14,8 +14,7 @@ const { variant } = Astro.props;
     <a href={variant === 'overview' ? '/agent-analysis/retained' : '/agent-analysis'} style="color: var(--page-text)">{variant === 'overview' ? 'Retained analysis' : 'Overview analysis'}</a>
     <a href="/charts" style="color: var(--page-text)">Back to Charts</a>
   </p>
-  <!-- FoldKit replaces its mount element; Astro must retain an outer owned node. -->
   <div data-testid="retained-host" transition:persist="agent-analysis">
-    <AgentAnalysisApp client:load noMeta />
+    <AgentAnalysisApp client:load />
   </div>
 </Layout>

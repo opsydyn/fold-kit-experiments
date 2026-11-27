@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 import cloudflare from '@astrojs/cloudflare';
 import effectUi from '@opsydyn/astro-effect-ui';
-import foldkit from '@opsydyn/astro-foldkit';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
 import { Schema } from 'effect';
@@ -29,11 +28,22 @@ const isDevCommand = process.argv.includes('dev');
 export default defineConfig({
   output: 'server',
   devToolbar: { enabled: false },
-  integrations: [foldkit(), effectUi({ interaction: false })],
+  integrations: [effectUi({ interaction: false })],
 
   vite: {
     define: { __FIELD_GUIDE_WORKSPACES__: JSON.stringify(inventory) },
     plugins: [vanillaExtractPlugin()],
+    // Prebundle the analysis island's client modules before Astro's first view transition.
+    optimizeDeps: {
+      include: [
+        '@ag-ui/client',
+        '@ag-ui/core',
+        '@ag-ui/core/schemas',
+        '@effect/ui',
+        '@effect/ui/html',
+        'fast-json-patch',
+      ],
+    },
   },
 
   adapter: isDevCommand ? undefined : cloudflare(),

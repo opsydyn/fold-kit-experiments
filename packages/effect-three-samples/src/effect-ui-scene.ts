@@ -1,53 +1,16 @@
-import { Mount, UiSchema } from '@effect/ui';
-import { Html } from '@effect/ui/html';
-import { SceneSchema, type PhysicsEngine } from '@opsydyn/effect-three';
+import type { PhysicsEngine } from '@opsydyn/effect-three';
+import { defineScopedSceneMount } from '@opsydyn/effect-three-foldkit';
 import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
-import {
-  makeEnvironment,
-  mountSceneHost,
-  sceneEventSchemas,
-  type Environment,
-} from '@opsydyn/effect-three/browser';
-import { Effect, Schema, Stream } from 'effect';
+import { makeEnvironment, type Environment } from '@opsydyn/effect-three/browser';
+import { Effect } from 'effect';
 
 import { rendererForPage } from './renderer';
 
-export const SceneStart = UiSchema.TaggedEnum({
-  StartedScene: {},
-  FailedScene: { reason: Schema.String },
-});
-
-/** Mounts a scene in the element's scope and follows its description argument. */
-// oxlint-disable-next-line linteffect/no-manual-effect-channels -- Keep the provider requirement generic so a room can share its environment with commands.
-export const defineScopedSceneMount = <R>(environment: Effect.Effect<Environment, never, R>) =>
-  Mount.make(
-    'EffectThreeScene',
-    { args: { scene: SceneSchema.SceneDescription } },
-    (element: HTMLElement, { scene }, changes) => {
-      const startup = environment.pipe(
-        Effect.flatMap((environment) =>
-          mountSceneHost({
-            environment,
-            element,
-            initial: scene,
-            updates: Stream.map(changes, (args) => args.scene),
-            liveChanges: Stream.empty,
-          }),
-        ),
-      );
-      return startup.pipe(
-        Effect.map(() => SceneStart.StartedScene()),
-        Effect.catchTags({
-          InvalidScene: ({ error }) =>
-            Effect.succeed(SceneStart.FailedScene({ reason: error._tag })),
-          RendererUnavailable: () =>
-            Effect.succeed(SceneStart.FailedScene({ reason: 'renderer unavailable' })),
-          PhysicsUnavailable: () =>
-            Effect.succeed(SceneStart.FailedScene({ reason: 'physics unavailable' })),
-        }),
-      );
-    },
-  );
+export {
+  defineScopedSceneMount,
+  sceneElement as EffectThreeStage,
+  SceneLifecycle as SceneStart,
+} from '@opsydyn/effect-three-foldkit';
 
 export function scopedSceneEnvironment(createEnvironment: () => Environment) {
   const acquire = Effect.sync(createEnvironment);
@@ -57,12 +20,6 @@ export function scopedSceneEnvironment(createEnvironment: () => Environment) {
 
 export const defineEffectThreeMount = (createEnvironment: () => Environment) =>
   defineScopedSceneMount(scopedSceneEnvironment(createEnvironment));
-
-/** Connects typed scene events to Effect UI without a registered custom element. */
-export const EffectThreeStage = Html.customElement({
-  tag: 'effect-three-scene',
-  events: sceneEventSchemas,
-});
 
 export const createLabelledEnvironment = (loadPhysics?: () => Promise<PhysicsEngine>) => {
   const options = { renderer: rendererForPage(window), labels: troikaLabels() };

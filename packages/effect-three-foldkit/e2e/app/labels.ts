@@ -16,19 +16,17 @@ import {
   standard,
 } from '@opsydyn/effect-three';
 import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
-import { Effect, Queue, Stream } from 'effect';
-import type { ViewState } from 'foldkit/mount';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
 
-import * as EffectThreeFoldkit from '../../src/index.ts';
 import { font } from './font.ts';
 import { collectDetails } from './labelProbe.ts';
 import { rendererFromAddress } from './rendererChoice.ts';
+import { showScenes } from './sceneHost.ts';
 
-const environment = EffectThreeFoldkit.makeEnvironment(window, {
+const environment = makeEnvironment(window, {
   labels: troikaLabels(),
   ...rendererFromAddress(location.search),
 });
-const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
 /** One unit is 40 pixels; the label sits at `x`, anchored by its left edge. */
 const labelScene = (text: string, x: number) =>
@@ -85,21 +83,17 @@ const styledScene = () =>
 
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
-Reflect.set(element, 'scene', labelScene('HI', -4));
 document.body.append(element);
 
-const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
-Queue.offerUnsafe(viewStates, 'Live');
-const lifecycle = sceneMount().f(element, Stream.fromQueue(viewStates));
-Effect.runFork(Stream.runDrain(lifecycle));
+const show = showScenes(environment, element, labelScene('HI', -4));
 
 const measured = collectDetails(element, 'scene-label-measured');
 const clicks = collectDetails(element, 'scene-click');
 
 Reflect.set(globalThis, '__labels', {
   ready: () => element.querySelector('canvas') !== null,
-  show: (text: string, x: number) => Reflect.set(element, 'scene', labelScene(text, x)),
-  styled: () => Reflect.set(element, 'scene', styledScene()),
+  show: (text: string, x: number) => show(labelScene(text, x)),
+  styled: () => show(styledScene()),
   measured: () => measured,
   clicks: () => clicks,
 });

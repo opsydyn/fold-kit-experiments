@@ -1,70 +1,50 @@
-/**
- * Overlay HTML in the scene view: the application's content for each overlay, in an
- * element the scene moves to the overlay's point every frame it draws.
- *
- * @module
- */
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import type { Overlay, SceneDescription } from '@opsydyn/effect-three';
 import { overlayData } from '@opsydyn/effect-three/browser';
-import type { Html, HtmlBuilder } from 'foldkit/html';
 
-/** HTML shown at a point in the scene, as Drei's `Html`: where, and what. */
-export type OverlayView = {
+/** HTML shown at a point in the scene. */
+export type OverlayView<Message> = {
   readonly overlay: Overlay;
-  readonly content: Html;
-  /**
-   * `'auto'` (the default, as Drei): the HTML takes pointer events. `'none'`: they pass
-   * through to the canvas, so the scene under a label stays pickable.
-   */
+  readonly content: View.Input<Message, never>;
   readonly pointerEvents?: 'auto' | 'none';
 };
 
-/** The scene with the overlays' points added, so the scene places them. */
-export const withOverlays = (
+export const withOverlays = <Message>(
   scene: SceneDescription,
-  overlays: ReadonlyArray<OverlayView>,
+  overlays: ReadonlyArray<OverlayView<Message>>,
 ): SceneDescription =>
   overlays.length === 0
     ? scene
-    : { ...scene, overlays: [...scene.overlays, ...overlays.map((view) => view.overlay)] };
+    : { ...scene, overlays: [...scene.overlays, ...overlays.map(({ overlay }) => overlay)] };
 
-// The layer covers the canvas, lets events through, and keeps Drei's large z-indexes
-// inside the scene element rather than competing with the page.
-const layerStyle = {
-  position: 'absolute',
-  inset: '0',
-  overflow: 'hidden',
-  pointerEvents: 'none',
-  isolation: 'isolate',
-};
-
-/** The overlay layer, or nothing when there are no overlays. */
 export const overlayLayer = <Message>(
-  h: HtmlBuilder<Message>,
-  overlays: ReadonlyArray<OverlayView>,
-): ReadonlyArray<Html> =>
+  h: Html.H<Message>,
+  overlays: ReadonlyArray<OverlayView<Message>>,
+) =>
   overlays.length === 0
-    ? []
-    : [
-        h.div(
-          [h.Style(layerStyle)],
-          overlays.map(({ overlay, content, pointerEvents = 'auto' }) =>
-            h.keyed('div')(
-              overlay.key,
-              [
-                h.DataAttribute(overlayData.key, overlay.key),
-                // Hidden until the scene first places it.
-                h.Style({
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  transformOrigin: '0 0',
-                  visibility: 'hidden',
-                  pointerEvents,
-                }),
-              ],
-              [content],
-            ),
+    ? null
+    : h.div
+        .style({
+          position: 'absolute',
+          inset: '0',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          isolation: 'isolate',
+        })
+        .children(
+          ...overlays.map(({ overlay, content, pointerEvents = 'auto' }) =>
+            h.div
+              .key(overlay.key)
+              .attr(overlayData.attribute, overlay.key)
+              .style({
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                transformOrigin: '0 0',
+                visibility: 'hidden',
+                pointerEvents,
+              })
+              .children(content),
           ),
-        ),
-      ];
+        );

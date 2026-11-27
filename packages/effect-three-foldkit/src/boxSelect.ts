@@ -1,5 +1,5 @@
 /**
- * Box selection as a Foldkit submodel (roadmap, "Beyond parity" 5), after Drei's `Select`
+ * Box selection as an Effect UI submodel (roadmap, "Beyond parity" 5), after Drei's `Select`
  * over three.js's `SelectionBox`: a shift-drag that begins on nothing draws a box, and
  * its release selects what the box holds, through the core's pure `boxSelect`. The parent
  * owns what is selected; the submodel owns only the box:
@@ -18,23 +18,20 @@
  * @module
  */
 
+import { UiSchema } from '@effect/ui';
 import { BoxSelect as Controller } from '@opsydyn/effect-three/browser';
-import { defineMessageUnion } from 'foldkit/message';
-import type { ReturnWithOutMessage } from 'foldkit/update';
 
 export const { Box, Model, init, drawing, claims, inside, rectangle } = Controller;
 export type Model = Controller.Model;
 export type DragGesture = Controller.DragGesture;
 export type Rectangle = Controller.Rectangle;
 
-export const Message = defineMessageUnion(Controller.MessageFields);
+export const Message = UiSchema.TaggedEnum(Controller.MessageFields);
 export type Message = typeof Message.Type;
-export const OutMessage = defineMessageUnion(Controller.OutMessageFields);
+export const OutMessage = UiSchema.TaggedEnum(Controller.OutMessageFields);
 export type OutMessage = typeof OutMessage.Type;
 
-type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
-
-export const update = (model: Model, message: Message): Return => Controller.update(model, message);
+export const update = Controller.update;
 
 /** Turns the scene's drag gesture into the box selection's message. */
 export const dragOf = (gesture: DragGesture): Message => Controller.dragOf(gesture);

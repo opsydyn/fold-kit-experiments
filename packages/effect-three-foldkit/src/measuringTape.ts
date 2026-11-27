@@ -1,5 +1,5 @@
 /**
- * A measuring tape as a Foldkit submodel (roadmap, "Beyond parity" 5): the core's pure
+ * A measuring tape as a Effect UI submodel (roadmap, "Beyond parity" 5): the core's pure
  * `tape` with Messages for clicks and pointer moves on the scene, an OutMessage when a
  * length is measured, and its length as HTML at the tape's middle. The parent decides
  * when the tape is in use and which clicks are on the scene:
@@ -15,33 +15,23 @@
  *
  * @module
  */
+import { UiSchema } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { overlay, tapeMiddle } from '@opsydyn/effect-three';
 import { MeasuringTape as Controller } from '@opsydyn/effect-three/browser';
 import { Option } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import type { ReturnWithOutMessage } from 'foldkit/update';
 
 import type { OverlayView } from './overlayView.ts';
 
 export const { Model, init, length, nodes } = Controller;
 export type Model = Controller.Model;
 
-export const Message = defineMessageUnion(Controller.MessageFields);
+export const Message = UiSchema.TaggedEnum(Controller.MessageFields);
 export type Message = typeof Message.Type;
-export const OutMessage = defineMessageUnion(Controller.OutMessageFields);
+export const OutMessage = UiSchema.TaggedEnum(Controller.OutMessageFields);
 export type OutMessage = typeof OutMessage.Type;
 
-type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
-
-export const update = (model: Model, message: Message): Return => Controller.update(model, message);
-
-/** The label's class, when one is given. */
-const classOf = <Message>(h: HtmlBuilder<Message>, className: string | undefined) =>
-  Option.match(Option.fromNullishOr(className), {
-    onNone: () => [],
-    onSome: (name) => [h.Class(name)],
-  });
+export const update = Controller.update;
 
 /**
  * The length at the tape's middle, for the view's `overlays`: two decimals and `unit`
@@ -50,9 +40,9 @@ const classOf = <Message>(h: HtmlBuilder<Message>, className: string | undefined
  */
 export const label = <Message>(
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   options: { readonly unit?: string; readonly className?: string } = {},
-): ReadonlyArray<OverlayView> =>
+): ReadonlyArray<OverlayView<Message>> =>
   Option.match(
     Option.all([Controller.length(model), Option.fromNullishOr(tapeMiddle(model.tape))]),
     {
@@ -60,9 +50,9 @@ export const label = <Message>(
       onSome: ([measuredLength, middle]) => [
         {
           overlay: overlay({ key: `${model.key}:label`, position: middle, center: true }),
-          content: h.span(classOf(h, options.className), [
-            `${measuredLength.toFixed(2)} ${options.unit ?? 'm'}`,
-          ]),
+          content: h.span
+            .attr('class', options.className)
+            .children(`${measuredLength.toFixed(2)} ${options.unit ?? 'm'}`),
           pointerEvents: 'none',
         },
       ],

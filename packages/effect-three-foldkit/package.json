@@ -1,7 +1,7 @@
 {
   "name": "@opsydyn/effect-three-foldkit",
   "version": "0.6.4",
-  "description": "Thin Foldkit adapter for @opsydyn/effect-three.",
+  "description": "Effect UI adapter for @opsydyn/effect-three.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -50,6 +50,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@effect/platform-browser": "4.1.6",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@fontsource/inter": "5.3.0",
     "@microsoft/api-extractor": "7.59.4",
     "@opsydyn/effect-three": "workspace:*",
@@ -59,7 +60,6 @@
     "@types/pngjs": "6.0.5",
     "@types/three": "0.186.0",
     "effect": "4.1.6",
-    "foldkit": "0.171.0",
     "iwer": "2.5.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
@@ -71,9 +71,9 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
+    "@effect/ui": "0.0.0",
     "@opsydyn/effect-three": "0.6.4",
     "effect": "^4.0.0",
-    "foldkit": ">=0.167.0 <0.172.0",
     "three": ">=0.186.0 <0.187.0"
   }
 }

@@ -1,92 +1,72 @@
-/** Connects FoldKit’s scene property and view state to the browser scene host. */
-import { SceneSchema } from '@opsydyn/effect-three';
-import { sceneErrorDispatch } from '@opsydyn/effect-three/browser';
-import type { Environment } from '@opsydyn/effect-three/browser';
-import { mountSceneHost } from '@opsydyn/effect-three/browser';
-import { Effect, Option, Queue, Result, Schema, Stream } from 'effect';
-import { Mount } from 'foldkit';
-import type { ViewState } from 'foldkit/mount';
+/** Connects an Effect UI mount scope and arguments to the browser scene host. */
+import { Mount } from '@effect/ui';
+import { SceneSchema, type SceneDescription } from '@opsydyn/effect-three';
+import { mountSceneHost, type Environment } from '@opsydyn/effect-three/browser';
+import { Effect, Schema, type Scope, Stream } from 'effect';
 
-import { interceptProperty } from './dom/property.ts';
-import { typedScene } from './dom/typedScenes.ts';
 import { SceneLifecycle } from './element.ts';
 
-const decodeUnknownScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
-
-/** Typed scenes from `view` skip validation; anything else is Schema-decoded. */
-const decodeScene = (value: unknown) =>
-  Option.fromNullishOr(typedScene(value)).pipe(
-    Option.match({ onNone: () => decodeUnknownScene(value), onSome: Effect.succeed }),
-  );
-
-const isLive = Schema.is(Schema.Literal('Live'));
-
-const interception = (element: Element, updates: Queue.Queue<unknown>) => () =>
-  interceptProperty(element, 'scene', (value) => Queue.offerUnsafe(updates, value));
-
-const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) => {
-  const intercept = Effect.sync(interception(element, updates));
-  return Effect.acquireRelease(intercept, (intercepted) => Effect.sync(intercepted.restore));
+/** Arguments supplied by a component whenever it renders the scene. */
+export type SceneMountArgs = {
+  readonly scene: SceneDescription;
+  readonly live?: boolean;
 };
 
-const failure = (reason: string) => SceneLifecycle.FailedScene({ reason });
+export type SceneMount<R = never> = Mount.Factory<
+  SceneMountArgs,
+  SceneLifecycle,
+  HTMLElement,
+  R | Scope.Scope
+>;
 
-const recoverStart = {
-  SchemaError: (error: Schema.SchemaError) =>
-    Effect.succeed(failure(`malformed scene: ${error.message}`)),
+const lifecycleFailure = (reason: string) => SceneLifecycle.FailedScene({ reason });
+
+const recoverStartup = {
   InvalidScene: ({ error }: { readonly error: { readonly _tag: string } }) =>
-    Effect.succeed(failure(`invalid scene: ${error._tag}`)),
-  RendererUnavailable: () => Effect.succeed(failure('renderer unavailable')),
-  PhysicsUnavailable: () => Effect.succeed(failure('physics unavailable')),
+    Effect.succeed(lifecycleFailure(`invalid scene: ${error._tag}`)),
+  RendererUnavailable: () => Effect.succeed(lifecycleFailure('renderer unavailable')),
+  PhysicsUnavailable: () => Effect.succeed(lifecycleFailure('physics unavailable')),
 };
 
-type ExecuteInput = {
-  readonly element: Element;
-  readonly viewStateChanges: Stream.Stream<ViewState>;
-};
-
-const skipMalformed =
-  (reportError: ReturnType<typeof sceneErrorDispatch>) => (error: Schema.SchemaError) => {
-    const dispatch = Effect.sync(reportError({ _tag: 'MalformedScene', issue: error.message }));
-    return dispatch.pipe(Effect.map(() => Result.failVoid));
-  };
-
-const decodeUpdate = (element: Element) => (value: unknown) =>
-  decodeScene(value).pipe(
-    Effect.map(Result.succeed),
-    Effect.catchTag('SchemaError', skipMalformed(sceneErrorDispatch(element))),
-  );
-
-function* runMount(environment: Environment, { element, viewStateChanges }: ExecuteInput) {
-  const updates = yield* Effect.acquireRelease(Queue.sliding<unknown>(1), Queue.shutdown);
-  const intercepted = yield* acquireInterception(element, updates);
-  const initial = yield* decodeScene(intercepted.initial);
-  const sceneValues = Stream.fromQueue(updates);
-  const decode = decodeUpdate(element);
-  const scenes = Stream.filterMapEffect(sceneValues, decode);
-  yield* mountSceneHost({
+const startScene = (
+  environment: Environment,
+  element: HTMLElement,
+  { scene, live }: SceneMountArgs,
+  changes: Stream.Stream<SceneMountArgs>,
+) => {
+  const updates = Stream.map(changes, (args) => args.scene);
+  const liveChanges = Stream.map(changes, (args) => args.live ?? true);
+  const startup = mountSceneHost({
     environment,
     element,
-    initial,
-    updates: scenes,
-    liveChanges: Stream.map(viewStateChanges, isLive),
+    initial: scene,
+    initialLive: live ?? true,
+    updates,
+    liveChanges,
   });
-  return SceneLifecycle.StartedScene();
-}
-
-const mountScene = (environment: Environment) => (input: ExecuteInput) => {
-  const start = Effect.gen(() => runMount(environment, input));
-  return start.pipe(Effect.catchTags(recoverStart));
+  return startup.pipe(
+    Effect.map(() => SceneLifecycle.StartedScene()),
+    Effect.catchTags(recoverStartup),
+  );
 };
 
-/**
- * Defines the scene Mount for an environment. Call once at the application entry point
- * and pass the result to `view` as `mount`.
- */
-export const makeSceneMount = (environment: Environment) =>
-  Mount.define('EffectThreeScene', {
-    messages: [SceneLifecycle.StartedScene, SceneLifecycle.FailedScene],
-    execute: mountScene(environment),
-  });
+const mountArgs = { scene: SceneSchema.SceneDescription, live: Schema.optionalKey(Schema.Boolean) };
 
-export type SceneMount = ReturnType<typeof makeSceneMount>;
+/**
+ * Defines a scene mount with access to the component's environment. The provided
+ * Effect can read a shared service or acquire an environment scoped to the scene.
+ */
+export const defineScopedSceneMount = <R>(
+  // oxlint-disable-next-line linteffect/no-manual-effect-channels -- Retain the caller's environment requirements.
+  environment: Effect.Effect<Environment, never, R>,
+): SceneMount<R> =>
+  Mount.make('EffectThreeScene', { args: mountArgs }, (element, args, changes) =>
+    Effect.flatMap(environment, (resolved) => startScene(resolved, element, args, changes)),
+  );
+
+/** Defines a scene mount for a shared environment owned by the caller. */
+export const makeSceneMount = (environment: Environment): SceneMount => {
+  // oxlint-disable-next-line linteffect/no-effect-succeed-variable -- The caller has already acquired the shared environment.
+  const shared = Effect.succeed(environment);
+  return defineScopedSceneMount(shared);
+};

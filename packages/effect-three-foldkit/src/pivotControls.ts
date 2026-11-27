@@ -1,5 +1,5 @@
 /**
- * Pivot controls as a Foldkit submodel (roadmap, "Beyond parity" 5): the core's pure
+ * Pivot controls as an Effect UI submodel (roadmap, "Beyond parity" 5): the core's pure
  * `pivotNodes`, `pressPivot` and `dragPivot` (after Drei's `PivotControls`) with
  * Messages for the scene's pointer events and OutMessages for what the parent does with
  * them, as `TransformGizmo` is for three's controls. The parent owns where its objects
@@ -18,18 +18,15 @@
  * @module
  */
 
+import { UiSchema } from '@effect/ui';
 import { PivotControls as Controller } from '@opsydyn/effect-three/browser';
-import { defineMessageUnion } from 'foldkit/message';
-import type { ReturnWithOutMessage } from 'foldkit/update';
 
 export const { Model, init, handleOf, held, nodes } = Controller;
 export type Model = Controller.Model;
 
-export const Message = defineMessageUnion(Controller.MessageFields);
+export const Message = UiSchema.TaggedEnum(Controller.MessageFields);
 export type Message = typeof Message.Type;
-export const OutMessage = defineMessageUnion(Controller.OutMessageFields);
+export const OutMessage = UiSchema.TaggedEnum(Controller.OutMessageFields);
 export type OutMessage = typeof OutMessage.Type;
 
-type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
-
-export const update = (model: Model, message: Message): Return => Controller.update(model, message);
+export const update = Controller.update;

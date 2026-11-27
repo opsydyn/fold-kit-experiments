@@ -213,10 +213,18 @@ type SceneHostInput = {
   readonly element: Element;
   readonly initial: SceneDescription;
   readonly updates: Stream.Stream<SceneDescription>;
+  readonly initialLive?: boolean;
   readonly liveChanges: Stream.Stream<boolean>;
 };
 
-function* runScene({ environment, element, initial, updates, liveChanges }: SceneHostInput) {
+function* runScene({
+  environment,
+  element,
+  initial,
+  initialLive = true,
+  updates,
+  liveChanges,
+}: SceneHostInput) {
   const canvas = yield* acquireCanvas(element);
   const overlays = createOverlayWriter(element);
   yield* Effect.sync(containOverlays(element));
@@ -239,7 +247,7 @@ function* runScene({ environment, element, initial, updates, liveChanges }: Scen
     handle,
     frames,
     gate: createFrameGate(frames),
-    live: createLatch(true),
+    live: createLatch(initialLive),
   };
   yield* acquireAssets(mounted, initial);
   yield* acquirePointer(canvas, mounted);

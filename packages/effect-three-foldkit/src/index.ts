@@ -1,13 +1,13 @@
 /**
- * Foldkit adapter for `@opsydyn/effect-three`.
+ * Effect UI adapter for `@opsydyn/effect-three`.
  *
  * ```ts
  * // entry.ts: once per app
- * const environment = EffectThreeFoldkit.makeEnvironment(window);
- * export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+ * const environment = EffectThreeUi.makeEnvironment(window);
+ * export const sceneMount = EffectThreeUi.makeSceneMount(environment);
  *
  * // view.ts
- * EffectThreeFoldkit.view(
+ * EffectThreeUi.view(
  *   { scene: sceneFor(model), mount: sceneMount, onLifecycle: GotSceneLifecycle, onClick: ClickedNode },
  *   h,
  * );
@@ -54,13 +54,18 @@ export {
   makeEnvironment,
 } from '@opsydyn/effect-three/browser';
 export { inspectorView, type OnEdit } from './inspector.ts';
-export { makeSceneMount, type SceneMount } from './mount.ts';
+export {
+  defineScopedSceneMount,
+  makeSceneMount,
+  type SceneMount,
+  type SceneMountArgs,
+} from './mount.ts';
 export * as BoxSelect from './boxSelect.ts';
 export * as MeasuringTape from './measuringTape.ts';
 export * as PivotControls from './pivotControls.ts';
 export * as TransformGizmo from './transformGizmo.ts';
 export * as ViewportGizmo from './viewportGizmo.ts';
-export { type OverlayView } from './overlayView.ts';
+export { overlayLayer, type OverlayView, withOverlays } from './overlayView.ts';
 export {
   type AssetFailedDetail,
   type AssetLoadedDetail,

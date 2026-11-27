@@ -5,11 +5,11 @@
  * +x; a synthetic floor at y = 0 answers AR hit tests.
  */
 import { box, mesh, scene, standard, xr } from '@opsydyn/effect-three';
-import { Effect, Queue, Stream } from 'effect';
-import type { ViewState } from 'foldkit/mount';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
+import { Effect } from 'effect';
 import { metaQuest3, XRDevice } from 'iwer';
 
-import * as EffectThreeFoldkit from '../../src/index.ts';
+import { showScenes } from './sceneHost.ts';
 import {
   aimDown,
   arcShown,
@@ -39,8 +39,7 @@ device.installSEM(FloorEnvironment);
 
 // WebGL only: under IWER the emulated layer has no framebuffer object, which three's
 // WebGPURenderer (on its WebGL 2 backend) cannot render into, so WebGPU XR is untested.
-const environment = EffectThreeFoldkit.makeEnvironment(window);
-const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+const environment = makeEnvironment(window);
 
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
@@ -70,7 +69,6 @@ const described = scene({
     }),
   ],
 });
-Reflect.set(element, 'scene', described);
 document.body.append(element);
 
 const sessions: Array<string | null> = [];
@@ -101,10 +99,7 @@ element.addEventListener('scene-xr-poses', (event) => posesHeard.push(posesOf(ev
 let drags = 0;
 element.addEventListener('scene-drag', () => drags++);
 
-const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
-Queue.offerUnsafe(viewStates, 'Live');
-const lifecycle = sceneMount().f(element, Stream.fromQueue(viewStates));
-Effect.runFork(Stream.runDrain(lifecycle));
+showScenes(environment, element, described);
 
 const renderer = rendererFinder(element);
 

@@ -1,15 +1,14 @@
 /**
- * The scene view: one call from a Foldkit `view` renders a scene and maps its events to
+ * The scene view: one call from an Effect UI view renders a scene and maps its events to
  * the app's typed Messages. The scene is plain data derived from the Model.
  *
  * @module
  */
+import { Mount, type View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import type { SceneDescription, SceneSchema } from '@opsydyn/effect-three';
-import { Array as Arr, Option } from 'effect';
-import { Mount } from 'foldkit';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import { Option, type Scope } from 'effect';
 
-import { markTyped } from './dom/typedScenes.ts';
 import {
   type ReconciledDetail,
   type SceneError,
@@ -237,62 +236,66 @@ export type ViewConfig<Message> = {
    * perhaps on a node), `content` what. The scene moves the HTML there every frame it
    * draws; the content is ordinary view HTML, rendered from the Model.
    */
-  readonly overlays?: ReadonlyArray<OverlayView>;
+  readonly overlays?: ReadonlyArray<OverlayView<Message>>;
   readonly className?: string;
+  /** When false, pointer and XR input is ignored until the scene is live again. */
+  readonly live?: boolean;
 };
-
-const given = Option.fromNullishOr;
 
 /** Renders a scene element. Only the event handlers you pass are bound. */
 export const view = <Message>(
   config: ViewConfig<NoInfer<Message>>,
-  h: HtmlBuilder<Message>,
-): Html => {
-  const element = sceneElement.withMessage(h);
-  const optional = Arr.getSomes([
-    Option.map(given(config.onClick), element.OnSceneClick),
-    Option.map(given(config.onDoubleClick), element.OnSceneDoubleClick),
-    Option.map(given(config.onContextMenu), element.OnSceneContextMenu),
-    Option.map(given(config.onPointerDown), element.OnScenePointerDown),
-    Option.map(given(config.onPointerUp), element.OnScenePointerUp),
-    Option.map(given(config.onPointerEnter), element.OnScenePointerEnter),
-    Option.map(given(config.onPointerMove), element.OnScenePointerMove),
-    Option.map(given(config.onPointerLeave), element.OnScenePointerLeave),
-    Option.map(given(config.onPointerMissed), element.OnScenePointerMissed),
-    Option.map(given(config.onWheel), element.OnSceneWheel),
-    Option.map(given(config.onDrag), element.OnSceneDrag),
-    Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
-    Option.map(given(config.onCollision), element.OnSceneCollision),
-    Option.map(given(config.onContactForce), element.OnSceneContactForce),
-    Option.map(given(config.onPhysicsReached), element.OnScenePhysicsReached),
-    Option.map(given(config.onMeasured), element.OnSceneMeasured),
-    Option.map(given(config.onLabelMeasured), element.OnSceneLabelMeasured),
-    Option.map(given(config.onXRSession), element.OnSceneXr),
-    Option.map(given(config.onXRStick), element.OnSceneXrStick),
-    Option.map(given(config.onXRButton), element.OnSceneXrButton),
-    Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
-    Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
-    Option.map(given(config.onXRTeleported), element.OnSceneXrTeleported),
-    Option.map(given(config.onXRPoses), element.OnSceneXrPoses),
-    Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
-    Option.map(given(config.onXRMeshes), element.OnSceneXrMeshes),
-    Option.map(given(config.onAutoRotated), element.OnSceneAutoRotated),
-    Option.map(given(config.onGesture), (toMessage) =>
-      element.OnSceneGesture((detail) => toMessage(detail.gesture)),
-    ),
-    Option.map(given(config.onGestureEnd), element.OnSceneGestureEnd),
-    Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
-    Option.map(given(config.onError), element.OnSceneError),
-    Option.map(given(config.onAssetLoaded), element.OnSceneAssetLoaded),
-    Option.map(given(config.onAssetFailed), element.OnSceneAssetFailed),
-    Option.map(given(config.onReconciled), element.OnSceneReconciled),
-    Option.map(given(config.className), h.Class),
-  ]);
-  const lifecycle = Mount.mapMessage(config.mount(), config.onLifecycle);
-  const overlays = config.overlays ?? [];
-  const scene = markTyped(withOverlays(config.scene, overlays));
-  return element(
-    [element.Scene(scene), h.OnMount(lifecycle), ...optional],
-    overlayLayer(h, overlays),
+  h: Html.H<Message>,
+): View.Content<Message, Scope.Scope> => {
+  let element = sceneElement(h).attr('class', config.className);
+  const bind = <Detail>(
+    handler: ((detail: Detail) => Message) | undefined,
+    attach: (handler: (detail: Detail) => Message) => typeof element,
+  ) => {
+    const input = Option.fromNullishOr(handler);
+    const attached = Option.map(input, attach);
+    element = Option.getOrElse(attached, () => element);
+  };
+  bind(config.onClick, (handler) => element.on('scene-click', handler));
+  bind(config.onDoubleClick, (handler) => element.on('scene-double-click', handler));
+  bind(config.onContextMenu, (handler) => element.on('scene-context-menu', handler));
+  bind(config.onPointerDown, (handler) => element.on('scene-pointer-down', handler));
+  bind(config.onPointerUp, (handler) => element.on('scene-pointer-up', handler));
+  bind(config.onPointerEnter, (handler) => element.on('scene-pointer-enter', handler));
+  bind(config.onPointerMove, (handler) => element.on('scene-pointer-move', handler));
+  bind(config.onPointerLeave, (handler) => element.on('scene-pointer-leave', handler));
+  bind(config.onPointerMissed, (handler) => element.on('scene-pointer-missed', handler));
+  bind(config.onWheel, (handler) => element.on('scene-wheel', handler));
+  bind(config.onDrag, (handler) => element.on('scene-drag', handler));
+  bind(config.onDragEnd, (handler) => element.on('scene-drag-end', handler));
+  bind(config.onCollision, (handler) => element.on('scene-collision', handler));
+  bind(config.onContactForce, (handler) => element.on('scene-contact-force', handler));
+  bind(config.onPhysicsReached, (handler) => element.on('scene-physics-reached', handler));
+  bind(config.onMeasured, (handler) => element.on('scene-measured', handler));
+  bind(config.onLabelMeasured, (handler) => element.on('scene-label-measured', handler));
+  bind(config.onXRSession, (handler) => element.on('scene-xr', handler));
+  bind(config.onXRStick, (handler) => element.on('scene-xr-stick', handler));
+  bind(config.onXRButton, (handler) => element.on('scene-xr-button', handler));
+  bind(config.onXRSurface, (handler) => element.on('scene-xr-surface', handler));
+  bind(config.onXRMoved, (handler) => element.on('scene-xr-moved', handler));
+  bind(config.onXRTeleported, (handler) => element.on('scene-xr-teleported', handler));
+  bind(config.onXRPoses, (handler) => element.on('scene-xr-poses', handler));
+  bind(config.onXRPlanes, (handler) => element.on('scene-xr-planes', handler));
+  bind(config.onXRMeshes, (handler) => element.on('scene-xr-meshes', handler));
+  bind(config.onAutoRotated, (handler) => element.on('scene-auto-rotated', handler));
+  bind(config.onGestureEnd, (handler) => element.on('scene-gesture-end', handler));
+  bind(config.onPerformanceChange, (handler) => element.on('scene-performance', handler));
+  bind(config.onError, (handler) => element.on('scene-error', handler));
+  bind(config.onAssetLoaded, (handler) => element.on('scene-asset-loaded', handler));
+  bind(config.onAssetFailed, (handler) => element.on('scene-asset-failed', handler));
+  bind(config.onReconciled, (handler) => element.on('scene-reconciled', handler));
+  bind(config.onGesture, (handler) =>
+    element.on('scene-gesture', ({ gesture }) => handler(gesture)),
   );
+
+  const overlays = config.overlays ?? [];
+  const scene = withOverlays(config.scene, overlays);
+  const mounted = config.mount({ scene, live: config.live ?? true });
+  const lifecycle = Mount.map(mounted, config.onLifecycle);
+  return element.onMount(lifecycle).children(overlayLayer(h, overlays));
 };

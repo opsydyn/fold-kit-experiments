@@ -7,7 +7,7 @@
  *   missing golden is written; in CI (`CI=true`) it fails, so new goldens must be committed.
  * - Leak oracle: three's own `renderer.info.memory` must return to its baseline after
  *   repeated shared-resource swaps.
- * - Time-travel gate: while the Mount's view state is `Paused`, pointer events are dropped.
+ * - Input gate: while the view's live argument is false, pointer events are dropped.
  */
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { mkdir } from 'node:fs/promises';
@@ -92,7 +92,7 @@ function measureCube(png: Buffer) {
   };
 }
 
-// Foldkit re-renders on the next animation frame and the scene update then runs on an
+// Effect UI re-renders on the next animation frame and the scene update then runs on an
 // Effect fiber; 100 ms of fake time covers both. Scene time advances with it, deterministically.
 const settle = 100;
 
@@ -161,20 +161,23 @@ function harnessClicks(): number {
 }
 
 function pauseView(): void {
-  Reflect.get(globalThis, '__pause').setViewState('Paused');
+  Reflect.get(globalThis, '__pause').setLive(false);
 }
 
 function resumeView(): void {
-  Reflect.get(globalThis, '__pause').setViewState('Live');
+  Reflect.get(globalThis, '__pause').setLive(true);
 }
 
-test('pointer events are dropped while the view is paused for time travel', async () => {
+test('pointer events are dropped while the view is paused', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   await page.goto(app.url('pause.html'));
   await page.waitForFunction(pauseHarnessReady);
   const canvas = page.locator('effect-three-scene canvas');
   const centre = { position: { x: 160, y: 120 } };
 
+  await canvas.click(centre);
+  expect(await page.evaluate(harnessClicks)).toBe(0);
+  await page.evaluate(resumeView);
   await canvas.click(centre);
   await page.waitForFunction(() => Reflect.get(globalThis, '__pause').clicks() === 1);
 

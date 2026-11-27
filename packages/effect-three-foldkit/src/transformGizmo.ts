@@ -1,5 +1,5 @@
 /**
- * A transform gizmo as a Foldkit submodel (roadmap, "Beyond parity" 5): the core's pure
+ * A transform gizmo as an Effect UI submodel (roadmap, "Beyond parity" 5): the core's pure
  * gizmo (`gizmoNodes`, `pressGizmo`, `dragGizmo`, after three's `TransformControls`)
  * with Messages for the scene's pointer events and OutMessages for what the parent does
  * with them. The parent owns where its objects are; the submodel owns only the gizmo:
@@ -17,18 +17,15 @@
  * @module
  */
 
+import { UiSchema } from '@effect/ui';
 import { TransformGizmo as Controller } from '@opsydyn/effect-three/browser';
-import { defineMessageUnion } from 'foldkit/message';
-import type { ReturnWithOutMessage } from 'foldkit/update';
 
 export const { Model, init, handleOf, held, nodes } = Controller;
 export type Model = Controller.Model;
 
-export const Message = defineMessageUnion(Controller.MessageFields);
+export const Message = UiSchema.TaggedEnum(Controller.MessageFields);
 export type Message = typeof Message.Type;
-export const OutMessage = defineMessageUnion(Controller.OutMessageFields);
+export const OutMessage = UiSchema.TaggedEnum(Controller.OutMessageFields);
 export type OutMessage = typeof OutMessage.Type;
 
-type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
-
-export const update = (model: Model, message: Message): Return => Controller.update(model, message);
+export const update = Controller.update;

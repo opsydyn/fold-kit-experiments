@@ -47,13 +47,11 @@ import { type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
-import { c4MappingReviewPanel } from './c4-mapping-review-view';
 import { dddAuditPanel } from './ddd-audit-view';
 import { workbenchPolicy } from './editor-policy';
 import { exportReviewPanel } from './export-review';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
-import { mappingReviewPanel } from './mapping-review-view';
 import { Message } from './message';
 import { type Model } from './model';
 import { modelSessionBusy } from './model-sessions';
@@ -63,6 +61,7 @@ import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-brows
 import { nativeCausalRelationships, nativeDiagramCaption } from './native-diagram-notation';
 import { nativeConnectionCreation, nativeSelectedConnection } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
+import { nativeC4MappingReview, nativeMappingReview } from './native-mapping-reviews';
 import { nativeMermaidExport } from './native-mermaid-export';
 import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativePolicies } from './native-policies';
@@ -160,7 +159,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       modelId,
       epoch,
     });
-  const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | ZLOZ';
@@ -959,8 +957,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         : [],
     ports: [nativePortSettings(h, model, 'architecture-effect-ui', 'port-settings')],
     policies: [nativePolicies(h, model, 'architecture-effect-ui', 'policies')],
-    c4mapping: model.sidebarSection === 'c4mapping' ? [c4MappingReviewPanel(model, h)] : [],
-    mapping: mappingPanel ? [mappingPanel] : [],
+    c4mapping:
+      model.sidebarSection === 'c4mapping'
+        ? [nativeC4MappingReview(h, model, 'architecture-effect-ui', 'c4-mapping-review')]
+        : [],
+    mapping:
+      model.sidebarSection === 'mapping'
+        ? [nativeMappingReview(h, model, 'architecture-effect-ui', 'mapping-review')]
+        : [],
     inspect: [
       ...(showWorkshopInspector
         ? [nativeWorkshopInspector(h, model, 'architecture-effect-ui', 'workshop-inspector')]

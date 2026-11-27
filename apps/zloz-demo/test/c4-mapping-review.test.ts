@@ -3,9 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { captureEdition, createHistoryReview } from '@opsydyn/foldkit-zloz';
 import { reviewReaderForScope } from '@opsydyn/foldkit-zloz-mermaid';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { workbenchC4MappingReview, updateC4MappingReview } from '../src/editor/c4-mapping-review';
@@ -13,6 +11,7 @@ import { c4MappingReviewPanel } from '../src/editor/c4-mapping-review-view';
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 function ready(): Model {
   const model = update(
     init().model,
@@ -183,21 +182,7 @@ test('historical and busy sources protect choices while permitting item inspecti
   expect(field(busy, 'role', 'software-system')).toBe(busy);
 });
 async function render(model: Model) {
-  return (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (current, h: HtmlBuilder<Message>) => ({
-            title: 'C4 review',
-            body: c4MappingReviewPanel(current, h),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    )
-  ).html;
+  return (await Effect.runPromise(renderNativeReview(model, c4MappingReviewPanel))).html;
 }
 test('native panel exposes status loss, source provenance and reasons independently of numeric diagnostics', async () => {
   const original = ready();

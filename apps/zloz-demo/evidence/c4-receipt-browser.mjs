@@ -40,7 +40,10 @@ async function run() {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  const file = (name) => fileURLToPath(new URL(name, import.meta.url));
+  const file = (name) =>
+    process.env.ZLOZ_CAPTURE_DIR
+      ? resolve(process.env.ZLOZ_CAPTURE_DIR, name)
+      : fileURLToPath(new URL(name, import.meta.url));
   const button = (name) => page.getByRole('button', { name, exact: true }).first();
   const section = (name) =>
     page
@@ -126,15 +129,18 @@ async function run() {
   await expect(ack).toBeChecked();
   await expect(apply).toBeEnabled();
   const lock = page.getByRole('checkbox', { name: 'Protect C4 conversion Apply', exact: true });
-  await lock.check();
+  await lock.click();
+  await expect(lock).toBeChecked();
   await expect(apply).toBeDisabled();
   await expect(
     page.getByRole('status', { name: 'C4 Apply availability', exact: true }),
   ).toContainText('protected');
   await expect(ack).not.toBeChecked();
-  await lock.uncheck();
+  await lock.click();
+  await expect(lock).not.toBeChecked();
   await expect(apply).toBeDisabled();
-  await ack.check();
+  await ack.click();
+  await expect(ack).toBeChecked();
   await expect(apply).toBeEnabled();
   await apply.focus();
   await page.keyboard.press('Enter');

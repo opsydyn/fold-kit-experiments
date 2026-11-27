@@ -1,7 +1,5 @@
 import { captureEdition, createHistoryReview, serializeGraph } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { workbenchMappingReview } from '../src/editor/mapping-review';
@@ -9,6 +7,7 @@ import { mappingReviewPanel } from '../src/editor/mapping-review-view';
 import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 function ready(): Model {
   return {
     ...update(init().model, Message.SelectedExample({ example: 'event-storming' })).model,
@@ -154,21 +153,7 @@ test('historical and busy previews can be inspected but choices are protected; d
 });
 
 async function render(model: Model) {
-  return (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (current, h: HtmlBuilder<Message>) => ({
-            title: 'Mapping review',
-            body: mappingReviewPanel(current, h),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    )
-  ).html;
+  return (await Effect.runPromise(renderNativeReview(model, mappingReviewPanel))).html;
 }
 test('native review fields expose ambiguity, selected loss and history protection independently of diagnostics', async () => {
   const model = ready();

@@ -11,9 +11,7 @@ import {
   createEventStormingDddConversionPlan,
   serializeEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { ReadConversionReceipt } from '../src/editor/command';
@@ -22,6 +20,7 @@ import { init, type Model } from '../src/editor/model';
 import { receiptComparison, receiptReviewPanel } from '../src/editor/receipt-review';
 import { workbenchSvgReview } from '../src/editor/svg-review';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 
 function receiptJson() {
   const graph = {
@@ -221,21 +220,7 @@ test('malformed, tampered, oversized and invalid UTF-8 leave the last valid comp
 });
 test('minimal mode keeps native reopening, before/after, close, provenance and change explanations available', async () => {
   const opened = await open({ ...init().model, minimalMode: true, diagnosticsEnabled: false });
-  const html = (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: opened }),
-          view: (current, h: HtmlBuilder<Message>) => ({
-            title: 'Receipt',
-            body: receiptReviewPanel(current, h),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    )
-  ).html;
+  const html = (await Effect.runPromise(renderNativeReview(opened, receiptReviewPanel))).html;
   expect(html).toContain('Open conversion receipt');
   expect(html).toContain('Before conversion');
   expect(html).toContain('After conversion');

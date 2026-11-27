@@ -5,9 +5,7 @@ import {
   serializeEventStormingC4Conversion,
   type ZlozModelDocument,
 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import wire from '../../../packages/foldkit-zloz/test/fixtures/c4-conversion-v1.json';
@@ -15,6 +13,7 @@ import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { receiptReviewPanel } from '../src/editor/receipt-review';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 
 const json = () => JSON.stringify(wire);
 async function open(model: Model = init().model, text = json()) {
@@ -171,19 +170,7 @@ test('C4 reopening rejects invalid UTF-8 and excessive files without discarding 
 test('Minimal-mode C4 comparison exposes plan-specific membership and constraint losses with native read-only controls', async () => {
   const opened = await open();
   const model = { ...opened, minimalMode: true, diagnosticsEnabled: false };
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model }),
-        view: (current, h: HtmlBuilder<Message>) => ({
-          title: 'C4 receipt',
-          body: receiptReviewPanel(current, h),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const result = await Effect.runPromise(renderNativeReview(model, receiptReviewPanel));
   expect(result.html).toContain('C4 conversion receipt');
   expect(result.html).toContain('The authored parent membership would be removed');
   expect(result.html).toContain('Before conversion');

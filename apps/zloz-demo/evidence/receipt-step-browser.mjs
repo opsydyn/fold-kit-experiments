@@ -9,7 +9,7 @@ import {
   parseModelDocument,
 } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -36,7 +36,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const evidence = (name) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${name}`)
+    : fileURLToPath(new URL(name, import.meta.url));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1400 },
@@ -66,8 +71,9 @@ async function run() {
     await plan.scrollIntoViewIfNeeded();
   };
   const selectItem = async (key) => {
+    const label = (await item.locator(`option[value="${key}"]`).textContent()).split(' · ')[1];
     await item.selectOption(key);
-    const label = (await item.locator('option:checked').textContent()).split(' · ')[1];
+    await expect(item).toHaveValue(key);
     await expect(
       panel.getByLabel('Mapping decision', { exact: true }).getByRole('heading', { level: 3 }),
     ).toHaveText(label);
@@ -150,19 +156,23 @@ async function run() {
   );
   await expect(apply).toBeEnabled();
   const protect = plan.getByRole('checkbox', { name: 'Protect conversion Apply', exact: true });
-  await protect.check();
+  await protect.click();
+  await expect(protect).toBeChecked();
   await expect(apply).toBeDisabled();
   await expect(plan.locator('#mapping-apply-reason')).toContainText('protected');
   expect(await downloadModel()).toEqual(original);
   await section('Mapping review');
   await openPlan();
-  await protect.uncheck();
+  await protect.click();
+  await expect(protect).not.toBeChecked();
   await expect(apply).toBeEnabled();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await expect(page.locator('[data-flow-workbench-color-scheme="light"]')).toHaveCount(1);
   await plan.scrollIntoViewIfNeeded();
   await apply.click();
-  await expect(page.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(1);
+  await expect(
+    page.locator('[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])'),
+  ).toHaveCount(1);
   await expect(receipts).toBeVisible();
   const receipt = await downloadReceipt();
   expect(receipt.source.document).toEqual(original);
@@ -179,7 +189,9 @@ async function run() {
       buffer: Buffer.from(receiptBytes),
     });
   await reopen();
-  await expect(review.getByRole('status')).toContainText('Receipt opened');
+  await expect(
+    review.getByRole('status', { name: 'Receipt review feedback', exact: true }),
+  ).toContainText('Receipt opened');
   await expect(review).toContainText('Orders DDD Apply');
   await expect(review).toContainText('Discovery source');
   await expect(review).toContainText('not verified authorship');
@@ -192,7 +204,7 @@ async function run() {
       .getByRole('navigation', { name: 'Workbench sections' })
       .getByRole('button', { name: 'Diagram', exact: true }),
   ).toBeDisabled();
-  const canvas = page.getByRole('group', { name: 'Read-only receipt diagram', exact: true });
+  const canvas = page.getByRole('region', { name: 'Read-only receipt diagram', exact: true });
   await expect(canvas).toBeVisible();
   const focus = (entity, name, side) =>
     review.getByRole('button', { name: `Focus ${entity} ${name} ${side} conversion`, exact: true });
@@ -232,15 +244,15 @@ async function run() {
   await expect(side('before')).toHaveAttribute('aria-pressed', 'true');
   await expect(previous).toBeDisabled();
   await expect(transport).toContainText('First change reached.');
-  await centered(['[data-zloz-event-storming-body="note:3"] svg']);
+  await centered(['[data-flow-node="note:3"]']);
   await next.click();
   await expect(position).toHaveText('Change 2 of 2');
   await expect(side('before')).toHaveAttribute('aria-pressed', 'true');
   await expect(next).toBeDisabled();
   await expect(transport).toContainText('Last change reached.');
   await centered([
-    '[data-flow-ddd-node="aggregate-root"]',
-    '[data-zloz-event-storming-body="note:3"] svg',
+    '[data-flow-node]:has(> button [data-flow-ddd-type="aggregate-root"])',
+    '[data-flow-node="note:3"]',
   ]);
   await previous.click();
   await expect(position).toHaveText('Change 1 of 2');
@@ -248,16 +260,19 @@ async function run() {
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await transport.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('receipt-step-light.png', import.meta.url)),
+    path: evidence('receipt-step-light.png'),
   });
   await side('after').click();
   await expect(side('after')).toHaveAttribute('aria-pressed', 'true');
   await expect(position).toHaveText('Change 1 of 2');
-  await centered(['[data-flow-ddd-node="domain-event"]']);
+  await centered(['[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])']);
   await next.click();
   await expect(position).toHaveText('Change 2 of 2');
   await expect(side('after')).toHaveAttribute('aria-pressed', 'true');
-  await centered(['[data-flow-ddd-node="aggregate-root"]', '[data-flow-ddd-node="domain-event"]']);
+  await centered([
+    '[data-flow-node]:has(> button [data-flow-ddd-type="aggregate-root"])',
+    '[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])',
+  ]);
   await previous.click();
   await expect(position).toHaveText('Change 1 of 2');
   await focus('connection', 'Emits', 'after').click();
@@ -266,7 +281,7 @@ async function run() {
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
   await expect(page.locator('[data-flow-workbench-color-scheme="dark"]')).toHaveCount(1);
   await transport.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: fileURLToPath(new URL('receipt-step-dark.png', import.meta.url)) });
+  await page.screenshot({ path: evidence('receipt-step-dark.png') });
   await section('Diagnostics');
   await button('Minimal mode').click();
   await section('Mapping review');

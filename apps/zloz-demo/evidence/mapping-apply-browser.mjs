@@ -9,7 +9,7 @@ import {
   parseModelDocument,
 } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -36,7 +36,12 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const evidence = (name) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${name}`)
+    : fileURLToPath(new URL(name, import.meta.url));
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1400 },
@@ -65,14 +70,16 @@ async function run() {
     await plan.scrollIntoViewIfNeeded();
   };
   const selectItem = async (key) => {
+    const label = (await item.locator(`option[value="${key}"]`).textContent()).split(' · ')[1];
     await item.selectOption(key);
-    const label = (await item.locator('option:checked').textContent()).split(' · ')[1];
+    await expect(item).toHaveValue(key);
     await expect(
       panel.getByLabel('Mapping decision', { exact: true }).getByRole('heading', { level: 3 }),
     ).toHaveText(label);
   };
   const resolveMappings = async () => {
     await section('Mapping review');
+    await expect(page.locator('[data-architecture-effect-ui="mapping-review"]')).toBeVisible();
     for (const key of [
       'node:note:0',
       'node:note:1',
@@ -148,22 +155,26 @@ async function run() {
   );
   await expect(apply).toBeEnabled();
   const protect = plan.getByRole('checkbox', { name: 'Protect conversion Apply', exact: true });
-  await protect.check();
+  await protect.click();
+  await expect(protect).toBeChecked();
   await expect(apply).toBeDisabled();
   await expect(plan.locator('#mapping-apply-reason')).toContainText('protected');
   expect(await downloadModel()).toEqual(original);
   await section('Mapping review');
   await openPlan();
-  await protect.uncheck();
+  await protect.click();
+  await expect(protect).not.toBeChecked();
   await expect(apply).toBeEnabled();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await expect(page.locator('[data-flow-workbench-color-scheme="light"]')).toHaveCount(1);
   await plan.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('mapping-apply-light.png', import.meta.url)),
+    path: evidence('mapping-apply-light.png'),
   });
   await apply.click();
-  await expect(page.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(1);
+  await expect(
+    page.locator('[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])'),
+  ).toHaveCount(1);
   await expect(receipts).toBeVisible();
   const receipt = await downloadReceipt();
   expect(receipt.source.document).toEqual(original);
@@ -179,7 +190,9 @@ async function run() {
   ).toBe('ddd');
   await section('Diagram');
   await button('Undo').click();
-  await expect(page.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(0);
+  await expect(
+    page.locator('[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])'),
+  ).toHaveCount(0);
   expect((await downloadModel()).snapshot.graph).toEqual(original.snapshot.graph);
   expect(await downloadReceipt()).toEqual(receipt);
   await resolveMappings();
@@ -190,7 +203,8 @@ async function run() {
     'proposed',
   );
   await openPlan();
-  await ack.check();
+  await ack.click();
+  await expect(ack).toBeChecked();
   await expect(plan.getByLabel('Conversion plan status', { exact: true })).toHaveText(
     'Losses acknowledged for this plan',
   );
@@ -198,7 +212,9 @@ async function run() {
   await expect(plan.locator('#mapping-apply-reason')).toContainText('Issues');
   await section('Diagram');
   await button('Redo').click();
-  await expect(page.locator('[data-flow-ddd-node="domain-event"]')).toHaveCount(1);
+  await expect(
+    page.locator('[data-flow-node="note:3"]:has([data-flow-ddd-type="domain-event"])'),
+  ).toHaveCount(1);
   expect((await downloadModel()).snapshot.graph).toEqual(converted.snapshot.graph);
   await section('History');
   const models = page.getByRole('combobox', { name: 'Working model', exact: true });
@@ -218,7 +234,7 @@ async function run() {
     await planDetails.locator(':scope > summary').click();
   await receipts.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('mapping-apply-dark.png', import.meta.url)),
+    path: evidence('mapping-apply-dark.png'),
   });
   await section('Diagnostics');
   await button('Minimal mode').click();

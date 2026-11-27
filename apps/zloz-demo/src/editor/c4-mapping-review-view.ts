@@ -1,4 +1,4 @@
-import type { HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import { workbenchC4MappingReview, type C4MappingReviewForm } from './c4-mapping-review';
 import { c4PlanReviewPanel } from './c4-plan-review-view';
@@ -7,8 +7,8 @@ import { Message } from './message';
 import type { Model } from './model';
 import { receiptReviewPanel } from './receipt-review';
 
-export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
-  if (model.receiptReview) return receiptReviewPanel(model, h);
+export function c4MappingReviewPanel<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
+  if (model.receiptReview) return receiptReviewPanel(model, h, send);
   const context = workbenchC4MappingReview(model),
     selected = context.selected;
   const document = context.preview.provenance.document;
@@ -29,292 +29,249 @@ export function c4MappingReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     blocked: 'Blocked communication',
   };
   const textField = (field: keyof C4MappingReviewForm, label: string) =>
-    h.label(
-      [h.Key(`c4-field:${controlKey}:${field}`), h.Class('workbench-field')],
-      [
+    h.label
+      .key(`c4-field:${controlKey}:${field}`)
+      .class('workbench-field')
+      .children(
         label,
-        h.input([
-          h.Type('text'),
-          h.Key(`c4-input:${controlKey}:${field}`),
-          h.AriaLabel(label),
-          h.Value(context.form[field]),
-          h.Disabled(context.reason !== null),
-          h.AriaDescribedBy('c4-review-reason'),
-          h.OnInput((value) => Message.ChangedC4ReviewForm({ ...identity, field, value })),
-        ]),
-      ],
-    );
+        h.input
+          .attr('type', 'text')
+          .key(`c4-input:${controlKey}:${field}`)
+          .attr('aria-label', label)
+          .value(context.form[field])
+          .disabled(context.reason !== null)
+          .attr('aria-describedby', 'c4-review-reason')
+          .on('input', ({ value }) =>
+            send(Message.ChangedC4ReviewForm({ ...identity, field, value })),
+          ),
+      );
   const action = (value: 'preview' | 'retain' | 'clear' | 'reset', label: string) =>
-    h.button(
-      [
-        h.Type('button'),
-        h.Key(`c4-action:${controlKey}:${value}`),
-        h.AriaLabel(label),
-        h.Disabled(
-          !selected ||
-            context.reason !== null ||
-            (value === 'preview' && context.previewReason !== null),
+    h.button
+      .attr('type', 'button')
+      .key(`c4-action:${controlKey}:${value}`)
+      .attr('aria-label', label)
+      .disabled(
+        !selected ||
+          context.reason !== null ||
+          (value === 'preview' && context.previewReason !== null),
+      )
+      .attr('aria-describedby', value === 'preview' ? 'c4-preview-reason' : 'c4-review-reason')
+      .on('click', send(Message.ClickedC4ReviewAction({ ...identity, action: value })))
+      .children(label);
+  return h.section
+    .attr('aria-label', 'C4 mapping review')
+    .class('mapping-review c4-mapping-review')
+    .children(
+      h.h2.children('Workshop → C4'),
+      h.p.children(
+        'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Review placements and exact losses below, acknowledge them, then explicitly Apply as one Undo step.',
+      ),
+      h.details.children(
+        h.summary.children('C4 source provenance'),
+        h.dl
+          .class('mapping-provenance')
+          .children(
+            h.dt.children('Model'),
+            h.dd.children(document.name),
+            h.dt.children('Snapshot'),
+            h.dd.children(context.sourceLabel),
+            h.dt.children('Fork ancestry'),
+            h.dd.children(
+              document.origin
+                ? `${document.origin.modelName} · ${document.origin.edition.name}`
+                : 'Original model · no fork parent',
+            ),
+          ),
+        h.p.children(
+          'The complete source graph, camera, editions and ancestry are captured by the package preview. No runtime boundaries or protocols are inferred.',
         ),
-        h.AriaDescribedBy(value === 'preview' ? 'c4-preview-reason' : 'c4-review-reason'),
-        h.OnClick(Message.ClickedC4ReviewAction({ ...identity, action: value })),
-      ],
-      [label],
-    );
-  return h.section(
-    [h.AriaLabel('C4 mapping review'), h.Class('mapping-review c4-mapping-review')],
-    [
-      h.h2([], ['Workshop → C4']),
-      h.p(
-        [],
-        [
-          'Review explicit structural interpretations and communication labels. Previewing changes review choices only; the canvas model and Undo history stay unchanged. Review placements and exact losses below, acknowledge them, then explicitly Apply as one Undo step.',
-        ],
-      ),
-      h.details(
-        [],
-        [
-          h.summary([], ['C4 source provenance']),
-          h.dl(
-            [h.Class('mapping-provenance')],
-            [
-              h.dt([], ['Model']),
-              h.dd([], [document.name]),
-              h.dt([], ['Snapshot']),
-              h.dd([], [context.sourceLabel]),
-              h.dt([], ['Fork ancestry']),
-              h.dd(
-                [],
-                [
-                  document.origin
-                    ? `${document.origin.modelName} · ${document.origin.edition.name}`
-                    : 'Original model · no fork parent',
-                ],
+        ...(!model.minimalMode && model.diagnosticsEnabled
+          ? [
+              h.details.children(
+                h.summary.children('C4 source identifiers'),
+                h.p.children(`Model: ${document.id}`),
+                h.p.children(`Session: ${context.preview.provenance.sessionId}`),
+                h.p.children(`Revision: ${context.preview.provenance.revision}`),
               ),
-            ],
-          ),
-          h.p(
-            [],
-            [
-              'The complete source graph, camera, editions and ancestry are captured by the package preview. No runtime boundaries or protocols are inferred.',
-            ],
-          ),
-          ...(!model.minimalMode && model.diagnosticsEnabled
-            ? [
-                h.details(
-                  [],
-                  [
-                    h.summary([], ['C4 source identifiers']),
-                    h.p([], [`Model: ${document.id}`]),
-                    h.p([], [`Session: ${context.preview.provenance.sessionId}`]),
-                    h.p([], [`Revision: ${context.preview.provenance.revision}`]),
-                  ],
-                ),
-              ]
-            : []),
-        ],
+            ]
+          : []),
       ),
-      h.p(
-        [h.Id('c4-review-reason'), h.Role('status')],
-        [
+      h.p
+        .id('c4-review-reason')
+        .attr('role', 'status')
+        .children(
           context.reason ??
             'Choices require an explicit preview. Leaving an item discards its unpreviewed draft.',
-        ],
-      ),
+        ),
       ...(selected
         ? [
-            h.label(
-              [h.Class('workbench-field')],
-              [
-                'Review C4 mapping',
-                h.select(
-                  [
-                    h.AriaLabel('Review C4 mapping'),
-                    h.Value(selected.key),
-                    h.OnChange((key) => Message.SelectedC4ReviewItem({ ...context.scope, key })),
-                  ],
-                  context.items.map((item) =>
-                    h.option(
-                      [h.Key(item.key), h.Value(item.key), h.Selected(selected.key === item.key)],
-                      [
+            h.label.class('workbench-field').children(
+              'Review C4 mapping',
+              h.select
+                .attr('aria-label', 'Review C4 mapping')
+                .value(selected.key)
+                .on('change', ({ value: key }) =>
+                  send(Message.SelectedC4ReviewItem({ ...context.scope, key })),
+                )
+                .children(
+                  ...context.items.map((item) =>
+                    h.option
+                      .key(item.key)
+                      .attr('value', item.key)
+                      .selected(selected.key === item.key)
+                      .children(
                         `${item.kind === 'node' ? 'Node' : 'Relation'} · ${item.label} · ${status[item.decision.type]}`,
-                      ],
-                    ),
+                      ),
                   ),
                 ),
-              ],
             ),
-            h.p([h.Role('status'), h.AriaLabel('C4 mapping target')], [selected.label]),
-            h.p(
-              [h.Role('status'), h.AriaLabel('C4 mapping decision')],
-              [status[selected.decision.type]],
-            ),
-            h.p([], [selected.decision.reason]),
+            h.p
+              .attr('role', 'status')
+              .attr('aria-label', 'C4 mapping target')
+              .children(selected.label),
+            h.p
+              .attr('role', 'status')
+              .attr('aria-label', 'C4 mapping decision')
+              .children(status[selected.decision.type]),
+            h.p.children(selected.decision.reason),
             ...(selected.decision.type === 'ambiguous'
               ? [
-                  h.h3([], ['Possible interpretations']),
-                  h.ul(
-                    [h.AriaLabel('C4 mapping candidates')],
-                    selected.decision.candidates.map((candidate) =>
-                      h.li([h.Key(candidate.role)], [candidate.role]),
+                  h.h3.children('Possible interpretations'),
+                  h.ul
+                    .attr('aria-label', 'C4 mapping candidates')
+                    .children(
+                      ...selected.decision.candidates.map((candidate) =>
+                        h.li.key(candidate.role).children(candidate.role),
+                      ),
                     ),
-                  ),
-                  h.p(
-                    [],
-                    [
-                      'Candidates are non-exhaustive. Choose explicitly or keep workshop meaning; workshop externality does not establish C4 scope.',
-                    ],
+                  h.p.children(
+                    'Candidates are non-exhaustive. Choose explicitly or keep workshop meaning; workshop externality does not establish C4 scope.',
                   ),
                 ]
               : []),
             ...(selected.decision.sourceArchitecture?.family === 'event-storming' &&
             selected.decision.sourceArchitecture.role === 'hotspot'
               ? [
-                  h.p(
-                    [],
-                    [
-                      `Authored hotspot status: ${selected.decision.sourceArchitecture.status}. Reinterpreting this annotation would replace that meaning.`,
-                    ],
+                  h.p.children(
+                    `Authored hotspot status: ${selected.decision.sourceArchitecture.status}. Reinterpreting this annotation would replace that meaning.`,
                   ),
                 ]
               : []),
             ...(selected.kind === 'node'
               ? [
-                  h.label(
-                    [h.Class('workbench-field')],
-                    [
-                      'C4 role',
-                      h.select(
-                        [
-                          h.Key(`c4-role:${controlKey}`),
-                          h.AriaLabel('C4 role'),
-                          h.Value(context.form.role),
-                          h.Disabled(context.reason !== null),
-                          h.AriaDescribedBy('c4-preview-reason'),
-                          h.OnChange((value) =>
-                            Message.ChangedC4ReviewForm({ ...identity, field: 'role', value }),
-                          ),
-                        ],
-                        [
-                          h.option([h.Value('')], ['Choose a C4 role']),
-                          ...context.roles.map((role) =>
-                            h.option(
-                              [
-                                h.Key(role.value),
-                                h.Value(role.value),
-                                h.Disabled(role.disabled),
-                                h.Selected(role.value === context.form.role),
-                              ],
-                              [
-                                role.disabled
-                                  ? `${role.label} — incompatible with group kind`
-                                  : role.label,
-                              ],
+                  h.label.class('workbench-field').children(
+                    'C4 role',
+                    h.select
+                      .key(`c4-role:${controlKey}`)
+                      .attr('aria-label', 'C4 role')
+                      .value(context.form.role)
+                      .disabled(context.reason !== null)
+                      .attr('aria-describedby', 'c4-preview-reason')
+                      .on('change', ({ value }) =>
+                        send(Message.ChangedC4ReviewForm({ ...identity, field: 'role', value })),
+                      )
+                      .children(
+                        h.option.attr('value', '').children('Choose a C4 role'),
+                        ...context.roles.map((role) =>
+                          h.option
+                            .key(role.value)
+                            .attr('value', role.value)
+                            .disabled(role.disabled)
+                            .selected(role.value === context.form.role)
+                            .children(
+                              role.disabled
+                                ? `${role.label} — incompatible with group kind`
+                                : role.label,
                             ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ],
                   ),
                   textField('name', 'C4 structural name'),
-                  h.label(
-                    [h.Class('workbench-field')],
-                    [
-                      'C4 scope',
-                      h.select(
-                        [
-                          h.Key(`c4-scope:${controlKey}`),
-                          h.AriaDescribedBy('c4-review-reason'),
-                          h.AriaLabel('C4 scope'),
-                          h.Value(context.form.scope),
-                          h.Disabled(context.reason !== null),
-                          h.OnChange((value) =>
-                            Message.ChangedC4ReviewForm({ ...identity, field: 'scope', value }),
-                          ),
-                        ],
-                        [
+                  h.label.class('workbench-field').children(
+                    'C4 scope',
+                    h.select
+                      .key(`c4-scope:${controlKey}`)
+                      .attr('aria-describedby', 'c4-review-reason')
+                      .attr('aria-label', 'C4 scope')
+                      .value(context.form.scope)
+                      .disabled(context.reason !== null)
+                      .on('change', ({ value }) =>
+                        send(Message.ChangedC4ReviewForm({ ...identity, field: 'scope', value })),
+                      )
+                      .children(
+                        ...[
                           ['', 'Unspecified · do not infer'],
                           ['internal', 'Internal'],
                           ['external', 'External'],
                         ].map(([value, label]) =>
-                          h.option(
-                            [h.Value(value ?? ''), h.Selected(value === context.form.scope)],
-                            [label ?? ''],
-                          ),
+                          h.option
+                            .attr('value', value ?? '')
+                            .selected(value === context.form.scope)
+                            .children(label ?? ''),
                         ),
                       ),
-                    ],
                   ),
                   ...(context.form.role === 'container' || context.form.role === 'component'
                     ? [textField('technology', 'C4 technology')]
                     : []),
                 ]
               : [textField('name', 'C4 communication label')]),
-            h.p(
-              [h.Id('c4-preview-reason'), h.Role('status')],
-              [
+            h.p
+              .id('c4-preview-reason')
+              .attr('role', 'status')
+              .children(
                 context.previewReason ??
                   'Ready to preview this explicit choice. This does not convert the model.',
-              ],
-            ),
-            h.div(
-              [h.Class('workbench-actions')],
-              [
+              ),
+            h.div
+              .class('workbench-actions')
+              .children(
                 action('preview', 'Preview C4 mapping'),
                 action('retain', 'Keep workshop meaning for C4'),
                 action('clear', 'Clear C4 choice'),
                 action('reset', 'Reset C4 choices'),
-              ],
-            ),
+              ),
           ]
-        : [h.p([], ['Open a workshop example from Diagram to review its C4 interpretations.'])]),
-      c4PlanReviewPanel(model, h, context),
-      c4RetainedConversions(model, h),
-      receiptReviewPanel(model, h),
-      h.h3([], ['Unresolved C4 mappings']),
-      h.ul(
-        [h.AriaLabel('Unresolved C4 mappings')],
-        unresolved.length
-          ? unresolved.map((item) =>
-              h.li([h.Key(item.key)], [`${item.label}: ${item.decision.reason}`]),
-            )
-          : [h.li([h.Key('no-unresolved')], ['No unresolved mapping choices.'])],
-      ),
-      h.h3([], ['Prospective C4 semantic losses']),
-      h.p(
-        [],
-        [
-          'These mapping-preview findings precede placement review. Use Exact C4 plan losses above for acknowledgement.',
-        ],
+        : [h.p.children('Open a workshop example from Diagram to review its C4 interpretations.')]),
+      c4PlanReviewPanel(model, h, send, context),
+      c4RetainedConversions(model, h, send),
+      receiptReviewPanel(model, h, send),
+      h.h3.children('Unresolved C4 mappings'),
+      h.ul
+        .attr('aria-label', 'Unresolved C4 mappings')
+        .children(
+          ...(unresolved.length
+            ? unresolved.map((item) =>
+                h.li.key(item.key).children(`${item.label}: ${item.decision.reason}`),
+              )
+            : [h.li.key('no-unresolved').children('No unresolved mapping choices.')]),
+        ),
+      h.h3.children('Prospective C4 semantic losses'),
+      h.p.children(
+        'These mapping-preview findings precede placement review. Use Exact C4 plan losses above for acknowledgement.',
       ),
       ...(context.preview.disclosures.length
         ? [
-            h.ul(
-              [h.AriaLabel('C4 semantic losses')],
-              context.preview.disclosures.map((loss) =>
-                h.li(
-                  [h.Key(`${loss.kind}:${loss.id}:${loss.code}`)],
-                  [
-                    h.strong(
-                      [],
-                      [
+            h.ul
+              .attr('aria-label', 'C4 semantic losses')
+              .children(
+                ...context.preview.disclosures.map((loss) =>
+                  h.li
+                    .key(`${loss.kind}:${loss.id}:${loss.code}`)
+                    .children(
+                      h.strong.children(
                         context.items.find((item) => item.kind === loss.kind && item.id === loss.id)
                           ?.label ?? loss.id,
-                      ],
+                      ),
+                      h.p.children(loss.reason),
                     ),
-                    h.p([], [loss.reason]),
-                  ],
                 ),
               ),
-            ),
           ]
         : [
-            h.p(
-              [],
-              [
-                'No replacements proposed yet. Retention preserves workshop meaning; it is not C4 compatibility.',
-              ],
+            h.p.children(
+              'No replacements proposed yet. Retention preserves workshop meaning; it is not C4 compatibility.',
             ),
           ]),
-    ],
-  );
+    );
 }

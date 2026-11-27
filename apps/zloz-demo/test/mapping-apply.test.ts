@@ -6,9 +6,7 @@ import {
   captureEdition,
   serializeEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { workbenchMappingReview } from '../src/editor/mapping-review';
@@ -17,6 +15,7 @@ import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { workbenchDocument } from '../src/editor/model-sessions';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 function choose(model: Model, key: string, value: string) {
   return update(
     model,
@@ -205,21 +204,7 @@ test('native guarded Apply, protection reasons and receipt download survive mini
   const model = prepared(),
     protectedModel = { ...model, protectMappingApply: true };
   const render = async (state: Model) =>
-    (
-      await Effect.runPromise(
-        renderToString(
-          {
-            Flags: Schema.Struct({}),
-            init: () => ({ model: state }),
-            view: (current, h: HtmlBuilder<Message>) => ({
-              title: 'Apply',
-              body: mappingReviewPanel(current, h),
-            }),
-          },
-          { flags: {}, isHydratable: false },
-        ),
-      )
-    ).html;
+    (await Effect.runPromise(renderNativeReview(state, mappingReviewPanel))).html;
   const blocked = await render(protectedModel);
   expect(blocked).toMatch(
     /<button\b(?=[^>]*aria-label="Apply DDD conversion")(?=[^>]*disabled)[^>]*>/u,

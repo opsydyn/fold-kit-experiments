@@ -1,7 +1,5 @@
 import { serializeModelDocument } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 import { expect, test } from 'vitest';
 
 import { workbenchMappingReview } from '../src/editor/mapping-review';
@@ -10,6 +8,7 @@ import { Message } from '../src/editor/message';
 import { init, type Model } from '../src/editor/model';
 import { workbenchDocument } from '../src/editor/model-sessions';
 import { update } from '../src/editor/update';
+import { renderNativeReview } from './render-native-review';
 function opened(): Model {
   return {
     ...update(init().model, Message.SelectedExample({ example: 'event-storming' })).model,
@@ -137,21 +136,7 @@ test('stale plan, generation, scope and hidden/busy panel callbacks cannot recor
   expect(workbenchMappingReview(busy).acknowledgementReason).toContain('Finish');
 });
 async function render(model: Model) {
-  return (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model }),
-          view: (current, h: HtmlBuilder<Message>) => ({
-            title: 'Plan review',
-            body: mappingReviewPanel(current, h),
-          }),
-        },
-        { flags: {}, isHydratable: false },
-      ),
-    )
-  ).html;
+  return (await Effect.runPromise(renderNativeReview(model, mappingReviewPanel))).html;
 }
 test('native acknowledgement, provenance, losses and protection remain visible independently of diagnostics; keys never render', async () => {
   const model = reviewable(),

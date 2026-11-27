@@ -1,29 +1,14 @@
 # FoldKit Experiments Product Roadmap
 
-This roadmap turns the two packages into a coherent FoldKit data-application stack:
+The [Effect UI migration](assessments/2026-11-26-effect-ui-1.0-migration.md)
+records the runtime cutover, package upgrade paths and local prerelease rehearsal.
+The standalone Astro renderer owns hydration. Viz owns chart primitives and
+optional rendering adapters. Web remains the reference application.
 
-- `@opsydyn/astro-foldkit` owns Astro rendering, hydration, navigation, and island lifecycle.
-- `@opsydyn/foldkit-viz` owns pure chart math and FoldKit-compatible interaction primitives.
-- `apps/web` is the reference product and integration test surface.
-
-## Roadmap Ownership
-
-This file is the canonical cross-package product roadmap and release sequence.
-[`ROADMAP.md`](../ROADMAP.md) is the supporting `foldkit-viz` chart inventory,
-primitive-parity audit, and implementation history. It links here for product
-priorities rather than duplicating their status.
-
-Current packages target FoldKit `0.171.x`, Effect `4.1.x` and the
-`@foldkit/vite-plugin` `0.29.x` line. Published: astro-foldkit `0.13.0`, foldkit-viz
-`0.19.0`, effect-three `0.6.4`, foldkit-zloz `0.7.0` and the rest of the Zloz family
-`0.6.2`. The repository is ahead of npm on the Zloz family, which is at `0.8.0` here:
-[releases/foldkit-0.171.md](releases/foldkit-0.171.md) has the table of what each
-package admits on the registry and how each one's release ships. Earlier compatibility
-notes remain in the [0.167 migration guide](migrations/foldkit-0.167.md) and the
-[0.169 notes](releases/foldkit-0.169.md); the [0.170 guide](migrations/foldkit-0.170.md)
-covers Effect 4.1, route `Transition` and `AsyncData.matchDataSplitEmpty`, and the
-[0.171 guide](migrations/foldkit-0.171.md) the non-empty `messages` tuple and
-`createKeyedLazy`'s eviction default.
+This is the cross-package product roadmap. The [chart inventory](../ROADMAP.md)
+records Viz implementation history. Dated milestones below describe the stack
+at the time they were written. For FoldKit releases, see the historical
+[0.171 notes](releases/foldkit-0.171.md).
 
 ## Viz: data-science release track — 2026-11-13
 

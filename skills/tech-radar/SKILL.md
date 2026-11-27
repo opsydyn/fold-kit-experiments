@@ -7,7 +7,7 @@ description: Use when adding, moving or retiring an entry on the tech radar (app
 
 The tech radar is an Astro app in `apps/tech-radar`, served at
 `https://techradar.opsydyn.xyz`. Its content is markdown: one file per entry, one per
-edition. The build turns the files into a 3D radar (effect-three in a FoldKit island) and
+edition. The build turns the files into a 3D radar (effect-three in an Effect UI island) and
 a page per entry, edition, category and tag. Most changes are content changes, and need
 no code.
 

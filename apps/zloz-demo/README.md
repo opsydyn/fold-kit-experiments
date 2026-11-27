@@ -364,7 +364,7 @@ change. Toggling protection while editing preserves the draft, disables
 Save, and explains why; unlock it to continue or Cancel to discard.
 [Workbench screenshot](evidence/port-edit-policy.png)
 
-The Ports inspector composes the package's native `/foldkit` inspector
+The Ports inspector composes the package's native `/effect-ui` inspector
 primitives. The workbench owns its rows, draft messages, visibility and
 custom reason badges. Try **Protect Review input** and **Minimal mode**;
 the controls retain the same Save/Cancel, keyboard and Undo behavior.

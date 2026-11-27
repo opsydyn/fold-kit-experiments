@@ -1,6 +1,8 @@
 # Effect Three: Requirements Assessment, Plan and Recommendations
 
-Companion to the [brief](brief.md). Prepared 2026-10-14.
+Companion to the [brief](brief.md). Prepared 2026-10-14. This records the
+original FoldKit design. The [Effect UI adapter guide](../../packages/effect-three-foldkit/README.md)
+describes the current component boundary.
 
 **Location:** consolidated into `fold-kit-experiments` on 2026-10-14. The packages are `packages/effect-three` (`@opsydyn/effect-three`, core) and `packages/effect-three-foldkit` (`@opsydyn/effect-three-foldkit`, adapter). Both are `private` until the slice ships. Paths in §6 that read `packages/core` and `packages/foldkit` map to these.
 

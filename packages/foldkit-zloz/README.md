@@ -13,10 +13,13 @@ verifies registry archives and provenance before advancing to the next package.
 
 ## Install
 
+Use the candidate archive when following the `/effect-ui` examples on this
+branch. The registry’s 0.x releases have their own renderer contract.
+
 ```sh
-npm install @opsydyn/foldkit-zloz
+npm install ./opsydyn-foldkit-zloz-1.0.0-next.0.tgz
 # Only for the native view:
-npm install foldkit@0.170.0 effect@4.1.0 @effect/platform-browser@4.1.0
+npm install effect@4.1.6 https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92
 ```
 
 For workspace development, use the checked local tarball described in
@@ -3041,7 +3044,7 @@ late/cancelled/previous-generation replies cannot publish. Live protection is
 checked again at completion/download. Export never mutates the graph or Undo.
 
 The optional `/browser` entry is safe to import under Node/SSR and has no required
-Foldkit/Effect dependency; rendering there returns `unsupported`. It accepts only
+Effect UI or Effect dependency; rendering there returns `unsupported`. It accepts only
 canonical snapshots and safe SVG options/adapters, rebuilds the SVG and checks an
 optional `expectedSvg`. Direct rendering requires `writing.allowLosses: true` after
 reviewing findings (the review controller supplies this). It uses browser image,

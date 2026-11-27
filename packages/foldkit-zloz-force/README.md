@@ -39,7 +39,7 @@ if (supportsForceLayout(editor.graph)) {
 ```
 
 The eligibility subpath lets a host enable its layout action without loading the
-simulation. In a FoldKit app, run the adapter in a Command, keep the active
+simulation. In an Effect UI app, run the adapter in a command, keep the active
 request in the Model, and pass that current request to `applyLayout` on completion.
 That core operation rejects stale results and commits one undo step.
 

@@ -6,6 +6,7 @@ search and navigation.
 
 ## Where things are
 
+- **Effect UI cutover:** [package migration and qualification](assessments/2026-11-26-effect-ui-1.0-migration.md).
 - **Decisions:** [repository decisions](adr/0001-require-verified-main-pull-requests.md)
   in `adr/`, and the effect-three packages' own in
   [`effect-three/adr/`](effect-three/adr/001-greenfield-vs-three-effect.md). A decision
@@ -15,8 +16,9 @@ search and navigation.
   [radar proposals on `@alchemy.run/domain`](spikes/radar-proposals.md). Earlier ones are
   [effect-three's spike results](effect-three/spike-results.md) and the
   [AG-UI spike](examples/ag-ui-spike.md).
-- **Releases:** what each FoldKit upgrade changed here, in `releases/`, most recently
-  [FoldKit 0.171](releases/foldkit-0.171.md).
+- **Releases:** current release procedures and historical FoldKit upgrades are in `releases/`.
+  See the [ZLOZ release procedure](releases/foldkit-zloz.md) and
+  [FoldKit 0.171 notes](releases/foldkit-0.171.md).
 - **Assessments, postmortems and migrations:** reviews of a dependency or a capability,
   what went wrong and what changed because of it, and upgrade guides.
 - **effect-three:** its [plan](effect-three/PLAN.md), [roadmap](effect-three/ROADMAP.md)

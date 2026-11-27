@@ -36,7 +36,7 @@ the pinned Effect UI snapshot, and Effect 4 installed. Call `chartView(h)` insid
 The adapter receives `HtmlBuilder<Message>` from that render. Do not cache it,
 construct a global builder, start an app runtime in a chart helper, or mutate SVG
 nodes imperatively. The same ownership rule applies when the parent server-renders.
-Pure geometry can also feed a non-FoldKit renderer without installing these peers.
+Pure geometry can also feed another renderer without installing these peers.
 
 Compose layers as children: grid, marks, annotations/inspection, and axes in the
 desired drawing order. Use the exported helpers' installed types rather than

@@ -65,6 +65,10 @@ Set `x.format` or `y.format` with a serialisable number, percent, unit, or date/
 
 ## Effect UI compatibility
 
+Use the local Viz `1.0.0-next.0` archive for the Effect UI examples. See the
+[migration guide](../../docs/assessments/2026-11-26-effect-ui-1.0-migration.md)
+for the coordinated consumer rehearsal.
+
 Install the Effect UI snapshot pinned in the workspace with Effect 4.1 to use
 the UI adapters. They accept an Effect UI `Html.H` builder from the owning
 component and work in its server and browser hosts. For Astro islands, use

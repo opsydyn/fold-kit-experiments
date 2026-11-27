@@ -5,10 +5,10 @@ An Effect UI adapter for [`@opsydyn/effect-three`](../effect-three/README.md). D
 > Releases use the same version as the core ([Stability](../effect-three/README.md#stability), [Limits](../effect-three/README.md#limits)). The API is documented in [`etc/effect-three-foldkit.api.md`](etc/effect-three-foldkit.api.md). Live samples are in `apps/web` at `/effect-three` and on the effect-three promo site (`apps/three-promo`); their source is in [`packages/effect-three-samples`](../effect-three-samples/).
 
 ```sh
-npm install @opsydyn/effect-three-foldkit @opsydyn/effect-three effect three https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92
+npm install ./opsydyn-effect-three-foldkit-1.0.0-next.0.tgz ./opsydyn-effect-three-1.0.0-next.0.tgz effect@4.1.6 three https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92
 ```
 
-The Effect UI migration lands in the coordinated major release. For a FoldKit runtime, use the previous `0.x` release and its corresponding documentation.
+The command uses the coordinated local prerelease archives. For a FoldKit runtime, use the previous `0.x` release and its corresponding documentation.
 
 ## Use it
 

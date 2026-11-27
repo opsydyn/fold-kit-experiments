@@ -316,7 +316,7 @@ See the individual package READMEs for usage and changelog:
 
 - [`packages/astro-foldkit/`](packages/astro-foldkit/) — integration source and tests
 - [`packages/foldkit-viz/`](packages/foldkit-viz/) — chart primitives source and tests
-- [`packages/effect-three/`](packages/effect-three/) and [`packages/effect-three-foldkit/`](packages/effect-three-foldkit/) — 3D core and FoldKit adapter; read [`docs/effect-three/`](docs/effect-three/) before changing them
+- [`packages/effect-three/`](packages/effect-three/) and [`packages/effect-three-foldkit/`](packages/effect-three-foldkit/) — 3D core and Effect UI adapter; read [`docs/effect-three/`](docs/effect-three/) before changing them
 
 The demo app in [`apps/web/`](apps/web/) is the primary integration test environment and serves as the reference implementation for the packages.
 

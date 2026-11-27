@@ -1,7 +1,7 @@
 # ZLOZ Mermaid
 
 Optional, pure Mermaid flowchart export. No Mermaid parser, renderer, browser,
-Foldkit or Effect dependency is installed by the headless entry. Requires the
+Effect UI or Effect dependency is installed by the headless entry. Requires the
 matching ZLOZ core peer. Export controls, native v3 projections and portable review
 packets are included in the linked 0.6.0 release.
 
@@ -9,7 +9,9 @@ packets are included in the linked 0.6.0 release.
 npm install @opsydyn/foldkit-zloz @opsydyn/foldkit-zloz-mermaid
 ```
 
-In this checkout, use workspace links or the tarballs produced by `pack:check`.
+Use matching local candidate archives for the `/effect-ui` examples below. See the
+[coordinated rehearsal](../../docs/assessments/2026-11-26-effect-ui-1.0-migration.md)
+for the candidate and published Mermaid versions.
 
 ```ts
 import { exportMermaid } from '@opsydyn/foldkit-zloz-mermaid';
@@ -421,7 +423,7 @@ and explanations. Use the headless review controls to build a custom surface.
 Apply theme tokens on the parent element with the shared ZLOZ Effect UI theme
 mapper.
 
-No Mermaid parser/renderer, DOM, Astro, Foldkit or Effect dependency enters the
+No Mermaid parser/renderer, DOM, Astro, Effect UI or Effect dependency enters the
 headless root. Local browser oracle evidence is version-specific and separate from
 human AT/device, hosted deployment, broad performance and registry acceptance.
 The private CLI's current Mermaid export remains v1/v2; compatibility inspection

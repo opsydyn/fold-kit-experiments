@@ -17,11 +17,12 @@ checks below for the Zloz package family.
 - No source-only runtime export condition. Consumers use built files.
 - Explicit package files: distribution, README, changelog, licence and notices.
   Tests, nested tarballs, workspace links and catalog specifiers must not ship.
-- Core runtime imports work without FoldKit, Effect, ELK or browser globals.
-  FoldKit and Effect are optional peers used by `/foldkit` only.
+- Core runtime imports work without Effect UI, Effect, ELK or browser globals.
+  Effect UI and Effect are optional peers for `/effect-ui`. Import `/effect-ui.css`
+  for the canvas styles.
 - Optional adapters pin the Zloz core peer at the same version.
-- The Mermaid exporter has no runtime dependencies other than its core peer. Its
-  source/identity/loss bundle is versioned separately from canonical Zloz JSON.
+- The headless Mermaid exporter uses the core peer. Its `/effect-ui` subpath
+  provides the optional review renderer. The bundle has its own version.
 - The force adapter depends on FoldKit Viz. Its eligibility subpath is separate
   from the engine entry for hosts that load layout on demand.
 - Existing catalogue policy, release-please changelogs and linked versions apply.
@@ -40,12 +41,12 @@ bun run --filter @opsydyn/foldkit-zloz-mermaid pack:check
 bun run --filter @opsydyn/foldkit-zloz-force pack:check
 bun run --filter @opsydyn/foldkit-zloz-elk pack:check
 bun run --filter @opsydyn/foldkit-zloz pack:check
-bun run --filter @opsydyn/web test:e2e e2e/zloz.spec.ts
+bun run ci:foldkit-zloz
 ```
 
 The core package's consumer test packs core and ELK, installs the core alone
 with npm to check optional peers, then installs both tarballs with the qualified
-FoldKit/Effect/platform-browser versions. It checks core Node/Bun runtime imports,
+Effect UI snapshot and Effect version. It checks core Node/Bun runtime imports,
 TypeScript Bundler and NodeNext resolution, Node server rendering and real ELK
 layout outside the workspace. The Node CI job targets 24; local receipts record
 the actual tested runtime rather than treating that configuration as CI evidence.
@@ -67,6 +68,11 @@ those copies after all four have qualified, and the workflow artifact retains
 them together with candidate hashes and the verification receipt.
 
 ## Release action
+
+The [1.0 migration rehearsal](../assessments/2026-11-26-effect-ui-1.0-migration.md)
+uses local archives. Review and publication are separate operations. Confirm the
+candidate’s upstream availability and reconcile the published Mermaid baseline
+before invoking release automation.
 
 After reviewed commits and green CI, merging the linked release PR creates the
 four tags and invokes **zloz-release-train**. The train waits for successful push

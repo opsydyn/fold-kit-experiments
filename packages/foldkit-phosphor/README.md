@@ -74,8 +74,8 @@ bun run --filter @opsydyn/foldkit-phosphor typecheck
 bun run --filter @opsydyn/foldkit-phosphor test
 ```
 
-Tests compile all official assets/weights, exercise actual FoldKit server output
+Tests compile all official assets/weights, exercise Effect UI server output
 and equivalent DOM attributes, reject active input, check render bundle isolation,
 and install a real tarball for Node/Bun and Bundler/NodeNext public type checks.
-Qualified on FoldKit 0.171.0 and Effect 4.1.0. The package remains private; no npm
+The workspace pins the Effect UI snapshot and Effect in the root catalog. The package remains private; no npm
 publication, Zloz integration, shared icon assignment or upload service is included.

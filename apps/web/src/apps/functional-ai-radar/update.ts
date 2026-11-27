@@ -1,6 +1,5 @@
 import { ringIds } from '@opsydyn/effect-three-samples/radar/data';
 import { Match, Option } from 'effect';
-import type { Return } from 'foldkit/update';
 
 import { categoryCenter, filterPositions, layoutEntries, type RadarPosition } from './geometry';
 import { Message } from './message';
@@ -164,8 +163,8 @@ function changeCategory(model: Model, category: Model['category']): Model {
   );
   return reconcile({ ...model, category, center, gesture: idle() });
 }
-export function update(model: Model, message: Message): Return<Model, Message> {
-  const next = Message.match<Model>(message, {
+export function update(model: Model, message: Message) {
+  const next: Model = Message.match(message, {
     ChangedQuery: ({ query }) => reconcile({ ...model, query, gesture: idle() }),
     ChangedCategory: ({ category }) => changeCategory(model, category),
     ClickedRing: ({ ring }) =>
@@ -188,7 +187,6 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     StartedRadarPointer: (fact) => start(model, fact),
     MovedRadarPointer: (fact) => move(model, fact),
     EndedRadarPointer: ({ pointerId }) => end(model, pointerId),
-    CompletedRadarPointerMount: () => model,
   });
   return { model: next };
 }

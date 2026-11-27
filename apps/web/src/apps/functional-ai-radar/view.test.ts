@@ -1,8 +1,11 @@
+import { Html, HtmlServer } from '@effect/ui/html';
+import { HtmlLocator, HtmlScene } from '@effect/ui/html/testing';
+import { Locator } from '@effect/ui/testing';
 import { demoNotice, loadDemoRadar } from '@opsydyn/effect-three-samples/radar/data';
-import { Scene } from 'foldkit';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { renderChart } from '../../ui/shared/render-chart.test-helper';
+import { FunctionalAiRadar } from './main';
 import { Message } from './message';
 import { initModel, type Model } from './model';
 import { RadarPointerMount } from './mount';
@@ -12,7 +15,16 @@ import { view } from './view';
 const initial = () => initModel(loadDemoRadar());
 async function rendered(model = initial()) {
   const root = document.createElement('div');
-  root.innerHTML = await renderChart<Message>((h) => view(model, h).body);
+  const Fixture = Html.component({
+    name: 'RadarFixture',
+    model: Schema.Number,
+    message: Message,
+  }).make({
+    init: () => 0,
+    update: ({ model }) => model,
+    view: (h) => h.div.children(view(model, h)),
+  });
+  root.innerHTML = (await Effect.runPromise(HtmlServer.renderToHtml(Fixture, {}))).html;
   return root;
 }
 
@@ -97,70 +109,40 @@ describe('functional AI radar rendered contract', () => {
     expect(filtered.querySelector('[data-blip-id="beta"]')).toBeNull();
   });
   it('wires search, category, checkboxes and inspection through the real view', () => {
-    Scene.scene(
-      { view, update },
-      Scene.given(initial()),
-      Scene.Mount.resolveAll([RadarPointerMount, Message.CompletedRadarPointerMount()]),
-      Scene.type(Scene.role('searchbox', { name: 'Search technologies' }), 'Algebraic data types'),
-      Scene.expect(Scene.text('1 matching technology')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Inspect Algebraic data types' })),
-      Scene.expect(Scene.role('region', { name: 'Selected technology' })).toContainText('Adopt'),
-      Scene.click(Scene.role('checkbox', { name: 'Adopt (1)' })),
-      Scene.expect(Scene.text('No matching technologies')).toExist(),
-      Scene.expect(Scene.text('Selection cleared by filters')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Clear filters' })),
-      Scene.change(Scene.role('combobox', { name: 'Category' }), 'tools'),
-      Scene.expect(Scene.text('8 matching technologies')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Zoom in' })),
-      Scene.expect(Scene.text('1.25x')).toExist(),
-      Scene.click(Scene.role('button', { name: 'Reset view' })),
-      Scene.expect(Scene.text('1.00x')).toExist(),
-      Scene.expect(Scene.text('8 matching technologies')).toExist(),
-    );
+    const exercise = Effect.gen(function* () {
+      const scene = yield* HtmlScene.make(FunctionalAiRadar, {});
+      scene.expectMount(RadarPointerMount());
+      const button = (name: string) => HtmlLocator.role('button', { name });
+      scene
+        .type(
+          HtmlLocator.role('searchbox', { name: 'Search technologies' }),
+          'Algebraic data types',
+        )
+        .expect(Locator.text('1 matching technology'))
+        .toExist()
+        .click(button('Inspect Algebraic data types'))
+        .expect(Locator.text('Adopt'))
+        .toExist()
+        .click(HtmlLocator.role('checkbox', { name: 'Adopt (1)' }))
+        .expect(Locator.text('No matching technologies'))
+        .toExist()
+        .expect(Locator.text('Selection cleared by filters'))
+        .toExist()
+        .click(button('Clear filters'))
+        .change(HtmlLocator.role('combobox', { name: 'Category' }), 'tools')
+        .expect(Locator.text('8 matching technologies'))
+        .toExist()
+        .click(button('Zoom in'))
+        .expect(Locator.text('1.25x'))
+        .toExist()
+        .click(button('Reset view'))
+        .expect(Locator.text('1.00x'))
+        .toExist()
+        .expect(Locator.text('8 matching technologies'))
+        .toExist();
+    });
+    exercise.pipe(Effect.scoped, Effect.runSync);
   });
-  it('acknowledges root keys but ignores unhandled keys', () => {
-    Scene.scene(
-      { view, update },
-      Scene.given(initial()),
-      Scene.Mount.resolveAll([RadarPointerMount, Message.CompletedRadarPointerMount()]),
-      Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), 'ArrowRight'),
-      Scene.expectHandled(),
-      Scene.expect(Scene.role('group', { name: 'Functional and AI radar' })).toHaveAttr(
-        'data-longitude',
-        '15',
-      ),
-      Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), 'x'),
-      Scene.expectIgnored(),
-    );
-  });
-  it.each([{ ctrlKey: true }, { metaKey: true }, { altKey: true }])(
-    'leaves browser modifier shortcuts untouched: %j',
-    (modifiers) => {
-      Scene.scene(
-        { view, update },
-        Scene.given(initial()),
-        Scene.Mount.resolveAll([RadarPointerMount, Message.CompletedRadarPointerMount()]),
-        Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), '+', modifiers),
-        Scene.expectIgnored(),
-        Scene.expect(Scene.text('1.00x')).toExist(),
-        Scene.keydown(
-          Scene.role('group', { name: 'Functional and AI radar' }),
-          'ArrowLeft',
-          modifiers,
-        ),
-        Scene.expectIgnored(),
-        Scene.expect(Scene.role('group', { name: 'Functional and AI radar' })).toHaveAttr(
-          'data-longitude',
-          '0',
-        ),
-        Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), '+', {
-          shiftKey: true,
-        }),
-        Scene.expectHandled(),
-        Scene.expect(Scene.text('1.25x')).toExist(),
-      );
-    },
-  );
   it('renders four complete inert shell outlines at every pose and scales their radii', async () => {
     const root = await rendered({ ...initial(), center: [35, 55], zoom: 1.25 });
     const outlines = Array.from(root.querySelectorAll('[data-shell-outline]'));

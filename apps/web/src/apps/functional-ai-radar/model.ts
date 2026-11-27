@@ -1,23 +1,20 @@
+import { UiSchema } from '@effect/ui';
 import {
   categoryIds,
-  loadDemoRadar,
   Ring,
   ringIds,
   type RadarData,
 } from '@opsydyn/effect-three-samples/radar/data';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
-
-import type { AppInitProps } from '../types';
 
 const Coordinate = Schema.Tuple([Schema.Number, Schema.Number]);
-export const Selection = defineTaggedUnion({
+export const Selection = UiSchema.TaggedEnum({
   None: {},
   Selected: { id: Schema.String },
   Cleared: {},
 });
 export type Selection = typeof Selection.Type;
-export const Gesture = defineTaggedUnion({
+export const Gesture = UiSchema.TaggedEnum({
   Idle: { ignoreNextBlipClick: Schema.Boolean },
   Dragging: {
     pointerId: Schema.Number,
@@ -29,8 +26,7 @@ export const Gesture = defineTaggedUnion({
   },
 });
 export type Gesture = typeof Gesture.Type;
-export const Model = Schema.Struct({
-  data: Schema.Unknown,
+export const State = Schema.Struct({
   center: Coordinate,
   zoom: Schema.Number,
   query: Schema.String,
@@ -39,7 +35,7 @@ export const Model = Schema.Struct({
   selection: Selection,
   gesture: Gesture,
 });
-export type Model = Omit<typeof Model.Type, 'data'> & Readonly<{ data: RadarData }>;
+export type Model = typeof State.Type & Readonly<{ data: RadarData }>;
 export function initModel(data: RadarData): Model {
   return {
     data,
@@ -51,7 +47,4 @@ export function initModel(data: RadarData): Model {
     selection: Selection.None(),
     gesture: Gesture.Idle({ ignoreNextBlipClick: false }),
   };
-}
-export function init(_props: AppInitProps) {
-  return { model: initModel(loadDemoRadar()) };
 }

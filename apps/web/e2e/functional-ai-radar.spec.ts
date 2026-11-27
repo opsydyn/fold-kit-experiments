@@ -4,6 +4,14 @@ import { demoRadar } from '@opsydyn/effect-three-samples/radar/fixture';
 /* oxlint-disable linteffect/no-return-in-arrow */
 import { expect, test, type Page } from '@playwright/test';
 
+async function expectHydrated(page: Page) {
+  const island = page
+    .locator('astro-island')
+    .filter({ has: page.locator('[data-effect-ui-root] svg') });
+  await expect(island).toHaveCount(1);
+  await expect(island).not.toHaveAttribute('ssr');
+}
+
 const radar = (page: Page) =>
   page.getByRole('group', { name: 'Functional and AI radar', exact: true });
 function watch(page: Page) {
@@ -39,6 +47,7 @@ test('all 32 technologies remain reachable and filtering never introduces phanto
 }) => {
   const observations = watch(page);
   await page.goto('/functional-ai-radar');
+  await expectHydrated(page);
   await expect(radar(page)).toHaveAttribute('data-longitude', '0');
   await expect(
     page.getByText(/Original demo dataset - placements are illustrative, not adoption advice/),
@@ -90,6 +99,7 @@ test('marker selection keeps compact feedback visible and keyboard focus local',
 }, info) => {
   const observations = watch(page);
   await page.goto('/functional-ai-radar');
+  await expectHydrated(page);
   const globe = radar(page);
   await expect(globe).toHaveAttribute('data-longitude', '0');
   const id = await globe.locator('[data-blip-id]').first().getAttribute('data-blip-id');
@@ -175,6 +185,7 @@ test('wireframe raster, dark and light layouts, zoom and re-entry remain sound',
   const observations = watch(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/functional-ai-radar');
+  await expectHydrated(page);
   const globe = radar(page);
   await expect(globe).toHaveAttribute('data-longitude', '0');
   await page.screenshot({ path: info.outputPath('dark-viewport.png') });
@@ -258,6 +269,7 @@ test('wireframe raster, dark and light layouts, zoom and re-entry remain sound',
   await page.screenshot({ path: info.outputPath('narrow-viewport.png') });
   await page.goto('/charts');
   await page.getByRole('link', { name: 'Functional & AI Radar', exact: true }).click();
+  await expectHydrated(page);
   await expect(globe).toHaveAttribute('data-longitude', '0');
   await expect(globe).toHaveAttribute('data-zoom', '1');
   await expect(page.getByRole('region', { name: 'Selected technology' })).toContainText(
@@ -278,6 +290,7 @@ test('mouse drag and foreign/cancelled pointers preserve identity and suppress a
 }) => {
   const observations = watch(page);
   await page.goto('/functional-ai-radar');
+  await expectHydrated(page);
   const globe = radar(page);
   await expect(globe).toHaveAttribute('data-longitude', '0');
   await globe.scrollIntoViewIfNeeded();
@@ -334,6 +347,7 @@ test('genuine Chromium-emulated touch rotates on the mobile viewport', async ({
   );
   const observations = watch(page);
   await page.goto('/functional-ai-radar');
+  await expectHydrated(page);
   const globe = radar(page);
   await expect(globe).toHaveAttribute('data-longitude', '0');
   await globe.scrollIntoViewIfNeeded();

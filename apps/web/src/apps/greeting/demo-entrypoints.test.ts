@@ -4,7 +4,9 @@ import { expect, it } from 'vitest';
 import animatedBar from '../animated-bar/app';
 import colorSpaces from '../color-spaces/app';
 import counter from '../counter/app';
+import earthquakeGlobe from '../earthquake-globe/app';
 import easingCurves from '../easing-curves/app';
+import functionalAiRadar from '../functional-ai-radar/app';
 import health from '../health/app';
 import histogramBrush from '../histogram-brush/app';
 import phyllotaxis from '../phyllotaxis/app';
@@ -19,7 +21,9 @@ it.each([
   ['Animated Bar', animatedBar],
   ['Color Spaces', colorSpaces],
   ['Counter', counter],
+  ['Earthquake Globe', earthquakeGlobe],
   ['Easing Curves', easingCurves],
+  ['Functional AI Radar', functionalAiRadar],
   ['Greeting', greeting],
   ['Health', health],
   ['Histogram Brush', histogramBrush],

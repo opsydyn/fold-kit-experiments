@@ -1,3 +1,5 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import {
   categoryIds,
   categoryLabels,
@@ -7,9 +9,8 @@ import {
   type RadarDataset,
   type RadarEntry,
 } from '@opsydyn/effect-three-samples/radar/data';
-import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
+import { svgMarkerActivation } from '../../ui/shared/svg-scene-input';
 import {
   countRings,
   filterPositions,
@@ -19,7 +20,7 @@ import {
 } from './geometry';
 import { Message } from './message';
 import type { Model } from './model';
-import { radarEvents, RadarPointerMount } from './mount';
+import { RadarPointerMount } from './mount';
 
 import * as styles from './radar.css';
 
@@ -29,201 +30,171 @@ const colours = {
   platforms: '#a56500',
   'languages-frameworks': '#bb2544',
 };
-const handledKeys = new Set([
-  'ArrowLeft',
-  'ArrowRight',
-  'ArrowUp',
-  'ArrowDown',
-  '+',
-  '=',
-  '-',
-  'Home',
-]);
-function control(h: HtmlBuilder<Message>, label: string, symbol: string, message: Message): Html {
-  return h.button(
-    [
-      h.Class(styles.button),
-      h.Type('button'),
-      h.AriaLabel(label),
-      h.Title(label),
-      h.OnClick(message),
-    ],
-    [h.span([h.Attribute('aria-hidden', 'true')], [symbol])],
-  );
+function control(
+  h: Html.H<Message>,
+  label: string,
+  symbol: string,
+  message: Message,
+): View.Content<Message> {
+  return h.button
+    .attrs({ class: styles.button, type: 'button', 'aria-label': label, title: label })
+    .on('click', message)
+    .children(h.span.attr('aria-hidden', 'true').children(symbol));
 }
-function marker(mark: RadarMark, model: Model, h: HtmlBuilder<Message>): Html {
+function marker(mark: RadarMark, model: Model, h: Html.H<Message>): View.Content<Message> {
   const selected = model.selection._tag === 'Selected' && model.selection.id === mark.entry.id;
-  return h.g(
-    [
-      h.Key(mark.entry.id),
-      h.Attribute('data-blip-id', mark.entry.id),
-      h.Role('button'),
-      h.Tabindex(0),
-      h.AriaLabel(
-        `Select ${mark.entry.name}, ${categoryLabels[mark.entry.category]}, ${ringLabels[mark.entry.ring]}`,
-      ),
-      h.AriaPressed(String(selected)),
-      h.OnClick(Message.ClickedBlip({ id: mark.entry.id, keyboard: false })),
-      h.OnKeyDownPreventDefault((key) =>
-        key === 'Enter' || key === ' '
-          ? Option.some(Message.ClickedBlip({ id: mark.entry.id, keyboard: true }))
-          : Option.none(),
-      ),
-      h.Style({ cursor: 'pointer' }),
-    ],
-    markerPaint(mark, selected, h),
-  );
+  return h
+    .el('g')
+    .attrs({
+      'data-blip-id': mark.entry.id,
+      role: 'button',
+      tabindex: String(0),
+      'aria-label': `Select ${mark.entry.name}, ${categoryLabels[mark.entry.category]}, ${ringLabels[mark.entry.ring]}`,
+      'aria-pressed': String(selected),
+      style: `cursor:pointer`,
+    })
+    .key(mark.entry.id)
+    .on(
+      'keydown',
+      svgMarkerActivation(Message.ClickedBlip({ id: mark.entry.id, keyboard: true })),
+      { preventDefault: true },
+    )
+    .children(markerPaint(mark, selected, h));
 }
-function markerPaint(mark: RadarMark, selected: boolean, h: HtmlBuilder<Message>): Html[] {
+function markerPaint(
+  mark: RadarMark,
+  selected: boolean,
+  h: Html.H<Message>,
+): View.Content<Message>[] {
   return [
-    h.title([], [`${mark.entry.name} - ${ringLabels[mark.entry.ring]}`]),
+    h.el('title').children(`${mark.entry.name} - ${ringLabels[mark.entry.ring]}`),
     ...(selected
       ? [
-          h.circle(
-            [
-              h.Attribute('data-selected-outline', 'true'),
-              h.Cx(String(mark.x)),
-              h.Cy(String(mark.y)),
-              h.R('25'),
-              h.Fill('none'),
-              h.Stroke('var(--page-text)'),
-              h.StrokeWidth('2'),
-            ],
-            [],
-          ),
+          h.el('circle').attrs({
+            'data-selected-outline': 'true',
+            cx: String(mark.x),
+            cy: String(mark.y),
+            r: '25',
+            fill: 'none',
+            stroke: 'var(--page-text)',
+            'stroke-width': '2',
+          }),
         ]
       : []),
-    h.circle(
-      [
-        h.Cx(String(mark.x)),
-        h.Cy(String(mark.y)),
-        h.R('20'),
-        h.Fill(colours[mark.entry.category]),
-        h.Stroke('var(--page-bg)'),
-        h.StrokeWidth('2'),
-      ],
-      [],
-    ),
-    h.text(
-      [
-        h.X(String(mark.x)),
-        h.Y(String(mark.y)),
-        h.TextAnchor('middle'),
-        h.Attribute('dominant-baseline', 'central'),
-        h.Fill('#ffffff'),
-        h.Style({ fontSize: '20px', fontWeight: '600', pointerEvents: 'none' }),
-      ],
-      [String(mark.displayNumber)],
-    ),
+    h.el('circle').attrs({
+      cx: String(mark.x),
+      cy: String(mark.y),
+      r: '20',
+      fill: colours[mark.entry.category],
+      stroke: 'var(--page-bg)',
+      'stroke-width': '2',
+    }),
+    h
+      .el('text')
+      .attrs({
+        x: String(mark.x),
+        y: String(mark.y),
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        fill: '#ffffff',
+        style: `font-size:20px;font-weight:600;pointer-events:none`,
+      })
+      .children(String(mark.displayNumber)),
   ];
 }
-function scene(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Html {
+function scene(model: Model, dataset: RadarDataset, h: Html.H<Message>): View.Content<Message> {
   const filters = { query: model.query, category: model.category, rings: model.enabledRings };
   const projected = projectRadar(layoutEntries(dataset.entries), filters, {
     center: model.center,
     zoom: model.zoom,
   });
-  const pointer = radarEvents.withMessage(h);
   const selectedId = model.selection._tag === 'Selected' ? model.selection.id : null;
   const selectedMarks = projected.marks.filter(({ entry }) => entry.id === selectedId);
-  return h.svg(
-    [
-      h.Class(styles.globe),
-      h.ViewBox('0 0 600 600'),
-      h.Role('group'),
-      h.Tabindex(0),
-      h.AriaLabel('Functional and AI radar'),
-      h.Attribute('data-longitude', String(model.center[0])),
-      h.Attribute('data-latitude', String(model.center[1])),
-      h.Attribute('data-zoom', String(model.zoom)),
-      h.OnMount(RadarPointerMount()),
-      pointer.OnFoldkitRadarPointer((message) => message),
-      h.OnKeyDownSelfPreventDefault((key, modifiers) =>
-        handledKeys.has(key) && !modifiers.ctrlKey && !modifiers.metaKey && !modifiers.altKey
-          ? Option.some(Message.PressedRadarKey({ key }))
-          : Option.none(),
-      ),
-    ],
-    [
-      h.title([], ['Functional and AI technology radar']),
-      h.desc(
-        [],
-        [
+  return h
+    .el('svg')
+    .attr('xmlns', 'http://www.w3.org/2000/svg')
+    .attrs({
+      class: styles.globe,
+      viewBox: '0 0 600 600',
+      role: 'group',
+      tabindex: String(0),
+      'aria-label': 'Functional and AI radar',
+      'data-longitude': String(model.center[0]),
+      'data-latitude': String(model.center[1]),
+      'data-zoom': String(model.zoom),
+    })
+    .onMount(RadarPointerMount())
+    .children(
+      h.el('title').children('Functional and AI technology radar'),
+      h
+        .el('desc')
+        .children(
           'Four wireframe shells: Adopt, Trial, Assess, Caution. Categories: Techniques, Tools, Platforms, Languages & Frameworks.',
-        ],
+        ),
+      h.el('defs').children(
+        h
+          .el('clipPath')
+          .attr('id', 'functional-ai-radar-viewport')
+          .children(h.el('rect').attrs({ x: '0', y: '0', width: '600', height: '600' })),
       ),
-      h.defs(
-        [],
-        [
-          h.clipPath(
-            [h.Id('functional-ai-radar-viewport')],
-            [h.rect([h.X('0'), h.Y('0'), h.Width('600'), h.Height('600')], [])],
-          ),
-        ],
-      ),
-      h.g(
-        [h.ClipPath('url(#functional-ai-radar-viewport)')],
-        [
+      h
+        .el('g')
+        .attr('clip-path', 'url(#functional-ai-radar-viewport)')
+        .children(
           ...projected.shells.map((shell) =>
-            h.g(
-              [
-                h.Attribute('data-shell', shell.ring),
-                h.Attribute('aria-hidden', 'true'),
-                h.Style({ pointerEvents: 'none' }),
-              ],
-              [
-                h.circle(
-                  [
-                    h.Attribute('data-shell-outline', shell.ring),
-                    h.Cx('300'),
-                    h.Cy('300'),
-                    h.R(String(shell.radius)),
-                    h.Fill('none'),
-                    h.Stroke('var(--chart-label)'),
-                    h.StrokeWidth(shell.ring === 'caution' ? '1.5' : '1'),
-                    h.StrokeOpacity('0.55'),
-                  ],
-                  [],
-                ),
+            h
+              .el('g')
+              .attrs({
+                'data-shell': shell.ring,
+                'aria-hidden': 'true',
+                style: `pointer-events:none`,
+              })
+              .children(
+                h.el('circle').attrs({
+                  'data-shell-outline': shell.ring,
+                  cx: '300',
+                  cy: '300',
+                  r: String(shell.radius),
+                  fill: 'none',
+                  stroke: 'var(--chart-label)',
+                  'stroke-width': shell.ring === 'caution' ? '1.5' : '1',
+                  'stroke-opacity': '0.55',
+                }),
                 ...shell.segments.map((segment) =>
-                  h.path(
-                    [
-                      h.D(segment.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join('')),
-                      h.Fill('none'),
-                      h.Stroke('var(--chart-label)'),
-                      h.StrokeWidth(shell.ring === 'caution' ? '1.5' : '1'),
-                      h.StrokeOpacity('0.55'),
-                    ],
-                    [],
-                  ),
+                  h.el('path').attrs({
+                    d: segment.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(''),
+                    fill: 'none',
+                    stroke: 'var(--chart-label)',
+                    'stroke-width': shell.ring === 'caution' ? '1.5' : '1',
+                    'stroke-opacity': '0.55',
+                  }),
                 ),
-              ],
-            ),
+              ),
           ),
-          // Keep focusable nodes stable; only the inert selection paint moves to the foreground.
-          h.g(
-            [h.Key('radar-targets')],
-            projected.marks.map((mark) => marker(mark, model, h)),
-          ),
-          h.g(
-            [
-              h.Key('radar-selection-paint'),
-              h.Attribute('aria-hidden', 'true'),
-              h.Style({ pointerEvents: 'none' }),
-            ],
-            selectedMarks.map((mark) =>
-              h.g(
-                [h.Attribute('data-selected-paint-id', mark.entry.id)],
-                markerPaint(mark, true, h),
+          h
+            .el('g')
+            .key('radar-targets')
+            .children(projected.marks.map((mark) => marker(mark, model, h))),
+          h
+            .el('g')
+            .attrs({ 'aria-hidden': 'true', style: `pointer-events:none` })
+            .key('radar-selection-paint')
+            .children(
+              selectedMarks.map((mark) =>
+                h
+                  .el('g')
+                  .attr('data-selected-paint-id', mark.entry.id)
+                  .children(markerPaint(mark, true, h)),
               ),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
+        ),
+    );
 }
-function inspection(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Html {
+function inspection(
+  model: Model,
+  dataset: RadarDataset,
+  h: Html.H<Message>,
+): View.Content<Message> {
   const selection = model.selection;
   const selected =
     selection._tag === 'Selected'
@@ -231,236 +202,170 @@ function inspection(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>
       : undefined;
   const content = selected
     ? [
-        h.h2([h.Class(styles.name), h.Attribute('data-summary-name', '')], [selected.name]),
-        h.p(
-          [h.Class(styles.summary)],
-          [
-            h.span([h.Attribute('data-summary-category', '')], [categoryLabels[selected.category]]),
-            h.span([h.Attribute('data-summary-ring', '')], [ringLabels[selected.ring]]),
-          ],
-        ),
-        h.p([h.Class(styles.description)], [selected.description]),
-        h.a(
-          [h.Href(selected.sourceUrl), h.Target('_blank'), h.Rel('noopener noreferrer')],
-          ['Project source'],
-        ),
+        h.h2.attrs({ class: styles.name, 'data-summary-name': '' }).children(selected.name),
+        h.p
+          .attr('class', styles.summary)
+          .children(
+            h.span.attr('data-summary-category', '').children(categoryLabels[selected.category]),
+            h.span.attr('data-summary-ring', '').children(ringLabels[selected.ring]),
+          ),
+        h.p.attr('class', styles.description).children(selected.description),
+        h.a
+          .attrs({ href: selected.sourceUrl, target: '_blank', rel: 'noopener noreferrer' })
+          .children('Project source'),
       ]
     : [
-        h.p(
-          [],
-          [
-            model.selection._tag === 'Cleared'
-              ? 'Selection cleared by filters'
-              : 'No technology selected',
-          ],
+        h.p.children(
+          model.selection._tag === 'Cleared'
+            ? 'Selection cleared by filters'
+            : 'No technology selected',
         ),
       ];
-  return h.section(
-    [
-      h.Class(styles.details),
-      h.Role('region'),
-      h.AriaLabel('Selected technology'),
-      h.Attribute('aria-live', 'polite'),
-      h.Attribute('aria-atomic', 'true'),
-    ],
-    content,
-  );
+  return h.section
+    .attrs({
+      class: styles.details,
+      role: 'region',
+      'aria-label': 'Selected technology',
+      'aria-live': 'polite',
+      'aria-atomic': 'true',
+    })
+    .children(content);
 }
 function row(
   entry: RadarEntry,
   displayNumber: number,
   model: Model,
-  h: HtmlBuilder<Message>,
-): Html {
+  h: Html.H<Message>,
+): View.Content<Message> {
   const selected = model.selection._tag === 'Selected' && model.selection.id === entry.id;
-  return h.tr(
-    [
-      h.Key(entry.id),
-      h.Attribute('data-entry-id', entry.id),
-      h.Attribute('aria-selected', String(selected)),
-    ],
-    [
-      h.td([], [String(displayNumber)]),
-      h.td(
-        [],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.Class(styles.inspect),
-              h.AriaLabel(`Inspect ${entry.name}`),
-              h.OnClick(Message.ClickedEntryRow({ id: entry.id })),
-            ],
-            [entry.name],
-          ),
-        ],
+  return h.tr
+    .attrs({ 'data-entry-id': entry.id, 'aria-selected': String(selected) })
+    .key(entry.id)
+    .children(
+      h.td.children(String(displayNumber)),
+      h.td.children(
+        h.button
+          .attrs({ type: 'button', class: styles.inspect, 'aria-label': `Inspect ${entry.name}` })
+          .on('click', Message.ClickedEntryRow({ id: entry.id }))
+          .children(entry.name),
       ),
-      h.td([], [categoryLabels[entry.category]]),
-      h.td([], [ringLabels[entry.ring]]),
-    ],
-  );
+      h.td.children(categoryLabels[entry.category]),
+      h.td.children(ringLabels[entry.ring]),
+    );
 }
-function ready(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Html {
+function ready(model: Model, dataset: RadarDataset, h: Html.H<Message>): View.Content<Message> {
   const positions = layoutEntries(dataset.entries);
   const filters = { query: model.query, category: model.category, rings: model.enabledRings };
   const matches = filterPositions(positions, filters);
   const counts = countRings(positions, filters);
-  return h.div(
-    [h.Class(styles.root)],
-    [
-      h.p([h.Class(styles.notice)], [demoNotice, ` / authored ${dataset.authoredOn}`]),
-      h.div(
-        [h.Class(styles.filters)],
-        [
-          h.label(
-            [h.Class(styles.field)],
-            [
-              'Search technologies',
-              h.input([
-                h.Class(styles.input),
-                h.Type('search'),
-                h.AriaLabel('Search technologies'),
-                h.Value(model.query),
-                h.OnInput((query) => Message.ChangedQuery({ query })),
-              ]),
-            ],
-          ),
-          h.label(
-            [h.Class(styles.field)],
-            [
-              'Category',
-              h.select(
-                [
-                  h.Class(styles.input),
-                  h.AriaLabel('Category'),
-                  h.Value(model.category),
-                  h.OnChange((value) =>
-                    Message.ChangedCategory({
-                      category:
-                        value === 'all'
-                          ? 'all'
-                          : (categoryIds.find((category) => category === value) ?? model.category),
-                    }),
-                  ),
-                ],
-                [
-                  h.option([h.Value('all')], ['All categories']),
-                  ...categoryIds.map((category) =>
-                    h.option([h.Value(category)], [categoryLabels[category]]),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+  return h.div.attr('class', styles.root).children(
+    h.p.attr('class', styles.notice).children(demoNotice, ` / authored ${dataset.authoredOn}`),
+    h.div.attr('class', styles.filters).children(
+      h.label.attr('class', styles.field).children(
+        'Search technologies',
+        h.input
+          .attrs({ class: styles.input, type: 'search', 'aria-label': 'Search technologies' })
+          .value(model.query)
+          .on('input', ({ value: query }) => Message.ChangedQuery({ query })),
       ),
-      h.fieldset(
-        [h.Class(styles.rings), h.AriaLabel('Rings')],
-        ringIds.map((ring) =>
-          h.label(
-            [h.Class(styles.checkLabel)],
-            [
-              h.input([
-                h.Type('checkbox'),
-                h.Checked(model.enabledRings.includes(ring)),
-                h.AriaLabel(`${ringLabels[ring]} (${counts[ring]})`),
-                h.OnClick(Message.ClickedRing({ ring })),
-              ]),
-              `${ringLabels[ring]} (${counts[ring]})`,
-            ],
+      h.label.attr('class', styles.field).children(
+        'Category',
+        h.select
+          .attrs({ class: styles.input, 'aria-label': 'Category' })
+          .value(model.category)
+          .on('change', ({ value }) =>
+            Message.ChangedCategory({
+              category:
+                value === 'all'
+                  ? 'all'
+                  : (categoryIds.find((category) => category === value) ?? model.category),
+            }),
+          )
+          .children(
+            h.option.attr('value', 'all').children('All categories'),
+            ...categoryIds.map((category) =>
+              h.option.attr('value', category).children(categoryLabels[category]),
+            ),
           ),
+      ),
+    ),
+    h.fieldset.attrs({ class: styles.rings, 'aria-label': 'Rings' }).children(
+      ringIds.map((ring) =>
+        h.label.attr('class', styles.checkLabel).children(
+          h.input
+            .attrs({ type: 'checkbox', 'aria-label': `${ringLabels[ring]} (${counts[ring]})` })
+            .checked(model.enabledRings.includes(ring))
+            .on('click', Message.ClickedRing({ ring })),
+          `${ringLabels[ring]} (${counts[ring]})`,
         ),
       ),
-      h.div(
-        [h.Class(styles.toolbar), h.Role('group'), h.AriaLabel('Radar controls')],
-        [
-          control(h, 'Turn west', '\u2190', Message.ClickedTurn({ direction: 'west' })),
-          control(h, 'Turn east', '\u2192', Message.ClickedTurn({ direction: 'east' })),
-          control(h, 'Turn north', '\u2191', Message.ClickedTurn({ direction: 'north' })),
-          control(h, 'Turn south', '\u2193', Message.ClickedTurn({ direction: 'south' })),
-          control(h, 'Zoom in', '+', Message.ClickedZoomIn()),
-          control(h, 'Zoom out', '\u2212', Message.ClickedZoomOut()),
-          control(h, 'Reset view', '\u21ba', Message.ClickedResetView()),
-          h.output([h.AriaLabel('Zoom')], [`${model.zoom.toFixed(2)}x`]),
-          h.button(
-            [h.Class(styles.clear), h.Type('button'), h.OnClick(Message.ClickedClearFilters())],
-            ['Clear filters'],
-          ),
-        ],
+    ),
+    h.div
+      .attrs({ class: styles.toolbar, role: 'group', 'aria-label': 'Radar controls' })
+      .children(
+        control(h, 'Turn west', '\u2190', Message.ClickedTurn({ direction: 'west' })),
+        control(h, 'Turn east', '\u2192', Message.ClickedTurn({ direction: 'east' })),
+        control(h, 'Turn north', '\u2191', Message.ClickedTurn({ direction: 'north' })),
+        control(h, 'Turn south', '\u2193', Message.ClickedTurn({ direction: 'south' })),
+        control(h, 'Zoom in', '+', Message.ClickedZoomIn()),
+        control(h, 'Zoom out', '\u2212', Message.ClickedZoomOut()),
+        control(h, 'Reset view', '\u21ba', Message.ClickedResetView()),
+        h.output.attr('aria-label', 'Zoom').children(`${model.zoom.toFixed(2)}x`),
+        h.button
+          .attrs({ class: styles.clear, type: 'button' })
+          .on('click', Message.ClickedClearFilters())
+          .children('Clear filters'),
       ),
-      h.div([h.Class(styles.workspace)], [inspection(model, dataset, h), scene(model, dataset, h)]),
-      h.div(
-        [h.Class(styles.legend)],
-        categoryIds.map((category) =>
-          h.span(
-            [],
-            [
-              h.span(
-                [
-                  h.Class(styles.swatch),
-                  h.Style({ background: colours[category] }),
-                  h.Attribute('aria-hidden', 'true'),
-                ],
-                [],
-              ),
-              categoryLabels[category],
-            ],
-          ),
+    h.div
+      .attr('class', styles.workspace)
+      .children(inspection(model, dataset, h), scene(model, dataset, h)),
+    h.div.attr('class', styles.legend).children(
+      categoryIds.map((category) =>
+        h.span.children(
+          h.span.attrs({
+            class: styles.swatch,
+            style: `background:${colours[category]}`,
+            'aria-hidden': 'true',
+          }),
+          categoryLabels[category],
         ),
       ),
-      h.p([h.Class(styles.notice)], ['Inner to outer: Adopt / Trial / Assess / Caution']),
-      h.div(
-        [h.Class(styles.tableScroll)],
-        [
-          h.table(
-            [h.Class(styles.table)],
-            [
-              h.caption(
-                [],
-                [
-                  `${matches.length} matching ${matches.length === 1 ? 'technology' : 'technologies'}`,
-                ],
-              ),
-              h.thead(
-                [],
-                [
-                  h.tr(
-                    [],
-                    ['#', 'Technology', 'Category', 'Ring'].map((heading) =>
-                      h.th([h.Attribute('scope', 'col')], [heading]),
-                    ),
-                  ),
-                ],
-              ),
-              h.tbody(
-                [],
-                matches.map(({ entry, displayNumber }) => row(entry, displayNumber, model, h)),
-              ),
-            ],
-          ),
-          ...(matches.length === 0
-            ? [
-                h.p(
-                  [],
-                  [
-                    dataset.entries.length === 0
-                      ? 'No technologies in this demo dataset'
-                      : 'No matching technologies',
-                  ],
+    ),
+    h.p.attr('class', styles.notice).children('Inner to outer: Adopt / Trial / Assess / Caution'),
+    h.div
+      .attr('class', styles.tableScroll)
+      .children(
+        h.table
+          .attr('class', styles.table)
+          .children(
+            h.caption.children(
+              `${matches.length} matching ${matches.length === 1 ? 'technology' : 'technologies'}`,
+            ),
+            h.thead.children(
+              h.tr.children(
+                ['#', 'Technology', 'Category', 'Ring'].map((heading) =>
+                  h.th.attr('scope', 'col').children(heading),
                 ),
-              ]
-            : []),
-        ],
+              ),
+            ),
+            h.tbody.children(
+              matches.map(({ entry, displayNumber }) => row(entry, displayNumber, model, h)),
+            ),
+          ),
+        ...(matches.length === 0
+          ? [
+              h.p.children(
+                dataset.entries.length === 0
+                  ? 'No technologies in this demo dataset'
+                  : 'No matching technologies',
+              ),
+            ]
+          : []),
       ),
-    ],
   );
 }
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  return {
-    title: 'Functional & AI Radar',
-    body:
-      model.data._tag === 'Ready'
-        ? ready(model, model.data.dataset, h)
-        : h.p([h.Role('alert')], [`Radar unavailable: ${model.data.reason}`]),
-  };
+export function view(model: Model, h: Html.H<Message>): View.Content<Message> {
+  return model.data._tag === 'Ready'
+    ? ready(model, model.data.dataset, h)
+    : h.p.attr('role', 'alert').children(`Radar unavailable: ${model.data.reason}`);
 }

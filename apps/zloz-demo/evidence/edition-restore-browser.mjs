@@ -49,6 +49,17 @@ async function run() {
     reducedMotion: 'reduce',
     colorScheme: 'light',
   });
+  await page.addInitScript(() => {
+    const read = File.prototype.arrayBuffer;
+    File.prototype.arrayBuffer = async function () {
+      if (this.name === 'held-edition-archive.json') {
+        await new Promise((resolve) =>
+          window.addEventListener('release-edition-archive', resolve, { once: true }),
+        );
+      }
+      return read.call(this);
+    };
+  });
   const errors = [];
   page.on('pageerror', (error) => errors.push(String(error)));
   const button = (name) => page.getByRole('button', { name, exact: true }).first();
@@ -92,11 +103,22 @@ async function run() {
   await surface.locator('[data-flow-handle="order"]').press('ArrowRight');
   const working = await snapshot();
   expect(working.graph).not.toEqual(original.graph);
-  await upload(archiveBytes);
   const notice = page.locator('.workbench-notice');
+  const cancelled = {
+    format: 'foldkit-zloz-editions',
+    version: 1,
+    editions: [{ ...archive[0], id: 'held-edition', name: 'Cancelled import' }],
+  };
+  await upload(Buffer.from(JSON.stringify(cancelled)), 'held-edition-archive.json');
+  await expect(button('Cancel archive import')).toBeVisible();
+  await button('Cancel archive import').click();
+  await expect(button('Cancel archive import')).toHaveCount(0);
+  await page.evaluate(() => window.dispatchEvent(new Event('release-edition-archive')));
+  await upload(archiveBytes);
   await expect(notice).toContainText('Edition archive imported.');
   const picker = page.getByRole('combobox', { name: 'Rewind to edition', exact: true });
   await expect(picker.locator('option')).toHaveCount(4);
+  await expect(picker.locator('option[value="held-edition"]')).toHaveCount(0);
   expect(await snapshot()).toEqual(working);
   await upload(archiveBytes);
   await expect(notice).toContainText('already available');

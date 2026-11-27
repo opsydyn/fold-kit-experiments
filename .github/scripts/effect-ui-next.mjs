@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 import {
   installFromRegistry,
@@ -11,6 +12,14 @@ import {
 } from './zloz-release-train.mjs';
 
 const version = '1.0.0-next.0';
+const renderer = '@opsydyn/astro-effect-ui';
+// Run 46079781017 published the renderer before npm's tag listing converged.
+const firstPublication = {
+  product: 'a82a94d6bb445d866470125ee5f306ec8fc9f63f',
+  controller: '46c0084654feecb51267ad1f7fc056d2f02f5fd2',
+  integrity:
+    'sha512-H0b6+OMU3CzLUcdrc1+TlwlvB7jPCU/VzGfKkyi5Soe3QgAMOc5ZBDWXc95C+eK6BykO8MCOR4bUVGZf6BaVzQ==',
+};
 // Each package follows its internal dependencies. Keep the new registry identity first.
 const components = [
   'astro-effect-ui',
@@ -30,6 +39,7 @@ const repository = 'https://github.com/opsydyn/fold-kit-experiments';
 const registry = 'https://registry.npmjs.org';
 const packageUrl = (name) => `${registry}/${encodeURIComponent(name)}`;
 const releaseUrl = (name) => `${packageUrl(name)}/${version}`;
+const tagsUrl = (name) => `${registry}/-/package/${encodeURIComponent(name)}/dist-tags`;
 const wait = (milliseconds) => new Promise((done) => setTimeout(done, milliseconds));
 const command = (file, args, cwd) => execFileSync(file, args, { cwd, stdio: 'inherit' });
 const quiet = (file, args, cwd) => execFileSync(file, args, { cwd, encoding: 'utf8' });
@@ -189,6 +199,33 @@ async function verifyRegistry(item, read, controlSha) {
   throw new Error(`Timed out verifying registry artifact and provenance for ${item.manifest.name}`);
 }
 
+async function verifyTags(name, previous) {
+  let removed = false;
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const tags = await registryRequest(tagsUrl(name));
+    if (tags?.next === version) {
+      if (previous.rendererFirstPublish && tags.latest === version) {
+        if (!removed) {
+          removed = true;
+          const result = spawnSync('npm', ['dist-tag', 'rm', name, 'latest'], {
+            stdio: 'inherit',
+          });
+          if (result.error) throw result.error;
+          if (result.status !== 0) {
+            console.warn(`npm retained the automatic first-publish latest tag for ${name}`);
+            return tags;
+          }
+        }
+      } else {
+        assert.equal(tags.latest, previous.latest, `Unexpected latest tag change on ${name}`);
+        return tags;
+      }
+    }
+    await wait(5_000);
+  }
+  throw new Error(`npm tags did not converge for ${name}`);
+}
+
 async function publish(sourceSha, directory) {
   const {
     catalog,
@@ -208,10 +245,27 @@ async function publish(sourceSha, directory) {
   for (const item of candidates) {
     verifyCandidate(item.manifest, item.component, seen, catalog['@effect/ui']);
     const { name } = item.manifest;
-    const metadata = await registryRequest(releaseUrl(name));
-    if (metadata) await verifyRegistry(item, () => registryRequest(releaseUrl(name)), controlSha);
-    const packument = await registryRequest(packageUrl(name));
-    existing.set(name, { metadata, latest: packument?.['dist-tags']?.latest });
+    item.archive = join(directory, 'archives', basename(item.archive));
+    const digest = createHash('sha512').update(readFileSync(item.archive)).digest('base64');
+    assert.equal(`sha512-${digest}`, item.integrity, `Staged archive changed for ${name}`);
+    const lookup = () => registryRequest(releaseUrl(name));
+    const metadata = await lookup();
+    const tags = await registryRequest(tagsUrl(name));
+    const resumedRenderer =
+      name === renderer &&
+      sourceSha === firstPublication.product &&
+      item.integrity === firstPublication.integrity &&
+      metadata?.dist.integrity === firstPublication.integrity;
+    if (resumedRenderer) assert([undefined, version].includes(tags?.latest));
+    const rendererFirstPublish = resumedRenderer || (name === renderer && tags === null);
+    const publishedSha = resumedRenderer ? firstPublication.controller : controlSha;
+    if (metadata) await verifyRegistry(item, lookup, publishedSha);
+    existing.set(name, {
+      metadata,
+      latest: rendererFirstPublish ? undefined : tags?.latest,
+      rendererFirstPublish,
+      publishedSha,
+    });
   }
   const receipts = [];
   for (const item of candidates) {
@@ -231,17 +285,9 @@ async function publish(sourceSha, directory) {
       ]);
       await waitForPublication(item.component, lookup);
     }
-    const receipt = await verifyRegistry(item, lookup, controlSha);
-    for (let attempt = 0; attempt < 24; attempt += 1) {
-      const tags = (await registryRequest(packageUrl(name)))?.['dist-tags'];
-      if (tags?.next === version) {
-        assert.equal(tags.latest, previous.latest, `Unexpected latest tag change on ${name}`);
-        break;
-      }
-      assert(attempt < 23, `next tag is missing for ${name}`);
-      await wait(5_000);
-    }
-    receipts.push({ ...receipt, productSourceSha: sourceSha, tag: 'next' });
+    const receipt = await verifyRegistry(item, lookup, previous.publishedSha);
+    const tags = await verifyTags(name, previous);
+    receipts.push({ ...receipt, productSourceSha: sourceSha, tag: 'next', tags });
     writeJson(join(directory, 'archives', 'published.json'), receipts);
     console.log(`Registry verified ${name}@${version} under next`);
   }

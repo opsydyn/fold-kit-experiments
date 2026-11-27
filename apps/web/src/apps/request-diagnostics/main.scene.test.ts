@@ -49,9 +49,14 @@ describe('request diagnostics navigation scene', () => {
       vi.unstubAllGlobals();
       host.remove();
     });
+    const added = vi.spyOn(document, 'addEventListener');
     const mount = BrowserHost.mountEffect(RequestDiagnostics, {}, host, { head: false });
     await Effect.runPromise(Scope.provide(mount, scope));
-    await vi.waitFor(() => expect(host.textContent).toContain('coldLoad'));
+    const listener = await vi.waitFor(() => {
+      const registration = added.mock.calls.find(([name]) => name === 'astro:before-swap');
+      expect(registration).toBeDefined();
+      return registration?.[1];
+    });
     const dispatch = (path: string) =>
       document.dispatchEvent(
         Object.assign(new Event('astro:before-swap'), { to: new URL(path, 'http://localhost') }),
@@ -62,6 +67,6 @@ describe('request diagnostics navigation scene', () => {
     );
     const removed = vi.spyOn(document, 'removeEventListener');
     await Effect.runPromise(Scope.close(scope, Exit.void));
-    expect(removed.mock.calls.some(([name]) => name === 'astro:before-swap')).toBe(true);
+    expect(removed).toHaveBeenCalledWith('astro:before-swap', listener);
   });
 });

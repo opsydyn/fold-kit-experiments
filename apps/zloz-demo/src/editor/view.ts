@@ -98,7 +98,6 @@ import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
   SearchScope,
-  BackgroundStyle,
   PortAnchorPreset,
   ReconnectLock,
   ReconnectionSnap,
@@ -108,6 +107,7 @@ import {
 import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
+import { nativeGraphActions } from './native-graph-actions';
 import { architecturePalettePanel } from './native-palette';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
 import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
@@ -1259,244 +1259,25 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
         'In Onion Architecture, arrows show source dependencies toward the domain.',
       ]),
-      ...(model.minimalMode
+      ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
         ? [
-            h.div(
-              [h.Role('group'), h.AriaLabel('Graph actions')],
-              [
-                button(
-                  'Undo',
-                  observedInput({ message: { type: 'UndoPressed' } }),
-                  model.editor.past.length === 0,
-                ),
-                button(
-                  'Redo',
-                  observedInput({ message: { type: 'RedoPressed' } }),
-                  model.editor.future.length === 0,
-                ),
-              ],
+            nativeGraphActions(
+              h,
+              {
+                model,
+                selectedNode,
+                showMeasurements: diagnostics.measurements,
+                showInstructions: diagnostics.instructions,
+                fitGroupDisabled:
+                  selectedNode !== undefined &&
+                  (policy.canResizeNode?.(selectedNode, model.editor.graph) ?? null) !== null,
+                forceDisabled: !model.minimalMode && !supportsForceLayout(model.editor.graph),
+              },
+              'architecture-effect-ui',
+              'graph-actions',
             ),
           ]
-        : [
-            h.div(
-              [
-                h.Role('group'),
-                h.AriaLabel('Graph actions'),
-                h.Style({
-                  display: 'flex',
-                  gap: '8px',
-                  'flex-wrap': 'wrap',
-                  'margin-bottom': '12px',
-                }),
-              ],
-              [
-                button('Add node', Message.ClickedAdd()),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaPressed(String(model.editor.snapToGrid)),
-                    h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(observedInput({ message: { type: 'GridSnapToggled' } })),
-                  ],
-                  ['Snap to grid'],
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaPressed(String(model.editor.snapToAlignment)),
-                    h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(observedInput({ message: { type: 'AlignmentSnapToggled' } })),
-                  ],
-                  ['Snap to nodes'],
-                ),
-                h.label(
-                  [],
-                  [
-                    'Background ',
-                    h.select(
-                      [
-                        h.AriaLabel('Background style'),
-                        h.Value(model.background),
-                        h.OnChange((value) =>
-                          Message.SelectedBackground({
-                            background: Schema.decodeUnknownSync(BackgroundStyle)(value),
-                          }),
-                        ),
-                      ],
-                      (
-                        [
-                          ['dots', 'Dots'],
-                          ['squares', 'Squares'],
-                          ['custom', 'Custom graph paper'],
-                          ['none', 'None'],
-                        ] as const
-                      ).map(([value, label]) =>
-                        h.option([h.Value(value), h.Selected(model.background === value)], [label]),
-                      ),
-                    ),
-                  ],
-                ),
-                ...(diagnostics.measurements
-                  ? [
-                      h.label(
-                        [
-                          h.Style({
-                            display: 'inline-flex',
-                            'align-items': 'center',
-                            gap: '6px',
-                          }),
-                        ],
-                        [
-                          'Grid spacing ',
-                          h.input([
-                            h.Type('number'),
-                            h.AriaLabel('Grid spacing'),
-                            h.Min('0'),
-                            h.Step('any'),
-                            h.Value(String(model.editor.gridSpacing)),
-                            h.Disabled(
-                              model.editor.readOnly || model.editor.gesture.type !== 'idle',
-                            ),
-                            h.Style({ width: '72px', 'min-height': '32px' }),
-                            h.OnChange((value) =>
-                              observedInput({
-                                message: { type: 'GridSpacingChanged', spacing: Number(value) },
-                              }),
-                            ),
-                          ]),
-                        ],
-                      ),
-                    ]
-                  : []),
-                button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
-                button(
-                  'Force layout',
-                  Message.ClickedArrange({ engine: 'force' }),
-                  !supportsForceLayout(model.editor.graph),
-                ),
-                button('Group selection', observedInput({ message: { type: 'SelectionGrouped' } })),
-                button('Ungroup', observedInput({ message: { type: 'SelectionUngrouped' } })),
-                ...(selectedNode?.kind === 'group'
-                  ? [
-                      button(
-                        'Fit group to contents',
-                        observedInput({
-                          message: { type: 'GroupFitClicked', id: selectedNode.id },
-                        }),
-                        model.editor.readOnly ||
-                          model.editor.gesture.type !== 'idle' ||
-                          (policy.canResizeNode?.(selectedNode, model.editor.graph) ?? null) !==
-                            null,
-                      ),
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
-                          h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                          h.OnClick(
-                            observedInput({
-                              message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
-                            }),
-                          ),
-                        ],
-                        ['Lock proportions'],
-                      ),
-                    ]
-                  : []),
-                ...(selectedNode?.parentId
-                  ? [
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.AriaPressed(String(selectedNode.extent === 'parent')),
-                          h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                          h.OnClick(
-                            observedInput({
-                              message: { type: 'NodeContainmentToggled', id: selectedNode.id },
-                            }),
-                          ),
-                        ],
-                        ['Keep inside parent'],
-                      ),
-                      h.button(
-                        [
-                          h.Type('button'),
-                          h.AriaPressed(String(selectedNode.expandParent ?? false)),
-                          h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                          h.OnClick(
-                            observedInput({
-                              message: { type: 'NodeExpansionToggled', id: selectedNode.id },
-                            }),
-                          ),
-                        ],
-                        ['Grow parent'],
-                      ),
-                    ]
-                  : []),
-                button('Copy', observedInput({ message: { type: 'CopyPressed' } })),
-                button('Paste', observedInput({ message: { type: 'PastePressed' } })),
-                button('Duplicate', observedInput({ message: { type: 'DuplicatePressed' } })),
-                button(
-                  'Undo',
-                  observedInput({ message: { type: 'UndoPressed' } }),
-                  model.editor.past.length === 0,
-                ),
-                button(
-                  'Redo',
-                  observedInput({ message: { type: 'RedoPressed' } }),
-                  model.editor.future.length === 0,
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaPressed(String(model.protectDeletions)),
-                    h.OnClick(Message.ClickedDeletionProtection()),
-                  ],
-                  ['Protect required items'],
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaPressed(String(model.protectPortEdits)),
-                    h.OnClick(Message.ClickedPortEditProtection()),
-                  ],
-                  ['Protect Review input'],
-                ),
-                button('Delete selected', observedInput({ message: { type: 'DeletePressed' } })),
-                h.label(
-                  [],
-                  [
-                    h.input([
-                      h.Type('checkbox'),
-                      h.Checked(model.includeCamera),
-                      h.OnClick(Message.ClickedIncludeCamera()),
-                    ]),
-                    'Include camera',
-                  ],
-                ),
-                button('Save', Message.ClickedSave()),
-                button('Load saved', Message.ClickedLoad()),
-                button('Export JSON', Message.ClickedExport()),
-                h.label(
-                  [],
-                  [
-                    'Import JSON',
-                    h.input([
-                      h.Key(`import-${model.importing?.id ?? 'ready'}`),
-                      h.Type('file'),
-                      h.Accept('.json,application/json'),
-                      h.OnFileChange((files) => Message.ChoseImportFiles({ files })),
-                      h.AriaDescribedBy('flow-import-help'),
-                    ]),
-                  ],
-                ),
-              ],
-            ),
-          ]),
-      h.p(
-        [h.Id('flow-import-help'), ...(diagnostics.instructions ? [] : [h.Style(hidden)])],
-        ['Importing JSON replaces the current diagram.'],
-      ),
+        : []),
       h.form(
         [
           h.Role('search'),

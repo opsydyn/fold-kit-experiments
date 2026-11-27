@@ -33,7 +33,7 @@ const syncChecked = Mount.make(
     ).pipe(Effect.map(() => Component.noop)),
 );
 
-function settingCheckbox<M>(h: Html.H<M>, checked: boolean, changed: M, disabled = false) {
+export function settingCheckbox<M>(h: Html.H<M>, checked: boolean, changed: M, disabled = false) {
   return h.input
     .attr('type', 'checkbox')
     .attr('checked', checked ? '' : undefined)

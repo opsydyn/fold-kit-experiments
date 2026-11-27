@@ -722,7 +722,6 @@
     "@effect/vitest": "4.1.6",
     "@foldkit/devtools-mcp": "0.26.0",
     "@foldkit/oxlint-plugin": "^0.15.3",
-    "@foldkit/vite-plugin": "^0.29.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/b612": "5.3.0",
     "@fontsource/b612-mono": "5.3.0",

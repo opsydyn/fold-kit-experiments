@@ -54,22 +54,39 @@ async function qualify() {
   };
   await expect(canvas).toHaveClass(/zloz-ui-surface/);
   await section('Appearance');
-  await page.getByRole('combobox', { name: 'Node toolbar', exact: true }).selectOption('standard');
+  const appearance = page.locator('[data-architecture-effect-ui="appearance-settings"]');
+  const design = (name) => appearance.getByRole('combobox', { name, exact: true });
+  await design('Node toolbar').selectOption('standard');
   const initial = await snapshot();
   await expect(page.locator('[data-flow-surface]')).toHaveCount(1);
   await section('Appearance');
-  await page
-    .getByRole('combobox', { name: 'Canvas help and status', exact: true })
-    .selectOption('card');
-  await page
-    .getByRole('combobox', { name: 'Connection list layout', exact: true })
-    .selectOption('rows');
+  await expect(design('Node toolbar')).toHaveValue('standard');
+  await design('Canvas help and status').selectOption('card');
+  await design('Connection list layout').selectOption('rows');
   await section('Diagnostics');
+  await expect(appearance).toHaveCount(0);
+  const settings = page.locator('[data-architecture-effect-ui="diagnostic-settings"]');
+  const diagnostic = (name) => settings.getByRole('checkbox', { name, exact: true });
+  const minimalMode = settings.getByRole('button', { name: 'Minimal mode', exact: true });
+  const culling = settings.getByRole('button', { name: 'Viewport culling', exact: true });
   const help = page.locator('[data-architecture-effect-ui="canvas-help"] [data-flow-help]');
   const status = page.locator('[data-architecture-effect-ui="canvas-status"] [data-flow-status]');
   await expect(help.locator('.canvas-help-card')).toBeVisible();
   await expect(status).toHaveAttribute('aria-live', 'polite');
   await expect(status.locator('.canvas-status-card')).toHaveText('3 nodes · 1 connection');
+  const instructions = diagnostic('Instructions');
+  const enabledDiagnostics = diagnostic('Show diagnostics');
+  await instructions.press('Space');
+  await expect(instructions).not.toBeChecked();
+  await expect(help).toHaveCSS('width', '1px');
+  await enabledDiagnostics.press('Space');
+  await expect(instructions).toBeDisabled();
+  await enabledDiagnostics.press('Space');
+  await expect(instructions).toBeEnabled();
+  await expect(instructions).not.toBeChecked();
+  await instructions.press('Space');
+  await expect(instructions).toBeChecked();
+  await expect(help).toHaveCSS('position', 'static');
   await expect(canvas).toHaveAccessibleDescription(/Drag a node title/);
   await section('Inspect');
   const connections = page.locator('[data-architecture-effect-ui="connection-list"]');
@@ -87,7 +104,8 @@ async function qualify() {
   await page.keyboard.press('Escape');
   await expect(edgeActions).toHaveCount(0);
   await section('Diagnostics');
-  await button('Minimal mode').click();
+  await minimalMode.click();
+  await expect(enabledDiagnostics).toBeDisabled();
   await expect(help).toHaveCSS('width', '1px');
   await expect(status).toHaveCSS('width', '1px');
   await expect(canvas).toHaveAccessibleDescription(/Drag a node title/);
@@ -103,7 +121,8 @@ async function qualify() {
   await row.press('ArrowUp');
   await expect(renameEdge).toBeFocused();
   await section('Diagnostics');
-  await button('Minimal mode').click();
+  await minimalMode.click();
+  await expect(enabledDiagnostics).toBeEnabled();
   await section('Ports');
   await expect(
     page.getByRole('combobox', { name: 'New connection source', exact: true }),
@@ -149,6 +168,8 @@ async function qualify() {
   await background.selectOption('dots');
   const snap = button('Snap to nodes');
   if ((await snap.getAttribute('aria-pressed')) !== 'true') await snap.click();
+  await section('Diagnostics');
+  await expect(culling).toBeEnabled();
   const reviewHandle = canvas.locator('[data-flow-handle="review"]');
   await canvas.scrollIntoViewIfNeeded();
   await reviewHandle.scrollIntoViewIfNeeded();
@@ -160,9 +181,13 @@ async function qualify() {
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
   await expect(canvas).toHaveAttribute('data-flow-gesture', 'node-drag');
+  await expect(minimalMode).toBeDisabled();
+  await expect(culling).toBeDisabled();
+  await expect(enabledDiagnostics).toBeDisabled();
   await page.mouse.move(point.x, point.y - 77, { steps: 6 });
   await expect(canvas.locator('[data-flow-alignment-guide="y"]')).toHaveCount(1);
   await page.keyboard.press('Escape');
+  await expect(culling).toBeEnabled();
   await page.mouse.up();
   await expect(canvas.locator('[data-flow-alignment-guide]')).toHaveCount(0);
   expect(await snapshot()).toEqual(initial);

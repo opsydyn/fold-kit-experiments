@@ -37,6 +37,7 @@ import { editionArchiveByteLimit } from './history';
 import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeDetachedReview } from './native-detached-review';
 import { workbenchThemes } from './theme';
 import type { Return } from './transition';
 
@@ -721,9 +722,11 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     ],
   );
 }
-export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
   const review = model.receiptReview;
   if (!review) return h.div([], []);
+  const onEvent = (message: EditorEvent) =>
+    Message.ObservedReceiptInput({ id: review.id, side: review.side, message });
   const scheme =
     model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
   return h.div(
@@ -739,23 +742,35 @@ export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
           ),
         ],
       ),
-      zlozView(h, review.editor, {
-        id: `receipt-${review.id}-${review.side}`,
-        label: 'Read-only receipt diagram',
-        height: 'fill',
-        theme: workbenchThemes[scheme ?? 'light'],
-        diagnostics: false,
-        background: { type: 'dots' },
-        renderNodeShell: (context, builder) =>
-          zlozEventStormingNode(context, builder) ??
-          zlozC4Node(context, builder) ??
-          zlozDddNode(context, builder),
-        renderGroupShell: (context, builder) =>
-          zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
-        renderLayout: (parts) => parts.canvas,
-        onEvent: (message) =>
-          Message.ObservedReceiptInput({ id: review.id, side: review.side, message }),
-      }),
+      native
+        ? nativeDetachedReview(
+            h,
+            {
+              id: `receipt-${review.id}-${review.side}`,
+              label: 'Read-only receipt diagram',
+              editor: review.editor,
+              scheme: scheme ?? 'light',
+              onEvent,
+            },
+            'architecture-detached-review',
+            `receipt-${review.id}-${review.side}`,
+          )
+        : zlozView(h, review.editor, {
+            id: `receipt-${review.id}-${review.side}`,
+            label: 'Read-only receipt diagram',
+            height: 'fill',
+            theme: workbenchThemes[scheme ?? 'light'],
+            diagnostics: false,
+            background: { type: 'dots' },
+            renderNodeShell: (context, builder) =>
+              zlozEventStormingNode(context, builder) ??
+              zlozC4Node(context, builder) ??
+              zlozDddNode(context, builder),
+            renderGroupShell: (context, builder) =>
+              zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
+            renderLayout: (parts) => parts.canvas,
+            onEvent,
+          }),
     ],
   );
 }

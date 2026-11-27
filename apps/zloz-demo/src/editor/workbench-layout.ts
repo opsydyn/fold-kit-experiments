@@ -308,9 +308,9 @@ export function workbenchLayout(
           model.alchemyReview.review
             ? alchemyReviewCanvas(model, h)
             : packetReviewActive(model)
-              ? packetReviewCanvas(model, h)
+              ? packetReviewCanvas(model, h, nativeCanvas !== undefined)
               : model.receiptReview
-                ? receiptReviewCanvas(model, h)
+                ? receiptReviewCanvas(model, h, nativeCanvas !== undefined)
                 : (nativeCanvas ?? parts.canvas),
           ...(model.historyReview &&
           !model.receiptReview &&

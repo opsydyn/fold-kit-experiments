@@ -310,6 +310,100 @@ async function qualify() {
   await button('Back to present').click();
   await expect(canvas).toHaveAttribute('data-flow-readonly', 'false');
   expect(await snapshot()).toEqual(working);
+
+  const assertDetachedReadOnly = async (diagram, id) => {
+    await expect(diagram).toHaveClass(/zloz-ui-surface/);
+    await expect(diagram).toHaveAttribute('data-flow-readonly', 'true');
+    const node = diagram.locator(`[data-flow-node="${id}"]`);
+    await expect(node).toBeVisible();
+    const frame = await node.getAttribute('style');
+    const handle = node.locator('[data-flow-handle]');
+    await handle.press('Delete');
+    await handle.press('ArrowRight');
+    await expect(node).toHaveAttribute('style', frame);
+    await expect(diagram.locator('[data-flow-port]:enabled')).toHaveCount(0);
+    await diagram.scrollIntoViewIfNeeded();
+    const world = diagram.locator('.zloz-ui-world');
+    const beforeZoom = await world.evaluate((element) => new DOMMatrix(element.style.transform).a);
+    const bounds = await diagram.boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.wheel(0, -120);
+    await expect
+      .poll(() => world.evaluate((element) => new DOMMatrix(element.style.transform).a))
+      .toBeGreaterThan(beforeZoom);
+    await expect(node).toHaveAttribute('style', frame);
+  };
+
+  await section('Review packets');
+  const packetInput = page.getByLabel('Open review packet', { exact: true });
+  await expect(packetInput).toBeEnabled();
+  await packetInput.setInputFiles(
+    fileURLToPath(
+      new URL(
+        '../../../packages/foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json',
+        import.meta.url,
+      ),
+    ),
+  );
+  const packet = page.getByRole('region', { name: 'Read-only packet diagram', exact: true });
+  await assertDetachedReadOnly(packet, 'note:2');
+  await button('Fit packet').click();
+  const baseline = page.getByRole('button', { name: /^Baseline:/ });
+  await baseline.click();
+  await expect(baseline).toHaveAttribute('aria-pressed', 'true');
+  const baselineCanvas = packet.locator('[data-flow-node]');
+  await expect(baselineCanvas.first()).toBeVisible();
+  const baselineNodes = await baselineCanvas.evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-flow-node')),
+  );
+  await expect(packetInput).toBeEnabled();
+  await packetInput.setInputFiles({
+    name: 'broken.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{broken'),
+  });
+  await expect(page.getByRole('status').filter({ hasText: 'invalid-json' })).toBeVisible();
+  expect(
+    await baselineCanvas.evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('data-flow-node')),
+    ),
+  ).toEqual(baselineNodes);
+  await page
+    .getByRole('region', { name: 'Diagram canvas', exact: true })
+    .getByRole('button', { name: 'Close packet review', exact: true })
+    .click();
+  await expect(packet).toHaveCount(0);
+  expect(await snapshot()).toEqual(working);
+
+  await section('C4 mapping review');
+  const receipt = page.getByRole('region', { name: 'Portable receipt comparison', exact: true });
+  await receipt
+    .getByLabel('Open conversion receipt', { exact: true })
+    .setInputFiles(
+      fileURLToPath(
+        new URL(
+          '../../../packages/foldkit-zloz/test/fixtures/c4-conversion-v1.json',
+          import.meta.url,
+        ),
+      ),
+    );
+  const receiptCanvas = page.getByRole('region', {
+    name: 'Read-only receipt diagram',
+    exact: true,
+  });
+  await assertDetachedReadOnly(receiptCanvas, 'system');
+  await expect(
+    receiptCanvas.getByRole('button', { name: 'Select Payment system', exact: true }),
+  ).toBeVisible();
+  await receipt.getByRole('button', { name: 'Before conversion', exact: true }).click();
+  await expect(
+    receiptCanvas.getByRole('button', { name: 'Select Provider', exact: true }),
+  ).toBeVisible();
+  await assertDetachedReadOnly(receiptCanvas, 'system');
+  await button('Close comparison').click();
+  await expect(receiptCanvas).toHaveCount(0);
+  expect(await snapshot()).toEqual(working);
+
   expect(errors).toEqual([]);
   console.log(
     engine + ': native Architecture canvas shares the working model, actions, export and Undo',

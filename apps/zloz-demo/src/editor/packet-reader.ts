@@ -25,6 +25,7 @@ import { ReadReviewPacket } from './command';
 import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { nativeDetachedReview } from './native-detached-review';
 import { receiptAllowsMessage } from './receipt-review';
 import { workbenchThemes } from './theme';
 import type { Return } from './transition';
@@ -213,7 +214,7 @@ export function packetReaderPanel(model: Model, h: HtmlBuilder<Message>) {
     ),
   ];
 }
-export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
   const current = model.packetPreview,
     state = packetReaderState(model);
   if (!current || !state.review) return h.div([], []);
@@ -253,22 +254,35 @@ export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
           ),
         ],
       ),
-      zlozView(h, current.editor, {
-        id: `packet-${current.id}-${current.side}`,
-        label: 'Read-only packet diagram',
-        height: 'fill',
-        theme: workbenchThemes[scheme ?? 'light'],
-        diagnostics: false,
-        background: { type: 'dots' },
-        renderNodeShell: (context, builder) =>
-          zlozEventStormingNode(context, builder) ??
-          zlozC4Node(context, builder) ??
-          zlozDddNode(context, builder),
-        renderGroupShell: (context, builder) =>
-          zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
-        renderLayout: (parts) => parts.canvas,
-        onEvent,
-      }),
+      native
+        ? nativeDetachedReview(
+            h,
+            {
+              id: `packet-${current.id}-${current.side}`,
+              label: 'Read-only packet diagram',
+              editor: current.editor,
+              scheme: scheme ?? 'light',
+              onEvent,
+            },
+            'architecture-detached-review',
+            `packet-${current.id}-${current.side}`,
+          )
+        : zlozView(h, current.editor, {
+            id: `packet-${current.id}-${current.side}`,
+            label: 'Read-only packet diagram',
+            height: 'fill',
+            theme: workbenchThemes[scheme ?? 'light'],
+            diagnostics: false,
+            background: { type: 'dots' },
+            renderNodeShell: (context, builder) =>
+              zlozEventStormingNode(context, builder) ??
+              zlozC4Node(context, builder) ??
+              zlozDddNode(context, builder),
+            renderGroupShell: (context, builder) =>
+              zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
+            renderLayout: (parts) => parts.canvas,
+            onEvent,
+          }),
     ],
   );
 }

@@ -129,6 +129,7 @@ export type NativeWaypointOptions<M> = Readonly<{
   onEdit: (event: EditorEvent) => M;
   measurements?: boolean;
   instructions?: boolean;
+  presentation?: Readonly<{ className: string; heading: string; marker: string }> | undefined;
 }>;
 
 export function waypointControls<M>(
@@ -137,6 +138,7 @@ export function waypointControls<M>(
   options: NativeWaypointOptions<M>,
 ) {
   const inverseZoom = 1 / context.zoom;
+  const presentation = options.presentation;
   const action = ({ label, event, reason }: ZlozEdgeWaypointAction) =>
     h.button
       .key(event.type === 'EdgeWaypointRemoved' ? `remove:${event.waypointId}` : label)
@@ -151,9 +153,13 @@ export function waypointControls<M>(
       .children(label);
   return h.div
     .key(`waypoints:${context.edge.id}`)
+    .class(presentation?.className)
     .attr('data-flow-waypoint-controls', context.edge.id)
     .attr('role', 'group')
-    .attr('aria-label', `Waypoints for ${context.edge.label ?? 'selected connection'}`)
+    .attr(
+      'aria-label',
+      presentation?.heading ?? `Waypoints for ${context.edge.label ?? 'selected connection'}`,
+    )
     .children(
       ...context.handles.map((handle) =>
         h.div
@@ -175,7 +181,7 @@ export function waypointControls<M>(
                   'Drag or use arrow keys. Shift accelerates, Alt bypasses grid, Delete removes, Escape cancels.',
               )
               .disabled(handle.reason !== null)
-              .children('↔'),
+              .children(presentation?.marker ?? '↔'),
             options.measurements !== false
               ? h.span
                   .class('zloz-ui-waypoint-readout')
@@ -197,6 +203,7 @@ export function waypointControls<M>(
           transform: `translate(-100%, -100%) scale(${inverseZoom})`,
         })
         .children(
+          presentation ? h.strong.children(presentation.heading) : null,
           action(context.add),
           action(context.reset),
           ...context.handles.map(({ remove }) => action(remove)),

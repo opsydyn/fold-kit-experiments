@@ -129,6 +129,80 @@ async function qualify() {
   expect(await snapshot()).toEqual(initial);
 
   await section('Appearance');
+  const waypointDesign = page.getByRole('combobox', { name: 'Waypoint controls', exact: true });
+  await waypointDesign.selectOption('custom');
+  const edge = canvas.locator('[data-flow-edge="draft-review"]');
+  const selectEdge = async () => {
+    if ((await edge.getAttribute('data-selected')) === 'true') return;
+    await canvas.scrollIntoViewIfNeeded();
+    const edgePoint = await edge.evaluate((path) => {
+      const point = path.getPointAtLength(path.getTotalLength() * 0.2);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM());
+      return { x: screen.x, y: screen.y };
+    });
+    await page.mouse.click(edgePoint.x, edgePoint.y);
+    await expect(edge).toHaveAttribute('data-selected', 'true');
+  };
+  await selectEdge();
+  const routingStudio = canvas.getByRole('group', { name: 'Routing studio', exact: true });
+  const addBend = routingStudio.getByRole('button', { name: 'Add bend', exact: true });
+  await expect(addBend).toBeVisible();
+  await addBend.click();
+  const bend = routingStudio.getByRole('button', { name: 'Move bend 1', exact: true });
+  await expect(bend).toHaveText('◆');
+  const bends = (graph) => graph.edges.find(({ id }) => id === 'draft-review').waypoints;
+  const added = await snapshot();
+  expect(bends(added)).toHaveLength(1);
+  await bend.press('ArrowRight');
+  const moved = await snapshot();
+  expect(bends(moved)).toEqual([
+    {
+      ...bends(added)[0],
+      position: { ...bends(added)[0].position, x: bends(added)[0].position.x + 1 },
+    },
+  ]);
+  await button('Undo').click();
+  expect(await snapshot()).toEqual(added);
+
+  await selectEdge();
+  await bend.scrollIntoViewIfNeeded();
+  const bendPoint = await bend.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  });
+  await page.mouse.move(bendPoint.x, bendPoint.y);
+  await page.mouse.down();
+  await page.mouse.move(bendPoint.x + 30, bendPoint.y + 12, { steps: 5 });
+  await expect(canvas).toHaveAttribute('data-flow-gesture', 'edge-waypoint-drag');
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(canvas).toHaveAttribute('data-flow-gesture', 'idle');
+  expect(await snapshot()).toEqual(added);
+
+  await section('Appearance');
+  const protectBends = page.getByRole('checkbox', { name: 'Protect bend editing', exact: true });
+  await protectBends.check();
+  await selectEdge();
+  await expect(bend).toBeDisabled();
+  await expect(addBend).toBeDisabled();
+  await expect(routingStudio.getByRole('button', { name: 'Remove bend 1' })).toBeDisabled();
+  expect(await snapshot()).toEqual(added);
+  await section('Appearance');
+  await protectBends.uncheck();
+  await selectEdge();
+  await routingStudio.getByRole('button', { name: 'Remove bend 1' }).click();
+  expect(await snapshot()).toEqual(initial);
+  await button('Undo').click();
+  expect(await snapshot()).toEqual(added);
+  await button('Undo').click();
+  expect(await snapshot()).toEqual(initial);
+  await section('Appearance');
+  await selectEdge();
+  await waypointDesign.selectOption('off');
+  await expect(canvas.getByRole('button', { name: 'Add bend', exact: true })).toHaveCount(0);
+  await waypointDesign.selectOption('native');
+  await expect(canvas.getByRole('button', { name: 'Add bend', exact: true })).toBeVisible();
+
   await page.getByRole('combobox', { name: 'Node design', exact: true }).selectOption('orbits');
   await expect(canvas.locator('[data-orbit-body="source"] circle').first()).toBeVisible();
   await expect(button('Select Draft')).toBeVisible();

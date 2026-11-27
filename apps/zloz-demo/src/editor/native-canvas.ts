@@ -266,7 +266,19 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
       edgeWaypoints:
         model.waypointDesign === 'off'
           ? undefined
-          : { onEdit: observe, measurements, instructions: !model.minimalMode },
+          : {
+              onEdit: observe,
+              measurements,
+              instructions: !model.minimalMode,
+              presentation:
+                model.waypointDesign === 'custom'
+                  ? {
+                      className: 'architecture-routing-studio',
+                      heading: 'Routing studio',
+                      marker: '◆',
+                    }
+                  : undefined,
+            },
       edgeGeometry: model.edgeDesign === 'raised' ? raisedEdge : undefined,
       edgeAppearance: (edge) =>
         edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},

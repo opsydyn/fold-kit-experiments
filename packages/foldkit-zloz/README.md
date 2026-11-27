@@ -47,7 +47,8 @@ enables the controls on its working model.
 Set `portAnchors` to expose port position handles on selected nodes. Set
 `edgeWaypoints.onEdit` to route bend creation, removal and reset to the same
 editor as the canvas input. Optional anchor guides and waypoint measurements
-can follow the host's diagnostics settings.
+can follow the host's diagnostics settings. Set `edgeWaypoints.presentation`
+to supply a CSS class, panel heading and handle marker for the same controls.
 
 For placement, compose `placementHost` with `placementPalette` and the graph
 surface, and pass `placementPreview` to the surface's `worldOverlay`. Resolve

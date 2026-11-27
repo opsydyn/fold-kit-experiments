@@ -49,7 +49,10 @@ async function run() {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  const evidence = (file) => fileURLToPath(new URL(file, import.meta.url));
+  const evidence = (file) =>
+    process.env.ZLOZ_CAPTURE_DIR
+      ? resolve(process.env.ZLOZ_CAPTURE_DIR, file)
+      : fileURLToPath(new URL(file, import.meta.url));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('[data-flow-node="review"]').waitFor();
   await page

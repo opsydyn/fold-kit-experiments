@@ -932,46 +932,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     png:
       model.sidebarSection === 'png' && !model.sidebarCollapsed
         ? [
-            h.label(
-              [],
-              [
-                h.input([
-                  h.Type('checkbox'),
-                  h.Checked(model.retainedPngLayout),
-                  h.OnClick(Message.ClickedRetainedPngLayout()),
-                ]),
-                'Use retained layout in PNG',
-              ],
-            ),
-            h.p(
-              [],
-              [
-                model.retainedPngLayout
-                  ? model.editor.routes.length > 0
-                    ? 'Retained routes are included. PNG still flattens vector and label artwork.'
-                    : 'Arrange with ELK before reviewing retained routes.'
-                  : 'Canonical PNG geometry is selected. SVG has its own setting.',
-              ],
-            ),
-            h.label(
-              [],
-              [
-                h.input([
-                  h.Type('checkbox'),
-                  h.Checked(model.protectPngDownloads),
-                  h.OnClick(Message.ClickedPngProtection()),
-                ]),
-                'Protect PNG exports',
-              ],
-            ),
-            button(
-              model.customPngReview ? 'Use native PNG controls' : 'Use custom PNG controls',
-              Message.ClickedCustomPngReview(),
-            ),
             exportReviewPanel(h, {
               kind: 'png',
               controls: workbenchPngReview(model),
               custom: model.customPngReview,
+              retained: model.retainedPngLayout,
+              hasRoutes: model.editor.routes.length > 0,
+              downloadProtected: model.protectPngDownloads,
+              reviewing: model.historyReview !== null,
               diagnostics,
             }),
           ]
@@ -979,47 +947,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     svg:
       model.sidebarSection === 'svg' && !model.sidebarCollapsed
         ? [
-            h.p([], ['Canonical model artwork, with visible portability and fidelity findings.']),
-            h.label(
-              [],
-              [
-                h.input([
-                  h.Type('checkbox'),
-                  h.Checked(model.retainedSvgLayout),
-                  h.OnClick(Message.ClickedRetainedSvgLayout()),
-                ]),
-                'Use retained layout in SVG',
-              ],
-            ),
-            h.p(
-              [],
-              [
-                model.retainedSvgLayout
-                  ? model.editor.routes.length > 0
-                    ? 'Retained routes are included. Label artwork remains subject to fidelity findings.'
-                    : 'Arrange with ELK before reviewing retained routes.'
-                  : 'Canonical SVG geometry is selected.',
-              ],
-            ),
-            h.label(
-              [],
-              [
-                h.input([
-                  h.Type('checkbox'),
-                  h.Checked(model.protectSvgDownloads),
-                  h.OnClick(Message.ClickedSvgDownloadProtection()),
-                ]),
-                'Protect SVG downloads',
-              ],
-            ),
-            button(
-              model.customSvgReview ? 'Use native SVG controls' : 'Use custom SVG controls',
-              Message.ClickedCustomSvgReview(),
-            ),
             exportReviewPanel(h, {
               kind: 'svg',
               controls: workbenchSvgReview(model),
               custom: model.customSvgReview,
+              retained: model.retainedSvgLayout,
+              hasRoutes: model.editor.routes.length > 0,
+              downloadProtected: model.protectSvgDownloads,
+              reviewing: model.historyReview !== null,
               diagnostics,
             }),
           ]

@@ -1,4 +1,7 @@
+import { BrowserHost } from '@effect/ui/html';
 import { Effect, Exit, Scope } from 'effect';
+
+import type { staticChart } from '../apps/spec-app';
 
 export function mountEffectUi(
   // Storybook owns the scope and the callback supplies the mount.
@@ -25,4 +28,8 @@ export function mountEffectUi(
     );
   });
   return host;
+}
+
+export function mountStaticChart(chart: ReturnType<typeof staticChart>): HTMLElement {
+  return mountEffectUi((host) => BrowserHost.mountEffect(chart, {}, host, { head: false }));
 }

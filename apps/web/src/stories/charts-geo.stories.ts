@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/html';
 
-import * as ChoroplethApp from '../apps/choropleth/main';
-import * as MapProjectionsApp from '../apps/map-projections/main';
-import * as TileGridMapApp from '../apps/tile-grid-map/main';
+import { Chart as ChoroplethApp } from '../apps/choropleth/main';
+import { Chart as MapProjectionsApp } from '../apps/map-projections/main';
+import { Chart as TileGridMapApp } from '../apps/tile-grid-map/main';
 import * as ZoomableChoroplethApp from '../apps/zoomable-choropleth/main';
 import { mountFoldkit } from './mount';
+import { mountStaticChart } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Geographic',
@@ -12,7 +13,7 @@ export default {
 
 export const MapProjections: StoryObj = {
   name: 'Map projections',
-  render: () => mountFoldkit(MapProjectionsApp),
+  render: () => mountStaticChart(MapProjectionsApp),
   parameters: {
     docs: {
       description: {
@@ -24,7 +25,7 @@ export const MapProjections: StoryObj = {
 
 export const ChoroplethMap: StoryObj = {
   name: 'Choropleth world map',
-  render: () => mountFoldkit(ChoroplethApp),
+  render: () => mountStaticChart(ChoroplethApp),
   parameters: {
     docs: {
       description: {
@@ -50,7 +51,7 @@ export const ZoomableChoroplethMap: StoryObj = {
 
 export const TileGridMap: StoryObj = {
   name: 'Tile grid map',
-  render: () => mountFoldkit(TileGridMapApp),
+  render: () => mountStaticChart(TileGridMapApp),
   parameters: {
     docs: {
       description: {

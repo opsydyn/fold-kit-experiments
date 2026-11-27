@@ -1,4 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-// A plot spec, pre-rendered: the chart ships as static HTML with no JavaScript.
-export default lazyApp(() => import('./main'), { prerender: true });
+import { Chart } from './main';
+
+export default astroComponent(Chart);

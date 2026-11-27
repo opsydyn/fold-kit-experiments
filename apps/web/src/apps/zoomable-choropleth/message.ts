@@ -1,6 +1,6 @@
-import { defineMessageUnion } from 'foldkit/message';
+import { UiSchema } from '@effect/ui';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ZoomedIn: {},
   ZoomedOut: {},
   PannedWest: {},

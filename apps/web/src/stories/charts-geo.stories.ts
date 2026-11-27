@@ -1,11 +1,11 @@
+import { BrowserHost } from '@effect/ui/html';
 import type { Meta, StoryObj } from '@storybook/html';
 
 import { Chart as ChoroplethApp } from '../apps/choropleth/main';
 import { Chart as MapProjectionsApp } from '../apps/map-projections/main';
 import { Chart as TileGridMapApp } from '../apps/tile-grid-map/main';
-import * as ZoomableChoroplethApp from '../apps/zoomable-choropleth/main';
-import { mountFoldkit } from './mount';
-import { mountStaticChart } from './mount-effect-ui';
+import { ZoomableChoropleth as ZoomableChoroplethApp } from '../apps/zoomable-choropleth/main';
+import { mountEffectUi, mountStaticChart } from './mount-effect-ui';
 
 export default {
   title: 'Charts/Geographic',
@@ -38,12 +38,15 @@ export const ChoroplethMap: StoryObj = {
 
 export const ZoomableChoroplethMap: StoryObj = {
   name: 'Zoomable choropleth map',
-  render: () => mountFoldkit(ZoomableChoroplethApp),
+  render: () =>
+    mountEffectUi((host) =>
+      BrowserHost.mountEffect(ZoomableChoroplethApp, {}, host, { head: false }),
+    ),
   parameters: {
     docs: {
       description: {
         story:
-          'World internet penetration % with zoom (+/−/⟲) and drag-to-pan. Applies TransformMatrix from math/zoom to the SVG countries group. Stroke width counter-scales so borders stay crisp at any zoom level.',
+          'Zoom, pan, and reset the map of world internet penetration using the viewport controls.',
       },
     },
   },

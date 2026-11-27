@@ -11,6 +11,7 @@ import phyllotaxis from '../phyllotaxis/app';
 import profile from '../profile/app';
 import timestamp from '../timestamp/app';
 import welcome from '../welcome/app';
+import zoomableChoropleth from '../zoomable-choropleth/app';
 import zoomableLine from '../zoomable-line/app';
 import greeting from './app';
 
@@ -26,6 +27,7 @@ it.each([
   ['Profile', profile],
   ['Timestamp', timestamp],
   ['Welcome', welcome],
+  ['Zoomable Choropleth', zoomableChoropleth],
   ['Zoomable Line', zoomableLine],
 ])('%s uses an Effect UI Astro entry point', (_name, app) => {
   expect(Component.isComponent(app)).toBe(true);

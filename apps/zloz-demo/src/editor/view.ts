@@ -12,9 +12,7 @@ import {
   captureEdition,
   compareEditions,
   resolveEditionRestore,
-  defaultFitViewPadding,
   architectureNodePresets,
-  defaultZoomLimits,
   type EdgePathStyle,
   type ZlozNode,
   type EditorEvent,
@@ -91,7 +89,6 @@ import {
   zlozPortPositionSave,
   zlozPortPositionCancel,
   type ZlozPortPositionDraftChange,
-  zlozViewportControl,
   resolveZlozDiagnostics,
   type ZlozBackground,
   type ZlozNodeRenderContext,
@@ -118,8 +115,6 @@ import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
   SearchScope,
-  NavigationDesign,
-  WheelNavigation,
   BackgroundStyle,
   PortAnchorPreset,
   ConnectionDesign,
@@ -2489,174 +2484,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
     ],
-    navigation: [
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Box selection match',
-          h.select(
-            [
-              h.AriaLabel('Box selection match'),
-              h.Value(model.editor.boxSelectionMatch),
-              h.Disabled(model.editor.gesture.type !== 'idle'),
-              h.OnChange((value) =>
-                observedInput({
-                  message: {
-                    type: 'BoxSelectionMatchChanged',
-                    match: Schema.decodeUnknownSync(Schema.Literals(['full', 'partial']))(value),
-                  },
-                }),
-              ),
-              h.Style({ padding: '8px' }),
-            ],
-            [
-              h.option(
-                [h.Value('full'), h.Selected(model.editor.boxSelectionMatch === 'full')],
-                ['Full containment'],
-              ),
-              h.option(
-                [h.Value('partial'), h.Selected(model.editor.boxSelectionMatch === 'partial')],
-                ['Partial overlap'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Navigation design',
-          h.select(
-            [
-              h.AriaLabel('Navigation design'),
-              h.Value(model.navigationDesign),
-              h.OnChange((value) =>
-                Message.SelectedNavigationDesign({
-                  navigationDesign: Schema.decodeUnknownSync(NavigationDesign)(value),
-                }),
-              ),
-              h.Style({ padding: '8px' }),
-            ],
-            [
-              h.option(
-                [h.Value('standard'), h.Selected(model.navigationDesign === 'standard')],
-                ['Standard'],
-              ),
-              h.option(
-                [h.Value('compact'), h.Selected(model.navigationDesign === 'compact')],
-                ['Compact · framed overview'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Wheel navigation',
-          h.select(
-            [
-              h.AriaLabel('Wheel navigation'),
-              h.Value(model.wheelNavigation),
-              h.OnChange((value) =>
-                Message.SelectedWheelNavigation({
-                  wheelNavigation: Schema.decodeUnknownSync(WheelNavigation)(value),
-                }),
-              ),
-              h.Style({ padding: '8px' }),
-            ],
-            [
-              h.option(
-                [h.Value('zoom'), h.Selected(model.wheelNavigation === 'zoom')],
-                ['Scroll to zoom'],
-              ),
-              h.option(
-                [h.Value('pan'), h.Selected(model.wheelNavigation === 'pan')],
-                ['Scroll to pan · Ctrl/Command to zoom'],
-              ),
-              h.option(
-                [h.Value('off'), h.Selected(model.wheelNavigation === 'off')],
-                ['Page scrolling'],
-              ),
-            ],
-          ),
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.doubleClickZoom),
-            h.OnClick(Message.ClickedDoubleClickZoom()),
-          ]),
-          'Double-click zoom',
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.spaceToPan),
-            h.OnClick(Message.ClickedSpaceToPan()),
-          ]),
-          'Space-drag to pan',
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.middleButtonPan),
-            h.OnClick(Message.ClickedMiddleButtonPan()),
-          ]),
-          'Middle-drag to pan',
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.editor.fitViewPadding === 96),
-            h.Disabled(model.editor.gesture.type !== 'idle'),
-            h.OnClick(
-              observedInput({
-                message: {
-                  type: 'ViewportConstraintsChanged',
-                  zoomLimits:
-                    model.editor.fitViewPadding === 96
-                      ? defaultZoomLimits
-                      : { minZoom: 0.75, maxZoom: 1.3 },
-                  fitViewPadding: model.editor.fitViewPadding === 96 ? defaultFitViewPadding : 96,
-                },
-              }),
-            ),
-          ]),
-          'Constrain camera (75–130% zoom, 96 px fit padding)',
-        ],
-      ),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.editor.fitViewDuration > 0),
-            h.OnClick(
-              observedInput({
-                message: {
-                  type: 'FitViewDurationChanged',
-                  duration: model.editor.fitViewDuration === 0 ? 400 : 0,
-                },
-              }),
-            ),
-          ]),
-          'Animate Fit view',
-        ],
-      ),
-    ],
     ports: [
       h.label(
         [h.Class('workbench-field')],
@@ -3731,60 +3558,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
               [context.label],
             ),
-          renderViewportControls: (context, builder) => {
-            if (model.navigationDesign !== 'compact') return undefined;
-            const control = (action: typeof context.actions.zoomIn, label: string) =>
-              zlozViewportControl(
-                builder,
-                action,
-                (event) => observedInput({ message: event }),
-                [
-                  builder.Style({
-                    'min-width': '44px',
-                    'min-height': '44px',
-                    border: '0',
-                    'border-radius': '22px',
-                    background: action.pressed ? '#0369a1' : 'light-dark(#e0f2fe, #20384a)',
-                    color: action.pressed ? '#fff' : 'light-dark(#0c4a6e, #bde7ff)',
-                    padding: '0 16px',
-                    cursor: 'pointer',
-                  }),
-                ],
-                [label],
-              );
-            return builder.nav(
-              [
-                builder.AriaLabel('Viewport controls'),
-                builder.Class('compact-navigation'),
-                builder.Style({
-                  display: 'flex',
-                  gap: '6px',
-                  'align-items': 'center',
-                  'flex-wrap': 'wrap',
-                  'margin-bottom': '8px',
-                }),
-              ],
-              [
-                control(context.actions.zoomOut, '−'),
-                control(context.actions.zoomIn, '+'),
-                control(context.actions.fitView, 'Fit view'),
-                control(context.actions.fitSelection, context.actions.fitSelection.label),
-                control(context.actions.zoomArea, context.actions.zoomArea.label),
-                control(context.actions.previousView, context.actions.previousView.label),
-                ...(context.selectionModeControl
-                  ? [control(context.actions.selectionMode, 'Box select')]
-                  : []),
-                ...(context.diagnostics.zoomLevel
-                  ? [
-                      builder.span(
-                        [builder.DataAttribute('flow-zoom-level', '')],
-                        [`${Math.round(context.state.viewport.zoom * 100)}%`],
-                      ),
-                    ]
-                  : []),
-              ],
-            );
-          },
           height: 'fill',
           renderLayout: (parts, builder) =>
             workbenchLayout(builder, model, parts, controls, themePreference, notice),
@@ -4014,11 +3787,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ...reconnectionRadiusOptions[model.reconnectionSnap],
           pinchZoom: true,
           resizeHandles: true,
-          viewportControls: true,
-          fitSelectionControl: true,
-          zoomAreaControl: true,
-          previousViewControl: true,
-          selectionModeControl: true,
           label: 'Workflow editor',
           onEvent: zlozInput,
           edgeAppearance: (edge) =>

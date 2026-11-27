@@ -7,11 +7,18 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import { alchemyReviewCanvas } from './alchemy-review';
 import { Message } from './message';
 import { ThemePreference, type Model, type WorkbenchSection } from './model';
+import {
+  nativeMiniMapControls,
+  nativeNavigationSettings,
+  nativeViewportControls,
+} from './native-navigation';
 import { architectureNativePanel } from './native-panel';
 import { packetReviewActive, packetReviewCanvas } from './packet-reader';
 import { receiptReviewCanvas } from './receipt-review';
 
-export type WorkbenchControls = Readonly<Record<WorkbenchSection, readonly Html[]>>;
+export type WorkbenchControls = Readonly<
+  Record<Exclude<WorkbenchSection, 'navigation'>, readonly Html[]>
+>;
 const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['diagram', 'Diagram'],
   ['history', 'History'],
@@ -154,48 +161,6 @@ const overview = architectureNativePanel<
     ),
 );
 
-function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
-  const masked = model.minimalMode || !model.diagnosticsEnabled;
-  const busy = model.editor.gesture.type !== 'idle';
-  const help = model.minimalMode
-    ? 'Hidden by Minimal mode. Turn Minimal mode off in Diagnostics to show the mini map.'
-    : !model.diagnosticsEnabled
-      ? 'Diagnostics are disabled. Turn Show diagnostics on to show the mini map.'
-      : busy
-        ? 'Finish the current gesture before changing the mini map.'
-        : 'Show the mini map here. Click it or use its arrow keys to navigate.';
-  return h.div(
-    [],
-    [
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          h.input([
-            h.Type('checkbox'),
-            h.Checked(model.diagnostics.overview),
-            h.Disabled(masked || busy),
-            h.AriaDescribedBy('workbench-mini-map-help'),
-            h.OnClick(Message.ClickedDiagnostic({ diagnostic: 'overview' })),
-          ]),
-          'Mini map',
-        ],
-      ),
-      h.p([h.Id('workbench-mini-map-help')], [help]),
-      ...(masked
-        ? [
-            h.button(
-              [
-                h.Type('button'),
-                h.OnClick(Message.SelectedWorkbenchSection({ section: 'diagnostics' })),
-              ],
-              ['Open diagnostics'],
-            ),
-          ]
-        : []),
-    ],
-  );
-}
-
 export function workbenchLayout(
   h: HtmlBuilder<Message>,
   model: Model,
@@ -238,36 +203,37 @@ export function workbenchLayout(
       ? []
       : [section],
   );
+  const showOverview = !model.minimalMode && model.diagnosticsEnabled && model.diagnostics.overview;
+  const navigationContent =
+    model.sidebarSection === 'navigation' && !model.sidebarCollapsed
+      ? [
+          nativeViewportControls(h, model, 'architecture-effect-ui', 'viewport'),
+          nativeMiniMapControls(h, model, 'architecture-effect-ui', 'overview-settings'),
+          ...(showOverview
+            ? [
+                overview(
+                  h,
+                  {
+                    editor: model.editor,
+                    modelId: model.modelIdentity.id,
+                    epoch: model.modelEpoch,
+                    compact: model.navigationDesign === 'compact',
+                  },
+                  'architecture-effect-ui',
+                  'overview',
+                ),
+              ]
+            : []),
+          nativeNavigationSettings(h, model, 'architecture-effect-ui', 'navigation-settings'),
+        ]
+      : [];
   const content = {
     ...controls,
-    navigation: [
-      ...(parts.controls ? [parts.controls] : []),
-      miniMapControls(h, model),
-      ...(model.sidebarSection === 'navigation' &&
-      !model.sidebarCollapsed &&
-      !model.minimalMode &&
-      model.diagnosticsEnabled &&
-      model.diagnostics.overview
-        ? [
-            overview(
-              h,
-              {
-                editor: model.editor,
-                modelId: model.modelIdentity.id,
-                epoch: model.modelEpoch,
-                compact: model.navigationDesign === 'compact',
-              },
-              'architecture-effect-ui',
-              'overview',
-            ),
-          ]
-        : []),
-      ...controls.navigation,
-    ],
+    navigation: navigationContent,
     ports: [...(parts.creation ? [parts.creation] : []), ...controls.ports],
     inspect: [...controls.inspect, parts.connections],
     diagnostics: [...controls.diagnostics, parts.help, parts.status],
-  } satisfies WorkbenchControls;
+  } satisfies Readonly<Record<WorkbenchSection, readonly Html[]>>;
   return h.div(
     [
       h.Class(

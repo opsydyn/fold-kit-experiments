@@ -1,7 +1,19 @@
+import { Html } from '@effect/ui/html';
+
 import { Message } from './message';
-import { init, Model } from './model';
+import { init, Model, Props } from './model';
 import { subscriptions } from './subscription';
 import { update } from './update';
 import { view } from './view';
 
-export { init, Message, Model, subscriptions, update, view };
+export const Welcome = Html.component({
+  name: 'Welcome',
+  model: Model,
+  message: Message,
+  props: Props,
+}).make({
+  init: ({ props }) => init(props),
+  update: ($, message) => update($.model, message),
+  subscriptions,
+  view,
+});

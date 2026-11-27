@@ -25,8 +25,12 @@ test('hydrates accessible SVG, plays and inspects a trace, and reopens its share
   await expect(ready).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('Related events highlighted: Ready')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.getByText('Outbound Port: emitted #8')).toBeVisible();
+  const play = page.getByRole('button', { name: 'Play', exact: true });
+  await play.focus();
+  await expect(play).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Playback: playing')).toBeVisible();
+  await expect(page.getByText('Outbound Port: emitted #8')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('Current state: Idle')).toBeVisible();
   const scrubber = page.getByRole('slider', { name: 'Replay position' });
   await scrubber.focus();

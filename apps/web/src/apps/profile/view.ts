@@ -1,48 +1,26 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './profile.css';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const {
-    div,
-    p,
-    input,
-    button,
-    label,
-    a,
-    Class,
-    OnClick,
-    OnInput,
-    Value,
-    Placeholder,
-    Type,
-    Href,
-  } = h;
-  return {
-    title: 'Profile',
-    body: div(
-      [Class(styles.card)],
-      [
-        div(
-          [Class(styles.field)],
-          [
-            label([Class(styles.label)], ['Username']),
-            input([
-              Class(styles.input),
-              Type('text'),
-              Value(model.draft),
-              Placeholder('Enter your name'),
-              OnInput((value) => Message.UpdatedDraft({ value })),
-            ]),
-          ],
-        ),
-        button([Class(styles.button), OnClick(Message.ClickedSave())], ['Save']),
-        ...(model.isSaved ? [p([Class(styles.saved)], ['Saved!'])] : []),
-        a([Class(styles.link), Href('/welcome')], ['View welcome page →']),
-      ],
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class(styles.card).children(
+    h.div.class(styles.field).children(
+      h.label.class(styles.label).attr('for', 'profile-username').children('Username'),
+      h.input
+        .class(styles.input)
+        .id('profile-username')
+        .attrs({ type: 'text', placeholder: 'Enter your name' })
+        .value(model.draft)
+        .on('input', ({ value }) => Message.UpdatedDraft({ value })),
     ),
-  };
-};
+    h.button
+      .class(styles.button)
+      .attr('type', 'button')
+      .on('click', Message.ClickedSave())
+      .children('Save'),
+    model.isSaved ? h.p.class(styles.saved).attr('role', 'status').children('Saved!') : undefined,
+    h.a.class(styles.link).attr('href', '/welcome').children('View welcome page →'),
+  );

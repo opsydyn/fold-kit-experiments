@@ -1,11 +1,11 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './timestamp.css';
 
-const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
+const timeFormat = new Intl.DateTimeFormat('en', { timeStyle: 'medium', timeZone: 'UTC' });
 
 const formatUptime = (seconds: number): string => {
   const h = Math.floor(seconds / 3600);
@@ -16,20 +16,19 @@ const formatUptime = (seconds: number): string => {
     : `${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { div, Class } = h;
-  const uptimeSeconds = model.elapsedMs / 1000;
-  const startedAtLabel = timeFormat.format(new Date(model.startedAt));
-
-  return {
-    title: `Uptime: ${formatUptime(uptimeSeconds)}`,
-    body: div(
-      [Class(styles.card)],
-      [
-        div([Class(styles.label)], ['Server uptime']),
-        div([Class(styles.value)], [formatUptime(uptimeSeconds)]),
-        div([Class(styles.sub)], [`started ${startedAtLabel}`]),
-      ],
-    ),
-  };
-};
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div.class(styles.card).children(
+    h.div.class(styles.label).children('Server uptime'),
+    h.div
+      .class(styles.value)
+      .attr('data-uptime', '')
+      .children(formatUptime(model.elapsedMs / 1000)),
+    h.div
+      .class(styles.sub)
+      .children(
+        'started ',
+        h.time
+          .attr('datetime', model.startedAt)
+          .children(model.localStart ?? timeFormat.format(new Date(model.startedAt))),
+      ),
+  );

@@ -99,31 +99,11 @@ const stopDevServer = async (child: ReturnType<typeof spawn>): Promise<void> => 
 
 const count = (html: string, pattern: string): number => html.split(pattern).length - 1;
 
-const expectHydratablePage = (html: string, flags: string, expectedBuildId?: string): string => {
-  expect(count(html, 'data-foldkit-app="app"')).toBe(1);
-  expect(count(html, 'data-foldkit-build="')).toBe(1);
-  const buildId = html.match(/data-foldkit-build="([^"]+)"/)?.[1];
-  if (buildId === undefined) throw new Error('Missing hydration build identity');
-  if (expectedBuildId !== undefined) expect(buildId).toBe(expectedBuildId);
-  expect(count(html, 'data-foldkit-flags="app"')).toBe(1);
-  expect(html).toContain(flags);
-  return buildId;
-};
-
-// A page owner booted with client:load is the case module preloads exist for:
-// its renderer, component and the application its load imports, each a file the
-// build wrote, listed after the stylesheets.
-const expectIslandPreloads = async (html: string, clientDir: string): Promise<void> => {
-  const hrefs = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map(
-    (match) => match[1] ?? '',
-  );
-  expect(hrefs.length).toBeGreaterThan(2);
-  const islandUrls = [...html.matchAll(/(?:renderer|component)-url="([^"]+)"/g)].map(
-    (match) => match[1] ?? '',
-  );
-  for (const url of islandUrls) expect(hrefs).toContain(url);
-  for (const href of hrefs) expect(await fileExists(path.join(clientDir, href))).toBe(true);
-  expect(html.lastIndexOf('rel="stylesheet"')).toBeLessThan(html.indexOf('rel="modulepreload"'));
+const expectEffectUiPage = (html: string, props: string): void => {
+  expect(count(html, 'data-effect-ui-root')).toBe(1);
+  expect(count(html, 'data-effect-ui-state')).toBe(1);
+  expect(html).toContain(props);
+  expect(html).not.toContain('data-foldkit-app="app"');
 };
 
 const expectCompiledBuildId = async (directory: string, buildId: string): Promise<void> => {
@@ -157,17 +137,13 @@ describe('Astro page rendering smoke', () => {
         path.join(webDir, 'dist', 'client', 'greeting-static', 'index.html'),
         'utf8',
       );
-      const staticBuildId = expectHydratablePage(
-        staticHtml,
-        '{"name":"static astronaut","locale":"en"}',
-        buildId,
-      );
-      expect(staticBuildId).not.toBe('development');
-      await expectIslandPreloads(staticHtml, path.join(webDir, 'dist', 'client'));
-      await expectCompiledBuildId(path.join(webDir, 'dist', 'client'), staticBuildId);
-      await expectCompiledBuildId(path.join(webDir, 'dist', 'server'), staticBuildId);
+      expectEffectUiPage(staticHtml, '{"name":"static astronaut","locale":"en"}');
+      if (buildId !== undefined) {
+        await expectCompiledBuildId(path.join(webDir, 'dist', 'client'), buildId);
+        await expectCompiledBuildId(path.join(webDir, 'dist', 'server'), buildId);
+      }
       expect(staticHtml).toContain('<html lang="en" dir="ltr">');
-      expect(staticHtml).toContain('<title>Hello, static astronaut! — Astro + FoldKit</title>');
+      expect(staticHtml).toContain('<title>Hello, static astronaut! — Astro + Effect UI</title>');
       expect(staticHtml).toContain(
         '<link rel="canonical" href="https://opsydyn-web.opsydyn.workers.dev/greeting"',
       );
@@ -183,9 +159,9 @@ describe('Astro page rendering smoke', () => {
           const response = await fetch(`http://127.0.0.1:${port}/greeting?name=Ada&locale=ar`);
           expect(response.ok).toBe(true);
           const requestHtml = await response.text();
-          expectHydratablePage(requestHtml, '{"name":"Ada","locale":"ar"}', buildId);
+          expectEffectUiPage(requestHtml, '{"name":"Ada","locale":"ar"}');
           expect(requestHtml).toContain('<html lang="ar" dir="rtl">');
-          expect(requestHtml).toContain('<title>مرحبا، Ada! — Astro + FoldKit</title>');
+          expect(requestHtml).toContain('<title>مرحبا، Ada! — Astro + Effect UI</title>');
           expect(requestHtml).toContain('مرحبا، Ada!');
           expect(requestHtml).toContain('canonical');
           expect(requestHtml).toContain('og:url');

@@ -1,17 +1,27 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
+import type { Command } from '@effect/ui';
 
 import { SaveUsername } from './command';
 import { Message } from './message';
 import type { Model } from './model';
 
-type Return = UpdateReturn<Model, Message>;
+interface Transition {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+}
 
-export const update = (model: Model, message: Message): Return =>
-  Message.match<Return>(message, {
-    UpdatedDraft: ({ value }) => ({ model: { ...model, draft: value, isSaved: false } }),
-    ClickedSave: () => ({
-      model,
-      commands: [SaveUsername({ username: model.draft })],
+export const update = (model: Model, message: Message): Transition =>
+  Message.match(message, {
+    RestoredUsername: ({ username }) => ({
+      model: model.edited || username === '' ? model : { ...model, draft: username },
     }),
-    CompletedSaveUsername: () => ({ model: { ...model, isSaved: true } }),
+    UpdatedDraft: ({ value }) => ({
+      model: { ...model, draft: value, edited: true, isSaved: false },
+    }),
+    ClickedSave: () => ({
+      model: { ...model, edited: true },
+      commands: [SaveUsername.make({ username: model.draft })],
+    }),
+    CompletedSaveUsername: ({ username }) => ({
+      model: username === model.draft ? { ...model, isSaved: true } : model,
+    }),
   });

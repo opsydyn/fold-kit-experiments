@@ -1,5 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Iso8601 } from './model';
+import { Timestamp } from './main';
 
-export default lazyApp<{ startedAt: Iso8601 }>(() => import('./main'));
+export default astroComponent(Timestamp);

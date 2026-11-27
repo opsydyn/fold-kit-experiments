@@ -1,6 +1,7 @@
 import { Subscription } from '@effect/ui';
 import { Effect, Queue, Stream } from 'effect';
 
+import { animationFrames } from '../../ui/shared/animation-frames';
 import { liveEnvelopes } from './live';
 import { Message } from './message';
 import type { Model } from './model';
@@ -27,25 +28,6 @@ function mediaQuery(query: string, message: (matches: boolean) => Message) {
   });
 }
 
-const playbackFrames = Stream.callback<Message>((queue) => {
-  const open = Effect.sync(() => {
-    const browser = globalThis.window;
-    let last: number | undefined;
-    let id = 0;
-    const tick = (time: number) => {
-      if (last !== undefined)
-        Queue.offerUnsafe(queue, Message.AdvancedReplay({ deltaTimeMs: time - last }));
-      last = time;
-      id = browser.requestAnimationFrame(tick);
-    };
-    id = browser.requestAnimationFrame(tick);
-    return () => browser.cancelAnimationFrame(id);
-  });
-  const listen = Effect.acquireRelease(open, Effect.sync);
-  // oxlint-disable-next-line linteffect/no-effect-never
-  return Effect.andThen(listen, Effect.never);
-});
-
 export const subscriptions = ({ model }: { readonly model: Model }) => [
   Subscription.make(
     'ReducedMotion',
@@ -57,7 +39,10 @@ export const subscriptions = ({ model }: { readonly model: Model }) => [
   ),
   model.playback === 'playing' &&
     model.cursor < model.events.length &&
-    Subscription.make('PlaybackFrames', playbackFrames),
+    Subscription.make(
+      'PlaybackFrames',
+      animationFrames.pipe(Stream.map((deltaTimeMs) => Message.AdvancedReplay({ deltaTimeMs }))),
+    ),
   model.live &&
     Subscription.make(
       'LiveRecording',

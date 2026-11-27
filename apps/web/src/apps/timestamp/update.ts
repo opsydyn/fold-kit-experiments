@@ -1,13 +1,8 @@
-import type { Return as UpdateReturn } from 'foldkit/update';
-
 import { Message } from './message';
 import type { Model } from './model';
 
-type Return = UpdateReturn<Model, Message>;
-
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
-    Ticked: ({ deltaTimeMs }) => ({
-      model: { ...model, elapsedMs: model.elapsedMs + deltaTimeMs },
-    }),
+    FormattedStart: ({ label }) => ({ ...model, localStart: label }),
+    Ticked: ({ deltaTimeMs }) => ({ ...model, elapsedMs: model.elapsedMs + deltaTimeMs }),
   });

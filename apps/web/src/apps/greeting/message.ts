@@ -1,8 +1,8 @@
-import { defineMessageUnion } from 'foldkit/message';
+import { UiSchema } from '@effect/ui';
 
 import { Locale } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   Reset: {},
   SelectedLocale: { locale: Locale },
 });

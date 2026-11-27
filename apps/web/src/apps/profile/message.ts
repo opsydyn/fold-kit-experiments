@@ -1,9 +1,10 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
+  RestoredUsername: { username: Schema.String },
   UpdatedDraft: { value: Schema.String },
   ClickedSave: {},
-  CompletedSaveUsername: {},
+  CompletedSaveUsername: { username: Schema.String },
 });
 export type Message = typeof Message.Type;

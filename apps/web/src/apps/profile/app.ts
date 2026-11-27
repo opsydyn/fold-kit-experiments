@@ -1,5 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Username } from './model';
+import { Profile } from './main';
 
-export default lazyApp<{ defaultName: Username }>(() => import('./main'));
+export default astroComponent(Profile);

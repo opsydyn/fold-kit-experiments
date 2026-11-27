@@ -799,5 +799,178 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "apps/web",
+    "selected": 699,
+    "budgetSkipped": 679,
+    "failed": false,
+    "run": 46070950550,
+    "attempt": 1,
+    "commit": "f373852c6e3afa348698419ec13ab020afdddb16",
+    "startedAt": "2026-11-27T21:32:21Z",
+    "reportSha256": "aee27d59072c529b71aabfa878fb88405a1968095cf25f0d2f236b00ed03fc6c",
+    "entries": [
+      {
+        "id": "0044aaf9079695f69aa52421",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "1e75abe85ad53a42051b2ab3",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "836cc48680e19dc4618ef620",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "ad4e717dc58e85c411b14003",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "cac09d6bb355c193448dbfe5",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "f00b5768bfd13e3e848f0b38",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.init",
+        "genre": "FnValue",
+        "line": 14,
+        "outcome": "missed"
+      },
+      {
+        "id": "094fee20d879a6462397abe1",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "2188ba0abcffe142d96777e4",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "2e52bf931023f0bb644f7694",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "65e3cf47a01b17305707b576",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "c2b0c5504c3e5954bb3176cf",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "ef197e2d8f43932000830288",
+        "file": "src/apps/agent-analysis/main.ts",
+        "fn": "AgentAnalysis.update",
+        "genre": "FnValue",
+        "line": 15,
+        "outcome": "missed"
+      },
+      {
+        "id": "985a6b85ac379149c5fd60d7",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "isAnalysisRoute",
+        "genre": "BooleanFlip",
+        "line": 6,
+        "outcome": "missed"
+      },
+      {
+        "id": "da00af968ebb2c58fe2a150f",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "isAnalysisRoute",
+        "genre": "BooleanFlip",
+        "line": 6,
+        "outcome": "caught"
+      },
+      {
+        "id": "f05314987b7dd9c44f61e799",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.emit",
+        "genre": "BooleanFlip",
+        "line": 17,
+        "outcome": "caught"
+      },
+      {
+        "id": "fa0c0fc796f409dc869b8753",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.emit",
+        "genre": "BooleanFlip",
+        "line": 17,
+        "outcome": "caught"
+      },
+      {
+        "id": "6232611403f1c5837622608b",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.change",
+        "genre": "BooleanFlip",
+        "line": 20,
+        "outcome": "missed"
+      },
+      {
+        "id": "9537305257d02ff74e9e190a",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.change",
+        "genre": "BooleanFlip",
+        "line": 20,
+        "outcome": "missed"
+      },
+      {
+        "id": "75e40f85d6b11b2a50644203",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.beforeSwap",
+        "genre": "FnValue",
+        "line": 26,
+        "outcome": "caught"
+      },
+      {
+        "id": "c207230fb5a44278837f6700",
+        "file": "src/apps/agent-analysis/navigation.ts",
+        "fn": "ObserveAgentEnvironment.open.pageHide",
+        "genre": "FnValue",
+        "line": 33,
+        "outcome": "missed"
+      }
+    ]
   }
 ]

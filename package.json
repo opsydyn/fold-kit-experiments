@@ -138,5 +138,8 @@
   "engines": {
     "node": ">=22.22.0"
   },
-  "packageManager": "bun@1.4.4"
+  "packageManager": "bun@1.4.4",
+  "patchedDependencies": {
+    "@effect/ui@https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92": "patches/@effect%2Fui@https%3A%2F%2Fpkg.pr.new%2FEffect-TS%2Fui%2F@effect%2Fui@77dcd92.patch"
+  }
 }

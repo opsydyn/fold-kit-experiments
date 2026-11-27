@@ -92,18 +92,11 @@ import {
   zlozPortPositionCancel,
   type ZlozPortPositionDraftChange,
   zlozViewportControl,
-  zlozMinimap,
-  zlozMinimapViewport,
   resolveZlozDiagnostics,
   type ZlozBackground,
   type ZlozNodeRenderContext,
 } from '@opsydyn/foldkit-zloz/foldkit';
-import {
-  zlozPlacementHost,
-  zlozPalette,
-  zlozPaletteEntry,
-  zlozPlacementPreview,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozPlacementHost, zlozPlacementPreview } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
@@ -124,7 +117,6 @@ import { mappingReviewPanel } from './mapping-review-view';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
-  ThemePreference,
   SearchScope,
   NavigationDesign,
   WheelNavigation,
@@ -149,6 +141,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { architecturePalettePanel } from './native-palette';
 import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
 import { patchWorkbenchPanel } from './patch-review';
@@ -1457,28 +1450,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.customPalette ? 'Use native palette' : 'Use custom palette',
             Message.ClickedCustomPalette(),
           ),
-          zlozPalette(h, placementControls, placementInput, {
+          architecturePalettePanel(h, {
+            controls: placementControls,
             diagnostics,
-            renderEntry: model.customPalette
-              ? (entry, builder) =>
-                  zlozPaletteEntry(
-                    builder,
-                    entry,
-                    [
-                      builder.Style({
-                        'border-radius': '16px',
-                        border: '2px dashed var(--flow-selection)',
-                        padding: '14px',
-                        display: 'grid',
-                        gap: '4px',
-                      }),
-                    ],
-                    [
-                      builder.strong([], ['◇ ' + entry.label]),
-                      builder.span([], ['Compose a new system element']),
-                    ],
-                  )
-              : undefined,
+            custom: model.customPalette,
           }),
           button(
             'Insert C4 context pattern',
@@ -3680,27 +3655,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     ],
     export: [...(model.mermaidPreviewOpen ? [mermaidExportPanel(model, h)] : [])],
   };
-  const themePicker = h.label(
-    [h.Class('workbench-theme-picker')],
-    [
-      'Theme',
-      h.select(
-        [
-          h.Value(themePreference),
-          h.OnChange((value) =>
-            Message.SelectedThemePreference({
-              themePreference: Schema.decodeUnknownSync(ThemePreference)(value),
-            }),
-          ),
-        ],
-        [
-          h.option([h.Value('system'), h.Selected(themePreference === 'system')], ['System']),
-          h.option([h.Value('light'), h.Selected(themePreference === 'light')], ['Light']),
-          h.option([h.Value('dark'), h.Selected(themePreference === 'dark')], ['Dark']),
-        ],
-      ),
-    ],
-  );
   const notice = h.p(
     [h.Role('status'), h.AriaLive('polite'), ...(diagnostics.status ? [] : [h.Style(hidden)])],
     [
@@ -3831,53 +3785,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
             );
           },
-          renderMinimap: (context, builder) => {
-            if (model.navigationDesign !== 'compact') return undefined;
-            return zlozMinimap(
-              builder,
-              context,
-              (event) => observedInput({ message: event }),
-              [
-                builder.Style({
-                  position: 'relative',
-                  width: '100%',
-                  height: '130px',
-                  padding: '12px',
-                  border: '3px solid #38bdf8',
-                  'border-radius': '18px',
-                  background: 'light-dark(#f0f9ff, #152b3c)',
-                  cursor: 'crosshair',
-                }),
-              ],
-              [
-                ...context.nodes.map((node) =>
-                  builder.rect(
-                    [
-                      builder.X(String(node.position.x)),
-                      builder.Y(String(node.position.y)),
-                      builder.Width(String(node.size.width)),
-                      builder.Height(String(node.size.height)),
-                      builder.Rx('20'),
-                      builder.Fill(
-                        node.kind === 'group' && !context.state.collapsedGroups.includes(node.id)
-                          ? '#bae6fd'
-                          : '#0369a1',
-                      ),
-                    ],
-                    [],
-                  ),
-                ),
-                zlozMinimapViewport(builder, context.geometry, [
-                  builder.Fill('none'),
-                  builder.Stroke('#ea580c'),
-                  builder.Style({ 'vector-effect': 'non-scaling-stroke' }),
-                ]),
-              ],
-            );
-          },
           height: 'fill',
           renderLayout: (parts, builder) =>
-            workbenchLayout(builder, model, parts, controls, themePicker, notice),
+            workbenchLayout(builder, model, parts, controls, themePreference, notice),
           id: 'flow-demo',
           wheelNavigation: model.wheelNavigation,
           doubleClickZoom: model.doubleClickZoom,
@@ -4104,7 +4014,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ...reconnectionRadiusOptions[model.reconnectionSnap],
           pinchZoom: true,
           resizeHandles: true,
-          minimap: true,
           viewportControls: true,
           fitSelectionControl: true,
           zoomAreaControl: true,

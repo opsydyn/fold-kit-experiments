@@ -1,13 +1,13 @@
-import {
-  zlozViewportControl,
-  viewportControlActions,
-  type ZlozViewLayoutParts,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { type EditorState } from '@opsydyn/foldkit-zloz';
+import { historyMinimap } from '@opsydyn/foldkit-zloz/effect-ui';
+import { viewportControlActions, type ZlozViewLayoutParts } from '@opsydyn/foldkit-zloz/foldkit';
+import { Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewCanvas } from './alchemy-review';
 import { Message } from './message';
-import type { Model, WorkbenchSection } from './model';
+import { ThemePreference, type Model, type WorkbenchSection } from './model';
+import { architectureNativePanel } from './native-panel';
 import { packetReviewActive, packetReviewCanvas } from './packet-reader';
 import { receiptReviewCanvas } from './receipt-review';
 
@@ -30,6 +30,129 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['patch', 'Patch review'],
   ['alchemy', 'Domain review'],
 ];
+
+type Chrome = Readonly<{
+  collapsed: boolean;
+  canvasId: string;
+  fit: Readonly<{ disabled: boolean; message: Message }>;
+}>;
+const chrome = architectureNativePanel<Chrome>(
+  'ArchitectureSidebarChrome',
+  Schema.is(
+    Schema.Union([
+      Message.cases.ClickedWorkbenchSidebar,
+      Message.cases.ObservedAlchemyInput,
+      Message.cases.ObservedPacketCanvasInput,
+      Message.cases.ObservedModelInput,
+    ]),
+  ),
+  (h, { collapsed, canvasId, fit }, request) =>
+    h.div(
+      h.a
+        .class('workbench-skip')
+        .attr('href', '#' + encodeURIComponent(canvasId))
+        .children('Skip to canvas'),
+      h.div.class('workbench-sidebar-heading').children(
+        collapsed
+          ? null
+          : h.div(h.p.class('workbench-eyebrow').children('ZLOZ'), h.h1('Workflow patterns')),
+        h.button
+          .key('sidebar-toggle')
+          .class('workbench-sidebar-toggle')
+          .attr('type', 'button')
+          .attr('aria-label', collapsed ? 'Show controls' : 'Hide controls')
+          .attr('aria-expanded', String(!collapsed))
+          .attr('aria-controls', 'workbench-sidebar-content')
+          .on('click', request(Message.ClickedWorkbenchSidebar()))
+          .children(collapsed ? '☰' : '‹'),
+      ),
+      collapsed
+        ? h.button
+            .class('workbench-rail-fit')
+            .attr('type', 'button')
+            .attr('aria-label', 'Fit view')
+            .disabled(fit.disabled)
+            .on('click', request(fit.message))
+            .children('Fit')
+        : null,
+    ),
+);
+
+type Navigation = Readonly<{
+  selected: WorkbenchSection;
+  theme: typeof ThemePreference.Type;
+  allowed: readonly WorkbenchSection[];
+}>;
+const setTheme = Schema.decodeUnknownSync(ThemePreference);
+const navigation = architectureNativePanel<Navigation>(
+  'ArchitectureSidebarNavigation',
+  Schema.is(
+    Schema.Union([Message.cases.SelectedThemePreference, Message.cases.SelectedWorkbenchSection]),
+  ),
+  (h, { selected, theme, allowed }, request) =>
+    h.div(
+      h.div.class('workbench-theme').children(
+        h.label.class('workbench-theme-picker').children(
+          'Theme',
+          h.select
+            .value(theme)
+            .on('change', ({ value }) =>
+              request(Message.SelectedThemePreference({ themePreference: setTheme(value) })),
+            )
+            .children(
+              h.option
+                .attr('value', 'system')
+                .selected(theme === 'system')
+                .children('System'),
+              h.option
+                .attr('value', 'light')
+                .selected(theme === 'light')
+                .children('Light'),
+              h.option
+                .attr('value', 'dark')
+                .selected(theme === 'dark')
+                .children('Dark'),
+            ),
+        ),
+      ),
+      h.nav
+        .class('workbench-sections')
+        .attr('aria-label', 'Workbench sections')
+        .children(
+          ...sections.map(([section, label]) =>
+            h.button
+              .key(section)
+              .attr('type', 'button')
+              .disabled(!allowed.includes(section))
+              .attr('aria-pressed', String(selected === section))
+              .attr('aria-controls', `workbench-${section}`)
+              .on('click', request(Message.SelectedWorkbenchSection({ section })))
+              .children(label),
+          ),
+        ),
+    ),
+);
+
+const overview = architectureNativePanel<
+  Readonly<{
+    editor: EditorState;
+    modelId: string;
+    epoch: number;
+    compact: boolean;
+  }>
+>(
+  'ArchitectureMinimap',
+  Schema.is(Message.cases.ObservedModelInput),
+  (h, { editor, modelId, epoch, compact }, request) =>
+    h.div(
+      historyMinimap(
+        h,
+        editor,
+        (message) => request(Message.ObservedModelInput({ modelId, epoch, message })),
+        { compact },
+      ),
+    ),
+);
 
 function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
   const masked = model.minimalMode || !model.diagnosticsEnabled;
@@ -78,15 +201,67 @@ export function workbenchLayout(
   model: Model,
   parts: ZlozViewLayoutParts,
   controls: WorkbenchControls,
-  theme: Html,
+  theme: typeof ThemePreference.Type,
   notice: Html,
 ) {
+  const alchemy = model.alchemyReview.review;
+  const packet = packetReviewActive(model) ? model.packetPreview : null;
+  const receipt = model.receiptReview;
+  const fitView = viewportControlActions(alchemy?.editor ?? packet?.editor ?? model.editor).fitView;
+  const canvasId = alchemy
+    ? `alchemy-${alchemy.id}-surface`
+    : packet
+      ? `packet-${packet.id}-${packet.side}-surface`
+      : receipt
+        ? `receipt-${receipt.id}-${receipt.side}-surface`
+        : parts.canvasId;
+  const fitMessage = alchemy
+    ? Message.ObservedAlchemyInput({ id: alchemy.id, message: fitView.event })
+    : packet
+      ? Message.ObservedPacketCanvasInput({
+          scope: packet.scope,
+          id: packet.id,
+          side: packet.side,
+          message: fitView.event,
+        })
+      : Message.ObservedModelInput({
+          modelId: model.modelIdentity.id,
+          epoch: model.modelEpoch,
+          message: fitView.event,
+        });
+  const allowed = sections.flatMap(([section]) =>
+    ((alchemy !== null || model.alchemyReview.pending !== null) &&
+      section !== 'alchemy' &&
+      section !== 'diagnostics') ||
+    (receipt !== null && section !== 'mapping' && section !== 'diagnostics') ||
+    (packetReviewActive(model) && section !== 'review' && section !== 'diagnostics')
+      ? []
+      : [section],
+  );
   const content = {
     ...controls,
     navigation: [
       ...(parts.controls ? [parts.controls] : []),
       miniMapControls(h, model),
-      ...(parts.minimap ? [parts.minimap] : []),
+      ...(model.sidebarSection === 'navigation' &&
+      !model.sidebarCollapsed &&
+      !model.minimalMode &&
+      model.diagnosticsEnabled &&
+      model.diagnostics.overview
+        ? [
+            overview(
+              h,
+              {
+                editor: model.editor,
+                modelId: model.modelIdentity.id,
+                epoch: model.modelEpoch,
+                compact: model.navigationDesign === 'compact',
+              },
+              'architecture-effect-ui',
+              'overview',
+            ),
+          ]
+        : []),
       ...controls.navigation,
     ],
     ports: [...(parts.creation ? [parts.creation] : []), ...controls.ports],
@@ -105,90 +280,20 @@ export function workbenchLayout(
       h.aside(
         [h.Class('workbench-sidebar'), h.AriaLabel('Workbench controls')],
         [
-          h.a(
-            [
-              h.Class('workbench-skip'),
-              h.Href(
-                '#' +
-                  encodeURIComponent(
-                    model.alchemyReview.review
-                      ? `alchemy-${model.alchemyReview.review.id}-surface`
-                      : packetReviewActive(model) && model.packetPreview
-                        ? `packet-${model.packetPreview.id}-${model.packetPreview.side}-surface`
-                        : model.receiptReview
-                          ? `receipt-${model.receiptReview.id}-${model.receiptReview.side}-surface`
-                          : parts.canvasId,
-                  ),
-              ),
-            ],
-            ['Skip to canvas'],
+          chrome(
+            h,
+            {
+              collapsed: model.sidebarCollapsed,
+              canvasId,
+              fit: {
+                disabled:
+                  fitView.disabled || (model.alchemyReview.pending !== null && alchemy === null),
+                message: fitMessage,
+              },
+            },
+            'architecture-effect-ui',
+            'chrome',
           ),
-          h.div(
-            [h.Class('workbench-sidebar-heading')],
-            [
-              ...(!model.sidebarCollapsed
-                ? [
-                    h.div(
-                      [],
-                      [
-                        h.p([h.Class('workbench-eyebrow')], ['ZLOZ']),
-                        h.h1([], ['Workflow patterns']),
-                      ],
-                    ),
-                  ]
-                : []),
-              h.button(
-                [
-                  h.Type('button'),
-                  h.Class('workbench-sidebar-toggle'),
-                  h.AriaLabel(model.sidebarCollapsed ? 'Show controls' : 'Hide controls'),
-                  h.AriaExpanded(!model.sidebarCollapsed),
-                  h.AriaControls('workbench-sidebar-content'),
-                  h.OnClick(Message.ClickedWorkbenchSidebar()),
-                ],
-                [model.sidebarCollapsed ? '☰' : '‹'],
-              ),
-            ],
-          ),
-          ...(model.sidebarCollapsed
-            ? [
-                zlozViewportControl(
-                  h,
-                  viewportControlActions(
-                    model.alchemyReview.review
-                      ? model.alchemyReview.review.editor
-                      : packetReviewActive(model) && model.packetPreview
-                        ? model.packetPreview.editor
-                        : model.editor,
-                  ).fitView,
-                  (event) =>
-                    model.alchemyReview.review
-                      ? Message.ObservedAlchemyInput({
-                          id: model.alchemyReview.review.id,
-                          message: event,
-                        })
-                      : packetReviewActive(model) && model.packetPreview
-                        ? Message.ObservedPacketCanvasInput({
-                            scope: model.packetPreview.scope,
-                            id: model.packetPreview.id,
-                            side: model.packetPreview.side,
-                            message: event,
-                          })
-                        : Message.ObservedModelInput({
-                            modelId: model.modelIdentity.id,
-                            epoch: model.modelEpoch,
-                            message: event,
-                          }),
-                  [
-                    h.Class('workbench-rail-fit'),
-                    h.Disabled(
-                      model.alchemyReview.pending !== null && model.alchemyReview.review === null,
-                    ),
-                  ],
-                  ['Fit'],
-                ),
-              ]
-            : []),
           h.div(
             [
               h.Id('workbench-sidebar-content'),
@@ -196,33 +301,11 @@ export function workbenchLayout(
               h.Style({ display: model.sidebarCollapsed ? 'none' : 'flex' }),
             ],
             [
-              h.div([h.Class('workbench-theme')], [theme]),
-              h.nav(
-                [h.Class('workbench-sections'), h.AriaLabel('Workbench sections')],
-                sections.map(([section, label]) =>
-                  h.button(
-                    [
-                      h.Key(section),
-                      h.Type('button'),
-                      h.Disabled(
-                        ((model.alchemyReview.review !== null ||
-                          model.alchemyReview.pending !== null) &&
-                          section !== 'alchemy' &&
-                          section !== 'diagnostics') ||
-                          (model.receiptReview !== null &&
-                            section !== 'mapping' &&
-                            section !== 'diagnostics') ||
-                          (packetReviewActive(model) &&
-                            section !== 'review' &&
-                            section !== 'diagnostics'),
-                      ),
-                      h.AriaPressed(String(model.sidebarSection === section)),
-                      h.AriaControls(`workbench-${section}`),
-                      h.OnClick(Message.SelectedWorkbenchSection({ section })),
-                    ],
-                    [label],
-                  ),
-                ),
+              navigation(
+                h,
+                { selected: model.sidebarSection, theme, allowed },
+                'architecture-effect-ui',
+                'navigation',
               ),
               h.div(
                 [

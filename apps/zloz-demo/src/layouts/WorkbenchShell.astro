@@ -107,6 +107,9 @@ button, input, select { font: inherit; }
 .workbench-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--rule); }
 .workbench-sections button { padding: 9px 8px; min-height: 40px; border: 1px solid transparent; border-radius: 7px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; font-size: 13px; }
 .workbench-sections button[aria-pressed='true'] { color: var(--accent); background: var(--paper); border-color: var(--rule); font-weight: 650; }
+.workbench-sidebar-scroll .workbench-custom-palette-entry { border: 2px dashed var(--flow-selection); border-radius: 16px; padding: 14px; }
+.workbench-custom-palette-entry span { display: block; }
+.workbench-custom-palette-entry strong { display: block; margin-bottom: 4px; }
 .workbench-sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 16px; font-size: 13px; line-height: 1.45; }
 .workbench-sidebar-scroll h2 { font-size: 16px; margin: 0 0 14px; }
 .workbench-sidebar-scroll p { color: var(--muted); }

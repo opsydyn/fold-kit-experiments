@@ -1,4 +1,4 @@
-import { Mount } from '@effect/ui';
+import { Mount, type View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import { Effect, Queue, Stream } from 'effect';
 
@@ -40,7 +40,14 @@ export function placementPalette<M>(
   h: Html.H<M>,
   context: ZlozPlacementControlsContext,
   onInput: (input: ZlozPlacementInput) => M,
-  diagnostics?: Pick<ZlozDiagnostics, 'instructions' | 'measurements'>,
+  options?: Pick<ZlozDiagnostics, 'instructions' | 'measurements'> &
+    Readonly<{
+      entryClass?: string;
+      renderEntry?: (
+        entry: ZlozPlacementControlsContext['entries'][number],
+        h: Html.H<M>,
+      ) => View.Content<M>;
+    }>,
 ) {
   const { scope, generation, targetRevision, preview } = context;
   return h.div
@@ -55,13 +62,15 @@ export function placementPalette<M>(
           .attr('data-zloz-palette-frame', entry.id)
           .children(
             h.button
+              .class(options?.entryClass ?? '')
               .attr('type', 'button')
+              .attr('aria-label', entry.label)
               .attr('data-zloz-palette-entry', entry.id)
               .attr('data-zloz-palette-selected', String(entry.selected))
               .attr('aria-pressed', String(entry.selected))
               .attr('title', entry.reason ?? 'Drag onto the canvas or use the keyboard.')
               .disabled(entry.reason !== null)
-              .children(entry.label),
+              .children(options?.renderEntry?.(entry, h) ?? entry.label),
             entry.reason ? h.p.children(entry.reason) : null,
           ),
       ),
@@ -77,12 +86,12 @@ export function placementPalette<M>(
                     ? preview.reason
                     : 'Placement preview. Choose a destination.',
                 ),
-              diagnostics?.instructions !== false
+              options?.instructions !== false
                 ? h.p.children(
                     'Drag onto the canvas or move with arrow keys. Shift accelerates, Alt bypasses snapping, Enter places, and Escape cancels.',
                   )
                 : null,
-              diagnostics?.measurements !== false && preview.type === 'ready'
+              options?.measurements !== false && preview.type === 'ready'
                 ? h.p
                     .attr('data-zloz-placement-readout', '')
                     .children(

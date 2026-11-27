@@ -55,6 +55,11 @@ async function run() {
   await page.locator('[data-flow-node="review"]').waitFor();
   const initial = await count();
   await section('Diagram');
+  await expect(
+    page
+      .locator('[data-architecture-effect-ui="palette"]')
+      .getByRole('group', { name: 'Placement palette' }),
+  ).toBeVisible();
   await source().scrollIntoViewIfNeeded();
   await source().focus();
   await page.keyboard.press('Enter');
@@ -84,6 +89,8 @@ async function run() {
   await button('Cancel placement').click();
   await page.getByRole('checkbox', { name: 'Protect pattern insertion', exact: true }).uncheck();
   await button('Use custom palette').click();
+  await expect(source()).toContainText('Compose a new system element');
+  await expect(source()).toHaveCSS('border-top-style', 'dashed');
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
   await source().scrollIntoViewIfNeeded();
   const card = await source().boundingBox();

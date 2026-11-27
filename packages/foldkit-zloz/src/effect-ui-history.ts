@@ -111,7 +111,9 @@ export function historyMinimap<M>(
   h: Html.H<M>,
   state: EditorState,
   onEvent: (event: EditorEvent) => M,
+  options?: Readonly<{ compact?: boolean }>,
 ) {
+  const compact = options?.compact === true;
   const context = minimapContext(state);
   if (!context) return null;
   const { geometry, nodes } = context;
@@ -128,13 +130,25 @@ export function historyMinimap<M>(
     .attr('aria-label', 'Diagram overview')
     .attr('title', 'Arrow keys pan; Shift accelerates; Home fits; Enter or Space centers')
     .attr('data-flow-minimap-frame', '')
-    .style({
-      width: '100%',
-      height: '150px',
-      padding: '0',
-      background: 'var(--flow-node-background, #fff)',
-      cursor: 'crosshair',
-    })
+    .style(
+      compact
+        ? {
+            width: '100%',
+            height: '130px',
+            padding: '12px',
+            border: '3px solid #38bdf8',
+            borderRadius: '18px',
+            background: 'light-dark(#f0f9ff, #152b3c)',
+            cursor: 'crosshair',
+          }
+        : {
+            width: '100%',
+            height: '150px',
+            padding: '0',
+            background: 'var(--flow-node-background, #fff)',
+            cursor: 'crosshair',
+          },
+    )
     .disabled(state.gesture.type !== 'idle')
     .onMount(Mount.map(minimapInput(), onEvent))
     .on(
@@ -164,17 +178,22 @@ export function historyMinimap<M>(
           ...nodes.map((node) =>
             rect(node.position, node.size)
               .key(node.id)
+              .attr('rx', compact ? '20' : undefined)
               .attr(
                 'fill',
-                node.kind === 'group'
-                  ? 'var(--flow-group-background, #cbd5e1)'
-                  : 'var(--flow-node-border, #64748b)',
+                compact
+                  ? node.kind === 'group' && !state.collapsedGroups.includes(node.id)
+                    ? '#bae6fd'
+                    : '#0369a1'
+                  : node.kind === 'group'
+                    ? 'var(--flow-group-background, #cbd5e1)'
+                    : 'var(--flow-node-border, #64748b)',
               ),
           ),
           rect(geometry.visible, geometry.visible)
             .attr('data-flow-minimap-viewport', '')
             .attr('fill', 'none')
-            .attr('stroke', 'var(--flow-selection, #2563eb)')
+            .attr('stroke', compact ? '#ea580c' : 'var(--flow-selection, #2563eb)')
             .attr('vector-effect', 'non-scaling-stroke'),
         ),
     );

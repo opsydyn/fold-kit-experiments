@@ -356,6 +356,9 @@ async function run() {
   const socket = container.locator('[data-flow-port="out"]');
   const originalSocket = await socket.getAttribute('style');
   await expect(anchor).toBeVisible();
+  await expect(anchor).toHaveAccessibleDescription(
+    /Hold Alt to bypass snapping.*Page Down\/Up cycle snap targets/,
+  );
   await anchor.press('ArrowUp');
   await expect(socket).not.toHaveAttribute('style', originalSocket);
   await expect(anchor).toBeFocused();
@@ -377,6 +380,7 @@ async function run() {
   await expect(page.locator('[data-flow-anchor-guides]')).toHaveCount(1);
   await page.keyboard.down('Alt');
   await expect(anchor).toHaveAttribute('data-flow-anchor-bypassed', 'true');
+  await expect(anchor).toHaveAccessibleDescription(/Release Alt to restore snapping/);
   await expect(page.locator('[data-flow-anchor-guides]')).toHaveCount(0);
   await expect(socket).not.toHaveAttribute('style', originalSocket);
   await page.keyboard.up('Alt');

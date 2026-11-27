@@ -7,7 +7,6 @@ import {
   type ZlozSelectionMarqueeContext,
   type ZlozZoomAreaMarqueeContext,
 } from './canvas-gestures';
-import { portConnectionEnd } from './connection-mode';
 import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
 import { contextPanelPlacement, resolveContextMenu } from './context-menu-context';
@@ -19,10 +18,12 @@ import {
   anchorControls,
   anchorGuides,
   waypointControls,
+  type NativePortAnchors,
   type NativeWaypointOptions,
 } from './effect-ui-geometry-controls';
 import { surfaceInput } from './effect-ui-input';
 import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
+import { portLabels, portSockets, type GraphPortOptions } from './effect-ui-ports';
 import { nodeResizeControls, nodeResizeReadout } from './effect-ui-resize';
 import { boxBounds, portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
@@ -30,13 +31,7 @@ import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 import { nodeShapeGeometry } from './node-shape';
 import { resolveBoxSelection } from './selection-preview';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
-import type {
-  EditorPolicy,
-  EditorState,
-  Port,
-  ZlozNode,
-  ZlozPortAnchorSnapBypassModifier,
-} from './types';
+import type { EditorState, ZlozNode } from './types';
 import { resolveEdgeWaypointControls } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
@@ -64,64 +59,63 @@ export {
   type GroupSurfaceOptionsV3,
 } from './effect-ui-group';
 
-type GraphPortContext = Readonly<{
-  port: Port;
-  end: 'source' | 'target';
-  reason: string | null;
-}>;
+export type {
+  NativePortControl,
+  NativeSocketContext,
+  NativePortLabelRenderer,
+} from './effect-ui-ports';
+export type { NativePortAnchors } from './effect-ui-geometry-controls';
+export type { ZlozPortLabelContext, ZlozPortLabelOptions } from './port-label-presentation';
+export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
+export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
 
-export type GraphSurfaceOptions<Message> = Readonly<{
-  id: string;
-  label: string;
-  descriptionId?: string;
-  onInput: (event: BrowserInput) => Message;
-  wheelNavigation?: 'off' | 'zoom' | 'pan';
-  /** Background double-click zoom. True uses 1.25. A custom factor must exceed 1. */
-  doubleClickZoom?: boolean | number;
-  spaceToPan?: boolean;
-  middleButtonPan?: boolean;
-  /** Pan near the canvas boundary while dragging nodes or connections. */
-  autoPan?: boolean;
-  /** Keep pointer coordinates relative to the surface's position at pointer down. */
-  stablePointerOrigin?: boolean;
-  /** Show pending node highlights during box selection. Defaults to true. */
-  selectionPreviewHighlights?: boolean;
-  /** Customize the decorative box. Undefined uses the default and null hides it. */
-  renderSelectionMarquee?: (
-    context: ZlozSelectionMarqueeContext,
-    h: Html.H<Message>,
-  ) => View.Content<Message> | null | undefined;
-  /** Customize the decorative camera box. Undefined uses the default and null hides it. */
-  renderZoomAreaMarquee?: (
-    context: ZlozZoomAreaMarqueeContext,
-    h: Html.H<Message>,
-  ) => View.Content<Message> | null | undefined;
-  dropRadius?: number;
-  reconnect?: boolean;
-  /** Expose native width controls and eight-direction controls for expanded selected groups. */
-  resizeHandles?: boolean;
-  /** Show size during a resize or while a single expanded group is selected. */
-  resizeReadout?: boolean;
-  portAnchors?: Readonly<{
-    keyboardTargets?: boolean;
-    guides?: boolean;
-    snapBypass?: ZlozPortAnchorSnapBypassModifier;
+export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
+  Readonly<{
+    id: string;
+    label: string;
+    descriptionId?: string;
+    onInput: (event: BrowserInput) => Message;
+    wheelNavigation?: 'off' | 'zoom' | 'pan';
+    /** Background double-click zoom. True uses 1.25. A custom factor must exceed 1. */
+    doubleClickZoom?: boolean | number;
+    spaceToPan?: boolean;
+    middleButtonPan?: boolean;
+    /** Pan near the canvas boundary while dragging nodes or connections. */
+    autoPan?: boolean;
+    /** Keep pointer coordinates relative to the surface's position at pointer down. */
+    stablePointerOrigin?: boolean;
+    /** Show pending node highlights during box selection. Defaults to true. */
+    selectionPreviewHighlights?: boolean;
+    /** Customize the decorative box. Undefined uses the default and null hides it. */
+    renderSelectionMarquee?: (
+      context: ZlozSelectionMarqueeContext,
+      h: Html.H<Message>,
+    ) => View.Content<Message> | null | undefined;
+    /** Customize the decorative camera box. Undefined uses the default and null hides it. */
+    renderZoomAreaMarquee?: (
+      context: ZlozZoomAreaMarqueeContext,
+      h: Html.H<Message>,
+    ) => View.Content<Message> | null | undefined;
+    dropRadius?: number;
+    reconnect?: boolean;
+    /** Expose native width controls and eight-direction controls for expanded selected groups. */
+    resizeHandles?: boolean;
+    /** Show size during a resize or while a single expanded group is selected. */
+    resizeReadout?: boolean;
+    portAnchors?: NativePortAnchors<Message>;
+    edgeWaypoints?: NativeWaypointOptions<Message>;
+    /** Enable on-canvas edge labels and optionally the selected-edge toolbar. */
+    edgeEditing?: NativeEdgeEditing<Message>;
+    /** Enable context actions from secondary click or the keyboard. */
+    contextActions?: Omit<NativeContextMenuOptions<Message>, 'id'> &
+      Readonly<{ measurements?: boolean }>;
+    nodeNote?: (node: ZlozNode) => string;
+    architectureNotation?: boolean;
+    onToggleGroup?: (id: string) => Message;
+    theme?: ZlozTheme;
+    worldOverlay?: View.Content<Message> | null;
+    pinchZoom?: boolean;
   }>;
-  edgeWaypoints?: NativeWaypointOptions<Message>;
-  /** Enable on-canvas edge labels and optionally the selected-edge toolbar. */
-  edgeEditing?: NativeEdgeEditing<Message>;
-  /** Enable context actions from secondary click or the keyboard. */
-  contextActions?: Omit<NativeContextMenuOptions<Message>, 'id'> &
-    Readonly<{ measurements?: boolean }>;
-  portLabel?: (context: GraphPortContext) => string | undefined;
-  policy?: EditorPolicy;
-  nodeNote?: (node: ZlozNode) => string;
-  architectureNotation?: boolean;
-  onToggleGroup?: (id: string) => Message;
-  theme?: ZlozTheme;
-  worldOverlay?: View.Content<Message> | null;
-  pinchZoom?: boolean;
-}>;
 
 const reconnectOffset = {
   left: [-24, 0],
@@ -364,9 +358,12 @@ export function graphSurface<Message>(
               ]
             : []),
           ...edgeViews.flatMap(({ label }) => (label ? [label] : [])),
-          options.portAnchors?.guides ? anchorGuides<Message>(editor, nodes, policy) : null,
+          options.portAnchors?.guides
+            ? anchorGuides(h, editor, nodes, policy, options.portAnchors.renderGuide)
+            : null,
+          ...portLabels(h, nodes, options),
           ...(options.portAnchors
-            ? anchorControls(h, editor, nodes, policy, options.portAnchors.keyboardTargets === true)
+            ? anchorControls(h, editor, nodes, policy, options.portAnchors)
             : []),
           waypoint && options.edgeWaypoints
             ? waypointControls(h, waypoint, options.edgeWaypoints)
@@ -553,40 +550,7 @@ function nodeView<Message>(
         ...(options.resizeHandles
           ? nodeResizeControls(h, node, editor, options.policy, options.descriptionId)
           : []),
-        ...node.ports.map((port) => {
-          const endpoint = { node: node.id, port: port.id };
-          const point = portPosition(node, port.id);
-          const active = editor.connection?.node === node.id && editor.connection.port === port.id;
-          const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
-          const target = drag?.target?.node === node.id && drag.target.port === port.id;
-          const end = portConnectionEnd(editor, port);
-          const reason = editor.readOnly
-            ? 'This diagram is read-only.'
-            : options.policy?.canConnectPort?.(endpoint, editor.graph);
-          const label = options.portLabel?.({ port, end, reason: reason ?? null });
-          return h.button
-            .key(port.id)
-            .class('zloz-ui-port', label !== undefined && 'zloz-ui-port-custom')
-            .attr('type', 'button')
-            .attr('data-flow-owner', node.id)
-            .attr('data-flow-port', port.id)
-            .attr('data-flow-port-kind', port.kind)
-            .attr('data-flow-connection-end', end)
-            .attr('data-custom-intent', label !== undefined ? end : undefined)
-            .attr('data-target', target ? 'true' : undefined)
-            .attr(
-              'aria-label',
-              `Connect ${end === 'source' ? 'from' : 'to'} ${node.label}: ${port.label ?? port.id}`,
-            )
-            .attr('aria-pressed', String(active))
-            .attr('title', reason ?? undefined)
-            .disabled(reason != null)
-            .style({
-              left: `${point.x - node.position.x}px`,
-              top: `${point.y - node.position.y}px`,
-            })
-            .children(label ?? '');
-        }),
+        ...portSockets(h, editor, node, options),
       )
   );
 }

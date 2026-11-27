@@ -281,14 +281,17 @@ export function view(h: Tags, model: Model) {
             reconnect: true,
             edgeEditing: { toolbar: true, onEdit: observe, reconnection: { onEvent: observe } },
             wheelNavigation: 'zoom',
-            portLabel: ({ port, end, reason }) =>
+            renderPort: ({ port, connectionEnd, disabledReason }) =>
               model.design === 'native'
                 ? undefined
-                : reason
-                  ? editor.readOnly
-                    ? 'Read-only'
-                    : 'Protected'
-                  : `${port.kind} · ${end}`,
+                : {
+                    className: 'zloz-ui-port-custom',
+                    content: disabledReason
+                      ? editor.readOnly
+                        ? 'Read-only'
+                        : 'Protected'
+                      : `${port.kind} · ${connectionEnd}`,
+                  },
             onInput: (event) => observe(decodeBrowserInput(event)),
             nodeNote: (node) => (node.id === 'audit' ? 'Policies stay live.' : 'Choose a port.'),
           }),

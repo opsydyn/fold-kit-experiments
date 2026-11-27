@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { Window } from 'happy-dom';
+import { Window, type HTMLButtonElement, type HTMLElement } from 'happy-dom';
 
 import { createEditor, updateEditor } from '../src/editor';
 import { graphSurface } from '../src/effect-ui';
@@ -283,4 +283,157 @@ test('native edge editing presents protection and keeps read-only labels visible
   expect(inspection?.querySelector('[data-zloz-edge-label]')?.textContent).toBe('Required link');
   expect(inspection?.querySelector('[data-zloz-edge-label] button')).toBeNull();
   expect(inspection?.querySelector('[aria-label="Selected edge actions"]')).toBeNull();
+});
+
+test('native port presentation keeps canonical anchors and input semantics', async () => {
+  const node = {
+    id: 'publish',
+    label: 'Publish',
+    position: { x: 30, y: 40 },
+    size: { width: 100, height: 80 },
+    ports: [
+      { id: 'out', kind: 'output', side: 'right', offset: 0.25, label: 'Public' },
+      { id: 'in', kind: 'input', side: 'left', offset: 0.5, label: 'Private' },
+    ],
+  } as const;
+  const state = updateEditor(createEditor({ nodes: [node], edges: [] }), {
+    type: 'NodeSelected',
+    id: node.id,
+    additive: false,
+  });
+  const component = Html.component({
+    name: 'NativePortPresentation',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      graphSurface(h, state, {
+        id: 'port-presentation',
+        label: 'Native port presentation',
+        renderPort: (context, h) =>
+          context.port.id === 'out'
+            ? {
+                className: 'custom-socket',
+                content: h.span.children(context.connectionEnd),
+                style: { borderRadius: '5px' },
+              }
+            : undefined,
+        portLabels: { offset: 22 },
+        renderPortLabel: ({ port, label }, h) =>
+          port.id === 'in' ? null : h.strong.children(label),
+        portAnchors: {
+          keyboardTargets: true,
+          snapBypass: 'Alt',
+          renderHandle: ({ port, anchor }) =>
+            port.id === 'out' ? { content: String(anchor.y) } : undefined,
+        },
+        policy: {
+          canEditPort: ({ port }) => (port.id === 'out' ? 'Port placement is protected.' : null),
+          canConnectPort: ({ port }) => (port === 'in' ? 'Connection requires approval.' : null),
+        },
+        onInput: ({ type }) => type,
+      }),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  const socket = document.querySelector<HTMLButtonElement>('.custom-socket');
+  expect(socket?.getAttribute('data-flow-port')).toBe('out');
+  expect(socket?.getAttribute('data-flow-connection-end')).toBe('source');
+  expect(socket?.style.left).toBe('100px');
+  expect(socket?.style.top).toBe('20px');
+  expect(socket?.textContent).toBe('source');
+  expect(socket?.disabled).toBe(false);
+  expect(document.querySelector('[data-flow-port="in"]')?.getAttribute('title')).toBe(
+    'Connection requires approval.',
+  );
+  const label = document.querySelector<HTMLElement>('[data-flow-port-label="out"]');
+  expect(label?.getAttribute('aria-hidden')).toBe('true');
+  expect(label?.style.pointerEvents).toBe('none');
+  expect(label?.style.left).toBe('152px');
+  expect(label?.style.top).toBe('60px');
+  expect(label?.querySelector('strong')?.textContent).toBe('Public');
+  expect(document.querySelector('[data-flow-port-label="in"]')).toBeNull();
+  const handle = document.querySelector<HTMLButtonElement>('[data-flow-anchor-port="out"]');
+  expect(handle?.disabled).toBe(true);
+  expect(handle?.textContent).toBe('0.25');
+  expect(handle?.getAttribute('title')).toBe('Port placement is protected.');
+  expect(handle?.getAttribute('aria-keyshortcuts')).toBe('PageDown PageUp Home End');
+  expect(document.querySelector('[data-flow-anchor-port="in"]')?.getAttribute('title')).toContain(
+    'Hold Alt to bypass snapping. Arrow keys move 1%',
+  );
+});
+
+test('native custom guides receive only the editor’s acquired snap targets', async () => {
+  const state = updateEditor(
+    createEditor({
+      nodes: [
+        {
+          id: 'draft',
+          label: 'Draft',
+          position: { x: 30, y: 40 },
+          size: { width: 100, height: 80 },
+          ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+        },
+      ],
+      edges: [],
+    }),
+    {
+      type: 'PortAnchorDragStarted',
+      endpoint: { node: 'draft', port: 'out' },
+      pointer: 1,
+      point: { x: 148, y: 62 },
+    },
+    {
+      portAnchorSnap: () => ({
+        allowedEdges: [],
+        allowedCorners: [],
+        allowedMidpoints: ['right'],
+        midpointDistance: 18,
+      }),
+    },
+  );
+  const component = Html.component({
+    name: 'NativeGuidePresentation',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      graphSurface(h, state, {
+        id: 'guide-presentation',
+        label: 'Native guide presentation',
+        portAnchors: {
+          guides: true,
+          renderGuide: ({ start }) =>
+            new Html.Element<string>('circle')
+              .attr('data-custom-guide', '')
+              .attr('cx', String(start.x))
+              .attr('cy', String(start.y))
+              .attr('r', '3')
+              .children(),
+        },
+        onInput: ({ type }) => type,
+      }),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  expect(document.querySelectorAll('[data-flow-anchor-guide]')).toHaveLength(1);
+  const mark = document.querySelector(
+    '[data-flow-anchor-guide-target="right"] [data-custom-guide]',
+  );
+  expect(mark?.namespaceURI).toBe('http://www.w3.org/2000/svg');
+  expect(mark?.getAttribute('cx')).toBe('130');
+  expect(mark?.getAttribute('cy')).toBe('80');
+  expect(document.querySelector('[data-flow-anchor-guides]')?.getAttribute('aria-hidden')).toBe(
+    'true',
+  );
 });

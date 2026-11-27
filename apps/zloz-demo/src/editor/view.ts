@@ -14,7 +14,6 @@ import {
   type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
-import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
   canvasHelpContext,
   canvasStatusContext,
@@ -44,7 +43,7 @@ import {
   resolveZlozDiagnostics,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { zlozPlacementHost } from '@opsydyn/foldkit-zloz/foldkit';
-import { type Document, type Html, type HtmlBuilder } from 'foldkit/html';
+import { type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
@@ -69,6 +68,7 @@ import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativePolicies } from './native-policies';
 import { nativePortInspector } from './native-port-inspector';
 import { nativePortSettings } from './native-port-settings';
+import { nativeReviewPacket } from './native-review-packet';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
 import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
 import { nativeWorkshopInspector } from './native-workshop-inspector';
@@ -243,7 +243,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       : [];
   const controls: WorkbenchControls = {
     alchemy: [alchemyReviewPanel(model, h)],
-    review: packetReaderPanel(model, h),
+    review: model.sidebarSection === 'review' ? [packetReaderPanel(model, h)] : [],
     patch: patchWorkbenchPanel(model, h),
     history: [
       h.div(
@@ -541,86 +541,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.h3([], ['Portable review']),
       ...(packetControls
         ? [
-            zlozReviewPacketControls(
+            nativeReviewPacket(
               h,
-              packetControls,
-              (request) => Message.ObservedReviewPacketInput({ request, modelId, epoch }),
               {
-                attributes: [
-                  h.Style({
-                    display: 'grid',
-                    gap: '8px',
-                    padding: '12px',
-                    border: '1px solid var(--rule)',
-                    borderRadius: '8px',
-                  }),
-                ],
-                showCounts: !model.minimalMode && model.diagnosticsEnabled,
-                renderStatus: () =>
-                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
-                renderScope: (context, builder) =>
-                  builder.div(
-                    [],
-                    [
-                      builder.strong([], ['Selected snapshots only']),
-                      builder.p([builder.AriaLabel('Review packet scope')], [context.scopeText]),
-                    ],
-                  ),
-                renderLayout: (parts, _context, builder) => [
-                  ...[parts.scope, parts.status].filter((item): item is Html => item !== null),
-                  ...(parts.diagnostics.length
-                    ? [
-                        builder.details(
-                          [],
-                          [
-                            builder.summary([], ['Inspect projection losses']),
-                            builder.ul(
-                              [
-                                builder.AriaLabel('Review packet diagnostics'),
-                                builder.Style({
-                                  maxHeight: '220px',
-                                  overflow: 'auto',
-                                  padding: '0',
-                                  margin: '8px 0',
-                                }),
-                              ],
-                              parts.diagnostics,
-                            ),
-                          ],
-                        ),
-                      ]
-                    : []),
-                  ...[parts.consent, parts.reason, parts.download].filter(
-                    (item): item is Html => item !== null,
-                  ),
-                ],
-                renderDiagnostic: (item, builder) =>
-                  builder.li(
-                    [
-                      builder.Style({
-                        listStyle: 'none',
-                        padding: '8px',
-                        marginBottom: '4px',
-                        borderLeft: '3px solid var(--rule)',
-                        background: 'var(--panel)',
-                      }),
-                    ],
-                    [
-                      builder.strong(
-                        [],
-                        [
-                          item.side === 'baseline'
-                            ? 'Baseline'
-                            : item.side === 'selected'
-                              ? 'Target'
-                              : 'Packet',
-                        ],
-                      ),
-                      ` · ${item.severity}${item.subject ? ` · ${item.subject}` : ''}`,
-                      builder.p([], [item.message]),
-                    ],
-                  ),
+                controls: packetControls,
+                modelId,
+                epoch,
+                showStatus: !model.minimalMode && model.diagnosticsEnabled,
               },
+              'architecture-effect-ui',
+              'review-packet-export',
             ),
           ]
         : []),

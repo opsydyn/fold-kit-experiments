@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -55,7 +56,9 @@ async function run() {
     ]);
     return parseModelDocument(await readFile(await file.path(), 'utf8'));
   };
-  const panel = page.getByRole('region', { name: 'Review packet export', exact: true });
+  const panel = page
+    .locator('[data-architecture-effect-ui="review-packet-export"]')
+    .getByRole('region', { name: 'Review packet export', exact: true });
   const consent = panel.getByRole('checkbox', {
     name: 'Allow reported projection losses for this packet',
     exact: true,
@@ -84,6 +87,7 @@ async function run() {
   await consent.focus();
   await consent.press('Space');
   await expect(consent).toBeChecked();
+  await expect(consent).toBeFocused();
   await expect(save).toBeEnabled();
   const downloadPacket = async () => {
     const [file] = await Promise.all([page.waitForEvent('download'), save.click()]);
@@ -122,7 +126,8 @@ async function run() {
   await expect(panel.getByLabel('Review packet scope', { exact: true })).toContainText(
     'Current graph',
   );
-  await consent.check();
+  await consent.click();
+  await expect(consent).toBeChecked();
   const current = await downloadPacket();
   expect(current.selected.source).toEqual({ kind: 'current' });
   expect(current.selected.snapshot).toEqual(working.snapshot);
@@ -154,23 +159,49 @@ async function run() {
       exact: true,
     }),
   ).toBeVisible();
-  await consent.check();
+  await consent.click();
+  await expect(consent).toBeChecked();
   await expect(save).toBeEnabled();
   await panel.getByText('Inspect projection losses', { exact: true }).click();
   for (const theme of ['light', 'dark']) {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
     await expect(save).toBeEnabled();
     await panel.scrollIntoViewIfNeeded();
-    await page.screenshot({
-      path: fileURLToPath(new URL(`./review-packet-controls-${theme}.png`, import.meta.url)),
-    });
+    if (process.env.ZLOZ_CAPTURE_DIR) {
+      await page.screenshot({
+        path: resolve(
+          process.env.ZLOZ_CAPTURE_DIR,
+          `review-packet-controls-${engine}-${theme}.png`,
+        ),
+      });
+    }
   }
   expect((await downloadModel()).snapshot).toEqual(working.snapshot);
   await button('Return to present').click();
   await section('Diagram');
   await button('Undo').click();
   await section('History');
-  expect((await downloadModel()).snapshot.graph).toEqual(original.snapshot.graph);
+  const beforeRoundTrip = (await downloadModel()).snapshot;
+  expect(beforeRoundTrip.graph).toEqual(original.snapshot.graph);
+  await section('Review packets');
+  const reader = page.locator('[data-architecture-effect-ui="review-packet-reader"]');
+  await reader.getByLabel('Open review packet', { exact: true }).setInputFiles({
+    name: 'round-trip.review.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(packet)),
+  });
+  await expect(
+    page.getByText('Read-only packet · selected · Working model preserved'),
+  ).toBeVisible();
+  await reader
+    .getByRole('button', { name: 'Baseline: Causal review · before', exact: true })
+    .click();
+  await expect(
+    page.getByText('Read-only packet · baseline · Working model preserved'),
+  ).toBeVisible();
+  await reader.getByRole('button', { name: 'Close packet review', exact: true }).click();
+  await section('History');
+  expect((await downloadModel()).snapshot).toEqual(beforeRoundTrip);
   expect(errors).toEqual([]);
   console.log(
     JSON.stringify(
@@ -186,6 +217,7 @@ async function run() {
           'minimal and diagnostics visibility without disabling export',
           'light/dark shared family styles with visible canvas',
           'working graph and prior Undo preserved',
+          'actual packet round-trips through the reader and both read-only sides',
         ],
         pageErrors: errors,
       },

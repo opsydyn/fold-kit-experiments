@@ -5,7 +5,7 @@ import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -32,7 +32,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -47,7 +48,8 @@ async function run() {
       .getByRole('navigation', { name: 'Workbench sections' })
       .getByRole('button', { name, exact: true })
       .click();
-  const input = () => page.getByLabel('Open review packet', { exact: true });
+  const reader = page.locator('[data-architecture-effect-ui="review-packet-reader"]');
+  const input = () => reader.getByLabel('Open review packet', { exact: true });
   const fixture = fileURLToPath(
     new URL(
       '../../../packages/foldkit-zloz-mermaid/test/fixtures/review-packet-v1.json',
@@ -64,14 +66,17 @@ async function run() {
   await expect(
     page.getByText('Packet opened read-only. Working model and Undo preserved.', { exact: true }),
   ).toBeVisible();
-  await button('Fit packet').click();
+  const banner = page.locator('[data-architecture-effect-ui="review-packet-banner"]');
+  await banner.getByRole('button', { name: 'Fit packet', exact: true }).click();
   await expect(page.locator('[data-flow-node="note:2"]')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Diagram', exact: true })).toBeDisabled();
   await expect(page.locator('[aria-label="Packet findings"]')).toContainText('Introduced');
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
-  await page.screenshot({
-    path: fileURLToPath(new URL('review-reader-light.png', import.meta.url)),
-  });
+  if (process.env.ZLOZ_CAPTURE_DIR) {
+    await page.screenshot({
+      path: resolve(process.env.ZLOZ_CAPTURE_DIR, `review-reader-${engine}-light.png`),
+    });
+  }
   const baseline = page.getByRole('button', { name: /^Baseline:/ });
   await baseline.click();
   await expect(baseline).toHaveAttribute('aria-pressed', 'true');
@@ -112,9 +117,11 @@ async function run() {
     page.getByRole('status').filter({ hasText: 'Packet opening is protected' }),
   ).toBeVisible();
   await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('dark');
-  await page.screenshot({
-    path: fileURLToPath(new URL('review-reader-dark-protected.png', import.meta.url)),
-  });
+  if (process.env.ZLOZ_CAPTURE_DIR) {
+    await page.screenshot({
+      path: resolve(process.env.ZLOZ_CAPTURE_DIR, `review-reader-${engine}-dark-protected.png`),
+    });
+  }
   await page.getByRole('checkbox', { name: 'Protect packet opening', exact: true }).uncheck();
   await section('Diagnostics');
   await button('Minimal mode').click();
@@ -122,19 +129,27 @@ async function run() {
   await expect(page.locator('[data-review-reader-counts]')).toHaveCount(0);
   await expect(page.locator('[aria-label="Packet findings"]')).toContainText('Introduced');
   await expect(input()).toBeEnabled();
-  await page.screenshot({
-    path: fileURLToPath(new URL('review-reader-minimal.png', import.meta.url)),
-  });
-  await button('Close packet review').click();
+  if (process.env.ZLOZ_CAPTURE_DIR) {
+    await page.screenshot({
+      path: resolve(process.env.ZLOZ_CAPTURE_DIR, `review-reader-${engine}-minimal.png`),
+    });
+  }
+  await banner.getByRole('button', { name: 'Close packet review', exact: true }).click();
   await expect(page.locator('[data-flow-node="review"]')).toBeVisible();
   expect(
     await page
       .locator('[data-flow-node]')
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-flow-node'))),
   ).toEqual(workingNodes);
+  await expect(input()).toHaveValue('');
+  await input().setInputFiles(fixture);
+  await expect(banner).toContainText('Read-only packet · selected · Working model preserved');
+  await banner.getByRole('button', { name: 'Close packet review', exact: true }).click();
+  await expect(page.locator('[data-flow-node="review"]')).toBeVisible();
   expect(errors).toEqual([]);
   console.log(
     JSON.stringify({
+      result: 'passed',
       browser: browser.version(),
       viewport: '1600x1100',
       checks:

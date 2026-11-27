@@ -10,7 +10,8 @@ import {
   type ZlozReviewReaderRequest,
   type ZlozReviewReaderSide,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { zlozReviewReader } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { reviewReader } from '@opsydyn/foldkit-zloz-mermaid/effect-ui';
+import { Match, Schema } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { ReadReviewPacket } from './command';
@@ -18,6 +19,8 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeDetachedReview } from './native-detached-review';
+import { architectureNativePanel } from './native-panel';
+import { settingCheckbox } from './native-settings';
 import { receiptAllowsMessage } from './receipt-review';
 import type { Return } from './transition';
 export type PacketReviewPreview = Readonly<{
@@ -55,25 +58,27 @@ function policy(model: Model) {
 }
 function preview(model: Model, state: Model['packetReader']): PacketReviewPreview | null {
   const review = state.review;
-  if (!review) return null;
   if (
+    review &&
     model.packetPreview?.scope === state.scope &&
     model.packetPreview.id === review.id &&
     model.packetPreview.side === review.side
   )
     return model.packetPreview;
-  const snapshot = review.packet[review.side].snapshot,
-    zoom = snapshot.viewport?.zoom ?? 1;
-  return {
-    scope: state.scope,
-    id: review.id,
-    side: review.side,
-    editor: createEditor(snapshot.graph, {
-      readOnly: true,
-      viewport: snapshot.viewport ?? { x: 0, y: 0, zoom: 1 },
-      zoomLimits: { minZoom: Math.min(0.1, zoom), maxZoom: Math.max(4, zoom) },
-    }),
-  };
+  const snapshot = review?.packet[review.side].snapshot;
+  const zoom = snapshot?.viewport?.zoom ?? 1;
+  return review && snapshot
+    ? {
+        scope: state.scope,
+        id: review.id,
+        side: review.side,
+        editor: createEditor(snapshot.graph, {
+          readOnly: true,
+          viewport: snapshot.viewport ?? { x: 0, y: 0, zoom: 1 },
+          zoomLimits: { minZoom: Math.min(0.1, zoom), maxZoom: Math.max(4, zoom) },
+        }),
+      }
+    : null;
 }
 function request(
   model: Model,
@@ -112,8 +117,8 @@ export function packetAllowsMessage(message: Message) {
   );
 }
 export function updatePacketReader(model: Model, message: Message): Return<Model, Message> {
-  switch (message._tag) {
-    case 'ChoseReviewPacketFiles': {
+  return Match.value(message).pipe(
+    Match.tag('ChoseReviewPacketFiles', (message) => {
       const state = packetReaderState(model);
       if (message.scope !== state.scope) return { model };
       const file = message.files[0];
@@ -136,22 +141,21 @@ export function updatePacketReader(model: Model, message: Message): Return<Model
         },
         file,
       );
-    }
-    case 'ObservedReviewReaderInput':
-      // SAFETY: the package controls emit only ZlozReviewReaderRequest facts.
-      return request(model, message.request as ZlozReviewReaderRequest);
-    case 'SucceededReviewPacketRead':
-      return request(model, {
-        scope: message.scope,
-        type: 'ReadSucceeded',
-        run: message.run,
-        text: message.json,
-      });
-    case 'FailedReviewPacketRead':
-      return request(model, { scope: message.scope, type: 'ReadFailed', run: message.run });
-    case 'ClickedPacketOpeningProtection':
-      return { model: { ...model, protectReviewOpening: !model.protectReviewOpening } };
-    case 'ObservedPacketCanvasInput': {
+    }),
+    // SAFETY: the package controls emit only ZlozReviewReaderRequest facts.
+    Match.tag('ObservedReviewReaderInput', ({ request: input }) =>
+      request(model, input as ZlozReviewReaderRequest),
+    ),
+    Match.tag('SucceededReviewPacketRead', ({ scope, run, json }) =>
+      request(model, { scope, type: 'ReadSucceeded', run, text: json }),
+    ),
+    Match.tag('FailedReviewPacketRead', ({ scope, run }) =>
+      request(model, { scope, type: 'ReadFailed', run }),
+    ),
+    Match.tag('ClickedPacketOpeningProtection', () => ({
+      model: { ...model, protectReviewOpening: !model.protectReviewOpening },
+    })),
+    Match.tag('ObservedPacketCanvasInput', (message) => {
       const current = model.packetPreview,
         state = packetReaderState(model);
       if (
@@ -171,40 +175,71 @@ export function updatePacketReader(model: Model, message: Message): Return<Model
       return next.editor === current.editor
         ? { model }
         : { model: { ...model, packetPreview: { ...current, editor: next.editor } } };
-    }
-    default:
-      return { model };
-  }
+    }),
+    Match.orElse(() => ({ model })),
+  );
 }
-export function packetReaderPanel(model: Model, h: HtmlBuilder<Message>) {
-  const state = packetReaderState(model),
-    counts = !model.minimalMode && model.diagnosticsEnabled && model.diagnostics.measurements;
-  return [
-    h.label(
-      [],
-      [
-        h.input([
-          h.Type('checkbox'),
-          h.Checked(model.protectReviewOpening),
-          h.OnClick(Message.ClickedPacketOpeningProtection()),
-        ]),
+const readerPanel = architectureNativePanel<Model>(
+  'ArchitecturePacketReader',
+  Schema.is(
+    Schema.Union([
+      Message.cases.ChoseReviewPacketFiles,
+      Message.cases.ObservedReviewReaderInput,
+      Message.cases.ClickedPacketOpeningProtection,
+    ]),
+  ),
+  (h, model, send) => {
+    const state = packetReaderState(model);
+    const diagnostics = !model.minimalMode && model.diagnosticsEnabled;
+    return h.div.children(
+      h.label.children(
+        settingCheckbox(
+          h,
+          model.protectReviewOpening,
+          send(Message.ClickedPacketOpeningProtection()),
+        ),
         'Protect packet opening',
-      ],
-    ),
-    zlozReviewReader(
-      h,
-      state,
-      (request) => Message.ObservedReviewReaderInput({ request }),
-      (files) => Message.ChoseReviewPacketFiles({ scope: state.scope, files: [...files] }),
-      policy(model),
-      {
-        showCounts: counts,
-        instructions:
-          !model.minimalMode && model.diagnosticsEnabled && model.diagnostics.instructions,
-      },
-    ),
-  ];
+      ),
+      reviewReader(
+        h,
+        state,
+        (input) => send(Message.ObservedReviewReaderInput({ request: input })),
+        (files) => send(Message.ChoseReviewPacketFiles({ scope: state.scope, files: [...files] })),
+        policy(model),
+        {
+          showCounts: diagnostics && model.diagnostics.measurements,
+          instructions: diagnostics && model.diagnostics.instructions,
+        },
+      ),
+    );
+  },
+);
+
+export function packetReaderPanel(model: Model, h: HtmlBuilder<Message>) {
+  return readerPanel(h, model, 'architecture-effect-ui', 'review-packet-reader');
 }
+
+const packetBanner = architectureNativePanel<
+  Readonly<{ side: ZlozReviewReaderSide; close: Message; fit: Message }>
+>(
+  'ArchitecturePacketBanner',
+  Schema.is(
+    Schema.Union([
+      Message.cases.ObservedPacketCanvasInput,
+      Message.cases.ObservedReviewReaderInput,
+    ]),
+  ),
+  (h, { side, close, fit }, send) =>
+    h.div
+      .class('receipt-canvas-banner')
+      .attr('role', 'status')
+      .children(
+        `Read-only packet · ${side} · Working model preserved`,
+        h.button.attr('type', 'button').on('click', send(fit)).children('Fit packet'),
+        h.button.attr('type', 'button').on('click', send(close)).children('Close packet review'),
+      ),
+);
+
 export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   const current = model.packetPreview,
     state = packetReaderState(model);
@@ -224,26 +259,17 @@ export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
       h.Class('receipt-canvas packet-review-canvas'),
     ],
     [
-      h.div(
-        [h.Class('receipt-canvas-banner'), h.Role('status')],
-        [
-          `Read-only packet · ${current.side} · Working model preserved`,
-          h.button(
-            [h.Type('button'), h.OnClick(onEvent({ type: 'FitViewClicked' }))],
-            ['Fit packet'],
-          ),
-          h.button(
-            [
-              h.Type('button'),
-              h.OnClick(
-                Message.ObservedReviewReaderInput({
-                  request: { scope: state.scope, type: 'ReviewClosed', reviewId: state.review.id },
-                }),
-              ),
-            ],
-            ['Close packet review'],
-          ),
-        ],
+      packetBanner(
+        h,
+        {
+          side: current.side,
+          fit: onEvent({ type: 'FitViewClicked' }),
+          close: Message.ObservedReviewReaderInput({
+            request: { scope: state.scope, type: 'ReviewClosed', reviewId: state.review.id },
+          }),
+        },
+        'architecture-effect-ui',
+        'review-packet-banner',
       ),
       nativeDetachedReview(
         h,

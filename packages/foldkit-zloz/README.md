@@ -49,6 +49,11 @@ Set `portAnchors` to expose port position handles on selected nodes. Set
 editor as the canvas input. Optional anchor guides and waypoint measurements
 can follow the host's diagnostics settings.
 
+For placement, compose `placementHost` with `placementPalette` and the graph
+surface, and pass `placementPreview` to the surface's `worldOverlay`. Resolve
+the controls with `resolvePlacementControls` and send the scoped input to
+`updatePlacementControls`. The host keeps the placement and editor records.
+
 ## Core
 
 ```ts

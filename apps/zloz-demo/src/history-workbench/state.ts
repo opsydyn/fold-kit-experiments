@@ -20,6 +20,8 @@ import {
   serializeModelDocumentV2,
   type EditorState,
   type EditorEvent,
+  type ZlozPlacement,
+  type ZlozPlacementInput,
   type ZlozEditionV2,
   type ZlozModelDocumentV2,
   type ZlozHistoryReviewV2,
@@ -36,11 +38,18 @@ import { ReadHistoryFile, DownloadHistory, byteLimit } from './command';
 import { Message, Theme } from './message';
 import { nativeInitial, nativeHandlers, type NativeState } from './native-authoring';
 import { CreateNativeSession } from './native-command';
+import {
+  newHistoryPlacement,
+  reconcileHistoryPlacement,
+  updateHistoryPlacement,
+} from './placement';
 export { Message };
 export const Model = Schema.Struct({
   section: Schema.Literals(['files', 'review', 'playback', 'restore', 'authoring', 'evidence']),
   native: Schema.fromJsonString(Schema.Unknown),
   editor: Schema.fromJsonString(Schema.Unknown),
+  placement: Schema.fromJsonString(Schema.Unknown),
+  placementProtected: Schema.Boolean,
   identity: Schema.fromJsonString(Schema.Unknown),
   editions: Schema.fromJsonString(Schema.Unknown),
   selectedId: Schema.String,
@@ -77,6 +86,8 @@ export type Model = Readonly<{
   native: NativeState;
   previousSession: Session | null;
   editor: EditorState;
+  placement: ZlozPlacement;
+  placementProtected: boolean;
   identity: Pick<ZlozModelDocumentV2, 'id' | 'name' | 'origin'>;
   editions: readonly ZlozEditionV2[];
   selectedId: string;
@@ -169,6 +180,8 @@ export function init(): Transition {
       native: nativeInitial(),
       previousSession: null,
       editor: createModelEditorV2(document, editorOptions),
+      placement: newHistoryPlacement(0),
+      placementProtected: false,
       identity: { id: document.id, name: document.name, origin: document.origin },
       editions: document.editions,
       selectedId: 'loose-evolved',
@@ -298,10 +311,17 @@ function focus(model: Model, request: ZlozHistoryChangeFocusRequestV2): Model {
   };
 }
 export function update(model: Model, message: Message): Transition {
+  const next = transition(model, message);
+  const settled = reconcileHistoryPlacement(model, next.model);
+  return settled === next.model ? next : { ...next, model: settled };
+}
+
+function transition(model: Model, message: Message): Transition {
   if (
     (model.native.inspection || model.native.pending) &&
     ![
       'ObservedEditor',
+      'ObservedPlacement',
       'SelectedSection',
       'ClickedMinimal',
       'ClickedMinimap',
@@ -330,6 +350,13 @@ export function update(model: Model, message: Message): Transition {
     };
   return Message.match(message, {
     ...nativeHandlers(model),
+    ObservedPlacement: ({ input }) => ({
+      // SAFETY: the scoped placement host and palette emit the domain placement input union.
+      model: updateHistoryPlacement(model, input as ZlozPlacementInput),
+    }),
+    ClickedPlacementProtection: () => ({
+      model: { ...model, placementProtected: !model.placementProtected },
+    }),
     ObservedEditor: ({ epoch, event: raw }) => {
       // SAFETY: the scoped native canvas emits EditorEvent; epoch/read guards reject obsolete bindings.
       const event = raw as EditorEvent;

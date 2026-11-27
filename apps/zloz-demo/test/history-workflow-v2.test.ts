@@ -203,3 +203,36 @@ test('passive node measurement does not interrupt read-only playback', () => {
   expect(cancelled.playback.cursor.status).toBe('playing');
   expect(cancelled.run).toBe(model.run);
 });
+
+test('leaving Authoring invalidates queued placement activation and approval in the same model', () => {
+  const authoring = send(init().model, Message.SelectedSection({ section: 'authoring' }));
+  const measured = send(
+    authoring,
+    Message.ObservedEditor({
+      epoch: authoring.epoch,
+      event: { type: 'SurfaceMeasured', size: { width: 1000, height: 700 } },
+    }),
+  );
+  const { scope, generation } = measured.placement;
+  const activation = Message.ObservedPlacement({
+    input: { type: 'PaletteEntryActivated', scope, generation, id: 'c4-person' },
+  });
+  const placing = send(measured, activation);
+  if (placing.placement.type !== 'placing') throw new Error('Placement preview was not staged');
+  expect(placing.editor.graph).toBe(measured.editor.graph);
+  const approval = Message.ObservedPlacement({
+    input: {
+      type: 'PlacementAccepted',
+      scope,
+      generation: placing.placement.generation,
+      targetRevision: placing.placement.targetRevision,
+    },
+  });
+  const left = send(placing, Message.SelectedSection({ section: 'files' }));
+  const returned = send(left, Message.SelectedSection({ section: 'authoring' }));
+  expect(returned.epoch).toBe(measured.epoch);
+  expect(returned.placement.type).toBe('idle');
+  expect(send(returned, activation)).toBe(returned);
+  expect(send(returned, approval)).toBe(returned);
+  expect(returned.editor.graph).toBe(measured.editor.graph);
+});

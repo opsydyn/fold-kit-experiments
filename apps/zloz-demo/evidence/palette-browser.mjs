@@ -74,6 +74,7 @@ async function run() {
   expect(await count()).toBe(initial);
   await source().focus();
   await page.keyboard.press('Enter');
+  await expect(preview).toBeVisible();
   await page.getByRole('checkbox', { name: 'Protect pattern insertion', exact: true }).check();
   await expect(button('Place fragment')).toBeDisabled();
   await expect(

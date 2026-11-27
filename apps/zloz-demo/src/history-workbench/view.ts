@@ -5,19 +5,23 @@ import {
   resolveHistoryChangeNavigatorV2,
   resolveHistoryComparisonPresentationV2,
 } from '@opsydyn/foldkit-zloz';
-import type { EditorEvent } from '@opsydyn/foldkit-zloz';
+import type { EditorEvent, ZlozPlacementInput } from '@opsydyn/foldkit-zloz';
 import {
   graphSurface,
   historyComparisonV2,
   historyGhostsV2,
   historyChangeNavigatorV2,
   historyMinimap,
+  placementHost,
+  placementPalette,
+  placementPreview,
 } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
 import { workbenchThemes } from '../editor/theme';
 import { Side, Theme } from './message';
 import { nativeView } from './native-view';
+import { historyPlacement, placementAvailable } from './placement';
 import { Message, targetFor, type Model } from './state';
 export function view(h: Html.H<Message>, model: Model) {
   const displayed = model.native.inspection?.review.editor ?? model.review?.editor ?? model.editor;
@@ -45,6 +49,8 @@ export function view(h: Html.H<Message>, model: Model) {
   });
   const scheme = model.theme === 'system' ? (model.systemDark ? 'dark' : 'light') : model.theme;
   const observe = (event: EditorEvent) => Message.ObservedEditor({ epoch: model.epoch, event });
+  const placement = historyPlacement(model);
+  const onPlacement = (input: ZlozPlacementInput) => Message.ObservedPlacement({ input });
   const button = (text: string, message: Message, disabled = false): View.Content<Message> =>
     h.button.attr('type', 'button').on('click', message).disabled(disabled).children(text);
   const field = (label: string, input: View.Content<Message>): View.Content<Message> =>
@@ -125,6 +131,7 @@ export function view(h: Html.H<Message>, model: Model) {
               .attr('role', 'status')
               .attr('aria-live', 'polite')
               .attr('aria-label', 'History workflow status')
+              .attr('hidden', placement.active ? '' : undefined)
               .children(model.notice),
             h.p
               .attr('aria-label', 'Working connection mode')
@@ -168,6 +175,22 @@ export function view(h: Html.H<Message>, model: Model) {
                 .on('click', Message.ClickedMinimap()),
             ),
             ...(model.minimap ? [historyMinimap(h, editor, observe)] : []),
+            ...(model.section === 'authoring'
+              ? [
+                  field(
+                    'Protect placement',
+                    h.input
+                      .attr('type', 'checkbox')
+                      .checked(model.placementProtected)
+                      .disabled(!placementAvailable(model))
+                      .on('click', Message.ClickedPlacementProtection()),
+                  ),
+                  placementPalette(h, placement, onPlacement, {
+                    instructions: !model.minimal,
+                    measurements: !model.minimal,
+                  }),
+                ]
+              : []),
             ...(model.section === 'authoring' || model.section === 'evidence'
               ? [nativeView(model, h)]
               : []),
@@ -449,11 +472,11 @@ export function view(h: Html.H<Message>, model: Model) {
             worldOverlay:
               (model.review || artifact) && presentation
                 ? historyGhostsV2<Message>(presentation)
-                : null,
+                : (placementPreview(h, placement) ?? null),
           }),
         ),
     );
-  return h.div
+  return placementHost(h, placement, onPlacement)
     .class('flow-workbench history-workbench')
     .attr('data-flow-workbench-color-scheme', scheme)
     .style({ height: '100%', '--zloz-ui-height': '100%' })

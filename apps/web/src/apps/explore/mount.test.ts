@@ -1,12 +1,10 @@
-import { Effect, Option, Stream } from 'effect';
 import { constVoid } from 'effect/Function';
-import { liveViewStateChanges } from 'foldkit/mount';
 import { expect, it, onTestFinished } from 'vitest';
 
 import { scatter, scatterKey } from './charts';
-import { PaintScatter } from './mount';
+import { paintScatter } from './mount';
 
-it('paints the requested scatter on the mounted canvas and returns its key', async () => {
+it('paints the requested scatter on the mounted canvas and returns its key', () => {
   const domain = [100, 500] as const;
   scatter(domain, null);
   const key = scatterKey(domain, null);
@@ -42,11 +40,9 @@ it('paints the requested scatter on the mounted canvas and returns its key', asy
     value: (kind: string) => (kind === '2d' ? context : null),
   });
 
-  const message = await PaintScatter({ key, points: true })
-    .f(canvas, liveViewStateChanges)
-    .pipe(Stream.runHead, Effect.runPromise);
+  const message = paintScatter(canvas, key, true);
 
   expect(strokes).toContain('#345678');
   expect(fills).toContain('#6aa7e8');
-  expect(message).toEqual(Option.some({ _tag: 'PaintedScatter', key }));
+  expect(message).toEqual({ _tag: 'PaintedScatter', key });
 });

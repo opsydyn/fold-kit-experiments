@@ -4,8 +4,8 @@ import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
 ---
 
-<Layout title="Explore a Million Points — Astro + FoldKit">
+<Layout title="Explore a Million Points — Astro + Effect UI">
   <h1 class={layoutStyles.heading}>Explore a million points</h1>
-  <Explore client:load noMeta />
+  <Explore client:only="astro-effect-ui" />
   <p><a href="/mutant-field-guide">Open the mutant field guide</a></p>
 </Layout>

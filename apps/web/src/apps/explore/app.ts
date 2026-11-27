@@ -1,5 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-// A million points are generated in the browser and drawn on canvas, so this
-// island renders on the client only.
-export default lazyApp(() => import('./main'));
+import { Explore } from './main';
+
+export default astroComponent(Explore);

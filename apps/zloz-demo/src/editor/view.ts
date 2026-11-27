@@ -48,29 +48,10 @@ import {
   zlozPlaybackControl,
   zlozPlaybackStatus,
   zlozPlaybackReason,
-  portInspectorContext,
-  portAdditionContext,
-  zlozPortAddButton,
-  zlozPortRemoveButton,
-  zlozPortLabelEditButton,
-  zlozPortLabelForm,
-  zlozPortLabelInput,
-  zlozPortLabelSave,
-  zlozPortLabelCancel,
-  zlozPortProtectionReason,
-  portPositionEditorContext,
-  zlozPortPositionEditButton,
-  zlozPortPositionModeSelect,
-  zlozPortPositionSideSelect,
-  zlozPortPositionInput,
-  zlozPortPositionForm,
-  zlozPortPositionSave,
-  zlozPortPositionCancel,
-  type ZlozPortPositionDraftChange,
   resolveZlozDiagnostics,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { zlozPlacementHost } from '@opsydyn/foldkit-zloz/foldkit';
-import { Match, Option, Schema } from 'effect';
+import { Schema } from 'effect';
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
@@ -94,6 +75,7 @@ import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endp
 import { nativeGraphActions } from './native-graph-actions';
 import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativePolicies } from './native-policies';
+import { nativePortInspector } from './native-port-inspector';
 import { nativePortSettings } from './native-port-settings';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
 import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
@@ -103,7 +85,6 @@ import { patchWorkbenchPanel } from './patch-review';
 import { patternInsertionReason } from './pattern-insertion';
 import { playbackReason, playbackInspectionReason } from './playback';
 import { workbenchPngReview } from './png-review';
-import { nextPort } from './port-editing';
 import { workbenchPacketContext } from './review-packet';
 import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
@@ -266,41 +247,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     'working-canvas',
   );
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
-  const inspector = Option.getOrUndefined(
-    !model.minimalMode &&
-      selectedNode &&
-      !(
-        selectedNode.architecture?.family === 'event-storming' &&
-        selectedNode.architecture.role === 'hotspot'
-      )
-      ? portInspectorContext(model.editor, selectedNode.id, policy, {
-          idPrefix: 'workbench-port-inspector',
-        })
-      : Option.none(),
-  );
-  const labelMessages = {
-    saved: Message.SubmittedPortLabel(),
-    cancelled: Message.ClickedCancelPortLabel(),
-  };
-  const positionMessages = {
-    saved: Message.SubmittedPortPosition(),
-    cancelled: Message.ClickedCancelPortPosition(),
-  };
-  const positionChanged = (change: ZlozPortPositionDraftChange): Message =>
-    Match.value(change).pipe(
-      Match.when({ type: 'mode' }, ({ mode }) => Message.SelectedPortPositionMode({ mode })),
-      Match.when({ type: 'side' }, ({ side }) => Message.SelectedPortPositionSide({ side })),
-      Match.when({ type: 'number' }, ({ field, text }) =>
-        Message.ChangedPortPositionNumber({ field, text }),
-      ),
-      Match.exhaustive,
-    );
-  const reasonStyle = {
-    border: '1px solid currentColor',
-    'border-radius': '999px',
-    padding: '3px 9px',
-    'font-size': '0.85rem',
-  };
   const endpointScope = { modelId, epoch, queries: model.portChooserQueries };
   const endpointFields =
     selectedEdge &&
@@ -1347,194 +1293,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ]
         : []),
-      ...(inspector
-        ? [
-            h.fieldset(
-              [h.DataAttribute('flow-port-inspector-demo', 'composable')],
-              [
-                h.legend([], ['Ports for ' + inspector.node.label]),
-                h.p(
-                  [],
-                  [
-                    'Removing a port also removes its attached connections. Undo restores them together.',
-                  ],
-                ),
-                ...(['input', 'output'] as const).map((kind) => {
-                  const addition = Option.getOrUndefined(
-                    portAdditionContext(
-                      model.editor,
-                      inspector.node.id,
-                      nextPort(inspector.node, kind),
-                      policy,
-                      { idPrefix: 'workbench-port-inspector' },
-                    ),
-                  );
-                  if (!addition) return h.span([], []);
-                  return h.div(
-                    [
-                      h.Style({
-                        display: 'inline-flex',
-                        gap: '8px',
-                        'align-items': 'center',
-                        'flex-wrap': 'wrap',
-                      }),
-                    ],
-                    [
-                      zlozPortAddButton(
-                        h,
-                        addition,
-                        Message.ClickedAddPort({ nodeId: inspector.node.id, kind }),
-                        [h.Style({ padding: '10px 16px', cursor: 'pointer' })],
-                        ['Add ' + kind + ' port'],
-                      ),
-                      ...(addition.control.reason !== null
-                        ? [zlozPortProtectionReason(h, addition.control, [h.Style(reasonStyle)])]
-                        : []),
-                    ],
-                  );
-                }),
-                ...inspector.entries.map((entry) => {
-                  const { node, port } = entry;
-                  const draft = model.portLabelDraft;
-                  const editing = draft?.nodeId === node.id && draft.portId === port.id;
-                  const positionDraft = model.portPositionDraft;
-                  const positionEditor =
-                    positionDraft?.nodeId === node.id && positionDraft.portId === port.id
-                      ? portPositionEditorContext(entry, positionDraft.draft)
-                      : null;
-                  return h.div(
-                    [
-                      h.Style({
-                        display: 'flex',
-                        gap: '8px',
-                        'align-items': 'center',
-                        margin: '8px 0',
-                        'flex-wrap': 'wrap',
-                      }),
-                    ],
-                    [
-                      h.span([], [port.label ?? port.id]),
-                      ...(editing
-                        ? [
-                            zlozPortLabelForm(
-                              h,
-                              labelMessages,
-                              [h.Style({ display: 'flex', gap: '4px', 'flex-wrap': 'wrap' })],
-                              [
-                                zlozPortLabelInput(
-                                  h,
-                                  entry,
-                                  draft.text,
-                                  (text) => Message.ChangedPortLabelDraft({ text }),
-                                  [h.Placeholder('Defaults to port ID')],
-                                ),
-                                zlozPortLabelSave(h, entry, [], ['Save port label']),
-                                zlozPortLabelCancel(
-                                  h,
-                                  labelMessages.cancelled,
-                                  [h.Style({ padding: '10px 16px', cursor: 'pointer' })],
-                                  ['Cancel port label'],
-                                ),
-                              ],
-                            ),
-                          ]
-                        : [
-                            zlozPortLabelEditButton(
-                              h,
-                              entry,
-                              Message.ClickedEditPortLabel({ nodeId: node.id, portId: port.id }),
-                              [],
-                              ['Edit label'],
-                            ),
-                          ]),
-                      ...(positionEditor
-                        ? [
-                            zlozPortPositionForm(
-                              h,
-                              positionMessages,
-                              [
-                                h.Style({
-                                  display: 'flex',
-                                  gap: '8px',
-                                  'align-items': 'center',
-                                  'flex-wrap': 'wrap',
-                                }),
-                              ],
-                              [
-                                h.label(
-                                  [],
-                                  [
-                                    'Position ',
-                                    zlozPortPositionModeSelect(
-                                      h,
-                                      positionEditor,
-                                      positionChanged,
-                                      [],
-                                    ),
-                                  ],
-                                ),
-                                h.label(
-                                  [],
-                                  [
-                                    'Side ',
-                                    zlozPortPositionSideSelect(
-                                      h,
-                                      positionEditor,
-                                      positionChanged,
-                                      [],
-                                    ),
-                                  ],
-                                ),
-                                ...positionEditor.inputs.map((input) =>
-                                  h.label(
-                                    [],
-                                    [
-                                      input.field === 'offset'
-                                        ? 'Offset '
-                                        : input.field.toUpperCase() + ' ',
-                                      zlozPortPositionInput(
-                                        h,
-                                        positionEditor,
-                                        input,
-                                        positionChanged,
-                                        [h.Style({ width: '88px' })],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                zlozPortPositionSave(h, positionEditor, [], ['Save position']),
-                                zlozPortPositionCancel(
-                                  h,
-                                  positionMessages.cancelled,
-                                  [],
-                                  ['Cancel position'],
-                                ),
-                              ],
-                            ),
-                          ]
-                        : [
-                            zlozPortPositionEditButton(
-                              h,
-                              entry,
-                              Message.ClickedEditPortPosition({
-                                nodeId: node.id,
-                                portId: port.id,
-                              }),
-                              [],
-                              ['Edit position'],
-                            ),
-                          ]),
-                      zlozPortRemoveButton(h, entry, zlozInput, [], ['Remove port']),
-                      ...entry.reasons.map((reason) =>
-                        zlozPortProtectionReason(h, reason, [h.Style(reasonStyle)]),
-                      ),
-                    ],
-                  );
-                }),
-              ],
-            ),
-          ]
-        : []),
+      nativePortInspector(h, model, 'architecture-effect-ui', 'port-inspector'),
     ],
     diagnostics:
       model.sidebarSection === 'diagnostics' && !model.sidebarCollapsed

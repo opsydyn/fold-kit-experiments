@@ -175,3 +175,35 @@ test('diagram search submits the current form fields and rejects submissions fro
   expect(replaced.modelEpoch).toBeGreaterThan(model.modelEpoch);
   expect(update(replaced, submitted).model).toBe(replaced);
 });
+
+test('port forms commit submitted fields and reject stale submissions from the same endpoint', () => {
+  const initial = init().model;
+  const model = update(
+    initial,
+    Message.ObservedZlozInput({ message: { type: 'NodeSelected', id: 'review', additive: false } }),
+  ).model;
+  const endpoint = { nodeId: 'review', portId: 'in' };
+  const owner = { modelId: model.modelIdentity.id, epoch: model.modelEpoch };
+  const editingLabel = update(model, Message.ClickedEditPortLabel(endpoint)).model;
+  const label = Message.SubmittedPortLabel({ ...owner, ...endpoint, text: 'Approval required' });
+  const staleLabel = Message.SubmittedPortLabel({ ...label, epoch: owner.epoch + 1 });
+  expect(update(editingLabel, staleLabel).model).toBe(editingLabel);
+  const renamed = update(editingLabel, label).model;
+  const port = (editor: typeof model.editor) =>
+    editor.graph.nodes
+      .find((node) => node.id === endpoint.nodeId)
+      ?.ports.find((item) => item.id === endpoint.portId);
+  expect(port(renamed.editor)?.label).toBe('Approval required');
+
+  const editingPosition = update(renamed, Message.ClickedEditPortPosition(endpoint)).model;
+  const position = Message.SubmittedPortPosition({
+    ...owner,
+    ...endpoint,
+    draft: { mode: 'anchor', side: 'bottom', x: '0.55', y: '1' },
+  });
+  const stalePosition = Message.SubmittedPortPosition({ ...position, epoch: owner.epoch + 1 });
+  expect(update(editingPosition, stalePosition).model).toBe(editingPosition);
+  const positioned = update(editingPosition, position).model;
+  expect(port(positioned.editor)).toMatchObject({ side: 'bottom', anchor: { x: 0.55, y: 1 } });
+  expect(positioned.editor.past).toHaveLength(2);
+});

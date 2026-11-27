@@ -1,36 +1,58 @@
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
-
-import { chromium, expect } from '@playwright/test';
-
-const server = createServer(async (req, res) => {
-  const path = req.url === '/' ? '/index.html' : req.url;
-  await readFile('../zloz-demo/dist' + path)
-    .then((body) => {
-      res.setHeader(
+import { createRequire } from 'node:module';
+import { resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const require = createRequire(new URL('../../web/package.json', import.meta.url));
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
+const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
+const server = createServer(async (request, response) => {
+  const route = new URL(request.url, 'http://127.0.0.1').pathname;
+  const path = resolve(root, '.' + (route.endsWith('/') ? route + 'index.html' : route));
+  if (!path.startsWith(root + sep)) {
+    response.writeHead(403).end();
+    return;
+  }
+  await readFile(path).then(
+    (body) => {
+      response.setHeader(
         'Content-Type',
         path.endsWith('.js') ? 'text/javascript' : path.endsWith('.css') ? 'text/css' : 'text/html',
       );
-      res.end(body);
-    })
-    .catch(() => res.writeHead(404).end());
+      response.end(body);
+    },
+    () => response.writeHead(404).end(),
+  );
 });
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function qualify() {
-  const browser = await chromium.launch();
   const run = async () => {
     const page = await browser.newPage({
       viewport: { width: 1280, height: 1500 },
       colorScheme: 'light',
+      reducedMotion: 'reduce',
     });
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error)));
     const button = (name) => page.getByRole('button', { name, exact: true });
     const surface = page.locator('[data-flow-surface]');
-    const inspector = page.getByRole('group', { name: 'Ports for Review', exact: true });
+    const inspector = page
+      .locator('[data-architecture-effect-ui="port-inspector"]')
+      .getByRole('group', { name: 'Ports for Review', exact: true });
+    const section = (name) =>
+      page
+        .getByRole('navigation', { name: 'Workbench sections', exact: true })
+        .getByRole('button', { name, exact: true })
+        .click();
+    const diagramAction = async (name) => {
+      await section('Diagram');
+      await button(name).click();
+      await section('Inspect');
+    };
     const reason = 'Review input is managed upstream.';
     const mode = () =>
       page.getByRole('combobox', { name: 'Position mode for in port on Review', exact: true });
@@ -47,8 +69,11 @@ async function qualify() {
     };
     await page.goto('http://127.0.0.1:' + server.address().port);
     await button('Select Review').click();
+    await section('Ports');
     await page.getByRole('checkbox', { name: 'Port labels', exact: true }).check();
     await page.getByRole('checkbox', { name: 'Custom port sockets', exact: true }).check();
+    await section('Inspect');
+    await expect(inspector).toBeVisible();
     const before = await relativeCenter();
     await edit().click();
     await expect(mode()).toHaveValue('offset');
@@ -70,21 +95,21 @@ async function qualify() {
     await field('Anchor Y').fill('0');
     await side().selectOption('top');
     await expect.poll(relativeCenter).toEqual(before);
-    await button('Protect Review input').click();
+    await diagramAction('Protect Review input');
     await expect(field('Anchor X')).toBeDisabled();
     await expect(field('Anchor X')).toHaveValue('0.55');
     await expect(button('Save position')).toBeDisabled();
     await expect(button('Save position')).toHaveAccessibleDescription(reason);
     await expect(button('Cancel position')).toBeEnabled();
-    await button('Protect Review input').click();
+    await diagramAction('Protect Review input');
     await button('Save position').click();
     await expect(mode()).toHaveCount(0);
     await expect(button('source:out → review:in')).toBeVisible();
     const saved = await relativeCenter();
     expect(saved.x).toBeGreaterThan(before.x + 50);
-    await button('Undo').click();
+    await diagramAction('Undo');
     await expect.poll(relativeCenter).toEqual(before);
-    await button('Redo').click();
+    await diagramAction('Redo');
     await expect.poll(relativeCenter).toEqual(saved);
     await button('Select Review').click();
     await edit().click();
@@ -118,7 +143,8 @@ async function qualify() {
     await expect.poll(relativeCenter).toEqual(saved);
     expect(errors).toEqual([]);
     console.log(
-      'Port position drafts retain native validation, mode conversion, policy locks, stable wiring, one-step Undo/Redo and cancellation',
+      engine +
+        ': native port positions retain validation, mode conversion, policy locks, wiring and Undo/Redo',
     );
   };
   await run().finally(() => browser.close());

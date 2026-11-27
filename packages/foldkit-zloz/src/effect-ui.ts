@@ -77,6 +77,15 @@ export type {
   ZlozEdgeRenderContext,
 } from './edge-presentation';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
+export { portAdditionContext, portInspectorContext } from './port-inspector';
+export type { ZlozPortControlContext, ZlozPortInspectorEntry } from './port-inspector';
+export {
+  portPositionDraft,
+  portPositionEditorContext,
+  portPositionFromDraft,
+  updatePortPositionDraft,
+} from './port-position-editor';
+export type { ZlozPortPositionDraft, ZlozPortPositionDraftChange } from './port-position-editor';
 export { eventStormingRelationshipControls } from './effect-ui-relationship-controls';
 export { viewportControl } from './effect-ui-viewport-control';
 export {

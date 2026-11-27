@@ -46,7 +46,7 @@ import {
   updatePortPositionDraft,
   portPositionFromDraft,
   type ZlozPortPositionDraftChange,
-} from '@opsydyn/foldkit-zloz/foldkit';
+} from '@opsydyn/foldkit-zloz/effect-ui';
 import { Option } from 'effect';
 
 import { alchemyAllowsMessage, isAlchemyMessage, updateAlchemyReview } from './alchemy-review';
@@ -1165,16 +1165,23 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     ChangedPortPositionNumber: ({ field, text }) =>
       changedPosition({ type: 'number', field, text }),
     ClickedCancelPortPosition: () => ({ model: { ...model, portPositionDraft: null } }),
-    SubmittedPortPosition: () => {
+    SubmittedPortPosition: (submitted) => {
       const draft = model.portPositionDraft;
-      if (!draft) return { model };
+      if (
+        !draft ||
+        submitted.modelId !== model.modelIdentity.id ||
+        submitted.epoch !== model.modelEpoch ||
+        submitted.nodeId !== draft.nodeId ||
+        submitted.portId !== draft.portId
+      )
+        return { model };
       const policy = workbenchPolicy(model);
       const context = Option.getOrUndefined(
         portInspectorContext(model.editor, draft.nodeId, policy),
       );
       const entry = context?.entries.find(({ port }) => port.id === draft.portId);
       if (!entry) return { model: { ...model, portPositionDraft: null } };
-      const position = Option.getOrUndefined(portPositionFromDraft(draft.draft));
+      const position = Option.getOrUndefined(portPositionFromDraft(submitted.draft));
       const reason =
         entry.positionControl.reason ??
         (position === undefined ? 'Enter a number from 0 to 1 for each position field.' : null);
@@ -1198,9 +1205,16 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
         : model,
     }),
     ClickedCancelPortLabel: () => ({ model: { ...model, portLabelDraft: null } }),
-    SubmittedPortLabel: () => {
+    SubmittedPortLabel: (submitted) => {
       const draft = model.portLabelDraft;
-      if (!draft) return { model };
+      if (
+        !draft ||
+        submitted.modelId !== model.modelIdentity.id ||
+        submitted.epoch !== model.modelEpoch ||
+        submitted.nodeId !== draft.nodeId ||
+        submitted.portId !== draft.portId
+      )
+        return { model };
       const node = model.editor.graph.nodes.find(({ id }) => id === draft.nodeId);
       const port = node?.ports.find(({ id }) => id === draft.portId);
       const policy = workbenchPolicy(model);
@@ -1221,7 +1235,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             {
               type: 'PortLabelChanged',
               endpoint: { node: draft.nodeId, port: draft.portId },
-              label: draft.text === '' ? undefined : draft.text,
+              label: submitted.text === '' ? undefined : submitted.text,
             },
             policy,
           ),

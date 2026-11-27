@@ -54,6 +54,9 @@ export function journey(graph: ZlozGraph, cursor: Cursor) {
   };
 }
 
+export const journeyTriggerId = (edgeId?: string) =>
+  edgeId === undefined ? 'journey-back' : 'journey-follow-' + edgeId;
+
 export function journeyView<M>(
   h: HtmlBuilder<M>,
   path: ReturnType<typeof journey>,
@@ -130,7 +133,12 @@ export function journeyView<M>(
                 ...(path.choices.length
                   ? path.choices.map((step) =>
                       h.button(
-                        [h.Key(step.id), h.Type('button'), h.OnClick(actions.follow(step.id))],
+                        [
+                          h.Key(step.id),
+                          h.Id(journeyTriggerId(step.id)),
+                          h.Type('button'),
+                          h.OnClick(actions.follow(step.id)),
+                        ],
                         ['Follow ' + step.label + ' → ' + step.target.label],
                       ),
                     )
@@ -145,7 +153,11 @@ export function journeyView<M>(
             ...(last
               ? [
                   h.button(
-                    [h.Type('button'), h.OnClick(actions.back(last.id, path.steps.length))],
+                    [
+                      h.Id(journeyTriggerId()),
+                      h.Type('button'),
+                      h.OnClick(actions.back(last.id, path.steps.length)),
+                    ],
                     ['Back one step'],
                   ),
                 ]

@@ -684,6 +684,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(
       'Step 1 · Issue refund',
     );
+    await browserExpect(reviewer.locator('#journey-current-note')).toBeFocused();
     await follow('Produces → Refund declined', 'Step 2 · Refund declined');
     await follow('Activates → Retry refund', 'Step 3 · Retry refund');
     await follow('Triggers → Issue refund', 'Step 4 · Issue refund');
@@ -732,11 +733,37 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     const desktop = await pinned();
     await reviewer.setViewportSize({ width: 390, height: 844 });
     await browserExpect(overview).toBeVisible();
+    // Move focus as soon as Back renders its next choice, before its deferred focus handoff.
+    const handoff = await reviewer.locator('.workshop-journey').evaluateHandle((panel) => {
+      return {
+        settled: new Promise<void>((resolve) => {
+          const observer = new MutationObserver(() => {
+            const choice = Array.from(panel.querySelectorAll('button')).find(
+              (button) => button.textContent === 'Follow Triggers → Issue refund',
+            );
+            if (!choice) return;
+            observer.disconnect();
+            choice.focus();
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          });
+          observer.observe(panel, { subtree: true, childList: true, characterData: true });
+        }),
+      };
+    });
     await reviewer.getByRole('button', { name: 'Back one step' }).press('Enter');
     await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(
       'Step 3 · Retry refund',
     );
-    await follow('Triggers → Issue refund', 'Step 4 · Issue refund');
+    await handoff.evaluate(({ settled }) => settled);
+    await handoff.dispose();
+    await browserExpect(
+      reviewer.getByRole('button', { name: 'Follow Triggers → Issue refund', exact: true }),
+    ).toBeFocused();
+    await reviewer.keyboard.press('Enter');
+    await browserExpect(reviewer.locator('.journey-overview figcaption')).toHaveText(
+      'Step 4 · Issue refund',
+    );
+    await browserExpect(reviewer.locator('#journey-current-note')).toBeFocused();
     const narrow = await pinned();
     await capture(reviewer, 'journey-narrow');
     if (evidence)
@@ -3454,6 +3481,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         finalX = await alpha(pageA).getAttribute('data-flow-x');
         finalY = await alpha(pageA).getAttribute('data-flow-y');
         expect(finalX).not.toBe(previewX);
+        expect(finalY).not.toBe(previewY);
         expect(selectionWrites).toHaveLength(1);
         expect(await exportedGraph()).toEqual(beforeSelection);
       } finally {
@@ -3465,8 +3493,24 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
       await poll(async () => selectionWrites.length === 2);
       expect(await alpha(pageA).getAttribute('data-flow-x')).toBe(finalX);
       expect(await alpha(pageA).getAttribute('data-flow-y')).toBe(finalY);
-      await poll(async () => (await alpha(pageB).getAttribute('data-flow-x')) === finalX);
-      expect(await exportedGraph()).not.toEqual(beforeSelection);
+      const savedPosition = (await exportedGraph()).nodes.find((node) => node.id === 'a')?.position;
+      expect(savedPosition).toEqual({ x: Number(finalX), y: Number(finalY) });
+      const savedVersion = String(Number(beforeSelectionVersion) + 2);
+      const confirmsBothMoves = async (page: Page) =>
+        poll(async () => {
+          const version = await page
+            .locator('[data-confirmed-version]')
+            .getAttribute('data-confirmed-version');
+          return (
+            version === savedVersion &&
+            (await alpha(page).getAttribute('data-flow-x')) === finalX &&
+            (await alpha(page).getAttribute('data-flow-y')) === finalY
+          );
+        });
+      await Promise.all([confirmsBothMoves(pageA), confirmsBothMoves(pageB)]);
+      await pageB.reload();
+      await saved(pageB);
+      await confirmsBothMoves(pageB);
       const firstMoveGraph = {
         ...beforeSelection,
         nodes: beforeSelection.nodes.map((node) =>

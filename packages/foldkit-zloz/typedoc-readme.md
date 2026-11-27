@@ -23,14 +23,11 @@ Version 1 documents accept these optional validated descriptors. The qualified
 pre-change reader retains them through its existing edits but uses generic
 rendering and geometry. See ADR 0005 for compatibility and geometry decisions.
 
-The optional `/foldkit` entry now supplies `zlozC4Node` and `zlozC4Group` as
-explicit shell choices. `ZlozC4NodeOptions` supports inert semantic-content slots,
-frame attributes, live controls and optional public body caching. Other families
-retain normal fallback rendering. Core `decorationPaths` supplies the cylinder cap
-alongside the canonical outline. Presets use scoped theme tokens and authored
-bounds; minimal mode retains semantic meaning. DDD artwork, semantic edge
-descriptors and atomic pattern builders remain follow-ups. See ADR 0006 and the
-package README for the renderer contract.
+The `/effect-ui` entry renders C4 through `graphSurface` with
+`architectureNotation: true`. Customize artwork through `notationParts` and live
+chrome through the node and group shell options. Core `decorationPaths` supplies
+cylinder caps alongside the canonical outline. See ADR 0006 and the package
+README for the renderer contract.
 
 ## Read models and declared consumption
 

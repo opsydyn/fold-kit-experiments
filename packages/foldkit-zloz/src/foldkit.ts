@@ -240,14 +240,12 @@ export type {
   ZlozWorldOverlayItemOptions,
   ZlozGroupHeaderOptions,
 } from './composition';
-export { zlozC4Node, zlozC4Group } from './c4-renderer';
 export { zlozDddNode, zlozDddGroup } from './ddd-renderer';
 export type {
   ZlozDddContentContext,
   ZlozDddContentRenderer,
   ZlozDddNodeOptions,
 } from './ddd-renderer';
-export type { ZlozC4ContentContext, ZlozC4ContentRenderer, ZlozC4NodeOptions } from './c4-renderer';
 import {
   portLabelViews,
   type ZlozPortLabelOptions,
@@ -2580,16 +2578,6 @@ export { zlozWorldOverlayItem as flowWorldOverlayItem } from './composition';
 export type { ZlozNodeRenderContext as FlowNodeRenderContext } from './composition';
 /** @deprecated Use ZlozWorldOverlayItemOptions. */
 export type { ZlozWorldOverlayItemOptions as FlowWorldOverlayItemOptions } from './composition';
-/** @deprecated Use zlozC4Node. */
-export { zlozC4Node as flowC4Node } from './c4-renderer';
-/** @deprecated Use zlozC4Group. */
-export { zlozC4Group as flowC4Group } from './c4-renderer';
-/** @deprecated Use ZlozC4ContentContext. */
-export type { ZlozC4ContentContext as FlowC4ContentContext } from './c4-renderer';
-/** @deprecated Use ZlozC4ContentRenderer. */
-export type { ZlozC4ContentRenderer as FlowC4ContentRenderer } from './c4-renderer';
-/** @deprecated Use ZlozC4NodeOptions. */
-export type { ZlozC4NodeOptions as FlowC4NodeOptions } from './c4-renderer';
 /** @deprecated Use ZlozPortRenderContext. */
 export type { ZlozPortRenderContext as FlowPortRenderContext } from './port-render';
 /** @deprecated Use ZlozPortRenderer. */

@@ -12,15 +12,12 @@ The reference includes:
 - `@opsydyn/foldkit-zloz`: graph/port types, editor state/events, serialization,
   history, layout publication, shared edge geometry, custom port anchors and connection-preview policies.
   The root also exports C4/DDD node descriptors, architecture presets/factory,
-  shape geometry and undoable architecture/appearance events. These are headless
-  contracts; opt-in C4 artwork lives in the optional view entry. DDD artwork and
-  pattern builders remain subsequent slices.
+  shape geometry and undoable architecture/appearance events.
 - `@opsydyn/foldkit-zloz/effect-ui`: the graph surface and the V3 group surface,
-  inspector and clipboard controls for Effect UI components.
+  inspector and clipboard controls for Effect UI components. C4 notation
+  supports artwork slots, group headings and scoped themes.
 - `@opsydyn/foldkit-zloz/foldkit`: view options, node/group shells, public
   interaction primitives, diagnostics and background contracts.
-  Opt-in `zlozC4Node`/`zlozC4Group` presets expose content/control slots and scoped
-  themes through the same public primitives.
 - `@opsydyn/foldkit-zloz-elk`: ELK layout options and adapter factory.
 - `@opsydyn/foldkit-zloz-force`: force layout factory and support checks.
 - `@opsydyn/foldkit-zloz-force/eligibility`: the lightweight eligibility entry.

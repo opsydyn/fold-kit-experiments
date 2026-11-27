@@ -345,6 +345,9 @@
 .zloz-ui-node[data-notation][data-node-kind='group'] {
   outline: 1px dashed var(--zloz-ui-notation-accent, var(--flow-node-border, #64748b));
 }
+.zloz-ui-node[data-notation][data-flow-group-drop-target] {
+  outline: 2px solid var(--flow-valid-target, #0f766e);
+}
 .zloz-ui-node[data-notation] .zloz-ui-node-outline {
   stroke: var(--zloz-ui-notation-accent, var(--flow-node-border, #64748b));
   stroke-width: 1.5;

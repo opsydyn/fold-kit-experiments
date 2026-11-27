@@ -2,19 +2,22 @@ import type { View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import {
+  notationDescription,
   notationView,
   notationDash,
   notationPrefix,
   notationStroke,
   type NativeNotationLabels,
+  type NativeNotationParts,
 } from './effect-ui-notation';
 import { portSockets, type GraphPortOptions } from './effect-ui-ports';
 import { nodeResizeControls } from './effect-ui-resize';
+import { groupHeaderPosition, resolveLayoutGroupHeader } from './group-header';
 import { withDescendants } from './group-presentation';
 import { movementReason } from './movement';
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Reuse the canonical authored outline.
 import { nodeShapeGeometry } from './node-shape';
-import type { EditorState, ZlozNode } from './types';
+import type { EditorState, LayoutGroupHeader, LayoutGroupHeaderSpec, ZlozNode } from './types';
 
 export type NativeNodeShellContext = Readonly<{
   node: ZlozNode;
@@ -34,6 +37,8 @@ export type NativeNodeShell<M> = Readonly<{
   style?: Html.Style;
   /** Set false to replace the built-in outline with custom artwork. */
   outline?: boolean;
+  /** Set false to hide collapse, context and resize controls. Ports remain available. */
+  controls?: boolean;
   title?: Readonly<{
     className?: string;
     style?: Html.Style;
@@ -48,6 +53,11 @@ type NodeShellRenderer<M> = (
   h: Html.H<M>,
 ) => NativeNodeShell<M> | undefined;
 
+/** Declared heading envelope or an intrinsic heading measured before layout. */
+export type NativeGroupHeader =
+  | (LayoutGroupHeader & Readonly<{ sizing?: 'declared' }>)
+  | (LayoutGroupHeaderSpec & Readonly<{ sizing: 'intrinsic' }>);
+
 export type NativeNodeOptions<M> = GraphPortOptions<M> &
   Readonly<{
     descriptionId?: string;
@@ -56,6 +66,8 @@ export type NativeNodeOptions<M> = GraphPortOptions<M> &
     nodeNote?: (node: ZlozNode) => string;
     architectureNotation?: boolean;
     notationLabels?: NativeNotationLabels;
+    notationParts?: NativeNotationParts<M>;
+    groupHeader?: (node: ZlozNode) => NativeGroupHeader | undefined;
     onToggleGroup?: (id: string) => M;
     nodeContextAction?: (node: ZlozNode) => M;
     /** Change presentation while retaining the keyed frame and the native controller buttons. */
@@ -76,7 +88,16 @@ export function nodeView<Message>(
   const architecture = options.architectureNotation ? node.architecture : undefined;
   const prefix = architecture && notationPrefix(architecture);
   const notation = architecture
-    ? notationView(h, node, architecture, options.notationLabels)
+    ? h.lazy(
+        notationView<Message>,
+        JSON.stringify([surfaceId, 'notation', node.id]),
+        node,
+        architecture,
+        selected,
+        selecting,
+        options.notationLabels,
+        options.notationParts,
+      )
     : null;
   const accent = notationStroke(architecture);
   const group = node.kind === 'group';
@@ -104,6 +125,8 @@ export function nodeView<Message>(
     h,
   );
 
+  const header = group ? resolveHeader(node, collapsed, options.groupHeader?.(node)) : undefined;
+  const controls = shell?.controls !== false;
   const hasOutline = architecture ? !group : node.appearance !== undefined;
   // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Use the authored outline geometry.
   const outline = hasOutline ? nodeShapeGeometry(node) : null;
@@ -169,14 +192,18 @@ export function nodeView<Message>(
           selectionDisabledReason,
           moveDisabledReason,
           shell?.title?.className,
-          shell?.title?.description ?? notation?.accessibleDescription,
-          shell?.title?.style,
+          shell?.title?.description ??
+            (architecture
+              ? notationDescription(node, architecture, options.notationLabels)
+              : undefined),
+          header ? node.id : undefined,
+          header ? { ...shell?.title?.style, ...header } : shell?.title?.style,
           architecture && content ? `${content.y}px auto auto ${content.x}px` : undefined,
           architecture && content ? `${content.width}px` : undefined,
           architecture && content ? `${content.height}px` : undefined,
-          shell?.title?.content ?? notation?.content ?? node.label,
+          shell?.title?.content ?? notation ?? node.label,
         ),
-        toggle && !editor.readOnly
+        controls && toggle && !editor.readOnly
           ? h.button
               .key('collapse-toggle')
               .class('zloz-ui-collapse-toggle')
@@ -188,7 +215,10 @@ export function nodeView<Message>(
               .on('click', toggle(node.id))
               .children(collapsed ? 'Expand' : 'Collapse')
           : null,
-        options.nodeContextAction && !editor.readOnly && selectionDisabledReason === undefined
+        controls &&
+          options.nodeContextAction &&
+          !editor.readOnly &&
+          selectionDisabledReason === undefined
           ? h.button
               .key('more-actions')
               .class('zloz-ui-node-context')
@@ -206,12 +236,30 @@ export function nodeView<Message>(
           : null,
         shell?.body,
         ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
-        ...(options.resizeHandles
+        ...(controls && options.resizeHandles
           ? nodeResizeControls(h, node, editor, options.policy, surfaceId, options.descriptionId)
           : []),
         ...portSockets(h, editor, node, options, surfaceId),
       )
   );
+}
+
+function resolveHeader(
+  node: ZlozNode,
+  collapsed: boolean,
+  spec: NativeGroupHeader | undefined,
+): Html.Style | undefined {
+  if (!spec || collapsed) return undefined;
+  const declared = spec.sizing === 'intrinsic' ? undefined : resolveLayoutGroupHeader(node, spec);
+  const position = declared?.position ?? groupHeaderPosition(node, spec);
+  return {
+    position: 'absolute',
+    top: `${position.y - node.position.y}px`,
+    left: `${position.x - node.position.x}px`,
+    width: declared ? `${declared.size.width}px` : 'max-content',
+    height: declared ? `${declared.size.height}px` : 'max-content',
+    overflow: 'hidden',
+  };
 }
 
 function nodeTitle<M>(
@@ -224,6 +272,7 @@ function nodeTitle<M>(
   moveDisabledReason: string | undefined,
   className: string | undefined,
   description: string | undefined,
+  headerId: string | undefined,
   style: Html.Style | undefined,
   inset: string | undefined,
   width: string | undefined,
@@ -235,6 +284,7 @@ function nodeTitle<M>(
     .class('zloz-ui-node-title', className)
     .attr('type', 'button')
     .attr('data-flow-handle', id)
+    .attr('data-zloz-group-header', headerId)
     .attr('aria-label', `Select ${label}`)
     .attr('aria-description', description)
     .attr('title', selectionDisabledReason ?? moveDisabledReason)

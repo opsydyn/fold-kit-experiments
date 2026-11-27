@@ -135,7 +135,8 @@ export type { NativePortAnchors } from './effect-ui-geometry-controls';
 export type { ZlozPortLabelContext, ZlozPortLabelOptions } from './port-label-presentation';
 export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
 export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
-export type { NativeNodeShell, NativeNodeShellContext } from './effect-ui-nodes';
+export type { NativeGroupHeader, NativeNodeShell, NativeNodeShellContext } from './effect-ui-nodes';
+export type { NativeNotationContext, NativeNotationParts } from './effect-ui-notation';
 export type { NativeNodeToolbar } from './effect-ui-node-toolbar';
 export type { ZlozViewportCulling } from './viewport-culling';
 

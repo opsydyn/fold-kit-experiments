@@ -1,3 +1,4 @@
+import type { View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import { architectureRoleLabel, type ZlozNodeArchitecture } from './architecture';
@@ -43,14 +44,37 @@ export type NativeNotationLabels = Readonly<{
   hotspotStatus?: (status: 'open' | 'resolved') => string;
 }>;
 
-/** Authored facts for the drag handle. The surface owns the frame and interactive controls. */
-export function notationView<M>(
+/** Authored node data for inert artwork. Policy and gesture feedback remain in the canvas. */
+export type NativeNotationContext = Readonly<{
+  node: ZlozNode;
+  architecture: ZlozNodeArchitecture;
+  selected: boolean;
+  selectionPreview: boolean;
+}>;
+
+type NotationRenderer<M> = (
+  context: NativeNotationContext,
   h: Html.H<M>,
+) => View.Content<M> | null | undefined;
+
+/** Undefined keeps a native part, and null hides it. Artwork lives inside the selection button. */
+export type NativeNotationParts<M> = Readonly<{
+  renderBody?: NotationRenderer<M>;
+  renderIcon?: NotationRenderer<M>;
+  renderBadge?: NotationRenderer<M>;
+  renderType?: NotationRenderer<M>;
+  renderName?: NotationRenderer<M>;
+  renderTechnology?: NotationRenderer<M>;
+  renderSubdomain?: NotationRenderer<M>;
+  renderStatus?: NotationRenderer<M>;
+  renderDescription?: NotationRenderer<M>;
+}>;
+
+function notationFacts(
   node: ZlozNode,
   architecture: ZlozNodeArchitecture,
   labels: NativeNotationLabels | undefined,
 ) {
-  const prefix = notationPrefix(architecture);
   const role = architectureRoleLabel(architecture);
   const external = architecture.family === 'c4' && architecture.scope === 'external';
   const roleText = external ? `${role} · external` : role;
@@ -67,43 +91,89 @@ export function notationView<M>(
   const statusText = hotspot
     ? (labels?.hotspotStatus?.(hotspot) ?? (hotspot === 'open' ? 'Open question' : 'Resolved'))
     : undefined;
-  const authoredDescription =
+  const description =
     !node.kind || architecture.family === 'c4' ? architecture.description : undefined;
-  const accessibleDescription = [
-    roleText,
-    badge,
-    technology,
-    subdomainText,
-    statusText,
-    authoredDescription,
-  ]
+  return { roleText, technology, subdomainText, hotspot, badge, statusText, description };
+}
+
+export function notationDescription(
+  node: ZlozNode,
+  architecture: ZlozNodeArchitecture,
+  labels: NativeNotationLabels | undefined,
+) {
+  const { roleText, badge, technology, subdomainText, statusText, description } = notationFacts(
+    node,
+    architecture,
+    labels,
+  );
+  return [roleText, badge, technology, subdomainText, statusText, description]
     .filter(Boolean)
     .join('. ');
-  const content = h.span
+}
+
+/** Authored facts for the drag handle. The surface owns the frame and interactive controls. */
+export function notationView<M>(
+  h: Html.H<M>,
+  _cacheKey: string,
+  node: ZlozNode,
+  architecture: ZlozNodeArchitecture,
+  selected: boolean,
+  selectionPreview: boolean,
+  labels: NativeNotationLabels | undefined,
+  parts: NativeNotationParts<M> | undefined,
+) {
+  const context = { node, architecture, selected, selectionPreview };
+  const custom = parts?.renderBody?.(context, h);
+  if (custom === null) return h.text('');
+
+  const prefix = notationPrefix(architecture);
+  const { roleText, technology, subdomainText, hotspot, badge, statusText, description } =
+    notationFacts(node, architecture, labels);
+  const part = (
+    render: NotationRenderer<M> | undefined,
+    fallback: () => View.Content<M> | null,
+  ) => {
+    const artwork = render?.(context, h);
+    return artwork === undefined ? fallback() : artwork;
+  };
+  return h.span
     .class('zloz-ui-notation', `${prefix}-body`)
     .attr(`data-${prefix}-body`, node.id)
     .children(
-      architecture.family === 'c4' && architecture.role === 'person' && !node.kind
-        ? person<M>()
-        : null,
-      badge ? h.span.class('zloz-ui-notation-badge').children(badge) : null,
-      h.span
-        .class(`${prefix}-type`)
-        .attr(`data-${prefix}-type`, architecture.role)
-        .children(roleText),
-      h.strong.class(`${prefix}-name`).children(node.label),
-      technology ? h.span.class('flow-c4-technology').children(technology) : null,
-      subdomainText ? h.span.class('flow-ddd-subdomain').children(subdomainText) : null,
-      statusText
-        ? h.span
-            .class('zloz-ui-hotspot-status')
-            .attr('data-zloz-hotspot-status', hotspot)
-            .style({ color: notationStroke(architecture) })
-            .children(statusText)
-        : null,
-      authoredDescription
-        ? h.span.class(`${prefix}-description`).children(authoredDescription)
-        : null,
+      custom ?? [
+        part(parts?.renderIcon, () =>
+          architecture.family === 'c4' && architecture.role === 'person' && !node.kind
+            ? person<M>()
+            : null,
+        ),
+        part(parts?.renderBadge, () =>
+          badge ? h.span.class('zloz-ui-notation-badge').children(badge) : null,
+        ),
+        part(parts?.renderType, () =>
+          h.span
+            .class(`${prefix}-type`)
+            .attr(`data-${prefix}-type`, architecture.role)
+            .children(roleText),
+        ),
+        part(parts?.renderName, () => h.strong.class(`${prefix}-name`).children(node.label)),
+        part(parts?.renderTechnology, () =>
+          technology ? h.span.class('flow-c4-technology').children(technology) : null,
+        ),
+        part(parts?.renderSubdomain, () =>
+          subdomainText ? h.span.class('flow-ddd-subdomain').children(subdomainText) : null,
+        ),
+        part(parts?.renderStatus, () =>
+          statusText
+            ? h.span
+                .class('zloz-ui-hotspot-status')
+                .attr('data-zloz-hotspot-status', hotspot)
+                .style({ color: notationStroke(architecture) })
+                .children(statusText)
+            : null,
+        ),
+        part(parts?.renderDescription, () =>
+          description ? h.span.class(`${prefix}-description`).children(description) : null,
+        ),
+      ],
     );
-  return { content, accessibleDescription };
 }

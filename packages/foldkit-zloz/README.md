@@ -781,65 +781,42 @@ These views introduce no saved fields or business-rule enforcement. Use the
 headless `architectureNodePresets` catalogue to compose a role legend or palette.
 Atomic pattern insertion and typed DDD relationships are separate roadmap slices.
 
-## C4 preset renderers
+## C4 notation
 
 ```ts
-import {
-  zlozView,
-  zlozC4Node,
-  zlozC4Group,
-  zlozLightTheme,
-  zlozDarkTheme,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { graphSurface, zlozLightTheme, zlozDarkTheme } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const canvas = zlozView(h, model.editor, {
+const canvas = graphSurface(h, model.editor, {
   id: 'architecture',
   label: 'Order platform · system context',
-  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
-  renderNodeShell: zlozC4Node,
-  renderGroupShell: zlozC4Group,
+  onInput: (event) => Message.ObservedZlozInput({ message: event }),
+  architectureNotation: true,
   theme: model.dark ? zlozDarkTheme : zlozLightTheme,
 });
 ```
 
-The package draws C4 Person, Software System, Container and Component nodes, and
-system/container group boundaries. Other families return undefined and use the
-normal renderer. Use authored dimensions and `appearance` from the headless
-contract; a semantic role alone does not replace a document's outline. The Person
-glyph fits inside its card. Cylinders use the core's `outlinePath` and
-`decorationPaths`; no second shape calculation lives in the view.
+The canvas draws C4 Person, Software System, Container and Component nodes and
+portless system/container group boundaries. Nodes without architecture retain
+the standard presentation. External scope uses text and dashes. Cylinders use
+the headless outline, decoration paths and authored bounds for paint and ports.
 
-The presets retain native focus/selection, movement, ports, policy reasons,
-context actions, collapse and resize controls. Content uses safe core bounds
-inside the authored height; increase dimensions for long descriptions. External
-scope uses both text and dashes. Scoped ZLOZ tokens control paint in light/dark
-or host/Pleat themes. Theme changes do not alter the document or history.
+Use `notationParts` to customize inert content in the selection button. Its
+`NativeNotationContext` includes the node, its architecture, selection, and
+selection preview. Returning `undefined` keeps the default part and returning
+`null` omits it. The selection button keeps the authored node name. Supply stable
+callbacks and options to retain eligible artwork across updates. Ports and
+canvas controls use the current editor state and policies independently.
 
-`ZlozC4NodeOptions<Message>` exposes `renderIcon`, `renderType`, `renderName`,
-`renderTechnology`, `renderDescription` and `renderBody`. Undefined keeps the
-default part; null omits it. These slots supply **inert** content inside the native
-drag button. Omitting visible names preserves native accessible selection names.
-`renderBody` replaces content inside the canonical outline. Use a complete shell
-and the public primitives when replacing the whole structure.
+Use `renderNodeShell` or `renderGroupShell` for classes, paint and interactive
+content alongside the native selection button. Set `controls: false` in the
+returned shell to hide collapse, context and resize controls while keeping ports.
+`groupHeader: (node) => spec` accepts declared layout geometry or an intrinsic
+measurement spec. Expanded groups use that geometry and collapsed groups keep
+their compact headings. Use `groupHeaderMeasurementProbe` for intrinsic layouts.
 
-`attributes` customizes frame classes and paint while Model bounds remain
-authoritative. `renderControls(context, h)` supplies live interactive content
-outside artwork; undefined keeps native chrome and `[]` omits it. Use the view's
-`renderPort` to customize or hide sockets independently. Semantic content remains
-visible in minimal mode; it is not a measurement diagnostic.
-
-Optional `bodyCache` accepts `createZlozNodeBodyCache()`. Create it once per canvas
-and keep the options object/slot functions stable for reuse. Artwork keys include
-the builder, node, selection/preview and options; they exclude full EditorState,
-source feedback and port authorization. Controls and ports evaluate current
-context even when artwork is retained. Changing a slot's captured inputs requires
-a new immutable options object; cache-hit counts or universal speedups are not
-claimed.
-
-The Astro workbench's **Open C4 system context** and **Open C4 container view**
-buttons demonstrate separate abstraction levels through these package exports.
-The container view includes a portless boundary and a curved data-store anchor.
-These are authored examples; atomic pattern insertion is not implemented yet.
+The Astro workbench’s **Open C4 system context** and **Open C4 container view**
+buttons demonstrate the abstraction levels and the container view’s curved
+data-store anchor.
 
 ## FoldKit view
 
@@ -4852,10 +4829,10 @@ zlozDddGroup(context, h, {
 });
 ```
 
-`zlozC4Group` supports the same option. Existing content slots compose inside the
-header area, with the declared width/height and clipping; collapsed groups keep
-compact headings. If retaining separately positioned controls, reserve room with
-padding or use `renderControls`. Custom shells can use the pure geometry helper.
+Effect UI accepts the same geometry through the `graphSurface` option
+`groupHeader`. Content slots render inside the declared header area and collapsed
+groups use compact headings. Reserve space for adjacent controls using padding.
+Custom shells can use the pure geometry helper.
 Keep the configuration in your immutable Model and cancel/supersede in-flight
 layout when it changes. A heading preference alone does not change editor revision.
 Space is guaranteed after accepting layout against those hints; applying a larger
@@ -4893,9 +4870,9 @@ const measurement = startGroupHeaderMeasurement(editor, 'headings:17', rendererK
 ```
 
 Store the returned `idle | pending | ready | failed` state in your Model. Render
-headings with `groupHeader: { ...spec, sizing: 'intrinsic' }` in `zlozC4Group` or
-`zlozDddGroup`. `ZlozGroupHeaderOptions` discriminates intrinsic specs from declared
-sized envelopes; ordinary `LayoutGroupHeader` options remain compatible. Compose
+headings with `groupHeader: () => ({ ...spec, sizing: 'intrinsic' })` in Effect UI.
+`NativeGroupHeader` accepts intrinsic specs and declared `LayoutGroupHeader`
+envelopes. Compose
 content through existing slots, using natural/intrinsic CSS dimensions. Collapsed
 groups keep compact heading geometry; choose compact content in your shell when an
 expanded custom body cannot fit.

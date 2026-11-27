@@ -1,6 +1,6 @@
 ---
 name: effect-three
-description: Use when building or reviewing 3D scenes with @opsydyn/effect-three and its Foldkit adapter (@opsydyn/effect-three-foldkit), adding physics (@opsydyn/effect-three-rapier) or labels (@opsydyn/effect-three-troika), keeping cameras, controls, XR and scene events in a Foldkit Model, choosing WebGL or WebGPU, or testing scenes headlessly. Astro is not required.
+description: Use when building or reviewing 3D scenes with @opsydyn/effect-three and its Effect UI adapter (@opsydyn/effect-three-foldkit), adding physics (@opsydyn/effect-three-rapier) or labels (@opsydyn/effect-three-troika), keeping cameras, controls, XR and scene events in an Effect UI model, choosing WebGL or WebGPU, or testing scenes headlessly. Astro is not required.
 ---
 
 # effect-three
@@ -15,16 +15,12 @@ resource, renderer and listener. This skill works without Astro or another skill
 Read the installed versions, export maps and declarations before choosing APIs. The
 [headless example](assets/headless/package.json) targets the published
 `@opsydyn/effect-three@0.6.4` with `three@0.186.1` and `effect@4.1.6`, and needs no
-browser. The Foldkit adapter accepts FoldKit `0.167` to `0.170` and is qualified on
-`0.170`. Use the consumer’s installed versions to decide which API is available.
+browser. The coordinated major release's adapter uses the Effect UI snapshot
+declared in the workspace catalog.
 
-The four packages are released together at one version, and `-foldkit`, `-rapier` and
-`-troika` take the core as a peer at exactly that version: install matching versions,
-one core per application. They are `0.x`: a breaking change bumps the minor version.
-With FoldKit, pin a browser platform version whose Effect peer range
-accepts the application’s installed Effect version. FoldKit 0.171 accepts the
-`~4.1.0` range for the browser platform, so an unpinned install may select a
-release that requires a newer Effect patch.
+The four packages are released together at one version. The adapter, Rapier
+and troika take the core as an exact peer. Install matching versions so an
+application loads one copy of Effect Three.
 
 ## Choose the smallest layer
 
@@ -33,7 +29,7 @@ release that requires a newer Effect patch.
 | Describe scenes; orbit, locomotion and event types     | `@opsydyn/effect-three` (builders also on `/kernel`)                          |
 | Reconcile and inspect scenes without a browser         | `@opsydyn/effect-three/kernel` (`createSceneGraph`, no Effect, no DOM)        |
 | Run a scene with Effect services and a frame source    | `@opsydyn/effect-three` (`SceneRuntime`, `FrameSource`, `ResourceRegistry`)   |
-| Show a scene in a Foldkit view, events as Messages     | `@opsydyn/effect-three-foldkit` (`makeEnvironment`, `makeSceneMount`, `view`) |
+| Show a scene in an Effect UI view, events as Messages     | `@opsydyn/effect-three-foldkit` (`makeEnvironment`, `makeSceneMount`, `view`) |
 | Rigid bodies, joints, collisions                       | `@opsydyn/effect-three-rapier` (`loadRapier()` as the environment's physics)  |
 | Distance-field labels                                  | `@opsydyn/effect-three-troika` (`troikaLabels()` as the environment's labels; from `/webgpu` to draw under WebGPU too) |
 | Sky, shader grid, contact shadows on a custom renderer | `@opsydyn/effect-three/webgl` or `/webgpu` render kits                        |
@@ -41,7 +37,7 @@ release that requires a newer Effect patch.
 Install Rapier and troika only on pages that need them; Rapier embeds WebAssembly.
 Without an engine, bodies stay put and labels are empty, but descriptions still
 reconcile. See [scene composition](references/scenes.md) for the description rules,
-events, assets, engines, renderers, XR and agents, and [the Foldkit example](assets/foldkit-scene.ts)
+events, assets, engines, renderers, XR and agents, and [the Effect UI example](assets/effect-ui-scene.ts)
 for a view with selection and a Model-owned orbit camera.
 
 ## Keep state in the Model
@@ -102,5 +98,5 @@ page themes (renderers are opaque unless created with `alpha`, as three's are).
 
 When changing the packages themselves, trace React Three Fiber, Drei or three.js first
 and keep the catalogue typed and closed; consult the repository's ADRs. Consult
-`astro-foldkit` only when embedding into Astro, and `foldkit-viz` only for chart
+`astro-effect-ui` when embedding into Astro, and `foldkit-viz` only for chart
 geometry (its scales can place 3D marks).

@@ -1,5 +1,5 @@
-import { Effect, Result } from 'effect';
-import { Command } from 'foldkit';
+import { Command } from '@effect/ui';
+import { Effect } from 'effect';
 
 import { Message } from './message';
 import type { Slide } from './model';
@@ -22,11 +22,6 @@ const SLIDES: ReadonlyArray<Slide> = [
 
 // In a real app this would be an HTTP fetch; the 600ms delay makes the
 // Loading state visible in the demo.
-export const LoadSlides = Command.define('LoadSlides', {
-  messages: [Message.SettledSlides],
-  execute: Effect.gen(function* () {
-    yield* Effect.sleep('600 millis');
-    const result: Result.Result<ReadonlyArray<Slide>, string> = Result.succeed(SLIDES);
-    return Message.SettledSlides({ result });
-  }),
-});
+export const LoadSlides = Command.make('LoadSlides', { args: {} }, () =>
+  Effect.sleep('600 millis').pipe(Effect.map(() => Message.LoadedSlides({ slides: SLIDES }))),
+);

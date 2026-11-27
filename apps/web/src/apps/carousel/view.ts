@@ -1,84 +1,94 @@
-import { matchData } from 'foldkit/asyncData';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
-import * as Carousel from '../../ui/carousel';
 import { Message } from './message';
-import type { Model, Slide } from './model';
+import type { Loaded, Model } from './model';
+import { CarouselInput } from './mount';
 
 import * as styles from './carousel.css';
 
-type CarouselMessage = Carousel.Message;
+function transform({ drag, activeIndex }: Loaded): string {
+  if (drag._tag === 'Idle') return `translateX(-${activeIndex * 100}%)`;
+  if (drag._tag === 'Dragging') {
+    return `translateX(calc(-${drag.originIndex * 100}% + ${drag.deltaX}px))`;
+  }
+  const { fromIndex, targetIndex, fromDeltaX, elapsed, duration } = drag;
+  const progress = 1 - (1 - Math.min(elapsed / Math.max(duration, 1), 1)) ** 3;
+  const index = fromIndex + (targetIndex - fromIndex) * progress;
+  return `translateX(calc(-${index * 100}% + ${fromDeltaX * (1 - progress)}px))`;
+}
 
-const pad = (n: number): string => String(n).padStart(2, '0');
+export function view(h: Html.H<Message>, model: Model) {
+  if (model._tag === 'Loading') {
+    return h.div.class(styles.root).attr('role', 'status').children('Loading slides…');
+  }
+  const { activeIndex, slides } = model;
+  const dragging = model.drag._tag === 'Dragging';
+  const arrow = (label: string, text: string, click: Message) =>
+    h.button
+      .class(styles.arrowButton)
+      .attr('type', 'button')
+      .attr('aria-label', label)
+      .on('click', click)
+      .children(text);
 
-const toParentMessage = (msg: CarouselMessage): Message =>
-  Message.ReceivedCarouselMessage({ message: msg });
-
-const slideCount = (model: Model): number => model.carousel.slideCount;
-
-const slidesView = (slides: ReadonlyArray<Slide>, model: Model, h: HtmlBuilder<Message>): Html => {
-  const { div, button, Class, Style } = h;
-  return Carousel.view(
-    {
-      model: model.carousel,
-      toParentMessage,
-      ariaLabel: 'Feature carousel',
-      toView: ({ root, track, slideContainer, slide, prevButton, nextButton, dot }) =>
-        div(
-          [Class(styles.root), ...root],
-          [
-            div(
-              [Class(styles.track), ...track],
-              [
-                div(
-                  [Class(styles.slideContainer), ...slideContainer],
-                  slides.map(({ title, caption, bg }, index) =>
-                    div(
-                      [Class(styles.slide), Style({ background: bg }), ...slide(index)],
-                      [
-                        div([Class(styles.slideNumber)], [pad(index + 1)]),
-                        div([Class(styles.slideTitle)], [title]),
-                        div([Class(styles.slideCaption)], [caption]),
-                      ],
-                    ),
+  return h.div
+    .class(styles.root)
+    .attr('role', 'region')
+    .attr('aria-label', 'Feature carousel')
+    .attr('data-carousel-id', 'main')
+    .attr('tabindex', '0')
+    .onMount(CarouselInput())
+    .children(
+      h.div
+        .class(styles.track)
+        .attr('data-carousel-track-id', 'main')
+        .style({ touchAction: 'pan-y' })
+        .children(
+          h.div
+            .class(styles.slideContainer)
+            .style({
+              transform: transform(model),
+              willChange: 'transform',
+              cursor: dragging ? 'grabbing' : 'grab',
+            })
+            .children(
+              ...slides.map(({ title, caption, bg }, index) =>
+                h.div
+                  .key(String(index))
+                  .class(styles.slide)
+                  .attr('data-carousel-slide', String(index))
+                  .attr('role', 'group')
+                  .attr('aria-roledescription', 'slide')
+                  .attr('aria-label', `${index + 1} of ${slides.length}`)
+                  .attr('aria-hidden', index === activeIndex ? undefined : 'true')
+                  .style({ background: bg })
+                  .children(
+                    h.div.class(styles.slideNumber).children(String(index + 1).padStart(2, '0')),
+                    h.div.class(styles.slideTitle).children(title),
+                    h.div.class(styles.slideCaption).children(caption),
                   ),
-                ),
-              ],
+              ),
             ),
-            div(
-              [Class(styles.controls)],
-              [
-                div(
-                  [Class(styles.arrows)],
-                  [
-                    button([Class(styles.arrowButton), ...prevButton], ['←']),
-                    button([Class(styles.arrowButton), ...nextButton], ['→']),
-                  ],
-                ),
-                div(
-                  [Class(styles.dots)],
-                  Array.from({ length: slideCount(model) }, (_, index) =>
-                    button([Class(styles.dot), ...dot(index)], []),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
-    },
-    h,
-  );
-};
-
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { div, Class } = h;
-  return {
-    title: `Carousel — slide ${model.carousel.activeIndex + 1} of ${slideCount(model)}`,
-    body: matchData(model.slides, {
-      onEmpty: () => div([Class(styles.root)], [div([], ['Loading slides…'])]),
-      onFailure: (error) =>
-        div([Class(styles.root)], [div([], [`Failed to load slides: ${error}`])]),
-      onData: (slides) => slidesView(slides, model, h),
-    }),
-  };
-};
+      h.div.class(styles.controls).children(
+        h.div
+          .class(styles.arrows)
+          .children(
+            arrow('Previous slide', '←', Message.ClickedPrevious()),
+            arrow('Next slide', '→', Message.ClickedNext()),
+          ),
+        h.div.class(styles.dots).children(
+          ...slides.map((_, index) =>
+            h.button
+              .key(String(index))
+              .class(styles.dot)
+              .attr('type', 'button')
+              .attr('aria-label', `Go to slide ${index + 1}`)
+              .attr('aria-pressed', String(index === activeIndex))
+              .attr('data-active', index === activeIndex ? '' : undefined)
+              .on('click', Message.ClickedDot({ index })),
+          ),
+        ),
+      ),
+    );
+}

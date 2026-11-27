@@ -1,11 +1,15 @@
-import { Option } from 'effect';
-import { Subscription } from 'foldkit';
+import { Subscription } from '@effect/ui';
+import { Stream } from 'effect';
 
-import * as Carousel from '../../ui/carousel';
+import { animationFrames } from '../../ui/shared/animation-frames';
 import { Message } from './message';
 import type { Model } from './model';
 
-export const subscriptions = Subscription.lift(Carousel.subscriptions)<Model, Message>({
-  read: (model) => Option.some(model.carousel),
-  toParentMessage: (message) => Message.ReceivedCarouselMessage({ message }),
-});
+export const subscriptions = ({ model }: { readonly model: Model }) => [
+  model._tag === 'Loaded' &&
+    model.drag._tag === 'Settling' &&
+    Subscription.make(
+      'CarouselSettleFrames',
+      animationFrames.pipe(Stream.map((deltaTimeMs) => Message.TickedSettle({ deltaTimeMs }))),
+    ),
+];

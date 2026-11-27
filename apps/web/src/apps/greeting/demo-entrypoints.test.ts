@@ -2,6 +2,7 @@ import { Component } from '@effect/ui';
 import { expect, it } from 'vitest';
 
 import animatedBar from '../animated-bar/app';
+import carousel from '../carousel/app';
 import colorSpaces from '../color-spaces/app';
 import complexityField from '../complexity-field/app';
 import counter from '../counter/app';
@@ -23,6 +24,7 @@ import greeting from './app';
 
 it.each([
   ['Animated Bar', animatedBar],
+  ['Carousel', carousel],
   ['Color Spaces', colorSpaces],
   ['Complexity Field', complexityField],
   ['Counter', counter],

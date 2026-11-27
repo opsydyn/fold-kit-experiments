@@ -31,13 +31,13 @@ export default defineConfig({
     {
       name: 'firefox-desktop',
       testMatch:
-        /(?:chart-interactions|comparison|earthquake-globe|functional-ai-radar|linked-charts|request-diagnostics|stateflow|web-demos)\.spec\.ts/,
+        /(?:carousel|chart-interactions|comparison|earthquake-globe|functional-ai-radar|linked-charts|request-diagnostics|stateflow|web-demos)\.spec\.ts/,
       use: { browserName: 'firefox', viewport: { width: 1365, height: 900 } },
     },
     {
       name: 'firefox-mobile',
       testMatch:
-        /(?:chart-interactions|comparison|earthquake-globe|functional-ai-radar|linked-charts|request-diagnostics|stateflow|web-demos)\.spec\.ts/,
+        /(?:carousel|chart-interactions|comparison|earthquake-globe|functional-ai-radar|linked-charts|request-diagnostics|stateflow|web-demos)\.spec\.ts/,
       use: { browserName: 'firefox', viewport: { width: 390, height: 844 } },
     },
   ],

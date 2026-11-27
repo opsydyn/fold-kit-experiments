@@ -1,8 +1,6 @@
 import {
   resolveConnectionCreation,
   resolveEdgeReconnection,
-  resolveEventStormingRelationship,
-  eventStormingRelationshipRules,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -12,7 +10,6 @@ import {
   captureEdition,
   compareEditions,
   resolveEditionRestore,
-  architectureNodePresets,
   type EdgePathStyle,
   type EditorEvent,
   type ZlozPlacementInput,
@@ -33,10 +30,6 @@ import {
   zlozDddUpstreamRole,
   zlozDddDownstreamRoleSelect,
   zlozDddRelationshipReasons,
-  zlozEventStormingRelationshipControls,
-  zlozEventStormingRelationshipSelect,
-  zlozEventStormingRelationshipInference,
-  zlozEventStormingRelationshipStatus,
   zlozHistoryChangeNavigator,
   zlozHistoryChangeButton,
   zlozHistoryChangeFilter,
@@ -86,10 +79,6 @@ import { c4MappingReviewPanel } from './c4-mapping-review-view';
 import { dddAuditPanel } from './ddd-audit-view';
 import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
-import {
-  delegatedRelationship,
-  workbenchRelationshipOptions,
-} from './event-storming-relationships';
 import { exportReviewPanel } from './export-review';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
@@ -106,6 +95,7 @@ import {
 import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
 import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-browse';
+import { nativeCausalRelationships, nativeDiagramCaption } from './native-diagram-notation';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
 import { nativePatternInsertion } from './native-pattern-insertion';
@@ -119,7 +109,6 @@ import { playbackReason, playbackInspectionReason } from './playback';
 import { workbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
-import { relationshipControlsContext } from './relationship-controls';
 import { workbenchPacketContext } from './review-packet';
 import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
@@ -217,9 +206,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
-  const hasContextMap = model.editor.graph.edges.some(
-    (edge) => edge.architecture?.family === 'ddd' && edge.architecture.scope === 'strategic',
-  );
   const title = 'Architecture workbench | ZLOZ';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
@@ -257,27 +243,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.editor.selectedEdges.includes(edge.id),
   );
   const policy = workbenchPolicy(model);
-  const causalRules = workbenchRelationshipOptions(model).rules ?? eventStormingRelationshipRules;
-  const relationshipEditingBlocked =
-    busyModelSession ||
-    model.editor.readOnly ||
-    model.historyReview !== null ||
-    model.editor.gesture.type !== 'idle';
-  const relationshipControls = relationshipControlsContext(model);
   const dddControls = workbenchDddControls(model);
   const hasDddNodes = model.editor.graph.nodes.some((node) => node.architecture?.family === 'ddd');
   const dddInspectorVisible =
     hasDddNodes && model.sidebarSection === 'inspect' && !model.sidebarCollapsed;
-  const incompatibleRelationship = selectedEdge
-    ? causalRules.find(
-        (rule) =>
-          resolveEventStormingRelationship(
-            model.editor.graph,
-            { ...selectedEdge, architecture: rule.architecture },
-            workbenchRelationshipOptions(model),
-          ).type === 'blocked',
-      )?.architecture
-    : undefined;
   const placementControls = workbenchPlacement(model);
   const showEdgeToolbar =
     !dddInspectorVisible &&
@@ -1178,231 +1147,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ? [nativeDiagramSearch(h, model, 'architecture-effect-ui', 'diagram-search')]
         : []),
       ...(model.nodeDesign === 'event-storming'
-        ? [
-            h.div(
-              [h.Role('group'), h.AriaLabel('Event-storming relationships')],
-              [
-                h.h2([], ['Causal relationships']),
-                h.label(
-                  [h.Class('workbench-field')],
-                  [
-                    'Inspect relationship',
-                    h.select(
-                      [
-                        h.AriaLabel('Inspect relationship'),
-                        h.Value(selectedEdge?.id ?? ''),
-                        h.OnChange((id) =>
-                          zlozInput(
-                            id
-                              ? { type: 'EdgeSelected', id, additive: false }
-                              : { type: 'SelectionCleared' },
-                          ),
-                        ),
-                      ],
-                      [
-                        h.option([h.Value('')], ['Choose a connection']),
-                        ...model.editor.graph.edges.map((edge) =>
-                          h.option([h.Value(edge.id)], [edge.label || edge.id]),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                h.p(
-                  [h.Role('status'), h.AriaLabel('Relationship edit feedback')],
-                  [model.editor.notice],
-                ),
-                h.p(
-                  [h.AriaLabel('Event-storming role legend')],
-                  [
-                    'Actor · Command · Aggregate · Domain Event · Policy. These are editable modelling conventions, not executable business rules.',
-                  ],
-                ),
-                h.label(
-                  [h.Class('workbench-field')],
-                  [
-                    h.input([
-                      h.Type('checkbox'),
-                      h.Checked(model.semanticRelationships),
-                      h.Disabled(model.historyReview !== null),
-                      h.OnClick(Message.ClickedSemanticRelationships()),
-                    ]),
-                    'Validate DDD and causal relationships',
-                  ],
-                ),
-                h.label(
-                  [h.Class('workbench-field')],
-                  [
-                    h.input([
-                      h.Type('checkbox'),
-                      h.Checked(model.customStormingRelationships),
-                      h.Disabled(model.historyReview !== null),
-                      h.OnClick(Message.ClickedCustomStormingRelationships()),
-                    ]),
-                    'Enable custom Delegates convention',
-                  ],
-                ),
-                h.p(
-                  [],
-                  [
-                    'The custom convention permits command → command links. Changing conventions never rewrites existing models.',
-                  ],
-                ),
-                button(
-                  'Add delegated command connection',
-                  Message.ClickedDelegatedRelationship({
-                    modelId: model.modelIdentity.id,
-                    epoch: model.modelEpoch,
-                  }),
-                  !delegatedRelationship(model),
-                ),
-                h.ul(
-                  [h.AriaLabel('Causal relationship report')],
-                  model.editor.graph.edges.map((edge) => {
-                    const decision = resolveEventStormingRelationship(
-                      model.editor.graph,
-                      edge,
-                      workbenchRelationshipOptions(model),
-                    );
-                    return h.li(
-                      [h.Key(edge.id)],
-                      [
-                        h.strong([], [edge.label || edge.id]),
-                        ' · ',
-                        decision.type === 'allowed'
-                          ? `${decision.rule.label} (${decision.inferred ? 'inferred' : 'typed'})`
-                          : decision.type === 'blocked'
-                            ? decision.reason
-                            : 'Unrelated connection',
-                      ],
-                    );
-                  }),
-                ),
-                zlozEventStormingRelationshipControls(
-                  h,
-                  relationshipControls,
-                  (request) =>
-                    request.type === 'RelationshipSelected'
-                      ? Message.SelectedCausalRelationship({
-                          edgeId: request.edgeId,
-                          key: request.key,
-                          modelId: model.modelIdentity.id,
-                          epoch: model.modelEpoch,
-                        })
-                      : Message.ClickedRelationshipInference({
-                          edgeId: request.edgeId,
-                          modelId: model.modelIdentity.id,
-                          epoch: model.modelEpoch,
-                        }),
-                  {
-                    attributes: [
-                      h.Style({
-                        padding: '12px',
-                        border: '1px solid var(--rule)',
-                        borderRadius: '8px',
-                        display: 'grid',
-                        gap: '8px',
-                      }),
-                    ],
-                    renderSelect: (context, builder, onRequest) =>
-                      builder.label(
-                        [builder.Class('workbench-field')],
-                        [
-                          context.label,
-                          zlozEventStormingRelationshipSelect(builder, context, onRequest),
-                        ],
-                      ),
-                    renderInference: (action, builder, onRequest) =>
-                      zlozEventStormingRelationshipInference(
-                        builder,
-                        action,
-                        onRequest,
-                        [builder.Style({ padding: '8px' })],
-                        [action.label],
-                      ),
-                    renderStatus: (context, builder) =>
-                      zlozEventStormingRelationshipStatus(
-                        builder,
-                        context,
-                        [],
-                        [builder.strong([], ['Semantic contract · ']), context.statusText],
-                      ),
-                  },
-                ),
-                button(
-                  'Open connection tools',
-                  Message.SelectedWorkbenchSection({ section: 'ports' }),
-                ),
-                ...(selectedEdge && incompatibleRelationship
-                  ? [
-                      button(
-                        'Try incompatible relationship',
-                        zlozInput({
-                          type: 'EdgeArchitectureChanged',
-                          id: selectedEdge.id,
-                          architecture: incompatibleRelationship,
-                        }),
-                        relationshipEditingBlocked,
-                      ),
-                    ]
-                  : []),
-              ],
-            ),
-          ]
+        ? [nativeCausalRelationships(h, model, 'architecture-effect-ui', 'causal-relationships')]
         : []),
-      ...(model.nodeDesign === 'ddd'
+      ...(model.nodeDesign === 'ddd' || model.nodeDesign === 'c4'
         ? [
-            h.div(
-              [h.Class('ddd-diagram-caption')],
-              [
-                h.h2(
-                  [],
-                  [
-                    hasContextMap
-                      ? 'Context map · strategic relationships'
-                      : 'Ordering · domain model',
-                  ],
-                ),
-                h.p(
-                  [],
-                  [
-                    hasContextMap
-                      ? model.contextMapPresentation
-                        ? 'Connectable context cards show authored influence and cooperation. Arrows describe upstream/downstream influence, not message flow. Symmetric partnerships and shared kernels have no arrow.'
-                        : 'Context-map presentation is disabled. Strategic meaning remains in the model.'
-                      : 'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
-                  ],
-                ),
-                h.ul(
-                  [h.AriaLabel('DDD role legend')],
-                  architectureNodePresets
-                    .filter((preset) => preset.architecture.family === 'ddd')
-                    .map((preset) => h.li([], [preset.label])),
-                ),
-              ],
-            ),
-          ]
-        : []),
-      ...(model.nodeDesign === 'c4'
-        ? [
-            h.div(
-              [h.Class('c4-diagram-caption')],
-              [
-                h.h2(
-                  [],
-                  [
-                    model.editor.graph.nodes.some((node) => node.id === 'platform-boundary')
-                      ? 'Order platform · container view'
-                      : 'Order platform · system context',
-                  ],
-                ),
-                h.p(
-                  [],
-                  [
-                    'C4 package presets. People and systems are named explicitly; dashed nodes are external. Arrows describe directed relationships. Use the theme picker to compare light and dark.',
-                  ],
-                ),
-              ],
+            nativeDiagramCaption(
+              h,
+              {
+                design: model.nodeDesign,
+                graph: model.editor.graph,
+                contextMapPresentation: model.contextMapPresentation,
+              },
+              'architecture-effect-ui',
+              'diagram-caption',
             ),
           ]
         : []),

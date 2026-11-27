@@ -77,6 +77,7 @@ export type {
   ZlozEdgeRenderContext,
 } from './edge-presentation';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
+export { eventStormingRelationshipControls } from './effect-ui-relationship-controls';
 export { viewportControl } from './effect-ui-viewport-control';
 export {
   groupClipboardV3,

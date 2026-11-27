@@ -55,14 +55,14 @@ test('native tokens survive Model JSON preservation and refresh only for changed
     { Message },
     { update, currentSource },
     { view },
-    { renderToString },
+    { Html, HtmlServer },
     { Effect, Schema },
   ] = await Promise.all([
     import('../src/examples/line/model'),
     import('../src/examples/line/message'),
     import('../src/examples/line/update'),
     import('../src/examples/line/view'),
-    import('foldkit/experimental/server'),
+    import('@effect/ui/html'),
     import('effect'),
   ]);
   const started = init({
@@ -70,7 +70,7 @@ test('native tokens survive Model JSON preservation and refresh only for changed
     templateUrl: null,
     embeddedEditor: false,
   }).model;
-  const requested = update(started, Message.AcquiredHighlighter());
+  const requested = update(started, Message.MountedLine());
   expect(requested.commands).toHaveLength(1);
   const source = currentSource(requested.model);
   const ready = update(
@@ -88,9 +88,7 @@ test('native tokens survive Model JSON preservation and refresh only for changed
   const restored = Schema.decodeUnknownSync(codec)(Schema.encodeSync(codec)(ready));
   expect(restored.highlightedSource).toEqual(ready.highlightedSource);
   expect(restored.settings).toEqual(ready.settings);
-  const reacquired = update(restored, Message.AcquiredHighlighter());
-  expect(reacquired.model.highlightedSource).toBeUndefined();
-  expect(reacquired.commands).toHaveLength(1);
+  expect(update(restored, Message.MountedLine()).commands).toBeUndefined();
   const changed = update(restored, Message.ChangedDomain({ value: '150' }));
   expect(changed.commands).toHaveLength(1);
   expect(changed.model.requestedSource?.source).toBe(currentSource(changed.model));
@@ -105,12 +103,17 @@ test('native tokens survive Model JSON preservation and refresh only for changed
       },
     }),
   ).model;
-  const rendered = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model: settled }), view },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Fixture = Html.component({
+    name: 'LineHighlightFixture',
+    model: Model,
+    props: Model,
+    message: Message,
+  }).make({
+    init: ({ props }) => props,
+    view,
+    update: ($) => $.model,
+  });
+  const rendered = await Effect.runPromise(HtmlServer.renderToHtml(Fixture, settled));
   expect(rendered.html).toContain('class="pl-');
   expect(rendered.html).not.toContain('<script>unsafe</script>');
   expect(currentSource(settled)).toBe('const tag = "<script>unsafe</script>";');
@@ -157,8 +160,8 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
 
 test('resource lifecycle messages discard opaque engine and error values', async () => {
   const [{ Message }, { init }, { Schema }] = await Promise.all([
-    import('../src/examples/line/message'),
-    import('../src/examples/line/model'),
+    import('../src/examples/comparison/message'),
+    import('../src/examples/comparison/model'),
     import('effect'),
   ]);
   type Model = ReturnType<typeof init>['model'];

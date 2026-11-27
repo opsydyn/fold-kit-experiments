@@ -63,7 +63,7 @@ test('opening a maintained source line selects the file and schedules native foc
   expect(result.model.activeFile).toBe('view.ts');
   expect(result.model.panel).toBe('controls');
   expect(result.commands?.[0]).toMatchObject({
-    name: 'FocusSourceLine',
+    name: 'FocusLineSourceLine',
     args: { name: 'view.ts', line: 2 },
   });
   expect(update(model, Message.NavigatedSourceLine({ name: '../../secret', line: 2 })).model).toBe(

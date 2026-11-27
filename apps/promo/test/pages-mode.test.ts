@@ -1,12 +1,10 @@
 import { expect, test } from 'bun:test';
 
 import { HtmlServer } from '@effect/ui/html';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
+import { Effect } from 'effect';
 
 import { DatasetLauncher } from '../src/examples/datasets/launcher/main';
-import { init as lineInit } from '../src/examples/line/model';
-import { view as lineView } from '../src/examples/line/view';
+import { Line } from '../src/examples/line/main';
 
 test('Pages dataset toolbar renders deployed downloads and external editing', async () => {
   const rendered = await Effect.runPromise(
@@ -24,16 +22,12 @@ test('Pages dataset toolbar renders deployed downloads and external editing', as
 });
 
 test('Pages line view keeps its chart and exports without orphaned editor tabs', async () => {
-  const { model } = lineInit({
-    sources: [],
-    templateUrl: '/fold-kit-experiments/viz/downloads/line-template.json',
-    embeddedEditor: false,
-  });
   const rendered = await Effect.runPromise(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model }), view: lineView },
-      { flags: {}, isHydratable: false },
-    ),
+    HtmlServer.renderToHtml(Line, {
+      sources: [],
+      templateUrl: '/fold-kit-experiments/viz/downloads/line-template.json',
+      embeddedEditor: false,
+    }),
   );
   expect(rendered.html).not.toContain('Edit live');
   expect(rendered.html).not.toContain('role="tabpanel"');

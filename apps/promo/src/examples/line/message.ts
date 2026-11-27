@@ -1,16 +1,16 @@
-import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting';
-import { SourceLine } from '@opsydyn/dataset-explorer/source-lines';
+import { UiSchema } from '@effect/ui';
+import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting-core';
+import { SourceLine } from '@opsydyn/dataset-explorer/source-line-core';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { Action, Curve, Panel, SourceName } from './model';
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   NavigatedSourceLine: SourceLine.fields,
   CompletedSourceLineFocus: {},
-  AcquiredHighlighter: {},
-  FailedHighlighter: {},
-  ReleasedHighlighter: {},
+  MountedLine: {},
+  NavigatedPanel: { panel: Panel },
+  CompletedPanelFocus: {},
   SettledHighlightedSource: { highlightedSource: HighlightedSource },
   RecordedChartWidth: { width: Schema.Number },
   SelectedPanel: { panel: Panel },

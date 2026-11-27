@@ -11,6 +11,7 @@ import { Schema } from 'effect';
 import { chromium } from 'playwright';
 
 import { projectFiles as histogramFiles } from '../src/examples/histogram/project';
+import { projectFiles as lineFiles } from '../src/examples/line/project';
 import { projectFiles as scatterFiles } from '../src/examples/scatter/project';
 import { buildExampleTemplate } from '../src/lib/example-project';
 import type { SourceFile } from '../src/lib/example-project';
@@ -53,12 +54,12 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
           ? histogramFiles(template, { dataset: 'clustered', binCount: 11 })
           : example === 'scatter'
             ? scatterFiles(template, { group: 'b', xMax: 170, yMax: 150, selectedPoint: 'b-03' })
-            : template;
-      if (example === 'datasets' || example === 'histogram' || example === 'scatter') {
-        expect(template['package.json']).toContain('"@effect/ui"');
-        expect(template['package.json']).not.toContain('"foldkit"');
-        expect(template['src/entry.ts']).toContain('BrowserHost');
-      }
+            : example === 'line'
+              ? lineFiles(template, { curve: 'step', yMax: 150, values: [10, 20, 30, 40, 50] })
+              : template;
+      expect(template['package.json']).toContain('"@effect/ui"');
+      expect(template['package.json']).not.toContain('"foldkit"');
+      expect(template['src/entry.ts']).toContain('BrowserHost');
       for (const [name, contents] of Object.entries(files)) {
         const file = join(directory, name);
         await mkdir(dirname(file), { recursive: true });
@@ -77,12 +78,41 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
             ? "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof symbolPath);"
             : example === 'histogram'
               ? "import { histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { bin } from '@opsydyn/foldkit-viz/math/bin'; console.log(typeof histogramGeometry, lightTheme.labelSize, typeof bin);"
-              : "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/foldkit/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);",
+              : "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/effect-ui/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);",
         ],
         options,
       );
       expect(stdout.trim()).toBe('function 12 function');
       expect(await readdir(join(directory, 'dist'))).toContain('index.html');
+      if (example === 'line' && process.env.LINE_BROWSER === '1') {
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const origin = 'http://line-standalone.test';
+          await page.route(origin + '/**', async (request) => {
+            const path = new URL(request.request().url()).pathname.slice(1);
+            await request.fulfill({ path: join(directory, 'dist', path || 'index.html') });
+          });
+          await page.goto(origin);
+          const slider = page.getByRole('slider', { name: /Y-axis maximum/ });
+          await slider.waitFor();
+          expect(await slider.inputValue()).toBe('150');
+          expect(
+            await page
+              .getByRole('button', { name: 'Step', exact: true })
+              .getAttribute('aria-pressed'),
+          ).toBe('true');
+          const chart = page.getByRole('img', { name: /Values: 10, 20, 30, 40, 50/ });
+          await chart.waitFor();
+          expect(await chart.locator('.chart-line-series').count()).toBe(2);
+          await slider.press('ArrowRight');
+          expect(await slider.inputValue()).toBe('160');
+          expect(await page.getByRole('tab', { name: 'Edit live' }).count()).toBe(0);
+          expect(await page.getByRole('button', { name: 'Download project' }).count()).toBe(0);
+        } finally {
+          await browser.close();
+        }
+      }
       if (example === 'scatter' && process.env.SCATTER_BROWSER === '1') {
         const browser = await chromium.launch();
         try {

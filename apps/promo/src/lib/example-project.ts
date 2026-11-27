@@ -60,7 +60,7 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
-  const effectUiChart = example === 'histogram' || example === 'scatter';
+  const effectUiChart = example === 'line' || example === 'histogram' || example === 'scatter';
   const foldkitRuntime = {
     foldkit: '0.171.0',
     '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
@@ -119,7 +119,7 @@ export async function buildExampleTemplate(
     'chart/theme',
     ...(example === 'datasets' || effectUiChart ? ['effect-ui/cartesian'] : ['foldkit/cartesian']),
     ...{
-      line: ['math/scale', 'shape/line', 'shape/path'],
+      line: ['math/scale', 'shape/line', 'shape/path', 'shape/symbol'],
       datasets: ['shape/symbol'],
       histogram: ['math/scale', 'math/bin'],
       scatter: ['math/scale', 'shape/symbol'],
@@ -250,7 +250,7 @@ export async function buildExampleTemplate(
       "import { defineConfig } from 'vite';\nexport default defineConfig({});\n";
     files['src/entry.ts'] = effectUiEntry(
       sources,
-      example === 'histogram' ? 'Histogram' : 'Scatter',
+      ({ line: 'Line', histogram: 'Histogram', scatter: 'Scatter' } as const)[example],
       'chart.css',
       '{ sources, templateUrl: null }',
     );

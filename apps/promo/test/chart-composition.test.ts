@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { Html, HtmlServer } from '@effect/ui/html';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { Effect } from 'effect';
 
 import { histogramGeometry } from '../src/examples/histogram/chart';
 import * as Histogram from '../src/examples/histogram/main';
@@ -13,19 +11,16 @@ import { scatterGeometry } from '../src/examples/scatter/chart';
 import * as Scatter from '../src/examples/scatter/main';
 
 const frame = { width: 324, height: 290, margins: { top: 30, right: 24, bottom: 60, left: 48 } };
-async function render<M>(view: (h: HtmlBuilder<M>) => Document): Promise<string> {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({ test: Schema.Boolean }),
-        init: () => ({ model: 0 }),
-        view: (_model: number, h: HtmlBuilder<M>) => view(h),
-      },
-      { flags: { test: true }, isHydratable: false },
-    ),
-  );
-  return result.html;
-}
+const LineFixture = Html.component({
+  name: 'LineFixture',
+  model: Line.Model,
+  props: Line.Model,
+  message: Line.Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($) => $.model,
+  view: Line.view,
+});
 
 test('wrappers project unrelated custom data through caller frames and domains', () => {
   const line = chartGeometry(
@@ -74,7 +69,7 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Line.init({ sources: [], templateUrl: null }).model,
     Line.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const lineHtml = await render<Line.Message>((h) => Line.view(line, h));
+  const { html: lineHtml } = await Effect.runPromise(HtmlServer.renderToHtml(LineFixture, line));
   expect(lineHtml).toContain('viewBox="0 0 324 290"');
   expect(lineHtml).toContain('font-size="12"');
   expect(lineHtml).toContain('Threshold 80');
@@ -125,8 +120,8 @@ test('reference views use measured frames and expose raw data alternatives', asy
 
 test('empty reference data shows visible feedback and accepted finite geometry', async () => {
   const model = Line.init({ sources: [], templateUrl: null }).model;
-  const html = await render<Line.Message>((h) =>
-    Line.view({ ...model, settings: { ...model.settings, values: [] } }, h),
+  const { html } = await Effect.runPromise(
+    HtmlServer.renderToHtml(LineFixture, { ...model, settings: { ...model.settings, values: [] } }),
   );
   expect(html).toContain('No values to display');
   expect(html).not.toMatch(/NaN|Infinity/);

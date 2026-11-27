@@ -1,16 +1,22 @@
-import { highlightingResources } from '@opsydyn/dataset-explorer/highlighting';
-import { sourceLineSubscriptions } from '@opsydyn/dataset-explorer/source-lines';
+import { Html } from '@effect/ui/html';
 
 import { Message } from './message';
-import type { Model } from './model';
-export { Model, init } from './model';
-export { Message } from './message';
-export { update } from './update';
-export { view } from './view';
-export const managedResources = highlightingResources<Model, Message>({
-  acquired: Message.AcquiredHighlighter,
-  failed: Message.FailedHighlighter,
-  released: Message.ReleasedHighlighter,
-});
+import { init, Model, Props } from './model';
+import { update } from './update';
+import { view } from './view';
 
-export const subscriptions = sourceLineSubscriptions<Model, Message>(Message.NavigatedSourceLine);
+export { init, Model, Message, update, view };
+
+export const Line = Html.component({
+  name: 'PromoLine',
+  props: Props,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => init(props).model,
+  update: ($, message) => {
+    const result = update($.model, message);
+    return $.set(result.model).run(...(result.commands ?? []));
+  },
+  view,
+});

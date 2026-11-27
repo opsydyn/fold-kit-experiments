@@ -1,6 +1,6 @@
+import { Mount } from '@effect/ui';
 import sdk from '@stackblitz/sdk';
 import { Data, Effect, Schema } from 'effect';
-import { Mount } from 'foldkit';
 
 import { Message } from './message';
 import { Settings } from './model';
@@ -29,7 +29,7 @@ async function connectEditor(
     target,
     {
       title: 'Foldkit Viz — Live line',
-      description: 'Edit the code and watch the FoldKit chart change.',
+      description: 'Edit the code and watch the Effect UI chart change.',
       template: 'node',
       files: projectFiles(template, initialSettings),
     },
@@ -49,15 +49,15 @@ async function connectEditor(
   await connection;
 }
 
-// FoldKit owns the host; StackBlitz owns only its children. The SDK replaces
+// Effect UI owns the host; StackBlitz owns only its children. The SDK replaces
 // its target with an iframe, so it must never receive the renderer's host.
-export const EmbedEditor = Mount.define('EmbedEditor', {
-  args: { initialSettings: Settings, templateUrl: Schema.String, revision: Schema.Number },
-  messages: [Message.SucceededEditor, Message.FailedEditor],
-  execute: ({ element, initialSettings, templateUrl, revision }) =>
+export const EmbedEditor = Mount.make(
+  'EmbedEditor',
+  { args: { initialSettings: Settings, templateUrl: Schema.String, revision: Schema.Number } },
+  (element: HTMLDivElement, { initialSettings, templateUrl, revision }) =>
     Effect.gen(function* () {
       const target = yield* Effect.acquireRelease(
-        Effect.sync(() => element.appendChild(document.createElement('div'))),
+        Effect.sync(() => element.appendChild(element.ownerDocument.createElement('div'))),
         () => Effect.sync(() => element.replaceChildren()),
       );
       yield* Effect.tryPromise({
@@ -76,4 +76,4 @@ export const EmbedEditor = Mount.define('EmbedEditor', {
         }),
       ),
     ),
-});
+);

@@ -2672,13 +2672,6 @@ export type {
 } from './event-storming-renderer';
 
 export {
-  zlozEventStormingRelationshipControls,
-  zlozEventStormingRelationshipSelect,
-  zlozEventStormingRelationshipInference,
-  zlozEventStormingRelationshipStatus,
-  zlozEventStormingRelationshipReasons,
-} from './relationship-controls-view';
-export {
   zlozAuditComparisonControls,
   zlozAuditEditionSelect,
   zlozAuditFindingFilter,
@@ -2690,11 +2683,6 @@ export type {
   ZlozAuditComparisonParts,
   ZlozAuditComparisonViewOptions,
 } from './audit-comparison-controls-view';
-export type {
-  ZlozRelationshipTextOptions,
-  ZlozEventStormingRelationshipControlsParts,
-  ZlozEventStormingRelationshipControlsViewOptions,
-} from './relationship-controls-view';
 
 export {
   zlozContextMapConnector,
@@ -2707,18 +2695,6 @@ export type {
   ZlozContextMapParticipantOptions,
   ZlozContextMapLabelParts,
 } from './context-map-view';
-export {
-  zlozDddRelationshipControls,
-  zlozDddRelationshipPatternSelect,
-  zlozDddUpstreamRole,
-  zlozDddDownstreamRoleSelect,
-  zlozDddRelationshipStatus,
-  zlozDddRelationshipReasons,
-} from './ddd-relationship-controls-view';
-export type {
-  ZlozDddRelationshipControlsViewOptions,
-  ZlozDddRelationshipControlsParts,
-} from './ddd-relationship-controls-view';
 
 export {
   zlozDddAuditControls,
@@ -2729,12 +2705,5 @@ export {
   zlozDddAuditReason,
 } from './ddd-audit-controls-view';
 export type { ZlozDddAuditParts, ZlozDddAuditViewOptions } from './ddd-audit-controls-view';
-
-export {
-  zlozEventStormingWorkshopControls,
-  zlozWorkshopSelect,
-  zlozWorkshopStatusButton,
-} from './workshop-controls-view';
-export type { ZlozWorkshopParts, ZlozWorkshopViewOptions } from './workshop-controls-view';
 
 export { zlozAggregateView } from './aggregate-view';

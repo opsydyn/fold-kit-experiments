@@ -516,10 +516,10 @@ provides an illustrative native starter. Use
 {@link Core.resolveEventStormingWorkshopControls | resolveEventStormingWorkshopControls}
 and {@link Core.resolveEventStormingWorkshopRequest | resolveEventStormingWorkshopRequest}
 for fresh selected-node role/status edits with live protection and ordinary Undo.
-{@link FoldKit.zlozEventStormingWorkshopControls | zlozEventStormingWorkshopControls}
+{@link EffectUI.workshopControls | workshopControls}
 composes explicit native status buttons, role selectors and visible reasons, with
-replace/omit hooks. {@link FoldKit.zlozWorkshopStatusButton | zlozWorkshopStatusButton}
-and {@link FoldKit.zlozWorkshopSelect | zlozWorkshopSelect} support custom layouts.
+replace/omit hooks. {@link EffectUI.workshopStatusButton | workshopStatusButton}
+and {@link EffectUI.workshopSelect | workshopSelect} support custom layouts.
 Native node/lane content, semantic descriptions, header geometry, body caching and
 scoped light/dark tokens remain independent of diagnostics. See the README and
 ADR 0082 for exact freshness, selection, policy and portable-export limits.

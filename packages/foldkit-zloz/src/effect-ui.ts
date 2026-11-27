@@ -91,9 +91,33 @@ export {
   updatePortPositionDraft,
 } from './port-position-editor';
 export type { ZlozPortPositionDraft, ZlozPortPositionDraftChange } from './port-position-editor';
-export { dddRelationshipControls } from './effect-ui-ddd-relationship-controls';
-export { eventStormingRelationshipControls } from './effect-ui-relationship-controls';
-export { workshopControls } from './effect-ui-workshop-controls';
+export {
+  dddRelationshipControls,
+  dddRelationshipPatternSelect,
+  dddUpstreamRole,
+  dddDownstreamRoleSelect,
+  dddRelationshipStatus,
+  dddRelationshipReasons,
+  type ZlozDddRelationshipControlsParts,
+  type ZlozDddRelationshipControlsViewOptions,
+} from './effect-ui-ddd-relationship-controls';
+export {
+  eventStormingRelationshipControls,
+  eventStormingRelationshipSelect,
+  eventStormingRelationshipInference,
+  eventStormingRelationshipStatus,
+  eventStormingRelationshipReasons,
+  type ZlozRelationshipTextOptions,
+  type ZlozEventStormingRelationshipControlsParts,
+  type ZlozEventStormingRelationshipControlsViewOptions,
+} from './effect-ui-relationship-controls';
+export {
+  workshopControls,
+  workshopSelect,
+  workshopStatusButton,
+  type ZlozWorkshopParts,
+  type ZlozWorkshopViewOptions,
+} from './effect-ui-workshop-controls';
 export { viewportControl } from './effect-ui-viewport-control';
 export {
   groupClipboardV3,

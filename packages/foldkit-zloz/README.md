@@ -3691,30 +3691,21 @@ choice. Inference cannot replace authored descriptions for the same semantic key
 
 ```ts
 import {
-  zlozEventStormingRelationshipControls,
-  zlozEventStormingRelationshipSelect,
-  zlozEventStormingRelationshipInference,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  eventStormingRelationshipControls,
+  eventStormingRelationshipSelect,
+  eventStormingRelationshipInference,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozEventStormingRelationshipControls(h, context, toMessage, {
+const controls = eventStormingRelationshipControls(h, context, toMessage, {
   renderSelect: (context, builder, onRequest) =>
-    builder.label(
-      [],
-      [context.label, zlozEventStormingRelationshipSelect(builder, context, onRequest)],
-    ),
+    builder.label(context.label, eventStormingRelationshipSelect(builder, context, onRequest)),
   renderInference: (action, builder, onRequest) =>
-    zlozEventStormingRelationshipInference(
-      builder,
-      action,
-      onRequest,
-      [],
-      ['Use inferred meaning'],
-    ),
+    eventStormingRelationshipInference(builder, action, onRequest, ['Use inferred meaning']),
 });
 ```
 
-Individual native helpers also include `zlozEventStormingRelationshipStatus` and
-`zlozEventStormingRelationshipReasons`. Composition supports `renderSelect`,
+Individual native helpers also include `eventStormingRelationshipStatus` and
+`eventStormingRelationshipReasons`. Composition supports `renderSelect`,
 `renderInference`, `renderStatus`, `renderReasons` and `renderLayout`. Undefined
 keeps defaults; null omits a part. Frame/status/reasons names, native attributes,
 button/status content and wrappers are customizable. Default reasons show both
@@ -4061,10 +4052,10 @@ See [ADR 0039](../../docs/adr/0039-compose-context-map-presentation.md).
 The headless root exports `resolveDddRelationshipControls` and
 `resolveDddRelationshipRequest`. Context, options, request/decision, choice,
 upstream/downstream role and control types are public `ZlozDdd*` contracts. The
-optional Foldkit entry exports `zlozDddRelationshipControls`,
-`zlozDddRelationshipPatternSelect`, `zlozDddUpstreamRole`,
-`zlozDddDownstreamRoleSelect`, `zlozDddRelationshipStatus`,
-`zlozDddRelationshipReasons`, `ZlozDddRelationshipControlsViewOptions` and
+`/effect-ui` entry exports `dddRelationshipControls`,
+`dddRelationshipPatternSelect`, `dddUpstreamRole`,
+`dddDownstreamRoleSelect`, `dddRelationshipStatus`,
+`dddRelationshipReasons`, `ZlozDddRelationshipControlsViewOptions` and
 `ZlozDddRelationshipControlsParts`.
 
 ```ts
@@ -4074,11 +4065,11 @@ import {
   dddRelationshipPolicy,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import { zlozDddRelationshipControls } from '@opsydyn/foldkit-zloz/foldkit';
+import { dddRelationshipControls } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const options = { policy: dddRelationshipPolicy(conventions, hostPolicy), conventions };
 const context = resolveDddRelationshipControls(editor, inspectedEdgeId, options);
-const controls = zlozDddRelationshipControls(h, context, onRequest, {
+const controls = dddRelationshipControls(h, context, onRequest, {
   renderStatus: () => (minimalMode ? null : undefined),
 });
 // In the host update, recheck current editor/inspector and live options:
@@ -5301,11 +5292,8 @@ import {
   resolveEventStormingWorkshopRequest,
   updateEditor,
 } from '@opsydyn/foldkit-zloz';
-import {
-  zlozEventStormingNode,
-  zlozEventStormingGroup,
-  zlozEventStormingWorkshopControls,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozEventStormingNode, zlozEventStormingGroup } from '@opsydyn/foldkit-zloz/foldkit';
+import { workshopControls } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const editor = createEditor(createEventStormingWorkshopPattern());
 // In your zlozView options:
@@ -5366,8 +5354,8 @@ model/session identity and must reject messages from a different session. Reques
 scope is freshness data, not an authorization credential. Apply immediately through
 `updateEditor` with the same policy to keep one Undo and current policy enforcement.
 
-The optional entry provides `zlozEventStormingWorkshopControls`,
-`zlozWorkshopSelect`, `zlozWorkshopStatusButton`, `ZlozWorkshopParts` and
+The `/effect-ui` entry provides `workshopControls`,
+`workshopSelect`, `workshopStatusButton`, `ZlozWorkshopParts` and
 `ZlozWorkshopViewOptions`. Default hotspot status has explicit Open/Resolved native
 pressed buttons for Tab/Enter/Space; the select helper is available for custom
 compositions. Role, status, meaning, reasons and layout each support replacement or

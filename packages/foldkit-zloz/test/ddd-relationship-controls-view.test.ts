@@ -1,25 +1,23 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozDddRelationshipControls,
-  zlozDddRelationshipPatternSelect,
-  zlozDddUpstreamRole,
+  dddRelationshipControls,
+  dddRelationshipPatternSelect,
+  dddUpstreamRole,
   type ZlozDddRelationshipControlsViewOptions,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import {
   createEditor,
   createContextMapPattern,
   dddRelationshipPolicy,
   resolveDddRelationshipControls,
-  type ZlozDddRelationshipRequest,
 } from '../src/index';
 async function render(
-  options: ZlozDddRelationshipControlsViewOptions<ZlozDddRelationshipRequest> = {},
+  options: ZlozDddRelationshipControlsViewOptions<string> = {},
   protect = false,
 ) {
   const state = createEditor(createContextMapPattern());
@@ -27,19 +25,16 @@ async function render(
     ? dddRelationshipPolicy({}, { canChangeEdgeArchitecture: () => 'Managed agreement' })
     : dddRelationshipPolicy();
   const context = resolveDddRelationshipControls(state, 'orders-billing', { policy });
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozDddRelationshipRequest>) => ({
-          title: 'DDD controls',
-          body: zlozDddRelationshipControls(h, model, (r) => r, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const TestView = Html.component({
+    name: 'SemanticControls',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => dddRelationshipControls(h, context, (request) => request.type, options),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -72,25 +67,13 @@ test('custom wrappers, independently omitted parts and layout use protected nati
   const dom = await render(
     {
       renderPattern: (context, h, onRequest) =>
-        h.div(
-          [],
-          [
-            h.strong([], ['Pattern contract']),
-            zlozDddRelationshipPatternSelect(h, context, onRequest),
-          ],
-        ),
+        h.div(h.strong('Pattern contract'), dddRelationshipPatternSelect(h, context, onRequest)),
       renderUpstream: (control, context, h, onRequest) =>
-        h.label(
-          [],
-          [zlozDddUpstreamRole(h, context, control, onRequest), `Custom ${control.label}`],
-        ),
+        h.label(dddUpstreamRole(h, context, control, onRequest), `Custom ${control.label}`),
       renderDownstream: () => null,
       renderStatus: () => null,
       renderReasons: () => null,
-      renderLayout: (parts, _context, h) => [
-        h.div([], parts.pattern ? [parts.pattern] : []),
-        ...parts.upstream,
-      ],
+      renderLayout: (parts, _context, h) => [h.div(parts.pattern), ...parts.upstream],
     },
     true,
   );

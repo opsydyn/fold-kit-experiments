@@ -127,7 +127,7 @@ async function run() {
   await section('Inspect');
   await inspector.selectOption('provider');
   const role = page.getByRole('combobox', { name: 'Workshop role', exact: true });
-  await expect(role.locator('option[value="hotspot"]')).toBeDisabled();
+  await expect(role.locator('option[value="hotspot"]')).toHaveJSProperty('disabled', true);
   await expect(
     page.getByRole('list', { name: 'Workshop restrictions', exact: true }),
   ).toContainText('Remove ports');

@@ -1,23 +1,21 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozEventStormingRelationshipControls,
-  zlozEventStormingRelationshipSelect,
-  zlozEventStormingRelationshipInference,
+  eventStormingRelationshipControls,
+  eventStormingRelationshipSelect,
+  eventStormingRelationshipInference,
   type ZlozEventStormingRelationshipControlsViewOptions,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import {
   createEditor,
   createEventStormingPattern,
   updateEditor,
   eventStormingRelationshipPolicy,
   resolveEventStormingRelationshipControls,
-  type ZlozEventStormingRelationshipRequest,
   type ZlozEventStormingRelationshipControlsContext,
 } from '../src/index';
 const editor = createEditor(createEventStormingPattern({ includeAggregate: true }));
@@ -26,21 +24,18 @@ const context = resolveEventStormingRelationshipControls(editor, 'step:0', {
 });
 async function render(
   value: ZlozEventStormingRelationshipControlsContext = context,
-  options: ZlozEventStormingRelationshipControlsViewOptions<ZlozEventStormingRelationshipRequest> = {},
+  options: ZlozEventStormingRelationshipControlsViewOptions<string> = {},
 ) {
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: value }),
-        view: (model, h: HtmlBuilder<ZlozEventStormingRelationshipRequest>) => ({
-          title: 'Relationships',
-          body: zlozEventStormingRelationshipControls(h, model, (request) => request, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const TestView = Html.component({
+    name: 'SemanticControls',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => eventStormingRelationshipControls(h, value, (request) => request.type, options),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -92,14 +87,11 @@ test('native helpers compose in custom shells and nullable parts/layout omit def
   const document = await render(context, {
     renderSelect: (value, h, onRequest) =>
       h.label(
-        [],
-        [
-          zlozEventStormingRelationshipSelect(h, value, onRequest, [h.Class('designer-select')]),
-          'Custom chooser',
-        ],
+        eventStormingRelationshipSelect(h, value, onRequest, 'designer-select'),
+        'Custom chooser',
       ),
     renderInference: (action, h, onRequest) =>
-      zlozEventStormingRelationshipInference(h, action, onRequest, [], ['Custom inference']),
+      eventStormingRelationshipInference(h, action, onRequest, ['Custom inference']),
     renderStatus: () => null,
     renderReasons: () => null,
     renderLayout: (parts) => [

@@ -219,9 +219,9 @@ Core exports `resolveEventStormingRelationshipControls` and
 `ZlozEventStormingRelationshipEditDecision`. Requests recheck current inspector
 identity, conventions, lifecycle and policy before producing an ordinary editor event.
 
-The `/foldkit` entry exports `zlozEventStormingRelationshipControls`,
-`zlozEventStormingRelationshipSelect`, `zlozEventStormingRelationshipInference`,
-`zlozEventStormingRelationshipStatus`, `zlozEventStormingRelationshipReasons`,
+The `/effect-ui` entry exports `eventStormingRelationshipControls`,
+`eventStormingRelationshipSelect`, `eventStormingRelationshipInference`,
+`eventStormingRelationshipStatus`, `eventStormingRelationshipReasons`,
 `ZlozRelationshipTextOptions`, `ZlozEventStormingRelationshipControlsParts` and
 `ZlozEventStormingRelationshipControlsViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#composable-causal-relationship-controls)

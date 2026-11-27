@@ -59,8 +59,8 @@ async function checkNativeGroupPackage(
     entry,
     `import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, captureModellingPatch, createEditor, resolveModellingPatchReview, createArchitecturePattern, createPlacement, resolvePlacementControls, captureEdition, compareEditions, resolveHistoryChangeNavigator, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
-import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, modellingPatchReview, placementHost, placementPalette, labelMeasurementProbe, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, historyChangeNavigator, historyChangeButton, historyChangeNavigatorV2, historyChangeButtonV2, historyComparisonV2, historyGhosts, historyGhostsV2, historyComparisonControls, historyGhostToggle, type ZlozHistoryChangeNavigatorViewOptionsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryPresentationPartsV2, type ZlozHistoryGhostOptionsV2, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
+import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, createContextMapPattern, dddRelationshipPolicy, resolveDddRelationshipControls, createEventStormingPattern, resolveEventStormingRelationshipControls, eventStormingRelationshipPolicy, createEventStormingWorkshopPattern, resolveEventStormingWorkshopControls, captureModellingPatch, createEditor, resolveModellingPatchReview, createArchitecturePattern, createPlacement, resolvePlacementControls, captureEdition, compareEditions, resolveHistoryChangeNavigator, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
+import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, dddRelationshipControls, dddRelationshipPatternSelect, eventStormingRelationshipControls, eventStormingRelationshipInference, workshopControls, workshopSelect, modellingPatchReview, placementHost, placementPalette, labelMeasurementProbe, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, historyChangeNavigator, historyChangeButton, historyChangeNavigatorV2, historyChangeButtonV2, historyComparisonV2, historyGhosts, historyGhostsV2, historyComparisonControls, historyGhostToggle, type ZlozHistoryChangeNavigatorViewOptionsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryPresentationPartsV2, type ZlozHistoryGhostOptionsV2, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
 import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
@@ -158,6 +158,18 @@ const palette = resolvePlacementControls(createPlacement(placementContext.scope)
   id: 'card', label: 'Packaged placement source',
   intent: { source: { type: 'palette', id: 'card' }, fragment: createArchitecturePattern('c4-context'), anchor: { x: 0, y: 0 } },
 }]);
+const dddControls = resolveDddRelationshipControls(createEditor(createContextMapPattern()), 'orders-billing', {
+  policy: dddRelationshipPolicy({}, { canChangeEdgeArchitecture: () => 'Packed agreement protected' }),
+});
+const causalControls = resolveEventStormingRelationshipControls(
+  createEditor(createEventStormingPattern({ includeAggregate: true })),
+  'step:0',
+  { policy: eventStormingRelationshipPolicy() },
+);
+const workshop = resolveEventStormingWorkshopControls(
+  { ...createEditor(createEventStormingWorkshopPattern()), selectedNodes: ['retry-question'] },
+  'retry-question',
+);
 const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: Schema.String }).make({
   init: () => null,
   update: () => null,
@@ -176,6 +188,15 @@ const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: S
     labelMeasurementProbe(h, { requestId: 'packed-label', revision: 0, renderKey: 'packed', source: '', edgeIds: [] },
       (result) => result.type, { timeoutMs: 150 }),
 
+    dddRelationshipControls(h, dddControls, (request) => request.type, {
+      renderPattern: (context, h, request) => h.label('Packed pattern', dddRelationshipPatternSelect(h, context, request)),
+    }),
+    eventStormingRelationshipControls(h, causalControls, (request) => request.type, {
+      renderInference: (action, h, request) => eventStormingRelationshipInference(h, action, request, ['Custom inference']),
+    }),
+    workshopControls(h, workshop, (request) => request.type, {
+      renderStatus: (context, h, request) => h.label('Packed workshop status', workshopSelect(h, context, 'status', request)),
+    }),
     svgReview(h, svg, (request) => request.type, { idPrefix: 'packed-svg' }),
     pngReview(h, png, (request) => request.type, { idPrefix: 'packed-png' }),
     playbackControls(h, transport, (event) => event.type, {
@@ -206,7 +227,9 @@ for (const text of ['data-flow-owner="g"', 'Fit view', 'Copy selection', 'Paste 
   'Custom changed node:', 'aria-label="History changes"', 'data-zloz-history-movement=',
   'data-zloz-history-change-v2="mode"', 'Packed change Connection mode',
   'Connection mode changed from loose to strict.', 'role="status"', 'data-packed-patch-review',
-  'Packed workspace protected', 'authored-data-loss', 'data-zloz-placement-host', 'Packaged placement source']) {
+  'Packed workspace protected', 'authored-data-loss', 'data-zloz-placement-host', 'Packaged placement source',
+  'Packed pattern', 'Packed agreement protected', 'Custom inference', 'Typed: Issues.', 'does not allow',
+  'Packed workshop status', 'Hotspot status']) {
   if (!html.includes(text)) throw new Error('Missing packed native group view: ' + text);
 }
 console.log('native-group-ok');
@@ -752,12 +775,12 @@ console.log('group-v3-ok');
       { ...options, cwd: directory },
     );
     const source = `import { createEventStormingWorkshopPattern as packedWorkshopPattern, resolveEventStormingWorkshopControls as packedWorkshopControls, type ZlozWorkshopRequest as PackedWorkshopRequest } from '@opsydyn/foldkit-zloz';
-import { zlozEventStormingNode as packedWorkshopNode, zlozEventStormingGroup as packedWorkshopGroup, zlozEventStormingWorkshopControls } from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozEventStormingNode as packedWorkshopNode, zlozEventStormingGroup as packedWorkshopGroup } from '@opsydyn/foldkit-zloz/foldkit';
 import { resolveDddAuditControls as resolvePackedDddControls, type ZlozDddAuditRequest } from '@opsydyn/foldkit-zloz';
 import { zlozDddAuditControls, zlozDddAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
 import { resolveModellingPatchReview, applyModellingPatch, parseModellingPatch, type ZlozModellingPatchParseResult, captureModellingPatch, dryRunModellingPatch, resolveAuditComparisonControls, type ZlozAuditComparisonControlsContext, compareModelEventStormingRelationships, type ZlozRelationshipAuditComparisonDecision, auditEventStormingRelationships, type ZlozEventStormingRelationshipAudit, resolveEventStormingRelationshipControls, resolveEventStormingRelationshipRequest, createEventStormingPattern, resolveEventStormingRelationship, eventStormingRelationshipPolicy, type EventStormingEdgeArchitecture, fitNodes, resolveHistoryChangeNavigator, resolveHistoryChangeFocus, resolveHistoryComparisonControls, createEditionPlayback, captureModelDocument, serializeModelDocument, parseModelDocument, forkEdition, createModelEditor, type ZlozModelDocument, mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
 import { createPngReview, resolvePngReview, updatePngReview, type ZlozPngReviewContext, captureSvgLayout, planSvgExport, writeSvgExport, type ZlozSvgAdapter, type ZlozSvgLayoutOptions, startGroupHeaderMeasurement, updateGroupHeaderMeasurements, resolveGroupHeaderMeasurements, resolveLayoutGroupHeader, type LayoutGroupHeader, startLabelMeasurement, updateLabelMeasurements, resolveLabelMeasurements, createArchitectureNode, createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, applyPreviewLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type ZlozConnectionGeometryPolicy, resolveEdgeGeometry, type ZlozEdgeGeometryPolicy, type ZlozEdge, type ZlozGraph, type ZlozNode, type EditorEvent } from '@opsydyn/foldkit-zloz';
-import { zlozDddRelationshipControls, zlozDddRelationshipPatternSelect, zlozDddUpstreamRole, zlozDddDownstreamRoleSelect, type ZlozDddRelationshipControlsViewOptions, zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingRelationshipControls, zlozEventStormingRelationshipInference, type ZlozEventStormingRelationshipControlsViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -982,11 +1005,7 @@ const auditControlContext:ZlozAuditComparisonControlsContext=resolveAuditCompari
 const auditControlOptions:ZlozAuditComparisonViewOptions<EditorEvent>={renderEntry:(entry,h,onRequest)=>h.li([],[zlozAuditFindingButton(h,entry,onRequest,[],['Packed audit badge'])])};
 const auditControlOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:auditControlContext}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed audit controls',body:zlozAuditComparisonControls(h,context,():EditorEvent=>({type:'SelectionCleared'}),auditControlOptions)})},{flags:{},isHydratable:false}));
 if(!auditControlOutput.html.includes('Packed audit badge')||!auditControlOutput.html.includes('Protected audit focus')||!auditControlOutput.html.includes('Audit baseline'))throw new Error('Missing packed audit controls view');
-const causalContext=resolveEventStormingRelationshipControls(createEditor(causal),causalFirst.id,{policy:eventStormingRelationshipPolicy()});
 if(resolveEventStormingRelationshipRequest(createEditor(causal),causalFirst.id,{type:'RelationshipSelected',edgeId:causalFirst.id,key:null}).type!=='ready')throw new Error('Missing packed relationship request');
-const causalOptions:ZlozEventStormingRelationshipControlsViewOptions<EditorEvent>={renderInference:(action,h,onRequest)=>zlozEventStormingRelationshipInference(h,action,onRequest,[],['Custom inference'])};
-const causalOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:causalContext}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed relationship controls',body:zlozEventStormingRelationshipControls(h,context,():EditorEvent=>({type:'SelectionCleared'}),causalOptions)})},{flags:{},isHydratable:false}));
-if(!causalOutput.html.includes('Custom inference')||!causalOutput.html.includes('Typed: Issues.')||!causalOutput.html.includes('does not allow'))throw new Error('Missing packed native relationship controls');
 const causalArchitecture:EventStormingEdgeArchitecture={family:'event-storming',role:'custom',name:'approves'};
 const causalEditor=updateEditor(createEditor(causal),{type:'EdgeArchitectureChanged',id:causalFirst.id,architecture:null},eventStormingRelationshipPolicy());
 if(causalEditor.past.length!==1 || updateEditor(causalEditor,{type:'UndoPressed'}).graph.edges[0]?.architecture?.role!=='issues'||causalArchitecture.name!=='approves')throw new Error('Missing packed semantic Undo');
@@ -1022,15 +1041,14 @@ const fittedBounds=fitNodes([dddNode],{width:800,height:600},24,{minZoom:0.1,max
 if(!Number.isFinite(fittedBounds.zoom))throw new Error('Missing packed bounds fitter');
 if(!navigatorEntry || resolveHistoryChangeFocus(comparison,navigatorEntry.request).type!=='ready')throw new Error('Missing packed focus request');
 const contextMapOptions:ZlozContextMapLabelOptions<EditorEvent>={renderName:()=>null}; if(!contextMapOptions.renderName||[zlozContextMapConnector,zlozContextMapLabel,zlozContextMapParticipant].some(view=>typeof view!=='function'))throw new Error('Missing context-map view contract');
-const dddEditingOptions:ZlozDddRelationshipControlsViewOptions<EditorEvent>={renderStatus:()=>null}; if(!dddEditingOptions.renderStatus||[zlozDddRelationshipControls,zlozDddRelationshipPatternSelect,zlozDddUpstreamRole,zlozDddDownstreamRoleSelect].some(view=>typeof view!=='function'))throw new Error('Missing DDD native controls');
 const dddReviewModel=parseModelDocument(${JSON.stringify(JSON.stringify(dddReviewWire))});
 const dddReviewContext=resolvePackedDddControls(dddReviewModel,{baselineId:'ddd-before',selectedId:'ddd-after',filters:{introduced:true,resolved:true,persisting:true}});
 const dddReviewOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:dddReviewContext}),view:(context,h:HtmlBuilder<ZlozDddAuditRequest>)=>({title:'DDD',body:zlozDddAuditControls(h,context,r=>r,{showCounts:false,renderEntry:(entry,builder,onRequest)=>builder.li([],[zlozDddAuditFindingButton(builder,entry,onRequest,[],['Packed DDD finding'])])})})},{flags:{},isHydratable:false}));
 if(!dddReviewOutput.html.includes('Packed DDD finding')||!dddReviewOutput.html.includes('DDD baseline')||dddReviewOutput.html.includes('2 introduced'))throw new Error('Missing packed DDD view contract');
 const workshopEditor={...createEditor(packedWorkshopPattern()),selectedNodes:['retry-question']};
 const workshopControls=packedWorkshopControls(workshopEditor,'retry-question');
-const workshopOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:workshopEditor}),view:(model,h:HtmlBuilder<PackedWorkshopRequest>)=>({title:'Workshop',body:h.div([],[zlozView(h,model,{id:'packed-workshop',label:'Workshop',onEvent:():PackedWorkshopRequest=>({...workshopControls.scope!,type:'StatusSelected',value:'open'}),renderNodeShell:(c,b)=>packedWorkshopNode(c,b,{renderStatus:(ctx,builder)=>ctx.architecture.role==='hotspot'?builder.span([],['Packed status']):null}),renderGroupShell:(c,b)=>packedWorkshopGroup(c,b)}),zlozEventStormingWorkshopControls(h,workshopControls,r=>r)])})},{flags:{},isHydratable:false}));
-if(!workshopOutput.html.includes('Packed status')||!workshopOutput.html.includes('zloz-event-storming-group')||!workshopOutput.html.includes('Hotspot status'))throw new Error('Packed workshop artwork/controls missing');
+const workshopOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:workshopEditor}),view:(model,h:HtmlBuilder<PackedWorkshopRequest>)=>({title:'Workshop',body:h.div([],[zlozView(h,model,{id:'packed-workshop',label:'Workshop',onEvent:():PackedWorkshopRequest=>({...workshopControls.scope!,type:'StatusSelected',value:'open'}),renderNodeShell:(c,b)=>packedWorkshopNode(c,b,{renderStatus:(ctx,builder)=>ctx.architecture.role==='hotspot'?builder.span([],['Packed status']):null}),renderGroupShell:(c,b)=>packedWorkshopGroup(c,b)})])})},{flags:{},isHydratable:false}));
+if(!workshopOutput.html.includes('Packed status')||!workshopOutput.html.includes('zloz-event-storming-group'))throw new Error('Packed workshop artwork/controls missing');
 console.log('packed-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');

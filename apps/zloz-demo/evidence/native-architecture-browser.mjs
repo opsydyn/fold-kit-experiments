@@ -115,6 +115,31 @@ async function qualify() {
   expect(await snapshot()).toEqual(initial);
 
   await section('Ports');
+  await button('Select Review').press('Enter');
+  const dragAnchors = page.getByRole('checkbox', { name: 'Drag port anchors', exact: true });
+  await dragAnchors.check();
+  await page.getByRole('checkbox', { name: 'Snap port anchors to midpoints', exact: true }).check();
+  await page.getByRole('checkbox', { name: 'Port snap guides', exact: true }).check();
+  const customSnap = page.getByRole('checkbox', { name: 'Custom snap guides', exact: true });
+  await customSnap.check();
+  const anchor = button('Position Review: in');
+  await anchor.scrollIntoViewIfNeeded();
+  const anchorCenter = await anchor.evaluate((element) => {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    return { x: x + width / 2, y: y + height / 2 };
+  });
+  await page.mouse.move(anchorCenter.x, anchorCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(anchorCenter.x + 4, anchorCenter.y + 18, { steps: 4 });
+  const anchorGuides = canvas.locator('[data-flow-anchor-guides]');
+  await expect(anchorGuides).toHaveAttribute('inert', '');
+  expect(await anchorGuides.locator('.workbench-snap-guide').count()).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(anchorGuides).toHaveCount(0);
+  expect(await snapshot()).toEqual(initial);
+  await section('Ports');
+  await dragAnchors.uncheck();
   await page.getByRole('checkbox', { name: 'Custom port sockets', exact: true }).check();
   await page.getByRole('checkbox', { name: 'Lock Draft output', exact: true }).check();
   const draftOutput = button('Connect from Draft: out');
@@ -453,6 +478,35 @@ async function qualify() {
     .click();
   await expect(descriptor).toHaveCount(0);
   expect(await snapshot()).toEqual(working);
+
+  await button('Open DDD context map').click();
+  const contextLabels = canvas.locator('[data-zloz-context-map-label]');
+  await expect(contextLabels).toHaveCount(4);
+  const contextGraph = await snapshot();
+  await section('Appearance');
+  const contextPresentation = page.getByRole('checkbox', {
+    name: 'Context-map presentation',
+    exact: true,
+  });
+  await contextPresentation.uncheck();
+  await expect(contextLabels).toHaveCount(0);
+  expect(await snapshot()).toEqual(contextGraph);
+  await section('Appearance');
+  await contextPresentation.check();
+  await expect(contextLabels).toHaveCount(4);
+  expect(await snapshot()).toEqual(contextGraph);
+
+  await section('Appearance');
+  await page.getByRole('combobox', { name: 'Resize readout', exact: true }).selectOption('labeled');
+  await section('Diagram');
+  await button('Open grouped Onion Architecture').click();
+  await button('Select Application core').press('Enter');
+  const readout = canvas.locator('[data-flow-resize-readout]');
+  await expect(readout.locator('.labeled-resize-readout')).toBeVisible();
+  await expect(readout).toHaveAttribute('aria-live', 'polite');
+  await expect(readout).toHaveAttribute('title', 'Application core: 500 × 232 graph units');
+  await button('Resize Application core from bottom right').press('ArrowRight');
+  await expect(readout).toHaveAttribute('title', 'Application core: 505 × 232 graph units');
 
   expect(errors).toEqual([]);
   console.log(

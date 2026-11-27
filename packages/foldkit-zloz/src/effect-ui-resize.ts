@@ -1,5 +1,7 @@
+import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
+import { resolveResizeReadout, type ZlozResizeReadoutContext } from './resize-readout';
 import type { EditorPolicy, EditorState, ResizeHandle, ZlozNode } from './types';
 
 const groupHandles = {
@@ -61,28 +63,30 @@ export function nodeResizeControls<M>(
   );
 }
 
+export type NativeResizeReadout<M> = (
+  context: ZlozResizeReadoutContext,
+  h: Html.H<M>,
+) => View.Content<M> | null | undefined;
+
 export function nodeResizeReadout<M>(
   h: Html.H<M>,
   editor: EditorState,
   visibleNodes: readonly ZlozNode[],
+  render?: NativeResizeReadout<M>,
 ) {
-  if (editor.readOnly) return null;
-  const { gesture } = editor;
-  const resizing = gesture.type === 'node-resize';
-  const id = resizing
-    ? gesture.ids[0]
-    : gesture.type === 'idle' && editor.selectedNodes.length === 1
-      ? editor.selectedNodes[0]
-      : undefined;
-  const node = visibleNodes.find((item) => item.id === id && (resizing || item.kind === 'group'));
-  if (!node || editor.collapsedGroups.includes(node.id)) return null;
-  const { width, height } = node.size;
-  const dimensions = `${Number(width.toFixed(2))} × ${Number(height.toFixed(2))}`;
+  const context = resolveResizeReadout(editor, visibleNodes, true);
+  if (!context) return null;
+  const { node, widthText, heightText } = context;
+  const content = render?.(context, h);
+  if (content === null) return null;
+  const text = `${node.label}: ${widthText} × ${heightText} graph units`;
   return h.div
     .key('resize-readout')
     .class('zloz-ui-resize-readout')
     .attr('data-flow-resize-readout', node.id)
     .attr('role', 'status')
+    .attr('aria-live', 'polite')
     .attr('aria-label', `${node.label} dimensions in graph units`)
-    .children(`${node.label}: ${dimensions} graph units`);
+    .attr('title', text)
+    .children(content ?? text);
 }

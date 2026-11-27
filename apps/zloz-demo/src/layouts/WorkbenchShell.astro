@@ -256,6 +256,32 @@ button, input, select { font: inherit; }
     --zloz-ui-height: 100%;
   }
 
+  .zloz-ui-resize-readout:has(.labeled-resize-readout) {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .labeled-resize-readout {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 5px 7px;
+    border-radius: 9px;
+    background: #431407;
+    color: #fff;
+    font-size: 12px;
+  }
+  .labeled-resize-readout[data-resize-phase='resizing'] { background: #9a3412; }
+  .architecture-resize-dimension {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: light-dark(#fff7ed, #462d1e);
+    color: light-dark(#7c2d12, #ffd9ba);
+  }
+
   .alchemy-native-measurement-scope { height: 100%; }
   .alchemy-native-relation-badge,
   .alchemy-native-group-heading {

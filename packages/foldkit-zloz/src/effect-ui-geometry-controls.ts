@@ -24,10 +24,9 @@ export type NativePortAnchors<M> = ZlozPortAnchorHandleOptions &
       context: ZlozPortAnchorHandleContext,
       h: Html.H<M>,
     ) => NativePortControl<M> | undefined;
-    renderGuide?: (
-      context: ZlozPortAnchorGuideContext,
-      h: Html.H<M>,
-    ) => View.Content<M> | null | undefined;
+    renderGuide?:
+      | ((context: ZlozPortAnchorGuideContext, h: Html.H<M>) => View.Content<M> | null | undefined)
+      | undefined;
   }>;
 
 export function anchorControls<M>(
@@ -120,6 +119,7 @@ export function anchorGuides<M>(
   return svg('svg')
     .key('anchor-guides')
     .class('zloz-ui-anchor-guides')
+    .attr('inert', '')
     .attr('aria-hidden', 'true')
     .attr('data-flow-anchor-guides', JSON.stringify(gesture.endpoint))
     .children(...marks);

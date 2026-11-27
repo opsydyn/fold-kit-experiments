@@ -33,7 +33,7 @@ import { surfaceInput } from './effect-ui-input';
 import { nodeToolbar, type NativeNodeToolbar } from './effect-ui-node-toolbar';
 import { nodeView, type NativeNodeOptions } from './effect-ui-nodes';
 import { portLabels } from './effect-ui-ports';
-import { nodeResizeReadout } from './effect-ui-resize';
+import { nodeResizeReadout, type NativeResizeReadout } from './effect-ui-resize';
 import { boxBounds, portBoundaryPosition, portPosition } from './geometry';
 import { groupsInPaintOrder, presentVisibleGraph } from './group-presentation';
 import { resolveBoxSelection } from './selection-preview';
@@ -127,6 +127,9 @@ export type GraphSurfaceOptions<Message> = NativeNodeOptions<Message> &
     reconnect?: boolean;
     /** Show size during a resize or while a single expanded group is selected. */
     resizeReadout?: boolean;
+    renderResizeReadout?: NativeResizeReadout<Message> | undefined;
+    /** Defaults to the architecture notation setting. */
+    contextMapPresentation?: boolean;
     portAnchors?: NativePortAnchors<Message> | undefined;
     edgeWaypoints?: NativeWaypointOptions<Message> | undefined;
     nodeToolbar?: NativeNodeToolbar<Message> | undefined;
@@ -224,9 +227,10 @@ export function graphSurface<Message>(
       sourceGroup: scene.hiddenBy.get(edge.source.node),
       targetGroup: scene.hiddenBy.get(edge.target.node),
     });
-    const relationship = options.architectureNotation
-      ? resolveContextMapRelationship(editor.graph, edge)
-      : null;
+    const relationship =
+      (options.contextMapPresentation ?? options.architectureNotation)
+        ? resolveContextMapRelationship(editor.graph, edge)
+        : null;
     const position = geometry.labelPosition;
     const selected = editor.selectedEdges.includes(edge.id);
     const path = edgeStroke(
@@ -478,7 +482,7 @@ export function graphSurface<Message>(
             .children(contextMenu(h, context, { ...options.contextActions, id }))
         : null,
       options.resizeHandles && options.resizeReadout !== false
-        ? nodeResizeReadout(h, editor, nodes)
+        ? nodeResizeReadout(h, editor, nodes, options.renderResizeReadout)
         : null,
     );
 }
@@ -523,3 +527,5 @@ export {
 export { placementHost, placementPalette, placementPreview } from './effect-ui-placement';
 
 export { groupHeaderMeasurementProbe, labelMeasurementProbe } from './effect-ui-measurement';
+
+export type { ZlozResizeReadoutContext } from './resize-readout';

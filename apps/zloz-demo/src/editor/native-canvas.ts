@@ -15,6 +15,8 @@ import {
   type ZlozAlignmentGuideContext,
   type ZlozBackgroundRenderContext,
   type NativeSocketContext,
+  type ZlozResizeReadoutContext,
+  type ZlozPortAnchorGuideContext,
 } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
@@ -40,6 +42,53 @@ type Canvas = Readonly<{
     ghosts: ZlozHistoryGhostVisibility;
   }>;
 }>;
+
+function resizeDimensions<M>(context: ZlozResizeReadoutContext, h: Html.H<M>) {
+  const dimension = (name: string, value: string) =>
+    h.span.class('architecture-resize-dimension').children(name, h.strong.children(value));
+  return h.div
+    .class('labeled-resize-readout')
+    .attr('data-resize-phase', context.phase)
+    .children(
+      h.strong.children(context.node.label),
+      dimension('Width', context.widthText),
+      dimension('Height', context.heightText),
+    );
+}
+
+function anchorGuide<M>({ target, start, end, active, viewport }: ZlozPortAnchorGuideContext) {
+  const svg = (tag: string) => new Html.Element<M>(tag);
+  const stroke = 'var(--flow-node-color, #172033)';
+  const extent = 4 / viewport.zoom;
+  const line = (x1: number, y1: number, x2: number, y2: number) =>
+    svg('line')
+      .attr('x1', String(x1))
+      .attr('y1', String(y1))
+      .attr('x2', String(x2))
+      .attr('y2', String(y2))
+      .attr('stroke', stroke);
+  const targetMark =
+    target.type === 'edge'
+      ? line(start.x, start.y, end.x, end.y)
+      : svg('circle')
+          .attr('cx', String(start.x))
+          .attr('cy', String(start.y))
+          .attr('r', String((active ? 6 : 4) / viewport.zoom))
+          .attr('stroke', stroke);
+  const points = target.type === 'edge' ? [start, end] : [start];
+  return svg('g')
+    .class('workbench-snap-guide')
+    .children(
+      targetMark
+        .attr('stroke-width', String((active ? 3 : 2) / viewport.zoom))
+        .attr('stroke-dasharray', active ? 'none' : '3 3')
+        .children(),
+      ...points.flatMap(({ x, y }) => [
+        line(x - extent, y, x + extent, y).children(),
+        line(x, y - extent, x, y + extent).children(),
+      ]),
+    );
+}
 
 function cardControls<M>(
   h: Html.H<M>,
@@ -253,6 +302,8 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
       reconnect: true,
       resizeHandles: true,
       resizeReadout: measurements,
+      renderResizeReadout: model.resizeReadoutDesign === 'labeled' ? resizeDimensions : undefined,
+      contextMapPresentation: model.contextMapPresentation,
       architectureNotation: model.historyReview !== null || ddd || model.nodeDesign === 'c4',
       notationLabels: { badge: workbenchArchitectureBadge, hotspotStatus: workbenchHotspotStatus },
       contextActions: { onEvent: observe, design: model.contextMenuDesign, measurements },
@@ -296,6 +347,17 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
             keyboardTargets: model.keyboardPortTargets,
             snapBypass: model.portAnchorSnapBypass ? 'Alt' : undefined,
             guides: alignmentGuides && model.portAnchorGuides,
+            renderGuide: model.customPortAnchorGuides ? anchorGuide : undefined,
+            renderHandle: ({ snappedCorner, snappedMidpoint }) => {
+              if (!snappedCorner && !snappedMidpoint) return undefined;
+              return {
+                className: snappedCorner ? 'workbench-corner-handle' : 'workbench-midpoint-handle',
+                content: snappedCorner
+                  ? `◆ Pinned ${snappedCorner}`
+                  : `⊙ Centered ${snappedMidpoint}`,
+                style: { width: 'max-content', padding: '4px 8px', whiteSpace: 'nowrap' },
+              };
+            },
           }
         : undefined,
       edgeWaypoints:

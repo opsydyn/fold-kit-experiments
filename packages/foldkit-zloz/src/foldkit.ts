@@ -1,14 +1,14 @@
+import { alignmentGuideContexts, type ZlozAlignmentGuideContext } from './canvas-decoration';
 /**
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
-
-import { alignmentGuideContexts, type ZlozAlignmentGuideContext } from './canvas-decoration';
 import type {
   ZlozGroupHeaderMeasurementRequest,
   ZlozGroupHeaderMeasurementResult,
 } from './group-header-measurement';
 import { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
+import { resolveResizeReadout, type ZlozResizeReadoutContext } from './resize-readout';
 export { zlozGroupHeaderMeasurement } from './group-header-measurement-mount';
 export type { ZlozGroupHeaderMeasurementOptions } from './group-header-measurement-mount';
 import type { ZlozLabelMeasurementRequest, ZlozLabelMeasurementResult } from './label-measurement';
@@ -330,14 +330,7 @@ export type {
   ZlozEdgeRenderContext,
 } from './edge-presentation';
 
-/** Model dimensions for the current resize readout, before any view styling. */
-export type ZlozResizeReadoutContext = Readonly<{
-  node: ZlozNode;
-  phase: 'resizing' | 'selected-group';
-  /** Default formatting in graph units, rounded to two decimal places. */
-  widthText: string;
-  heightText: string;
-}>;
+export type { ZlozResizeReadoutContext } from './resize-readout';
 
 export type { ZlozAlignmentGuideContext } from './canvas-decoration';
 
@@ -1011,25 +1004,10 @@ function resizeReadout<M>(
   nodes: readonly ZlozNode[],
   diagnostics: ZlozDiagnostics,
 ) {
-  if (!diagnostics.measurements || options.resizeReadout === false || state.readOnly) return [];
-  const gesture = state.gesture;
-  const id =
-    gesture.type === 'node-resize'
-      ? gesture.ids[0]
-      : gesture.type === 'idle' && options.resizeHandles && state.selectedNodes.length === 1
-        ? state.selectedNodes[0]
-        : undefined;
-  const node = nodes.find(
-    (node) => node.id === id && (gesture.type === 'node-resize' || node.kind === 'group'),
-  );
-  if (!node || state.collapsedGroups.includes(node.id)) return [];
-  const context: ZlozResizeReadoutContext = {
-    node,
-    phase: gesture.type === 'node-resize' ? 'resizing' : 'selected-group',
-    widthText: String(Number(node.size.width.toFixed(2))),
-    heightText: String(Number(node.size.height.toFixed(2))),
-  };
-  const { widthText, heightText } = context;
+  if (!diagnostics.measurements || options.resizeReadout === false) return [];
+  const context = resolveResizeReadout(state, nodes, options.resizeHandles === true);
+  if (!context) return [];
+  const { node, widthText, heightText } = context;
   const content = options.renderResizeReadout?.(context, h);
   if (content === null) return [];
   return [

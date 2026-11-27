@@ -1,7 +1,5 @@
 import { Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
 export const NodeType = Schema.Literals([
   'person',
   'system',
@@ -118,6 +116,4 @@ const SESSION: ReadonlyArray<DiagramEvent> = [
   node(at(14, 1), 'person', 'New person'),
 ];
 
-export const init = (_props: AppInitProps) => ({
-  model: { events: SESSION, highlighted: null, curve: 'stepAfter' as const },
-});
+export const init: Model = { events: SESSION, highlighted: null, curve: 'stepAfter' };

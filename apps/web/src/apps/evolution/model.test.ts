@@ -47,24 +47,22 @@ describe('latest event label', () => {
 });
 
 describe('evolution update', () => {
-  const { model } = init({});
+  const model = init;
 
   it('seeds a deterministic history ending in a new person', () => {
-    expect(init({}).model).toEqual(model);
+    expect(init).toEqual(model);
     expect(model.events.at(-1)).toMatchObject({ kind: 'node', nodeType: 'person' });
   });
 
   it('highlights a series and clears it', () => {
-    const highlighted = update(model, Message.HighlightedSeries({ key: 'container' })).model;
+    const highlighted = update(model, Message.HighlightedSeries({ key: 'container' }));
     expect(highlighted.highlighted).toBe('container');
-    expect(
-      update(highlighted, Message.HighlightedSeries({ key: null })).model.highlighted,
-    ).toBeNull();
+    expect(update(highlighted, Message.HighlightedSeries({ key: null })).highlighted).toBeNull();
   });
 
   it('switches between stepped and smoothed lines', () => {
     expect(model.curve).toBe('stepAfter');
-    const smooth = update(model, Message.ChoseCurve({ curve: 'monotoneX' })).model;
+    const smooth = update(model, Message.ChoseCurve({ curve: 'monotoneX' }));
     expect(smooth.curve).toBe('monotoneX');
   });
 });

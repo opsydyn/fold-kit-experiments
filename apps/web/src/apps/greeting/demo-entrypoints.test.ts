@@ -4,8 +4,10 @@ import { expect, it } from 'vitest';
 import animatedBar from '../animated-bar/app';
 import colorSpaces from '../color-spaces/app';
 import counter from '../counter/app';
+import dataScience from '../data-science/app';
 import earthquakeGlobe from '../earthquake-globe/app';
 import easingCurves from '../easing-curves/app';
+import evolution from '../evolution/app';
 import functionalAiRadar from '../functional-ai-radar/app';
 import health from '../health/app';
 import histogramBrush from '../histogram-brush/app';
@@ -21,8 +23,10 @@ it.each([
   ['Animated Bar', animatedBar],
   ['Color Spaces', colorSpaces],
   ['Counter', counter],
+  ['Data Science', dataScience],
   ['Earthquake Globe', earthquakeGlobe],
   ['Easing Curves', easingCurves],
+  ['Evolution', evolution],
   ['Functional AI Radar', functionalAiRadar],
   ['Greeting', greeting],
   ['Health', health],

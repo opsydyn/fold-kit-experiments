@@ -1,3 +1,5 @@
+import type { View } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import { lineGeometry, scatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { CartesianLayout, ScatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
@@ -10,7 +12,7 @@ import {
   hexSeries,
   lineSeries,
   pointSeries,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
+} from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 import { hexbin } from '@opsydyn/foldkit-viz/math/bin2d';
 import { colorScale, interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/color';
 import { lttb, m4 } from '@opsydyn/foldkit-viz/math/downsample';
@@ -21,7 +23,6 @@ import {
 } from '@opsydyn/foldkit-viz/math/regression';
 import { viridis } from '@opsydyn/foldkit-viz/math/schemes';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
 import { cloud, observations, users, walk } from './model';
@@ -58,11 +59,11 @@ const thousands = (value: number): string => value.toLocaleString('en-US');
 
 /** The frame, grid and both axes every panel shares, around the panel's own marks. */
 const frame = (
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   geometry: Pick<ScatterGeometry<Point>, 'layout' | 'xTicks' | 'yTicks'>,
   labels: Readonly<{ title: string; description: string; x: string; y: string }>,
-  marks: ReadonlyArray<Html>,
-): Html =>
+  marks: View.Children<Message, never>,
+) =>
   chartFrame(
     h,
     { layout: geometry.layout, title: labels.title, description: labels.description, theme },
@@ -87,30 +88,28 @@ const frame = (
   );
 
 const toggle = <Value extends string>(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   current: Value,
   value: Value,
   label: string,
   message: Message,
-): Html =>
-  h.button(
-    [
-      h.Type('button'),
-      h.Class(styles.toggle),
-      h.AriaPressed(current === value ? 'true' : 'false'),
-      h.OnClick(message),
-    ],
-    [label],
-  );
+) =>
+  h.button
+    .attrs({
+      type: 'button',
+      class: styles.toggle,
+      'aria-pressed': current === value ? 'true' : 'false',
+    })
+    .on('click', message)
+    .children(label);
 
-const panel = (h: HtmlBuilder<Message>, title: string, children: ReadonlyArray<Html>): Html =>
-  h.section(
-    [h.Class(styles.panel), h.AriaLabel(title)],
-    [h.h2([h.Class(styles.title)], [title]), ...children],
-  );
+const panel = (h: Html.H<Message>, title: string, children: View.Children<Message, never>) =>
+  h.section
+    .attrs({ class: styles.panel, 'aria-label': title })
+    .children(h.h2.attr('class', styles.title).children(title), ...children);
 
 /** Log-scaled time series: a UTC time axis and a log value axis, both from the chart layer. */
-const growthPanel = (h: HtmlBuilder<Message>): Html => {
+const growthPanel = (h: Html.H<Message>) => {
   const geometry = lineGeometry(users, accessors, {
     frame: FRAME,
     xScale: { type: 'time' },
@@ -118,7 +117,9 @@ const growthPanel = (h: HtmlBuilder<Message>): Html => {
     xTickCount: 6,
   });
   return panel(h, 'Daily active users', [
-    h.p([h.Class(styles.note)], ['Exponential growth reads as a straight line on a log scale.']),
+    h.p
+      .attr('class', styles.note)
+      .children('Exponential growth reads as a straight line on a log scale.'),
     frame(
       h,
       geometry,
@@ -185,16 +186,17 @@ const fitMarks = (fit: Fit, layout: CartesianLayout): FitMarks => {
   };
 };
 
-const regressionPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+const regressionPanel = (model: Model, h: Html.H<Message>) => {
   const geometry = scatterGeometry(observations, accessors, { frame: FRAME });
   const marks = fitMarks(model.fit, geometry.layout);
   return panel(h, 'Regression', [
-    h.div(
-      [h.Class(styles.controls), h.Role('group'), h.AriaLabel('Fit')],
-      (['linear', 'quadratic', 'loess'] as const).map((fit) =>
-        toggle(h, model.fit, fit, FIT_LABEL[fit], Message.ChoseFit({ fit })),
+    h.div
+      .attrs({ class: styles.controls, role: 'group', 'aria-label': 'Fit' })
+      .children(
+        (['linear', 'quadratic', 'loess'] as const).map((fit) =>
+          toggle(h, model.fit, fit, FIT_LABEL[fit], Message.ChoseFit({ fit })),
+        ),
       ),
-    ),
     frame(
       h,
       geometry,
@@ -208,10 +210,9 @@ const regressionPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         ...(marks.band === null
           ? []
           : [
-              h.path(
-                [h.Class('ds-band'), h.D(marks.band), h.Fill(palette.accent), h.Opacity('0.2')],
-                [],
-              ),
+              h
+                .el('path')
+                .attrs({ class: 'ds-band', d: marks.band, fill: palette.accent, opacity: '0.2' }),
             ]),
         pointSeries(h, {
           points: geometry.points,
@@ -222,22 +223,19 @@ const regressionPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         lineSeries(h, { path: marks.curve, style: fitStyle }),
       ],
     ),
-    h.div(
-      [h.Class(styles.table)],
-      [
-        dataTable(h, {
-          caption: `${FIT_LABEL[model.fit]} fit`,
-          headers: ['Term', 'Value'],
-          rows: marks.rows,
-        }),
-      ],
+    h.div.attr('class', styles.table).children(
+      dataTable(h, {
+        caption: `${FIT_LABEL[model.fit]} fit`,
+        headers: ['Term', 'Value'],
+        rows: marks.rows,
+      }),
     ),
   ]);
 };
 
 const DOWNSAMPLER_LABEL = { m4: 'M4', lttb: 'LTTB' } satisfies Record<Downsampler, string>;
 
-const downsamplePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+const downsamplePanel = (model: Model, h: Html.H<Message>) => {
   const plotWidth = FRAME.width - FRAME.margins.left - FRAME.margins.right;
   const xy = { x: (p: Point) => p.x, y: (p: Point) => p.y };
   // The full series never reaches the geometry: it is reduced to the plot's pixel width first.
@@ -245,24 +243,24 @@ const downsamplePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     model.downsampler === 'm4' ? m4(walk, xy, { width: plotWidth }) : lttb(walk, xy, plotWidth);
   const geometry = lineGeometry(drawn, accessors, { frame: FRAME });
   return panel(h, '100,000 points', [
-    h.div(
-      [h.Class(styles.controls), h.Role('group'), h.AriaLabel('Downsampling')],
-      (['m4', 'lttb'] as const).map((downsampler) =>
-        toggle(
-          h,
-          model.downsampler,
-          downsampler,
-          DOWNSAMPLER_LABEL[downsampler],
-          Message.ChoseDownsampler({ downsampler }),
+    h.div
+      .attrs({ class: styles.controls, role: 'group', 'aria-label': 'Downsampling' })
+      .children(
+        (['m4', 'lttb'] as const).map((downsampler) =>
+          toggle(
+            h,
+            model.downsampler,
+            downsampler,
+            DOWNSAMPLER_LABEL[downsampler],
+            Message.ChoseDownsampler({ downsampler }),
+          ),
         ),
       ),
-    ),
-    h.p(
-      [h.Class(styles.note), h.AriaLive('polite')],
-      [
+    h.p
+      .attrs({ class: styles.note, 'aria-live': 'polite' })
+      .children(
         `Drawing ${thousands(drawn.length)} of ${thousands(walk.length)} points with ${DOWNSAMPLER_LABEL[model.downsampler]}.`,
-      ],
-    ),
+      ),
     frame(
       h,
       geometry,
@@ -278,22 +276,21 @@ const downsamplePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 };
 
 const HEX_RADIUS = 7;
-const HEX_CLIP = 'data-science-hex-clip';
 const density = colorScale({ domain: [0, 1], interpolator: interpolateRgbBasis(viridis) });
 
-const densityPanel = (h: HtmlBuilder<Message>): Html => {
+const densityPanel = (h: Html.H<Message>) => {
   // Project all 20,000 points, then bin them in pixel space: only the hexagons are drawn.
   const geometry = scatterGeometry(cloud, accessors, { frame: FRAME });
   const bins = hexbin(geometry.points, { x: (p) => p.x, y: (p) => p.y }, { radius: HEX_RADIUS });
   const most = Math.max(...bins.map((bin) => bin.count));
   const { plot } = geometry.layout;
+  const clipId = h.id('data-science-hex-clip');
   return panel(h, 'Density', [
-    h.p(
-      [h.Class(styles.note)],
-      [
+    h.p
+      .attr('class', styles.note)
+      .children(
         `${thousands(cloud.length)} points in ${thousands(bins.length)} hexagons; brighter means more points.`,
-      ],
-    ),
+      ),
     frame(
       h,
       geometry,
@@ -305,45 +302,41 @@ const densityPanel = (h: HtmlBuilder<Message>): Html => {
       },
       [
         // Hexagons centred near an edge would spill past the axes: clip them to the plot.
-        h.defs(
-          [],
-          [
-            h.clipPath(
-              [h.Id(HEX_CLIP)],
-              [
-                h.rect(
-                  [
-                    h.X(String(plot.left)),
-                    h.Y(String(plot.top)),
-                    h.Width(String(plot.width)),
-                    h.Height(String(plot.height)),
-                  ],
-                  [],
-                ),
-              ],
+        h.el('defs').children(
+          h
+            .el('clipPath')
+            .attr('id', clipId)
+            .children(
+              h.el('rect').attrs({
+                x: String(plot.left),
+                y: String(plot.top),
+                width: String(plot.width),
+                height: String(plot.height),
+              }),
             ),
-          ],
         ),
-        h.g(
-          [h.ClipPath(`url(#${HEX_CLIP})`)],
-          [
+        h
+          .el('g')
+          .attr('clip-path', `url(#${clipId})`)
+          .children(
             hexSeries(h, {
               bins,
               radius: HEX_RADIUS,
               fillFor: (bin) => density(Math.sqrt(bin.count / most)),
               labelFor: (bin) => `${bin.count} points`,
             }),
-          ],
-        ),
+          ),
       ],
     ),
   ]);
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Data science charts — foldkit-viz',
-  body: h.div(
-    [h.Class(styles.page)],
-    [growthPanel(h), regressionPanel(model, h), downsamplePanel(model, h), densityPanel(h)],
-  ),
-});
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div
+    .attr('class', styles.page)
+    .children(
+      growthPanel(h),
+      regressionPanel(model, h),
+      downsamplePanel(model, h),
+      densityPanel(h),
+    );

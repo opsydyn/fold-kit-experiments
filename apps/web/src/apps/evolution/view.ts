@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
 import type { ChartTheme, SeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
@@ -8,8 +9,7 @@ import {
   grid,
   lineSeries,
   pointSeries,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+} from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 
 import { Message } from './message';
 import { clock, eventLabel, evolutionRows, SERIES } from './model';
@@ -44,7 +44,7 @@ const styleFor = (model: Model, key: string): SeriesStyle =>
     { opacity: model.highlighted === null || model.highlighted === key ? 1 : 0.2 },
   );
 
-const chart = (model: Model, h: HtmlBuilder<Message>): Html => {
+const chart = (model: Model, h: Html.H<Message>) => {
   const rows = evolutionRows(model.events);
   const first = model.events[0]?.time ?? 0;
   const last = model.events.at(-1)?.time ?? first + 1;
@@ -118,80 +118,68 @@ const chart = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
-const curveToggle = (model: Model, h: HtmlBuilder<Message>, curve: Curve, label: string): Html =>
-  h.button(
-    [
-      h.Type('button'),
-      h.Class(styles.toggle),
-      h.AriaPressed(model.curve === curve ? 'true' : 'false'),
-      h.OnClick(Message.ChoseCurve({ curve })),
-    ],
-    [label],
-  );
+const curveToggle = (model: Model, h: Html.H<Message>, curve: Curve, label: string) =>
+  h.button
+    .attrs({
+      type: 'button',
+      class: styles.toggle,
+      'aria-pressed': model.curve === curve ? 'true' : 'false',
+    })
+    .on('click', Message.ChoseCurve({ curve }))
+    .children(label);
 
-const legend = (model: Model, h: HtmlBuilder<Message>): Html => {
+const legend = (model: Model, h: Html.H<Message>) => {
   const rows = evolutionRows(model.events);
-  return h.ul(
-    [h.Class(styles.legend), h.AriaLabel('Series')],
+  return h.ul.attrs({ class: styles.legend, 'aria-label': 'Series' }).children(
     SERIES.map(({ key, plural }) => {
       const count = rows.filter((row) => row.series === key).at(-1)?.count ?? 0;
-      return h.li(
-        [h.Key(key)],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.Class(styles.legendButton),
-              h.AriaPressed(model.highlighted === key ? 'true' : 'false'),
-              h.OnMouseEnter(Message.HighlightedSeries({ key })),
-              h.OnMouseLeave(Message.HighlightedSeries({ key: null })),
-              h.OnFocus(Message.HighlightedSeries({ key })),
-              h.OnBlur(Message.HighlightedSeries({ key: null })),
-            ],
-            [
-              h.span(
-                [h.Class(styles.swatch), h.Style({ background: colour(key) }), h.AriaHidden(true)],
-                [],
-              ),
-              `${plural} ${count}`,
-            ],
+      return h.li.key(key).children(
+        h.button
+          .attrs({
+            type: 'button',
+            class: styles.legendButton,
+            'aria-pressed': model.highlighted === key ? 'true' : 'false',
+          })
+          .on('mouseenter', Message.HighlightedSeries({ key }))
+          .on('mouseleave', Message.HighlightedSeries({ key: null }))
+          .on('focus', Message.HighlightedSeries({ key }))
+          .on('blur', Message.HighlightedSeries({ key: null }))
+          .children(
+            h.span.attrs({
+              class: styles.swatch,
+              style: `background:${colour(key)}`,
+              'aria-hidden': String(true),
+            }),
+            `${plural} ${count}`,
           ),
-        ],
       );
     }),
   );
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: 'Diagram Evolution — foldkit-viz',
-  body: h.section(
-    [h.Class(styles.card), h.AriaLabel('Diagram evolution')],
-    [
-      h.h2([h.Class(styles.title)], ['Evolution']),
-      h.p([h.Class(styles.meta), h.AriaLive('polite')], [eventLabel(model.events.at(-1))]),
-      h.div(
-        [h.Class(styles.controls), h.Role('group'), h.AriaLabel('Line shape')],
-        [
-          curveToggle(model, h, 'stepAfter', 'Stepped'),
-          curveToggle(model, h, 'monotoneX', 'Smoothed'),
-        ],
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.section.attrs({ class: styles.card, 'aria-label': 'Diagram evolution' }).children(
+    h.h2.attr('class', styles.title).children('Evolution'),
+    h.p
+      .attrs({ class: styles.meta, 'aria-live': 'polite' })
+      .children(eventLabel(model.events.at(-1))),
+    h.div
+      .attrs({ class: styles.controls, role: 'group', 'aria-label': 'Line shape' })
+      .children(
+        curveToggle(model, h, 'stepAfter', 'Stepped'),
+        curveToggle(model, h, 'monotoneX', 'Smoothed'),
       ),
-      h.div([h.Class(styles.canvas)], [chart(model, h)]),
-      legend(model, h),
-      h.details(
-        [h.Class(styles.tableToggle)],
-        [
-          h.summary([], ['Change log']),
-          dataTable(h, {
-            caption: 'Diagram changes, oldest first',
-            headers: ['Time (UTC)', 'Change'],
-            rows: model.events.map((event) => [
-              clock(event.time),
-              eventLabel(event).split(' · ').slice(0, 2).join(' · '),
-            ]),
-          }),
-        ],
-      ),
-    ],
-  ),
-});
+    h.div.attr('class', styles.canvas).children(chart(model, h)),
+    legend(model, h),
+    h.details.attr('class', styles.tableToggle).children(
+      h.summary.children('Change log'),
+      dataTable(h, {
+        caption: 'Diagram changes, oldest first',
+        headers: ['Time (UTC)', 'Change'],
+        rows: model.events.map((event) => [
+          clock(event.time),
+          eventLabel(event).split(' · ').slice(0, 2).join(' · '),
+        ]),
+      }),
+    ),
+  );

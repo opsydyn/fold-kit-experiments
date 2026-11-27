@@ -125,3 +125,68 @@ test('phyllotaxis keeps its spiral and minimap in sync through zoom, drag, and r
   await expect(spiral).toHaveAttribute('transform', originalMatrix ?? '');
   await expect(viewport).toHaveAttribute('transform', originalViewport ?? '');
 });
+
+test('data science changes fits and sampling while retaining its accessible outputs', async ({
+  page,
+}) => {
+  await page.goto('/data-science');
+  const regression = page.getByRole('region', { name: 'Regression' });
+  await regression.scrollIntoViewIfNeeded();
+  await hydrated(page.locator('astro-island').filter({ has: regression }));
+  await expect(regression.locator('.ds-band')).toHaveCount(1);
+  await expect(regression.getByRole('table', { name: 'Linear fit' })).toContainText('R squared');
+  const originalFit = await regression.locator('.chart-line-series').getAttribute('d');
+  await regression.getByRole('button', { name: 'LOESS' }).press('Enter');
+  await expect(regression.getByRole('button', { name: 'LOESS' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(regression.locator('.chart-line-series')).not.toHaveAttribute(
+    'd',
+    originalFit ?? '',
+  );
+  await expect(regression.locator('.ds-band')).toHaveCount(0);
+  await expect(regression.getByRole('table', { name: 'LOESS fit' })).toContainText('Bandwidth');
+  await regression.getByRole('button', { name: 'Quadratic' }).click();
+  await expect(regression.locator('.ds-band')).toHaveCount(1);
+  await expect(regression.getByRole('table', { name: 'Quadratic fit' })).toContainText('x^2');
+
+  const sampling = page.getByRole('region', { name: '100,000 points' });
+  const readout = sampling.locator('[aria-live="polite"]');
+  await expect(readout).toContainText('with M4');
+  const initial = await sampling.locator('.chart-line-series').getAttribute('d');
+  await sampling.getByRole('button', { name: 'LTTB' }).press('Enter');
+  await expect(readout).toContainText('with LTTB');
+  await expect(sampling.locator('.chart-line-series')).not.toHaveAttribute('d', initial ?? '');
+  await expect(
+    page.getByRole('region', { name: 'Density' }).locator('.chart-hex-series path title').first(),
+  ).toBeAttached();
+});
+
+test('evolution changes line shape and highlights a focused legend series', async ({ page }) => {
+  await page.goto('/evolution');
+  const chart = page.getByRole('img', { name: /^Diagram evolution/ });
+  await chart.scrollIntoViewIfNeeded();
+  await hydrated(page.locator('astro-island').filter({ has: chart }));
+  const series = chart.locator('.chart-line-series');
+  await expect(series).toHaveCount(6);
+  const original = await series.first().getAttribute('d');
+  await page.getByRole('button', { name: 'Smoothed' }).press('Enter');
+  await expect(page.getByRole('button', { name: 'Smoothed' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(series.first()).not.toHaveAttribute('d', original ?? '');
+
+  const people = page.getByRole('button', { name: 'People 2' });
+  await people.focus();
+  await expect(people).toHaveAttribute('aria-pressed', 'true');
+  await expect(chart.locator('.chart-line-series[opacity="0.2"]')).toHaveCount(5);
+  await expect(series.last()).toHaveAttribute('opacity', '1');
+  await people.blur();
+  await expect(chart.locator('.chart-line-series[opacity="0.2"]')).toHaveCount(0);
+  await page.getByText('Change log', { exact: true }).click();
+  const log = page.getByRole('table', { name: 'Diagram changes, oldest first' });
+  await expect(log.getByRole('row')).toHaveCount(21);
+  await expect(log).toContainText('NEW PERSON');
+});

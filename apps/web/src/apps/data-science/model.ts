@@ -1,8 +1,6 @@
 import { randomLcg, randomNormal } from '@opsydyn/foldkit-viz/math/random';
 import { Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
 export const Downsampler = Schema.Literals(['m4', 'lttb']);
 export type Downsampler = typeof Downsampler.Type;
 export const Fit = Schema.Literals(['linear', 'quadratic', 'loess']);
@@ -12,9 +10,7 @@ export type Fit = typeof Fit.Type;
 export const Model = Schema.Struct({ downsampler: Downsampler, fit: Fit });
 export type Model = typeof Model.Type;
 
-const initialModel: Model = { downsampler: 'm4', fit: 'linear' };
-
-export const init = (_props: AppInitProps) => ({ model: initialModel });
+export const init: Model = { downsampler: 'm4', fit: 'linear' };
 
 export type Point = Readonly<{ id: string; x: number; y: number }>;
 

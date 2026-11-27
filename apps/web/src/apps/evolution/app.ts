@@ -1,3 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-export default lazyApp(() => import('./main'), { prerender: true });
+import { Evolution } from './main';
+
+export default astroComponent(Evolution);

@@ -65,21 +65,22 @@ button:focus-visible {
   max-height: calc(100svh - 145px);
   min-height: 220px;
 }
-.scene-board > *,
-.board-layout {
+.scene-board > * {
   height: 100%;
   min-height: 0;
 }
-.preview-board .zloz-ui-surface {
+.scene-board .zloz-ui-surface {
   touch-action: none;
 }
-.preview-board .zloz-ui-node.sprite-node {
+.scene-board .zloz-ui-node.sprite-node {
   padding: 0;
   outline: none;
   background: transparent;
 }
-.preview-board .zloz-ui-node-title.sprite-token {
+.scene-board .zloz-ui-node-title.sprite-token {
   color: #fff5df;
+}
+.scene-board [data-flow-readonly='true'] .zloz-ui-node-title.sprite-token {
   cursor: pointer;
 }
 .scene-art {

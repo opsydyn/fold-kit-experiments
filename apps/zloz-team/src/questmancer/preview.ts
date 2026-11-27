@@ -1,10 +1,12 @@
 import { UiSchema } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 import { updateEditor, type EditorState } from '@opsydyn/foldkit-zloz';
-import { BrowserInput, graphSurface, zlozDarkTheme } from '@opsydyn/foldkit-zloz/effect-ui';
+import { BrowserInput } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
-import { boardEditor, fit, sceneHeight, sceneWidth } from './board-state';
+import { boardView } from './board';
+import { boardEditor, fit } from './board-state';
+import { baseArt } from './client-paths';
 import { initialScene } from './contracts';
 
 const Props = Schema.Struct({ backdrop: Schema.String, pip: Schema.String });
@@ -79,43 +81,14 @@ export const QuestmancerPreview = Html.component({
                 .children('Fit scene'),
             ),
         ),
-      h.div.class('scene-board', 'preview-board').children(
-        graphSurface(h, editor, {
-          id: 'moonwell-preview-board',
-          label: title + ' tabletop',
-          descriptionId: instructionsId,
-          theme: zlozDarkTheme,
-          pinchZoom: true,
-          wheelNavigation: 'zoom',
-          onInput: (input) => Message.ObservedBoardInput({ input }),
-          background: {
-            type: 'custom',
-            render: ({ viewport }, canvas) =>
-              canvas.img
-                .class('scene-art')
-                .attrs({ src: backdrop, alt: '' })
-                .style({
-                  width: sceneWidth + 'px',
-                  height: sceneHeight + 'px',
-                  transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-                }),
-          },
-          renderNodeShell: ({ node }, canvas) => ({
-            className: 'sprite-node',
-            outline: false,
-            title: {
-              className: 'sprite-token',
-              content: canvas.span.style({ display: 'contents' }).children(
-                canvas.img.class('sprite-art').attrs({
-                  src: node.id === 'pip' ? pip : '/questmancer-art/' + node.id + '.png',
-                  alt: '',
-                }),
-                canvas.span.class('sprite-name').children(node.label),
-              ),
-            },
-          }),
-        }),
-      ),
+      boardView(h, editor, {
+        id: 'moonwell-preview-board',
+        title,
+        backdrop,
+        descriptionId: instructionsId,
+        onInput: (input) => Message.ObservedBoardInput({ input }),
+        artFor: (id) => (id === 'pip' ? pip : baseArt + id + '.png'),
+      }),
       h.footer.class('scene-footer').children(h.p.id(instructionsId).children(instructions)),
     ),
 });

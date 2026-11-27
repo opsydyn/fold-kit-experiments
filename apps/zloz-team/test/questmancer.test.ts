@@ -320,6 +320,14 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await browserExpect(
         dm.getByRole('heading', { name: 'Next room', exact: true }),
       ).toBeVisible();
+      const dmTable = await read(lobby + '/table', party.owner.cookie);
+      expect(dmTable.status).toBe(200);
+      expect(dmTable.headers.get('cache-control')).toBe('private, no-store');
+      const initialTable = await dmTable.text();
+      expect(initialTable.includes('Questmancer · DM')).toBe(true);
+      expect(initialTable.includes('data-flow-surface="aurora-gate-live"')).toBe(true);
+      expect(initialTable.includes('Fit scene')).toBe(true);
+      expect(initialTable.includes('<title>The Aurora Gate · Questmancer</title>')).toBe(true);
       expect((await read(api + 'room', wicket.cookie)).status).toBe(403);
       expect((await upgrade(wicket.cookie)).status).toBe(403);
       expect((await upgrade(party.owner.cookie, 'https://unrelated.invalid')).status).toBe(403);
@@ -414,6 +422,7 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await browserExpect(wicketPage.getByText('Reconnecting to the room…')).toBeVisible();
       await capture(wicketPage.getByRole('main'), 'player-reconnecting');
       await dm.getByRole('button', { name: 'Reveal room', exact: true }).click();
+      await browserExpect(dm).toHaveTitle('The Moonwell Observatory · Questmancer');
       await Promise.all(
         pages
           .slice(0, 2)
@@ -486,9 +495,13 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         'The south stair is secret.',
       );
       await dm.getByRole('button', { name: 'Prepare party entry', exact: true }).click();
+      await browserExpect(dm.getByLabel('Party title')).toBeFocused();
       await dm.getByLabel('Party title').fill('Moonwell recap');
       await dm.getByLabel('Party recap').fill('Three adventurers looked through the telescope.');
       await dm.getByRole('button', { name: 'Preview party entry', exact: true }).click();
+      await browserExpect(
+        dm.getByRole('heading', { name: 'Party preview', exact: true }),
+      ).toBeFocused();
       await dm.waitForFunction(() => {
         const image = document.querySelector<HTMLImageElement>('.party-editor .party-entry img');
         return image?.complete && image.naturalWidth === 1024;

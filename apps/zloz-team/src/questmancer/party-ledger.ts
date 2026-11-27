@@ -1,55 +1,52 @@
-import type { HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
 
-import { clientPaths } from './client-paths';
+import { baseArt } from './client-paths';
 import type { PartyLedgerEntry } from './contracts';
 
 export function partyEntryCard<Message>(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   entry: PartyLedgerEntry,
   generatedArt: string,
 ) {
-  return h.article(
-    [h.Class('party-entry'), h.Key(String(entry.id))],
-    [
+  return h.article
+    .class('party-entry')
+    .key(String(entry.id))
+    .children(
       entry.room.style === 'plain'
-        ? h.div([h.Class('plain-backdrop ledger-plain'), h.AriaHidden(true)], [])
-        : h.img([
-            h.Src(
-              entry.room.style === 'original'
-                ? clientPaths().baseArt + 'aurora-gate.jpg'
-                : generatedArt,
-            ),
-            h.Alt('Backdrop for ' + entry.room.title),
-          ]),
-      h.div(
-        [h.Class('party-entry-text')],
-        [
-          h.h3([], [entry.title]),
-          h.p([h.Class('party-room')], [entry.room.title]),
-          ...(entry.recap.trim() ? [h.p([h.Class('party-recap')], [entry.recap])] : []),
-        ],
-      ),
-    ],
-  );
+        ? h.div.class('plain-backdrop ledger-plain').attr('aria-hidden', 'true').children()
+        : h.img
+            .attr(
+              'src',
+              entry.room.style === 'original' ? baseArt + 'aurora-gate.jpg' : generatedArt,
+            )
+            .attr('alt', 'Backdrop for ' + entry.room.title),
+      h.div
+        .class('party-entry-text')
+        .children(
+          h.h3.children(entry.title),
+          h.p.class('party-room').children(entry.room.title),
+          ...(entry.recap.trim() ? [h.p.class('party-recap').children(entry.recap)] : []),
+        ),
+    );
 }
 
 export function partyLedgerView<Message>(
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   entries: readonly PartyLedgerEntry[] | null,
   refreshFailed: boolean,
+  authoringUrl: string,
 ) {
-  return h.section(
-    [
-      h.Id('librarians-ledger'),
-      h.Tabindex(-1),
-      h.Class('sprite-panel ledger-panel'),
-      h.AriaLabelledBy('party-ledger-heading'),
-    ],
-    [
-      h.h2([h.Id('party-ledger-heading')], ['Party Ledger']),
-      h.p(
-        [h.Role('status'), h.Class('ledger-status')],
-        [
+  return h.section
+    .id('librarians-ledger')
+    .attr('tabindex', String(-1))
+    .class('sprite-panel ledger-panel')
+    .attr('aria-labelledby', 'party-ledger-heading')
+    .children(
+      h.h2.id('party-ledger-heading').children('Party Ledger'),
+      h.p
+        .attr('role', 'status')
+        .class('ledger-status')
+        .children(
           refreshFailed
             ? 'The Ledger could not refresh. Reconnecting…'
             : entries === null
@@ -57,11 +54,9 @@ export function partyLedgerView<Message>(
               : entries.length === 0
                 ? 'The DM hasn’t published any entries yet.'
                 : '',
-        ],
-      ),
+        ),
       ...(entries ?? []).map((entry) =>
-        partyEntryCard(h, entry, clientPaths().authoringUrl + 'party-art/' + entry.id),
+        partyEntryCard(h, entry, authoringUrl + 'party-art/' + entry.id),
       ),
-    ],
-  );
+    );
 }

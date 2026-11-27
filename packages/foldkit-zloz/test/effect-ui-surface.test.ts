@@ -5,7 +5,8 @@ import { Effect, Schema } from 'effect';
 import { Window, type HTMLButtonElement, type HTMLDivElement, type HTMLElement } from 'happy-dom';
 
 import { createEditor, updateEditor } from '../src/editor';
-import { graphSurface } from '../src/effect-ui';
+import { graphSurface, historyGhosts } from '../src/effect-ui';
+import { compareEditions } from '../src/history';
 
 test('native resize handles follow live resize and selection policy', async () => {
   const editor = createEditor({
@@ -578,6 +579,11 @@ test('native node shells retain core controls and keep focused nodes through cul
         onToggleGroup: () => 'collapse',
         renderNodeShell: ({ node }, h) => ({
           className: 'custom-node',
+          dataAttributes: {
+            'data-workshop-node': node.label,
+            'data-flow-node': 'overridden',
+            'data-flow-port': 'spoofed',
+          },
           style: { left: '0px', padding: '0px' },
           title: { content: h.strong.children(node.label) },
         }),
@@ -600,6 +606,10 @@ test('native node shells retain core controls and keep focused nodes through cul
   const focusedFrame = document.querySelector<HTMLDivElement>('[data-flow-node="Focused"]');
   expect(focusedFrame?.classList.contains('custom-node')).toBe(true);
   expect(focusedFrame?.style.left).toBe('400px');
+  expect(focusedFrame?.getAttribute('data-flow-x')).toBe('400');
+  expect(focusedFrame?.getAttribute('data-flow-y')).toBe('40');
+  expect(focusedFrame?.getAttribute('data-workshop-node')).toBe('Focused');
+  expect(focusedFrame?.hasAttribute('data-flow-port')).toBe(false);
   expect(focusedFrame?.querySelector('[data-flow-handle] strong')?.textContent).toBe('Focused');
   const locked = document.querySelector<HTMLButtonElement>('[data-flow-handle="Locked"]');
   expect(locked?.disabled).toBe(false);
@@ -623,4 +633,50 @@ test('native node shells retain core controls and keep focused nodes through cul
   expect(
     focusedFrame?.querySelector('[data-flow-port="out"]')?.getAttribute('data-flow-owner'),
   ).toBe('Focused');
+});
+
+test('custom native history marks retain shared movement and respect visibility', async () => {
+  const a = {
+    id: 'command',
+    label: 'Command',
+    position: { x: 0, y: 0 },
+    size: { width: 80, height: 40 },
+    ports: [],
+  };
+  const edition = (id: string, x: number) => ({
+    id,
+    name: id,
+    snapshot: { graph: { nodes: [{ ...a, position: { x, y: 0 } }], edges: [] } },
+  });
+  const comparison = compareEditions(edition('before', 0), edition('after', 120));
+  const visible = { enabled: true, nodes: true, edges: true, movements: true };
+  const component = Html.component({
+    name: 'CustomHistory',
+    model: Schema.Null,
+    message: Schema.Never,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) => {
+      const artwork = {
+        renderNode: ({ id }: (typeof comparison.nodes)[number]) =>
+          h.el('g').attr('data-workshop-history', id).children(),
+      };
+      return h.div.children(
+        historyGhosts(comparison, visible, 'selected', artwork),
+        historyGhosts(
+          comparison,
+          { ...visible, nodes: false, movements: false },
+          'selected',
+          artwork,
+        ),
+      );
+    },
+  });
+  const { html } = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  expect(html.match(/data-workshop-history="command"/g)).toHaveLength(1);
+  expect(html.match(/data-zloz-history-movement="command"/g)).toHaveLength(1);
+  expect(html).not.toContain('data-zloz-history-node="changed"');
 });

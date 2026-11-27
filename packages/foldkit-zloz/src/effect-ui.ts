@@ -543,6 +543,7 @@ export {
   historyGhosts,
   historyGhostsV2,
   historyMinimap,
+  type NativeHistoryGhostArtwork,
 } from './effect-ui-history';
 
 export { placementHost, placementPalette, placementPreview } from './effect-ui-placement';

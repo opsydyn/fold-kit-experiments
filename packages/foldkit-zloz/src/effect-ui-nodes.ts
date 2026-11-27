@@ -29,6 +29,8 @@ export type NativeNodeShellContext = Readonly<{
 
 export type NativeNodeShell<M> = Readonly<{
   className?: string;
+  /** App-owned data attributes for styling and inspection. Interaction attributes remain SDK-owned. */
+  dataAttributes?: Readonly<Record<`data-${string}`, string | undefined>>;
   style?: Html.Style;
   /** Set false to replace the built-in outline with custom artwork. */
   outline?: boolean;
@@ -106,11 +108,19 @@ export function nodeView<Message>(
   const outline = hasOutline ? nodeShapeGeometry(node) : null;
   const content = outline?.contentBounds;
   const svg = (tag: 'svg' | 'path') => new Html.Element<Message>(tag);
+  const dataAttributes = Object.fromEntries(
+    Object.entries(shell?.dataAttributes ?? {}).filter(
+      ([name]) => name.startsWith('data-') && !name.startsWith('data-flow-'),
+    ),
+  );
   return (
     h.div
+      .attrs(dataAttributes)
       .key(node.id)
       .class('zloz-ui-node', shell?.className)
       .attr('data-flow-node', node.id)
+      .attr('data-flow-x', String(node.position.x))
+      .attr('data-flow-y', String(node.position.y))
       .attr('data-flow-group', group ? node.id : undefined)
       .attr('data-flow-group-drop-target', dropTarget ? '' : undefined)
       .attr('data-node-kind', node.kind)

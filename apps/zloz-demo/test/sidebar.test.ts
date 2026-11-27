@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { mermaidPreview } from '../src/editor/mermaid-preview';
+import { mermaidExportSource, mermaidPreview } from '../src/editor/mermaid-preview';
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';
 import { update } from '../src/editor/update';
@@ -8,7 +8,10 @@ import { update } from '../src/editor/update';
 test('sidebar navigation and collapse preserve editor, history and conversion consent', () => {
   const original = init().model;
   const opened = update(original, Message.ClickedMermaidPreview()).model;
-  const consented = update(opened, Message.ClickedMermaidLossConsent()).model;
+  const consented = update(
+    opened,
+    Message.ClickedMermaidLossConsent(mermaidExportSource(opened)),
+  ).model;
   const navigation = update(
     consented,
     Message.SelectedWorkbenchSection({ section: 'navigation' }),

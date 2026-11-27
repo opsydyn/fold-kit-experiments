@@ -99,7 +99,7 @@ import {
   downloadWorkbenchConversion,
   conversionDownloadFeedback,
 } from './mapping-review';
-import { mermaidPreview } from './mermaid-preview';
+import { mermaidExportSource, mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
   groupedOnionGraph,
@@ -282,6 +282,17 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       clipboard: model.editor.clipboard,
     };
   };
+  const isCurrentMermaidPanel = ({
+    modelId,
+    epoch,
+    revision,
+  }: ReturnType<typeof mermaidExportSource>) =>
+    model.sidebarSection === 'export' &&
+    model.mermaidPreviewOpen &&
+    !model.sidebarCollapsed &&
+    modelId === model.modelIdentity.id &&
+    epoch === model.modelEpoch &&
+    revision === model.editor.revision;
   const outcome: Return<Model, Message> = Message.match(message, {
     ObservedPngReviewInput: ({ request }) =>
       updateWorkbenchPngReview(
@@ -1515,17 +1526,18 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
-    ClickedMermaidLossConsent: () => ({
-      model: {
-        ...model,
-        mermaidLossConsentRevision:
-          model.mermaidPreviewOpen && model.mermaidLossConsentRevision !== model.editor.revision
-            ? model.editor.revision
-            : null,
-      },
-    }),
-    ClickedMermaidDownload: () => {
-      if (!model.mermaidPreviewOpen) return { model };
+    ClickedMermaidLossConsent: (source) => {
+      if (!isCurrentMermaidPanel(source)) return { model };
+      return {
+        model: {
+          ...model,
+          mermaidLossConsentRevision:
+            model.mermaidLossConsentRevision === source.revision ? null : source.revision,
+        },
+      };
+    },
+    ClickedMermaidDownload: (source) => {
+      if (!isCurrentMermaidPanel(source)) return { model };
       const result = mermaidPreview(model);
       if (result.status !== 'converted') return { model };
       return {

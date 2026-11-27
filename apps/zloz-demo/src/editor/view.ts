@@ -55,7 +55,6 @@ import { exportReviewPanel } from './export-review';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
 import { mappingReviewPanel } from './mapping-review-view';
-import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import { type Model } from './model';
 import { modelSessionBusy } from './model-sessions';
@@ -65,6 +64,7 @@ import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-brows
 import { nativeCausalRelationships, nativeDiagramCaption } from './native-diagram-notation';
 import { nativeConnectionCreation, nativeSelectedConnection } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
+import { nativeMermaidExport } from './native-mermaid-export';
 import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativePolicies } from './native-policies';
 import { nativePortInspector } from './native-port-inspector';
@@ -1132,7 +1132,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ]
         : [],
-    export: [...(model.mermaidPreviewOpen ? [mermaidExportPanel(model, h)] : [])],
+    export:
+      model.sidebarSection === 'export' && model.mermaidPreviewOpen
+        ? [nativeMermaidExport(h, model, 'architecture-effect-ui', 'mermaid-export')]
+        : [],
   };
   const notice = h.p(
     [h.Role('status'), h.AriaLive('polite'), ...(diagnostics.status ? [] : [h.Style(hidden)])],

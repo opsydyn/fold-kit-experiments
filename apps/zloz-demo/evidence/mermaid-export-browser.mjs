@@ -5,15 +5,17 @@ import { createRequire } from 'node:module';
 import { resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 import { exportMermaid } from '../../../packages/foldkit-zloz-mermaid/dist/index.mjs';
 
 const appRoot = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
-const oracleRoot = resolve(
-  fileURLToPath(
-    new URL('../../../experiments/mermaid-fidelity/node_modules/mermaid/dist/', import.meta.url),
-  ),
+const oraclePackage = resolve(
+  process.env.ZLOZ_MERMAID_ORACLE ??
+    fileURLToPath(
+      new URL('../../../experiments/mermaid-fidelity/node_modules/mermaid/', import.meta.url),
+    ),
 );
+const oracleRoot = resolve(oraclePackage, 'dist');
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
   if (pathname === '/oracle-page') {
@@ -51,7 +53,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 const run = async () => {
   const page = await browser.newPage({
     viewport: { width: 1500, height: 1100 },
@@ -65,7 +68,12 @@ const run = async () => {
     if (!request.url().startsWith('http://127.0.0.1:')) externalRequests.push(request.url());
   });
   const button = (name) => page.getByRole('button', { name, exact: true }).first();
+  const section = (name) =>
+    page
+      .getByRole('navigation', { name: 'Workbench sections', exact: true })
+      .getByRole('button', { name, exact: true });
   const exportedGraph = async () => {
+    await section('Diagram').click();
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       button('Export JSON').click(),
@@ -75,8 +83,10 @@ const run = async () => {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await button('Open C4 system context').click();
   const before = await exportedGraph();
-  await button('Mermaid export').click();
-  const panel = page.getByRole('region', { name: 'Mermaid export preview', exact: true });
+  await section('Mermaid export').click();
+  const panel = page
+    .locator('[data-architecture-effect-ui="mermaid-export"]')
+    .getByRole('region', { name: 'Mermaid export preview', exact: true });
   const consent = panel.getByRole('checkbox', {
     name: 'Allow reported conversion losses for this revision',
     exact: true,
@@ -91,41 +101,70 @@ const run = async () => {
   await expect(downloadButton).toBeEnabled();
   const source = panel.getByLabel('Mermaid source', { exact: true });
   await expect(source).toContainText('flowchart LR');
+  await expect(source).toHaveAttribute('tabindex', '0');
+  await source.focus();
+  await expect(source).toBeFocused();
   const [download] = await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
   expect(download.suggestedFilename()).toBe('foldkit-zloz.mermaid.json');
   const bundle = JSON.parse(await readFile(await download.path(), 'utf8'));
   expect(bundle.protocol).toBe('foldkit-flow-mermaid/v1');
-  expect(bundle.identity.nodes.map((node) => node.zlozId)).toEqual(
+  expect(bundle.identity.nodes.map((node) => node.flowId)).toEqual(
     before.nodes.map((node) => node.id),
   );
-  expect(bundle.identity.edges.map((edge) => edge.zlozId)).toEqual(
+  expect(bundle.identity.edges.map((edge) => edge.flowId)).toEqual(
     before.edges.map((edge) => edge.id),
   );
   expect(bundle.diagnostics.some((item) => item.code === 'node-fields-omitted')).toBe(true);
   expect(bundle.source.trim()).toBe((await source.textContent()).trim());
   expect(await exportedGraph()).toEqual(before);
+  await section('Mermaid export').click();
+  await expect(consent).toBeChecked();
   for (const theme of ['light', 'dark']) {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
     await expect(downloadButton).toBeEnabled();
-    await panel.screenshot({
-      path: fileURLToPath(new URL(`./mermaid-export-${theme}.png`, import.meta.url)),
-    });
+    if (process.env.ZLOZ_CAPTURE_DIR) {
+      await panel.screenshot({
+        path: resolve(process.env.ZLOZ_CAPTURE_DIR, `mermaid-export-${engine}-${theme}.png`),
+      });
+    }
   }
-  // Canvas diagnostics can be disabled without suppressing an explicitly opened conversion-loss preview.
+  await section('Diagnostics').click();
   await button('Minimal mode').click();
+  await expect(button('Minimal mode')).toHaveAttribute('aria-pressed', 'true');
+  await section('Mermaid export').click();
   await expect(panel).toContainText('architecture');
   await expect(downloadButton).toBeEnabled();
+  await section('Diagnostics').click();
   await button('Minimal mode').click();
+  await expect(button('Minimal mode')).toHaveAttribute('aria-pressed', 'false');
+  await section('Diagram').click();
   await button('Open release workflow').click();
+  await section('Mermaid export').click();
   await expect(consent).not.toBeChecked();
   await expect(downloadButton).toBeDisabled();
-  await button('Open C4 container view').click();
-  await consent.check();
-  await expect(panel).toContainText('does not flatten');
+
+  await section('Diagram').click();
+  await button('Open nested C4 container view').click();
+  await section('Mermaid export').click();
   await expect(downloadButton).toBeDisabled();
+  await consent.check();
+  await expect(source).toContainText('subgraph');
+  await expect(downloadButton).toBeEnabled();
+  const [nestedDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    downloadButton.click(),
+  ]);
+  const nested = JSON.parse(await readFile(await nestedDownload.path(), 'utf8'));
+  expect(nested.identity.nodes.find((node) => node.flowId === 'orders-db')?.parentId).toBe(
+    'storage-boundary',
+  );
+  expect(nested.source).toBe(await source.textContent());
   await panel.getByRole('button', { name: 'Close Mermaid preview' }).click();
   await expect(panel).toHaveCount(0);
-  await expect(button('Mermaid export')).toHaveAttribute('aria-expanded', 'false');
+  await expect(section('Mermaid export')).toHaveAttribute('aria-pressed', 'false');
+  await section('Mermaid export').click();
+  await expect(consent).not.toBeChecked();
+  await expect(downloadButton).toBeDisabled();
 
   const node = (id, label) => ({
     id,
@@ -137,6 +176,11 @@ const run = async () => {
   const candidates = [
     { id: 'empty-graph', graph: { nodes: [], edges: [] } },
     { id: 'empty-node-label', rejected: true, graph: { nodes: [node('empty', '')], edges: [] } },
+    {
+      id: 'empty-group',
+      rejected: true,
+      graph: { nodes: [{ ...node('group', 'Empty group'), kind: 'group' }], edges: [] },
+    },
     {
       id: 'escaped-literal',
       graph: { nodes: [node('end 🔁', 'Café "yes" & #quot; <支付>\nline | \\ `')], edges: [] },
@@ -155,7 +199,10 @@ const run = async () => {
     })),
   ];
   const rejected = [];
-  const sources = [{ id: 'workbench-c4', source: bundle.source }];
+  const sources = [
+    { id: 'workbench-c4', source: bundle.source },
+    { id: 'workbench-nested-c4', source: nested.source },
+  ];
   for (const item of candidates) {
     const result = exportMermaid(item.graph, {
       lossPolicy: 'report',
@@ -171,13 +218,7 @@ const run = async () => {
     sources.push({ id: item.id, source: result.value.source });
   }
   const mermaidManifest = JSON.parse(
-    await readFile(
-      new URL(
-        '../../../experiments/mermaid-fidelity/node_modules/mermaid/package.json',
-        import.meta.url,
-      ),
-      'utf8',
-    ),
+    await readFile(resolve(oraclePackage, 'package.json'), 'utf8'),
   );
   expect(mermaidManifest.version).toBe('12.3.0');
   const oraclePage = await browser.newPage();
@@ -207,7 +248,9 @@ const run = async () => {
   console.log(
     JSON.stringify(
       {
-        chromium: browser.version(),
+        result: 'passed',
+        engine,
+        browser: browser.version(),
         mermaid: '12.3.0',
         syntax,
         rejected,
@@ -219,9 +262,9 @@ const run = async () => {
         },
         graphPreserved: true,
         consentResetOnReplacement: true,
-        groupsRejected: true,
+        nestedContainmentPreserved: true,
+        consentResetOnClose: true,
         minimalModeKeepsRequestedLossPreview: true,
-        screenshots: ['mermaid-export-light.png', 'mermaid-export-dark.png'],
         errors,
         externalRequests,
       },

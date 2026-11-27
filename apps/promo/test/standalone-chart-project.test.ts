@@ -11,6 +11,7 @@ import { Schema } from 'effect';
 import { chromium } from 'playwright';
 
 import { projectFiles as histogramFiles } from '../src/examples/histogram/project';
+import { projectFiles as scatterFiles } from '../src/examples/scatter/project';
 import { buildExampleTemplate } from '../src/lib/example-project';
 import type { SourceFile } from '../src/lib/example-project';
 import { verifyDatasetSwitch } from './dataset-browser-scenario';
@@ -50,8 +51,10 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
       const files =
         example === 'histogram'
           ? histogramFiles(template, { dataset: 'clustered', binCount: 11 })
-          : template;
-      if (example === 'datasets' || example === 'histogram') {
+          : example === 'scatter'
+            ? scatterFiles(template, { group: 'b', xMax: 170, yMax: 150, selectedPoint: 'b-03' })
+            : template;
+      if (example === 'datasets' || example === 'histogram' || example === 'scatter') {
         expect(template['package.json']).toContain('"@effect/ui"');
         expect(template['package.json']).not.toContain('"foldkit"');
         expect(template['src/entry.ts']).toContain('BrowserHost');
@@ -70,7 +73,7 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
         [
           '--input-type=module',
           '-e',
-          example === 'datasets'
+          example === 'datasets' || example === 'scatter'
             ? "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof symbolPath);"
             : example === 'histogram'
               ? "import { histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { bin } from '@opsydyn/foldkit-viz/math/bin'; console.log(typeof histogramGeometry, lightTheme.labelSize, typeof bin);"
@@ -80,6 +83,34 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
       );
       expect(stdout.trim()).toBe('function 12 function');
       expect(await readdir(join(directory, 'dist'))).toContain('index.html');
+      if (example === 'scatter' && process.env.SCATTER_BROWSER === '1') {
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const origin = 'http://scatter-standalone.test';
+          await page.route(origin + '/**', async (request) => {
+            const path = new URL(request.request().url()).pathname.slice(1);
+            await request.fulfill({ path: join(directory, 'dist', path || 'index.html') });
+          });
+          await page.goto(origin);
+          const chart = page.getByRole('img', { name: /Illustrative scatter plot/ });
+          await chart.waitFor();
+          const picker = page.getByRole('combobox', { name: 'Inspect point' });
+          expect(await picker.inputValue()).toBe('b-03');
+          expect(await chart.locator('[data-symbol="square"]').count()).toBe(12);
+          expect(await page.getByRole('slider', { name: /X domain maximum/ }).inputValue()).toBe(
+            '170',
+          );
+          expect(await chart.locator('desc').evaluate((node) => node.namespaceURI)).toBe(
+            'http://www.w3.org/2000/svg',
+          );
+          await chart.press('ArrowRight');
+          expect(await picker.inputValue()).toBe('b-04');
+          expect(await page.getByRole('button', { name: 'Download project' }).count()).toBe(0);
+        } finally {
+          await browser.close();
+        }
+      }
       if (example === 'histogram' && process.env.HISTOGRAM_BROWSER === '1') {
         const browser = await chromium.launch();
         try {

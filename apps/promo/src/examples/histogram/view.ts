@@ -2,6 +2,7 @@ import '@opsydyn/dataset-explorer/highlighting.css';
 import { Mount } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import { highlightedCode, sourceLineChanges } from '@opsydyn/dataset-explorer/source-ui';
+import { dataTable } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 import { Option, Schema, Stream } from 'effect';
 
 import { frameForWidth } from '#example/frame';
@@ -60,27 +61,14 @@ export const view = (h: Html.H<Message>, model: Model) => {
             .onMount(Mount.map(MeasureHistogramChart(), (message) => message))
             .children(histogramChart(h, geometry)),
           geometry.total === 0 && h.p.attr('role', 'status').children('No values to display'),
-          h.details
-            .class('chart-data')
-            .children(
-              h.summary('View source data'),
-              h.table
-                .class('chart-data-table')
-                .children(
-                  h.caption('Illustrative histogram values'),
-                  h.thead(
-                    h.tr(
-                      h.th.attr('scope', 'col').children('Observation'),
-                      h.th.attr('scope', 'col').children('Value'),
-                    ),
-                  ),
-                  h.tbody(
-                    ...values.map((value, index) =>
-                      h.tr(h.td(String(index + 1)), h.td(String(value))),
-                    ),
-                  ),
-                ),
-            ),
+          h.details.class('chart-data').children(
+            h.summary('View source data'),
+            dataTable(h, {
+              caption: 'Illustrative histogram values',
+              headers: ['Observation', 'Value'],
+              rows: values.map((value, index) => [String(index + 1), String(value)]),
+            }),
+          ),
           h.div
             .class('histogram-intervals')
             .children(

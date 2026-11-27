@@ -1,5 +1,6 @@
 import { Mount } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
+import { dataTable } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
 import { Stream } from 'effect';
 
 import { hourLabel, snapshotChart } from './chart';
@@ -139,22 +140,11 @@ export const view = (h: Html.H<Message>, model: Model) => {
           .children(
             h.h2.class('query-section-title').children('Source observations'),
             snapshot
-              ? h.table
-                  .class('chart-data-table')
-                  .children(
-                    h.caption(`Illustrative data · snapshot ${snapshot.revision}`),
-                    h.thead(
-                      h.tr(
-                        h.th.attr('scope', 'col').children('Hour'),
-                        h.th.attr('scope', 'col').children('Wind speed (m/s)'),
-                      ),
-                    ),
-                    h.tbody(
-                      ...snapshot.points.map(({ hour, value }) =>
-                        h.tr(h.td(hourLabel(hour)), h.td(String(value))),
-                      ),
-                    ),
-                  )
+              ? dataTable(h, {
+                  caption: `Illustrative data · snapshot ${snapshot.revision}`,
+                  headers: ['Hour', 'Wind speed (m/s)'],
+                  rows: snapshot.points.map(({ hour, value }) => [hourLabel(hour), String(value)]),
+                })
               : hint('No snapshot loaded yet.'),
           ),
       ),

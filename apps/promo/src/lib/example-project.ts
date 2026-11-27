@@ -60,14 +60,14 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
-  const nativeHistogram = example === 'histogram';
+  const effectUiChart = example === 'histogram' || example === 'scatter';
   const foldkitRuntime = {
     foldkit: '0.171.0',
     '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
   };
   const effectUiRuntime = { '@effect/ui': workspace.workspaces.catalog['@effect/ui'] };
-  const runtime = nativeHistogram ? effectUiRuntime : foldkitRuntime;
-  const sourceExports = nativeHistogram
+  const runtime = effectUiChart ? effectUiRuntime : foldkitRuntime;
+  const sourceExports = effectUiChart
     ? {
         './source-ui': './source-ui.ts',
         './source-line-core': './source-line-core.ts',
@@ -80,7 +80,7 @@ export async function buildExampleTemplate(
       fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/highlighting')),
     );
     for (const name of [
-      ...(nativeHistogram ? ['source-ui.ts'] : ['source-lines.ts', 'highlighting.ts']),
+      ...(effectUiChart ? ['source-ui.ts'] : ['source-lines.ts', 'highlighting.ts']),
       'source-line-core.ts',
       'highlighting-core.ts',
       'highlighting-engine.ts',
@@ -117,12 +117,12 @@ export async function buildExampleTemplate(
   const modules = [
     'chart/cartesian',
     'chart/theme',
-    ...(example === 'datasets' || nativeHistogram ? [] : ['foldkit/cartesian']),
+    ...(example === 'datasets' || effectUiChart ? ['effect-ui/cartesian'] : ['foldkit/cartesian']),
     ...{
       line: ['math/scale', 'shape/line', 'shape/path'],
       datasets: ['shape/symbol'],
       histogram: ['math/scale', 'math/bin'],
-      scatter: ['math/scale'],
+      scatter: ['math/scale', 'shape/symbol'],
       comparison: [
         ...new Set(
           sources.flatMap(({ name, content }) =>
@@ -153,10 +153,10 @@ export async function buildExampleTemplate(
     null,
     2,
   );
-  const devDependencies = nativeHistogram
+  const devDependencies = effectUiChart
     ? { vite: '8.3.1', typescript: '6.0.3' }
     : { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' };
-  const overrides = nativeHistogram ? undefined : standaloneEffectOverrides;
+  const overrides = effectUiChart ? undefined : standaloneEffectOverrides;
   files['package.json'] = JSON.stringify(
     {
       name: 'foldkit-viz-live-' + example,
@@ -245,12 +245,12 @@ export async function buildExampleTemplate(
     files['README.md'] =
       '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
   }
-  if (nativeHistogram) {
+  if (effectUiChart) {
     files['vite.config.ts'] =
       "import { defineConfig } from 'vite';\nexport default defineConfig({});\n";
     files['src/entry.ts'] = effectUiEntry(
       sources,
-      'Histogram',
+      example === 'histogram' ? 'Histogram' : 'Scatter',
       'chart.css',
       '{ sources, templateUrl: null }',
     );

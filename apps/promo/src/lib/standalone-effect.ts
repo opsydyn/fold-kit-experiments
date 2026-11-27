@@ -10,7 +10,7 @@ export const standaloneEffectOverrides = {
 
 export function effectUiEntry(
   sources: ReadonlyArray<SourceFile>,
-  component: 'DatasetExplorer' | 'Histogram',
+  component: 'DatasetExplorer' | 'Histogram' | 'Scatter',
   stylesheet: 'explorer.css' | 'chart.css',
   props: string,
 ): string {

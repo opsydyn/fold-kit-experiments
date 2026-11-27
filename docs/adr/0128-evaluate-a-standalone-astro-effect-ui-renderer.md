@@ -66,3 +66,16 @@ the same SVG metadata host as the Dataset Explorer starter.
 The FoldKit source renderer remains available to the examples that still
 consume it. Histogram's starter vendors the Effect UI source renderer and
 the pure Viz modules used by its geometry.
+
+## Cartesian chart views
+
+Viz exposes a small Effect UI Cartesian renderer for the SVG frame, grid,
+axes and accessible data table. Scatter, Histogram and Dataset Explorer
+use those pieces with their existing Viz geometry. The consuming component
+supplies its own marks, keyboard messages and selection rules. A frame with
+keyboard inspection cancels the browser default only when the handler
+returns a message, so Tab can leave the chart normally.
+
+The standalone site exports include this Viz subpath and its declarations.
+The FoldKit adapter stays available to its remaining callers while they
+migrate.

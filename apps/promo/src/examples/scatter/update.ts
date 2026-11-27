@@ -1,18 +1,23 @@
-import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
-import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
-import { navigateSourceLine } from '@opsydyn/dataset-explorer/source-lines';
-import type { Return } from 'foldkit/update';
+import type { Command } from '@effect/ui';
+import { settleHighlighting, sourceMatches } from '@opsydyn/dataset-explorer/highlighting-core';
+import type { SourceLine } from '@opsydyn/dataset-explorer/source-line-core';
+import { Struct } from 'effect';
 
 import { validChartWidth } from '#example/frame';
 
-import { navigatePoint, changeDomain, changeGroup, selectPoint, settingsSource } from './chart';
+import { changeDomain, changeGroup, navigatePoint, selectPoint, settingsSource } from './chart';
 import { FocusSourceLine } from './command';
 import { HighlightSource } from './command';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
-import { ActionStatus, sourceFor } from './model';
+import { ActionStatus, sourceFor, SourceName } from './model';
 import type { Model } from './model';
 import { initialSettings } from './settings';
+
+interface Transition {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Issued<Message, never, never, 'Effect'>>;
+}
 
 export const currentSource = (model: Model): string =>
   model.activeFile === 'settings.ts'
@@ -27,10 +32,7 @@ const clearFeedback = (status: Model['actionStatus']): Model['actionStatus'] =>
     Failed: () => ActionStatus.Ready(),
   });
 
-const whenReady = (
-  model: Model,
-  start: () => Return<Model, Message, HighlightingService>,
-): Return<Model, Message, HighlightingService> =>
+const whenReady = (model: Model, start: () => Transition): Transition =>
   ActionStatus.match(model.actionStatus, {
     Pending: () => ({ model }),
     Ready: start,
@@ -38,34 +40,44 @@ const whenReady = (
     Failed: start,
   });
 
-export const update = (
-  model: Model,
-  message: Message,
-): Return<Model, Message, HighlightingService> => {
-  const result: Return<Model, Message, HighlightingService> = Message.match(message, {
-    NavigatedSourceLine: (location) =>
-      navigateSourceLine(
-        model,
-        location,
-        [...model.sources.map((source) => source.name), 'settings.ts'],
-        currentSource,
-        FocusSourceLine,
-      ),
+const navigate = (model: Model, location: SourceLine): Transition => {
+  const name = SourceName.literals.find((candidate) => candidate === location.name);
+  if (
+    name === undefined ||
+    (name !== 'settings.ts' && !model.sources.some((source) => source.name === name))
+  )
+    return { model };
+  const next = Struct.assign(model, { activeFile: name });
+  if (
+    !Number.isSafeInteger(location.line) ||
+    location.line < 1 ||
+    location.line > currentSource(next).split('\n').length
+  )
+    return { model };
+  return { model: next, commands: [FocusSourceLine.make(location)] };
+};
+
+const withHighlighting = (transition: Transition): Transition => {
+  const { model } = transition;
+  const source = currentSource(model);
+  const language = model.activeFile;
+  if (
+    sourceMatches(model.highlightedSource, source, language) ||
+    sourceMatches(model.requestedSource, source, language)
+  )
+    return transition;
+  const requestedSource = { source, language };
+  return {
+    model: Struct.assign(model, { requestedSource }),
+    commands: [...(transition.commands ?? []), HighlightSource.make(requestedSource)],
+  };
+};
+
+export const update = (model: Model, message: Message): Transition => {
+  const result: Transition = Message.match(message, {
+    MountedScatter: () => ({ model }),
+    NavigatedSourceLine: (location) => navigate(model, location),
     CompletedSourceLineFocus: () => ({ model }),
-    AcquiredHighlighter: () => ({
-      model: {
-        ...model,
-        highlighting: 'ready' as const,
-        requestedSource: undefined,
-        highlightedSource: undefined,
-      },
-    }),
-    FailedHighlighter: () => ({
-      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
-    }),
-    ReleasedHighlighter: () => ({
-      model: { ...model, highlighting: undefined, requestedSource: undefined },
-    }),
     SettledHighlightedSource: ({ highlightedSource }) => ({
       model: settleHighlighting(model, highlightedSource, currentSource(model), model.activeFile),
     }),
@@ -80,7 +92,9 @@ export const update = (
     }),
     SelectedPoint: ({ id }) => ({ model: { ...model, settings: selectPoint(model.settings, id) } }),
     RecordedChartWidth: ({ width }) =>
-      validChartWidth(width) ? { model: { ...model, chartWidth: width } } : { model },
+      validChartWidth(width) && width !== model.chartWidth
+        ? { model: { ...model, chartWidth: width } }
+        : { model },
     SelectedFile: ({ name }) => ({
       model: { ...model, activeFile: name, actionStatus: clearFeedback(model.actionStatus) },
     }),
@@ -94,7 +108,7 @@ export const update = (
     ClickedCopy: () =>
       whenReady(model, () => ({
         model: { ...model, actionStatus: ActionStatus.Pending({ action: 'copy' }) },
-        commands: [CopySource({ source: currentSource(model) })],
+        commands: [CopySource.make({ source: currentSource(model) })],
       })),
     ClickedDownload: () =>
       whenReady(model, () =>
@@ -103,7 +117,7 @@ export const update = (
           : {
               model: { ...model, actionStatus: ActionStatus.Pending({ action: 'download' }) },
               commands: [
-                ExportProject({
+                ExportProject.make({
                   action: 'download',
                   settings: model.settings,
                   templateUrl: model.templateUrl,
@@ -118,7 +132,7 @@ export const update = (
           : {
               model: { ...model, actionStatus: ActionStatus.Pending({ action: 'playground' }) },
               commands: [
-                ExportProject({
+                ExportProject.make({
                   action: 'playground',
                   settings: model.settings,
                   templateUrl: model.templateUrl,
@@ -134,10 +148,5 @@ export const update = (
     }),
   });
 
-  return requestHighlighting(
-    result,
-    currentSource(result.model),
-    result.model.activeFile,
-    HighlightSource,
-  );
+  return withHighlighting(result);
 };

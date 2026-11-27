@@ -84,7 +84,19 @@ test('reference views use measured frames and expose raw data alternatives', asy
     Scatter.init({ sources: [], templateUrl: null }).model,
     Scatter.Message.RecordedChartWidth({ width: 324 }),
   ).model;
-  const scatterHtml = await render<Scatter.Message>((h) => Scatter.view(scatter, h));
+  const ScatterFixture = Html.component({
+    name: 'ScatterFixture',
+    model: Scatter.Model,
+    props: Scatter.Model,
+    message: Scatter.Message,
+  }).make({
+    init: ({ props }) => props,
+    update: ($) => $.model,
+    view: Scatter.view,
+  });
+  const { html: scatterHtml } = await Effect.runPromise(
+    HtmlServer.renderToHtml(ScatterFixture, scatter),
+  );
   expect(scatterHtml).toContain('viewBox="0 0 324 320"');
   expect(scatterHtml.match(/tabindex="0"/g)?.length).toBe(2); // chart navigation and source preview, not per-datum stops
   expect(scatterHtml).toContain('data-symbol="square"');

@@ -1,7 +1,7 @@
 import { expect, it } from 'bun:test';
 
 import { cellGeometry } from '../src/chart/cells.js';
-import { cellSeries, hexSeries } from '../src/foldkit/cartesian.js';
+import { cellSeries, hexSeries } from '../src/effect-ui/cartesian.js';
 import { hexbin } from '../src/math/bin2d.js';
 import { renderChart } from './render-chart.js';
 
@@ -22,7 +22,7 @@ const geometry = cellGeometry(
 const count = (html: string, pattern: string): number => html.split(pattern).length - 1;
 
 it('draws one titled rectangle per cell, outlining the active one', async () => {
-  const html = await renderChart<never>((h) =>
+  const html = await renderChart((h) =>
     cellSeries(h, {
       cells: geometry.cells,
       fillFor: (cell) => (cell.value > 2 ? 'red' : 'blue'),
@@ -46,7 +46,7 @@ it('draws one hexagon per bin at its centre', async () => {
     { x: (p: { x: number; y: number }) => p.x, y: (p) => p.y },
     { radius: 8 },
   );
-  const html = await renderChart<never>((h) =>
+  const html = await renderChart((h) =>
     hexSeries(h, {
       bins,
       radius: 8,

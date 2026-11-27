@@ -79,3 +79,12 @@ returns a message, so Tab can leave the chart normally.
 The standalone site exports include this Viz subpath and its declarations.
 The FoldKit adapter stays available to its remaining callers while they
 migrate.
+
+### Viz renderer cutover
+
+Viz's major release exposes its Cartesian, orbit, plot, paint, and keyboard
+adapters under `effect-ui/*`. It uses the existing framework-free geometry and
+the shared plot drawing functions. The parent's component supplies SVG mounts,
+canvas mounts, and input messages. Consumers install the Effect UI peer only
+when their rendering code needs it. Package qualification renders real tarballs
+on Node and Bun and checks that imports under the previous adapter paths fail.

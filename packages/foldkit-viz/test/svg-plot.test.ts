@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 
+import { Window, type Element } from 'happy-dom';
+
 import {
   darkTheme,
   highContrastDarkTheme,
   highContrastLightTheme,
   lightTheme,
 } from '../src/chart/theme.js';
-import { plotChart } from '../src/foldkit/plot.js';
+import { plotChart } from '../src/effect-ui/plot.js';
 import { compilePlot, plotTable } from '../src/plot/index.js';
 import type { PlotSpec } from '../src/plot/index.js';
 import { currentColorPalette, plotHtml, plotSvg } from '../src/svg/plot.js';
@@ -56,23 +58,50 @@ const specs: ReadonlyArray<readonly [string, PlotSpec]> = [
   ],
 ];
 
-const element = (markup: string, tag: string): string => {
-  const start = markup.indexOf(`<${tag}`);
-  const end = markup.lastIndexOf(`</${tag}>`);
-  return markup.slice(start, end + tag.length + 3);
+type Markup = {
+  readonly tag: string;
+  readonly attributes: Readonly<Record<string, string>>;
+  readonly children: ReadonlyArray<Markup | string>;
 };
+
+function comparableFigure(html: string): Markup | undefined {
+  const window = new Window();
+  const document = new window.DOMParser().parseFromString(html, 'text/html');
+  const figure = document.querySelector('figure');
+  if (figure === null) return undefined;
+  return inspect(figure);
+
+  function inspect(element: Element): Markup {
+    const attributes = Object.fromEntries(
+      Array.from(element.attributes, ({ name, value }) => [
+        name,
+        name === 'style'
+          ? (value ?? '')
+              .split(';')
+              .map((rule) => rule.trim().replace(/:\s*/, ':'))
+              .filter(Boolean)
+              .join(';')
+          : (value ?? ''),
+      ]),
+    );
+    const children = Array.from(element.childNodes)
+      .filter((node) => node.nodeType !== window.Node.COMMENT_NODE)
+      .map((node) => (node instanceof window.Element ? inspect(node) : (node.textContent ?? '')));
+    return { tag: element.localName, attributes, children };
+  }
+}
 
 describe('plotHtml', () => {
   for (const [name, spec] of specs)
-    it(`matches FoldKit's render of plotChart byte for byte: ${name}`, async () => {
+    it(`matches the Effect UI render of plotChart: ${name}`, async () => {
       const geometry = compilePlot(spec);
       const options = {
         table: plotTable(spec),
         summary: true,
         overlay: { ring: { x: 60, y: 60, r: 8 } },
       };
-      const html = await renderChart<never>((h) => plotChart(h, geometry, options));
-      expect(plotHtml(geometry, options)).toBe(element(html, 'figure'));
+      const html = await renderChart((h) => plotChart(h, geometry, options));
+      expect(comparableFigure(html)).toEqual(comparableFigure(plotHtml(geometry, options)));
     });
 
   it('paints an explicitly themed figure on its own background, in its own text colour', () => {

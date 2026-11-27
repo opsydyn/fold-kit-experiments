@@ -1,14 +1,14 @@
 import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme, resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import { chartFrame, lineSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import { chartFrame, lineSeries } from '@opsydyn/foldkit-viz/effect-ui/cartesian';
+import type { Html } from '@effect/ui/html';
 
 const data = [
   { id: 'jan', month: 1, value: 12 },
   { id: 'feb', month: 2, value: 18 },
 ];
 
-export function chartView<Message>(h: HtmlBuilder<Message>): Html {
+export function chartView<Message>(h: Html.H<Message>) {
   const geometry = lineGeometry(
     data,
     { x: (d) => d.month, y: (d) => d.value, datumKey: (d) => d.id, seriesKey: () => 'Core' },

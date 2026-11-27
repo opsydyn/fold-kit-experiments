@@ -1,4 +1,4 @@
-import type { Mount, View } from '@effect/ui';
+import type { Component, Mount, View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
 import {
@@ -10,6 +10,9 @@ import {
 } from '../plot/render.js';
 import type { PlotChartOptions } from '../plot/render.js';
 import type { PlotGeometry } from '../plot/types.js';
+
+export { currentColorPalette };
+export type { PlotChartOptions, PlotOverlay, PlotPalette } from '../plot/render.js';
 
 function builder<M>(h: Html.H<M>) {
   type Attribute = (element: View.ContainerBuilder<M>) => View.ContainerBuilder<M>;
@@ -96,14 +99,11 @@ export function plotChart<M>(
   return plotFigure(builder(h), geometry, options);
 }
 
-type CanvasNode =
-  Html.Tags<never>['canvas'] extends Html.Element<never, never, infer _Events, infer Node, 'canvas'>
-    ? Node
-    : never;
+type CanvasNode = ReturnType<NonNullable<Html.Tags<never>['canvas']['~HostNode']>>;
 
 type CanvasLayer<M> = Readonly<{
   key: string;
-  onMount: Mount.Issued<M, never, CanvasNode, never>;
+  onMount: Mount.Issued<M | Component.Noop, never, CanvasNode, never>;
 }>;
 
 export type PlotCanvasOptions<M> = PlotChartOptions &

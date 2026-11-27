@@ -15,7 +15,7 @@ import {
   tooltip,
   legend,
   dataTable,
-} from '../src/foldkit/cartesian.js';
+} from '../src/effect-ui/cartesian.js';
 import { renderChart } from './render-chart.js';
 
 const frame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
@@ -52,7 +52,7 @@ it('renders ordered layers and projects annotations through the same scales', as
         description: 'Illustrative negative data',
         theme: lightTheme,
         interactive: true,
-        onKeyDown: () => Option.none(),
+        onKeyDown: () => undefined,
       },
       [
         grid(h, { ...geometry, theme: lightTheme }),
@@ -88,14 +88,14 @@ it('renders custom tooltips with the original datum and projected coordinates', 
           style,
           theme: lightTheme,
           render: (context, builder) =>
-            builder.text(
-              [
-                builder.X(String(context.x)),
-                builder.Y(String(context.y)),
-                builder.Fill(context.style.fill),
-              ],
-              [`${context.datum.label}: ${context.datum.value}`],
-            ),
+            builder
+              .el('text')
+              .attrs({
+                x: String(context.x),
+                y: String(context.y),
+                fill: context.style.fill,
+              })
+              .children(`${context.datum.label}: ${context.datum.value}`),
         }),
       ],
     ),
@@ -114,32 +114,29 @@ it('keeps marks out of the tab sequence and renders keyed symbols and legend ide
   );
   const styleFor = (key: string) => styles.get(key) ?? style;
   const markup = await renderChart((h) =>
-    h.div(
-      [],
-      [
-        chartFrame(
-          h,
-          {
-            layout: geometry.layout,
-            title: 'Points',
-            description: 'Two groups',
-            theme: lightTheme,
-          },
-          [
-            pointSeries(h, {
-              points: [...geometry.points].reverse(),
-              styleFor: (p) => styleFor(p.seriesKey),
-              labelFor: (d) => d.label,
-              activeKey: 'b',
-              onInspect: (key) => key,
-            }),
-          ],
-        ),
-        legend(h, {
-          entries: data.map((d) => ({ key: d.id, label: d.label, style: styleFor(d.id) })),
+    h.div.children(
+      chartFrame(
+        h,
+        {
+          layout: geometry.layout,
+          title: 'Points',
+          description: 'Two groups',
           theme: lightTheme,
-        }),
-      ],
+        },
+        [
+          pointSeries(h, {
+            points: [...geometry.points].reverse(),
+            styleFor: (p) => styleFor(p.seriesKey),
+            labelFor: (d) => d.label,
+            activeKey: 'b',
+            onInspect: (key) => key,
+          }),
+        ],
+      ),
+      legend(h, {
+        entries: data.map((d) => ({ key: d.id, label: d.label, style: styleFor(d.id) })),
+        theme: lightTheme,
+      }),
     ),
   );
   expect(markup).toContain('fill="blue"');
@@ -156,39 +153,36 @@ it('renders labelled axes, count bars and a captioned raw data alternative', asy
     binCount: 2,
   });
   const markup = await renderChart((h) =>
-    h.div(
-      [],
-      [
-        chartFrame(
-          h,
-          {
+    h.div.children(
+      chartFrame(
+        h,
+        {
+          layout: histogram.layout,
+          title: 'Histogram',
+          description: 'Raw interval counts',
+          theme: lightTheme,
+        },
+        [
+          axis(h, {
             layout: histogram.layout,
-            title: 'Histogram',
-            description: 'Raw interval counts',
+            orientation: 'bottom',
+            ticks: histogram.xTicks,
+            label: 'Units',
+            format: (n) => String(n),
             theme: lightTheme,
-          },
-          [
-            axis(h, {
-              layout: histogram.layout,
-              orientation: 'bottom',
-              ticks: histogram.xTicks,
-              label: 'Units',
-              format: (n) => String(n),
-              theme: lightTheme,
-            }),
-            barSeries(h, {
-              bins: histogram.bins,
-              styleFor: () => style,
-              labelFor: (b) => `${b.x0}–${b.x1}: ${b.count}`,
-            }),
-          ],
-        ),
-        dataTable(h, {
-          caption: 'Illustrative source',
-          headers: ['Label', 'Value'],
-          rows: data.map((d) => [d.label, String(d.value)]),
-        }),
-      ],
+          }),
+          barSeries(h, {
+            bins: histogram.bins,
+            styleFor: () => style,
+            labelFor: (b) => `${b.x0}–${b.x1}: ${b.count}`,
+          }),
+        ],
+      ),
+      dataTable(h, {
+        caption: 'Illustrative source',
+        headers: ['Label', 'Value'],
+        rows: data.map((d) => [d.label, String(d.value)]),
+      }),
     ),
   );
   expect(markup).toContain('Units');
@@ -202,7 +196,9 @@ it('renders labelled axes, count bars and a captioned raw data alternative', asy
 it('uses tooltip surface tokens and preserves the inspected series paint', async () => {
   const point = Option.getOrThrow(Option.fromNullishOr(geometry.points[0]));
   const theme = { ...lightTheme, tooltipBackground: 'rgb(1,2,3)', tooltipText: 'white' };
-  const markup = await renderChart((h) => h.svg([], [tooltip(h, { point, style, theme })]));
+  const markup = await renderChart((h) =>
+    h.el('svg').children(tooltip(h, { point, style, theme })),
+  );
   expect(markup).toContain('fill="rgb(1,2,3)"');
   expect(markup).toContain('fill="white"');
   expect(markup).toContain('fill="currentColor"');

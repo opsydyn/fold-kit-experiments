@@ -1,8 +1,8 @@
 import { expect, it } from 'bun:test';
 
 import { orbitGeometry } from '../src/chart/orbit.js';
-import { orbitChart } from '../src/foldkit/orbit.js';
-import type { OrbitChartOptions } from '../src/foldkit/orbit.js';
+import { orbitChart } from '../src/effect-ui/orbit.js';
+import type { OrbitChartOptions } from '../src/effect-ui/orbit.js';
 import { renderChart } from './render-chart.js';
 
 type Module = Readonly<{ id: string; label: string; risk: number; integration: string }>;
@@ -16,10 +16,7 @@ const geometry = orbitGeometry(
   { key: (d) => d.id, value: (d) => d.risk, halo: (d) => d.integration },
   { size: 240 },
 );
-type Message =
-  | Readonly<{ _tag: 'Inspected'; key: string | null }>
-  | Readonly<{ _tag: 'Selected'; key: string }>;
-const base: OrbitChartOptions<Module, Message> = {
+const base: OrbitChartOptions<Module, string> = {
   geometry,
   title: 'Complexity field',
   description: 'Modules by systemic risk',
@@ -31,7 +28,7 @@ const base: OrbitChartOptions<Module, Message> = {
 const count = (html: string, pattern: string): number => html.split(pattern).length - 1;
 
 it('renders the halo, the core, the centre text and a titled node per datum', async () => {
-  const html = await renderChart<Message>((h) =>
+  const html = await renderChart((h) =>
     orbitChart(h, {
       ...base,
       centre: [
@@ -56,12 +53,12 @@ it('renders the halo, the core, the centre text and a titled node per datum', as
 });
 
 it('makes nodes keyboard-reachable buttons when the parent handles selection', async () => {
-  const html = await renderChart<Message>((h) =>
+  const html = await renderChart((h) =>
     orbitChart(h, {
       ...base,
       selectedKey: 'web',
-      onSelect: (key) => ({ _tag: 'Selected' as const, key }),
-      onInspect: (key) => ({ _tag: 'Inspected' as const, key }),
+      onSelect: (key) => `Selected ${key}`,
+      onInspect: (key) => `Inspected ${key}`,
     }),
   );
   expect(html).toContain('role="group"');
@@ -72,7 +69,7 @@ it('makes nodes keyboard-reachable buttons when the parent handles selection', a
 });
 
 it('draws the selected and inspected nodes with a wider outline', async () => {
-  const html = await renderChart<Message>((h) =>
+  const html = await renderChart((h) =>
     orbitChart(h, { ...base, selectedKey: 'web', activeKey: 'jobs' }),
   );
   const outlines = [...html.matchAll(/<circle([^>]*)>/g)]

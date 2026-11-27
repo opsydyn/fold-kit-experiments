@@ -26,11 +26,11 @@ For Cartesian geometry in this baseline:
 - `histogramGeometry` takes a value accessor and its own configuration, not the
   Cartesian accessor object. Its bins preserve original records.
 
-## Optional FoldKit rendering
+## Optional Effect UI rendering
 
-`assets/foldkit-view.ts` is an optional view-function example, not part of the
-pure starter. Copy it into an existing FoldKit application with Viz 0.17.0,
-FoldKit 0.170.x and Effect 4.1.x installed. Call `chartView(h)` inside the parent's
+`assets/effect-ui-view.ts` is an optional view-function example, not part of the
+pure starter. Copy it into an Effect UI application with the coordinated Viz release,
+the pinned Effect UI snapshot, and Effect 4 installed. Call `chartView(h)` inside the parent's
 `view(model, h)` and include the returned `Html` in its `Document.body`.
 
 The adapter receives `HtmlBuilder<Message>` from that render. Do not cache it,
@@ -48,7 +48,7 @@ when a series is hidden. Keep light/dark choice in application state or CSS toke
 
 ## Interaction and accessibility
 
-In a FoldKit host, store selection and active datum IDs in the Model. Map pointer,
+In an Effect UI host, store selection and active datum IDs in the Model. Map pointer,
 keyboard, brush and zoom events into past-tense Messages. For linked charts,
 fold child OutMessages into the parent and pass the resulting selection back
 down; stable panel identity belongs in the parent as well.
@@ -70,7 +70,7 @@ insufficient. Test mobile overflow and reduced motion for animated charts.
 
 ## Grouped bars and paint availability
 
-`chart/bars` and `foldkit/paint` are published, but this skill's runnable
+`chart/bars` and `effect-ui/paint` are published, but this skill's runnable
 examples do not use them. After confirming the consumer's installed version
 exports them:
 
@@ -79,7 +79,7 @@ exports them:
 - Values must be finite; duplicate keys and category/series pairs are rejected.
   Aggregate intentionally before calling. Signed stacks accumulate separately;
   explicit domains must include zero and all endpoints.
-- Paint helpers are optional FoldKit render helpers. Put their output inside SVG
+- Paint helpers are optional Effect UI render helpers. Put their output inside SVG
   `defs`, provide document-unique IDs, and reference those IDs from marks.
   They are not exports from the framework-free root.
 

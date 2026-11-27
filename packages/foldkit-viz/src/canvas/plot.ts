@@ -11,7 +11,7 @@ import type {
  * Paints compiled plot geometry (ADR 0037) on a 2D canvas context: grid,
  * axes, facet headings and every mark, with packed points drawn in one pass
  * per colour. Framework-free and listener-free: call it when the canvas
- * mounts or the geometry changes. On a page, legends stay HTML (foldkit/plot);
+ * mounts or the geometry changes. On a page, legends stay HTML (effect-ui/plot);
  * canvas/image paints a whole image, legends and background included.
  */
 

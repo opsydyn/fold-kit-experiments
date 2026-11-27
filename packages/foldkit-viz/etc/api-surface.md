@@ -2056,6 +2056,20 @@ function surface3dScene(surface: Surface3d, options: Space3dSceneOptions): Group
 ## ./effect-ui/cartesian
 
 ```ts
+function annotation<M>(h: Html.H<M>, {
+  layout,
+  axis,
+  value,
+  label,
+  style
+}: AnnotationOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type AnnotationOptions = Readonly<{
+  layout: CartesianLayout;
+  axis: 'x' | 'y';
+  value: number;
+  label: string;
+  style: SeriesStyle;
+}>;
 function axis<M>(h: Html.H<M>, {
   layout: {
     plot,
@@ -2067,6 +2081,38 @@ function axis<M>(h: Html.H<M>, {
   format,
   theme
 }: AxisOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type AxisOptions = Readonly<{
+  layout: CartesianLayout;
+  orientation: 'bottom' | 'left';
+  ticks: ReadonlyArray<AxisTick>;
+  label: string;
+  format?: (value: number) => string;
+  theme: ChartTheme;
+}>;
+function barSeries<T, M>(h: Html.H<M>, {
+  bins,
+  styleFor,
+  labelFor
+}: BarSeriesOptions<T>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type BarSeriesOptions<T> = Readonly<{
+  bins: ReadonlyArray<HistogramBin<T>>;
+  styleFor: (bin: HistogramBin<T>) => SeriesStyle;
+  labelFor: (bin: HistogramBin<T>) => string;
+}>;
+function cellSeries<T, M>(h: Html.H<M>, {
+  cells,
+  fillFor,
+  labelFor,
+  activeKey,
+  onInspect
+}: CellSeriesOptions<T, M>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type CellSeriesOptions<T, M> = Readonly<{
+  cells: ReadonlyArray<Cell<T>>;
+  fillFor: (cell: Cell<T>) => string;
+  labelFor: (datum: T) => string;
+  activeKey?: string | null;
+  onInspect?: (key: string) => M;
+}>;
 function chartFrame<M>(h: Html.H<M>, {
   layout: {
     frame
@@ -2074,13 +2120,29 @@ function chartFrame<M>(h: Html.H<M>, {
   title,
   description,
   theme,
+  interactive,
+  onMount,
   onKeyDown
-}: FrameOptions<M>, children: ReadonlyArray<View.Input<M>>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+}: ChartFrameOptions<M>, children: ReadonlyArray<View.Input<M>>): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type ChartFrameOptions<M> = Readonly<{
+  layout: CartesianLayout;
+  title: string;
+  description: string;
+  theme: ChartTheme;
+  interactive?: boolean;
+  onMount?: Mount.Issued<M | Component.Noop, never, unknown, never>;
+  onKeyDown?: (key: string) => M | undefined;
+}>;
 function dataTable<M>(h: Html.H<M>, {
   caption,
   headers,
   rows
-}: TableOptions): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "table">;
+}: DataTableOptions): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "table">;
+type DataTableOptions = Readonly<{
+  caption: string;
+  headers: ReadonlyArray<string>;
+  rows: ReadonlyArray<ReadonlyArray<string>>;
+}>;
 function grid<M>(h: Html.H<M>, {
   layout: {
     plot
@@ -2089,6 +2151,12 @@ function grid<M>(h: Html.H<M>, {
   yTicks,
   theme
 }: GridOptions): View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type GridOptions = Readonly<{
+  layout: CartesianLayout;
+  xTicks: ReadonlyArray<AxisTick>;
+  yTicks: ReadonlyArray<AxisTick>;
+  theme: ChartTheme;
+}>;
 function hexSeries<T, M>(h: Html.H<M>, {
   bins,
   radius,
@@ -2100,6 +2168,19 @@ type HexSeriesOptions<T> = Readonly<{
   radius: number;
   fillFor: (bin: HexBin<T>) => string;
   labelFor: (bin: HexBin<T>) => string;
+}>;
+function legend<M>(h: Html.H<M>, {
+  entries,
+  theme
+}: LegendOptions): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "ul">;
+type LegendEntry = Readonly<{
+  key: string;
+  label: string;
+  style: SeriesStyle;
+}>;
+type LegendOptions = Readonly<{
+  entries: ReadonlyArray<LegendEntry>;
+  theme: ChartTheme;
 }>;
 function lineSeries<M>(h: Html.H<M>, {
   path,
@@ -2122,6 +2203,24 @@ type PointSeriesOptions<T, M> = Readonly<{
   labelFor: (datum: T) => string;
   activeKey: string | null;
   onInspect?: (key: string) => M;
+}>;
+function tooltip<T, M>(h: Html.H<M>, {
+  point,
+  style,
+  theme,
+  render
+}: TooltipOptions<T, M>): View.Content<M, never> | View.ContainerBuilder<M, never, Record<string, unknown>, unknown, string>;
+type TooltipContext<T> = Readonly<{
+  datum: T;
+  x: number;
+  y: number;
+  style: SeriesStyle;
+}>;
+type TooltipOptions<T, M> = Readonly<{
+  point: ProjectedDatum<T>;
+  style: SeriesStyle;
+  theme: ChartTheme;
+  render?: (context: TooltipContext<T>, h: Html.H<M>) => View.Content<M>;
 }>;
 ```
 
@@ -2228,228 +2327,12 @@ function radialGradient<M>(h: Html.H<M>, options: GradientOptions & Readonly<{
 ## ./effect-ui/plot
 
 ```ts
+const currentColorPalette: PlotPalette;
 function plotCanvas<M>(h: Html.H<M>, geometry: PlotGeometry, options: PlotCanvasOptions<M>): Html.Element<M, never, Html.Events, HTMLElementTagNameMap, "figure">;
 type PlotCanvasOptions<M> = PlotChartOptions & CanvasLayer<M> & Readonly<{
   pointsLayer?: CanvasLayer<M>;
 }>;
 function plotChart<M>(h: Html.H<M>, geometry: PlotGeometry, options?: PlotChartOptions): View.Content<M>;
-```
-
-## ./effect/plot
-
-```ts
-const addMarks: (...marks: ReadonlyArray<MarkSpec>) => (spec: PlotSpec) => PlotSpec;
-const compileChecked: (spec: PlotSpec) => Result.Result<PlotGeometry, PlotIssue>;
-const decodePlot: (input: unknown) => Result.Result<WirePlotSpec, PlotIssue>;
-const marksFor: <T>() => {
-  dot: (options: DotOptions<T>) => DotMark;
-  line: (options: LineOptions<T>) => LineMark;
-  ruleY: (value: Value) => RuleMark;
-};
-class PlotIssue extends PlotIssue_base<{
-  readonly code: 'InvalidSpec' | 'InvalidPlot' | 'MissingField';
-  readonly path: string | null;
-  readonly message: string;
-  readonly field?: string;
-}> {}
-const PlotSpecSchema: Schema.Codec<WirePlotSpec, WirePlotSpec, never, never>;
-type WirePlotSpec = Omit<PlotSpec, 'data' | 'marks'> & Readonly<{
-  data?: WireData;
-  marks: ReadonlyArray<WireMark<MarkSpec>>;
-}>;
-```
-
-## ./foldkit/cartesian
-
-```ts
-function annotation<M>(h: HtmlBuilder<M>, options: AnnotationOptions): Html;
-type AnnotationOptions = Readonly<{
-  layout: CartesianLayout;
-  axis: 'x' | 'y';
-  value: number;
-  label: string;
-  style: SeriesStyle;
-}>;
-function axis<M>(h: HtmlBuilder<M>, options: AxisOptions): Html;
-type AxisOptions = Readonly<{
-  layout: CartesianLayout;
-  orientation: 'bottom' | 'left';
-  ticks: ReadonlyArray<AxisTick>;
-  label: string;
-  format?: (value: number) => string;
-  theme: ChartTheme;
-}>;
-function barSeries<T, M>(h: HtmlBuilder<M>, options: BarSeriesOptions<T>): Html;
-type BarSeriesOptions<T> = Readonly<{
-  bins: ReadonlyArray<HistogramBin<T>>;
-  styleFor: (bin: HistogramBin<T>) => SeriesStyle;
-  labelFor: (bin: HistogramBin<T>) => string;
-}>;
-function cellSeries<T, M>(h: HtmlBuilder<M>, options: CellSeriesOptions<T, M>): Html;
-type CellSeriesOptions<T, M> = Readonly<{
-  cells: ReadonlyArray<Cell<T>>;
-  fillFor: (cell: Cell<T>) => string;
-  labelFor: (datum: T) => string;
-  activeKey?: string | null;
-  onInspect?: (key: string) => M;
-}>;
-function chartFrame<M>(h: HtmlBuilder<M>, options: ChartFrameOptions<M>, children: ReadonlyArray<Html>): Html;
-type ChartFrameOptions<M> = Readonly<{
-  layout: CartesianLayout;
-  title: string;
-  description: string;
-  theme: ChartTheme;
-  interactive?: boolean;
-  onMount?: MountAction<M>;
-  onKeyDown?: (key: string) => Option.Option<M>;
-}>;
-function dataTable<M>(h: HtmlBuilder<M>, options: DataTableOptions): Html;
-type DataTableOptions = Readonly<{
-  caption: string;
-  headers: ReadonlyArray<string>;
-  rows: ReadonlyArray<ReadonlyArray<string>>;
-}>;
-function grid<M>(h: HtmlBuilder<M>, options: GridOptions): Html;
-type GridOptions = Readonly<{
-  layout: CartesianLayout;
-  xTicks: ReadonlyArray<AxisTick>;
-  yTicks: ReadonlyArray<AxisTick>;
-  theme: ChartTheme;
-}>;
-function hexSeries<T, M>(h: HtmlBuilder<M>, options: HexSeriesOptions<T>): Html;
-type HexSeriesOptions<T> = Readonly<{
-  bins: ReadonlyArray<HexBin<T>>;
-  radius: number;
-  fillFor: (bin: HexBin<T>) => string;
-  labelFor: (bin: HexBin<T>) => string;
-}>;
-function legend<M>(h: HtmlBuilder<M>, options: LegendOptions): Html;
-type LegendEntry = Readonly<{
-  key: string;
-  label: string;
-  style: SeriesStyle;
-}>;
-type LegendOptions = Readonly<{
-  entries: ReadonlyArray<LegendEntry>;
-  theme: ChartTheme;
-}>;
-function lineSeries<M>(h: HtmlBuilder<M>, options: LineSeriesOptions): Html;
-type LineSeriesOptions = Readonly<{
-  path: string;
-  style: SeriesStyle;
-}>;
-function pointSeries<T, M>(h: HtmlBuilder<M>, options: PointSeriesOptions<T, M>): Html;
-type PointSeriesOptions<T, M> = Readonly<{
-  points: ReadonlyArray<ProjectedDatum<T>>;
-  styleFor: (point: ProjectedDatum<T>) => SeriesStyle;
-  labelFor: (datum: T) => string;
-  activeKey: string | null;
-  onInspect?: (key: string) => M;
-}>;
-function tooltip<T, M>(h: HtmlBuilder<M>, options: TooltipOptions<T, M>): Html;
-type TooltipContext<T> = Readonly<{
-  datum: T;
-  x: number;
-  y: number;
-  style: SeriesStyle;
-}>;
-type TooltipOptions<T, M> = Readonly<{
-  point: ProjectedDatum<T>;
-  style: SeriesStyle;
-  theme: ChartTheme;
-  render?: (context: TooltipContext<T>, h: HtmlBuilder<M>) => Html;
-}>;
-```
-
-## ./foldkit/orbit
-
-```ts
-type OrbitCentreLine = Readonly<{
-  text: string;
-  colour: string;
-  size?: number;
-}>;
-function orbitChart<T, M>(h: HtmlBuilder<M>, options: OrbitChartOptions<T, M>): Html;
-type OrbitChartOptions<T, M> = Readonly<{
-  geometry: OrbitGeometry<T>;
-  title: string;
-  description: string;
-  coreFill: string;
-  coreStroke?: string;
-  haloColour: (key: string) => string;
-  nodeStyle: (node: OrbitNode<T>) => OrbitNodeStyle;
-  labelFor: (datum: T) => string;
-  centre?: ReadonlyArray<OrbitCentreLine>;
-  pulse?: Readonly<{
-    radius: number;
-    colour: string;
-  }>;
-  defs?: ReadonlyArray<Html>;
-  activeKey?: string | null;
-  selectedKey?: string | null;
-  onInspect?: (key: string | null) => M;
-  onSelect?: (key: string) => M;
-}>;
-type OrbitNodeStyle = Readonly<{
-  fill: string;
-  stroke: string;
-}>;
-```
-
-## ./foldkit/paint
-
-```ts
-function dotPattern<M>(h: HtmlBuilder<M>, options: PatternOptions & Readonly<{
-  radius?: number;
-}>): Html;
-type GradientOptions = Readonly<{
-  id: string;
-  stops: ReadonlyArray<GradientStop>;
-}>;
-type GradientStop = Readonly<{
-  offset: number;
-  colour: string;
-  opacity?: number;
-}>;
-function hatchPattern<M>(h: HtmlBuilder<M>, options: PatternOptions & Readonly<{
-  strokeWidth?: number;
-  angle?: number;
-}>): Html;
-function linearGradient<M>(h: HtmlBuilder<M>, options: GradientOptions & Readonly<{
-  x1?: string;
-  y1?: string;
-  x2?: string;
-  y2?: string;
-}>): Html;
-type PatternOptions = Readonly<{
-  id: string;
-  colour: string;
-  spacing: number;
-}>;
-function radialGradient<M>(h: HtmlBuilder<M>, options: GradientOptions & Readonly<{
-  cx?: string;
-  cy?: string;
-  radius?: string;
-}>): Html;
-```
-
-## ./foldkit/plot
-
-```ts
-const currentColorPalette: PlotPalette;
-function plotCanvas<M>(h: HtmlBuilder<M>, geometry: PlotGeometry, options: PlotCanvasOptions<M>): Html;
-type PlotCanvasOptions<M> = Readonly<{
-  onMount: MountAction<M>;
-  key: string;
-  pointsLayer?: Readonly<{
-    key: string;
-    onMount: MountAction<M>;
-  }>;
-  palette?: PlotPalette;
-  legend?: boolean;
-  overlay?: PlotOverlay;
-}> & AccessibleOptions;
-function plotChart<M>(h: HtmlBuilder<M>, geometry: PlotGeometry, options?: PlotChartOptions): Html;
 type PlotChartOptions = Readonly<{
   palette?: PlotPalette;
   legend?: boolean;
@@ -2480,6 +2363,30 @@ type PlotPalette = Readonly<{
   fontFamily: string;
   labelSize: number;
   background?: string;
+}>;
+```
+
+## ./effect/plot
+
+```ts
+const addMarks: (...marks: ReadonlyArray<MarkSpec>) => (spec: PlotSpec) => PlotSpec;
+const compileChecked: (spec: PlotSpec) => Result.Result<PlotGeometry, PlotIssue>;
+const decodePlot: (input: unknown) => Result.Result<WirePlotSpec, PlotIssue>;
+const marksFor: <T>() => {
+  dot: (options: DotOptions<T>) => DotMark;
+  line: (options: LineOptions<T>) => LineMark;
+  ruleY: (value: Value) => RuleMark;
+};
+class PlotIssue extends PlotIssue_base<{
+  readonly code: 'InvalidSpec' | 'InvalidPlot' | 'MissingField';
+  readonly path: string | null;
+  readonly message: string;
+  readonly field?: string;
+}> {}
+const PlotSpecSchema: Schema.Codec<WirePlotSpec, WirePlotSpec, never, never>;
+type WirePlotSpec = Omit<PlotSpec, 'data' | 'marks'> & Readonly<{
+  data?: WireData;
+  marks: ReadonlyArray<WireMark<MarkSpec>>;
 }>;
 ```
 

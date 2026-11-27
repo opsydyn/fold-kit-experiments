@@ -1,15 +1,14 @@
 import { expect, it } from 'bun:test';
 
+import { Component, Mount } from '@effect/ui';
 import { Effect } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
-import { define as defineMount } from 'foldkit/mount';
 
-import { plotCanvas, plotChart } from '../src/foldkit/plot.js';
+import { plotCanvas, plotChart } from '../src/effect-ui/plot.js';
 import { compilePlot } from '../src/plot/index.js';
 import { renderChart } from './render-chart.js';
 
 const count = (html: string, pattern: string): number => html.split(pattern).length - 1;
-const { Painted } = defineMessageUnion({ Painted: {} });
+const paint = Mount.make('PaintTest', { args: {} }, () => Effect.sync(() => Component.noop));
 const rows = [
   { dose: 1, response: 2, group: 'control' },
   { dose: 2, response: 4, group: 'treated' },
@@ -28,7 +27,7 @@ it('renders an accessible SVG with axes, marks, tooltips and a legend', async ()
       { mark: 'rule', y: { value: 3 } },
     ],
   });
-  const html = await renderChart<never>((h) => plotChart(h, geometry));
+  const html = await renderChart((h) => plotChart(h, geometry));
   expect(html).toContain('role="img"');
   expect(html).toContain('aria-label="Dose response. Three observations"');
   expect(html).toContain('<title>Dose response</title>');
@@ -47,7 +46,7 @@ it('draws symbols at their points and a symbol legend in their colours', async (
     data: rows,
     marks: [{ mark: 'dot', x: 'dose', y: 'response', fill: 'group', symbol: 'group' }],
   });
-  const html = await renderChart<never>((h) => plotChart(h, geometry));
+  const html = await renderChart((h) => plotChart(h, geometry));
   expect(count(html, '<circle')).toBe(2);
   expect(count(html, 'transform="translate(')).toBe(1);
   expect(count(html, 'class="plot-legend"')).toBe(1);
@@ -62,11 +61,9 @@ it('clips marks in a nested viewport over the plot area only when the spec asks'
     data: rows,
     marks: [{ mark: 'dot' as const, x: 'dose', y: 'response' }],
   };
-  const open = await renderChart<never>((h) => plotChart(h, compilePlot(spec)));
+  const open = await renderChart((h) => plotChart(h, compilePlot(spec)));
   expect(open).not.toContain('plot-clip');
-  const clipped = await renderChart<never>((h) =>
-    plotChart(h, compilePlot({ ...spec, clip: true })),
-  );
+  const clipped = await renderChart((h) => plotChart(h, compilePlot({ ...spec, clip: true })));
   expect(count(clipped, 'class="plot-clip"')).toBe(1);
   expect(clipped).toContain('overflow="hidden"');
 });
@@ -79,7 +76,7 @@ it('heads each facet with its label and can leave the legend out', async () => {
     facet: { x: 'group' },
     marks: [{ mark: 'dot', x: 'dose', y: 'response', fill: 'group' }],
   });
-  const html = await renderChart<never>((h) => plotChart(h, geometry, { legend: false }));
+  const html = await renderChart((h) => plotChart(h, geometry, { legend: false }));
   expect(count(html, 'class="plot-facet"')).toBe(2);
   expect(html).toContain('>treated</text>');
   expect(html).not.toContain('plot-legend');
@@ -93,7 +90,7 @@ it('draws an overlay of crosshair, ring and brush without recompiling', async ()
     data: rows,
     marks: [{ mark: 'dot', x: 'dose', y: 'response' }],
   });
-  const html = await renderChart<never>((h) =>
+  const html = await renderChart((h) =>
     plotChart(h, geometry, {
       overlay: {
         crosshair: { x: 200, y: 130 },
@@ -116,15 +113,7 @@ it('renders a canvas sized by aspect ratio, with an overlay above it', async () 
     data: rows,
     marks: [{ mark: 'dot', x: 'dose', y: 'response', dense: true }],
   });
-  const paint = defineMount('PaintTest', {
-    messages: [Painted],
-    execute: ({ element }) =>
-      Effect.sync(() => {
-        element.setAttribute('data-painted', 'true');
-        return Painted();
-      }),
-  });
-  const html = await renderChart<typeof Painted.Type>((h) =>
+  const html = await renderChart((h) =>
     plotCanvas(h, geometry, {
       key: 'v1',
       onMount: paint(),
@@ -132,7 +121,7 @@ it('renders a canvas sized by aspect ratio, with an overlay above it', async () 
     }),
   );
   expect(html).toContain('<canvas');
-  expect(html).toContain('aspect-ratio: 400 / 200');
+  expect(html).toContain('aspect-ratio:400 / 200');
   expect(html).not.toMatch(/<canvas[^>]* width=/);
   expect(count(html, 'class="plot-canvas-overlay"')).toBe(1);
 });
@@ -144,15 +133,7 @@ it('stacks a GPU points canvas between the base canvas and the overlay, when giv
     data: rows,
     marks: [{ mark: 'dot', x: 'dose', y: 'response', dense: true }],
   });
-  const paint = defineMount('PaintTest', {
-    messages: [Painted],
-    execute: ({ element }) =>
-      Effect.sync(() => {
-        element.setAttribute('data-painted', 'true');
-        return Painted();
-      }),
-  });
-  const html = await renderChart<typeof Painted.Type>((h) =>
+  const html = await renderChart((h) =>
     plotCanvas(h, geometry, {
       key: 'base',
       onMount: paint(),
@@ -166,7 +147,7 @@ it('stacks a GPU points canvas between the base canvas and the overlay, when giv
   expect(base).toBeLessThan(points);
   expect(points).toBeLessThan(overlay);
   expect(html).toMatch(
-    /<canvas[^>]*aria-hidden="true"[^>]*class="plot-points"[^>]*style="[^"]*pointer-events: none/,
+    /<canvas[^>]*class="plot-points"[^>]*aria-hidden="true"[^>]*style="[^"]*pointer-events:none/,
   );
   expect(html).not.toMatch(/<canvas[^>]* width=/);
 });

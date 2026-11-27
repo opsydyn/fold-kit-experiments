@@ -16,7 +16,7 @@ import type {
  * gave a title channel, so a pre-rendered plot reads fully without JavaScript.
  *
  * The renderer owns no node type. FoldKit's `HtmlBuilder` satisfies
- * `PlotBuilder` as it is (foldkit/plot), and svg/plot supplies one that builds
+ * `PlotBuilder` as it is (effect-ui/plot), and svg/plot supplies one that builds
  * markup strings, so the page and the exported file come from this one source.
  */
 

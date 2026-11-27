@@ -1,18 +1,33 @@
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import type { View } from '@effect/ui';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect, Option, Result, Schema } from 'effect';
 
-/** Real FoldKit render frame; Effects run only at this test I/O boundary. */
-export async function renderChart<M>(render: (h: HtmlBuilder<M>) => Html): Promise<string> {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({ test: Schema.Boolean }),
-        init: () => ({ model: 0 }),
-        view: (_model: number, h: HtmlBuilder<M>) => ({ title: 'Chart test', body: render(h) }),
+/** Renders the chart through the real Effect UI server host. */
+export async function renderChart(
+  render: (h: Html.H<string>) => View.Content<string>,
+): Promise<string> {
+  let failure = Option.none<unknown>();
+  function view(h: Html.H<string>) {
+    const content = Result.try(() => render(h));
+    return Result.match(content, {
+      onFailure: (error) => {
+        failure = Option.some(error);
+        return h.div;
       },
-      { flags: { test: true }, isHydratable: false },
-    ),
-  );
+      onSuccess: (result) => result,
+    });
+  }
+  const Chart = Html.component({
+    name: 'ChartTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view,
+  });
+  const rendered = HtmlServer.renderToHtml(Chart, {}, { static: true });
+  const result = await Effect.runPromise(rendered);
+  if (Option.isSome(failure)) throw failure.value;
   return result.html;
 }

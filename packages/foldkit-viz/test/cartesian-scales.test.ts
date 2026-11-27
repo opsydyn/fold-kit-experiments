@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { lineGeometry, scatterGeometry } from '../src/chart/cartesian';
 import { axisTicks, chartLayout, resolveDomain } from '../src/chart/layout';
 import { lightTheme } from '../src/chart/theme';
-import { axis } from '../src/foldkit/cartesian';
+import { axis } from '../src/effect-ui/cartesian';
 import { linear, sqrt } from '../src/math/scale';
 import { timeTickFormat } from '../src/math/time';
 import { renderChart } from './render-chart';

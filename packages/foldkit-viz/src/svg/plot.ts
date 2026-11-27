@@ -9,7 +9,7 @@ import type { PlotGeometry } from '../plot/types.js';
 /**
  * Compiled plot geometry (ADR 0037) as markup strings, with no framework and
  * no DOM: for files, server responses, notebooks and image pipelines. The
- * markup comes from plot/render, the renderer foldkit/plot uses, so a page and
+ * markup comes from plot/render, the renderer effect-ui/plot uses, so a page and
  * an export always draw the same chart.
  */
 
@@ -255,7 +255,7 @@ export type PlotHtmlOptions = PlotChartOptions &
   }>;
 
 /**
- * The whole chart as an HTML fragment, the same markup foldkit/plot's
+ * The whole chart as an HTML fragment, the same markup effect-ui/plot's
  * `plotChart` renders: a figure holding the SVG, its data table and legends,
  * in the page's colour unless given a theme.
  */

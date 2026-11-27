@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
 import { Effect, Option, Result } from 'effect';
-import { revalidateOrLoad, settle, succeed } from 'foldkit/asyncData';
 
 import { compileChecked, decodePlot, marksFor, addMarks } from '../src/effect/plot.js';
 import { compilePlot } from '../src/plot/index.js';
@@ -88,33 +87,23 @@ describe('Effect plot', () => {
     });
   });
 
-  it('keeps the last drawn chart when a regression refresh has too few usable points', () => {
+  it('rejects a regression refresh with too few usable points', () => {
     const fitted = marks.line({
       x: 'minute',
       y: 'latency',
       transform: { type: 'regression', degree: 2 },
     });
-    const previous = compilePlot({
-      ...frame,
-      data: [...data, { minute: 2, latency: 4 }, { minute: 3, latency: 5 }],
-      marks: [fitted],
-    });
-    const refreshing = Option.getOrThrow(revalidateOrLoad(succeed(previous)));
     const fetched = decodePlot({
       ...frame,
       data: [...data, { minute: 2, latency: null }],
       marks: [fitted],
     });
     expect(Result.isSuccess(fetched)).toBe(true);
-    const chart = settle(refreshing, Result.flatMap(fetched, compileChecked));
-    expect(chart).toMatchObject({
-      _tag: 'Stale',
-      data: previous,
-      error: {
-        code: 'InvalidPlot',
-        path: 'marks[0].transform',
-        message: expect.stringContaining('A degree 2 fit needs more than 3 points'),
-      },
+    const failure = Result.flip(Result.flatMap(fetched, compileChecked));
+    expect(Result.getOrThrow(failure)).toMatchObject({
+      code: 'InvalidPlot',
+      path: 'marks[0].transform',
+      message: expect.stringContaining('A degree 2 fit needs more than 3 points'),
     });
   });
 
@@ -139,25 +128,16 @@ describe('Effect plot', () => {
     });
   });
 
-  it('keeps the last drawn chart when a refresh has an invalid field', () => {
-    const previous = compilePlot({
-      ...frame,
-      data,
-      marks: [marks.line({ x: 'minute', y: 'latency' })],
-    });
-    const refreshing = Option.getOrThrow(revalidateOrLoad(succeed(previous)));
+  it('rejects a refresh with an invalid field', () => {
     const fetched = decodePlot({
       ...frame,
       data,
       marks: [{ mark: 'line', x: 'minute', y: 'duration' }],
     });
-    const failure = Result.flatMap(fetched, compileChecked);
-    const chart = settle(refreshing, failure);
-    expect(chart).toMatchObject({
-      _tag: 'Stale',
-      data: previous,
-      error: { code: 'MissingField', path: 'marks[0].y' },
-    });
+    const failure = Result.flip(Result.flatMap(fetched, compileChecked));
+    expect(Result.getOrThrow(failure)).toEqual(
+      expect.objectContaining({ code: 'MissingField', path: 'marks[0].y' }),
+    );
   });
 
   // @ts-expect-error The domain row has no field named latncy.

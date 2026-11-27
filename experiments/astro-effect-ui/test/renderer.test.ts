@@ -3,7 +3,7 @@ import { beforeAll, expect, mock, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 
 import { Window as TestWindow } from 'happy-dom';
-import { chromium, type WebSocketRoute } from 'playwright';
+import { chromium, firefox, webkit, type WebSocketRoute } from 'playwright';
 
 import renderer from '../../../packages/astro-effect-ui/src/client';
 import interaction from '../../../packages/astro-effect-ui/src/directive-interaction';
@@ -393,6 +393,64 @@ test('client:only mounts without a server render or serialized state', async () 
     await dom.close();
   }
 });
+
+for (const engine of [chromium, firefox, webkit]) {
+  test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
+    `Viz adopts SVG and creates native SVG metadata after keyboard input in ${engine.name()}`,
+    async () => {
+      const browser = await engine.launch();
+      try {
+        const page = await browser.newPage();
+        const errors: string[] = [];
+        page.on('pageerror', (error) => errors.push(error.message));
+        const scripts = Promise.withResolvers<void>();
+        await page.route(`${origin}/**`, async (route) => {
+          if (route.request().resourceType() === 'script') await scripts.promise;
+          const pathname = new URL(route.request().url()).pathname;
+          const path = pathname.slice(1) + (pathname.endsWith('/') ? 'index.html' : '');
+          await route.fulfill({ path: new URL(path, output).pathname });
+        });
+
+        await page.goto(`${origin}/changing-plot/`, { waitUntil: 'commit' });
+        const svg = page.getByRole('img');
+        const original = await svg.elementHandle();
+        const morning = svg.locator('rect').filter({ hasText: 'Morning' });
+        const originalMorning = await morning.elementHandle();
+        const svgNamespace = 'http://www.w3.org/2000/svg';
+        expect(await morning.locator('title').evaluate((node) => node.namespaceURI)).toBe(
+          svgNamespace,
+        );
+        scripts.resolve();
+
+        await page.locator('astro-island:not([ssr])').waitFor({ state: 'attached' });
+        await page.getByRole('button', { name: 'Show evening' }).press('Enter');
+        const evening = svg.locator('rect').filter({ hasText: 'Evening' });
+        expect(await original.evaluate((node) => node === document.querySelector('main svg'))).toBe(
+          true,
+        );
+        expect(
+          await originalMorning.evaluate(
+            (node) => node === document.querySelector('main svg rect[aria-label="Morning"]'),
+          ),
+        ).toBe(true);
+        expect(await evening.locator('title').evaluate((node) => node.namespaceURI)).toBe(
+          svgNamespace,
+        );
+        expect(await svg.locator('desc').evaluate((node) => node.namespaceURI)).toBe(svgNamespace);
+        expect(await svg.locator('desc').textContent()).toBe('Morning and evening requests');
+        expect(await svg.locator(':scope > title').textContent()).toBe('Requests by time of day');
+        expect(await page.getByRole('row', { name: 'Evening 8' }).count()).toBe(1);
+        expect(await page.locator('head title').evaluate((node) => node.namespaceURI)).toBe(
+          'http://www.w3.org/1999/xhtml',
+        );
+        expect(errors).toEqual([]);
+      } finally {
+        await browser.close();
+      }
+    },
+    30_000,
+  );
+}
 
 test.skipIf(process.env.ASTRO_EFFECT_UI_BROWSER !== '1')(
   'Astro activates two independent roots in place and closes only the removed scope',

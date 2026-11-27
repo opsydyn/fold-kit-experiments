@@ -196,6 +196,9 @@
       "effect/plot": [
         "./dist/effect/plot.d.mts"
       ],
+      "effect-ui/plot": [
+        "./dist/effect-ui/plot.d.mts"
+      ],
       "foldkit/plot": [
         "./dist/foldkit/plot.d.mts"
       ],
@@ -450,6 +453,10 @@
       "types": "./dist/effect/plot.d.mts",
       "import": "./dist/effect/plot.mjs"
     },
+    "./effect-ui/plot": {
+      "types": "./dist/effect-ui/plot.d.mts",
+      "import": "./dist/effect-ui/plot.mjs"
+    },
     "./foldkit/plot": {
       "types": "./dist/foldkit/plot.d.mts",
       "import": "./dist/foldkit/plot.mjs"
@@ -512,6 +519,7 @@
   },
   "devDependencies": {
     "@duckdb/node-api": "2.0.0-r.1",
+    "@effect/ui": "https://pkg.pr.new/Effect-TS/ui/@effect/ui@77dcd92",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/testing": "workspace:*",
     "@types/node": "^22.0.0",
@@ -528,11 +536,15 @@
     "vitest": "^5.0.5"
   },
   "peerDependencies": {
+    "@effect/ui": "0.0.0",
     "@opsydyn/effect-three": ">=0.6.4 <0.8.0",
     "effect": ">=4.0.0 <5.0.0",
     "foldkit": ">=0.167.0 <0.172.0"
   },
   "peerDependenciesMeta": {
+    "@effect/ui": {
+      "optional": true
+    },
     "@opsydyn/effect-three": {
       "optional": true
     },

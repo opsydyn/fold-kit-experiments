@@ -117,6 +117,7 @@ path. Application Commands, request flags and data loading remain app-owned.
 | `@opsydyn/foldkit-viz/webgl/points`            | `pointsLayer` — dense dot marks drawn and highlighted on the GPU                                                                                                      |
 | `@opsydyn/foldkit-viz/jupyter`                 | `displayPlot`, `plotMimeBundle` — inline plots in Deno and Bun Jupyter kernels                                                                                        |
 | `@opsydyn/foldkit-viz/plot`                    | `compilePlot`, `describePlot`, `plotTable`, `columnTable`, `fromArrow`, `fromDuckDB`, `indexPlot`, `highlightPoints` — the plot grammar                               |
+| `@opsydyn/foldkit-viz/effect-ui/plot`          | `plotChart` — compiled plots as an SVG figure in an Effect UI view                                                                                                    |
 | `@opsydyn/foldkit-viz/foldkit/plot`            | `plotChart`, `plotCanvas` — compiled plots in a FoldKit view                                                                                                          |
 | `@opsydyn/foldkit-viz/canvas/plot`             | `paintPlot`, `paintCanvas` — compiled plots on a 2D canvas                                                                                                            |
 | `@opsydyn/foldkit-viz/chart/cartesian`         | `scatterGeometry`, `lineGeometry`, `histogramGeometry`                                                                                                                |
@@ -555,6 +556,12 @@ plotCanvas(h, geometry, {
 The library still installs no listeners: the parent streams pointer events and
 keeps hover, brush and domain in its Model. The web app's `/explore` page links a
 million-point scatter to a latency histogram this way.
+
+In an Effect UI view, import `plotChart` from
+`@opsydyn/foldkit-viz/effect-ui/plot` and call `plotChart(h, geometry, options)`.
+For changing browser charts, use an Effect UI browser host that creates
+SVG `title` and `desc` in the SVG namespace. The private migration branch
+applies this fix as a Bun patch to its pinned Effect UI preview.
 
 ### Points on the GPU (0.19.0+)
 

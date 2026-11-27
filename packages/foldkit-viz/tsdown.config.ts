@@ -15,6 +15,7 @@ export default defineConfig({
     'effect-three/space3d': 'src/effect-three/space3d.ts',
     'foldkit/orbit': 'src/foldkit/orbit.ts',
     'effect/plot': 'src/effect/plot.ts',
+    'effect-ui/plot': 'src/effect-ui/plot.ts',
     'foldkit/plot': 'src/foldkit/plot.ts',
     'foldkit/keyboard': 'src/foldkit/keyboard.ts',
     'interaction/keyboard': 'src/interaction/keyboard.ts',

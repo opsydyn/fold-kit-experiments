@@ -149,10 +149,25 @@ describe('interactive pages', () => {
     const html = readFileSync(join(root, 'dist/index.html'), 'utf8');
     const script = written[1]?.replace('dist/', '') ?? '';
     expect(html).toContain(`<script defer src="${script}"></script>`);
-    expect(html).toContain('data-foldkit-app');
-    expect(html).toContain(`data-foldkit-build="${/client-([0-9a-f]+)/.exec(script)?.[1]}"`);
+    expect(html).toContain('data-dash-root');
+    expect(html).toContain('type="application/json" data-dash-state');
+    expect(html).toContain(`data-dash-build="${/client-([0-9a-f]+)/.exec(script)?.[1]}"`);
     expect(run('build', '-C', root).code).toBe(0);
     expect(readFileSync(join(root, 'dist/index.html'), 'utf8')).toBe(html);
+  });
+
+  test('interactive Markdown retains links and prints authored HTML as text', () => {
+    const root = project({
+      'pages/index.md':
+        page +
+        '\n\n[Read more](guide.md?topic=charts#examples)\n\n`</script>` and <em>literal</em>\n',
+      'data/units.json': JSON.stringify(rows),
+    });
+    expect(run('build', '-C', root).code).toBe(0);
+    const html = readFileSync(join(root, 'dist/index.html'), 'utf8');
+    expect(html).toContain('<a href="guide.html?topic=charts#examples">Read more</a>');
+    expect(html).toContain('<code>&lt;/script&gt;</code> and &lt;em&gt;literal&lt;/em&gt;');
+    expect(html.match(/<script[\s>]/g)).toHaveLength(3);
   });
 
   test('describe names the input values a chart is drawn at, and the envelope lists inputs', () => {

@@ -1,5 +1,5 @@
 /**
- * An interactive page as a Foldkit app (ADR 0110): its Flags are the page (prose, inputs,
+ * An interactive page as an Effect UI component (ADR 0110): its Flags are the page (prose, inputs,
  * chart specs and the rows those charts use), its Model adds each input's value, and a
  * reader changing an input, or clicking a chart's category (ADR 0116), sets one. The
  * build renders it to HTML; the page's script hydrates that HTML with the same `init`,
@@ -7,14 +7,12 @@
  * the page as it was shared.
  * @module App
  */
-import { plotChart, type PlotOverlay } from '@opsydyn/foldkit-viz/foldkit/plot';
+import { Command, Mount, UiSchema, type View } from '@effect/ui';
+import { Html } from '@effect/ui/html';
+import { plotChart } from '@opsydyn/foldkit-viz/effect-ui/plot';
 import { chartCommandOf, targetAfter } from '@opsydyn/foldkit-viz/interaction/keyboard';
 import { plotTables, pointerToPlot } from '@opsydyn/foldkit-viz/plot';
-import { Effect, Option, Result, Schema } from 'effect';
-import { Command, CustomElement, Mount, Navigation } from 'foldkit';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return } from 'foldkit/update';
+import { Effect, Option, Queue, Result, Schema, Stream } from 'effect';
 
 import {
   choiceAt as pressedChoice,
@@ -37,11 +35,12 @@ import {
   Values,
   valuesFromQuery,
 } from './inputs';
+import { Prose, renderProse } from './prose';
 import { JsonRecord, Rows } from './rows';
 
 /** A part of a page: prose, an input, a chart, or a fence the build found broken. */
 export const Section = Schema.Union([
-  Schema.TaggedStruct('Prose', { html: Schema.String }),
+  Schema.TaggedStruct('Prose', { nodes: Schema.Array(Prose) }),
   Schema.TaggedStruct('Control', { input: Input }),
   Schema.TaggedStruct('Chart', { line: Schema.Int, spec: JsonRecord }),
   Schema.TaggedStruct('Broken', { line: Schema.Int, message: Schema.String }),
@@ -74,8 +73,7 @@ const Drag = Schema.NullOr(
   Schema.Struct({ line: Schema.Int, from: Schema.Number, to: Schema.Number }),
 );
 
-export const Model = Schema.Struct({
-  ...Flags.fields,
+const Interaction = Schema.Struct({
   values: Values,
   pointed: Pointed,
   drag: Drag,
@@ -90,29 +88,23 @@ export const Model = Schema.Struct({
     }),
   ),
 });
-export type Model = typeof Model.Type;
+export type Model = Flags & typeof Interaction.Type;
 
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   /** A reader chose a value for an input (`null`: a select's or radio's `all`). */
   ChangedInput: { name: Schema.String, value: InputValue },
-  /** A reader clicked a chart's category, choosing it for the input the chart selects. */
-  ClickedChart: { name: Schema.String, value: InputValue },
-  /** The page's query string when it opened: the values a shared link carries. */
   OpenedWithQuery: { query: Schema.String },
-  /** The query string now holds the inputs' values. */
   CompletedWriteQuery: {},
-  /** A reader pointed at a chart's value, or away from every one (`index` null). */
-  PointedChart: { line: Schema.Int, index: Schema.NullOr(Schema.Int) },
-  /** A chart's pointer forwarding is in place. */
-  CompletedForwardPointer: {},
+  LeftChart: {},
+  ObservedPointer: {
+    line: Schema.Int,
+    phase: Schema.Literals(['down', 'move', 'up', 'cancel']),
+    x: Schema.Number,
+    y: Schema.Number,
+    legend: Schema.NullOr(Schema.String),
+  },
   /** A reader pressed one of a chart's keys (ADR 0118). */
   PressedChartKey: { line: Schema.Int, command: ChartKey },
-  /** A press, move or release while dragging across a chart, at an x in its pixels. */
-  DraggedChart: {
-    line: Schema.Int,
-    phase: Schema.Literals(['down', 'move', 'up']),
-    x: Schema.Number,
-  },
   /** A chart took keyboard focus, or gave it up (`line` null). */
   FocusedChart: { line: Schema.NullOr(Schema.Int) },
   /** A reader typed into one end of a `between` input: a draft until committed. */
@@ -127,20 +119,23 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 /** Reads the query string the page opened with. */
-const ReadQuery = Command.define('ReadQuery', {
-  messages: [Message.OpenedWithQuery],
-  execute: Effect.sync(() => Message.OpenedWithQuery({ query: window.location.search })),
-});
+const ReadQuery = Command.make('ReadQuery', { args: {} }, () =>
+  Effect.sync(() => Message.OpenedWithQuery({ query: window.location.search })),
+);
 
-/** Puts the inputs' values in the query string, replacing the entry rather than adding one. */
-const WriteQuery = Command.define('WriteQuery', {
-  args: { query: Schema.String },
-  messages: [Message.CompletedWriteQuery],
-  execute: ({ query }) =>
-    Effect.suspend(() =>
-      Navigation.replaceUrl(`${window.location.pathname}${query}${window.location.hash}`),
-    ).pipe(Effect.map(() => Message.CompletedWriteQuery())),
-});
+const WriteQuery = Command.make('WriteQuery', { args: { query: Schema.String } }, ({ query }) =>
+  Effect.sync(() => {
+    const url = new URL(window.location.href);
+    url.search = query;
+    window.history.replaceState(window.history.state, '', url);
+    return Message.CompletedWriteQuery();
+  }),
+);
+
+type Return<State, Event> = Readonly<{
+  model: State;
+  commands?: ReadonlyArray<Command.Command<Event>>;
+}>;
 
 const isNumber = Schema.is(Schema.Finite);
 
@@ -157,7 +152,7 @@ export const init = (flags: Flags): Return<Model, Message> => ({
     focused: null,
     draft: null,
   },
-  commands: [ReadQuery()],
+  commands: [ReadQuery.make({})],
 });
 
 /** The model with one input set, and the query string written to match. */
@@ -165,14 +160,13 @@ const choose = (model: Model, name: string, value: InputValue): Return<Model, Me
   const values = { ...model.values, [name]: value };
   return {
     model: { ...model, values },
-    commands: [WriteQuery({ query: queryOf(inputsOf(model.sections), values) })],
+    commands: [WriteQuery.make({ query: queryOf(inputsOf(model.sections), values) })],
   };
 };
 
 export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match(message, {
+  Message.match({
     ChangedInput: ({ name, value }) => choose(model, name, value),
-    ClickedChart: ({ name, value }) => choose(model, name, value),
     OpenedWithQuery: ({ query }) => ({
       model: {
         ...model,
@@ -180,18 +174,15 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       },
     }),
     CompletedWriteQuery: () => ({ model }),
-    PointedChart: ({ line, index }) => ({
-      model: { ...model, pointed: index === null ? null : { line, index } },
-    }),
-    CompletedForwardPointer: () => ({ model }),
+    LeftChart: () => ({ model: { ...model, pointed: null } }),
+    ObservedPointer: (pointer) => pointerUpdated(model, pointer),
     PressedChartKey: ({ line, command }) => pressedKey(model, line, command),
-    DraggedChart: ({ line, phase, x }) => dragged(model, line, phase, x),
     FocusedChart: ({ line }) => ({ model: { ...model, focused: line } }),
     EditedSpanEnd: (draft) => ({
       model: { ...model, draft: { name: draft.name, which: draft.which, text: draft.text } },
     }),
     CommittedSpanEnd: ({ name }) => committed(model, name),
-  });
+  })(message);
 
 /**
  * A typed end of a `between` input, applied (ADR 0119): a whole date or number within
@@ -317,235 +308,200 @@ const isSpan = Schema.is(Span);
  * A `between` input (ADR 0119): a from and a to, as date or number fields, and a button
  * back to the whole span. A change that would put from after to moves the other end.
  */
-const betweenControl = (
-  h: HtmlBuilder<Message>,
+function betweenControl(
+  h: Html.H<Message>,
   input: Extract<Input, { readonly _tag: 'Between' }>,
   value: InputValue,
-): Html => {
-  const id = `input-${input.name}`;
+  draft: Model['draft'],
+) {
   const span = isSpan(value) ? value : input.value;
   const whole = span.min === input.min && span.max === input.max;
   const commit = Message.CommittedSpanEnd({ name: input.name });
-  // What is typed is a draft until the field loses focus or Enter is pressed: a date
-  // field reports a whole but meaningless date after each part typed (year 2, 20, 202).
-  // The field's value stays the span's, so a redraw never overwrites what is half typed.
-  const field = (which: 'min' | 'max', word: string) =>
-    h.label(
-      [],
-      [
-        word,
-        h.input([
-          h.Id(`${id}-${which}`),
-          h.Type(input.kind === 'date' ? 'date' : 'number'),
-          h.Min(String(input.min)),
-          h.Max(String(input.max)),
-          ...(input.kind === 'number' ? [h.Step(String(input.step))] : []),
-          h.Value(String(span[which])),
-          h.OnChange((text) => Message.EditedSpanEnd({ name: input.name, which, text })),
-          h.OnBlur(commit),
-          h.OnKeyDownPreventDefault((key) =>
-            key === 'Enter' ? Option.some(commit) : Option.none(),
-          ),
-        ]),
-      ],
+  const field = (which: 'min' | 'max', label: string) =>
+    h.label.children(
+      label,
+      h.input
+        .id(`input-${input.name}-${which}`)
+        .attr('type', input.kind)
+        .attr('min', String(input.min))
+        .attr('max', String(input.max))
+        .attr('step', input.kind === 'number' ? String(input.step) : undefined)
+        .value(
+          draft?.name === input.name && draft.which === which ? draft.text : String(span[which]),
+        )
+        .on('input', ({ value: text }) => Message.EditedSpanEnd({ name: input.name, which, text }))
+        .on('blur', commit)
+        .on('keydown', ({ key }) => (key === 'Enter' ? commit : undefined), {
+          preventDefault: true,
+        }),
     );
-  return h.fieldset(
-    [h.Class('control')],
-    [
-      h.legend([], [input.label]),
-      field('min', 'From'),
-      field('max', 'to'),
-      h.button(
-        [
-          h.Type('button'),
-          h.Disabled(whole),
-          h.OnClick(changed(input.name, { min: input.min, max: input.max })),
-        ],
-        ['All'],
-      ),
-    ],
+  return h.fieldset.class('control').children(
+    h.legend.children(input.label),
+    field('min', 'From'),
+    field('max', 'to'),
+    h.button
+      .attr('type', 'button')
+      .disabled(whole)
+      .on('click', changed(input.name, { min: input.min, max: input.max }))
+      .children('All'),
   );
-};
-
-const choiceAt = (input: Extract<Input, { readonly _tag: 'Choose' }>, index: string): InputValue =>
-  input.choices[Number(index)] ?? null;
+}
 
 const changed = (name: string, value: InputValue): Message => Message.ChangedInput({ name, value });
 
-/** The choices, with `all` first when the input has one. */
 const options = (input: Extract<Input, { readonly _tag: 'Choose' }>) => [
   ...(input.all === null ? [] : [{ index: '-1', text: input.all, value: null }]),
   ...input.choices.map((choice, i) => ({ index: String(i), text: String(choice), value: choice })),
 ];
 
-const control = (h: HtmlBuilder<Message>, input: Input, value: InputValue): Html => {
+function control(
+  h: Html.H<Message>,
+  input: Input,
+  value: InputValue,
+  draft: Model['draft'],
+): View.Content<Message> {
   const id = `input-${input.name}`;
-  if (input._tag === 'Between') return betweenControl(h, input, value);
+  if (input._tag === 'Between') return betweenControl(h, input, value, draft);
   if (input._tag === 'Pick') {
-    // A group of checkboxes (ADR 0117): ticking one adds it to the list, in the choices'
-    // order; unticking removes it.
     const ticked = isChoices(value) ? value : [];
-    return h.fieldset(
-      [h.Class('control')],
-      [
-        h.legend([], [input.label]),
-        ...input.choices.map((choice, i) => {
-          const on = ticked.includes(choice);
-          const next = input.choices.filter((each) =>
-            each === choice ? !on : ticked.includes(each),
-          );
-          return h.label(
-            [],
-            [
-              h.input([
-                h.Type('checkbox'),
-                h.Name(`${id}-${i}`),
-                h.Checked(on),
-                h.OnChange(() => changed(input.name, next)),
-              ]),
-              String(choice),
-            ],
-          );
-        }),
-      ],
+    return h.fieldset.class('control').children(
+      h.legend.children(input.label),
+      input.choices.map((choice, index) =>
+        h.label.children(
+          h.input
+            .attr('type', 'checkbox')
+            .attr('name', `${id}-${index}`)
+            .checked(ticked.includes(choice))
+            .on('change', ({ checked }) =>
+              changed(
+                input.name,
+                input.choices.filter((item) => (item === choice ? checked : ticked.includes(item))),
+              ),
+            ),
+          String(choice),
+        ),
+      ),
     );
   }
   if (input._tag === 'Toggle') {
-    const on = value === true;
-    return h.div(
-      [h.Class('control')],
-      [
-        h.input([
-          h.Id(id),
-          h.Type('checkbox'),
-          h.Checked(on),
-          h.OnChange(() => changed(input.name, !on)),
-        ]),
-        h.label([h.For(id)], [input.label]),
-      ],
+    return h.div.class('control').children(
+      h.input
+        .id(id)
+        .attr('type', 'checkbox')
+        .checked(value === true)
+        .on('change', ({ checked }) => changed(input.name, checked)),
+      h.label.attr('for', id).children(input.label),
     );
   }
   if (input._tag === 'Range') {
     const at = isNumber(value) ? value : input.value;
-    return h.div(
-      [h.Class('control')],
-      [
-        h.label([h.For(id)], [input.label]),
-        h.input([
-          h.Id(id),
-          h.Type('range'),
-          h.Min(String(input.min)),
-          h.Max(String(input.max)),
-          h.Step(String(input.step)),
-          h.Value(String(at)),
-          h.OnInput((text) => changed(input.name, Number(text))),
-        ]),
-        h.output([h.For(id)], [String(at)]),
-      ],
+    return h.div.class('control').children(
+      h.label.attr('for', id).children(input.label),
+      h.input
+        .id(id)
+        .attrs({
+          type: 'range',
+          min: String(input.min),
+          max: String(input.max),
+          step: String(input.step),
+        })
+        .value(String(at))
+        .on('input', ({ value }) => changed(input.name, Number(value))),
+      h.output.attr('for', id).children(String(at)),
     );
   }
   if (input.style === 'select') {
-    return h.div(
-      [h.Class('control')],
-      [
-        h.label([h.For(id)], [input.label]),
-        h.select(
-          [h.Id(id), h.OnChange((index) => changed(input.name, choiceAt(input, index)))],
+    return h.div.class('control').children(
+      h.label.attr('for', id).children(input.label),
+      h.select
+        .id(id)
+        .value(indexOf(input, value))
+        .on('change', ({ value: index }) =>
+          changed(input.name, input.choices[Number(index)] ?? null),
+        )
+        .children(
           options(input).map((option) =>
-            h.option(
-              [h.Value(option.index), h.Selected(option.index === indexOf(input, value))],
-              [option.text],
-            ),
+            h.option
+              .attr('value', option.index)
+              .selected(option.index === indexOf(input, value))
+              .children(option.text),
           ),
         ),
-      ],
     );
   }
-  return h.fieldset(
-    [h.Class('control')],
-    [
-      h.legend([], [input.label]),
-      ...options(input).map((option) =>
-        h.label(
-          [],
-          [
-            h.input([
-              h.Type('radio'),
-              h.Name(id),
-              h.Value(option.index),
-              h.Checked(option.index === indexOf(input, value)),
-              h.OnChange(() => changed(input.name, option.value)),
-            ]),
-            option.text,
-          ],
-        ),
+  return h.fieldset.class('control').children(
+    h.legend.children(input.label),
+    options(input).map((option) =>
+      h.label.children(
+        h.input
+          .attrs({ type: 'radio', name: id, value: option.index })
+          .checked(option.index === indexOf(input, value))
+          .on('change', () => changed(input.name, option.value)),
+        option.text,
       ),
-    ],
+    ),
   );
-};
+}
 
-const note = (h: HtmlBuilder<Message>, line: number, message: string): Html =>
-  h.p([h.Class('problem'), h.Role('note')], [`Chart at line ${line}: ${message}`]);
+const note = (h: Html.H<Message>, line: number, message: string) =>
+  h.p.class('problem').attr('role', 'note').children(`Chart at line ${line}: ${message}`);
 
-/** A pointer over a chart, already in the chart's own pixels. */
-const PointerFact = Schema.Struct({
-  x: Schema.Number,
-  y: Schema.Number,
-  phase: Schema.Literals(['down', 'move', 'up']),
-});
-
-const POINTER_EVENT = 'dash-chart-pointer';
-
-/** The chart's own DOM event, so pointer moves reach the dispatcher as typed facts. */
-const chartEvents = CustomElement.define({
-  tag: 'foldkit-dash-chart',
-  properties: {},
-  events: { [POINTER_EVENT]: PointerFact },
-});
-
-/**
- * Forwards pointer moves over a chart as plot-pixel facts. A move carries only screen
- * positions in Foldkit's handlers, so this reads the client position and the drawing's
- * rendered size where the event happens, as the web app's plot panel does.
- */
-const ForwardPointer = Mount.define('ForwardDashChartPointer', {
-  args: { width: Schema.Number, height: Schema.Number },
-  messages: [Message.CompletedForwardPointer],
-  execute: ({ element, width, height }) => {
-    const listen = Effect.sync(() => {
-      const listener = (event: Event) => {
-        if (!(event instanceof PointerEvent)) return;
-        const drawn = element.querySelector('svg') ?? element;
-        const point = pointerToPlot(
-          { x: event.clientX, y: event.clientY },
-          drawn.getBoundingClientRect(),
-          { width, height },
-        );
-        const phase =
-          event.type === 'pointerdown' ? 'down' : event.type === 'pointerup' ? 'up' : 'move';
-        // Keep receiving moves while a drag goes outside the chart.
-        if (phase === 'down' && element instanceof HTMLElement) {
-          element.setPointerCapture?.(event.pointerId);
-        }
-        element.dispatchEvent(new CustomEvent(POINTER_EVENT, { detail: { ...point, phase } }));
-      };
-      for (const type of ['pointermove', 'pointerdown', 'pointerup']) {
-        element.addEventListener(type, listener);
-      }
-      return listener;
-    });
-    return Effect.acquireRelease(listen, (listener) =>
-      Effect.sync(() => {
-        for (const type of ['pointermove', 'pointerdown', 'pointerup']) {
-          element.removeEventListener(type, listener);
-        }
+/** Capture stays with the chart until release, including a drag outside its bounds. */
+const ForwardPointer = Mount.makeStream(
+  'ForwardDashChartPointer',
+  { args: { line: Schema.Int, width: Schema.Number, height: Schema.Number } },
+  (element: HTMLElement, _args, changes) =>
+    Stream.switchMap(changes, ({ line, width, height }) =>
+      Stream.callback<Message>((queue) => {
+        const listen = Effect.sync(() => {
+          const draw =
+            (phase: Extract<Message, { _tag: 'ObservedPointer' }>['phase']) =>
+            (event: PointerEvent) => {
+              if (phase === 'down' && event.button !== 0) return;
+              const svg = element.querySelector('svg');
+              if (!svg) return;
+              const point = pointerToPlot(
+                { x: event.clientX, y: event.clientY },
+                svg.getBoundingClientRect(),
+                { width, height },
+              );
+              const hit =
+                event.target instanceof Element ? event.target.closest('.plot-legend li') : null;
+              if (phase === 'down') element.setPointerCapture(event.pointerId);
+              Queue.offerUnsafe(
+                queue,
+                Message.ObservedPointer({
+                  line,
+                  phase,
+                  x: point.x,
+                  y: point.y,
+                  legend: hit?.textContent?.trim() ?? null,
+                }),
+              );
+            };
+          const listeners = {
+            pointerdown: draw('down'),
+            pointermove: draw('move'),
+            pointerup: draw('up'),
+            pointercancel: draw('cancel'),
+            pointerleave: () => Queue.offerUnsafe(queue, Message.LeftChart()),
+          };
+          const types = [
+            'pointerdown',
+            'pointermove',
+            'pointerup',
+            'pointercancel',
+            'pointerleave',
+          ] as const;
+          for (const type of types) element.addEventListener(type, listeners[type]);
+          return () => {
+            for (const type of types) element.removeEventListener(type, listeners[type]);
+          };
+        });
+        return Effect.acquireRelease(listen, Effect.sync);
       }),
-    ).pipe(
-      Effect.map(() => Message.CompletedForwardPointer()),
-      Effect.withSpan('ForwardDashChartPointer'),
-    );
-  },
-});
+    ),
+);
 
 /**
  * A chart's keys (ADR 0118): arrows, Page Up and Down, Home and End step through its
@@ -589,25 +545,22 @@ const bandOf = (
 };
 
 const chart = (
-  h: HtmlBuilder<Message>,
+  h: Html.H<Message>,
   model: Model,
   data: ReadonlyMap<string, Rows>,
   section: Extract<Section, { readonly _tag: 'Chart' }>,
-): Html =>
+): View.Content<Message> =>
   Result.match(drawSpec(section.spec, data, model.values), {
     onFailure: (problem) => note(h, section.line, problem.message),
     onSuccess: (drawn) => {
-      const events = chartEvents.withMessage(h);
       const targets = targetsOf(drawn, section.spec);
       const index = model.pointed?.line === section.line ? model.pointed.index : undefined;
       const target = index === undefined ? undefined : targets[index];
       const band = bandOf(model, drawn, section.line);
-      const marked: PlotOverlay = {
+      const overlay = {
         ...(target === undefined ? undefined : { ring: { x: target.x, y: target.y, r: 6 } }),
         ...(band === undefined ? undefined : { brush: band }),
       };
-      const overlay = { overlay: marked };
-      const dragging = model.drag?.line === section.line;
       const hint = [
         'Arrow keys read values',
         'Shift with Up or Down changes series',
@@ -615,109 +568,113 @@ const chart = (
         ...(drawn.brushes === null ? [] : [`drag across to choose ${drawn.brushes}`]),
       ].join('; ');
       const readout = target?.text ?? (model.focused === section.line ? `${hint}.` : '');
-      return h.figure(
-        [
-          h.Class(
-            [
-              'chart',
-              drawn.selects === null ? '' : 'selects',
-              drawn.brushes === null ? '' : 'brushes',
-            ]
-              .filter((name) => name !== '')
-              .join(' '),
-          ),
-          h.OnFocus(Message.FocusedChart({ line: section.line })),
-          h.OnBlur(Message.FocusedChart({ line: null })),
-          h.Tabindex(0),
-          // Its name says what the chart answers; the drawing keeps its own summary.
-          h.Attribute('aria-roledescription', 'interactive chart'),
-          h.AriaLabel(`Chart: ${hint}`),
-          h.OnMount(ForwardPointer({ width: drawn.geometry.width, height: drawn.geometry.height })),
-          events.OnDashChartPointer(({ x, y, phase }) =>
-            drawn.brushes !== null && (phase !== 'move' || dragging)
-              ? Message.DraggedChart({ line: section.line, phase, x })
-              : Message.PointedChart({
-                  line: section.line,
-                  index: pointedAt(drawn, targets, x, y) ?? null,
-                }),
-          ),
-          h.OnPointerLeave(() =>
-            Option.some(Message.PointedChart({ line: section.line, index: null })),
-          ),
-          h.OnKeyDownPreventDefault(chartKeys(section.line)),
-          ...(drawn.selects === null ? [] : [h.OnPointerDown(clicked(model, drawn))]),
-        ],
-        [
+      return h.figure
+        .class('chart', drawn.selects !== null && 'selects', drawn.brushes !== null && 'brushes')
+        .attr('tabindex', '0')
+        .attr('aria-roledescription', 'interactive chart')
+        .attr('aria-label', `Chart: ${hint}`)
+        .on('focus', Message.FocusedChart({ line: section.line }))
+        .on('blur', Message.FocusedChart({ line: null }))
+        .onMount(
+          ForwardPointer({
+            line: section.line,
+            width: drawn.geometry.width,
+            height: drawn.geometry.height,
+          }),
+        )
+        .on(
+          'keydown',
+          ({ key, shift, alt, ctrl, meta }) =>
+            Option.getOrUndefined(
+              chartKeys(section.line)(key, {
+                shiftKey: shift,
+                altKey: alt,
+                ctrlKey: ctrl,
+                metaKey: meta,
+              }),
+            ),
+          { preventDefault: true },
+        )
+        .children(
           plotChart(h, drawn.geometry, {
             tables: plotTables(drawn.plot, drawn.geometry),
             summary: true,
-            ...overlay,
+            overlay,
           }),
-          h.p([h.Class('readout'), h.AriaLive('polite')], [readout]),
-        ],
-      );
+          h.p.class('readout').attr('aria-live', 'polite').children(readout),
+        );
     },
   });
 
-/**
- * The category a press on a chart lands on, or the legend entry pressed (ADR 0118), as
- * the input it selects (ADR 0116): the
- * pointer in the chart's own pixels, then the band there. Pressing the chosen category
- * again goes back to `all` when the input has one. Off a band, or for another button,
- * nothing happens.
- */
-const clicked =
-  (model: Model, drawn: Drawn) =>
-  (
-    _pointerType: string,
-    button: number,
-    _screenX: number,
-    _screenY: number,
-    _timeStamp: number,
-    clientX: number,
-    clientY: number,
-    _pointerId: number,
-    target: EventTarget | null,
-  ): Option.Option<Message> => {
-    const { selects, geometry } = drawn;
-    const svg =
-      target instanceof Element ? target.closest('figure.chart')?.querySelector('svg') : null;
-    const input = inputsOf(model.sections).find((each) => each.name === selects?.input);
-    if (button !== 0 || selects === null || svg == null || input?._tag !== 'Choose') {
-      return Option.none();
+function pointerUpdated(
+  model: Model,
+  { line, phase, x, y, legend }: Extract<Message, { _tag: 'ObservedPointer' }>,
+): Return<Model, Message> {
+  if (phase === 'cancel')
+    return { model: model.drag?.line === line ? { ...model, drag: null } : model };
+  const found = drawnAt(model, line);
+  if (!found) return { model };
+  const { drawn, spec } = found;
+  const brush =
+    drawn.brushes !== null && (phase !== 'move' || model.drag?.line === line)
+      ? dragged(model, line, phase, x)
+      : undefined;
+  if (phase === 'down' && drawn.selects !== null) {
+    const input = inputsOf(model.sections).find((entry) => entry.name === drawn.selects?.input);
+    const category = legend ?? Option.getOrUndefined(pressedChoice(drawn, x, y));
+    const choice =
+      input?._tag === 'Choose'
+        ? input.choices.find((entry) => String(entry) === category)
+        : undefined;
+    if (input?._tag === 'Choose' && choice !== undefined) {
+      const current = model.values[input.name] ?? null;
+      return choose(
+        brush?.model ?? model,
+        input.name,
+        current === choice && input.all !== null ? null : choice,
+      );
     }
-    // A press on a legend entry chooses what it names (ADR 0118); elsewhere, what is
-    // drawn under the pointer.
-    const entry = target instanceof Element ? target.closest('.plot-legend li') : null;
-    const point = pointerToPlot({ x: clientX, y: clientY }, svg.getBoundingClientRect(), geometry);
-    const category =
-      entry === null
-        ? pressedChoice(drawn, point.x, point.y)
-        : Option.some((entry.textContent ?? '').trim());
-    const choice = Option.flatMap(category, (name) =>
-      Option.fromUndefinedOr(input.choices.find((each) => String(each) === name)),
-    );
-    if (Option.isNone(choice)) return Option.none();
-    const current = model.values[input.name] ?? null;
-    const value = current === choice.value && input.all !== null ? null : choice.value;
-    return Option.some(Message.ClickedChart({ name: input.name, value }));
-  };
+  }
+  if (brush) return brush;
+  const index = pointedAt(drawn, targetsOf(drawn, spec), x, y);
+  return { model: { ...model, pointed: index === undefined ? null : { line, index } } };
+}
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+function view(h: Html.H<Message>, model: Model) {
   const data = new Map(Object.entries(model.data));
-  return {
-    title: model.title,
-    body: h.div(
-      [h.Class('dash-app')],
-      model.sections.map((section) => {
-        if (section._tag === 'Prose')
-          return h.div([h.Class('prose'), h.InnerHTML(section.html)], []);
-        if (section._tag === 'Control') {
-          return control(h, section.input, model.values[section.input.name] ?? null);
-        }
-        if (section._tag === 'Broken') return note(h, section.line, section.message);
-        return chart(h, model, data, section);
-      }),
-    ),
-  };
-};
+  return h.div.class('dash-app').children(
+    model.sections.map((section) => {
+      if (section._tag === 'Prose')
+        return h.div.class('prose').children(section.nodes.map((node) => renderProse(h, node)));
+      if (section._tag === 'Control')
+        return control(h, section.input, model.values[section.input.name] ?? null, model.draft);
+      if (section._tag === 'Broken') return note(h, section.line, section.message);
+      return chart(h, model, data, section);
+    }),
+  );
+}
+
+const interactionOf = ({ values, pointed, drag, focused, draft }: Model) => ({
+  values,
+  pointed,
+  drag,
+  focused,
+  draft,
+});
+
+export const Dash = Html.component({
+  name: 'Dash',
+  props: Flags,
+  model: Interaction,
+  message: Message,
+}).make({
+  init: ({ props, set }) => {
+    const next = init(props);
+    return set(interactionOf(next.model)).run(...(next.commands ?? []));
+  },
+  update: ($, message) => {
+    const next = update({ ...$.props, ...$.model }, message);
+    return $.set(interactionOf(next.model)).run(...(next.commands ?? []));
+  },
+  view: (h, model) => view(h, { ...h.props, ...model }),
+});

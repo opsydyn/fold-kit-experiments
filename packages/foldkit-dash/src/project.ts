@@ -11,6 +11,7 @@ import { join, posix } from 'node:path';
 import { describePlot, plotTables } from '@opsydyn/foldkit-viz/plot';
 import { plotHtml, plotSvg } from '@opsydyn/foldkit-viz/svg/plot';
 import { Result, Schema } from 'effect';
+import { defaultTreeAdapter, parseFragment, type DefaultTreeAdapterTypes } from 'parse5';
 
 import type { Flags, Section } from './app';
 import { type ChartProblem, drawSpec, type Selects, type Series } from './chart';
@@ -38,6 +39,7 @@ import {
   titleOf,
 } from './page';
 import { type Chart, DashInvocationError, type InputEntry, type Problem } from './problems';
+import type { ProseNode } from './prose';
 import { JsonRecord, type JsonObject, type Rows } from './rows';
 
 /**
@@ -402,7 +404,8 @@ function analysePage(
   }
 
   const sections = sectionsOf(page.text).map((section): Section => {
-    if (section._tag === 'Prose') return section;
+    if (section._tag === 'Prose')
+      return { _tag: 'Prose', nodes: proseNodes(parseFragment(section.html).childNodes) };
     const fence = fences[section.index];
     const line = fence?.line ?? 0;
     const input = fence === undefined ? undefined : readInputs.get(fence);
@@ -418,6 +421,21 @@ function analysePage(
   });
   const flags: Flags = { title, sections, data: Object.fromEntries(data) };
   return { ...result, plan: { _tag: 'App', file: page.file, output, title, flags } };
+}
+
+/** Convert the Bun renderer's already escaped Markdown into HTML view data. */
+function proseNodes(nodes: readonly DefaultTreeAdapterTypes.ChildNode[]): readonly ProseNode[] {
+  const result: ProseNode[] = [];
+  for (const node of nodes) {
+    if (defaultTreeAdapter.isTextNode(node)) result.push(node.value);
+    else if (defaultTreeAdapter.isElementNode(node))
+      result.push({
+        tag: node.tagName,
+        attributes: Object.fromEntries(node.attrs.map(({ name, value }) => [name, value])),
+        children: proseNodes(node.childNodes),
+      });
+  }
+  return result;
 }
 
 /** Reads, draws and checks every page of the project at `options.root`. */

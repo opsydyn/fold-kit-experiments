@@ -36,7 +36,7 @@ runs on it with the package's tests. Build it locally with
   reads `data/name.json` or the output of the loader `data/name.json.ts`.
 - **Inputs:** an ` ```input ` fence (`select`, `radio`, `range`, `checkbox`) is a
   control; a spec uses its value as `{ "input": "name" }`, and `"where"` keeps the rows a
-  chart draws (with or without inputs). A page with inputs is a Foldkit app: the build
+  chart draws (with or without inputs). A page with inputs uses Effect UI. The build
   renders it to HTML, and `dist/_dash/client-<hash>.js` hydrates it.
 - **Data** is JSON, CSV or TSV, by the name's extension.
 - **Loaders** run by extension (`.ts`/`.js` with Bun, `.py`, `.sh`, `.R`) and print rows; their output is cached under

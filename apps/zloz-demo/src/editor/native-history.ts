@@ -5,7 +5,6 @@ import {
   resolveEditionRestore,
   resolveHistoryComparisonControls,
 } from '@opsydyn/foldkit-zloz';
-import { Schema } from 'effect';
 
 import { editionRestorePolicy, historyAllowsMessage } from './history';
 import { historyChangeNavigatorContext, workbenchHistoryComparison } from './history-navigation';
@@ -283,49 +282,4 @@ function renderHistory<M>(h: Html.H<M>, model: Model, send: (message: Message) =
   );
 }
 
-export const nativeHistory = architectureNativePanel<Model>(
-  'ArchitectureHistory',
-  Schema.is(
-    Schema.Union([
-      Message.cases.ChangedEditionName,
-      Message.cases.ChangedForkName,
-      Message.cases.ChoseEditionArchiveFiles,
-      Message.cases.ChoseModelDocumentFiles,
-      Message.cases.ClickedAuditExample,
-      Message.cases.ClickedCancelEditionImport,
-      Message.cases.ClickedCancelEditionRestore,
-      Message.cases.ClickedCancelModelImport,
-      Message.cases.ClickedCaptureEdition,
-      Message.cases.ClickedConfirmEditionRestore,
-      Message.cases.ClickedDddAuditExample,
-      Message.cases.ClickedEditionForkProtection,
-      Message.cases.ClickedEditionRestoreProtection,
-      Message.cases.ClickedExportEditions,
-      Message.cases.ClickedExportModel,
-      Message.cases.ClickedForkEdition,
-      Message.cases.ClickedHistoryChange,
-      Message.cases.ClickedHistoryChangeFilter,
-      Message.cases.ClickedHistoryGhost,
-      Message.cases.ClickedHistoryPresent,
-      Message.cases.ClickedModelImportProtection,
-      Message.cases.ClickedOrderHistory,
-      Message.cases.ClickedPlaybackEnabled,
-      Message.cases.ClickedPlaybackNext,
-      Message.cases.ClickedPlaybackPause,
-      Message.cases.ClickedPlaybackPlay,
-      Message.cases.ClickedPlaybackPrevious,
-      Message.cases.ClickedPlaybackRewind,
-      Message.cases.ClickedPreviewEditionRestore,
-      Message.cases.ClickedScrubberHistory,
-      Message.cases.ObservedAuditComparisonInput,
-      Message.cases.ObservedDddAuditInput,
-      Message.cases.ObservedReviewPacketInput,
-      Message.cases.SelectedHistoryBaseline,
-      Message.cases.SelectedHistoryEdition,
-      Message.cases.SelectedPlaybackEdition,
-      Message.cases.SelectedPlaybackInterval,
-      Message.cases.SelectedWorkingModel,
-    ]),
-  ),
-  renderHistory,
-);
+export const nativeHistory = architectureNativePanel<Model>(renderHistory);

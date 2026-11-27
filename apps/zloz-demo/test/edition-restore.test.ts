@@ -4,7 +4,6 @@ import { Effect, Exit, Fiber } from 'effect';
 import { expect, test } from 'vitest';
 
 import { ImportZlozEditions, ImportZlozModel } from '../src/editor/command';
-import { runWorkbenchCommand, interruptWorkbenchCommand } from '../src/editor/foldkit-command-host';
 import { editionArchiveByteLimit, orderEditions } from '../src/editor/history';
 import { Message } from '../src/editor/message';
 import { init } from '../src/editor/model';
@@ -132,7 +131,7 @@ test('capturing after import avoids an already imported generated ID', () => {
   expect(captured.editions.map((edition) => edition.id)).toEqual(['edition-1', 'edition-2']);
 });
 
-test('the current island interrupts only the addressed operation and import token', async () => {
+test('an import command is interruptible and exposes the addressed operation and token', async () => {
   const started = Promise.withResolvers<void>();
   const pending = Promise.withResolvers<ArrayBuffer>();
   const slow = new File([], 'slow.json');
@@ -142,7 +141,7 @@ test('the current island interrupts only the addressed operation and import toke
       return pending.promise;
     },
   });
-  const task = runWorkbenchCommand(ImportZlozEditions.make({ id: 41, file: slow }));
+  const task = ImportZlozEditions.make({ id: 41, file: slow });
   const running = Effect.runFork(task.effect);
   // oxlint-disable-next-line linteffect/no-try-catch -- Clean up the test-owned Promise even if an assertion throws.
   try {
@@ -151,13 +150,12 @@ test('the current island interrupts only the addressed operation and import toke
       Command.interrupt(ImportZlozEditions, { id: 42 }),
       Command.interrupt(ImportZlozModel, { id: 41 }),
     ]) {
-      await Effect.runPromise(interruptWorkbenchCommand(other).effect);
+      expect([other.name, other.groupKey]).not.toEqual([task.name, task.groupKey]);
       expect(running.pollUnsafe()).toBeUndefined();
     }
     const cancelled = Command.interrupt(ImportZlozEditions, { id: 41 });
-    expect(await Effect.runPromise(interruptWorkbenchCommand(cancelled).effect)).toEqual(
-      Message.CompletedWorkbenchInterrupt({ name: 'ImportZlozEditions' }),
-    );
+    expect([cancelled.name, cancelled.groupKey]).toEqual([task.name, task.groupKey]);
+    await Effect.runPromise(Fiber.interrupt(running));
     expect(Exit.hasInterrupts(await Effect.runPromise(Fiber.await(running)))).toBe(true);
   } finally {
     pending.resolve(new ArrayBuffer(0));

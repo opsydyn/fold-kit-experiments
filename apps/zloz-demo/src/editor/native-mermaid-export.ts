@@ -1,25 +1,15 @@
-import { Schema } from 'effect';
-
 import { mermaidExportSource, mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import type { Model } from './model';
 import { architectureNativePanel } from './native-panel';
 import { settingCheckbox } from './native-settings';
 
-const acceptsInput = Schema.is(
-  Schema.Union([
-    Message.cases.ClickedMermaidLossConsent,
-    Message.cases.ClickedMermaidDownload,
-    Message.cases.ClickedMermaidPreview,
-  ]),
-);
-
 export const nativeMermaidExport = architectureNativePanel<
   Pick<
     Model,
     'editor' | 'mermaidLossConsentRevision' | 'historyReview' | 'modelIdentity' | 'modelEpoch'
   >
->('ArchitectureMermaidExport', acceptsInput, (h, model, request) => {
+>((h, model, request) => {
   const result = mermaidPreview(model);
   const source = mermaidExportSource(model);
   const reviewing = model.historyReview !== null;

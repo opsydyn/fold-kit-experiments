@@ -1,6 +1,6 @@
 import { defaultFitViewPadding, defaultZoomLimits, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import { viewportControl, viewportControlActions } from '@opsydyn/foldkit-zloz/effect-ui';
-import { resolveZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
+import { resolveZlozDiagnostics } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
 import { Message } from './message';
@@ -29,8 +29,6 @@ function observed(model: NavigationState, message: EditorEvent): Message {
 }
 
 export const nativeViewportControls = architectureNativePanel<NavigationState>(
-  'ArchitectureViewportControls',
-  Schema.is(Message.cases.ObservedModelInput),
   (h, model, request) => {
     const { editor } = model;
     const actions = viewportControlActions(editor);
@@ -97,17 +95,6 @@ export const nativeViewportControls = architectureNativePanel<NavigationState>(
 );
 
 export const nativeNavigationSettings = architectureNativePanel<NavigationSettings>(
-  'ArchitectureNavigationSettings',
-  Schema.is(
-    Schema.Union([
-      Message.cases.ObservedModelInput,
-      Message.cases.SelectedNavigationDesign,
-      Message.cases.SelectedWheelNavigation,
-      Message.cases.ClickedDoubleClickZoom,
-      Message.cases.ClickedSpaceToPan,
-      Message.cases.ClickedMiddleButtonPan,
-    ]),
-  ),
   (h, model, request) => {
     const { editor } = model;
     const busy = editor.gesture.type !== 'idle';
@@ -213,10 +200,6 @@ export const nativeNavigationSettings = architectureNativePanel<NavigationSettin
 );
 
 export const nativeMiniMapControls = architectureNativePanel<NavigationState>(
-  'ArchitectureOverviewSettings',
-  Schema.is(
-    Schema.Union([Message.cases.ClickedDiagnostic, Message.cases.SelectedWorkbenchSection]),
-  ),
   (h, model, request) => {
     const masked = model.minimalMode || !model.diagnosticsEnabled;
     const busy = model.editor.gesture.type !== 'idle';

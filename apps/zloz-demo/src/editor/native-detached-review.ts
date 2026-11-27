@@ -1,6 +1,5 @@
 import type { EditorEvent, EditorState } from '@opsydyn/foldkit-zloz';
 import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
-import { Schema } from 'effect';
 
 import { Message } from './message';
 import { architectureNativePanel } from './native-panel';
@@ -15,10 +14,6 @@ type DetachedReview = Readonly<{
 }>;
 
 export const nativeDetachedReview = architectureNativePanel<DetachedReview>(
-  'ArchitectureDetachedReview',
-  Schema.is(
-    Schema.Union([Message.cases.ObservedPacketCanvasInput, Message.cases.ObservedReceiptInput]),
-  ),
   (h, { id, label, editor, scheme, onEvent }, request) =>
     graphSurface(h, editor, {
       id,

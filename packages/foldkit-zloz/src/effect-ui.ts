@@ -531,7 +531,10 @@ function gestureMarquee<Message>(
 }
 
 export { pngReview, svgReview } from './effect-ui-export-review';
-export { zlozLightTheme, zlozDarkTheme } from './theme';
+export { zlozLightTheme, zlozDarkTheme, zlozThemeStyle } from './theme';
+export type { ZlozColorScheme, ZlozTheme } from './theme';
+export { resolveZlozDiagnostics } from './diagnostics';
+export type { ZlozDiagnostics } from './diagnostics';
 export { modellingPatchReview } from './effect-ui-patch-review';
 
 export {

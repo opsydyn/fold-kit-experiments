@@ -13,11 +13,9 @@ import { Effect, Schema, Stream } from 'effect';
 import { Message } from './message';
 import { architectureNativePanel } from './native-panel';
 
-const acceptsInput = Schema.is(Message.cases.ObservedModelInput);
-
 export const nativeCanvasHelp = architectureNativePanel<
   Readonly<{ id: string; context: ZlozCanvasHelpContext; card: boolean }>
->('ArchitectureCanvasHelp', acceptsInput, (h, { id, context, card }) => {
+>((h, { id, context, card }) => {
   const style = context.visible ? {} : visuallyHidden;
   if (!card)
     return h.p.attr('id', id).attr('data-flow-help', '').style(style).children(context.defaultText);
@@ -46,7 +44,7 @@ export const nativeCanvasHelp = architectureNativePanel<
 
 export const nativeCanvasStatus = architectureNativePanel<
   Readonly<{ context: ZlozCanvasStatusContext; card: boolean }>
->('ArchitectureCanvasStatus', acceptsInput, (h, { context, card }) => {
+>((h, { context, card }) => {
   const summary = `${context.nodeCount} ${context.nodeCount === 1 ? 'node' : 'nodes'} · ${context.connectionCount} ${context.connectionCount === 1 ? 'connection' : 'connections'}`;
   return h.div
     .attr('data-flow-status', '')
@@ -203,8 +201,6 @@ type Connections = Readonly<{
 }>;
 
 export const nativeConnections = architectureNativePanel<Connections>(
-  'ArchitectureConnections',
-  acceptsInput,
   (h, { id, context, expanded, rows, modelId, epoch }, request) => {
     const onEvent = (message: EditorEvent) =>
       request(Message.ObservedModelInput({ modelId, epoch, message }));

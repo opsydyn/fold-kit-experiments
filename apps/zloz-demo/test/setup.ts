@@ -1,1 +1,0 @@
-import '@opsydyn/testing/foldkit';

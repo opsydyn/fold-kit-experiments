@@ -6,6 +6,5 @@ export default defineConfig({
     tags: testTags,
     name: 'zloz-demo',
     include: ['test/**/*.test.ts'],
-    setupFiles: ['./test/setup.ts'],
   },
 });

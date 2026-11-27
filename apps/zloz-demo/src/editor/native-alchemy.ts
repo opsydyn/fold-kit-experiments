@@ -8,7 +8,6 @@ import {
   labelMeasurementProbe,
   type GraphSurfaceOptions,
 } from '@opsydyn/foldkit-zloz/effect-ui';
-import { Schema } from 'effect';
 
 import { alchemyGroupHeader } from './alchemy-group-header';
 import { alchemyPreviewLabelSize } from './alchemy-labels';
@@ -25,14 +24,6 @@ type DescriptorCanvas = Readonly<{
 }>;
 
 export const nativeAlchemyCanvas = architectureNativePanel<DescriptorCanvas>(
-  'ArchitectureAlchemyReview',
-  Schema.is(
-    Schema.Union([
-      Message.cases.ObservedAlchemyInput,
-      Message.cases.ObservedAlchemyHeadings,
-      Message.cases.ObservedAlchemyLabels,
-    ]),
-  ),
   (h, { review, scheme, headings, labels }, request) => {
     const { id, editor, layout } = review;
     const headingMode = layout.header;

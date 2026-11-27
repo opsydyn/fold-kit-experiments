@@ -3,7 +3,7 @@ import {
   zlozLightTheme,
   type ZlozColorScheme,
   type ZlozTheme,
-} from '@opsydyn/foldkit-zloz/foldkit';
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
 /** The same neutral/blue family palette as Viz and Three; graph state stays headless. */
 const familyTokens = {

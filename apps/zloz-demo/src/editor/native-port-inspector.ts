@@ -24,23 +24,6 @@ const modes = [
 const isSide = Schema.is(Schema.Literals(sides));
 const isMode = Schema.is(Schema.Literals(['offset', 'anchor']));
 
-const acceptsInput = Schema.is(
-  Schema.Union([
-    Message.cases.ObservedModelInput,
-    Message.cases.ClickedAddPort,
-    Message.cases.ClickedEditPortLabel,
-    Message.cases.ChangedPortLabelDraft,
-    Message.cases.SubmittedPortLabel,
-    Message.cases.ClickedCancelPortLabel,
-    Message.cases.ClickedEditPortPosition,
-    Message.cases.SelectedPortPositionMode,
-    Message.cases.SelectedPortPositionSide,
-    Message.cases.ChangedPortPositionNumber,
-    Message.cases.SubmittedPortPosition,
-    Message.cases.ClickedCancelPortPosition,
-  ]),
-);
-
 const focusPortLabel = Mount.make(
   'ArchitecturePortLabelFocus',
   { args: {} },
@@ -264,54 +247,48 @@ function portRow<M>(
     );
 }
 
-export const nativePortInspector = architectureNativePanel<Model>(
-  'ArchitecturePortInspector',
-  acceptsInput,
-  (h, model, request) => {
-    const { editor } = model;
-    const selected = editor.selectedNodes.length === 1 ? editor.selectedNodes[0] : undefined;
-    if (selected === undefined || model.minimalMode) return h.div.children();
-    const policy = workbenchPolicy(model);
-    const options = { idPrefix: 'workbench-port-inspector' };
-    const inspector = Option.getOrUndefined(
-      portInspectorContext(editor, selected, policy, options),
-    );
-    if (
-      !inspector ||
-      (inspector.node.architecture?.family === 'event-storming' &&
-        inspector.node.architecture.role === 'hotspot')
-    )
-      return h.div.children();
-    const { node } = inspector;
-    const fieldset = h.fieldset
-      .key(node.id)
-      .attr('data-flow-port-inspector-demo', 'composable')
-      .children(
-        h.legend.children('Ports for ' + node.label),
-        h.p.children(
-          'Removing a port also removes its attached connections. Undo restores them together.',
-        ),
-        ...(['input', 'output'] as const).map((kind) => {
-          const addition = Option.getOrUndefined(
-            portAdditionContext(editor, node.id, nextPort(node, kind), policy, options),
+export const nativePortInspector = architectureNativePanel<Model>((h, model, request) => {
+  const { editor } = model;
+  const selected = editor.selectedNodes.length === 1 ? editor.selectedNodes[0] : undefined;
+  if (selected === undefined || model.minimalMode) return h.div.children();
+  const policy = workbenchPolicy(model);
+  const options = { idPrefix: 'workbench-port-inspector' };
+  const inspector = Option.getOrUndefined(portInspectorContext(editor, selected, policy, options));
+  if (
+    !inspector ||
+    (inspector.node.architecture?.family === 'event-storming' &&
+      inspector.node.architecture.role === 'hotspot')
+  )
+    return h.div.children();
+  const { node } = inspector;
+  const fieldset = h.fieldset
+    .key(node.id)
+    .attr('data-flow-port-inspector-demo', 'composable')
+    .children(
+      h.legend.children('Ports for ' + node.label),
+      h.p.children(
+        'Removing a port also removes its attached connections. Undo restores them together.',
+      ),
+      ...(['input', 'output'] as const).map((kind) => {
+        const addition = Option.getOrUndefined(
+          portAdditionContext(editor, node.id, nextPort(node, kind), policy, options),
+        );
+        if (!addition) return undefined;
+        return h.div
+          .key(kind)
+          .style({ ...editLayout, display: 'inline-flex' })
+          .children(
+            h.button
+              .attr('type', 'button')
+              .attr('aria-describedby', reasonId(addition.control))
+              .disabled(addition.control.reason !== null)
+              .style({ padding: '10px 16px', cursor: 'pointer' })
+              .on('click', request(Message.ClickedAddPort({ nodeId: node.id, kind })))
+              .children(`Add ${kind} port`),
+            reason(h, addition.control),
           );
-          if (!addition) return undefined;
-          return h.div
-            .key(kind)
-            .style({ ...editLayout, display: 'inline-flex' })
-            .children(
-              h.button
-                .attr('type', 'button')
-                .attr('aria-describedby', reasonId(addition.control))
-                .disabled(addition.control.reason !== null)
-                .style({ padding: '10px 16px', cursor: 'pointer' })
-                .on('click', request(Message.ClickedAddPort({ nodeId: node.id, kind })))
-                .children(`Add ${kind} port`),
-              reason(h, addition.control),
-            );
-        }),
-        ...inspector.entries.map((entry) => portRow(h, model, entry, request)),
-      );
-    return h.div.children(fieldset);
-  },
-);
+      }),
+      ...inspector.entries.map((entry) => portRow(h, model, entry, request)),
+    );
+  return h.div.children(fieldset);
+});

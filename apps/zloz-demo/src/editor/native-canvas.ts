@@ -18,7 +18,6 @@ import {
   type ZlozResizeReadoutContext,
   type ZlozPortAnchorGuideContext,
 } from '@opsydyn/foldkit-zloz/effect-ui';
-import { Schema } from 'effect';
 
 import { Message } from './message';
 import type { Model } from './model';
@@ -241,8 +240,6 @@ function workbenchSocket<M>(
 }
 
 export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
-  'ArchitectureNativeCanvas',
-  Schema.is(Message.cases.ObservedModelInput),
   (
     h,
     { model, policy, placement, scheme, measurements, alignmentGuides, edgeToolbar, history },

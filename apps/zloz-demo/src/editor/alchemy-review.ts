@@ -4,8 +4,7 @@ import {
   resolveAlchemyFindingNavigator,
   resolveAlchemyFindingReveal,
 } from '@opsydyn/foldkit-zloz-alchemy';
-import { Match, Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Match } from 'effect';
 
 import example from './alchemy-example.json';
 import {
@@ -422,79 +421,37 @@ function renderAlchemyReview<M>(h: Html.H<M>, model: Model, send: (message: Mess
       : []),
   );
 }
-export const alchemyReviewPanel = architectureNativePanel<Model>(
-  'ArchitectureDomainReview',
-  Schema.is(
-    Schema.Union([
-      Message.cases.ChangedAlchemyText,
-      Message.cases.ChoseAlchemyFiles,
-      Message.cases.ClickedAlchemyReview,
-      Message.cases.ClickedAlchemyExample,
-      Message.cases.ClickedCancelAlchemyRead,
-      Message.cases.ClickedAlchemyFinding,
-      Message.cases.ClickedCloseAlchemyReview,
-      Message.cases.SelectedAlchemyGroupHeader,
-      Message.cases.SelectedAlchemyHeadingDetail,
-      Message.cases.ClickedCancelAlchemyHeadings,
-      Message.cases.ClickedMeasureAlchemyHeadings,
-      Message.cases.SelectedAlchemyLabelMode,
-      Message.cases.SelectedAlchemyLabelDetail,
-      Message.cases.ClickedCancelAlchemyLabels,
-      Message.cases.ClickedMeasureAlchemyLabels,
-      Message.cases.SelectedAlchemyLayoutDirection,
-      Message.cases.ClickedCancelAlchemyLayout,
-      Message.cases.ClickedAlchemyLayout,
-      Message.cases.ClickedRestoreAlchemyLayout,
-    ]),
-  ),
-  renderAlchemyReview,
-  {
-    // Keep the controlled textarea current while its input is forwarded to the workbench.
-    apply: (current, request) =>
-      request._tag === 'ChangedAlchemyText' ? updateAlchemyReview(current, request).model : current,
-    receive: (current, incoming) =>
-      current.modelIdentity.id === incoming.modelIdentity.id &&
-      current.modelEpoch === incoming.modelEpoch &&
-      current.alchemyReview.run > incoming.alchemyReview.run
-        ? { ...incoming, alchemyReview: current.alchemyReview }
-        : incoming,
-  },
-);
+export const alchemyReviewPanel = architectureNativePanel<Model>(renderAlchemyReview);
 
 const alchemyReviewBanner = architectureNativePanel<{
   readonly id: number;
   readonly name: string;
   readonly revision: string;
   readonly canFit: boolean;
-}>(
-  'ArchitectureDomainReviewBanner',
-  Schema.is(
-    Schema.Union([Message.cases.ObservedAlchemyInput, Message.cases.ClickedCloseAlchemyReview]),
-  ),
-  (h, { id, name, revision, canFit }, send) =>
-    h.div
-      .class('receipt-canvas-banner')
-      .attr('role', 'status')
-      .children(
-        `Read-only Domain descriptor · ${name} · ${revision} · Working model preserved`,
-        h.button
-          .attr('type', 'button')
-          .disabled(!canFit)
-          .on(
-            'click',
-            send(Message.ObservedAlchemyInput({ id, message: { type: 'FitViewClicked' } })),
-          )
-          .children('Fit descriptor diagram'),
-        h.button
-          .attr('type', 'button')
-          .on('click', send(Message.ClickedCloseAlchemyReview()))
-          .children('Return to working model'),
-      ),
+}>((h, { id, name, revision, canFit }, send) =>
+  h.div
+    .class('receipt-canvas-banner')
+    .attr('role', 'status')
+    .children(
+      `Read-only Domain descriptor · ${name} · ${revision} · Working model preserved`,
+      h.button
+        .attr('type', 'button')
+        .disabled(!canFit)
+        .on(
+          'click',
+          send(Message.ObservedAlchemyInput({ id, message: { type: 'FitViewClicked' } })),
+        )
+        .children('Fit descriptor diagram'),
+      h.button
+        .attr('type', 'button')
+        .on('click', send(Message.ClickedCloseAlchemyReview()))
+        .children('Return to working model'),
+    ),
 );
 
-export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+export function alchemyReviewCanvas<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
   const review = model.alchemyReview.review;
-  if (!review) return h.div([], []);
+  if (!review) return h.div.children();
   const scheme =
     model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
   const labels =
@@ -508,9 +465,10 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
     alchemyHeadingContext(model).type === 'pending'
       ? review.layout.heading.measurement.request
       : undefined;
-  return h.div(
-    [h.Key(`alchemy:${review.id}`), h.Class('receipt-canvas alchemy-canvas')],
-    [
+  return h.div
+    .key(`alchemy:${review.id}`)
+    .class('receipt-canvas alchemy-canvas')
+    .children(
       alchemyReviewBanner(
         h,
         {
@@ -521,13 +479,14 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         },
         'architecture-effect-ui',
         'domain-review-banner',
+        send,
       ),
       nativeAlchemyCanvas(
         h,
         { review, scheme: scheme ?? 'light', headings, labels },
         'architecture-detached-review',
         `alchemy-${review.id}`,
+        send,
       ),
-    ],
-  );
+    );
 }

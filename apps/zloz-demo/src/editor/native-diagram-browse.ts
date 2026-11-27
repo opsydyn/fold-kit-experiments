@@ -31,8 +31,6 @@ type ExamplePicker = Readonly<{
 }>;
 
 export const nativeExamplePicker = architectureNativePanel<ExamplePicker>(
-  'ArchitectureExamplePicker',
-  Schema.is(Message.cases.SelectedExample),
   (h, { model, showInstructions }, request) => {
     const instructions = showInstructions ? {} : visuallyHidden;
     return h.div.children(
@@ -73,91 +71,76 @@ type DiagramSearch = Pick<
 
 const isSearchScope = Schema.is(SearchScope);
 
-const acceptsSearch = Schema.is(
-  Schema.Union([
-    Message.cases.ChangedDiagramSearch,
-    Message.cases.SelectedSearchScope,
-    Message.cases.SubmittedDiagramSearch,
-    Message.cases.ObservedModelInput,
-  ]),
-);
-
-export const nativeDiagramSearch = architectureNativePanel<DiagramSearch>(
-  'ArchitectureDiagramSearch',
-  acceptsSearch,
-  (h, model, request) => {
-    const { editor, searchScope, searchQuery } = model;
-    const owner = { modelId: model.modelIdentity.id, epoch: model.modelEpoch };
-    const item = searchScope === 'nodes' ? 'node' : 'connection';
-    const matches = searchDiagram(editor, searchQuery, searchScope);
-    const canReveal = editor.surface !== null && editor.gesture.type === 'idle';
-    const count = matches.length;
-    const summary =
-      count === 0
-        ? `No matching ${searchScope}`
-        : count > 8
-          ? `Showing 8 of ${count} matching ${searchScope}`
-          : count === 1
-            ? `1 matching ${item}`
-            : `${count} matching ${searchScope}`;
-    return h.form
-      .attr('role', 'search')
-      .attr('aria-label', `Diagram ${searchScope}`)
-      .style({
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '8px',
-        alignItems: 'center',
-        margin: '12px 0',
-      })
-      .on('submit', ({ fields: { query, scope } }) =>
-        query !== undefined && isSearchScope(scope)
-          ? request(Message.SubmittedDiagramSearch({ ...owner, query, scope }))
-          : undefined,
-      )
-      .children(
-        h.label.children(
-          `Find a ${item} `,
-          h.input
-            .attr('type', 'search')
-            .attr('name', 'query')
-            .attr('value', searchQuery)
-            .attr('placeholder', 'Label or ID')
-            .on('input', ({ value: query }) => request(Message.ChangedDiagramSearch({ query }))),
+export const nativeDiagramSearch = architectureNativePanel<DiagramSearch>((h, model, request) => {
+  const { editor, searchScope, searchQuery } = model;
+  const owner = { modelId: model.modelIdentity.id, epoch: model.modelEpoch };
+  const item = searchScope === 'nodes' ? 'node' : 'connection';
+  const matches = searchDiagram(editor, searchQuery, searchScope);
+  const canReveal = editor.surface !== null && editor.gesture.type === 'idle';
+  const count = matches.length;
+  const summary =
+    count === 0
+      ? `No matching ${searchScope}`
+      : count > 8
+        ? `Showing 8 of ${count} matching ${searchScope}`
+        : count === 1
+          ? `1 matching ${item}`
+          : `${count} matching ${searchScope}`;
+  return h.form
+    .attr('role', 'search')
+    .attr('aria-label', `Diagram ${searchScope}`)
+    .style({
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      alignItems: 'center',
+      margin: '12px 0',
+    })
+    .on('submit', ({ fields: { query, scope } }) =>
+      query !== undefined && isSearchScope(scope)
+        ? request(Message.SubmittedDiagramSearch({ ...owner, query, scope }))
+        : undefined,
+    )
+    .children(
+      h.label.children(
+        `Find a ${item} `,
+        h.input
+          .attr('type', 'search')
+          .attr('name', 'query')
+          .attr('value', searchQuery)
+          .attr('placeholder', 'Label or ID')
+          .on('input', ({ value: query }) => request(Message.ChangedDiagramSearch({ query }))),
+      ),
+      h.select
+        .attr('name', 'scope')
+        .attr('aria-label', 'Search scope')
+        .on('change', ({ value }) =>
+          isSearchScope(value) ? request(Message.SelectedSearchScope({ scope: value })) : undefined,
+        )
+        .children(
+          h.option
+            .attr('value', 'nodes')
+            .selected(searchScope === 'nodes')
+            .children('Nodes'),
+          h.option
+            .attr('value', 'connections')
+            .selected(searchScope === 'connections')
+            .children('Connections'),
         ),
-        h.select
-          .attr('name', 'scope')
-          .attr('aria-label', 'Search scope')
-          .on('change', ({ value }) =>
-            isSearchScope(value)
-              ? request(Message.SelectedSearchScope({ scope: value }))
-              : undefined,
-          )
-          .children(
-            h.option
-              .attr('value', 'nodes')
-              .selected(searchScope === 'nodes')
-              .children('Nodes'),
-            h.option
-              .attr('value', 'connections')
-              .selected(searchScope === 'connections')
-              .children('Connections'),
-          ),
+      h.button
+        .attr('type', 'submit')
+        .disabled(!canReveal || count === 0)
+        .children('Reveal first match'),
+      searchQuery.trim()
+        ? h.p.attr('role', 'status').style({ margin: '0' }).children(summary)
+        : null,
+      ...matches.slice(0, 8).map(({ event, label }) =>
         h.button
-          .attr('type', 'submit')
-          .disabled(!canReveal || count === 0)
-          .children('Reveal first match'),
-        searchQuery.trim()
-          ? h.p.attr('role', 'status').style({ margin: '0' }).children(summary)
-          : null,
-        ...matches.slice(0, 8).map(({ event, label }) =>
-          h.button
-            .key(event.id)
-            .attr('type', 'button')
-            .disabled(!canReveal)
-            .on('click', request(Message.ObservedModelInput({ ...owner, message: event })))
-            .children(label),
-        ),
-      );
-  },
-);
+          .key(event.id)
+          .attr('type', 'button')
+          .disabled(!canReveal)
+          .on('click', request(Message.ObservedModelInput({ ...owner, message: event })))
+          .children(label),
+      ),
+    );
+});

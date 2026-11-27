@@ -1,3 +1,4 @@
+import type { Html } from '@effect/ui/html';
 import {
   resolveConnectionCreation,
   resolveEdgeReconnection,
@@ -9,11 +10,11 @@ import {
   canvasHelpContext,
   canvasStatusContext,
   presentVisibleGraph,
+  placementHost,
+  zlozThemeStyle,
+  resolveZlozDiagnostics,
   resolveConnectionList,
 } from '@opsydyn/foldkit-zloz/effect-ui';
-import { zlozThemeStyle, resolveZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
-import { zlozPlacementHost } from '@opsydyn/foldkit-zloz/foldkit';
-import { type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchPolicy } from './editor-policy';
@@ -46,7 +47,7 @@ import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+export function view<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
   const modelId = model.modelIdentity.id;
   const epoch = model.modelEpoch;
   const workingModel = model;
@@ -61,10 +62,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const comparison = workbenchHistoryComparison(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
-  const title = 'Architecture workbench | ZLOZ';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
-  if (themePreference === null || colorScheme === null) return { title, body: h.div([], []) };
+  if (themePreference === null || colorScheme === null) return h.div.children();
   const diagnostics = resolveZlozDiagnostics({
     minimalMode: model.minimalMode,
     diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
@@ -77,7 +77,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     margin: '-1px',
     overflow: 'hidden',
     clip: 'rect(0, 0, 0, 0)',
-    'white-space': 'nowrap',
+    whiteSpace: 'nowrap',
     border: '0',
   } as const;
   const selectedNode =
@@ -116,6 +116,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     },
     'architecture-effect-ui',
     'working-canvas',
+    send,
   );
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const endpointScope = { modelId, epoch, queries: model.portChooserQueries };
@@ -129,45 +130,53 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           return field ? [field] : [];
         })
       : [];
-  const controls: WorkbenchControls = {
+  const controls: WorkbenchControls<M> = {
     alchemy:
       model.sidebarSection === 'alchemy'
-        ? [alchemyReviewPanel(h, model, 'architecture-effect-ui', 'domain-review')]
+        ? [alchemyReviewPanel(h, model, 'architecture-effect-ui', 'domain-review', send)]
         : [],
-    review: model.sidebarSection === 'review' ? [packetReaderPanel(model, h)] : [],
-    patch: patchWorkbenchPanel(model, h),
+    review: model.sidebarSection === 'review' ? [packetReaderPanel(model, h, send)] : [],
+    patch: patchWorkbenchPanel(model, h, send),
     history:
       model.sidebarSection === 'history'
-        ? [nativeHistory(h, workingModel, 'architecture-effect-ui', 'history')]
+        ? [nativeHistory(h, workingModel, 'architecture-effect-ui', 'history', send)]
         : [],
     png:
       model.sidebarSection === 'png' && !model.sidebarCollapsed
         ? [
-            exportReviewPanel(h, {
-              kind: 'png',
-              controls: workbenchPngReview(model),
-              custom: model.customPngReview,
-              retained: model.retainedPngLayout,
-              hasRoutes: model.editor.routes.length > 0,
-              downloadProtected: model.protectPngDownloads,
-              reviewing: model.historyReview !== null,
-              diagnostics,
-            }),
+            exportReviewPanel(
+              h,
+              {
+                kind: 'png',
+                controls: workbenchPngReview(model),
+                custom: model.customPngReview,
+                retained: model.retainedPngLayout,
+                hasRoutes: model.editor.routes.length > 0,
+                downloadProtected: model.protectPngDownloads,
+                reviewing: model.historyReview !== null,
+                diagnostics,
+              },
+              send,
+            ),
           ]
         : [],
     svg:
       model.sidebarSection === 'svg' && !model.sidebarCollapsed
         ? [
-            exportReviewPanel(h, {
-              kind: 'svg',
-              controls: workbenchSvgReview(model),
-              custom: model.customSvgReview,
-              retained: model.retainedSvgLayout,
-              hasRoutes: model.editor.routes.length > 0,
-              downloadProtected: model.protectSvgDownloads,
-              reviewing: model.historyReview !== null,
-              diagnostics,
-            }),
+            exportReviewPanel(
+              h,
+              {
+                kind: 'svg',
+                controls: workbenchSvgReview(model),
+                custom: model.customSvgReview,
+                retained: model.retainedSvgLayout,
+                hasRoutes: model.editor.routes.length > 0,
+                downloadProtected: model.protectSvgDownloads,
+                reviewing: model.historyReview !== null,
+                diagnostics,
+              },
+              send,
+            ),
           ]
         : [],
     diagram: [
@@ -183,6 +192,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         },
         'architecture-effect-ui',
         'pattern-insertion',
+        send,
       ),
       ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
         ? [
@@ -191,6 +201,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               { model, showInstructions: diagnostics.instructions },
               'architecture-effect-ui',
               'examples',
+              send,
             ),
           ]
         : []),
@@ -210,14 +221,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               },
               'architecture-effect-ui',
               'graph-actions',
+              send,
             ),
           ]
         : []),
       ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
-        ? [nativeDiagramSearch(h, model, 'architecture-effect-ui', 'diagram-search')]
+        ? [nativeDiagramSearch(h, model, 'architecture-effect-ui', 'diagram-search', send)]
         : []),
       ...(model.nodeDesign === 'event-storming'
-        ? [nativeCausalRelationships(h, model, 'architecture-effect-ui', 'causal-relationships')]
+        ? [
+            nativeCausalRelationships(
+              h,
+              model,
+              'architecture-effect-ui',
+              'causal-relationships',
+              send,
+            ),
+          ]
         : []),
       ...(model.nodeDesign === 'ddd' || model.nodeDesign === 'c4'
         ? [
@@ -230,30 +250,47 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               },
               'architecture-effect-ui',
               'diagram-caption',
+              send,
             ),
           ]
         : []),
     ],
     appearance:
       model.sidebarSection === 'appearance' && !model.sidebarCollapsed
-        ? [nativeAppearanceSettings(h, model, 'architecture-effect-ui', 'appearance-settings')]
+        ? [
+            nativeAppearanceSettings(
+              h,
+              model,
+              'architecture-effect-ui',
+              'appearance-settings',
+              send,
+            ),
+          ]
         : [],
-    ports: [nativePortSettings(h, model, 'architecture-effect-ui', 'port-settings')],
-    policies: [nativePolicies(h, model, 'architecture-effect-ui', 'policies')],
+    ports: [nativePortSettings(h, model, 'architecture-effect-ui', 'port-settings', send)],
+    policies: [nativePolicies(h, model, 'architecture-effect-ui', 'policies', send)],
     c4mapping:
       model.sidebarSection === 'c4mapping'
-        ? [nativeC4MappingReview(h, model, 'architecture-effect-ui', 'c4-mapping-review')]
+        ? [nativeC4MappingReview(h, model, 'architecture-effect-ui', 'c4-mapping-review', send)]
         : [],
     mapping:
       model.sidebarSection === 'mapping'
-        ? [nativeMappingReview(h, model, 'architecture-effect-ui', 'mapping-review')]
+        ? [nativeMappingReview(h, model, 'architecture-effect-ui', 'mapping-review', send)]
         : [],
     inspect: [
       ...(showWorkshopInspector
-        ? [nativeWorkshopInspector(h, model, 'architecture-effect-ui', 'workshop-inspector')]
+        ? [nativeWorkshopInspector(h, model, 'architecture-effect-ui', 'workshop-inspector', send)]
         : []),
       ...(hasDddNodes && model.sidebarSection === 'inspect'
-        ? [nativeDddInspector(h, model, 'architecture-effect-ui', 'ddd-relationship-inspector')]
+        ? [
+            nativeDddInspector(
+              h,
+              model,
+              'architecture-effect-ui',
+              'ddd-relationship-inspector',
+              send,
+            ),
+          ]
         : []),
       ...(!model.minimalMode && selectedEdge
         ? [
@@ -268,10 +305,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               },
               'architecture-effect-ui',
               'connection-endpoints',
+              send,
             ),
           ]
         : []),
-      nativePortInspector(h, model, 'architecture-effect-ui', 'port-inspector'),
+      nativePortInspector(h, model, 'architecture-effect-ui', 'port-inspector', send),
     ],
     diagnostics:
       model.sidebarSection === 'diagnostics' && !model.sidebarCollapsed
@@ -281,22 +319,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               { ...model, busy: model.editor.gesture.type !== 'idle' },
               'architecture-effect-ui',
               'diagnostic-settings',
+              send,
             ),
           ]
         : [],
     export:
       model.sidebarSection === 'export' && model.mermaidPreviewOpen
-        ? [nativeMermaidExport(h, model, 'architecture-effect-ui', 'mermaid-export')]
+        ? [nativeMermaidExport(h, model, 'architecture-effect-ui', 'mermaid-export', send)]
         : [],
   };
-  const notice = h.p(
-    [h.Role('status'), h.AriaLive('polite'), ...(diagnostics.status ? [] : [h.Style(hidden)])],
-    [
+  const notice = h.p
+    .attr('role', 'status')
+    .attr('aria-live', 'polite')
+    .style(diagnostics.status ? {} : hidden)
+    .children(
       model.alchemyReview.review || model.alchemyReview.pending
         ? model.alchemyReview.notice
         : model.notice,
-    ],
-  );
+    );
   const editor = model.editor;
   const toolbarEdgeId =
     showEdgeToolbar &&
@@ -326,6 +366,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       },
       'architecture-effect-ui',
       'canvas-help',
+      send,
     ),
     status: nativeCanvasStatus(
       h,
@@ -335,6 +376,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       },
       'architecture-effect-ui',
       'canvas-status',
+      send,
     ),
     connections: nativeConnections(
       h,
@@ -354,6 +396,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       },
       'architecture-effect-ui',
       'connection-list',
+      send,
     ),
     creation:
       model.sidebarSection === 'ports' && !model.sidebarCollapsed
@@ -362,42 +405,36 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             { ...endpointScope, context: resolveConnectionCreation(editor, policy) },
             'architecture-effect-ui',
             'connection-creation',
+            send,
           )
         : null,
   };
-  return {
-    title,
-    body: zlozPlacementHost(
-      h,
-      placementControls,
-      placementInput,
-      [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
-      [
-        h.div(
-          [
-            h.Id('flow-demo'),
-            h.Class('foldkit-zloz foldkit-flow'),
-            h.DataAttribute('flow-minimal', String(model.minimalMode)),
-            h.Style({
-              ...zlozThemeStyle(workbenchThemes[colorScheme]),
-              height: '100%',
-              'min-height': '0',
-              display: 'flex',
-              'flex-direction': 'column',
-            }),
-          ],
-          [
-            workbenchLayout(
-              h,
-              model,
-              { ...sidebar, canvas: nativeCanvas },
-              controls,
-              themePreference,
-              notice,
-            ),
-          ],
+  return placementHost(h, placementControls, (input) => send(placementInput(input)))
+    .class('flow-workbench')
+    .attr('data-effect-ui-workbench', 'architecture')
+    .attr('data-flow-workbench-color-scheme', colorScheme)
+    .children(
+      h.div
+        .id('flow-demo')
+        .class('foldkit-zloz foldkit-flow')
+        .attr('data-flow-minimal', String(model.minimalMode))
+        .style({
+          ...zlozThemeStyle(workbenchThemes[colorScheme]),
+          height: '100%',
+          minHeight: '0',
+          display: 'flex',
+          flexDirection: 'column',
+        })
+        .children(
+          workbenchLayout(
+            h,
+            model,
+            { ...sidebar, canvas: nativeCanvas },
+            controls,
+            themePreference,
+            notice,
+            send,
+          ),
         ),
-      ],
-    ),
-  };
+    );
 }

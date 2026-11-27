@@ -1,17 +1,18 @@
+import { UiSchema } from '@effect/ui';
+import { Html } from '@effect/ui/html';
 import {
   createGroupWorkbenchV3,
   updateGroupWorkbenchV3,
   type ZlozGroupWorkbenchV3,
   type ZlozGroupWorkbenchEventV3,
 } from '@opsydyn/foldkit-zloz';
-import { zlozGroupWorkbenchV3, zlozDarkTheme, zlozLightTheme } from '@opsydyn/foldkit-zloz/foldkit';
+import { groupSurfaceV3, zlozDarkTheme, zlozLightTheme } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import { defineTaggedUnion } from 'foldkit/schema';
 
 import { nativeQualificationFixture } from './fixture';
-export const Model = defineTaggedUnion({
+import { Flags } from './flags';
+
+export const Model = UiSchema.TaggedEnum({
   Ready: {
     workbench: Schema.Unknown,
     dark: Schema.Boolean,
@@ -20,7 +21,7 @@ export const Model = defineTaggedUnion({
   },
 });
 export type Model = typeof Model.Type;
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   ObservedInput: { event: Schema.Unknown },
   ClickedTheme: {},
   ClickedMinimal: {},
@@ -65,42 +66,37 @@ export function update(model: Model, message: Message) {
     ClickedProtection: () => ({ model: Model.Ready({ ...model, protected: !model.protected }) }),
   });
 }
-export function view(model: Model, h: HtmlBuilder<Message>) {
-  // SAFETY: The runtime model contains only the native workbench created above.
-  const workbench = model.workbench as ZlozGroupWorkbenchV3;
-  return {
-    title: 'Native v3 qualification',
-    body: h.section(
-      [
-        h.DataAttribute('qualification-revision', String(workbench.editor.revision)),
-        h.DataAttribute('qualification-selected', workbench.selectedNodeIds.join(',')),
-        h.DataAttribute('qualification-history', String(workbench.editor.history.past.length)),
-        h.Style({ height: '85vh' }),
-      ],
-      [
-        h.p(
-          [],
-          [
-            'Synthetic SSR/hydration and performance fixture. This is not a persisted editor session or a product performance guarantee.',
-          ],
+export default Html.component({
+  name: 'ZlozQualification',
+  props: Flags,
+  model: Model,
+  message: Message,
+}).make({
+  init: ($) => $.set(init($.props).model),
+  update: ($, message) => $.set(update($.model, message).model),
+  view: (h, model) => {
+    // SAFETY: the qualification model serializes only the typed fixture created during init.
+    const workbench = model.workbench as ZlozGroupWorkbenchV3;
+    return h.section
+      .attr('data-qualification-revision', String(workbench.editor.revision))
+      .attr('data-qualification-selected', workbench.selectedNodeIds.join(','))
+      .attr('data-qualification-history', String(workbench.editor.history.past.length))
+      .style({ height: '85vh' })
+      .children(
+        h.p.children(
+          'Synthetic SSR/hydration and performance fixture. This is not a persisted editor session or a product performance guarantee.',
         ),
-        h.button([h.OnClick(Message.ClickedTheme())], ['Toggle theme']),
-        h.button([h.OnClick(Message.ClickedMinimal())], ['Toggle minimal mode']),
-        h.button([h.OnClick(Message.ClickedProtection())], ['Toggle protection']),
-        zlozGroupWorkbenchV3(h, workbench, {
+        h.button.on('click', Message.ClickedTheme()).children('Toggle theme'),
+        h.button.on('click', Message.ClickedMinimal()).children('Toggle minimal mode'),
+        h.button.on('click', Message.ClickedProtection()).children('Toggle protection'),
+        groupSurfaceV3(h, workbench, {
           id: 'qualification-canvas',
           label: 'Native qualification canvas',
           onEvent: (event) => Message.ObservedInput({ event }),
-          resize: true,
-          portAnchors: true,
-          reconnect: true,
-          boxSelection: true,
-          pinchZoom: true,
           minimalMode: model.minimal,
           theme: model.dark ? zlozDarkTheme : zlozLightTheme,
           policy: policy(model.protected),
         }),
-      ],
-    ),
-  };
-}
+      );
+  },
+});

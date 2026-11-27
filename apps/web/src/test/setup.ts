@@ -1,1 +1,3 @@
-import '@opsydyn/testing/foldkit';
+import { setup } from 'foldkit/test/vitest';
+
+setup();

@@ -61,207 +61,183 @@ type Appearance = Pick<
   | 'connectionDesign'
 >;
 
-const acceptsAppearance = Schema.is(
-  Schema.Union([
-    Message.cases.ClickedContextMapPresentation,
-    Message.cases.SelectedNodeDesign,
-    Message.cases.SelectedEdgeDesign,
-    Message.cases.SelectedEdgeLabelDesign,
-    Message.cases.SelectedNodeToolbarDesign,
-    Message.cases.SelectedEdgeToolbarDesign,
-    Message.cases.SelectedWaypointDesign,
-    Message.cases.ClickedWaypointProtection,
-    Message.cases.SelectedContextMenuDesign,
-    Message.cases.SelectedConnectionListDesign,
-    Message.cases.SelectedResizeReadoutDesign,
-    Message.cases.SelectedAlignmentGuideDesign,
-    Message.cases.SelectedSelectionMarqueeDesign,
-    Message.cases.SelectedCanvasCopyDesign,
-    Message.cases.SelectedConnectionDesign,
-  ]),
-);
-
-export const nativeAppearanceSettings = architectureNativePanel<Appearance>(
-  'ArchitectureAppearanceSettings',
-  acceptsAppearance,
-  (h, model, request) => {
-    const select = <A extends string>(
-      label: string,
-      isValue: (value: string) => value is A,
-      current: NoInfer<A>,
-      options: readonly (readonly [NoInfer<A>, string])[],
-      changed: (value: NoInfer<A>) => Message,
-    ) =>
-      h.label.class('workbench-field').children(
-        label,
-        h.select
-          .attr('aria-label', label)
-          .on('change', ({ value }) => (isValue(value) ? request(changed(value)) : undefined))
-          .children(
-            ...options.map(([value, label]) =>
-              h.option
-                .key(value)
-                .attr('value', value)
-                .selected(value === current)
-                .children(label),
-            ),
+export const nativeAppearanceSettings = architectureNativePanel<Appearance>((h, model, request) => {
+  const select = <A extends string>(
+    label: string,
+    isValue: (value: string) => value is A,
+    current: NoInfer<A>,
+    options: readonly (readonly [NoInfer<A>, string])[],
+    changed: (value: NoInfer<A>) => Message,
+  ) =>
+    h.label.class('workbench-field').children(
+      label,
+      h.select
+        .attr('aria-label', label)
+        .on('change', ({ value }) => (isValue(value) ? request(changed(value)) : undefined))
+        .children(
+          ...options.map(([value, label]) =>
+            h.option
+              .key(value)
+              .attr('value', value)
+              .selected(value === current)
+              .children(label),
           ),
-      );
-    const checkbox = (label: string, checked: boolean, message: Message, css: string) =>
-      h.label.class(css).children(settingCheckbox(h, checked, request(message)), label);
-    return h.div.children(
-      checkbox(
-        'Context-map presentation',
-        model.contextMapPresentation,
-        Message.ClickedContextMapPresentation(),
-        'workbench-field',
-      ),
-      select(
-        'Node design',
-        Schema.is(NodeDesign),
-        model.nodeDesign,
-        [
-          ['cards', 'Cards'],
-          ['c4', 'C4 · package presets'],
-          ['event-storming', 'Event-storming · package notes'],
-          ['ddd', 'DDD · package presets'],
-          ['orbits', 'Orbits · custom SVG shells'],
-        ],
-        (nodeDesign) => Message.SelectedNodeDesign({ nodeDesign }),
-      ),
-      select(
-        'Edge design',
-        Schema.is(EdgeDesign),
-        model.edgeDesign,
-        [
-          ['default', 'Default'],
-          ['raised', 'Raised arcs'],
-        ],
-        (edgeDesign) => Message.SelectedEdgeDesign({ edgeDesign }),
-      ),
-      select(
-        'Edge labels',
-        Schema.is(EdgeLabelDesign),
-        model.edgeLabelDesign,
-        [
-          ['standard', 'Standard'],
-          ['badge', 'Badge and inline editor'],
-        ],
-        (edgeLabelDesign) => Message.SelectedEdgeLabelDesign({ edgeLabelDesign }),
-      ),
-      select(
-        'Node toolbar',
-        Schema.is(NodeToolbarDesign),
-        model.nodeToolbarDesign,
-        [
-          ['off', 'Off'],
-          ['standard', 'Standard'],
-          ['compact', 'Compact · below node'],
-        ],
-        (nodeToolbarDesign) => Message.SelectedNodeToolbarDesign({ nodeToolbarDesign }),
-      ),
-      select(
-        'Edge actions',
-        Schema.is(EdgeToolbarDesign),
-        model.edgeToolbarDesign,
-        [
-          ['standard', 'Standard'],
-          ['compact', 'Compact · path and delete'],
-        ],
-        (edgeToolbarDesign) => Message.SelectedEdgeToolbarDesign({ edgeToolbarDesign }),
-      ),
-      select(
-        'Waypoint controls',
-        Schema.is(WaypointDesign),
-        model.waypointDesign,
-        [
-          ['off', 'off'],
-          ['native', 'native'],
-          ['custom', 'custom'],
-        ],
-        (waypointDesign) => Message.SelectedWaypointDesign({ waypointDesign }),
-      ),
-      checkbox(
-        'Protect bend editing',
-        model.protectWaypointEdits,
-        Message.ClickedWaypointProtection(),
-        'workbench-check',
-      ),
-      select(
-        'Context menus',
-        Schema.is(ContextMenuDesign),
-        model.contextMenuDesign,
-        [
-          ['standard', 'Standard'],
-          ['panel', 'Custom action panel'],
-        ],
-        (contextMenuDesign) => Message.SelectedContextMenuDesign({ contextMenuDesign }),
-      ),
-      select(
-        'Connection list layout',
-        Schema.is(ConnectionListDesign),
-        model.connectionListDesign,
-        [
-          ['standard', 'Standard'],
-          ['rows', 'Connection rows'],
-        ],
-        (connectionListDesign) => Message.SelectedConnectionListDesign({ connectionListDesign }),
-      ),
-      select(
-        'Resize readout',
-        Schema.is(ResizeReadoutDesign),
-        model.resizeReadoutDesign,
-        [
-          ['standard', 'Standard'],
-          ['labeled', 'Labeled dimensions'],
-        ],
-        (resizeReadoutDesign) => Message.SelectedResizeReadoutDesign({ resizeReadoutDesign }),
-      ),
-      select(
-        'Alignment guide design',
-        Schema.is(AlignmentGuideDesign),
-        model.alignmentGuideDesign,
-        [
-          ['standard', 'Standard'],
-          ['endpoints', 'Solid with endpoints'],
-        ],
-        (alignmentGuideDesign) => Message.SelectedAlignmentGuideDesign({ alignmentGuideDesign }),
-      ),
-      select(
-        'Selection marquee',
-        Schema.is(SelectionMarqueeDesign),
-        model.selectionMarqueeDesign,
-        [
-          ['standard', 'Standard'],
-          ['hatched', 'Hatched outline'],
-        ],
-        (selectionMarqueeDesign) =>
-          Message.SelectedSelectionMarqueeDesign({ selectionMarqueeDesign }),
-      ),
-      select(
-        'Canvas help and status',
-        Schema.is(CanvasCopyDesign),
-        model.canvasCopyDesign,
-        [
-          ['standard', 'Standard'],
-          ['card', 'Help card and status badge'],
-        ],
-        (canvasCopyDesign) => Message.SelectedCanvasCopyDesign({ canvasCopyDesign }),
-      ),
-      select(
-        'Connection preview',
-        Schema.is(ConnectionDesign),
-        model.connectionDesign,
-        [
-          ['dashed', 'Dashed'],
-          ['ribbon', 'Ribbon'],
-          ['hidden', 'Hidden'],
-        ],
-        (connectionDesign) => Message.SelectedConnectionDesign({ connectionDesign }),
-      ),
+        ),
     );
-  },
-);
+  const checkbox = (label: string, checked: boolean, message: Message, css: string) =>
+    h.label.class(css).children(settingCheckbox(h, checked, request(message)), label);
+  return h.div.children(
+    checkbox(
+      'Context-map presentation',
+      model.contextMapPresentation,
+      Message.ClickedContextMapPresentation(),
+      'workbench-field',
+    ),
+    select(
+      'Node design',
+      Schema.is(NodeDesign),
+      model.nodeDesign,
+      [
+        ['cards', 'Cards'],
+        ['c4', 'C4 · package presets'],
+        ['event-storming', 'Event-storming · package notes'],
+        ['ddd', 'DDD · package presets'],
+        ['orbits', 'Orbits · custom SVG shells'],
+      ],
+      (nodeDesign) => Message.SelectedNodeDesign({ nodeDesign }),
+    ),
+    select(
+      'Edge design',
+      Schema.is(EdgeDesign),
+      model.edgeDesign,
+      [
+        ['default', 'Default'],
+        ['raised', 'Raised arcs'],
+      ],
+      (edgeDesign) => Message.SelectedEdgeDesign({ edgeDesign }),
+    ),
+    select(
+      'Edge labels',
+      Schema.is(EdgeLabelDesign),
+      model.edgeLabelDesign,
+      [
+        ['standard', 'Standard'],
+        ['badge', 'Badge and inline editor'],
+      ],
+      (edgeLabelDesign) => Message.SelectedEdgeLabelDesign({ edgeLabelDesign }),
+    ),
+    select(
+      'Node toolbar',
+      Schema.is(NodeToolbarDesign),
+      model.nodeToolbarDesign,
+      [
+        ['off', 'Off'],
+        ['standard', 'Standard'],
+        ['compact', 'Compact · below node'],
+      ],
+      (nodeToolbarDesign) => Message.SelectedNodeToolbarDesign({ nodeToolbarDesign }),
+    ),
+    select(
+      'Edge actions',
+      Schema.is(EdgeToolbarDesign),
+      model.edgeToolbarDesign,
+      [
+        ['standard', 'Standard'],
+        ['compact', 'Compact · path and delete'],
+      ],
+      (edgeToolbarDesign) => Message.SelectedEdgeToolbarDesign({ edgeToolbarDesign }),
+    ),
+    select(
+      'Waypoint controls',
+      Schema.is(WaypointDesign),
+      model.waypointDesign,
+      [
+        ['off', 'off'],
+        ['native', 'native'],
+        ['custom', 'custom'],
+      ],
+      (waypointDesign) => Message.SelectedWaypointDesign({ waypointDesign }),
+    ),
+    checkbox(
+      'Protect bend editing',
+      model.protectWaypointEdits,
+      Message.ClickedWaypointProtection(),
+      'workbench-check',
+    ),
+    select(
+      'Context menus',
+      Schema.is(ContextMenuDesign),
+      model.contextMenuDesign,
+      [
+        ['standard', 'Standard'],
+        ['panel', 'Custom action panel'],
+      ],
+      (contextMenuDesign) => Message.SelectedContextMenuDesign({ contextMenuDesign }),
+    ),
+    select(
+      'Connection list layout',
+      Schema.is(ConnectionListDesign),
+      model.connectionListDesign,
+      [
+        ['standard', 'Standard'],
+        ['rows', 'Connection rows'],
+      ],
+      (connectionListDesign) => Message.SelectedConnectionListDesign({ connectionListDesign }),
+    ),
+    select(
+      'Resize readout',
+      Schema.is(ResizeReadoutDesign),
+      model.resizeReadoutDesign,
+      [
+        ['standard', 'Standard'],
+        ['labeled', 'Labeled dimensions'],
+      ],
+      (resizeReadoutDesign) => Message.SelectedResizeReadoutDesign({ resizeReadoutDesign }),
+    ),
+    select(
+      'Alignment guide design',
+      Schema.is(AlignmentGuideDesign),
+      model.alignmentGuideDesign,
+      [
+        ['standard', 'Standard'],
+        ['endpoints', 'Solid with endpoints'],
+      ],
+      (alignmentGuideDesign) => Message.SelectedAlignmentGuideDesign({ alignmentGuideDesign }),
+    ),
+    select(
+      'Selection marquee',
+      Schema.is(SelectionMarqueeDesign),
+      model.selectionMarqueeDesign,
+      [
+        ['standard', 'Standard'],
+        ['hatched', 'Hatched outline'],
+      ],
+      (selectionMarqueeDesign) =>
+        Message.SelectedSelectionMarqueeDesign({ selectionMarqueeDesign }),
+    ),
+    select(
+      'Canvas help and status',
+      Schema.is(CanvasCopyDesign),
+      model.canvasCopyDesign,
+      [
+        ['standard', 'Standard'],
+        ['card', 'Help card and status badge'],
+      ],
+      (canvasCopyDesign) => Message.SelectedCanvasCopyDesign({ canvasCopyDesign }),
+    ),
+    select(
+      'Connection preview',
+      Schema.is(ConnectionDesign),
+      model.connectionDesign,
+      [
+        ['dashed', 'Dashed'],
+        ['ribbon', 'Ribbon'],
+        ['hidden', 'Hidden'],
+      ],
+      (connectionDesign) => Message.SelectedConnectionDesign({ connectionDesign }),
+    ),
+  );
+});
 
 type Diagnostics = Pick<
   Model,
@@ -284,20 +260,7 @@ const diagnosticOptions = [
   ['connectionList', 'Connection list'],
 ] as const;
 
-const acceptsDiagnostics = Schema.is(
-  Schema.Union([
-    Message.cases.ClickedMinimalMode,
-    Message.cases.ClickedViewportCulling,
-    Message.cases.ClickedRetainNodeViews,
-    Message.cases.ClickedWorldAnnotation,
-    Message.cases.ClickedDiagnosticsEnabled,
-    Message.cases.ClickedDiagnostic,
-  ]),
-);
-
 export const nativeDiagnosticSettings = architectureNativePanel<Diagnostics>(
-  'ArchitectureDiagnosticSettings',
-  acceptsDiagnostics,
   (h, model, request) => {
     const toggle = (
       label: string,

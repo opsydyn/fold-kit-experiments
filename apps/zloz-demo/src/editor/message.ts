@@ -183,7 +183,6 @@ export const Message = UiSchema.TaggedEnum({
   SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
   FailedEditionArchiveImport: { id: Schema.Number },
   ClickedCancelEditionImport: {},
-  CompletedWorkbenchInterrupt: { name: Schema.String },
   ClickedPreviewEditionRestore: {},
   ClickedConfirmEditionRestore: {},
   ClickedCancelEditionRestore: {},

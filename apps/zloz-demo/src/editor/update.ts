@@ -548,7 +548,6 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
             },
           }
         : { model },
-    CompletedWorkbenchInterrupt: () => ({ model }),
     ClickedCancelEditionImport: () => ({
       model: { ...model, editionImport: null, notice: 'Edition import cancelled.' },
       interrupts: cancelEditionImport(),

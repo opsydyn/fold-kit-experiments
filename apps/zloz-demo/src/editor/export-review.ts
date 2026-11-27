@@ -1,9 +1,7 @@
 import type { Html } from '@effect/ui/html';
 import { type ZlozPngReviewControls, type ZlozSvgReviewControls } from '@opsydyn/foldkit-zloz';
 import { pngReview, svgReview } from '@opsydyn/foldkit-zloz/effect-ui';
-import type { ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
-import { Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
+import type { ZlozDiagnostics } from '@opsydyn/foldkit-zloz/effect-ui';
 
 import { historyAllowsMessage } from './history';
 import { Message as WorkbenchMessage } from './message';
@@ -23,16 +21,6 @@ type Review = Readonly<{
     | Readonly<{ kind: 'png'; controls: ZlozPngReviewControls }>
   );
 
-const ReviewRequest = Schema.Union([
-  WorkbenchMessage.cases.ObservedSvgReviewInput,
-  WorkbenchMessage.cases.ObservedPngReviewInput,
-  WorkbenchMessage.cases.ClickedRetainedSvgLayout,
-  WorkbenchMessage.cases.ClickedRetainedPngLayout,
-  WorkbenchMessage.cases.ClickedSvgDownloadProtection,
-  WorkbenchMessage.cases.ClickedPngProtection,
-  WorkbenchMessage.cases.ClickedCustomSvgReview,
-  WorkbenchMessage.cases.ClickedCustomPngReview,
-]);
 const customDownload = 'native-export-custom-download';
 
 const reviewSettings = {
@@ -99,52 +87,52 @@ function exportArtworkReview<M>(
   );
 }
 
-const renderPanel = architectureNativePanel<Review>(
-  'ArchitectureExportReview',
-  Schema.is(ReviewRequest),
-  (h, review, request) => {
-    const settings = reviewSettings[review.kind];
-    const unavailable = (message: WorkbenchMessage) =>
-      review.reviewing && !historyAllowsMessage(message);
-    const layoutNote = !review.retained
-      ? settings.canonical
-      : review.hasRoutes
-        ? settings.routed
-        : 'Arrange with ELK before reviewing retained routes.';
-    return h.div.children(
-      review.kind === 'svg'
-        ? h.p.children('Canonical model artwork, with visible portability and fidelity findings.')
-        : null,
-      h.label.children(
-        settingCheckbox(
-          h,
-          review.retained,
-          request(settings.retained),
-          unavailable(settings.retained),
-        ),
-        `Use retained layout in ${settings.format}`,
+const renderPanel = architectureNativePanel<Review>((h, review, request) => {
+  const settings = reviewSettings[review.kind];
+  const unavailable = (message: WorkbenchMessage) =>
+    review.reviewing && !historyAllowsMessage(message);
+  const layoutNote = !review.retained
+    ? settings.canonical
+    : review.hasRoutes
+      ? settings.routed
+      : 'Arrange with ELK before reviewing retained routes.';
+  return h.div.children(
+    review.kind === 'svg'
+      ? h.p.children('Canonical model artwork, with visible portability and fidelity findings.')
+      : null,
+    h.label.children(
+      settingCheckbox(
+        h,
+        review.retained,
+        request(settings.retained),
+        unavailable(settings.retained),
       ),
-      h.p.children(layoutNote),
-      h.label.children(
-        settingCheckbox(
-          h,
-          review.downloadProtected,
-          request(settings.protect),
-          unavailable(settings.protect),
-        ),
-        settings.protectionLabel,
+      `Use retained layout in ${settings.format}`,
+    ),
+    h.p.children(layoutNote),
+    h.label.children(
+      settingCheckbox(
+        h,
+        review.downloadProtected,
+        request(settings.protect),
+        unavailable(settings.protect),
       ),
-      h.button
-        .attr('type', 'button')
-        .style({ padding: '10px 16px', cursor: 'pointer' })
-        .disabled(unavailable(settings.customize))
-        .on('click', request(settings.customize))
-        .children(`Use ${review.custom ? 'native' : 'custom'} ${settings.format} controls`),
-      exportArtworkReview(h, review, request),
-    );
-  },
-);
+      settings.protectionLabel,
+    ),
+    h.button
+      .attr('type', 'button')
+      .style({ padding: '10px 16px', cursor: 'pointer' })
+      .disabled(unavailable(settings.customize))
+      .on('click', request(settings.customize))
+      .children(`Use ${review.custom ? 'native' : 'custom'} ${settings.format} controls`),
+    exportArtworkReview(h, review, request),
+  );
+});
 
-export function exportReviewPanel(h: HtmlBuilder<WorkbenchMessage>, review: Review) {
-  return renderPanel(h, review, 'architecture-effect-ui-review', review.kind);
+export function exportReviewPanel<M>(
+  h: Html.H<M>,
+  review: Review,
+  send: (message: WorkbenchMessage) => M,
+) {
+  return renderPanel(h, review, 'architecture-effect-ui-review', review.kind, send);
 }

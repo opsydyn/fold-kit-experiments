@@ -6,7 +6,6 @@ import {
   type ZlozEventStormingRelationshipRequest,
 } from '@opsydyn/foldkit-zloz';
 import { eventStormingRelationshipControls } from '@opsydyn/foldkit-zloz/effect-ui';
-import { Schema } from 'effect';
 
 import {
   delegatedRelationship,
@@ -20,165 +19,149 @@ import { architectureNativePanel } from './native-panel';
 import { settingCheckbox } from './native-settings';
 import { relationshipControlsContext } from './relationship-controls';
 
-const acceptsInput = Schema.is(
-  Schema.Union([
-    Message.cases.ObservedModelInput,
-    Message.cases.ClickedSemanticRelationships,
-    Message.cases.ClickedCustomStormingRelationships,
-    Message.cases.ClickedDelegatedRelationship,
-    Message.cases.SelectedCausalRelationship,
-    Message.cases.ClickedRelationshipInference,
-    Message.cases.SelectedWorkbenchSection,
-  ]),
-);
-
-export const nativeCausalRelationships = architectureNativePanel<Model>(
-  'ArchitectureCausalRelationships',
-  acceptsInput,
-  (h, model, request) => {
-    const { editor, historyReview } = model;
-    const owner = { modelId: model.modelIdentity.id, epoch: model.modelEpoch };
-    const observe = (message: EditorEvent) => Message.ObservedModelInput({ ...owner, message });
-    const context = relationshipControlsContext(model);
-    const edge = context.edge;
-    const conventions = workbenchRelationshipOptions(model);
-    const rules = conventions.rules ?? eventStormingRelationshipRules;
-    const incompatible =
-      edge &&
-      rules.find(
-        (rule) =>
-          resolveEventStormingRelationship(
-            editor.graph,
-            { ...edge, architecture: rule.architecture },
-            conventions,
-          ).type === 'blocked',
-      )?.architecture;
-    const editingBlocked =
-      modelSessionBusy(model) ||
-      editor.readOnly ||
-      historyReview !== null ||
-      editor.gesture.type !== 'idle';
-    const onRequest = (input: ZlozEventStormingRelationshipRequest) =>
-      request(
-        input.type === 'RelationshipSelected'
-          ? Message.SelectedCausalRelationship({ ...owner, edgeId: input.edgeId, key: input.key })
-          : Message.ClickedRelationshipInference({ ...owner, edgeId: input.edgeId }),
-      );
-    const button = (label: string, message: Message, disabled = false) =>
-      h.button
-        .attr('type', 'button')
-        .disabled(disabled || (historyReview !== null && !historyAllowsMessage(message)))
-        .style({ padding: '10px 16px', cursor: 'pointer' })
-        .on('click', request(message))
-        .children(label);
-    return h.div
-      .attr('role', 'group')
-      .attr('aria-label', 'Event-storming relationships')
-      .children(
-        h.h2.children('Causal relationships'),
-        h.label.class('workbench-field').children(
-          'Inspect relationship',
-          h.select
-            .attr('aria-label', 'Inspect relationship')
-            .on('change', ({ value }) =>
-              request(
-                observe(
-                  value
-                    ? { type: 'EdgeSelected', id: value, additive: false }
-                    : { type: 'SelectionCleared' },
-                ),
+export const nativeCausalRelationships = architectureNativePanel<Model>((h, model, request) => {
+  const { editor, historyReview } = model;
+  const owner = { modelId: model.modelIdentity.id, epoch: model.modelEpoch };
+  const observe = (message: EditorEvent) => Message.ObservedModelInput({ ...owner, message });
+  const context = relationshipControlsContext(model);
+  const edge = context.edge;
+  const conventions = workbenchRelationshipOptions(model);
+  const rules = conventions.rules ?? eventStormingRelationshipRules;
+  const incompatible =
+    edge &&
+    rules.find(
+      (rule) =>
+        resolveEventStormingRelationship(
+          editor.graph,
+          { ...edge, architecture: rule.architecture },
+          conventions,
+        ).type === 'blocked',
+    )?.architecture;
+  const editingBlocked =
+    modelSessionBusy(model) ||
+    editor.readOnly ||
+    historyReview !== null ||
+    editor.gesture.type !== 'idle';
+  const onRequest = (input: ZlozEventStormingRelationshipRequest) =>
+    request(
+      input.type === 'RelationshipSelected'
+        ? Message.SelectedCausalRelationship({ ...owner, edgeId: input.edgeId, key: input.key })
+        : Message.ClickedRelationshipInference({ ...owner, edgeId: input.edgeId }),
+    );
+  const button = (label: string, message: Message, disabled = false) =>
+    h.button
+      .attr('type', 'button')
+      .disabled(disabled || (historyReview !== null && !historyAllowsMessage(message)))
+      .style({ padding: '10px 16px', cursor: 'pointer' })
+      .on('click', request(message))
+      .children(label);
+  return h.div
+    .attr('role', 'group')
+    .attr('aria-label', 'Event-storming relationships')
+    .children(
+      h.h2.children('Causal relationships'),
+      h.label.class('workbench-field').children(
+        'Inspect relationship',
+        h.select
+          .attr('aria-label', 'Inspect relationship')
+          .on('change', ({ value }) =>
+            request(
+              observe(
+                value
+                  ? { type: 'EdgeSelected', id: value, additive: false }
+                  : { type: 'SelectionCleared' },
               ),
-            )
-            .children(
+            ),
+          )
+          .children(
+            h.option
+              .attr('value', '')
+              .selected(edge === null)
+              .children('Choose a connection'),
+            ...editor.graph.edges.map((candidate) =>
               h.option
-                .attr('value', '')
-                .selected(edge === null)
-                .children('Choose a connection'),
-              ...editor.graph.edges.map((candidate) =>
-                h.option
-                  .key(candidate.id)
-                  .attr('value', candidate.id)
-                  .selected(candidate.id === edge?.id)
-                  .children(candidate.label || candidate.id),
-              ),
+                .key(candidate.id)
+                .attr('value', candidate.id)
+                .selected(candidate.id === edge?.id)
+                .children(candidate.label || candidate.id),
             ),
-        ),
-        h.p
-          .attr('role', 'status')
-          .attr('aria-label', 'Relationship edit feedback')
-          .children(editor.notice),
-        h.p
-          .attr('aria-label', 'Event-storming role legend')
-          .children(
-            'Actor · Command · Aggregate · Domain Event · Policy. These are editable modelling conventions, not executable business rules.',
           ),
-        h.label
-          .class('workbench-field')
-          .children(
-            settingCheckbox(
-              h,
-              model.semanticRelationships,
-              request(Message.ClickedSemanticRelationships()),
-              historyReview !== null,
-            ),
-            'Validate DDD and causal relationships',
+      ),
+      h.p
+        .attr('role', 'status')
+        .attr('aria-label', 'Relationship edit feedback')
+        .children(editor.notice),
+      h.p
+        .attr('aria-label', 'Event-storming role legend')
+        .children(
+          'Actor · Command · Aggregate · Domain Event · Policy. These are editable modelling conventions, not executable business rules.',
+        ),
+      h.label
+        .class('workbench-field')
+        .children(
+          settingCheckbox(
+            h,
+            model.semanticRelationships,
+            request(Message.ClickedSemanticRelationships()),
+            historyReview !== null,
           ),
-        h.label
-          .class('workbench-field')
-          .children(
-            settingCheckbox(
-              h,
-              model.customStormingRelationships,
-              request(Message.ClickedCustomStormingRelationships()),
-              historyReview !== null,
-            ),
-            'Enable custom Delegates convention',
+          'Validate DDD and causal relationships',
+        ),
+      h.label
+        .class('workbench-field')
+        .children(
+          settingCheckbox(
+            h,
+            model.customStormingRelationships,
+            request(Message.ClickedCustomStormingRelationships()),
+            historyReview !== null,
           ),
-        h.p.children(
-          'The custom convention permits command → command links. Changing conventions never rewrites existing models.',
+          'Enable custom Delegates convention',
         ),
-        button(
-          'Add delegated command connection',
-          Message.ClickedDelegatedRelationship(owner),
-          !delegatedRelationship(model),
-        ),
-        h.ul.attr('aria-label', 'Causal relationship report').children(
-          ...editor.graph.edges.map((candidate) => {
-            const decision = resolveEventStormingRelationship(editor.graph, candidate, conventions);
-            return h.li
-              .key(candidate.id)
-              .children(
-                h.strong.children(candidate.label || candidate.id),
-                ' · ',
-                decision.type === 'allowed'
-                  ? `${decision.rule.label} (${decision.inferred ? 'inferred' : 'typed'})`
-                  : decision.type === 'blocked'
-                    ? decision.reason
-                    : 'Unrelated connection',
-              );
-          }),
-        ),
-        eventStormingRelationshipControls(h, context, onRequest, {
-          fieldClass: 'workbench-field',
-          statusPrefix: 'Semantic contract · ',
-        }).style({
-          padding: '12px',
-          border: '1px solid var(--rule)',
-          borderRadius: '8px',
-          display: 'grid',
-          gap: '8px',
+      h.p.children(
+        'The custom convention permits command → command links. Changing conventions never rewrites existing models.',
+      ),
+      button(
+        'Add delegated command connection',
+        Message.ClickedDelegatedRelationship(owner),
+        !delegatedRelationship(model),
+      ),
+      h.ul.attr('aria-label', 'Causal relationship report').children(
+        ...editor.graph.edges.map((candidate) => {
+          const decision = resolveEventStormingRelationship(editor.graph, candidate, conventions);
+          return h.li
+            .key(candidate.id)
+            .children(
+              h.strong.children(candidate.label || candidate.id),
+              ' · ',
+              decision.type === 'allowed'
+                ? `${decision.rule.label} (${decision.inferred ? 'inferred' : 'typed'})`
+                : decision.type === 'blocked'
+                  ? decision.reason
+                  : 'Unrelated connection',
+            );
         }),
-        button('Open connection tools', Message.SelectedWorkbenchSection({ section: 'ports' })),
-        edge && incompatible
-          ? button(
-              'Try incompatible relationship',
-              observe({ type: 'EdgeArchitectureChanged', id: edge.id, architecture: incompatible }),
-              editingBlocked,
-            )
-          : null,
-      );
-  },
-);
+      ),
+      eventStormingRelationshipControls(h, context, onRequest, {
+        fieldClass: 'workbench-field',
+        statusPrefix: 'Semantic contract · ',
+      }).style({
+        padding: '12px',
+        border: '1px solid var(--rule)',
+        borderRadius: '8px',
+        display: 'grid',
+        gap: '8px',
+      }),
+      button('Open connection tools', Message.SelectedWorkbenchSection({ section: 'ports' })),
+      edge && incompatible
+        ? button(
+            'Try incompatible relationship',
+            observe({ type: 'EdgeArchitectureChanged', id: edge.id, architecture: incompatible }),
+            editingBlocked,
+          )
+        : null,
+    );
+});
 
 type DiagramCaption = Readonly<{
   design: 'ddd' | 'c4';
@@ -189,8 +172,6 @@ type DiagramCaption = Readonly<{
 const dddPresets = architectureNodePresets.filter((preset) => preset.architecture.family === 'ddd');
 
 export const nativeDiagramCaption = architectureNativePanel<DiagramCaption>(
-  'ArchitectureDiagramCaption',
-  Schema.is(Schema.Never),
   (h, { design, graph, contextMapPresentation }) => {
     if (design === 'c4')
       return h.div

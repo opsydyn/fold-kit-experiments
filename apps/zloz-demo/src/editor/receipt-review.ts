@@ -21,8 +21,7 @@ import {
   type EditorState,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
-import { Match, Option, Schema } from 'effect';
-import type { HtmlBuilder } from 'foldkit/html';
+import { Match, Option } from 'effect';
 
 import { ReadConversionReceipt } from './command';
 import { editionArchiveByteLimit } from './history';
@@ -678,33 +677,31 @@ export function receiptReviewPanel<M>(model: Model, h: Html.H<M>, send: (message
         : []),
     );
 }
-const receiptBanner = architectureNativePanel<ReceiptReview['side']>(
-  'ArchitectureReceiptBanner',
-  Schema.is(Message.cases.ClickedCloseReceiptReview),
-  (h, side, send) =>
-    h.div
-      .class('receipt-canvas-banner')
-      .attr('role', 'status')
-      .children(
-        `Read-only receipt · ${side === 'before' ? 'Before conversion' : 'After conversion'} · Working model preserved`,
-        h.button
-          .attr('type', 'button')
-          .on('click', send(Message.ClickedCloseReceiptReview()))
-          .children('Close comparison'),
-      ),
+const receiptBanner = architectureNativePanel<ReceiptReview['side']>((h, side, send) =>
+  h.div
+    .class('receipt-canvas-banner')
+    .attr('role', 'status')
+    .children(
+      `Read-only receipt · ${side === 'before' ? 'Before conversion' : 'After conversion'} · Working model preserved`,
+      h.button
+        .attr('type', 'button')
+        .on('click', send(Message.ClickedCloseReceiptReview()))
+        .children('Close comparison'),
+    ),
 );
 
-export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
+export function receiptReviewCanvas<M>(model: Model, h: Html.H<M>, send: (message: Message) => M) {
   const review = model.receiptReview;
-  if (!review) return h.div([], []);
+  if (!review) return h.div.children();
   const onEvent = (message: EditorEvent) =>
     Message.ObservedReceiptInput({ id: review.id, side: review.side, message });
   const scheme =
     model.themePreference === 'system' ? model.systemColorScheme : model.themePreference;
-  return h.div(
-    [h.Key(`receipt:${review.id}:${review.side}`), h.Class('receipt-canvas')],
-    [
-      receiptBanner(h, review.side, 'architecture-effect-ui', 'receipt-banner'),
+  return h.div
+    .key(`receipt:${review.id}:${review.side}`)
+    .class('receipt-canvas')
+    .children(
+      receiptBanner(h, review.side, 'architecture-effect-ui', 'receipt-banner', send),
       nativeDetachedReview(
         h,
         {
@@ -716,7 +713,7 @@ export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
         },
         'architecture-detached-review',
         `receipt-${review.id}-${review.side}`,
+        send,
       ),
-    ],
-  );
+    );
 }

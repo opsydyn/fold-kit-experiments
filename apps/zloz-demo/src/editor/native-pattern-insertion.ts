@@ -1,7 +1,6 @@
 import type { ZlozPlacementControlsContext } from '@opsydyn/foldkit-zloz';
 import { placementPalette } from '@opsydyn/foldkit-zloz/effect-ui';
-import type { ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
-import { Schema } from 'effect';
+import type { ZlozDiagnostics } from '@opsydyn/foldkit-zloz/effect-ui';
 
 import { historyAllowsMessage } from './history';
 import { Message } from './message';
@@ -26,18 +25,7 @@ type PatternInsertion = Readonly<{
   reason: string | null;
 }>;
 
-const acceptsInput = Schema.is(
-  Schema.Union([
-    Message.cases.ClickedPatternInsertionProtection,
-    Message.cases.ClickedCustomPalette,
-    Message.cases.ClickedInsertPattern,
-    Message.cases.ObservedPlacementInput,
-  ]),
-);
-
 export const nativePatternInsertion = architectureNativePanel<PatternInsertion>(
-  'ArchitecturePatternInsertion',
-  acceptsInput,
   (h, model, request) => {
     const { controls, diagnostics, customPalette, reason } = model;
     const button = (label: string, message: Message, disabled = false) =>

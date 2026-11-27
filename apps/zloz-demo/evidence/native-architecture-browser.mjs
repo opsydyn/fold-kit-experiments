@@ -40,6 +40,8 @@ async function qualify() {
     'http://127.0.0.1:' + server.address().port + (process.env.ZLOZ_ARCHITECTURE_ROUTE ?? '/'),
   );
   expect(response?.status()).toBe(200);
+  await expect(page.locator('[data-effect-ui-workbench="architecture"]')).toBeVisible();
+  expect(await response.text()).not.toContain('astro-foldkit');
   const button = (name) => page.getByRole('button', { name, exact: true });
   const sections = page.getByRole('navigation', { name: 'Workbench sections', exact: true });
   const section = (name) => sections.getByRole('button', { name, exact: true }).click();
@@ -623,6 +625,28 @@ async function qualify() {
   await expect(readout).toHaveAttribute('title', 'Application core: 500 × 232 graph units');
   await button('Resize Application core from bottom right').press('ArrowRight');
   await expect(readout).toHaveAttribute('title', 'Application core: 505 × 232 graph units');
+
+  for (const count of [100, 1000]) {
+    for (const arrangement of ['flat', 'nested']) {
+      const qualification = await page.goto(
+        `http://127.0.0.1:${server.address().port}/qualification/${count}-${arrangement}/`,
+      );
+      expect(qualification?.status()).toBe(200);
+      const html = await qualification.text();
+      expect(html).not.toContain('astro-foldkit');
+      expect(html.match(/data-flow-node="/g)).toHaveLength(count);
+      const surface = page.getByRole('group', {
+        name: 'Native qualification canvas',
+        exact: true,
+      });
+      await expect(surface.locator('[data-flow-node]')).toHaveCount(count);
+      await surface.locator('[data-flow-handle="n1"]').press('Enter');
+      await expect(page.locator('[data-qualification-selected]')).toHaveAttribute(
+        'data-qualification-selected',
+        'n1',
+      );
+    }
+  }
 
   expect(errors).toEqual([]);
   console.log(

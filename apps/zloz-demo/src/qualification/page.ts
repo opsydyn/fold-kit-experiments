@@ -1,9 +1,7 @@
-import { definePage } from '@opsydyn/astro-foldkit/define-page';
-import { Schema } from 'effect';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import { Flags } from './flags';
-export default definePage<Flags, Flags>(
-  // oxlint-disable-next-line linteffect/prevent-dynamic-imports -- Literal page-owner hydration qualification entry.
-  () => import('./page-main'),
-  { flags: ({ props }) => Schema.decodeUnknownSync(Flags)(props) },
-);
+import '@opsydyn/foldkit-zloz/effect-ui.css';
+
+import Qualification from './main';
+
+export default astroComponent(Qualification);

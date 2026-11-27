@@ -182,7 +182,6 @@
         "@effect/ui": "catalog:",
         "@fontsource-variable/inter": "catalog:",
         "@opsydyn/astro-effect-ui": "workspace:*",
-        "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-zloz": "workspace:*",
         "@opsydyn/foldkit-zloz-alchemy": "workspace:*",
         "@opsydyn/foldkit-zloz-elk": "workspace:*",
@@ -190,7 +189,6 @@
         "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
-        "foldkit": "catalog:",
       },
       "devDependencies": {
         "@astrojs/check": "catalog:",
@@ -706,7 +704,6 @@
       "name": "@opsydyn/testing",
       "version": "0.0.0",
       "dependencies": {
-        "foldkit": "catalog:",
         "vitest": "catalog:",
       },
     },

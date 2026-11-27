@@ -120,7 +120,9 @@ void [compatible(options), astroComponent, props];
           ],
           site,
         );
-        run('node', ['node_modules/.bin/astro', 'build'], site);
+        // Run Astro with the workspace's Bun. Node still checks the published ESM
+        // imports and declarations independently of the site build.
+        run('bun', ['node_modules/.bin/astro', 'build'], site);
         const island = readFileSync(join(site, 'dist', 'index.html'), 'utf8');
         const staticPage = readFileSync(join(site, 'dist', 'static', 'index.html'), 'utf8');
         assert(island.includes('Count: 3'), 'Interactive SSR markup is missing.');

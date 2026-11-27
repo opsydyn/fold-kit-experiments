@@ -33,7 +33,7 @@ export default defineConfig({
   vite: {
     define: { __FIELD_GUIDE_WORKSPACES__: JSON.stringify(inventory) },
     plugins: [vanillaExtractPlugin()],
-    // Prebundle the analysis island's client modules before Astro's first view transition.
+    // Prebundle the analysis and graph clients so discovery cannot reload the page during input.
     optimizeDeps: {
       include: [
         '@ag-ui/client',
@@ -41,6 +41,7 @@ export default defineConfig({
         '@ag-ui/core/schemas',
         '@effect/ui',
         '@effect/ui/html',
+        '@opsydyn/foldkit-zloz-elk > elkjs/lib/elk.bundled.js',
         'fast-json-patch',
       ],
     },

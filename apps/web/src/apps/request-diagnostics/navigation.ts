@@ -1,83 +1,42 @@
-import { Schema, pipe } from 'effect';
-import { inbound } from 'foldkit/port';
-import {
-  Transition,
-  defineRouteUnion,
-  literal,
-  mapTo,
-  oneOf,
-  parseUrlWithFallback,
-  rest,
-  slash,
-} from 'foldkit/route';
-import { fromString } from 'foldkit/url';
+import { UiSchema } from '@effect/ui';
+import { Result, Schema } from 'effect';
 
 export const NavigationValue = Schema.Struct({
-  phase: Schema.Union([
-    Schema.Literal('coldLoad'),
-    Schema.Literal('entered'),
-    Schema.Literal('exited'),
-    Schema.Literal('stayed'),
-  ]),
+  phase: Schema.Literals(['coldLoad', 'entered', 'exited', 'stayed']),
   path: Schema.String,
   previousPath: Schema.NullOr(Schema.String),
 });
 export type NavigationValue = typeof NavigationValue.Type;
-export const NavigationPort = inbound(NavigationValue);
 
-export const ParsedRoute = defineRouteUnion({
-  Index: {},
-  NotFound: { path: Schema.String },
-  Path: { path: Schema.NonEmptyArray(Schema.String) },
-});
-export type ParsedRoute = typeof ParsedRoute.Type;
-
-export const DiagnosticsRoute = defineRouteUnion({
+export const DiagnosticsRoute = UiSchema.TaggedEnum({
   Index: {},
   Document: { repository: Schema.String, document: Schema.String },
 });
 export type DiagnosticsRoute = typeof DiagnosticsRoute.Type;
 
-const indexRouter = pipe(literal('request-diagnostics'), mapTo(ParsedRoute.Index));
-const pathRouter = pipe(
-  literal('request-diagnostics'),
-  slash(rest('path')),
-  mapTo(ParsedRoute.Path),
-);
-const diagnosticsRouter = oneOf(pathRouter, indexRouter);
+export const isDiagnosticsPath = (path: string): boolean =>
+  /^\/request-diagnostics(\/|$)/.test(path);
 
-const normalizePath = (path: ReadonlyArray<string>): DiagnosticsRoute => {
-  const documentsIndex = path.indexOf('docs');
-  if (documentsIndex > 0 && documentsIndex < path.length - 1) {
-    return DiagnosticsRoute.Document({
-      repository: path.slice(0, documentsIndex).join('/'),
-      document: path.slice(documentsIndex).join('/'),
-    });
-  }
-  return DiagnosticsRoute.Index();
-};
-
-export const parseDiagnosticsPath = (pathname: string): DiagnosticsRoute => {
-  const url = fromString(new URL(pathname, 'https://foldkit.invalid').href);
-  if (url._tag === 'None') return DiagnosticsRoute.Index();
-  const route = parseUrlWithFallback(diagnosticsRouter, ParsedRoute.NotFound)(url.value);
-  if (route._tag === 'NotFound') return DiagnosticsRoute.Index();
-  return route._tag === 'Path' ? normalizePath(route.path) : route;
-};
-
-export const toNavigationValue = (event: {
-  readonly phase: 'coldLoad' | 'entered' | 'exited' | 'stayed';
-  readonly path: string;
-  readonly previousPath: string | null;
-}): NavigationValue => event;
+export function parseDiagnosticsPath(pathname: string): DiagnosticsRoute {
+  const path = new URL(pathname, 'https://diagnostics.invalid').pathname;
+  if (!isDiagnosticsPath(path)) return DiagnosticsRoute.Index();
+  const segments = path.split('/').slice(2).filter(Boolean);
+  const decoded = Result.try(() => segments.map(decodeURIComponent));
+  if (decoded._tag === 'Failure') return DiagnosticsRoute.Index();
+  const parts = decoded.success;
+  const docs = parts.indexOf('docs');
+  return docs > 0 && docs < parts.length - 1
+    ? DiagnosticsRoute.Document({
+        repository: parts.slice(0, docs).join('/'),
+        document: parts.slice(docs).join('/'),
+      })
+    : DiagnosticsRoute.Index();
+}
 
 export const isEnteringDiagnostics = (
   phase: NavigationValue['phase'],
   previousRoute: DiagnosticsRoute,
   nextRoute: DiagnosticsRoute,
 ): boolean =>
-  phase === 'coldLoad'
-    ? Transition.isEntering(Transition.coldLoad(nextRoute), 'Document')
-    : phase === 'entered'
-      ? Transition.isEntering(Transition.make(previousRoute, nextRoute), 'Document')
-      : false;
+  nextRoute._tag === 'Document' &&
+  (phase === 'coldLoad' || (phase === 'entered' && previousRoute._tag !== 'Document'));

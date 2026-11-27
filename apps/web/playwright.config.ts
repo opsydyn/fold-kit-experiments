@@ -30,12 +30,12 @@ export default defineConfig({
     // qualification record names (`bunx playwright install firefox` locally).
     {
       name: 'firefox-desktop',
-      testMatch: /(?:comparison|linked-charts)\.spec\.ts/,
+      testMatch: /(?:comparison|linked-charts|request-diagnostics)\.spec\.ts/,
       use: { browserName: 'firefox', viewport: { width: 1365, height: 900 } },
     },
     {
       name: 'firefox-mobile',
-      testMatch: /(?:comparison|linked-charts)\.spec\.ts/,
+      testMatch: /(?:comparison|linked-charts|request-diagnostics)\.spec\.ts/,
       use: { browserName: 'firefox', viewport: { width: 390, height: 844 } },
     },
   ],

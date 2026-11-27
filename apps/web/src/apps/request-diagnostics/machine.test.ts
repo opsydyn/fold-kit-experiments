@@ -117,9 +117,7 @@ describe('request diagnostics machine', () => {
     );
 
     expect(model.explorer).toEqual({ _tag: 'Loading' });
-    expect(machineCommands(commands)).toMatchObject([
-      { name: 'FetchMetrics', key: 'FetchMetrics' },
-    ]);
+    expect(machineCommands(commands)).toMatchObject([{ name: 'FetchMetrics', mode: 'switch' }]);
   });
 
   test('does not replace metrics work after route-exit cancellation', () => {

@@ -1,8 +1,8 @@
+import { UiSchema } from '@effect/ui';
 import { Schema } from 'effect';
-import { defineTaggedUnion } from 'foldkit/schema';
 
-import * as PlotPanel from '../../ui/plot-panel';
-import { NavigationValue } from './navigation';
+import * as PlotPanel from '../../ui/plot-panel/core';
+import { DiagnosticsRoute, NavigationValue } from './navigation';
 
 export const Point = Schema.Struct({
   x: Schema.Number,
@@ -14,7 +14,7 @@ export type Point = typeof Point.Type;
 export const CancellationReason = Schema.Literals(['Reload', 'RouteExit']);
 export type CancellationReason = typeof CancellationReason.Type;
 
-export const ExplorerState = defineTaggedUnion({
+export const ExplorerState = UiSchema.TaggedEnum({
   Idle: {},
   Loading: {},
   Cancelling: { reason: CancellationReason },
@@ -50,23 +50,15 @@ export const samplePoints: ReadonlyArray<Point> = [
   { x: 655, y: 13, label: '' },
 ];
 
-export type Model = Readonly<{
-  explorer: ExplorerState;
-  histogram: PlotPanel.Model;
-  scatter: PlotPanel.Model;
-  lastTransition: string;
-  navigation: NavigationValue;
-  route: import('./navigation').DiagnosticsRoute;
-}>;
-
 export const Model = Schema.Struct({
-  explorer: Schema.Unknown,
-  histogram: Schema.Unknown,
-  scatter: Schema.Unknown,
+  explorer: ExplorerState,
+  histogram: PlotPanel.PortableModel,
+  scatter: PlotPanel.PortableModel,
   lastTransition: Schema.String,
   navigation: NavigationValue,
-  route: Schema.Unknown,
+  route: DiagnosticsRoute,
 });
+export type Model = typeof Model.Type;
 
 /** Latency binned into a histogram the pointer can brush to filter the scatter. */
 export const histogramFor = (points: ReadonlyArray<Point>): PlotPanel.Model =>

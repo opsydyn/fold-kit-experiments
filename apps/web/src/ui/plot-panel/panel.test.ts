@@ -1,9 +1,24 @@
+import { Html, HtmlServer } from '@effect/ui/html';
 import type { PlotSpec } from '@opsydyn/foldkit-viz/plot';
-import { Option } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 
-import { renderChart } from '../shared/render-chart.test-helper';
-import { init, Message, targetsOf, update, view } from './index';
+import { init, Message, targetsOf, update } from './core';
+import { view } from './effect-ui';
+
+async function renderChart(draw: (h: Html.H<Message>) => ReturnType<typeof view<Message>>) {
+  const Fixture = Html.component({
+    name: 'PlotPanelFixture',
+    model: Schema.Null,
+    message: Message,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: draw,
+  });
+  const { html } = await Effect.runPromise(HtmlServer.renderToHtml(Fixture, {}));
+  return html;
+}
 
 const points = [
   { id: 'a', years: 1, pay: 50 },
@@ -182,7 +197,7 @@ describe('plot panel data and view', () => {
   });
 
   it('dims all but the emphasised targets, and applies a data highlight', async () => {
-    const render = (config: Parameters<typeof view>[0]) => {
+    const render = (config: Parameters<typeof view<Message>>[0]) => {
       const node = document.createElement('div');
       return renderChart((h) => view(config, h)).then((html) => {
         node.innerHTML = html;

@@ -1,20 +1,22 @@
+import { Command } from '@effect/ui';
 import { Match, Option } from 'effect';
-import { Machine } from 'foldkit/experimental';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
-import * as PlotPanel from '../../ui/plot-panel';
-import { ReportToObservatory } from './command';
-import { diagnosticsMachine } from './machine';
-import { Message } from './message';
+import * as PlotPanel from '../../ui/plot-panel/core';
+import { CancelMetrics, FetchMetrics, ReportToObservatory } from './command';
+import { diagnosticsMachine, type Step } from './machine';
+import { CancellationOutcome, Message } from './message';
 import { ExplorerState, histogramFor, type Model } from './model';
 import { isEnteringDiagnostics, parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
 type NavigationMessage = Extract<Message, { readonly _tag: 'Navigated' }>;
 
-type Return = UpdateReturn<Model, Message>;
+interface Return {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+}
 
-const transitionLabel = (result: Machine.TransitionResult<ExplorerState, Message>): string =>
+const transitionLabel = (result: Step): string =>
   Match.value(result).pipe(
     Match.tag(
       'Transitioned',
@@ -36,16 +38,11 @@ const applyStateToScatter = (
 };
 
 const applyChartsForState = (model: Model, state: ExplorerState): Model =>
-  ExplorerState.matchOrElse(
-    state,
-    {
-      Ready: ({ points }) => applyStateToScatter(model, points),
-      Filtered: ({ points }) => applyStateToScatter(model, points),
-    },
-    () => model,
-  );
+  state._tag === 'Ready' || state._tag === 'Filtered'
+    ? applyStateToScatter(model, state.points)
+    : model;
 
-const runMachine = (model: Model, message: Message): Return => {
+const runMachine = (model: Model, message: Message, alreadyReported = false): Return => {
   const result = diagnosticsMachine.step(model.explorer, message);
   const nextModel = {
     ...model,
@@ -60,7 +57,20 @@ const runMachine = (model: Model, message: Message): Return => {
     Match.tag('Transitioned', ({ commands: nextCommands }) => nextCommands),
     Match.orElse(() => []),
   );
-  return { model: withCharts, commands: [...commands, ReportToObservatory({ message })] };
+  const outcome =
+    model.explorer._tag === 'Loading'
+      ? CancellationOutcome.Interrupted()
+      : CancellationOutcome.NotFound();
+  const work = commands.flatMap(
+    ({ name }): ReadonlyArray<Command.Command<Message>> =>
+      name === 'FetchMetrics'
+        ? [FetchMetrics.make({})]
+        : [Command.interrupt(FetchMetrics), CancelMetrics.make({ outcome })],
+  );
+  return {
+    model: withCharts,
+    commands: alreadyReported ? work : [ReportToObservatory.make({ message }), ...work],
+  };
 };
 
 /**
@@ -76,13 +86,11 @@ const selectionMessage = (
   if (Option.isNone(before.drag) && Option.isSome(after.drag))
     return Option.some(Message.StartedSelection());
   if (outMessage === undefined) return Option.none();
-  return PlotPanel.OutMessage.match<Option.Option<Message>>(outMessage, {
-    SelectedRange: ({ domain }) => Option.some(Message.ChangedSelection({ domain })),
-    ClearedSelection: () => Option.some(Message.ClearedSelection()),
-    InspectedPoint: () => Option.none(),
-    InspectedRange: () => Option.none(),
-    ClearedInspection: () => Option.none(),
-  });
+  if (outMessage._tag === 'SelectedRange')
+    return Option.some(Message.ChangedSelection({ domain: outMessage.domain }));
+  return outMessage._tag === 'ClearedSelection'
+    ? Option.some(Message.ClearedSelection())
+    : Option.none();
 };
 
 const updateHistogram = (model: Model, child: PlotPanel.Message): Return => {
@@ -102,30 +110,17 @@ const updateScatter = (model: Model, child: PlotPanel.Message): Return => {
 
 const updateLoadedMetrics = (model: Model, message: LoadedMetricsMessage): Return => {
   const { model: nextModel, commands } = runMachine(model, message);
-  return ExplorerState.matchOrElse(
-    model.explorer,
-    {
-      Loading: () =>
-        ExplorerState.matchOrElse(
-          nextModel.explorer,
-          {
-            Ready: () => ({
-              model: {
-                ...nextModel,
-                histogram: histogramFor(message.points),
-              },
-              commands,
-            }),
-          },
-          () => ({ model: nextModel, commands }),
-        ),
-    },
-    () => ({ model: nextModel, commands }),
-  );
+  return model.explorer._tag === 'Loading' && nextModel.explorer._tag === 'Ready'
+    ? { model: { ...nextModel, histogram: histogramFor(message.points) }, commands }
+    : { model: nextModel, commands };
 };
 
-const updateNavigation = (model: Model, message: NavigationMessage): Return => {
-  const { model: nextModel, commands } = runMachine(model, message);
+const updateNavigation = (
+  model: Model,
+  message: NavigationMessage,
+  alreadyReported = false,
+): Return => {
+  const { model: nextModel, commands } = runMachine(model, message, alreadyReported);
   const navigation = {
     phase: message.phase,
     path: message.path,
@@ -151,14 +146,9 @@ const updateNavigation = (model: Model, message: NavigationMessage): Return => {
 
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
-    ReceivedHistogramMessage: ({ message: rawMessage }) => {
-      // SAFETY: The child message wrapper is produced by the Histogram submodel boundary.
-      return updateHistogram(model, rawMessage as PlotPanel.Message);
-    },
-    ReceivedScatterMessage: ({ message: rawMessage }) => {
-      // SAFETY: The child message wrapper is produced by the Scatter submodel boundary.
-      return updateScatter(model, rawMessage as PlotPanel.Message);
-    },
+    MountedDiagnostics: () => ({ model, commands: [FetchMetrics.make({})] }),
+    ReceivedHistogramMessage: ({ message }) => updateHistogram(model, message),
+    ReceivedScatterMessage: ({ message }) => updateScatter(model, message),
     LoadedMetrics: (loadedMessage) => updateLoadedMetrics(model, loadedMessage),
     CompletedCancelFetchMetrics: () => runMachine(model, message),
     ClickedReload: () => runMachine(model, message),
@@ -167,5 +157,7 @@ export const update = (model: Model, message: Message): Return =>
     ChangedSelection: () => runMachine(model, message),
     ClearedSelection: () => runMachine(model, message),
     Navigated: (navigationMessage) => updateNavigation(model, navigationMessage),
+    ObservedRouteExit: ({ phase, path, previousPath }) =>
+      updateNavigation(model, Message.Navigated({ phase, path, previousPath }), true),
     CompletedReportToObservatory: () => ({ model }),
   });

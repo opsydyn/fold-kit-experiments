@@ -11,7 +11,7 @@ const makeFetch =
 
 describe('FetchMetrics', () => {
   test('decodes request diagnostics from the Astro API', async () => {
-    const message = await FetchMetrics().effect.pipe(
+    const message = await FetchMetrics.make({}).effect.pipe(
       Effect.provideService(
         FetchHttpClient.Fetch,
         makeFetch(

@@ -3,6 +3,6 @@ import RequestDiagnosticsApp from '../../apps/request-diagnostics/app';
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Request Diagnostics — FoldKit Navigation">
-  <RequestDiagnosticsApp client:load transition:persist />
+<Layout title="Request Diagnostics" clientNavigation>
+  <RequestDiagnosticsApp client:load transition:persist="request-diagnostics" />
 </Layout>

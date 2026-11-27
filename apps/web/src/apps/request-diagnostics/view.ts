@@ -1,74 +1,66 @@
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 
-import * as PlotPanel from '../../ui/plot-panel';
+import { view as plotPanel } from '../../ui/plot-panel/effect-ui';
 import { Message } from './message';
 import type { Model } from './model';
+import { ObserveNavigation } from './subscription';
 
 import * as styles from './request-diagnostics.css';
 
-const stateLabel = (model: Model): string => `${model.explorer._tag}: ${model.lastTransition}`;
 const routeLabel = (model: Model): string =>
   model.route._tag === 'Document'
     ? `${model.route.repository} / ${model.route.document}`
     : 'Diagnostics index';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const histogram: Html = PlotPanel.view(
-    {
-      model: model.histogram,
-      toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
-      ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
-    },
-    h,
-  );
-  const scatter: Html = PlotPanel.view(
-    {
-      model: model.scatter,
-      toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),
-      ariaLabel: 'Error rate by request latency.',
-    },
-    h,
-  );
-
-  return {
-    title: 'Request Diagnostics — FoldKit Machine',
-    body: h.div(
-      [h.Class(styles.root)],
-      [
-        h.div(
-          [h.Class(styles.toolbar)],
-          [
-            h.button(
-              [h.Class(styles.button), h.OnClick(Message.ClickedReload())],
-              ['Reload metrics'],
-            ),
-            h.span([h.Class(styles.status)], [stateLabel(model)]),
-            h.span(
-              [h.Class(styles.status)],
-              [
-                `${model.navigation.phase} ${model.navigation.path} from ${model.navigation.previousPath ?? 'none'} · ${routeLabel(model)}`,
-              ],
-            ),
-            h.a(
-              [h.Class(styles.status), h.Href('/request-diagnostics/acme/platform/docs/intro.md')],
-              ['Open nested route'],
-            ),
-          ],
+export const view = (h: Html.H<Message>, model: Model) =>
+  h.div
+    .class(styles.root)
+    .onMount(Mount.map(ObserveNavigation(), (message) => message))
+    .children(
+      h.div.class(styles.toolbar).children(
+        h.button
+          .class(styles.button)
+          .attr('type', 'button')
+          .on('click', Message.ClickedReload())
+          .children('Reload metrics'),
+        h.span
+          .class(styles.status)
+          .attr('role', 'status')
+          .children(`${model.explorer._tag}: ${model.lastTransition}`),
+        h.span
+          .class(styles.status)
+          .attr('data-diagnostics-route', '')
+          .children(
+            `${model.navigation.phase} ${model.navigation.path} from ${model.navigation.previousPath ?? 'none'} · ${routeLabel(model)}`,
+          ),
+        h.a
+          .class(styles.status)
+          .attr('href', '/request-diagnostics/acme/platform/docs/intro.md')
+          .children('Open nested route'),
+      ),
+      h.div.class(styles.charts).children(
+        h.div.class(styles.panel).children(
+          h.span.class(styles.label).children('Latency distribution'),
+          plotPanel(
+            {
+              model: model.histogram,
+              toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
+              ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
+            },
+            h,
+          ),
         ),
-        h.div(
-          [h.Class(styles.charts)],
-          [
-            h.div(
-              [h.Class(styles.panel)],
-              [h.span([h.Class(styles.label)], ['Latency distribution']), histogram],
-            ),
-            h.div(
-              [h.Class(styles.panel)],
-              [h.span([h.Class(styles.label)], ['Error rate']), scatter],
-            ),
-          ],
+        h.div.class(styles.panel).children(
+          h.span.class(styles.label).children('Error rate'),
+          plotPanel(
+            {
+              model: model.scatter,
+              toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),
+              ariaLabel: 'Error rate by request latency.',
+            },
+            h,
+          ),
         ),
-      ],
-    ),
-  };
-};
+      ),
+    );

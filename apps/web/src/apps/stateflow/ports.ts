@@ -1,7 +1,8 @@
 import { Schema } from 'effect';
-import { Command, Port } from 'foldkit';
+import { Port } from 'foldkit';
 import { defineTaggedUnion } from 'foldkit/schema';
 
+import { CancellationOutcome } from '../request-diagnostics/message';
 import { Point } from '../request-diagnostics/model';
 import { NavigationValue } from '../request-diagnostics/navigation';
 
@@ -11,7 +12,7 @@ export const ReplayEvent = defineTaggedUnion({
   ChangedSelection: { domain: Schema.Tuple([Schema.Number, Schema.Number]) },
   ClearedSelection: {},
   ClickedReload: {},
-  CompletedCancelFetchMetrics: { outcome: Command.Interruptible.Outcome },
+  CompletedCancelFetchMetrics: { outcome: CancellationOutcome },
   Navigated: NavigationValue.fields,
 });
 export type ReplayEvent = typeof ReplayEvent.Type;

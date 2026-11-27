@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  isEnteringDiagnostics,
-  parseDiagnosticsPath,
-  toNavigationValue,
-  type DiagnosticsRoute,
-} from './navigation';
+import { isEnteringDiagnostics, parseDiagnosticsPath, type DiagnosticsRoute } from './navigation';
 
 describe('request diagnostics navigation', () => {
   it('preserves nested repository and document path segments', () => {
@@ -16,13 +11,14 @@ describe('request diagnostics navigation', () => {
     });
   });
 
-  it('maps a navigation event to the port value', () => {
-    expect(
-      toNavigationValue({ phase: 'entered', path: '/request-diagnostics', previousPath: '/' }),
-    ).toEqual({
-      phase: 'entered',
-      path: '/request-diagnostics',
-      previousPath: '/',
+  it('decodes URL segments and treats malformed escapes as the index', () => {
+    expect(parseDiagnosticsPath('/request-diagnostics/acme%20team/docs/hello%20world.md')).toEqual({
+      _tag: 'Document',
+      repository: 'acme team',
+      document: 'docs/hello world.md',
+    });
+    expect(parseDiagnosticsPath('/request-diagnostics/%E0/docs/intro.md')).toEqual({
+      _tag: 'Index',
     });
   });
 

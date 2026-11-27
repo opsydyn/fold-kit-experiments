@@ -1,179 +1,214 @@
-import { Match, Option } from 'effect';
-import { fail, Idle, Loading, loadIfMissing, succeed } from 'foldkit/asyncData';
-import type { AsyncData } from 'foldkit/asyncData';
-import { Machine } from 'foldkit/experimental';
+import type {
+  EdgeGuard,
+  EdgeSummary,
+  ReplayMachine,
+  TransitionResult,
+} from '../stateflow/machine-contract';
+import type { Message } from './message';
+import { ExplorerState, type Point } from './model';
+import { isDiagnosticsPath } from './navigation';
 
-import { FetchMetrics } from './command';
-import { Message } from './message';
-import { ExplorerState } from './model';
+export const fetchMetrics = { name: 'FetchMetrics', key: 'FetchMetrics' } as const;
+export const interruptMetrics = {
+  name: 'FetchMetrics.Interrupt',
+  interruptsKey: 'FetchMetrics',
+} as const;
+type Intent = typeof fetchMetrics | typeof interruptMetrics;
 
-const cancelling = (reason: import('./model').CancellationReason) =>
-  ExplorerState.Cancelling({ reason });
+export type Step = TransitionResult<ExplorerState, Intent>;
 
-const interruptMetrics = () => [
-  FetchMetrics.Interrupt((outcome) => Message.CompletedCancelFetchMetrics({ outcome })),
+type StateTag = ExplorerState['_tag'];
+type MessageTag = Message['_tag'];
+type State<Tag extends StateTag> = Extract<ExplorerState, { _tag: Tag }>;
+type Event<Tag extends MessageTag> = Extract<Message, { _tag: Tag }>;
+
+interface Rule extends EdgeSummary {
+  readonly from: StateTag;
+  readonly messageTag: MessageTag;
+  readonly target: StateTag;
+  readonly apply: (state: ExplorerState, message: Message) => StateChange | undefined;
+}
+interface StateChange {
+  readonly state: ExplorerState;
+  readonly commands?: ReadonlyArray<Intent>;
+}
+
+const when = (position = 0): EdgeGuard => ({ _tag: 'When', position });
+
+function edge<From extends StateTag, Msg extends MessageTag, Target extends StateTag>(
+  from: From,
+  messageTag: Msg,
+  target: Target,
+  change: (
+    state: State<From>,
+    message: Event<Msg>,
+  ) => { readonly state: State<Target>; readonly commands?: ReadonlyArray<Intent> } | undefined,
+  guard: EdgeGuard = { _tag: 'Unguarded' },
+): Rule {
+  return {
+    from,
+    messageTag,
+    target,
+    guard,
+    apply: (state, message) => {
+      if (state._tag !== from || message._tag !== messageTag) return undefined;
+      // SAFETY: The discriminants establish the variants expected by the transition.
+      return change(state as State<From>, message as Event<Msg>);
+    },
+  };
+}
+
+const load = () => ({ state: ExplorerState.Loading(), commands: [fetchMetrics] });
+const reload = () => ({
+  state: ExplorerState.Cancelling({ reason: 'Reload' }),
+  commands: [interruptMetrics],
+});
+const loadOnReturn = (_state: ExplorerState, message: Event<'Navigated'>) =>
+  message.phase !== 'exited' && isDiagnosticsPath(message.path) ? load() : undefined;
+
+function filter(points: ReadonlyArray<Point>, domain: readonly [number, number]) {
+  if (domain[1] - domain[0] <= 2) return undefined;
+  return {
+    state: ExplorerState.Filtered({
+      points: points.filter(({ x }) => x >= domain[0] && x <= domain[1]),
+      allPoints: points,
+      domain,
+    }),
+  };
+}
+
+const rules: ReadonlyArray<Rule> = [
+  edge('Loading', 'ClickedReload', 'Cancelling', reload),
+  edge(
+    'Loading',
+    'Navigated',
+    'Cancelling',
+    (_state, message) =>
+      message.phase === 'exited'
+        ? {
+            state: ExplorerState.Cancelling({ reason: 'RouteExit' }),
+            commands: [interruptMetrics],
+          }
+        : undefined,
+    when(),
+  ),
+  edge('Loading', 'LoadedMetrics', 'Ready', (_state, message) => ({
+    state: ExplorerState.Ready({ points: message.points }),
+  })),
+  edge('Loading', 'FailedLoad', 'Failed', (_state, message) => ({
+    state: ExplorerState.Failed({ error: message.error }),
+  })),
+  edge('Ready', 'ClickedReload', 'Cancelling', reload),
+  edge('Ready', 'StartedSelection', 'Selecting', ({ points }) => ({
+    state: ExplorerState.Selecting({ points, allPoints: points }),
+  })),
+  edge(
+    'Ready',
+    'ChangedSelection',
+    'Filtered',
+    ({ points }, { domain }) => filter(points, domain),
+    when(),
+  ),
+  edge(
+    'Selecting',
+    'ChangedSelection',
+    'Filtered',
+    ({ points }, { domain }) => filter(points, domain),
+    when(),
+  ),
+  edge('Selecting', 'ClearedSelection', 'Ready', ({ allPoints }) => ({
+    state: ExplorerState.Ready({ points: allPoints }),
+  })),
+  edge('Filtered', 'ClearedSelection', 'Ready', ({ allPoints }) => ({
+    state: ExplorerState.Ready({ points: allPoints }),
+  })),
+  edge('Filtered', 'ClickedReload', 'Cancelling', reload),
+  edge('Failed', 'ClickedReload', 'Cancelling', reload),
+  edge('Failed', 'Navigated', 'Loading', loadOnReturn, when()),
+  edge(
+    'Cancelling',
+    'CompletedCancelFetchMetrics',
+    'Loading',
+    ({ reason }) => (reason === 'Reload' ? load() : undefined),
+    when(),
+  ),
+  edge(
+    'Cancelling',
+    'CompletedCancelFetchMetrics',
+    'Idle',
+    () => ({ state: ExplorerState.Idle() }),
+    { _tag: 'Otherwise', position: 1 },
+  ),
+  edge('Idle', 'Navigated', 'Loading', loadOnReturn, when()),
 ];
 
-const filterPoints = (
-  points: ReadonlyArray<import('./model').Point>,
-  domain: readonly [number, number],
-): ReadonlyArray<import('./model').Point> =>
-  points.filter(({ x }) => x >= domain[0] && x <= domain[1]);
+const initial = ExplorerState.Loading();
+const stateTags = [
+  'Idle',
+  'Loading',
+  'Cancelling',
+  'Ready',
+  'Selecting',
+  'Filtered',
+  'Failed',
+] satisfies ReadonlyArray<StateTag>;
+const edges = rules.map(({ from, messageTag, target, guard }) => ({
+  from,
+  messageTag,
+  target,
+  guard,
+}));
 
-const wideDomain = (domain: readonly [number, number]): Option.Option<readonly [number, number]> =>
-  Match.value(domain[1] - domain[0] > 2).pipe(
-    Match.when(true, () => Option.some(domain)),
-    Match.orElse(() => Option.none()),
+function step(state: ExplorerState, message: Message): Step {
+  const candidates = rules.filter(
+    (rule) => rule.from === state._tag && rule.messageTag === message._tag,
   );
+  for (const rule of candidates) {
+    const change = rule.apply(state, message);
+    if (change !== undefined)
+      return {
+        _tag: 'Transitioned',
+        from: rule.from,
+        target: rule.target,
+        messageTag: rule.messageTag,
+        state: change.state,
+        commands: change.commands ?? [],
+      };
+  }
+  return {
+    _tag: 'Ignored',
+    stateTag: state._tag,
+    messageTag: message._tag,
+    state,
+    reason:
+      candidates.length > 0
+        ? 'GuardsFellThrough'
+        : rules.some((rule) => rule.messageTag === message._tag)
+          ? 'NotApplicable'
+          : 'OutOfAlphabet',
+  };
+}
 
-const isExitedNavigation = (message: Extract<Message, { readonly _tag: 'Navigated' }>): boolean =>
-  Match.value(message.phase).pipe(
-    Match.when('exited', () => true),
-    Match.orElse(() => false),
-  );
+function unreachableStates() {
+  const reached = new Set<StateTag>([initial._tag]);
+  for (const from of reached)
+    for (const edge of edges) if (edge.from === from) reached.add(edge.target);
+  return stateTags.filter((tag) => !reached.has(tag));
+}
 
-const isReloadCancellation = (
-  state: Extract<ExplorerState, { readonly _tag: 'Cancelling' }>,
-): boolean =>
-  Match.value(state.reason).pipe(
-    Match.when('Reload', () => true),
-    Match.orElse(() => false),
-  );
-
-/**
- * The explorer's metrics as AsyncData, so a return visit can follow
- * loadIfMissing: load when there is nothing (never loaded, or failed), keep
- * loaded metrics without fetching them again, and leave a load in flight alone.
- */
-const metricsOf = (
-  state: ExplorerState,
-): AsyncData<ReadonlyArray<import('./model').Point>, string> =>
-  ExplorerState.match(state, {
-    Idle: () => Idle(),
-    Loading: () => Loading(),
-    Cancelling: () => Loading(),
-    Ready: ({ points }) => succeed(points),
-    Selecting: ({ allPoints }) => succeed(allPoints),
-    Filtered: ({ allPoints }) => succeed(allPoints),
-    Failed: ({ error }) => fail(error),
-  });
-
-/** A navigation back onto this page. Idle and Failed only follow an exit or a failure, so any is a return. */
-const isReturn = (message: Extract<Message, { readonly _tag: 'Navigated' }>): boolean =>
-  message.phase !== 'exited' && /^\/request-diagnostics(\/|$)/.test(message.path);
-
-/** Load on a return visit when loadIfMissing says the metrics are missing. */
-const loadOnReturn = (
-  state: ExplorerState,
-  message: Extract<Message, { readonly _tag: 'Navigated' }>,
-) => (isReturn(message) ? loadIfMissing(metricsOf(state)) : Option.none());
-
-const reloadTransition = () => ({
-  model: cancelling('Reload'),
-  commands: interruptMetrics(),
-});
-
-const routeExitTransition = () => ({
-  model: cancelling('RouteExit'),
-  commands: interruptMetrics(),
-});
-
-const restartAfterReload = () => ({
-  model: ExplorerState.Loading(),
-  commands: [FetchMetrics()],
-});
-
-export const diagnosticsMachine = Machine.define({
-  state: ExplorerState,
-  message: Message,
-})({
-  initial: ExplorerState.Loading(),
-  states: {
-    Loading: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', reloadTransition),
-        Navigated: [
-          Machine.when(
-            (_state, message) => isExitedNavigation(message),
-            'Cancelling',
-            routeExitTransition,
-          ),
-        ],
-        LoadedMetrics: Machine.to('Ready', ({ message }) => ({
-          model: ExplorerState.Ready({ points: message.points }),
-        })),
-        FailedLoad: Machine.to('Failed', ({ message }) => ({
-          model: ExplorerState.Failed({ error: message.error }),
-        })),
-      },
-    },
-    Ready: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', reloadTransition),
-        StartedSelection: Machine.to('Selecting', ({ state }) => ({
-          model: ExplorerState.Selecting({ points: state.points, allPoints: state.points }),
-        })),
-        ChangedSelection: [
-          Machine.when(
-            (_state, message) => wideDomain(message.domain),
-            'Filtered',
-            ({ state, guardValue }) => ({
-              model: ExplorerState.Filtered({
-                points: filterPoints(state.points, guardValue),
-                allPoints: state.points,
-                domain: guardValue,
-              }),
-            }),
-          ),
-        ],
-      },
-    },
-    Selecting: {
-      on: {
-        ChangedSelection: [
-          Machine.when(
-            (_state, message) => wideDomain(message.domain),
-            'Filtered',
-            ({ state, guardValue }) => ({
-              model: ExplorerState.Filtered({
-                points: filterPoints(state.points, guardValue),
-                allPoints: state.points,
-                domain: guardValue,
-              }),
-            }),
-          ),
-        ],
-        ClearedSelection: Machine.to('Ready', ({ state }) => ({
-          model: ExplorerState.Ready({ points: state.allPoints }),
-        })),
-      },
-    },
-    Filtered: {
-      on: {
-        ClearedSelection: Machine.to('Ready', ({ state }) => ({
-          model: ExplorerState.Ready({ points: state.allPoints }),
-        })),
-        ClickedReload: Machine.to('Cancelling', reloadTransition),
-      },
-    },
-    Failed: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', reloadTransition),
-        Navigated: [Machine.when(loadOnReturn, 'Loading', restartAfterReload)],
-      },
-    },
-    Cancelling: {
-      on: {
-        CompletedCancelFetchMetrics: [
-          Machine.when((state) => isReloadCancellation(state), 'Loading', restartAfterReload),
-          Machine.otherwise(Machine.to('Idle', () => ({ model: ExplorerState.Idle() }))),
-        ],
-      },
-    },
-    Idle: {
-      on: {
-        Navigated: [Machine.when(loadOnReturn, 'Loading', restartAfterReload)],
-      },
-    },
+export const diagnosticsMachine = {
+  initial,
+  stateTags,
+  edges,
+  step,
+  unreachableStates,
+  deadTransitions: () => {
+    const unreachable = unreachableStates();
+    return edges
+      .filter((edge) => unreachable.includes(edge.from))
+      .map((edge) => ({
+        edge,
+        reason: 'UnreachableSource',
+      }));
   },
-});
+} satisfies ReplayMachine<ExplorerState, Message, Intent>;

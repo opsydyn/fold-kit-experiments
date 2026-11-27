@@ -66,7 +66,7 @@ describe('stateflow Commands', () => {
     });
 
     const message = await Effect.runPromise(
-      ReportToObservatory({ message: DiagnosticsMessage.ClickedReload() }).effect,
+      ReportToObservatory.make({ message: DiagnosticsMessage.ClickedReload() }).effect,
     );
 
     expect(message).toEqual({ _tag: 'CompletedReportToObservatory' });

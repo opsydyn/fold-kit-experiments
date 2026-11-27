@@ -1,18 +1,21 @@
-import { FetchMetrics } from './command';
+import { Html } from '@effect/ui/html';
+
 import { Message } from './message';
 import { initModel, Model } from './model';
-import { NavigationPort, toNavigationValue } from './navigation';
-import { subscriptionsFor } from './subscription';
 import { update } from './update';
 import { view } from './view';
 
-export { Model, Message, update, view };
+export { update };
 
-export const ports = {
-  inbound: { navigation: NavigationPort },
-};
-
-export const navigation = { port: 'navigation', map: toNavigationValue };
-export const subscriptions = subscriptionsFor();
-
-export const init = () => ({ model: initModel, commands: [FetchMetrics()] });
+export const RequestDiagnostics = Html.component({
+  name: 'RequestDiagnostics',
+  model: Model,
+  message: Message,
+}).make({
+  init: () => initModel,
+  update: ($, message) => {
+    const result = update($.model, message);
+    return $.set(result.model).run(...(result.commands ?? []));
+  },
+  view,
+});

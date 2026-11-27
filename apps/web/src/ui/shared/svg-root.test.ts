@@ -1,36 +1,23 @@
-import { Schema } from 'effect';
-import { Runtime } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { BrowserHost, Html } from '@effect/ui/html';
+import { Effect, Exit, Schema, Scope } from 'effect';
 import { expect, it, onTestFinished, vi } from 'vitest';
 
-import { initModel } from '../../apps/request-diagnostics/model';
-import { view as diagnosticsView } from '../../apps/request-diagnostics/view';
-import * as PlotPanel from '../plot-panel';
+import { RequestDiagnostics } from '../../apps/request-diagnostics/main';
+import * as PlotPanel from '../plot-panel/core';
+import { view as plotPanelView } from '../plot-panel/effect-ui';
 
-async function focusScene<Model, Message extends { _tag: string }>(
-  model: Model,
-  view: (model: Model, h: HtmlBuilder<Message>) => Document,
+async function focusScene(
+  mount: (host: HTMLElement, scope: Scope.Scope) => Promise<void>,
   count: number,
 ) {
   const host = document.createElement('div');
-  const container = document.createElement('div');
-  container.id = 'shared-chart-focus';
-  host.append(container);
   document.body.append(host);
-  const handle = Runtime.embed(
-    Runtime.makeApplication({
-      Model: Schema.declare<Model>((value): value is Model => value === model),
-      init: () => ({ model }),
-      update: (model: Model, _message: Message) => ({ model }),
-      view,
-      container,
-      devTools: false,
-    }),
-  );
-  onTestFinished(() => {
-    handle.dispose();
+  const scope = Scope.makeUnsafe();
+  onTestFinished(async () => {
+    await Effect.runPromise(Scope.close(scope, Exit.void));
     host.remove();
   });
+  await mount(host, scope);
   await vi.waitFor(() => expect(host.querySelectorAll('.plot-panel')).toHaveLength(count));
   expect(host.querySelector('.comparison')).toBeNull();
   const charts = host.querySelectorAll<HTMLElement>('.plot-panel[tabindex="0"]');
@@ -52,19 +39,29 @@ it('does not suppress native plot panel focus outside comparison', async () => {
       marks: [{ mark: 'dot', x: 'x', y: 'y' }],
     },
   }).model;
-  await focusScene<PlotPanel.Model, PlotPanel.Message>(
-    model,
-    (current, h) => ({
-      title: 'Plot panel',
-      body: PlotPanel.view(
-        { model: current, toParentMessage: (message) => message, ariaLabel: 'Points' },
-        h,
-      ),
-    }),
-    1,
-  );
+  const Fixture = Html.component({
+    name: 'ChartFocusFixture',
+    model: Schema.Null,
+    message: PlotPanel.Message,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      plotPanelView({ model, toParentMessage: (message) => message, ariaLabel: 'Points' }, h),
+  });
+  await focusScene(async (host, scope) => {
+    const mount = BrowserHost.mountEffect(Fixture, {}, host, { head: false });
+    await Effect.runPromise(Scope.provide(mount, scope));
+  }, 1);
 });
 
 it('does not suppress focus on either diagnostics chart', async () => {
-  await focusScene(initModel, diagnosticsView, 2);
+  vi.stubGlobal('fetch', () => Promise.resolve(Response.json([])));
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+  });
+  await focusScene(async (host, scope) => {
+    const mount = BrowserHost.mountEffect(RequestDiagnostics, {}, host, { head: false });
+    await Effect.runPromise(Scope.provide(mount, scope));
+  }, 2);
 });

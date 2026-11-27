@@ -1,18 +1,22 @@
-import { Schema } from 'effect';
-import { Port, Runtime, Subscription } from 'foldkit';
-import { describe, expect, it, vi } from 'vitest';
+import { Component } from '@effect/ui';
+import { BrowserHost } from '@effect/ui/html';
+import { Effect, Exit, Scope } from 'effect';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
-import { update } from './main';
+import app from './app';
+import { RequestDiagnostics, update } from './main';
 import { Message } from './message';
-import type { Message as AppMessage } from './message';
 import { initModel } from './model';
-import { NavigationPort, NavigationValue } from './navigation';
 
 /** The machine's own Commands: every message it takes is also reported to the observatory. */
 const machineCommands = (commands: ReadonlyArray<{ readonly name: string }> | undefined) =>
   (commands ?? []).filter(({ name }) => name !== 'ReportToObservatory');
 
 describe('request diagnostics navigation scene', () => {
+  it('uses Effect UI for the Astro island', () => {
+    expect(Component.isComponent(app)).toBe(true);
+  });
+
   it('updates route metadata without rebuilding chart models', () => {
     const model = initModel;
     const { model: nextModel, commands } = update(
@@ -34,47 +38,30 @@ describe('request diagnostics navigation scene', () => {
     });
   });
 
-  it('delivers an inbound port value through the subscription as Navigated', async () => {
-    const TestModel = Schema.Struct({ navigation: NavigationValue });
-    type TestModel = typeof TestModel.Type;
-    const received: AppMessage[] = [];
-    const testSubscriptions = Subscription.make<TestModel, AppMessage>()(() => ({
-      navigation: Port.subscriptionEntry(NavigationPort, (value) => Message.Navigated(value)),
-    }));
-    const container = document.createElement('div');
-    container.id = 'request-diagnostics-port-test';
-    document.body.appendChild(container);
-    const handle = Runtime.embed(
-      Runtime.makeElement({
-        Model: TestModel,
-        init: () => ({ model: { navigation: initModel.navigation } }),
-        update: (model, message) => {
-          received.push(message);
-          return { model };
-        },
-        view: (model, h) => h.div([], [model.navigation.path]),
-        subscriptions: testSubscriptions,
-        ports: { inbound: { navigation: NavigationPort } },
-        container,
-      }),
+  it('delivers Astro route changes through the native mount and releases its listener', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(Response.json([])));
+    const host = document.createElement('div');
+    document.body.append(host);
+    const scope = Scope.makeUnsafe();
+    onTestFinished(async () => {
+      await Effect.runPromise(Scope.close(scope, Exit.void));
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+      host.remove();
+    });
+    const mount = BrowserHost.mountEffect(RequestDiagnostics, {}, host, { head: false });
+    await Effect.runPromise(Scope.provide(mount, scope));
+    await vi.waitFor(() => expect(host.textContent).toContain('coldLoad'));
+    const dispatch = (path: string) =>
+      document.dispatchEvent(
+        Object.assign(new Event('astro:before-swap'), { to: new URL(path, 'http://localhost') }),
+      );
+    dispatch('/request-diagnostics/acme/platform/docs/intro.md');
+    await vi.waitFor(() =>
+      expect(host.textContent).toContain('stayed /request-diagnostics/acme/platform/docs/intro.md'),
     );
-
-    handle.ports.navigation.send({
-      phase: 'stayed',
-      path: '/request-diagnostics/acme/platform/docs/intro.md',
-      previousPath: '/request-diagnostics',
-    });
-
-    await vi.waitFor(() => {
-      expect(received).toEqual([
-        Message.Navigated({
-          phase: 'stayed',
-          path: '/request-diagnostics/acme/platform/docs/intro.md',
-          previousPath: '/request-diagnostics',
-        }),
-      ]);
-    });
-    handle.dispose();
-    container.remove();
+    const removed = vi.spyOn(document, 'removeEventListener');
+    await Effect.runPromise(Scope.close(scope, Exit.void));
+    expect(removed.mock.calls.some(([name]) => name === 'astro:before-swap')).toBe(true);
   });
 });

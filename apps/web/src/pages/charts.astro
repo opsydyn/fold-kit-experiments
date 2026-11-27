@@ -224,7 +224,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Phyllotaxis — zoom &amp; mini map</p>
-      <PhyllotaxisApp client:load noMeta />
+      <PhyllotaxisApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Salary distribution</p>
@@ -268,11 +268,11 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Easing functions</p>
-      <EasingCurvesApp client:load noMeta />
+      <EasingCurvesApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Color space interpolation</p>
-      <ColorSpacesApp client:load noMeta />
+      <ColorSpacesApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Bivariate density contour</p>

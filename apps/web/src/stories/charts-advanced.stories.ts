@@ -9,13 +9,12 @@ import { Chart as CorrelationMatrixApp } from '../apps/correlation-matrix/main';
 import { Chart as DivergingStackedBarApp } from '../apps/diverging-stacked-bar/main';
 import { HistogramBrush as HistogramBrushApp } from '../apps/histogram-brush/main';
 import { LinkedCharts as LinkedChartsApp } from '../apps/linked-charts/main';
-import * as PhyllotaxisApp from '../apps/phyllotaxis/main';
+import { Phyllotaxis as PhyllotaxisApp } from '../apps/phyllotaxis/main';
 import { Chart as RadarApp } from '../apps/radar/main';
 import { Chart as StreamgraphApp } from '../apps/streamgraph/main';
 import { Chart as WaterfallApp } from '../apps/waterfall/main';
 import { Chart as WindRoseApp } from '../apps/wind-rose/main';
 import { ZoomableLine as ZoomableLineApp } from '../apps/zoomable-line/main';
-import { mountFoldkit } from './mount';
 import { mountEffectUi, mountStaticChart } from './mount-effect-ui';
 
 export default {
@@ -76,7 +75,8 @@ export const ZoomableLine: StoryObj = {
 
 export const Phyllotaxis: StoryObj = {
   name: 'Phyllotaxis + minimap',
-  render: () => mountFoldkit(PhyllotaxisApp),
+  render: () =>
+    mountEffectUi((host) => BrowserHost.mountEffect(PhyllotaxisApp, {}, host, { head: false })),
   parameters: {
     docs: { description: { story: 'Golden-angle spiral — zoom and mini-map viewport indicator.' } },
   },

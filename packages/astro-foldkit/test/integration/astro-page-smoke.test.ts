@@ -182,8 +182,11 @@ describe('Astro page rendering smoke', () => {
           const chartsResponse = await fetch(`http://127.0.0.1:${port}/charts`);
           expect(chartsResponse.ok).toBe(true);
           const chartsHtml = await chartsResponse.text();
-          expect(chartsHtml).toContain('<div data-foldkit-island="true"></div>');
-          expect(chartsHtml).not.toContain('data-foldkit-app="app"');
+          expect(count(chartsHtml, '<div data-effect-ui-root>')).toBe(7);
+          expect(count(chartsHtml, 'data-effect-ui-state')).toBe(7);
+          expect(count(chartsHtml, 'data-foldkit-island')).toBe(0);
+          expect(count(chartsHtml, 'data-foldkit-app')).toBe(0);
+          expect(count(chartsHtml, 'data-phyllotaxis-viewport')).toBe(1);
 
           const stateflowLinks: string[] = [];
           new HTMLRewriter()

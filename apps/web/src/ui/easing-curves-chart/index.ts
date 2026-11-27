@@ -1,3 +1,5 @@
+import { UiSchema } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
 import {
   easeBackOut,
   easeBounceOut,
@@ -7,9 +9,6 @@ import {
   easeSinOut,
 } from '@opsydyn/foldkit-viz/math/ease';
 import { Option, Schema } from 'effect';
-import type { Html, HtmlBuilder } from 'foldkit/html';
-import { defineMessageUnion } from 'foldkit/message';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -30,31 +29,21 @@ const CURVES: ReadonlyArray<CurveEntry> = [
   { name: 'bounceOut', fn: easeBounceOut, color: '#8b5cf6' },
 ];
 
-export type Model = Readonly<{
-  curves: ReadonlyArray<CurveEntry>;
-  hovered: Option.Option<string>;
-}>;
+export const Model = Schema.Struct({ hovered: Schema.Option(Schema.String) });
+export type Model = typeof Model.Type;
 
-export function init(): UpdateReturn<Model, Message> {
-  return { model: { curves: CURVES, hovered: Option.none() } };
-}
+export const init: Model = { hovered: Option.none() };
 
-// MESSAGE
-
-export const Message = defineMessageUnion({
+export const Message = UiSchema.TaggedEnum({
   HoveredCurve: { name: Schema.String },
   BlurredCurve: {},
 });
 export type Message = typeof Message.Type;
 
-// UPDATE
-
-type Return = UpdateReturn<Model, Message>;
-
-export const update = (model: Model, msg: Message): Return =>
-  Message.match(msg, {
-    HoveredCurve: ({ name }) => ({ model: { ...model, hovered: Option.some(name) } }),
-    BlurredCurve: () => ({ model: { ...model, hovered: Option.none() } }),
+export const update = (_model: Model, message: Message): Model =>
+  Message.match(message, {
+    HoveredCurve: ({ name }) => ({ hovered: Option.some(name) }),
+    BlurredCurve: () => init,
   });
 
 // VIEW
@@ -94,143 +83,95 @@ const CURVE_PATHS: ReadonlyArray<{ name: string; color: string; d: string }> = C
 const Y_ZERO = PH - ((0 - Y_MIN) / (Y_MAX - Y_MIN)) * PH;
 const Y_ONE = PH - ((1 - Y_MIN) / (Y_MAX - Y_MIN)) * PH;
 
-export function view<M>(
-  config: {
-    model: Model;
-    toParentMessage: (msg: Message) => M;
-    ariaLabel?: string;
-  },
-  h: HtmlBuilder<M>,
-): Html {
-  const { model, toParentMessage, ariaLabel = 'Easing curves comparison' } = config;
-  const { hovered } = model;
-
-  const active = Option.isSome(hovered) ? hovered.value : null;
-
-  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-    h.g(
-      [h.Transform(`translate(${ML},${MT})`)],
-      [
-        // Grid lines at y=0 and y=1
-        h.line(
-          [
-            h.X1('0'),
-            h.Y1(String(Y_ZERO.toFixed(1))),
-            h.X2(String(PW)),
-            h.Y2(String(Y_ZERO.toFixed(1))),
-            h.Stroke('var(--chart-grid, #2d2d2d)'),
-            h.StrokeWidth('1'),
-          ],
-          [],
+export function view(h: Html.H<Message>, model: Model, ariaLabel: string) {
+  const active = Option.getOrNull(model.hovered);
+  const grid = [
+    [Y_ZERO, '0'],
+    [Y_ONE, '1'],
+  ] as const;
+  const paths = CURVE_PATHS.map(({ name, color, d }) =>
+    h
+      .el('path')
+      .key(name)
+      .attrs({
+        d,
+        fill: 'none',
+        stroke: color,
+        'stroke-width': name === active ? '2.5' : '1.5',
+        opacity: active !== null && name !== active ? '0.15' : '1',
+        style: 'transition:opacity 80ms,stroke-width 80ms',
+      }),
+  );
+  const legend = CURVE_PATHS.map(({ name, color }, index) => {
+    const isInactive = active !== null && name !== active;
+    return h
+      .el('g')
+      .key(name)
+      .attrs({
+        transform: `translate(${(index % 3) * 112},${Math.floor(index / 3) * 18})`,
+        style: 'cursor:default',
+      })
+      .on('mouseenter', Message.HoveredCurve({ name }))
+      .on('mouseleave', Message.BlurredCurve())
+      .children(
+        h.el('line').attrs({
+          x1: '0',
+          y1: '-4',
+          x2: '16',
+          y2: '-4',
+          stroke: color,
+          'stroke-width': '2',
+          opacity: isInactive ? '0.25' : '1',
+        }),
+        h
+          .el('text')
+          .attrs({
+            x: '20',
+            y: '0',
+            'font-size': '0.6rem',
+            'font-weight': name === active ? '600' : '400',
+            fill: isInactive ? 'var(--chart-label-muted,#555)' : 'var(--chart-label,#888)',
+            style: 'transition:fill 80ms',
+          })
+          .children(name),
+      );
+  });
+  return svgRoot(h, { width: W, height: H, ariaLabel }, [
+    h
+      .el('g')
+      .attr('transform', `translate(${ML},${MT})`)
+      .children(
+        grid.map(([y, label]) =>
+          h
+            .el('g')
+            .key(label)
+            .children(
+              h.el('line').attrs({
+                x1: '0',
+                y1: y.toFixed(1),
+                x2: String(PW),
+                y2: y.toFixed(1),
+                stroke: 'var(--chart-grid,#2d2d2d)',
+                'stroke-width': '1',
+              }),
+              h
+                .el('text')
+                .attrs({
+                  x: '-4',
+                  y: y.toFixed(1),
+                  'text-anchor': 'end',
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.55rem',
+                  fill: '#94a3b8',
+                })
+                .children(label),
+            ),
         ),
-        h.line(
-          [
-            h.X1('0'),
-            h.Y1(String(Y_ONE.toFixed(1))),
-            h.X2(String(PW)),
-            h.Y2(String(Y_ONE.toFixed(1))),
-            h.Stroke('var(--chart-grid, #2d2d2d)'),
-            h.StrokeWidth('1'),
-          ],
-          [],
-        ),
-
-        // Axis labels
-        h.text(
-          [
-            h.X('-4'),
-            h.Y(String(Y_ZERO.toFixed(1))),
-            h.Style({
-              'text-anchor': 'end',
-              'dominant-baseline': 'middle',
-              'font-size': '0.55rem',
-              fill: '#94a3b8',
-            }),
-          ],
-          ['0'],
-        ),
-        h.text(
-          [
-            h.X('-4'),
-            h.Y(String(Y_ONE.toFixed(1))),
-            h.Style({
-              'text-anchor': 'end',
-              'dominant-baseline': 'middle',
-              'font-size': '0.55rem',
-              fill: '#94a3b8',
-            }),
-          ],
-          ['1'],
-        ),
-
-        // Easing curves
-        h.g(
-          [],
-          CURVE_PATHS.map(({ name, color, d }) => {
-            const isActive = name === active;
-            const isInactive = active !== null && !isActive;
-            return h.path(
-              [
-                h.D(d),
-                h.Fill('none'),
-                h.Stroke(color),
-                h.StrokeWidth(isActive ? '2.5' : '1.5'),
-                h.Opacity(isInactive ? '0.15' : '1'),
-                h.Style({ transition: 'opacity 80ms, stroke-width 80ms' }),
-              ],
-              [],
-            );
-          }),
-        ),
-
-        // Legend (2 rows of 3)
-        h.g(
-          [h.Transform(`translate(0,${PH + 18})`)],
-          CURVE_PATHS.map(({ name, color }, i) => {
-            const col = i % 3;
-            const row = Math.floor(i / 3);
-            const isActive = name === active;
-            const isInactive = active !== null && !isActive;
-            return h.g(
-              [
-                h.Transform(`translate(${col * 112},${row * 18})`),
-                h.OnMouseEnter(toParentMessage(Message.HoveredCurve({ name }))),
-                h.OnMouseLeave(toParentMessage(Message.BlurredCurve())),
-                h.Style({ cursor: 'default' }),
-              ],
-              [
-                h.line(
-                  [
-                    h.X1('0'),
-                    h.Y1('-4'),
-                    h.X2('16'),
-                    h.Y2('-4'),
-                    h.Stroke(color),
-                    h.StrokeWidth('2'),
-                    h.Opacity(isInactive ? '0.25' : '1'),
-                  ],
-                  [],
-                ),
-                h.text(
-                  [
-                    h.X('20'),
-                    h.Y('0'),
-                    h.Style({
-                      'font-size': '0.6rem',
-                      'font-weight': isActive ? '600' : '400',
-                      fill: isInactive
-                        ? 'var(--chart-label-muted, #555)'
-                        : 'var(--chart-label, #888)',
-                      transition: 'fill 80ms',
-                    }),
-                  ],
-                  [name],
-                ),
-              ],
-            );
-          }),
-        ),
-      ],
-    ),
+        h.el('g').children(paths),
+        h
+          .el('g')
+          .attr('transform', `translate(0,${PH + 18})`)
+          .children(legend),
+      ),
   ]);
 }

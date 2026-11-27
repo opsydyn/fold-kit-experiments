@@ -2008,8 +2008,12 @@ export function updateEditor(
     case 'EdgeLabelSaved': {
       if (state.edgeLabelDraft?.id !== event.id) return state;
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
+      if (!edge || !selectionIsVisible(state, 'edge', event.id))
+        return { ...state, edgeLabelDraft: null };
+      const reason = policy.canSelectEdge?.(edge, state.graph) ?? null;
+      if (reason !== null) return { ...state, edgeLabelDraft: null, notice: reason };
       const label = state.edgeLabelDraft.text.trim();
-      if (!edge || (label || undefined) === edge.label) return { ...state, edgeLabelDraft: null };
+      if ((label || undefined) === edge.label) return { ...state, edgeLabelDraft: null };
       const { label: _previousLabel, ...unlabeled } = edge;
       const updated = label ? { ...unlabeled, label } : unlabeled;
       return {

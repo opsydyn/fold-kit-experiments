@@ -13,7 +13,6 @@ import {
   PortDesign,
   Session,
   Message,
-  PathStyle,
   connectionPolicy,
   decodeBrowserInput,
   editorFor,
@@ -27,7 +26,6 @@ type Observe = (event: WorkbenchEvent) => Message;
 const decodeSession = Schema.decodeUnknownSync(Session);
 const decodeDesign = Schema.decodeUnknownSync(PortDesign);
 const decodeScheme = Schema.decodeUnknownSync(ColorScheme);
-const decodeStyle = Schema.decodeUnknownSync(PathStyle);
 
 function action(h: Tags, label: string, message: Message, disabled = false) {
   return h.button.attr('type', 'button').disabled(disabled).on('click', message).children(label);
@@ -107,15 +105,18 @@ function endpointField(
   );
 }
 
-function selectedEdgeActions(h: Tags, editor: EditorState, policy: EditorPolicy, observe: Observe) {
+function edgeEndpointControls(
+  h: Tags,
+  editor: EditorState,
+  policy: EditorPolicy,
+  observe: Observe,
+) {
   const edge =
     editor.selectedEdges.length === 1
       ? editor.graph.edges.find(({ id }) => id === editor.selectedEdges[0])
       : undefined;
   if (!edge || editor.readOnly) return [];
   const { id } = edge;
-  const busy = editor.gesture.type !== 'idle';
-  const draft = editor.edgeLabelDraft?.id === id ? editor.edgeLabelDraft : null;
   const endpoints = (['source', 'target'] as const).flatMap((end) => {
     const field = resolveEdgeReconnection(editor, id, end, policy);
     return field
@@ -131,48 +132,8 @@ function selectedEdgeActions(h: Tags, editor: EditorState, policy: EditorPolicy,
     h.div
       .class('connection-edge-actions')
       .attr('role', 'group')
-      .attr('aria-label', 'Selected edge actions')
-      .children(
-        ...(draft
-          ? [
-              h.label.class('workbench-field').children(
-                'Connection label',
-                h.input
-                  .attr('type', 'text')
-                  .value(draft.text)
-                  .on('input', ({ value }) =>
-                    observe({ type: 'EdgeLabelDraftChanged', id, text: value }),
-                  )
-                  .on('keydown', ({ key }) => {
-                    if (key === 'Enter') return observe({ type: 'EdgeLabelSaved', id });
-                    return key === 'Escape'
-                      ? observe({ type: 'EdgeLabelCancelled', id })
-                      : undefined;
-                  }),
-              ),
-              action(h, 'Save label', observe({ type: 'EdgeLabelSaved', id }), busy),
-              action(h, 'Cancel label', observe({ type: 'EdgeLabelCancelled', id }), busy),
-            ]
-          : [action(h, 'Rename', observe({ type: 'EdgeLabelEditingStarted', id }), busy)]),
-        h.label.class('workbench-field').children(
-          'Path style',
-          h.select
-            .disabled(busy)
-            .on('change', ({ value }) =>
-              observe({
-                type: 'EdgePathStyleChanged',
-                id,
-                pathStyle: value === '' ? null : decodeStyle(value),
-              }),
-            )
-            .children(
-              h.option.attr('value', '').selected(!edge.pathStyle).children('Default'),
-              ...choiceOptions(h, PathStyle.literals, edge.pathStyle, (value) => value),
-            ),
-        ),
-        action(h, 'Delete edge', observe({ type: 'EdgeDeleted', id }), busy),
-        ...endpoints,
-      ),
+      .attr('aria-label', 'Selected edge endpoints')
+      .children(...endpoints),
   ];
 }
 
@@ -341,7 +302,7 @@ export function view(h: Tags, model: Model) {
                       ),
                   ),
                 ),
-              ...selectedEdgeActions(h, editor, policy, observe),
+              ...edgeEndpointControls(h, editor, policy, observe),
               h.p('Select a connection to change either end. Each edit is one Undo.'),
               h.p(
                 'This connection workbench uses v2 documents. Architecture editions and portable adapters retain their existing formats.',
@@ -356,6 +317,7 @@ export function view(h: Tags, model: Model) {
             policy,
             dropRadius: 32,
             reconnect: true,
+            edgeEditing: { toolbar: true, onEdit: observe },
             wheelNavigation: 'zoom',
             portLabel: ({ port, end, reason }) =>
               model.design === 'native'

@@ -12,6 +12,7 @@ import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
 import { resolveEdgeGeometry } from './edge-geometry';
 import { contextMapLabel } from './effect-ui-context-map';
+import { edgeLabel, edgeToolbar, type NativeEdgeEditing } from './effect-ui-edge-editing';
 import {
   anchorControls,
   anchorGuides,
@@ -46,6 +47,8 @@ export {
 } from './viewport-controls';
 
 export { surfaceInput } from './effect-ui-input';
+export type { NativeEdgeEditing } from './effect-ui-edge-editing';
+export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
 export { viewportControl } from './effect-ui-viewport-control';
 export {
   groupClipboardV3,
@@ -98,6 +101,8 @@ export type GraphSurfaceOptions<Message> = Readonly<{
     snapBypass?: ZlozPortAnchorSnapBypassModifier;
   }>;
   edgeWaypoints?: NativeWaypointOptions<Message>;
+  /** Enable on-canvas edge labels and optionally the selected-edge toolbar. */
+  edgeEditing?: NativeEdgeEditing<Message>;
   portLabel?: (context: GraphPortContext) => string | undefined;
   policy?: EditorPolicy;
   nodeNote?: (node: ZlozNode) => string;
@@ -174,17 +179,37 @@ export function graphSurface<Message>(
       )
       .children();
     const position = geometry.labelPosition;
+    const selected = editor.selectedEdges.includes(edge.id);
+    const selectionDisabledReason = options.edgeEditing
+      ? (policy?.canSelectEdge?.(stored, editor.graph) ?? undefined)
+      : undefined;
+    const relationshipLabel =
+      relationship && position ? contextMapLabel(h, relationship, position) : null;
     const label =
-      relationship && position
-        ? contextMapLabel(h, relationship, position)
-        : edge.label && position
-          ? h.span
-              .key(`label:${edge.id}`)
-              .class('zloz-ui-edge-label')
-              .style({ left: `${position.x}px`, top: `${position.y}px` })
-              .children(edge.label)
-          : null;
-    return { path, label };
+      options.edgeEditing && position
+        ? edgeLabel(
+            h,
+            {
+              edge,
+              labelPosition: position,
+              description: `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`,
+              selected,
+              readOnly: editor.readOnly,
+              selectionDisabledReason,
+            },
+            editor,
+            options.edgeEditing,
+            relationshipLabel,
+          )
+        : (relationshipLabel ??
+          (edge.label && position
+            ? h.span
+                .key(`label:${edge.id}`)
+                .class('zloz-ui-edge-label')
+                .style({ left: `${position.x}px`, top: `${position.y}px` })
+                .children(edge.label)
+            : null));
+    return { path, label, position, edge, selectionDisabledReason };
   });
   const waypointEdge = editor.selectedEdges.length === 1 ? editor.selectedEdges[0] : undefined;
   const waypoint =
@@ -194,7 +219,7 @@ export function graphSurface<Message>(
     scene.edges.some(({ id }) => id === waypointEdge)
       ? resolveEdgeWaypointControls(editor, waypointEdge, policy)
       : null;
-  const handles =
+  const reconnectPoints =
     options.reconnect && !editor.readOnly
       ? scene.edges
           .filter((edge) => editor.selectedEdges.includes(edge.id))
@@ -211,20 +236,34 @@ export function graphSurface<Message>(
               if (!node || !port) return [];
               const point = portBoundaryPosition(node, port.id);
               const [x, y] = reconnectOffset[port.side];
-              return [
-                svg('circle')
-                  .key(`reconnect:${edge.id}:${end}`)
-                  .class('zloz-ui-reconnect')
-                  .attr('data-flow-reconnect', edge.id)
-                  .attr('data-flow-edge-end', end)
-                  .attr('cx', String(point.x + x))
-                  .attr('cy', String(point.y + y))
-                  .attr('r', '9')
-                  .children(),
-              ];
+              return [{ edge, end, x: point.x + x, y: point.y + y }];
             }),
           )
       : [];
+  const handles = reconnectPoints.map(({ edge, end, x, y }) =>
+    svg('circle')
+      .key(`reconnect:${edge.id}:${end}`)
+      .class('zloz-ui-reconnect')
+      .attr('data-flow-reconnect', edge.id)
+      .attr('data-flow-edge-end', end)
+      .attr('cx', String(x))
+      .attr('cy', String(y))
+      .attr('r', '9')
+      .children(),
+  );
+  const toolbarEdge =
+    options.edgeEditing?.toolbar &&
+    waypointEdge !== undefined &&
+    !editor.readOnly &&
+    editor.gesture.type === 'idle' &&
+    !editor.connection &&
+    !editor.context &&
+    !editor.edgeLabelDraft
+      ? edgeViews.find(
+          ({ edge, selectionDisabledReason }) =>
+            edge.id === waypointEdge && selectionDisabledReason === undefined,
+        )
+      : undefined;
   return h.div
     .key(id)
     .id(`${id}-surface`)
@@ -342,6 +381,17 @@ export function graphSurface<Message>(
               )
             : null,
         ),
+      toolbarEdge?.position && options.edgeEditing
+        ? edgeToolbar(
+            h,
+            editor,
+            toolbarEdge.edge,
+            toolbarEdge.position,
+            reconnectPoints,
+            policy,
+            options.edgeEditing.onEdit,
+          )
+        : null,
       options.resizeHandles && options.resizeReadout !== false
         ? nodeResizeReadout(h, editor, nodes)
         : null,

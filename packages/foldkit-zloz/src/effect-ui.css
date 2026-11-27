@@ -557,3 +557,54 @@
   color: var(--flow-node-color, #172033);
   opacity: 0.7;
 }
+
+.zloz-ui-edge-label-frame {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+.zloz-ui-edge-toolbar,
+.zloz-ui-edge-label-badge,
+.zloz-ui-edge-label-editor {
+  color: var(--flow-node-color, var(--text, #172033));
+  background: var(--flow-node-background, var(--surface, #fff));
+  border: 1px solid var(--flow-node-border, var(--border, #cbd5e1));
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+.zloz-ui-edge-label-badge {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zloz-ui-edge-toolbar,
+.zloz-ui-edge-label-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.zloz-ui-edge-toolbar {
+  position: absolute;
+  transform: translateX(-50%);
+  width: min(300px, calc(100% - 24px));
+  box-sizing: border-box;
+  z-index: 3;
+}
+.zloz-ui-edge-toolbar small {
+  width: 100%;
+}
+.zloz-ui-edge-label-editor {
+  box-sizing: border-box;
+  width: 100%;
+}
+.zloz-ui-edge-label-editor input {
+  box-sizing: border-box;
+  width: 100%;
+}
+.zloz-ui-edge-toolbar :is(button, select),
+.zloz-ui-edge-label-editor :is(button, input) {
+  min-height: 28px;
+}

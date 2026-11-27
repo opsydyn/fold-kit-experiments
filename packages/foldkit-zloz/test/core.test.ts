@@ -1351,6 +1351,25 @@ test('edge label edits publish once, preserve the route, and support undo and re
   expect(state.graph.edges[0]).toEqual(edge);
 });
 
+test('saving an open edge label rechecks current selection policy', () => {
+  const id = 'ab';
+  const edge = { id, source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({ ...graph, edges: [edge] });
+  const open = updateEditor(initial, { type: 'EdgeLabelEditingStarted', id });
+  const typed = updateEditor(open, { type: 'EdgeLabelDraftChanged', id, text: 'Revoked' });
+  const blocked = updateEditor(
+    typed,
+    { type: 'EdgeLabelSaved', id },
+    {
+      canSelectEdge: () => 'Edge is now protected.',
+    },
+  );
+  expect(blocked.graph).toBe(initial.graph);
+  expect(blocked.past).toHaveLength(0);
+  expect(blocked.edgeLabelDraft).toBeNull();
+  expect(blocked.notice).toBe('Edge is now protected.');
+});
+
 test('an authored edge path overrides layout and undo restores the automatic route', () => {
   const id = 'ab';
   const edge = { id, source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };

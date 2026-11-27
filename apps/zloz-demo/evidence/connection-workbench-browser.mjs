@@ -77,7 +77,7 @@ try {
   evidence.checks.push('native strict keyboard creation and one Undo/Redo');
   await link('orders:out → billing:in').click();
   await button('Rename').click();
-  const name = page.getByRole('textbox', { name: 'Connection label' });
+  const name = page.getByRole('textbox', { name: 'Edge label for orders:out → billing:in' });
   await name.fill('Send order');
   await name.press('Enter');
   await expect(link('Send order')).toBeVisible();

@@ -211,3 +211,76 @@ test('native marquee customization receives world geometry and keeps highlight p
     hidden?.querySelector('[data-selection-preview="true"]')?.getAttribute('data-flow-node'),
   ).toBe('selected');
 });
+
+test('native edge editing presents protection and keeps read-only labels visible', async () => {
+  const editor = createEditor({
+    nodes: [
+      {
+        id: 'a',
+        label: 'Orders',
+        position: { x: 0, y: 0 },
+        size: { width: 100, height: 80 },
+        ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+      },
+      {
+        id: 'b',
+        label: 'Billing',
+        position: { x: 250, y: 0 },
+        size: { width: 100, height: 80 },
+        ports: [{ id: 'in', kind: 'input', side: 'left', offset: 0.5 }],
+      },
+    ],
+    edges: [
+      {
+        id: 'protected',
+        label: 'Required link',
+        source: { node: 'a', port: 'out' },
+        target: { node: 'b', port: 'in' },
+      },
+    ],
+  });
+  const selected = updateEditor(editor, { type: 'EdgeSelected', id: 'protected', additive: false });
+  const component = Html.component({
+    name: 'NativeEdgePolicy',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      h.div(
+        graphSurface(h, selected, {
+          id: 'deletion-policy',
+          label: 'Protected deletion',
+          onInput: ({ type }) => type,
+          edgeEditing: { toolbar: true, onEdit: ({ type }) => type },
+          policy: { canDelete: () => 'Required link cannot be deleted.' },
+        }),
+        graphSurface(
+          h,
+          { ...selected, readOnly: true },
+          {
+            id: 'edge-inspection',
+            label: 'Read-only inspection',
+            onInput: ({ type }) => type,
+            edgeEditing: { toolbar: true, onEdit: ({ type }) => type },
+          },
+        ),
+      ),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  const toolbar = document.querySelector(
+    '#deletion-policy-surface [aria-label="Selected edge actions"]',
+  );
+  expect(toolbar?.querySelector('button[disabled]')?.textContent).toBe('Delete edge');
+  expect(toolbar?.querySelector('small')?.textContent).toBe('Required link cannot be deleted.');
+  expect(toolbar?.querySelector('button:not([disabled])')?.textContent).toBe('Rename');
+  const inspection = document.querySelector('#edge-inspection-surface');
+  expect(inspection?.querySelector('[data-zloz-edge-label]')?.textContent).toBe('Required link');
+  expect(inspection?.querySelector('[data-zloz-edge-label] button')).toBeNull();
+  expect(inspection?.querySelector('[aria-label="Selected edge actions"]')).toBeNull();
+});

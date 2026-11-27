@@ -1,6 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { ZlozEdgeReconnectionContext } from './edge-reconnection';
+import { edgePathStyles } from './edge-toolbar-placement';
 import type { EdgePathStyle, EditorEvent, ZlozEdge, Point } from './types';
 
 export type ZlozEdgeToolbarAction = Readonly<{
@@ -25,13 +26,6 @@ export type ZlozEdgeToolbarContext = Readonly<{
     changePathStyle: (pathStyle: EdgePathStyle | null) => EditorEvent;
   }>;
 }>;
-
-const pathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
-  { label: 'Automatic', style: null },
-  { label: 'Straight', style: 'straight' },
-  { label: 'Stepped', style: 'stepped' },
-  { label: 'Smooth', style: 'smooth' },
-];
 
 /** Unstyled native button for a selected edge action. */
 export function zlozEdgeToolbarButton<M>(
@@ -69,12 +63,12 @@ export function zlozEdgePathStyleSelect<M>(
       h.OnChange((value) =>
         onEvent(
           context.actions.changePathStyle(
-            pathOptions.find(({ style }) => style === value)?.style ?? null,
+            edgePathStyles.find(({ style }) => style === value)?.style ?? null,
           ),
         ),
       ),
     ],
-    pathOptions.map(({ label, style }) =>
+    edgePathStyles.map(({ label, style }) =>
       h.option(
         [h.Value(style ?? 'auto'), h.Selected((context.edge.pathStyle ?? null) === style)],
         [label],

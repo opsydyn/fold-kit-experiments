@@ -48,7 +48,7 @@ export {
 export type { ZlozConnectionCreationViewOptions } from './connection-creation-view';
 import { zlozEdgeEndpointField } from './edge-endpoint';
 import { resolveEdgeReconnection, type ZlozEdgeReconnectionOptions } from './edge-reconnection';
-import { edgeToolbarBand } from './edge-toolbar-placement';
+import { edgeToolbarBand, edgeToolbarPosition } from './edge-toolbar-placement';
 export {
   zlozEdgeEndpointField,
   zlozEdgeEndpointSelect,
@@ -938,21 +938,6 @@ function viewportControls<M>(
         : []),
     ],
   );
-}
-
-function edgeToolbarPosition(
-  center: Point,
-  viewport: Viewport,
-  handles: readonly Point[],
-  height: number,
-): Point {
-  const { x, y, zoom } = viewport;
-  const centerY = y + center.y * zoom;
-  const handleY = handles.map((point) => y + point.y * zoom);
-  const clearance = 9 * zoom + 6;
-  const below = Math.max(centerY + 26, ...handleY.map((point) => point + clearance));
-  const above = Math.min(centerY - 26, ...handleY.map((point) => point - clearance)) - 82;
-  return { x: x + center.x * zoom, y: below + 82 > height && above >= 6 ? above : below };
 }
 
 function defaultEdgeToolbar<M>(

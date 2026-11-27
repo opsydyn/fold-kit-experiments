@@ -136,8 +136,8 @@ export function update(model: Model, message: Message): Model {
       return {
         ...model,
         readOnly,
-        strict: { ...model.strict, readOnly },
-        loose: { ...model.loose, readOnly },
+        strict: { ...model.strict, readOnly, edgeLabelDraft: null },
+        loose: { ...model.loose, readOnly, edgeLabelDraft: null },
       };
     },
   });

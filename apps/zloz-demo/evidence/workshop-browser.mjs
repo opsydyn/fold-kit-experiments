@@ -72,7 +72,18 @@ async function run() {
   const agreement = page.locator('[data-flow-node="timeout-agreement"]');
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await button('Open workshop semantics example').click();
-  await expect(page.locator('[data-zloz-event-storming-group="workshop-lane"]')).toBeVisible();
+  const lane = page.locator('[data-zloz-event-storming-group="workshop-lane"]');
+  await expect(lane).toBeVisible();
+  const collapse = lane.getByRole('button', { name: 'Collapse Payment discovery', exact: true });
+  const more = lane.getByRole('button', {
+    name: 'More actions for Payment discovery',
+    exact: true,
+  });
+  await expect(more).toBeVisible();
+  const collapseBounds = await collapse.boundingBox();
+  const moreBounds = await more.boundingBox();
+  if (!collapseBounds || !moreBounds) throw new Error('Lane buttons do not have bounds.');
+  expect(collapseBounds.x + collapseBounds.width).toBeLessThan(moreBounds.x);
   await expect(page.locator('[data-flow-node="provider"] [data-flow-port]')).toHaveCount(2);
   await expect(retry.locator('[data-flow-port]')).toHaveCount(0);
   await expect(page.locator('[data-flow-group="workshop-lane"] [data-flow-port]')).toHaveCount(0);
@@ -109,7 +120,7 @@ async function run() {
   await expect(agreement.getByText('Discuss · open', { exact: true })).toBeVisible();
   await section('Diagram');
   await button('Undo').click();
-  await button('Collapse Payment discovery').click();
+  await collapse.click();
   await expect(page.locator('[data-zloz-hotspot-status], [data-workbench-hotspot]')).toHaveCount(0);
   await button('Expand Payment discovery').press('Enter');
   await expect(retry.getByText('Discuss · open', { exact: true })).toBeVisible();
@@ -196,7 +207,7 @@ async function run() {
           'custom semantic status and keyboard activation with retained focus',
           'role and status updates preserve focus and Undo restores the original graph',
           'live facilitator lock and visible port/kind restrictions',
-          'native lane collapse/expand keyboard controls',
+          'lane collapse and context controls do not overlap; keyboard expansion still works',
           'status and editing remain independent of numeric diagnostics',
           'light/dark screenshots',
           'historical review status is read-only and working graph preserved',

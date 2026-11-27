@@ -407,6 +407,10 @@
   cursor: pointer;
 }
 
+.zloz-ui-collapse-toggle:has(+ .zloz-ui-node-context) {
+  right: 44px;
+}
+
 .zloz-ui-node[data-notation][data-node-outline='cylinder'] .zloz-ui-node-title {
   padding: 2px 8px;
 }

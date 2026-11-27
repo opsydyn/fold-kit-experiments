@@ -52,58 +52,96 @@ export type GraphPortOptions<M> = Readonly<{
   policy?: EditorPolicy;
 }>;
 
+function socketButton<M>(
+  h: Html.H<M>,
+  _cacheKey: string,
+  owner: string,
+  port: Port,
+  anchorX: number,
+  anchorY: number,
+  end: NativeSocketContext['connectionEnd'],
+  label: string,
+  target: boolean,
+  active: boolean,
+  reason: string | null,
+  customClass: string | undefined,
+  customStyle: Html.Style | undefined,
+  content: string | View.Content<M>,
+  describedBy: string | undefined,
+  customIntent: boolean,
+  customBadge: boolean,
+) {
+  return h.button
+    .key(port.id)
+    .class('zloz-ui-port', customBadge && 'zloz-ui-port-custom', customClass)
+    .attr('type', 'button')
+    .attr('data-flow-owner', owner)
+    .attr('data-flow-port', port.id)
+    .attr('data-flow-port-kind', port.kind)
+    .attr('data-flow-connection-end', end)
+    .attr('data-custom-intent', customIntent ? end : undefined)
+    .attr('data-target', target ? 'true' : undefined)
+    .attr('aria-label', label)
+    .attr('aria-pressed', String(active))
+    .attr('aria-describedby', describedBy)
+    .attr('title', reason ?? undefined)
+    .disabled(reason !== null)
+    .style({ ...customStyle, left: `${anchorX * 100}%`, top: `${anchorY * 100}%` })
+    .children(content);
+}
+
 export function portSockets<M>(
   h: Html.H<M>,
   editor: EditorState,
   node: ZlozNode,
   options: GraphPortOptions<M>,
+  surfaceId: string,
 ) {
   const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
-  return node.ports.map((port) => {
-    const anchor = portAnchor(port, node);
-    const end = portConnectionEnd(editor, port);
-    const target = drag?.target?.node === node.id && drag.target.port === port.id;
-    const active = editor.connection?.node === node.id && editor.connection.port === port.id;
-    const reason = editor.readOnly
-      ? 'This diagram is read-only.'
-      : (options.policy?.canConnectPort?.({ node: node.id, port: port.id }, editor.graph) ?? null);
-    const label = port.label ?? port.id;
-    const custom = options.renderPort?.(
-      {
-        node,
-        port,
-        anchor,
-        label,
-        connectionEnd: end,
-        active,
-        target,
-        disabledReason: reason,
-      },
-      h,
-    );
-    const badge = custom ? undefined : options.portLabel?.({ port, end, reason });
-    return h.button
-      .key(port.id)
-      .class('zloz-ui-port', badge !== undefined && 'zloz-ui-port-custom', custom?.className)
-      .attr('type', 'button')
-      .attr('data-flow-owner', node.id)
-      .attr('data-flow-port', port.id)
-      .attr('data-flow-port-kind', port.kind)
-      .attr('data-flow-connection-end', end)
-      .attr('data-custom-intent', badge !== undefined || custom ? end : undefined)
-      .attr('data-target', target ? 'true' : undefined)
-      .attr('aria-label', `Connect ${end === 'source' ? 'from' : 'to'} ${node.label}: ${label}`)
-      .attr('aria-pressed', String(active))
-      .attr('aria-describedby', custom?.describedBy)
-      .attr('title', reason ?? undefined)
-      .disabled(reason !== null)
-      .style({
-        ...custom?.style,
-        left: `${anchor.x * 100}%`,
-        top: `${anchor.y * 100}%`,
-      })
-      .children(custom?.content ?? badge ?? '');
-  });
+  return node.ports.map((port) => socketForPort(h, editor, node, options, surfaceId, drag, port));
+}
+
+function socketForPort<M>(
+  h: Html.H<M>,
+  editor: EditorState,
+  node: ZlozNode,
+  options: GraphPortOptions<M>,
+  surfaceId: string,
+  drag: Extract<EditorState['gesture'], { type: 'connection-drag' }> | undefined,
+  port: Port,
+) {
+  const anchor = portAnchor(port, node);
+  const end = portConnectionEnd(editor, port);
+  const target = drag?.target?.node === node.id && drag.target.port === port.id;
+  const active = editor.connection?.node === node.id && editor.connection.port === port.id;
+  const reason = editor.readOnly
+    ? 'This diagram is read-only.'
+    : (options.policy?.canConnectPort?.({ node: node.id, port: port.id }, editor.graph) ?? null);
+  const label = port.label ?? port.id;
+  const custom = options.renderPort?.(
+    { node, port, anchor, label, connectionEnd: end, active, target, disabledReason: reason },
+    h,
+  );
+  const badge = custom ? undefined : options.portLabel?.({ port, end, reason });
+  return h.lazy(
+    socketButton,
+    JSON.stringify([surfaceId, 'port', node.id, port.id]),
+    node.id,
+    port,
+    anchor.x,
+    anchor.y,
+    end,
+    `Connect ${end === 'source' ? 'from' : 'to'} ${node.label}: ${label}`,
+    target,
+    active,
+    reason,
+    custom?.className,
+    custom?.style,
+    custom?.content ?? badge ?? '',
+    custom?.describedBy,
+    badge !== undefined || custom !== undefined,
+    badge !== undefined,
+  );
 }
 
 export function portLabels<M>(

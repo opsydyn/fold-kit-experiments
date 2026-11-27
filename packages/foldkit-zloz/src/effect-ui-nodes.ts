@@ -69,6 +69,7 @@ export function nodeView<Message>(
   options: NativeNodeOptions<Message>,
   node: ZlozNode,
   selecting: boolean,
+  surfaceId: string,
 ) {
   const note = options.nodeNote?.(node);
   const selected = editor.selectedNodes.includes(node.id);
@@ -159,25 +160,22 @@ export function nodeView<Message>(
                 ),
               )
           : null,
-        h.button
-          .key('title')
-          .class('zloz-ui-node-title', shell?.title?.className)
-          .attr('type', 'button')
-          .attr('data-flow-handle', node.id)
-          .attr('aria-label', `Select ${node.label}`)
-          .attr('aria-description', shell?.title?.description ?? notation?.accessibleDescription)
-          .attr('title', selectionDisabledReason ?? moveDisabledReason)
-          .attr('data-flow-move-locked', moveDisabledReason === undefined ? undefined : '')
-          .disabled(selectionDisabledReason !== undefined)
-          .attr('aria-pressed', String(selected))
-          .style({
-            inset: architecture && content ? `${content.y}px auto auto ${content.x}px` : undefined,
-            width: architecture && content ? `${content.width}px` : undefined,
-            height: architecture && content ? `${content.height}px` : undefined,
-            ...shell?.title?.style,
-            cursor: moveDisabledReason === undefined ? shell?.title?.style?.cursor : 'pointer',
-          })
-          .children(shell?.title?.content ?? notation?.content ?? node.label),
+        h.lazy(
+          nodeTitle,
+          JSON.stringify([surfaceId, 'title', node.id]),
+          node.id,
+          node.label,
+          selected,
+          selectionDisabledReason,
+          moveDisabledReason,
+          shell?.title?.className,
+          shell?.title?.description ?? notation?.accessibleDescription,
+          shell?.title?.style,
+          architecture && content ? `${content.y}px auto auto ${content.x}px` : undefined,
+          architecture && content ? `${content.width}px` : undefined,
+          architecture && content ? `${content.height}px` : undefined,
+          shell?.title?.content ?? notation?.content ?? node.label,
+        ),
         toggle && !editor.readOnly
           ? h.button
               .key('collapse-toggle')
@@ -209,9 +207,46 @@ export function nodeView<Message>(
         shell?.body,
         ...(note ? [h.p.class('zloz-ui-node-note').children(note)] : []),
         ...(options.resizeHandles
-          ? nodeResizeControls(h, node, editor, options.policy, options.descriptionId)
+          ? nodeResizeControls(h, node, editor, options.policy, surfaceId, options.descriptionId)
           : []),
-        ...portSockets(h, editor, node, options),
+        ...portSockets(h, editor, node, options, surfaceId),
       )
   );
+}
+
+function nodeTitle<M>(
+  h: Html.H<M>,
+  _cacheKey: string,
+  id: string,
+  label: string,
+  selected: boolean,
+  selectionDisabledReason: string | undefined,
+  moveDisabledReason: string | undefined,
+  className: string | undefined,
+  description: string | undefined,
+  style: Html.Style | undefined,
+  inset: string | undefined,
+  width: string | undefined,
+  height: string | undefined,
+  content: string | View.Content<M>,
+) {
+  return h.button
+    .key('title')
+    .class('zloz-ui-node-title', className)
+    .attr('type', 'button')
+    .attr('data-flow-handle', id)
+    .attr('aria-label', `Select ${label}`)
+    .attr('aria-description', description)
+    .attr('title', selectionDisabledReason ?? moveDisabledReason)
+    .attr('data-flow-move-locked', moveDisabledReason === undefined ? undefined : '')
+    .disabled(selectionDisabledReason !== undefined)
+    .attr('aria-pressed', String(selected))
+    .style({
+      inset,
+      width,
+      height,
+      ...style,
+      cursor: moveDisabledReason === undefined ? style?.cursor : 'pointer',
+    })
+    .children(content);
 }

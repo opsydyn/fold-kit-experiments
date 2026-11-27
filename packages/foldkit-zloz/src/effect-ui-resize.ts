@@ -25,6 +25,7 @@ export function nodeResizeControls<M>(
   node: ZlozNode,
   editor: EditorState,
   policy: EditorPolicy | undefined,
+  surfaceId: string,
   descriptionId?: string,
 ) {
   if (
@@ -35,22 +36,18 @@ export function nodeResizeControls<M>(
   )
     return [];
 
-  const button = (label: string) =>
-    h.button
-      .class('zloz-ui-resize')
-      .attr('type', 'button')
-      .attr('data-flow-resize', node.id)
-      .attr('aria-label', label)
-      .attr('aria-describedby', descriptionId);
-
   if (node.kind !== 'group') {
     return [
-      button(`Resize ${node.label}`)
-        .key('resize:width')
-        .class('zloz-ui-resize', 'zloz-ui-width-resize')
-        .children('↔'),
+      h.lazy(
+        widthButton,
+        JSON.stringify([surfaceId, 'width', node.id]),
+        node.id,
+        node.label,
+        descriptionId,
+      ),
     ];
   }
+  const button = (label: string) => resizeButton(h, node.id, label, descriptionId);
   if (!editor.selectedNodes.includes(node.id)) return [];
 
   return Object.entries(groupHandles).map(([handle, { symbol, ...position }]) =>
@@ -61,6 +58,28 @@ export function nodeResizeControls<M>(
       .style(position)
       .children(symbol),
   );
+}
+
+function resizeButton<M>(h: Html.H<M>, id: string, label: string, descriptionId?: string) {
+  return h.button
+    .class('zloz-ui-resize')
+    .attr('type', 'button')
+    .attr('data-flow-resize', id)
+    .attr('aria-label', label)
+    .attr('aria-describedby', descriptionId);
+}
+
+function widthButton<M>(
+  h: Html.H<M>,
+  _cacheKey: string,
+  id: string,
+  label: string,
+  descriptionId: string | undefined,
+) {
+  return resizeButton(h, id, `Resize ${label}`, descriptionId)
+    .key('resize:width')
+    .class('zloz-ui-resize', 'zloz-ui-width-resize')
+    .children('↔');
 }
 
 export type NativeResizeReadout<M> = (

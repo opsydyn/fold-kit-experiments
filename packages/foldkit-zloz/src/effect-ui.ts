@@ -419,7 +419,7 @@ export function graphSurface<Message>(
                 : []),
               connectionStroke(h, preview, options),
             ),
-          ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
+          ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id), id)),
           ...(worldOverlay
             ? [
                 h.div

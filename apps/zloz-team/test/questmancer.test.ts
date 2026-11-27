@@ -152,6 +152,21 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       expect((await read(previewPath, party.editor.cookie)).status).toBe(404);
       expect((await read(previewPath, party.viewer.cookie)).status).toBe(404);
       expect((await read(previewPath, party.outsider.cookie)).status).toBe(404);
+      const ownerPreview = await read(previewPath, party.owner.cookie);
+      expect(ownerPreview.status).toBe(200);
+      expect(ownerPreview.headers.get('cache-control')).toBe('private, no-store');
+      const previewHtml = await ownerPreview.text();
+      expect(/<h1[^>]*>The Moonwell Observatory<\/h1>/.test(previewHtml)).toBe(true);
+      expect(previewHtml.includes('data-flow-readonly="true"')).toBe(true);
+      expect(previewHtml.match(/class="sprite-art"/g)).toHaveLength(4);
+      const backdropPath = previewPath + '?art=backdrop';
+      const backdrop = await read(backdropPath, party.owner.cookie);
+      expect(backdrop.status).toBe(200);
+      expect(backdrop.headers.get('content-type')).toBe('image/png');
+      expect(backdrop.headers.get('cache-control')).toBe('private, no-store');
+      expect((await backdrop.arrayBuffer()).byteLength).toBeGreaterThan(0);
+      expect((await read(backdropPath, party.viewer.cookie)).status).toBe(404);
+
       expect((await form(previewPath, party.owner.cookie, { action: 'host' })).status).toBe(405);
       expect((await read(api + 'room', party.owner.cookie)).status).toBe(404);
       const surfaceRequests: string[] = [];
@@ -164,6 +179,11 @@ test('Questmancer opens one private table for a DM and three distinct player sea
         dm.getByRole('heading', { name: 'The Moonwell Observatory', exact: true }),
       ).toBeVisible();
       await browserExpect(dm.getByText('Read-only preview', { exact: true })).toBeVisible();
+      await browserExpect(
+        dm.getByRole('region', { name: 'The Moonwell Observatory tabletop' }),
+      ).toHaveAccessibleDescription(
+        'Drag the scene to pan. Scroll or use the zoom buttons to zoom.',
+      );
       await browserExpect(dm.getByRole('button', { name: 'Reveal room', exact: true })).toHaveCount(
         0,
       );
@@ -195,6 +215,11 @@ test('Questmancer opens one private table for a DM and three distinct player sea
       await browserExpect
         .poll(() => artwork.evaluate((node) => getComputedStyle(node).transform))
         .not.toBe(zoomed);
+      const panned = await artwork.evaluate((node) => getComputedStyle(node).transform);
+      await dm.mouse.wheel(0, -120);
+      await browserExpect
+        .poll(() => artwork.evaluate((node) => getComputedStyle(node).transform))
+        .not.toBe(panned);
       await dm.getByRole('button', { name: 'Fit scene', exact: true }).click();
       await capture(dm.getByRole('main'), 'owner-preview');
       expect(surfaceRequests).toEqual([]);

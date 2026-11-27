@@ -70,6 +70,18 @@ button:focus-visible {
   height: 100%;
   min-height: 0;
 }
+.preview-board .zloz-ui-surface {
+  touch-action: none;
+}
+.preview-board .zloz-ui-node.sprite-node {
+  padding: 0;
+  outline: none;
+  background: transparent;
+}
+.preview-board .zloz-ui-node-title.sprite-token {
+  color: #fff5df;
+  cursor: pointer;
+}
 .scene-art {
   display: block;
   max-width: none;

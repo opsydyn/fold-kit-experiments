@@ -7,7 +7,8 @@ import { defineMessageUnion } from 'foldkit/message';
 import * as Subscription from 'foldkit/subscription';
 import type { Return } from 'foldkit/update';
 
-import { boardView, fit, graphFor, boardEditor } from './board';
+import { boardView } from './board';
+import { boardEditor, fit, graphFor } from './board-state';
 import { clientPaths } from './client-paths';
 import {
   initialScene,

@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown';
 export default defineConfig({
-  entry: { index: 'src/index.ts', foldkit: 'src/foldkit.ts', 'effect-ui': 'src/effect-ui.ts' },
+  entry: { index: 'src/index.ts', 'effect-ui': 'src/effect-ui.ts' },
   deps: { neverBundle: [/^@effect\/ui(?:\/|$)/] },
   dts: true,
   format: 'esm',

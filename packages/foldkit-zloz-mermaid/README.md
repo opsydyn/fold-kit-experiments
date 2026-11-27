@@ -208,24 +208,24 @@ no IO; the reader below and Effect CLI compose it at their host boundaries. See
 ## Composable review-packet controls
 
 The root entry exports `resolveReviewPacketControls` and
-`resolveReviewPacketRequest`. The optional `/foldkit` entry exports
-`zlozReviewPacketControls`, `zlozReviewPacketConsent`, `zlozReviewPacketDownload`
-and their view/parts types. Install matching `foldkit` to use the native controls;
-it remains an optional peer and is not installed for headless consumers.
+`resolveReviewPacketRequest`. The optional `/effect-ui` entry exports
+`reviewPacket`, `reviewPacketConsent`, `reviewPacketDownload` and their
+view/parts types. Interactive consumers install the matching Effect UI runtime in the host app.
+Headless consumers can install just the root package and ZLOZ core.
 
 ```ts
 import {
   resolveReviewPacketControls,
   resolveReviewPacketRequest,
 } from '@opsydyn/foldkit-zloz-mermaid';
-import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
+import { reviewPacket } from '@opsydyn/foldkit-zloz-mermaid/effect-ui';
 
 const selection = { baselineId: 'before', selectedId: null }; // null = current
-const state = { consentKey: null }; // host-owned, ephemeral Foldkit model state
+const state = { consentKey: null }; // host-owned, ephemeral component state
 const context = resolveReviewPacketControls(document, selection, state, {
   blockedReason: null, // supply live host protection; direction and data-only rules are optional
 });
-const controls = zlozReviewPacketControls(
+const controls = reviewPacket(
   h,
   context,
   (request) => Message.ObservedReviewPacketInput({ request }),
@@ -304,8 +304,8 @@ No file IO occurs in the package. Cancellation prevents publication; it need not
 abort underlying IO. Invalid/stale/protected/cancelled reads preserve the last
 good review and chosen side. Closing invalidates pending reads.
 
-The optional `@opsydyn/foldkit-zloz-mermaid/foldkit` export `zlozReviewReader`
-accepts the HtmlBuilder, state, request callback, file callback, live policy and
+The optional `@opsydyn/foldkit-zloz-mermaid/effect-ui` export `reviewReader`
+accepts the Effect UI builder, state, request callback, file callback, live policy and
 view options. It renders native opening/cancel/close and baseline/selected controls,
 audit findings and projection losses. `renderSummary`, `renderFinding` and
 `renderLayout` compose custom presentations; undefined falls back, null omits.
@@ -412,14 +412,14 @@ while retaining direction preference. Review state is trusted transient Model da
 not a credential or portable session codec. A download already dispatched cannot
 be retroactively revoked. Graph, revision and Undo remain unchanged by export.
 
-Optional `/foldkit` `zlozGroupMermaidReviewV3(h, controls, onRequest, { id })`
+Optional `/effect-ui` `groupMermaidReviewV3(h, controls, onRequest, { id })`
 provides a direction selector, safe highlighted source, all findings, consent and
 download. Minimal/global diagnostics hide optional status, preserving functional
 findings and denial reasons. `renderPart`, `renderFinding` and `renderLayout` use
 undefined for native defaults and null to omit; replacements own their semantics
-and explanations. Compose `zlozGroupMermaidConsentV3` /
-`zlozGroupMermaidDownloadV3` independently or use headless APIs for a fully custom
-surface. Scoped `theme` uses core's shared public Foldkit theme mapper.
+and explanations. Use the headless review controls to build a custom surface.
+Apply theme tokens on the parent element with the shared ZLOZ Effect UI theme
+mapper.
 
 No Mermaid parser/renderer, DOM, Astro, Foldkit or Effect dependency enters the
 headless root. Local browser oracle evidence is version-specific and separate from

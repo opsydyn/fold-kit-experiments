@@ -2,21 +2,13 @@ import { expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
 import { captureGroupDocumentV3 } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
-import { Window } from 'happy-dom';
 
 import wire from '../../foldkit-zloz/test/fixtures/group-document-v3-ported.json';
-import { zlozGroupMermaidReviewV3, type ZlozGroupMermaidReviewViewOptionsV3 } from '../src/foldkit';
-import {
-  createGroupMermaidReviewV3,
-  resolveGroupMermaidReviewV3,
-  type ZlozGroupMermaidReviewRequestV3,
-} from '../src/index';
-async function render(
-  options: Partial<ZlozGroupMermaidReviewViewOptionsV3<ZlozGroupMermaidReviewRequestV3>> = {},
-) {
+import { groupMermaidReviewV3, type GroupMermaidReviewOptions } from '../src/effect-ui';
+import { createGroupMermaidReviewV3, resolveGroupMermaidReviewV3 } from '../src/index';
+import { observedRequest, render as renderView, type Request } from './render-effect-ui';
+
+async function render(options: Partial<GroupMermaidReviewOptions<Request>> = {}) {
   const source = captureGroupDocumentV3({
       ...wire,
       graph: {
@@ -33,22 +25,10 @@ async function render(
       document: source,
       canDownload: () => 'Export protected.',
     });
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: controls }),
-        view: (model, h: HtmlBuilder<ZlozGroupMermaidReviewRequestV3>) => ({
-          title: 'Native Mermaid',
-          body: zlozGroupMermaidReviewV3(h, model, (r) => r, { id: 'native-mermaid', ...options }),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
+  const document = await renderView((h) =>
+    groupMermaidReviewV3(h, controls, () => observedRequest, { id: 'native-mermaid', ...options }),
   );
-  const window = new Window();
-  window.document.body.innerHTML = result.html;
-  return { document: window.document, controls };
+  return { document, controls };
 }
 test('native optional controls retain fidelity and protection in minimal mode with safe highlighted source and exact labels', async () => {
   const { document, controls } = await render({ minimalMode: true });
@@ -75,9 +55,9 @@ test('nullable part slots and custom findings/layout need no DOM overrides', asy
       part === 'source'
         ? null
         : part === 'download'
-          ? h.button([h.Type('button')], ['Custom save'])
+          ? h.button.attr('type', 'button').children('Custom save')
           : undefined,
-    renderFinding: (finding, h) => h.li([h.Class('finding-badge')], [finding.code]),
+    renderFinding: (finding, h) => h.li.class('finding-badge').children(finding.code),
     renderLayout: (parts) => [
       ...parts.findings,
       ...[parts.source, parts.download, parts.reason].filter(

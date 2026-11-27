@@ -24,11 +24,6 @@ import {
 } from '@opsydyn/foldkit-zloz/effect-ui';
 import {
   zlozThemeStyle,
-  zlozDddRelationshipControls,
-  zlozDddRelationshipPatternSelect,
-  zlozDddUpstreamRole,
-  zlozDddDownstreamRoleSelect,
-  zlozDddRelationshipReasons,
   zlozHistoryChangeNavigator,
   zlozHistoryChangeButton,
   zlozHistoryChangeFilter,
@@ -57,7 +52,6 @@ import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
 import { c4MappingReviewPanel } from './c4-mapping-review-view';
 import { dddAuditPanel } from './ddd-audit-view';
-import { workbenchDddControls } from './ddd-relationship-controls';
 import { workbenchPolicy } from './editor-policy';
 import { exportReviewPanel } from './export-review';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
@@ -68,6 +62,7 @@ import { Message } from './message';
 import { type Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
+import { nativeDddInspector } from './native-ddd-inspector';
 import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-browse';
 import { nativeCausalRelationships, nativeDiagramCaption } from './native-diagram-notation';
 import { nativeConnectionCreation, nativeSelectedConnection } from './native-endpoints';
@@ -211,7 +206,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.editor.selectedEdges.includes(edge.id),
   );
   const policy = workbenchPolicy(model);
-  const dddControls = workbenchDddControls(model);
   const hasDddNodes = model.editor.graph.nodes.some((node) => node.architecture?.family === 'ddd');
   const dddInspectorVisible =
     hasDddNodes && model.sidebarSection === 'inspect' && !model.sidebarCollapsed;
@@ -1107,121 +1101,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
       ...(workshopInspector ? [workshopInspector] : []),
-      ...(hasDddNodes
-        ? [
-            h.h2([], ['DDD relationship']),
-            h.label(
-              [h.Class('workbench-field')],
-              [
-                'Inspect DDD relationship',
-                h.select(
-                  [
-                    h.AriaLabel('Inspect DDD relationship'),
-                    h.Value(selectedEdge?.id ?? ''),
-                    h.OnChange((id) =>
-                      zlozInput(
-                        id
-                          ? { type: 'EdgeSelected', id, additive: false }
-                          : { type: 'SelectionCleared' },
-                      ),
-                    ),
-                  ],
-                  [
-                    h.option([h.Value('')], ['Choose a connection']),
-                    ...model.editor.graph.edges.map((edge) =>
-                      h.option(
-                        [h.Value(edge.id), h.Selected(edge.id === selectedEdge?.id)],
-                        [edge.label || edge.id],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            h.label(
-              [h.Class('workbench-field')],
-              [
-                h.input([
-                  h.Type('checkbox'),
-                  h.Checked(model.protectDddRelationships),
-                  h.Disabled(model.historyReview !== null || busyModelSession),
-                  h.OnClick(Message.ClickedDddRelationshipProtection()),
-                ]),
-                'Protect Orders–Billing meaning edits',
-              ],
-            ),
-            zlozDddRelationshipControls(
-              h,
-              dddControls,
-              (request) => Message.ObservedDddRelationshipInput({ request, modelId, epoch }),
-              {
-                attributes: [
-                  h.Style({
-                    display: 'grid',
-                    gap: '10px',
-                    padding: '12px',
-                    border: '1px solid var(--rule)',
-                    borderRadius: '8px',
-                  }),
-                ],
-                renderPattern: (context, builder, onRequest) =>
-                  builder.label(
-                    [builder.Class('workbench-field')],
-                    [
-                      builder.strong([], ['Pattern contract']),
-                      zlozDddRelationshipPatternSelect(builder, context, onRequest),
-                    ],
-                  ),
-                renderUpstream: (control, context, builder, onRequest) =>
-                  builder.label(
-                    [
-                      builder.Key(control.role),
-                      builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
-                    ],
-                    [
-                      zlozDddUpstreamRole(builder, context, control, onRequest),
-                      builder.span([], [control.label]),
-                    ],
-                  ),
-                renderDownstream: (context, builder, onRequest) => {
-                  const select = zlozDddDownstreamRoleSelect(builder, context, onRequest);
-                  return select
-                    ? builder.label(
-                        [builder.Class('workbench-field')],
-                        ['Downstream contract', select],
-                      )
-                    : null;
-                },
-                renderStatus: () =>
-                  model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
-                renderReasons: (context, builder) => {
-                  const reason =
-                    context.reason ??
-                    context.pattern.reason ??
-                    context.downstream?.reason ??
-                    context.upstream.find((control) => control.reason !== null)?.reason;
-                  const details = zlozDddRelationshipReasons(builder, context);
-                  return builder.div(
-                    [],
-                    [
-                      ...(reason
-                        ? [builder.p([builder.AriaLabel('DDD protection reason')], [reason])]
-                        : []),
-                      builder.p([], ['Each change can be undone.']),
-                      ...(details
-                        ? [
-                            builder.details(
-                              [],
-                              [builder.summary([], ['Pattern compatibility details']), details],
-                            ),
-                          ]
-                        : []),
-                    ],
-                  );
-                },
-              },
-            ),
-          ]
+      ...(hasDddNodes && model.sidebarSection === 'inspect'
+        ? [nativeDddInspector(h, model, 'architecture-effect-ui', 'ddd-relationship-inspector')]
         : []),
       ...(!model.minimalMode && selectedEdge
         ? [

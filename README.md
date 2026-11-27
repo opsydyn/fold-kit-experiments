@@ -1,19 +1,22 @@
 # fold-kit-experiments
 
-A monorepo for [Foldkit](https://foldkit.dev) packages and applications: Astro integration, Viz charts, Three scenes, and ZLOZ graph and system modelling.
+A monorepo for [Effect UI](https://ui.effect.website/) applications and
+packages. It includes an Astro renderer, D3-quality chart primitives,
+declarative Three.js scenes, and ZLOZ graph and system modelling.
 
-FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo explores what it looks like to bring that model into Astro, build D3-quality charts without D3, render Three.js scenes as plain data derived from the Model, and ship the results as reusable primitives.
+See the [Effect UI migration guide](docs/assessments/2026-11-26-effect-ui-1.0-migration.md)
+for upgrade instructions and coordinated release-candidate verification.
 
 ## Packages
 
-The packages below are published on npm. The four effect-three packages are released together at one version. ZLOZ's four public packages and two private workspaces are listed separately below.
+The npm links below point to released versions. The package descriptions reflect this branch. The four effect-three packages are released together at one version. ZLOZ's four public packages and two private workspaces are listed separately below.
 
 | Package                                                           | npm                                                                                                                               | Description                                                                                    |
 | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
-| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | [![npm](https://img.shields.io/npm/v/@opsydyn/astro-foldkit)](https://www.npmjs.com/package/@opsydyn/astro-foldkit)               | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners                     |
-| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | [![npm](https://img.shields.io/npm/v/@opsydyn/foldkit-viz)](https://www.npmjs.com/package/@opsydyn/foldkit-viz)                   | D3-quality visualisation primitives for FoldKit — no D3 dependency                             |
+| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | [![npm](https://img.shields.io/npm/v/@opsydyn/astro-foldkit)](https://www.npmjs.com/package/@opsydyn/astro-foldkit)               | Existing package name forwarding to the standalone Astro Effect UI renderer                    |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | [![npm](https://img.shields.io/npm/v/@opsydyn/foldkit-viz)](https://www.npmjs.com/package/@opsydyn/foldkit-viz)                   | D3-quality visualisation primitives with optional Effect UI rendering                          |
 | [`@opsydyn/effect-three`](packages/effect-three/)                 | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three)](https://www.npmjs.com/package/@opsydyn/effect-three)                 | Effect-native declarative Three.js: keyed scene updates, scoped GPU resources, headless kernel |
-| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-foldkit)](https://www.npmjs.com/package/@opsydyn/effect-three-foldkit) | FoldKit adapter for effect-three: scene element, typed scene Messages, WebGL2 or WebGPU, WebXR |
+| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-foldkit)](https://www.npmjs.com/package/@opsydyn/effect-three-foldkit) | Effect UI adapter for effect-three with typed scene events, WebGL2 or WebGPU, and WebXR        |
 | [`@opsydyn/effect-three-rapier`](packages/effect-three-rapier/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-rapier)](https://www.npmjs.com/package/@opsydyn/effect-three-rapier)   | Rapier physics for effect-three: bodies, colliders, joints and motors described as data        |
 | [`@opsydyn/effect-three-troika`](packages/effect-three-troika/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-troika)](https://www.npmjs.com/package/@opsydyn/effect-three-troika)   | troika distance-field labels for effect-three: crisp text at any size, described as data       |
 
@@ -28,7 +31,7 @@ together in ZLOZ Teams.
 - **Explore:** [ZLOZ promo](https://opsydyn.github.io/fold-kit-experiments/zloz/)
   and [ZLOZ workbench](https://zloz.opsydyn.xyz/).
 - **Try locally:** `bun run dev:zloz-promo` (4329) and
-  `bun run dev:zloz-demo` (4327). The promo includes a native Foldkit Compose
+  `bun run dev:zloz-demo` (4327). The promo includes a native Effect UI Compose
   example with selection, connection creation and Undo/Redo; the workbench adds
   C4, groups, layouts, policy controls and Mermaid review in a persistent canvas.
   The `/groups/` workbench demonstrates the distinct v3 group-port/model/history
@@ -50,7 +53,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 
 | Package                                                           | Responsibility                                                                                            |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`@opsydyn/foldkit-zloz`](packages/foldkit-zloz/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit`      |
+| [`@opsydyn/foldkit-zloz`](packages/foldkit-zloz/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/effect-ui`    |
 | [`@opsydyn/foldkit-zloz-elk`](packages/foldkit-zloz-elk/)         | Optional ELK layout adapter                                                                               |
 | [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                         |
 | [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid projections, portable review packets and conversion-loss reporting                           |
@@ -66,11 +69,11 @@ The name comes from Polish **Złóż**: fold, assemble, put together; use **ZLOZ
 
 effect-three describes a Three.js scene as plain data derived from your Model. Keyed
 updates keep every object in place, Effect owns every lifetime (renderers, GPU
-resources, frame loops, listeners), and pointer input comes back as typed FoldKit
-Messages. Animation runs in the frame loop and never reaches `update`.
+resources, frame loops, listeners), and pointer input comes back as typed
+scene messages. Animation runs in the frame loop and never reaches `update`.
 
 - **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), the [tech radar](https://techradar.opsydyn.xyz/), or `/effect-three` in the demo app (the sculpture sample has its own history slider).
-- **Read it:** the package READMEs ([core](packages/effect-three/README.md), [FoldKit adapter](packages/effect-three-foldkit/README.md), [Rapier](packages/effect-three-rapier/README.md), [troika](packages/effect-three-troika/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
+- **Read it:** the package READMEs ([core](packages/effect-three/README.md), [Effect UI adapter](packages/effect-three-foldkit/README.md), [Rapier](packages/effect-three-rapier/README.md), [troika](packages/effect-three-troika/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
 - **Samples:** [`packages/effect-three-samples`](packages/effect-three-samples/) is shared by the demo app and the promo site.
 
 The four effect-three packages run a stricter, package-local lint policy (every
@@ -84,10 +87,10 @@ Three independent consumer skills are maintained alongside the packages:
 - [astro-foldkit](skills/astro-foldkit/SKILL.md): Astro islands, typed props,
   server-rendered pages, hydration and lifecycle boundaries.
 - [foldkit-viz](skills/foldkit-viz/SKILL.md): pure geometry, the declarative plot
-  grammar and its JSON Schema, column and Arrow data, optional FoldKit rendering,
+  grammar and its JSON Schema, column and Arrow data, optional Effect UI rendering,
   chart interaction and accessibility; no Astro dependency.
 - [effect-three](skills/effect-three/SKILL.md): 3D scenes derived from the Model,
-  the FoldKit adapter, Rapier physics and troika labels, Model-owned cameras and XR,
+  the Effect UI adapter, Rapier physics and troika labels, Model-owned cameras and XR,
   WebGL or WebGPU, and headless tests; no Astro dependency.
 
 One skill is for this repository's own app:
@@ -132,20 +135,21 @@ fold-kit-experiments/
 │   ├── tech-radar/            — Cloudflare deployment for the tech radar
 │   └── zloz/                  — Cloudflare deployment for the standalone Zloz workbench
 └── packages/
-    ├── astro-foldkit/         — Astro renderer for FoldKit islands and SSR/SSG pages
-    ├── foldkit-viz/           — visualisation primitives for FoldKit
+    ├── astro-effect-ui/       — Standalone Astro Effect UI renderer
+    ├── astro-foldkit/         — Astro integration package forwarding to astro-effect-ui
+    ├── foldkit-viz/           — visualisation primitives and Effect UI views
     ├── foldkit-viz-py/        — Python and Jupyter widget for Viz plots
     ├── foldkit-dash/          — private Markdown and Viz dashboard builder
     ├── dataset-explorer/      — private shared KeyedQuery example
-    ├── foldkit-phosphor/      — private FoldKit Phosphor renderer and SVG compiler
-    ├── foldkit-zloz/          — Zloz graph and editor core with optional FoldKit views
+    ├── foldkit-phosphor/      — private Effect UI Phosphor renderer and SVG compiler
+    ├── foldkit-zloz/          — Zloz graph and editor core with optional Effect UI views
     ├── foldkit-zloz-elk/      — optional ELK layout adapter
     ├── foldkit-zloz-force/    — optional force layout and routing adapter
     ├── foldkit-zloz-mermaid/  — Mermaid projection and conversion-loss reporting
     ├── foldkit-zloz-cli/      — private Effect CLI and portable JSON contracts
     ├── foldkit-zloz-alchemy/  — private Domain inspection, projection and Teams collaboration
     ├── effect-three/          — Effect-native declarative Three.js core
-    ├── effect-three-foldkit/  — FoldKit adapter for effect-three
+    ├── effect-three-foldkit/  — Effect UI adapter for effect-three
     ├── effect-three-rapier/   — Rapier physics for effect-three
     ├── effect-three-troika/   — Troika labels for effect-three
     └── effect-three-samples/  — private 3D samples shared by the demo and promo sites
@@ -170,18 +174,12 @@ bun run dev:docs # docs site at http://localhost:4327
 bun storybook    # chart storybook at http://localhost:6006
 ```
 
-The demo's `/greeting` route proves request SSR and `/greeting-static` proves
-SSG through `definePage`. Existing chart routes remain `lazyApp` / `defineApp`
-client islands.
+The demo's `/greeting` route renders on request and `/greeting-static`
+prerenders at build time. The chart routes hydrate Effect UI components
+through the standalone Astro renderer.
 
-The workspace targets FoldKit `0.171.0`, Effect `4.1.0` and Astro `7.4.11`. Shared dependency
-versions are declared once, in the root `package.json` catalogs (see [Dependencies](#dependencies)).
-Before upgrading an existing consumer, read the [0.167 migration guide](docs/migrations/foldkit-0.167.md)
-if it predates 0.167, then the [0.170 guide](docs/migrations/foldkit-0.170.md) for Effect 4.1, the
-route `Transition` helpers and `AsyncData.matchDataSplitEmpty`, then the
-[0.171 guide](docs/migrations/foldkit-0.171.md) for the non-empty `messages` tuple on
-`Command.define` and the `Mount.define` pair, and `createKeyedLazy`'s new eviction default. The
-optional FoldKit peers in Viz remain optional for pure geometry imports.
+The workspace targets Effect `4.1.6` and Astro `7.4.11` and uses a pinned
+Effect UI snapshot. See [Dependencies](#dependencies) for the shared catalog.
 
 ## Reference Workflows
 
@@ -224,7 +222,7 @@ refer to them as `"catalog:"` or `"catalog:strict"`; to upgrade a shared depende
 change the catalog and run `bun install`.
 
 The packages published to npm (`astro-foldkit`, `foldkit-viz` and the four effect-three
-packages) keep literal versions, because CI publishes with `npm publish`, which does not
+and ZLOZ packages) keep literal versions, because CI publishes with `npm publish`, which does not
 resolve `catalog:`.
 `bun run check` runs `tools/check-catalog.ts`, which fails if a shared dependency is
 declared outside the catalog or a published package's version drifts from it.

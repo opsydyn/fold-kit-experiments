@@ -45,6 +45,17 @@ import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-c
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { aggregateView } from './effect-ui-aggregate';
+export {
+  auditComparisonControls,
+  auditEditionSelect,
+  auditFindingButton,
+  auditFindingFilter,
+  dddAuditControls,
+  dddAuditFindingButton,
+  type AuditParts,
+  type ZlozAuditComparisonViewOptions,
+  type ZlozDddAuditViewOptions,
+} from './effect-ui-audit';
 export { canvasHelpContext, canvasStatusContext } from './canvas-accessibility';
 export type {
   ZlozCanvasHelpContext,

@@ -267,12 +267,9 @@ Core exports `resolveAuditComparisonControls`, `resolveAuditComparisonRequest`,
 `ZlozAuditComparisonDecision`. The pure request resolver rechecks current scope,
 filters and policy before returning a source-aware camera navigation event.
 
-The `/foldkit` entry exports `zlozAuditComparisonControls`,
-`zlozAuditEditionSelect`, `zlozAuditFindingFilter`, `zlozAuditFindingButton`,
-`zlozAuditComparisonStatus`, `zlozAuditComparisonReason`,
-`ZlozAuditComparisonParts` and `ZlozAuditComparisonViewOptions`. Nullable slots,
-custom text/attributes/layout and numeric readout control support host styling
-and diagnostics. See the
+The `/effect-ui` entry exports `auditComparisonControls`,
+`auditEditionSelect`, `auditFindingFilter`, and `auditFindingButton`.
+Nullable slots customize layout, text, and numeric readouts. See the
 [package example](../packages/foldkit-zloz/README.md#composable-audit-comparison-controls)
 and [ADR 0034](adr/0034-compose-audit-comparison-controls.md).
 

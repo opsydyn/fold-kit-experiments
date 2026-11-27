@@ -1,23 +1,18 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozDddAuditControls,
-  zlozDddAuditFindingButton,
+  dddAuditControls,
+  dddAuditFindingButton,
   type ZlozDddAuditViewOptions,
-} from '../src/foldkit';
-import {
-  parseModelDocument,
-  resolveDddAuditControls,
-  type ZlozDddAuditRequest,
-} from '../src/index';
+} from '../src/effect-ui';
+import { parseModelDocument, resolveDddAuditControls } from '../src/index';
 import wire from './fixtures/ddd-review-model.json';
 async function render(
-  options: ZlozDddAuditViewOptions<ZlozDddAuditRequest> = {},
+  options: ZlozDddAuditViewOptions<string> = {},
   baselineId: string | null = 'ddd-before',
 ) {
   const context = resolveDddAuditControls(
@@ -29,19 +24,16 @@ async function render(
     },
     { focusReason: () => 'Protected navigation' },
   );
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozDddAuditRequest>) => ({
-          title: 'DDD review',
-          body: zlozDddAuditControls(h, model, (r) => r, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Audit = Html.component({
+    name: 'dddAuditControls',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => dddAuditControls(h, context, (request) => request.type, options),
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Audit, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -84,8 +76,8 @@ test('DDD current review and minimal/custom/omitted compositions preserve native
     renderStatus: () => null,
     renderReason: () => null,
     renderEntry: (e, h, r) =>
-      h.li([], [zlozDddAuditFindingButton(h, e, r, [], ['Custom finding'])]),
-    renderLayout: (parts, _context, h) => [...parts.filters, h.ul([], parts.entries)],
+      h.li.children(dddAuditFindingButton(h, e, r, { content: 'Custom finding' })),
+    renderLayout: (parts, _context, h) => [...parts.filters, h.ul.children(...parts.entries)],
   });
   expect(custom.querySelectorAll('input')).toHaveLength(1);
   expect(custom.querySelector('[role="status"]')).toBeNull();

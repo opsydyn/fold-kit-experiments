@@ -3781,39 +3781,26 @@ navigation, and apply the event to the selected source editor. A historical sour
 should be opened read-only rather than copied into the working graph. Filters
 remain usable while other controls are protected.
 
-The optional Foldkit composition is unstyled and supports custom cards/badges:
+The Effect UI composition supports custom cards and badges.
 
 ```ts
-import { zlozAuditComparisonControls, zlozAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
+import { auditComparisonControls, auditFindingButton } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozAuditComparisonControls(h, context, toMessage, {
+const controls = auditComparisonControls(h, context, toMessage, {
   showCounts: false,
   renderStatus: () => null,
-  renderEntry: (entry, builder, onRequest) =>
-    builder.li(
-      [],
-      [
-        zlozAuditFindingButton(
-          builder,
-          entry,
-          onRequest,
-          [],
-          [builder.strong([], [entry.kind]), ` ${entry.label}`],
-        ),
-      ],
+  renderEntry: (entry, h, onRequest) =>
+    h.li.children(
+      auditFindingButton(h, entry, onRequest, { content: `${entry.kind}: ${entry.label}` }),
     ),
 });
 ```
 
-Individual helpers are `zlozAuditEditionSelect`, `zlozAuditFindingFilter`,
-`zlozAuditFindingButton`, `zlozAuditComparisonStatus` and
-`zlozAuditComparisonReason`. Attributes, text, control names, filter order/subsets,
-selectors, entries, status, reason and layout are customizable. Undefined keeps
-default parts; null omits them. Custom entries own list-item semantics. The native
-helpers retain model-derived selection, protection and descriptions. `showCounts`
-hides numeric filter and status readouts without changing preferences. Hosts can
-bind it to diagnostics or minimal mode and omit status through its render slot.
-Rendering preferences do not replace functional protection policies.
+Use `auditEditionSelect`, `auditFindingFilter` and `auditFindingButton` to
+compose controls that retain the resolved selection, protection and
+descriptions. Composition slots keep defaults for `undefined` and omit parts
+for `null`. Custom entries supply their own list-item semantics. The
+`showCounts` option controls numeric filter and status readouts.
 
 <a id="ddd-relationship-contracts-unreleased"></a>
 
@@ -5075,11 +5062,9 @@ data, not an authorization credential. The host owns state and routes reveal eve
 to the indicated current editor or immutable history review. These APIs never
 restore snapshots, mutate graphs, select edit targets or add Undo entries.
 
-The optional `@opsydyn/foldkit-zloz/foldkit` entry exports:
-
-- `zlozDddAuditControls` and `ZlozDddAuditViewOptions` / `ZlozDddAuditParts`.
-- `zlozDddAuditEditionSelect`, `zlozDddAuditFindingFilter`,
-  `zlozDddAuditFindingButton`, `zlozDddAuditStatus`, `zlozDddAuditReason`.
+The `/effect-ui` entry exports `dddAuditControls`, `ZlozDddAuditViewOptions`,
+`AuditParts`, and the individual `auditEditionSelect`, `auditFindingFilter`
+and `dddAuditFindingButton` helpers.
 
 Native selectors, checkboxes and edge/source/target buttons have accessible labels
 and visible convention/protection reasons. All selectors, filters, entries, status,

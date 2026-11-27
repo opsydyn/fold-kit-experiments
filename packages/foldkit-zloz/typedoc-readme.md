@@ -482,7 +482,7 @@ match edge ID and code; no-new-findings does not imply compatibility.
 {@link Core.resolveDddAuditControls | resolveDddAuditControls} and
 {@link Core.resolveDddAuditRequest | resolveDddAuditRequest} expose standalone and
 comparison review, live protection and fresh node/edge navigation. The optional
-{@link FoldKit.zlozDddAuditControls | zlozDddAuditControls} composes native or custom
+`dddAuditControls` from `/effect-ui` composes native or custom
 views with omit/replace hooks and count visibility. Workbench and Effect CLI
 `ddd compare` demonstrate the same package contracts. Source/Undo are preserved;
 causal commands and packets keep their EventStorming scope.

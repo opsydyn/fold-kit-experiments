@@ -1,5 +1,10 @@
 import type { Html } from '@effect/ui/html';
-import type { ZlozAuditEditionControl } from '@opsydyn/foldkit-zloz';
+import {
+  auditEditionSelect,
+  auditFindingButton,
+  auditFindingFilter,
+  dddAuditFindingButton,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
 import { workbenchAuditContext } from './audit-comparison';
 import { workbenchDddAuditContext } from './ddd-audit';
@@ -23,31 +28,6 @@ const findingStyle = {
 };
 const filterKinds = ['introduced', 'resolved', 'persisting'] as const;
 
-function auditEditionSelect<M>(
-  h: Html.H<M>,
-  control: ZlozAuditEditionControl,
-  select: (editionId: string | null) => M,
-) {
-  const missing = control.value !== null && !control.choices.some(({ id }) => id === control.value);
-  return h.select
-    .attr('aria-label', control.label)
-    .value(control.value ?? '')
-    .disabled(control.reason !== null)
-    .attr('aria-description', control.reason ?? undefined)
-    .attr('title', control.reason ?? undefined)
-    .on('change', ({ value }) => select(value || null))
-    .children(
-      h.option.attr('value', '').children(control.noneLabel),
-      missing
-        ? h.option
-            .attr('value', control.value ?? '')
-            .disabled(true)
-            .children(`Unavailable edition: ${control.value}`)
-        : null,
-      ...control.choices.map(({ id, label }) => h.option.key(id).attr('value', id).children(label)),
-    );
-}
-
 export function historyAudit<M>(h: Html.H<M>, model: Model, send: (message: Message) => M) {
   const context = workbenchAuditContext(model);
   const showStatus = !model.minimalMode && model.diagnosticsEnabled;
@@ -70,15 +50,7 @@ export function historyAudit<M>(h: Html.H<M>, model: Model, send: (message: Mess
         h.label
           .key(control.part)
           .class('workbench-field')
-          .children(
-            control.label,
-            auditEditionSelect(h, control, (editionId) =>
-              request({
-                type: control.part === 'baseline' ? 'BaselineSelected' : 'TargetSelected',
-                editionId,
-              }),
-            ),
-          ),
+          .children(control.label, auditEditionSelect(h, control, request)),
       ),
       ...filterKinds.map((kind) => {
         const filter = context.filters[kind];
@@ -86,11 +58,7 @@ export function historyAudit<M>(h: Html.H<M>, model: Model, send: (message: Mess
           .key(kind)
           .style({ display: 'flex', gap: '8px', alignItems: 'center' })
           .children(
-            h.input
-              .attr('type', 'checkbox')
-              .attr('aria-label', filter.label)
-              .checked(filter.checked)
-              .on('click', request({ type: 'FilterToggled', kind })),
+            auditFindingFilter(h, filter, request),
             filter.label,
             showStatus ? ` · ${filter.count}` : null,
           );
@@ -108,18 +76,8 @@ export function historyAudit<M>(h: Html.H<M>, model: Model, send: (message: Mess
             .key(JSON.stringify([entry.kind, entry.finding.edgeId, entry.finding.code]))
             .style({ listStyle: 'none', marginBottom: '8px' })
             .children(
-              h.button
-                .attr('type', 'button')
-                .attr(
-                  'aria-label',
-                  `View ${entry.kind} finding: ${entry.label} in ${entry.source.kind === 'current' ? 'current graph' : entry.source.name}`,
-                )
-                .disabled(entry.reason !== null)
-                .attr('aria-description', entry.reason ?? undefined)
-                .attr('title', entry.reason ?? undefined)
-                .style(findingStyle)
-                .on('click', request(entry.request))
-                .children(
+              auditFindingButton(h, entry, request, {
+                content: h.span.children(
                   h.strong
                     .style({ display: 'block', textTransform: 'capitalize' })
                     .children(entry.kind),
@@ -130,6 +88,7 @@ export function historyAudit<M>(h: Html.H<M>, model: Model, send: (message: Mess
                       entry.source.kind === 'current' ? 'Current graph' : entry.source.name,
                     ),
                 ),
+              }).style(findingStyle),
               h.small.style({ display: 'block', padding: '4px 0' }).children(entry.finding.message),
               entry.reason ? h.p.children(entry.reason) : null,
             ),
@@ -167,27 +126,19 @@ export function dddAuditPanel<M>(h: Html.H<M>, model: Model, send: (message: Mes
       .attr('aria-label', 'DDD audit review')
       .children(
         ...[context.baseline, context.target].map((control) =>
-          h.label.key(control.part).children(
-            control.label,
-            auditEditionSelect(h, control, (editionId) =>
-              request({
-                type: control.part === 'baseline' ? 'BaselineSelected' : 'TargetSelected',
-                editionId,
-              }),
-            ),
-          ),
+          h.label
+            .key(control.part)
+            .children(control.label, auditEditionSelect(h, control, request)),
         ),
         ...(context.comparison
           ? filterKinds.map((kind) => {
               const filter = context.filters[kind];
-              return h.label.key(kind).children(
-                h.input
-                  .attr('type', 'checkbox')
-                  .attr('aria-label', filter.label)
-                  .checked(filter.checked)
-                  .on('click', request({ type: 'FilterToggled', kind })),
-                showStatus ? `${filter.label} (${filter.count})` : filter.label,
-              );
+              return h.label
+                .key(kind)
+                .children(
+                  auditFindingFilter(h, filter, request),
+                  showStatus ? `${filter.label} (${filter.count})` : filter.label,
+                );
             })
           : []),
         showStatus
@@ -199,33 +150,28 @@ export function dddAuditPanel<M>(h: Html.H<M>, model: Model, send: (message: Mes
           : null,
         h.ul.attr('aria-label', 'DDD audit findings').children(
           ...context.entries.map((entry) => {
-            const button = (subject: 'edge' | 'source' | 'target') =>
-              h.button
-                .attr('type', 'button')
-                .attr(
-                  'aria-label',
-                  `View ${subject} for ${entry.kind} DDD finding: ${entry.label} in ${entry.source.kind === 'current' ? 'current graph' : entry.source.name}`,
-                )
-                .disabled(entry.reason !== null)
-                .attr('aria-description', entry.reason ?? undefined)
-                .attr('title', entry.reason ?? undefined)
-                .on('click', request({ ...entry.request, subject }));
             return h.li
               .key(JSON.stringify([entry.kind, entry.finding.edgeId, entry.finding.code]))
               .style({ listStyle: 'none', marginBottom: '12px' })
               .children(
-                button('edge')
-                  .style(findingStyle)
-                  .children(
+                dddAuditFindingButton(h, entry, request, {
+                  content: h.span.children(
                     h.strong.children(entry.kind === 'current' ? 'Finding' : entry.kind),
                     h.span.children(` · ${entry.label}`),
                   ),
+                }).style(findingStyle),
                 h.small
                   .style({ display: 'block', padding: '6px 0' })
                   .children(entry.finding.message),
                 h.small.style({ display: 'block' }).children(entry.finding.relationshipKey),
-                button('source').children('View source'),
-                button('target').children('View target'),
+                dddAuditFindingButton(h, entry, request, {
+                  subject: 'source',
+                  content: 'View source',
+                }),
+                dddAuditFindingButton(h, entry, request, {
+                  subject: 'target',
+                  content: 'View target',
+                }),
                 entry.reason ? h.p.children(entry.reason) : null,
               );
           }),

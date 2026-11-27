@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,8 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1360 },
@@ -169,7 +170,9 @@ async function run() {
     await page.getByRole('combobox', { name: 'Theme', exact: true }).selectOption(theme);
     await group.scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: fileURLToPath(new URL(`./audit-controls-${theme}.png`, import.meta.url)),
+      path: process.env.ZLOZ_CAPTURE_DIR
+        ? resolve(process.env.ZLOZ_CAPTURE_DIR, `audit-controls-${engine}-${theme}.png`)
+        : fileURLToPath(new URL(`./audit-controls-${theme}.png`, import.meta.url)),
     });
   }
   expect((await download()).snapshot).toEqual(working.snapshot);

@@ -7,12 +7,12 @@ import { Schema } from 'effect';
 import { Window as TestWindow } from 'happy-dom';
 
 import renderer from '../../../packages/astro-effect-ui/src/client.ts';
+import { defineEffectThreeMount } from '../../../packages/effect-three-samples/src/effect-ui-scene.ts';
 import {
   makeEnvironment,
+  ReconciledDetail,
   type EnvironmentHost,
-} from '../../../packages/effect-three-foldkit/src/environment.ts';
-import { ReconciledDetail } from '../../../packages/effect-three-foldkit/src/sceneEvents.ts';
-import { defineEffectThreeMount } from '../../../packages/effect-three-samples/src/effect-ui-scene.ts';
+} from '../../../packages/effect-three/src/browser/index.ts';
 import {
   box,
   mesh,

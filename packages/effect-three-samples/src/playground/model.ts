@@ -1,4 +1,4 @@
-import { ReconciledDetail } from '@opsydyn/effect-three-foldkit/browser';
+import { ReconciledDetail } from '@opsydyn/effect-three/browser';
 import { Option, Schema } from 'effect';
 
 import { Paint, paintAt } from '../palette';

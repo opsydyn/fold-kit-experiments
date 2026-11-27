@@ -8,5 +8,12 @@
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../effect-three" }]
+  "references": [
+    {
+      "path": "../effect-three"
+    },
+    {
+      "path": "../effect-three/tsconfig.browser.json"
+    }
+  ]
 }

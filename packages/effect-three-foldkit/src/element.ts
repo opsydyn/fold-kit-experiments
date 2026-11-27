@@ -8,13 +8,17 @@
  * @module
  */
 import { SceneSchema } from '@opsydyn/effect-three';
+import { sceneEventSchemas } from '@opsydyn/effect-three/browser';
 import { Schema } from 'effect';
 import { CustomElement } from 'foldkit';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { sceneEventSchemas } from './sceneEvents.ts';
-
-export { domEventName, ReconciledDetail, SceneError, XrSessionDetail } from './sceneEvents.ts';
+export {
+  domEventName,
+  ReconciledDetail,
+  SceneError,
+  XrSessionDetail,
+} from '@opsydyn/effect-three/browser';
 
 export const sceneElement = CustomElement.define({
   tag: 'effect-three-scene',

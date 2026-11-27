@@ -1,15 +1,15 @@
 /** Connects FoldKit’s scene property and view state to the browser scene host. */
 import { SceneSchema } from '@opsydyn/effect-three';
+import { sceneErrorDispatch } from '@opsydyn/effect-three/browser';
+import type { Environment } from '@opsydyn/effect-three/browser';
+import { mountSceneHost } from '@opsydyn/effect-three/browser';
 import { Effect, Option, Queue, Result, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import type { ViewState } from 'foldkit/mount';
 
-import { sceneErrorDispatch } from './dom/canvas.ts';
 import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
 import { SceneLifecycle } from './element.ts';
-import type { Environment } from './environment.ts';
-import { mountSceneHost } from './sceneHost.ts';
 
 const decodeUnknownScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
 

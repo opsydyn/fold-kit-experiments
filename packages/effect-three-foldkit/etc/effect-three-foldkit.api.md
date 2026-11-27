@@ -5,20 +5,24 @@
 ```ts
 
 import { $Array } from 'effect/Schema';
-import { Asset } from '@opsydyn/effect-three';
-import { Behaviour } from '@opsydyn/effect-three';
-import { BodyPose } from '@opsydyn/effect-three';
+import { AnimationFrameHost } from '@opsydyn/effect-three/browser';
+import { animationFrameScheduler } from '@opsydyn/effect-three/browser';
+import { AssetLoadError } from '@opsydyn/effect-three/browser';
+import { Assets } from '@opsydyn/effect-three/browser';
 import { Boolean as Boolean_2 } from 'effect/Schema';
-import { BufferGeometry } from 'three';
+import { BoxSelect as BoxSelect_2 } from '@opsydyn/effect-three/browser';
 import { Camera } from '@opsydyn/effect-three';
+import { capturesPointer } from '@opsydyn/effect-three/browser';
+import { claimsContextMenu } from '@opsydyn/effect-three/browser';
 import { CustomElement } from 'foldkit';
-import { Effect } from 'effect';
-import { Effect as Effect_2 } from 'effect/Effect';
+import { defaultPixelRatio } from '@opsydyn/effect-three/browser';
+import { domEventName } from '@opsydyn/effect-three/browser';
+import { Environment } from '@opsydyn/effect-three/browser';
+import { EnvironmentHost } from '@opsydyn/effect-three/browser';
+import { EnvironmentOptions } from '@opsydyn/effect-three/browser';
 import type { FieldPath } from '@opsydyn/effect-three';
 import type { FieldValue } from '@opsydyn/effect-three';
 import { Finite } from 'effect/Schema';
-import { FrameScheduler } from '@opsydyn/effect-three';
-import { Gesture as Gesture_2 } from '@opsydyn/effect-three';
 import { gizmo } from '@opsydyn/effect-three';
 import { GizmoHandle } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
@@ -26,49 +30,57 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { Hud } from '@opsydyn/effect-three';
 import { HudAlignment } from '@opsydyn/effect-three';
 import type { InspectedField } from '@opsydyn/effect-three';
-import { LabelEngine } from '@opsydyn/effect-three';
 import { Literals } from 'effect/Schema';
+import { makeAssets } from '@opsydyn/effect-three/browser';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
+import { MeasuringTape as MeasuringTape_2 } from '@opsydyn/effect-three/browser';
 import { MessageUnion } from 'foldkit/message';
+import { ModelInfo } from '@opsydyn/effect-three/browser';
 import { Mount } from 'foldkit';
 import { NullOr } from 'effect/Schema';
-import type { Object3D } from 'three';
-import type { Op } from '@opsydyn/effect-three';
-import { Option as Option_2 } from 'effect';
+import { Option as Option_2 } from 'effect/Schema';
+import { Option as Option_3 } from 'effect/Option';
+import { Option as Option_4 } from 'effect';
 import type { Overlay } from '@opsydyn/effect-three';
-import { PhysicsEngine } from '@opsydyn/effect-three';
 import { pivot } from '@opsydyn/effect-three';
+import { PivotControls as PivotControls_2 } from '@opsydyn/effect-three/browser';
 import { PivotHandle } from '@opsydyn/effect-three';
+import { PixelRatio } from '@opsydyn/effect-three/browser';
 import { Placement } from '@opsydyn/effect-three';
-import type { PointerInput } from '@opsydyn/effect-three';
-import { RendererFactory } from '@opsydyn/effect-three';
-import type { ResourceStats } from '@opsydyn/effect-three';
-import { ResourceStore } from '@opsydyn/effect-three';
+import { ReconciledDetail } from '@opsydyn/effect-three/browser';
+import { Rect } from '@opsydyn/effect-three/browser';
+import { resolvePixelRatio } from '@opsydyn/effect-three/browser';
 import type { ReturnWithOutMessage } from 'foldkit/update';
 import type { SceneDescription } from '@opsydyn/effect-three';
-import type { SceneEvent } from '@opsydyn/effect-three';
+import { SceneError } from '@opsydyn/effect-three/browser';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 import { String as String_2 } from 'effect/Schema';
 import { Struct } from 'effect/Schema';
+import { summarise } from '@opsydyn/effect-three/browser';
 import { TaggedStruct } from 'effect/Schema';
 import { TapeLook } from '@opsydyn/effect-three';
+import { toNdc } from '@opsydyn/effect-three/browser';
+import { toPointerInput } from '@opsydyn/effect-three/browser';
+import { TransformGizmo as TransformGizmo_2 } from '@opsydyn/effect-three/browser';
 import { Tuple } from 'effect/Schema';
 import { Union } from 'effect/Schema';
 import { ViewAxis } from '@opsydyn/effect-three';
-import { VoidIfEmpty } from 'effect/Types';
-import { WebGLRendererParameters } from 'three';
+import { ViewportGizmo as ViewportGizmo_2 } from '@opsydyn/effect-three/browser';
+import { WebGLOptions } from '@opsydyn/effect-three/browser';
+import { webglRendererFactory } from '@opsydyn/effect-three/browser';
+import { WebGPUOptions } from '@opsydyn/effect-three/browser';
+import { webgpuRendererFactory } from '@opsydyn/effect-three/browser';
 import { withDecodingDefaultKey } from 'effect/Schema';
-import type { Xr } from '@opsydyn/effect-three';
-import type { XrInput } from '@opsydyn/effect-three';
-import { XrSpace } from '@opsydyn/effect-three';
-import { YieldableError } from 'effect/Cause';
+import { XrControls } from '@opsydyn/effect-three/browser';
+import { XrMode } from '@opsydyn/effect-three/browser';
+import { XrSessionDetail } from '@opsydyn/effect-three/browser';
+import { XrUnavailable } from '@opsydyn/effect-three/browser';
 
-// @public
-export type AnimationFrameHost = Pick<Window, 'requestAnimationFrame' | 'cancelAnimationFrame'>;
+export { AnimationFrameHost }
 
-// @public
-export const animationFrameScheduler: (host: AnimationFrameHost) => FrameScheduler;
+export { animationFrameScheduler }
 
 // @public (undocumented)
 export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
@@ -76,40 +88,29 @@ export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
 // @public (undocumented)
 export type AssetLoadedDetail = typeof SceneSchema.AssetLoadedDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "AssetLoadError_base" needs to be exported by the entry point index.d.ts
-//
-// @public
-export class AssetLoadError extends AssetLoadError_base<{
-    readonly url: string;
-    readonly cause: unknown;
-}> {
-}
+export { AssetLoadError }
 
-// @public (undocumented)
-export type Assets = ReturnType<typeof makeAssets>;
+export { Assets }
 
 // @public
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
-// @public
-const axisOf: (model: Model_5, key: string) => Option_2.Option<ViewAxis>;
-
-// @public
-const Box: Schema.Struct<{
-    readonly from: Schema.Struct<{
-        readonly x: Schema.Finite;
-        readonly y: Schema.Finite;
-    }>;
-    readonly to: Schema.Struct<{
-        readonly x: Schema.Finite;
-        readonly y: Schema.Finite;
-    }>;
-    readonly width: Schema.Finite;
-    readonly height: Schema.Finite;
-}>;
+// @public (undocumented)
+const axisOf: (model: ViewportGizmo_2.Model, key: string) => Option_3<ViewAxis>;
 
 // @public (undocumented)
-type Box = typeof Box.Type;
+const Box: Struct<    {
+readonly from: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly to: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly width: Finite;
+readonly height: Finite;
+}>;
 
 declare namespace BoxSelect {
     export {
@@ -132,14 +133,12 @@ declare namespace BoxSelect {
 // @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
-// @public
-export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
+export { capturesPointer }
 
-// @public
-const claims: (model: Model, drag: DragGesture) => boolean;
+// @public (undocumented)
+const claims: (model: BoxSelect_2.Model, drag: BoxSelect_2.DragGesture) => boolean;
 
-// @public
-export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
+export { claimsContextMenu }
 
 // @public
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
@@ -147,70 +146,27 @@ export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 // @public
 export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
 
-// @public (undocumented)
-export const defaultPixelRatio: PixelRatio;
+export { defaultPixelRatio }
 
-// @public
-export const domEventName: {
-    readonly Click: 'scene-click';
-    readonly DoubleClick: 'scene-double-click';
-    readonly ContextMenu: 'scene-context-menu';
-    readonly PointerDown: 'scene-pointer-down';
-    readonly PointerUp: 'scene-pointer-up';
-    readonly PointerEnter: 'scene-pointer-enter';
-    readonly PointerMove: 'scene-pointer-move';
-    readonly PointerLeave: 'scene-pointer-leave';
-    readonly PointerMissed: 'scene-pointer-missed';
-    readonly Wheel: 'scene-wheel';
-    readonly Drag: 'scene-drag';
-    readonly DragEnd: 'scene-drag-end';
-    readonly Gesture: 'scene-gesture';
-    readonly GestureEnd: 'scene-gesture-end';
-    readonly AutoRotated: 'scene-auto-rotated';
-    readonly Collision: 'scene-collision';
-    readonly ContactForce: 'scene-contact-force';
-    readonly PhysicsReached: 'scene-physics-reached';
-    readonly Measured: 'scene-measured';
-    readonly LabelMeasured: 'scene-label-measured';
-    readonly XrStick: 'scene-xr-stick';
-    readonly XrButton: 'scene-xr-button';
-    readonly XrSurface: 'scene-xr-surface';
-    readonly XrMoved: 'scene-xr-moved';
-    readonly XrTeleported: 'scene-xr-teleported';
-    readonly XrPoses: 'scene-xr-poses';
-    readonly XrPlanes: 'scene-xr-planes';
-    readonly XrMeshes: 'scene-xr-meshes';
-    readonly PerformanceChanged: 'scene-performance';
-};
+export { domEventName }
 
 // @public
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
 
-// @public
-type DragGesture = Extract<Gesture_2, {
-    readonly _tag: 'Drag';
-}>;
+// @public (undocumented)
+type DragGesture = BoxSelect_2.DragGesture;
 
 // @public
 const dragOf: (gesture: DragGesture) => Message;
 
-// @public
-const drawing: (model: Model) => boolean;
-
 // @public (undocumented)
-export type Environment = ReturnType<typeof makeEnvironment>;
+const drawing: (model: BoxSelect_2.Model) => boolean;
 
-// @public
-export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | 'devicePixelRatio'> & Partial<Pick<Window, 'navigator'>>;
+export { Environment }
 
-// @public (undocumented)
-export type EnvironmentOptions = {
-    readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
-    readonly pixelRatio?: PixelRatio;
-    readonly behaviours?: Readonly<Record<string, Behaviour>>;
-    readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
-    readonly labels?: LabelEngine;
-};
+export { EnvironmentHost }
+
+export { EnvironmentOptions }
 
 // @public
 export type Gesture = typeof SceneSchema.Gesture.Type;
@@ -218,50 +174,51 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 // @public
 export type GestureEndDetail = typeof SceneSchema.GestureEndDetail.Type;
 
-// @public
-const handleOf: (model: Model_3, key: string) => Option_2.Option<PivotHandle>;
+// @public (undocumented)
+const handleOf: (model: PivotControls_2.Model, key: string) => Option_3<PivotHandle>;
 
-// @public
-const handleOf_2: (model: Model_4, key: string) => Option_2.Option<GizmoHandle>;
+// @public (undocumented)
+const handleOf_2: (model: TransformGizmo_2.Model, key: string) => Option_3<GizmoHandle>;
 
-// @public
-const held: (model: Model_3) => boolean;
+// @public (undocumented)
+const held: (model: PivotControls_2.Model) => boolean;
 
-// @public
-const held_2: (model: Model_4) => boolean;
+// @public (undocumented)
+const held_2: (model: TransformGizmo_2.Model) => boolean;
 
 // @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
-// @public
-const hud: (model: Model_5, camera: Camera, placement?: {
+// @public (undocumented)
+const hud: (model: ViewportGizmo_2.Model, camera: Camera, placement?: {
     readonly alignment?: HudAlignment;
     readonly margin?: readonly [number, number];
 }) => Hud;
 
-// @public
-const init: () => Model;
+// @public (undocumented)
+const init: () => BoxSelect_2.Model;
 
-// @public
+// @public (undocumented)
 const init_2: (key: string, options?: {
     readonly snap?: number | null;
-}) => Model_2;
+}) => MeasuringTape_2.Model;
 
-// @public
-const init_3: (key: string, options?: Parameters<typeof pivot>[0]) => Model_3;
+// @public (undocumented)
+const init_3: (key: string, options?: Parameters<pivot>[0]) => PivotControls_2.Model;
 
-// @public
-const init_4: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_4;
+// @public (undocumented)
+const init_4: (key: string, options?: Parameters<gizmo>[0]) => TransformGizmo_2.Model;
 
-// @public
+// @public (undocumented)
 const init_5: (key: string, options?: {
     readonly hideNegativeAxes?: boolean;
-}) => Model_5;
+}) => ViewportGizmo_2.Model;
 
-// Warning: (ae-forgotten-export) The symbol "Selectables" needs to be exported by the entry point index.d.ts
-//
-// @public
-const inside: (model: Model, camera: Camera, selectable: Selectables) => ReadonlyArray<string>;
+// @public (undocumented)
+const inside: (model: BoxSelect_2.Model, camera: Camera, selectable: readonly {
+    readonly key: string;
+    readonly at: readonly [number, number, number];
+}[]) => ReadonlyArray<string>;
 
 // @public
 export const inspectorView: <Message>(h: HtmlBuilder<Message>, fields: ReadonlyArray<InspectedField>, onEdit: OnEdit<Message>) => Html;
@@ -278,50 +235,12 @@ const label: <Message>(model: Model_2, h: HtmlBuilder<Message>, options?: {
 // @public
 export type LabelMeasuredDetail = typeof SceneSchema.LabelMeasuredDetail.Type;
 
-// @public
-const length_2: (model: Model_2) => Option_2.Option<number>;
+// @public (undocumented)
+const length_2: (model: MeasuringTape_2.Model) => Option_4.Option<number>;
 
-// @public
-export const makeAssets: (store: ResourceStore) => {
-    loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
-    loadEnvironment: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    loadFont: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
-    unload: (id: string) => Effect.Effect<void, never, never>;
-    dispose: () => void;
-};
+export { makeAssets }
 
-// @public
-export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptions) => {
-    host: EnvironmentHost;
-    store: ResourceStore;
-    frames: FrameScheduler;
-    renderer: (canvas: HTMLCanvasElement) => RendererFactory;
-    pixelRatio: PixelRatio;
-    behaviours: Readonly<Record<string, Behaviour>>;
-    physics: Promise<PhysicsEngine | undefined>;
-    labels: LabelEngine | undefined;
-    assets: {
-        loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
-        loadEnvironment: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
-        unload: (id: string) => Effect_2<void, never, never>;
-        dispose: () => void;
-    };
-    assetRegistry: {
-        want: (holder: object, assets: ReadonlyArray<Asset>, notify: (notice: AssetNotice) => void) => void;
-        release: (holder: object) => void;
-        dispose: () => void;
-    };
-    xr: {
-        supported: (mode: XrMode) => Effect_2<boolean, never, never>;
-        enter: (mode: XrMode) => Effect_2<void, XrUnavailable, never>;
-        exit: Effect_2<void, never, never>;
-    };
-    xrHub: XrHub;
-    dispose: () => void;
-};
+export { makeEnvironment }
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
@@ -585,140 +504,135 @@ type Message_5 = typeof Message_5.Type;
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
 // @public (undocumented)
-const Model: Schema.Struct<{
-    readonly box: Schema.Option<Schema.Struct<{
-        readonly from: Schema.Struct<{
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-        }>;
-        readonly to: Schema.Struct<{
-            readonly x: Schema.Finite;
-            readonly y: Schema.Finite;
-        }>;
-        readonly width: Schema.Finite;
-        readonly height: Schema.Finite;
-    }>>;
+const Model: Struct<    {
+readonly box: Option_2<Struct<    {
+readonly from: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly to: Struct<    {
+readonly x: Finite;
+readonly y: Finite;
+}>;
+readonly width: Finite;
+readonly height: Finite;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model = typeof Model.Type;
+type Model = BoxSelect_2.Model;
 
 // @public (undocumented)
-const Model_2: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly tape: Schema.Struct<{
-        readonly from: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly to: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly pointer: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
-        readonly snap: Schema.NullOr<Schema.Finite>;
-    }>;
+const Model_2: Struct<    {
+readonly key: String_2;
+readonly tape: Struct<    {
+readonly from: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly to: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly pointer: NullOr<Tuple<readonly [Finite, Finite, Finite]>>;
+readonly snap: NullOr<Finite>;
+}>;
 }>;
 
 // @public (undocumented)
-type Model_2 = typeof Model_2.Type;
+type Model_2 = MeasuringTape_2.Model;
 
 // @public (undocumented)
-const Model_3: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly pivot: Schema.Struct<{
-        readonly scale: Schema.Finite;
-        readonly depthTest: Schema.Boolean;
-        readonly disableAxes: Schema.Boolean;
-        readonly disableSliders: Schema.Boolean;
-        readonly disableRotations: Schema.Boolean;
-        readonly disableScaling: Schema.Boolean;
-        readonly hovered: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
-        readonly grab: Schema.NullOr<Schema.Struct<{
-            readonly handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
-            readonly start: Schema.Struct<{
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            }>;
-            readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly e1: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly e2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>>;
-    }>;
-    readonly last: Schema.Option<Schema.Struct<{
-        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>>;
+const Model_3: Struct<    {
+readonly key: String_2;
+readonly pivot: Struct<    {
+readonly scale: Finite;
+readonly depthTest: Boolean_2;
+readonly disableAxes: Boolean_2;
+readonly disableSliders: Boolean_2;
+readonly disableRotations: Boolean_2;
+readonly disableScaling: Boolean_2;
+readonly hovered: NullOr<Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+readonly grab: NullOr<Struct<    {
+readonly handle: Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+readonly start: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>;
+readonly point: Tuple<readonly [Finite, Finite, Finite]>;
+readonly e1: Tuple<readonly [Finite, Finite, Finite]>;
+readonly e2: Tuple<readonly [Finite, Finite, Finite]>;
+readonly normal: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
+}>;
+readonly last: Option_2<Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model_3 = typeof Model_3.Type;
+type Model_3 = PivotControls_2.Model;
 
 // @public (undocumented)
-const Model_4: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly gizmo: Schema.Struct<{
-        readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
-        readonly space: Schema.Literals<readonly ["world", "local"]>;
-        readonly size: Schema.Finite;
-        readonly translationSnap: Schema.NullOr<Schema.Finite>;
-        readonly rotationSnap: Schema.NullOr<Schema.Finite>;
-        readonly scaleSnap: Schema.NullOr<Schema.Finite>;
-        readonly showX: Schema.Boolean;
-        readonly showY: Schema.Boolean;
-        readonly showZ: Schema.Boolean;
-        readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
-        readonly grab: Schema.NullOr<Schema.Struct<{
-            readonly handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
-            readonly start: Schema.Struct<{
-                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            }>;
-            readonly from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly plane: Schema.Struct<{
-                readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-                readonly constant: Schema.Finite;
-            }>;
-            readonly eye: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-            readonly distance: Schema.Finite;
-        }>>;
-    }>;
-    readonly last: Schema.Option<Schema.Struct<{
-        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>>;
+const Model_4: Struct<    {
+readonly key: String_2;
+readonly gizmo: Struct<    {
+readonly mode: Literals<readonly ["translate", "rotate", "scale"]>;
+readonly space: Literals<readonly ["world", "local"]>;
+readonly size: Finite;
+readonly translationSnap: NullOr<Finite>;
+readonly rotationSnap: NullOr<Finite>;
+readonly scaleSnap: NullOr<Finite>;
+readonly showX: Boolean_2;
+readonly showY: Boolean_2;
+readonly showZ: Boolean_2;
+readonly hovered: NullOr<Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+readonly grab: NullOr<Struct<    {
+readonly handle: Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+readonly start: Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>;
+readonly from: Tuple<readonly [Finite, Finite, Finite]>;
+readonly plane: Struct<    {
+readonly normal: Tuple<readonly [Finite, Finite, Finite]>;
+readonly constant: Finite;
+}>;
+readonly eye: Tuple<readonly [Finite, Finite, Finite]>;
+readonly distance: Finite;
+}>>;
+}>;
+readonly last: Option_2<Struct<    {
+readonly position: Tuple<readonly [Finite, Finite, Finite]>;
+readonly rotation: Tuple<readonly [Finite, Finite, Finite]>;
+readonly scale: Tuple<readonly [Finite, Finite, Finite]>;
+}>>;
 }>;
 
 // @public (undocumented)
-type Model_4 = typeof Model_4.Type;
+type Model_4 = TransformGizmo_2.Model;
 
 // @public (undocumented)
-const Model_5: Schema.Struct<{
-    readonly key: Schema.String;
-    readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
-    readonly hideNegativeAxes: Schema.Boolean;
+const Model_5: Struct<    {
+readonly key: String_2;
+readonly hovered: NullOr<Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
+readonly hideNegativeAxes: Boolean_2;
 }>;
 
 // @public (undocumented)
-type Model_5 = typeof Model_5.Type;
+type Model_5 = ViewportGizmo_2.Model;
 
-// @public
-export type ModelInfo = {
-    readonly id: string;
-    readonly parts: ReadonlyArray<string>;
-    readonly clips: ReadonlyArray<string>;
-};
+export { ModelInfo }
 
-// @public
-const nodes: (model: Model_2, look?: Partial<TapeLook>) => SceneNode;
+// @public (undocumented)
+const nodes: (model: MeasuringTape_2.Model, look?: Partial<TapeLook>) => SceneNode;
 
-// @public
-const nodes_2: (model: Model_3, placement: Placement) => SceneNode;
+// @public (undocumented)
+const nodes_2: (model: PivotControls_2.Model, placement: Placement) => SceneNode;
 
-// @public
-const nodes_3: (model: Model_4, placement: Placement, camera: Camera) => SceneNode;
+// @public (undocumented)
+const nodes_3: (model: TransformGizmo_2.Model, placement: Placement, camera: Camera) => SceneNode;
 
-// @public
-const nodes_4: (model: Model_5, camera: Camera) => SceneNode;
+// @public (undocumented)
+const nodes_4: (model: ViewportGizmo_2.Model, camera: Camera) => SceneNode;
 
 // @public
 export type OnEdit<Message> = (path: FieldPath, value: FieldValue) => Message;
@@ -863,58 +777,19 @@ declare namespace PivotControls {
     }
 }
 
-// @public
-export type PixelRatio = number | readonly [min: number, max: number];
+export { PixelRatio }
 
-// @public
-export const ReconciledDetail: Schema.Struct<{
-    readonly ops: Schema.Struct<{
-        readonly created: Schema.Int;
-        readonly updated: Schema.Int;
-        readonly moved: Schema.Int;
-        readonly removed: Schema.Int;
-        readonly replaced: Schema.Int;
-        readonly reordered: Schema.Int;
-        readonly configured: Schema.Int;
-    }>;
-    readonly resources: Schema.Struct<{
-        readonly geometries: Schema.Struct<{
-            readonly live: Schema.Int;
-            readonly created: Schema.Int;
-            readonly disposed: Schema.Int;
-        }>;
-        readonly materials: Schema.Struct<{
-            readonly live: Schema.Int;
-            readonly created: Schema.Int;
-            readonly disposed: Schema.Int;
-        }>;
-    }>;
-}>;
+export { ReconciledDetail }
+
+export { Rect }
 
 // @public (undocumented)
-export type ReconciledDetail = typeof ReconciledDetail.Type;
+type Rectangle = BoxSelect_2.Rectangle;
 
-// @public
-export type Rect = {
-    readonly left: number;
-    readonly top: number;
-    readonly width: number;
-    readonly height: number;
-};
+// @public (undocumented)
+const rectangle: (model: BoxSelect_2.Model) => Option_3<BoxSelect_2.Rectangle>;
 
-// @public
-type Rectangle = {
-    readonly left: number;
-    readonly top: number;
-    readonly width: number;
-    readonly height: number;
-};
-
-// @public
-const rectangle: (model: Model) => Option_2.Option<Rectangle>;
-
-// @public
-export const resolvePixelRatio: (devicePixelRatio: number, setting: PixelRatio) => number;
+export { resolvePixelRatio }
 
 // @public (undocumented)
 export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene", {
@@ -1745,51 +1620,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
 }>;
 
-// @public
-export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateResourceId", {
-    readonly resource: Schema.Literals<readonly ["geometry", "material"]>;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"UnknownSharedGeometry", {
-    readonly nodeKey: Schema.String;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"UnknownSharedMaterial", {
-    readonly nodeKey: Schema.String;
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateInstanceKey", {
-    readonly nodeKey: Schema.String;
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownBehaviour", {
-    readonly nodeKey: Schema.String;
-    readonly name: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateViewKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateOverlayKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownOverlayNode", {
-    readonly key: Schema.String;
-    readonly node: Schema.String;
-}>, Schema.TaggedStruct<"UnknownOverlayView", {
-    readonly key: Schema.String;
-    readonly view: Schema.String;
-}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateAssetId", {
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateJointKey", {
-    readonly key: Schema.String;
-}>, Schema.TaggedStruct<"UnknownJointBody", {
-    readonly joint: Schema.String;
-    readonly body: Schema.String;
-}>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
-    readonly id: Schema.String;
-}>, Schema.TaggedStruct<"MalformedScene", {
-    readonly issue: Schema.String;
-}>]>;
-
-// @public (undocumented)
-export type SceneError = typeof SceneError.Type;
+export { SceneError }
 
 // @public
 export const SceneLifecycle: MessageUnion<    {
@@ -1805,17 +1636,11 @@ export type SceneLifecycle = typeof SceneLifecycle.Type;
 // @public (undocumented)
 export type SceneMount = ReturnType<typeof makeSceneMount>;
 
-// @public
-export const summarise: (ops: ReadonlyArray<Op>, stats: ResourceStats) => ReconciledDetail;
+export { summarise }
 
-// @public
-export const toNdc: (rect: Rect, clientX: number, clientY: number) => {
-    readonly x: number;
-    readonly y: number;
-};
+export { toNdc }
 
-// @public
-export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | undefined;
+export { toPointerInput }
 
 declare namespace TransformGizmo {
     export {
@@ -1916,21 +1741,13 @@ declare namespace ViewportGizmo {
     }
 }
 
-// @public
-export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
+export { WebGLOptions }
 
-// @public
-export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOptions) => RendererFactory;
+export { webglRendererFactory }
 
-// @public
-export type WebGPUOptions = {
-    readonly forceWebGL?: boolean;
-    readonly alpha?: boolean;
-    readonly antialias?: boolean;
-};
+export { WebGPUOptions }
 
-// @public
-export const webgpuRendererFactory: (canvas: HTMLCanvasElement, options?: WebGPUOptions) => RendererFactory;
+export { webgpuRendererFactory }
 
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
@@ -1938,16 +1755,12 @@ export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 // @public
 export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "makeXr" needs to be exported by the entry point index.d.ts
-//
-// @public (undocumented)
-export type XrControls = ReturnType<typeof makeXr>;
+export { XrControls }
 
 // @public
 export type XrMeshesDetail = typeof SceneSchema.XrMeshesDetail.Type;
 
-// @public
-export type XrMode = 'immersive-vr' | 'immersive-ar';
+export { XrMode }
 
 // @public
 export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
@@ -1958,13 +1771,7 @@ export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 // @public
 export type XrPosesDetail = typeof SceneSchema.XrPosesDetail.Type;
 
-// @public
-export const XrSessionDetail: Schema.Struct<{
-    readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
-}>;
-
-// @public (undocumented)
-export type XrSessionDetail = typeof XrSessionDetail.Type;
+export { XrSessionDetail }
 
 // @public
 export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
@@ -1975,19 +1782,7 @@ export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
 // @public (undocumented)
 export type XrTeleportedDetail = typeof SceneSchema.XrTeleportedDetail.Type;
 
-// Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
-//
-// @public
-export class XrUnavailable extends XrUnavailable_base<{
-    readonly mode: XrMode;
-    readonly cause: unknown;
-}> {
-}
-
-// Warnings were encountered during analysis:
-//
-// src/environment.ts:70:9 - (ae-forgotten-export) The symbol "AssetNotice" needs to be exported by the entry point index.d.ts
-// src/environment.ts:73:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
+export { XrUnavailable }
 
 // (No @packageDocumentation comment for this package)
 

@@ -14,7 +14,7 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
-    "!dist/.tsbuildinfo",
+    "!dist/.tsbuildinfo*",
     "!dist/api-extractor",
     "!dist/pack"
   ],
@@ -41,19 +41,24 @@
       "bun": "./src/webgpu/index.ts",
       "default": "./dist/webgpu/index.js"
     },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "bun": "./src/browser/index.ts",
+      "default": "./dist/browser/index.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -b tsconfig.browser.json && tsc -p tsconfig.test.json",
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check:boundaries": "bun scripts/check-boundaries.ts",
     "check:single-effect": "bun scripts/check-single-effect.ts",
     "check": "bun run lint && bun run check:boundaries && bun run check:single-effect",
     "test": "bun test --pass-with-no-tests ./src ./test --coverage --coverage-reporter=lcov --coverage-dir=coverage && bun scripts/check-coverage.ts coverage/lcov.info",
-    "build": "tsc -b && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked",
+    "build": "tsc -b tsconfig.browser.json && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts ./src/browser/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked",
     "scene:diff": "bun scripts/scene-diff.ts",
     "scene:preview": "bun scripts/scene-preview.ts",
     "bench": "bun bench/index.ts",

@@ -1,12 +1,8 @@
 import { Mount, UiSchema } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 import { SceneSchema } from '@opsydyn/effect-three';
-import {
-  makeEnvironment,
-  mountSceneHost,
-  sceneEventSchemas,
-} from '@opsydyn/effect-three-foldkit/browser';
 import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
+import { makeEnvironment, mountSceneHost, sceneEventSchemas } from '@opsydyn/effect-three/browser';
 import { Effect, Schema, Stream } from 'effect';
 
 import { rendererForPage } from './renderer';

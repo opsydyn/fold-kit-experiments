@@ -15,7 +15,7 @@ import {
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
-} from '@opsydyn/effect-three-foldkit/browser';
+} from '@opsydyn/effect-three/browser';
 import { Array as Arr, Match, Option, Result } from 'effect';
 
 import type { Message } from './message';

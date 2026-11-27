@@ -16,13 +16,13 @@
  *
  * @module
  */
+
+import { TransformGizmo as Controller } from '@opsydyn/effect-three/browser';
 import { defineMessageUnion } from 'foldkit/message';
 import type { ReturnWithOutMessage } from 'foldkit/update';
 
-import * as Controller from './controllers/transformGizmo.ts';
-import type { Model } from './controllers/transformGizmo.ts';
-
-export { Model, init, handleOf, held, nodes } from './controllers/transformGizmo.ts';
+export const { Model, init, handleOf, held, nodes } = Controller;
+export type Model = Controller.Model;
 
 export const Message = defineMessageUnion(Controller.MessageFields);
 export type Message = typeof Message.Type;

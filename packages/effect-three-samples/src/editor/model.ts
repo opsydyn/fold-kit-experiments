@@ -5,7 +5,7 @@ import {
   SceneSchema,
   type Vec3,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit/browser';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three/browser';
 import { Option, Schema } from 'effect';
 
 import { nodeOf, placed } from './document';

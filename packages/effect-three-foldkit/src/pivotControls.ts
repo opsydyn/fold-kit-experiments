@@ -17,13 +17,13 @@
  *
  * @module
  */
+
+import { PivotControls as Controller } from '@opsydyn/effect-three/browser';
 import { defineMessageUnion } from 'foldkit/message';
 import type { ReturnWithOutMessage } from 'foldkit/update';
 
-import * as Controller from './controllers/pivotControls.ts';
-import type { Model } from './controllers/pivotControls.ts';
-
-export { Model, init, handleOf, held, nodes } from './controllers/pivotControls.ts';
+export const { Model, init, handleOf, held, nodes } = Controller;
+export type Model = Controller.Model;
 
 export const Message = defineMessageUnion(Controller.MessageFields);
 export type Message = typeof Message.Type;

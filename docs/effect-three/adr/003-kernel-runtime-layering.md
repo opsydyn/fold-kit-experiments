@@ -11,11 +11,24 @@ Several rules are import-gated: they apply only to files that import `effect`. T
 
 ## Decision
 
-Two sanctioned layers in `packages/effect-three/src`:
+The layers in `packages/effect-three/src`:
 
 - **`kernel/`**: plain TypeScript that **must not import `effect`**. It holds the diff, the applier, behaviours, the per-frame tick and raycasting. Ordinary control flow is allowed. Every rule that is not import-gated still applies, as do strict TypeScript, `no-explicit-any` and the type-aware rules. Allocation-conscious, with exhaustive property tests.
 - **`runtime/`**: Effect code (services, scopes, Layers, errors, streams). Every rule applies.
 - **`webgl/`** (added 2026-10-18): the scene parts written in GLSL (the sky, the shader grid, contact shadows) as `webglKit`, a `RenderKit` the kernel calls through. The kernel describes them and stays renderer-neutral; a renderer factory carries its kit (`webglRendererFactory` carries this one), so a WebGPU renderer brings its own. Exported as `@opsydyn/effect-three/webgl`.
+
+- **`browser/`**: the scoped scene mount, frame scheduler, WebGL and WebGPU
+  factories, assets, typed scene events, and XR. Exported as
+  `@opsydyn/effect-three/browser`. Effect UI consumers import this entry
+  directly. It imports the headless runtime and renderer kits, and is compiled
+  with DOM libraries by `tsconfig.browser.json`.
+
+Keeping browser hosting in the Three package lets both UI adapters share one
+implementation and ships the host with its matching runtime version. A separate
+browser package would preserve the same dependency direction at the cost of
+another synchronized release. The browser entry loads the browser renderers
+when imported. Headless consumers keep using the root or kernel entry. The
+legacy FoldKit adapter delegates to this host until its migration is complete.
 
 Rules of the road:
 

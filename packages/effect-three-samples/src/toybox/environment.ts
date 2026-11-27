@@ -1,6 +1,6 @@
-/** The physics scene and XR controls share an environment scoped to the island. */
-import { makeEnvironment, type Environment } from '@opsydyn/effect-three-foldkit/browser';
 import { loadRapier } from '@opsydyn/effect-three-rapier';
+/** The physics scene and XR controls share an environment scoped to the island. */
+import { makeEnvironment, type Environment } from '@opsydyn/effect-three/browser';
 import { Context, Layer } from 'effect';
 
 import { defineScopedSceneMount, scopedSceneEnvironment } from '../effect-ui-scene';

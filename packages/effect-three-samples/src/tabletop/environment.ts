@@ -1,10 +1,10 @@
+import { loadRapier } from '@opsydyn/effect-three-rapier/deterministic';
+import { remotePhysics } from '@opsydyn/effect-three-rapier/worker';
 /**
  * Rapier's deterministic build keeps each peer's world in step (ADR-014).
  * With `?physics=worker` the world steps in a worker instead (ADR-017).
  */
-import { makeEnvironment } from '@opsydyn/effect-three-foldkit/browser';
-import { loadRapier } from '@opsydyn/effect-three-rapier/deterministic';
-import { remotePhysics } from '@opsydyn/effect-three-rapier/worker';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
 import { Effect } from 'effect';
 
 import { defineScopedSceneMount } from '../effect-ui-scene';

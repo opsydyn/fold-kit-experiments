@@ -5,9 +5,8 @@
  * @module
  */
 import type { Overlay, SceneDescription } from '@opsydyn/effect-three';
+import { overlayData } from '@opsydyn/effect-three/browser';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-
-import { overlayData } from './dom/overlays.ts';
 
 /** HTML shown at a point in the scene, as Drei's `Html`: where, and what. */
 export type OverlayView = {

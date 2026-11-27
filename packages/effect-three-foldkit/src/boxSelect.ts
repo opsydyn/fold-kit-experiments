@@ -17,23 +17,15 @@
  *
  * @module
  */
+
+import { BoxSelect as Controller } from '@opsydyn/effect-three/browser';
 import { defineMessageUnion } from 'foldkit/message';
 import type { ReturnWithOutMessage } from 'foldkit/update';
 
-import * as Controller from './controllers/boxSelect.ts';
-import type { Model, DragGesture } from './controllers/boxSelect.ts';
-
-export {
-  Box,
-  Model,
-  init,
-  drawing,
-  claims,
-  inside,
-  rectangle,
-  type DragGesture,
-  type Rectangle,
-} from './controllers/boxSelect.ts';
+export const { Box, Model, init, drawing, claims, inside, rectangle } = Controller;
+export type Model = Controller.Model;
+export type DragGesture = Controller.DragGesture;
+export type Rectangle = Controller.Rectangle;
 
 export const Message = defineMessageUnion(Controller.MessageFields);
 export type Message = typeof Message.Type;

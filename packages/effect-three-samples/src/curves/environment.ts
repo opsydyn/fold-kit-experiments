@@ -5,7 +5,7 @@
  * frame, and the control points ride along as its parameters: drag one and its path
  * changes at once.
  */
-import { makeEnvironment } from '@opsydyn/effect-three-foldkit/browser';
+import { makeEnvironment } from '@opsydyn/effect-three/browser';
 
 import { defineEffectThreeMount } from '../effect-ui-scene';
 import { rendererForPage } from '../renderer';

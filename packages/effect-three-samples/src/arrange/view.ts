@@ -1,7 +1,7 @@
 import { Mount } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import { History, Inspector, overlay, tapeMiddle } from '@opsydyn/effect-three';
-import { BoxSelect, MeasuringTape } from '@opsydyn/effect-three-foldkit/browser';
+import { BoxSelect, MeasuringTape } from '@opsydyn/effect-three/browser';
 import { Option } from 'effect';
 
 import { inspectorView } from '../effect-ui-inspector';

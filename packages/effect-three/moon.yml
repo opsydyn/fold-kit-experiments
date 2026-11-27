@@ -5,10 +5,10 @@ tags: ['reads-workspace-manifests']
 
 tasks:
   build:
-    script: 'tsc -b && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked'
+    script: 'tsc -b tsconfig.browser.json && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts ./src/browser/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked'
     outputs: ['dist/**/*']
   typecheck:
-    script: 'tsc -b && tsc -p tsconfig.test.json'
+    script: 'tsc -b tsconfig.browser.json && tsc -p tsconfig.test.json'
     deps: ['build']
   test:
     script: 'bun test --pass-with-no-tests ./src ./test --coverage --coverage-reporter=lcov --coverage-dir=coverage && bun scripts/check-coverage.ts coverage/lcov.info'

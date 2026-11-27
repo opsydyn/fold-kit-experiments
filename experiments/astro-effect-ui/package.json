@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare:three": "mkdir -p dist && cd ../../packages/effect-three && bun run build && bun pm pack --quiet --filename ../../experiments/astro-effect-ui/dist/effect-three.tgz && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-troika build",
+    "prepare:three": "mkdir -p dist && cd ../../packages/effect-three && bun run build && bun pm pack --quiet --filename ../../experiments/astro-effect-ui/dist/effect-three.tgz && bun run --filter @opsydyn/effect-three-troika build",
     "prepare:viz": "bun run prepare:three && cd ../../packages/foldkit-viz && bun run build && bun pm pack --quiet --filename ../../experiments/astro-effect-ui/dist/foldkit-viz.tgz",
     "build": "astro build --root test/fixture",
     "test": "bun test test/renderer.test.ts test/effect-three.test.ts",

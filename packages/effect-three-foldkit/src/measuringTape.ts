@@ -16,16 +16,16 @@
  * @module
  */
 import { overlay, tapeMiddle } from '@opsydyn/effect-three';
+import { MeasuringTape as Controller } from '@opsydyn/effect-three/browser';
 import { Option } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import type { ReturnWithOutMessage } from 'foldkit/update';
 
-import * as Controller from './controllers/measuringTape.ts';
-import type { Model } from './controllers/measuringTape.ts';
 import type { OverlayView } from './overlayView.ts';
 
-export { Model, init, length, nodes } from './controllers/measuringTape.ts';
+export const { Model, init, length, nodes } = Controller;
+export type Model = Controller.Model;
 
 export const Message = defineMessageUnion(Controller.MessageFields);
 export type Message = typeof Message.Type;

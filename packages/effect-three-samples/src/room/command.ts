@@ -1,6 +1,6 @@
 /** XR commands and the scene use the same scoped browser environment. */
 import { Command } from '@effect/ui';
-import type { Environment } from '@opsydyn/effect-three-foldkit/browser';
+import type { Environment } from '@opsydyn/effect-three/browser';
 import { Context, Effect, Layer } from 'effect';
 
 import {

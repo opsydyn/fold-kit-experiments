@@ -1,5 +1,5 @@
 import { UiSchema } from '@effect/ui';
-import { ReconciledDetail } from '@opsydyn/effect-three-foldkit/browser';
+import { ReconciledDetail } from '@opsydyn/effect-three/browser';
 import { Schema } from 'effect';
 
 import { SceneStart } from '../effect-ui-scene';

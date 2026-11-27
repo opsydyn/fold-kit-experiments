@@ -17,7 +17,7 @@ import {
   type ShotAngle,
   type Vec3,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit/browser';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three/browser';
 import { Array as Arr, Match, Option, Result } from 'effect';
 
 import { DownloadFile, ReadText } from './command';

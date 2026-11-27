@@ -1,7 +1,7 @@
 import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import type { Overlay, SceneDescription } from '@opsydyn/effect-three';
-import { overlayData } from '@opsydyn/effect-three-foldkit/browser';
+import { overlayData } from '@opsydyn/effect-three/browser';
 
 export type SceneOverlay<Message> = {
   readonly overlay: Overlay;

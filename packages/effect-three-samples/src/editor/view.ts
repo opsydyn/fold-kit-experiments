@@ -14,7 +14,7 @@ import {
   type SceneNode,
   SceneSchema,
 } from '@opsydyn/effect-three';
-import { BoxSelect } from '@opsydyn/effect-three-foldkit/browser';
+import { BoxSelect } from '@opsydyn/effect-three/browser';
 import { Array as Arr, Effect, Match, Option } from 'effect';
 
 import { inspectorView } from '../effect-ui-inspector';

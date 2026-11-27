@@ -7,8 +7,7 @@
  * - `?renderer=webgpu&backend=webgpu`: WebGPURenderer on real WebGPU.
  */
 import type { RendererFactory } from '@opsydyn/effect-three';
-
-import { webgpuRendererFactory } from '../../src/dom/webgpu.ts';
+import { webgpuRendererFactory } from '@opsydyn/effect-three/browser';
 
 type Choice = (canvas: HTMLCanvasElement) => RendererFactory;
 

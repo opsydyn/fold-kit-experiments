@@ -15,18 +15,27 @@
  *
  * @module
  */
-export { AssetLoadError, type Assets, makeAssets, type ModelInfo } from './assets.ts';
-export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
+export {
+  AssetLoadError,
+  type Assets,
+  makeAssets,
+  type ModelInfo,
+} from '@opsydyn/effect-three/browser';
+export { animationFrameScheduler, type AnimationFrameHost } from '@opsydyn/effect-three/browser';
 export {
   capturesPointer,
   claimsContextMenu,
   type Rect,
   toNdc,
   toPointerInput,
-} from './dom/pointer.ts';
-export { defaultPixelRatio, type PixelRatio, resolvePixelRatio } from './dom/viewport.ts';
-export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
-export { type WebGPUOptions, webgpuRendererFactory } from './dom/webgpu.ts';
+} from '@opsydyn/effect-three/browser';
+export {
+  defaultPixelRatio,
+  type PixelRatio,
+  resolvePixelRatio,
+} from '@opsydyn/effect-three/browser';
+export { webglRendererFactory, type WebGLOptions } from '@opsydyn/effect-three/browser';
+export { type WebGPUOptions, webgpuRendererFactory } from '@opsydyn/effect-three/browser';
 export {
   domEventName,
   ReconciledDetail,
@@ -35,15 +44,15 @@ export {
   SceneLifecycle,
   XrSessionDetail,
 } from './element.ts';
-export { type XrMode } from './dom/xrHub.ts';
-export { type XrControls, XrUnavailable } from './xr.ts';
-export { summarise } from './dom/reconciled.ts';
+export { type XrMode } from '@opsydyn/effect-three/browser';
+export { type XrControls, XrUnavailable } from '@opsydyn/effect-three/browser';
+export { summarise } from '@opsydyn/effect-three/browser';
 export {
   type Environment,
   type EnvironmentHost,
   type EnvironmentOptions,
   makeEnvironment,
-} from './environment.ts';
+} from '@opsydyn/effect-three/browser';
 export { inspectorView, type OnEdit } from './inspector.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export * as BoxSelect from './boxSelect.ts';

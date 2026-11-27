@@ -6,7 +6,7 @@
  * Both canvases are transparent, so the host page's surface colour and theme show through.
  */
 import type { RendererFactory } from '@opsydyn/effect-three';
-import { webglRendererFactory, webgpuRendererFactory } from '@opsydyn/effect-three-foldkit/browser';
+import { webglRendererFactory, webgpuRendererFactory } from '@opsydyn/effect-three/browser';
 
 /** What the renderer choice reads of the page: its address's query. */
 export type Page = { readonly location: Pick<Location, 'search'> };

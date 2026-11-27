@@ -30,7 +30,7 @@ import {
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
-} from '@opsydyn/effect-three-foldkit/browser';
+} from '@opsydyn/effect-three/browser';
 import { Array as Arr, Option } from 'effect';
 
 import type { Kind, Model, Thing } from './model';

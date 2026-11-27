@@ -2721,26 +2721,6 @@ export type {
 } from './ddd-relationship-controls-view';
 
 export {
-  zlozPlacementHost,
-  zlozPaletteEntry,
-  zlozPalette,
-  zlozPlacementAction,
-  zlozPlacementPreview,
-} from './placement-controls-view';
-export type { ZlozPaletteViewOptions } from './placement-controls-view';
-export { bindPlacementInput } from './placement-input';
-
-export {
-  zlozModellingPatchReview,
-  zlozModellingPatchAcknowledgement,
-  zlozModellingPatchApply,
-} from './modelling-patch-review-view';
-export type {
-  ZlozModellingPatchReviewParts,
-  ZlozModellingPatchReviewViewOptions,
-} from './modelling-patch-review-view';
-
-export {
   zlozDddAuditControls,
   zlozDddAuditEditionSelect,
   zlozDddAuditFindingFilter,

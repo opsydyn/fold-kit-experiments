@@ -2,8 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 
 import { Window } from 'happy-dom';
 
+import { bindPlacementInput } from '../src/bind-placement-input';
 import type { ZlozPlacementInput } from '../src/index';
-import { bindPlacementInput } from '../src/placement-input';
 
 const previous = ['document', 'PointerEvent', 'KeyboardEvent', 'MouseEvent'].map((key) => ({
   key,

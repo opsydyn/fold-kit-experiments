@@ -1,23 +1,16 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import {
-  zlozPalette,
-  zlozPaletteEntry,
-  zlozPlacementHost,
-  zlozPlacementPreview,
-} from '../src/foldkit';
+import { placementPalette, placementHost, placementPreview } from '../src/effect-ui';
 import {
   createEditor,
   createPlacement,
   createArchitecturePattern,
   resolvePlacementControls,
   updatePlacementControls,
-  type ZlozPlacementInput,
 } from '../src/index';
 async function render(custom = false, minimal = false, protectedEntry = false) {
   const entries = [
@@ -47,45 +40,39 @@ async function render(custom = false, minimal = false, protectedEntry = false) {
     entries,
     protectedEntry ? { canStartPlacement: () => 'Governed source' } : {},
   );
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: controls }),
-        view: (model, h: HtmlBuilder<ZlozPlacementInput>) => ({
-          title: 'Palette',
-          body: zlozPlacementHost(
-            h,
-            model,
-            (input) => input,
-            [],
-            [
-              zlozPalette(h, model, (input) => input, {
-                diagnostics: { instructions: !minimal, measurements: !minimal },
-                renderEntry: (entry, builder) =>
-                  custom
-                    ? zlozPaletteEntry(
-                        builder,
-                        entry,
-                        [builder.Class('custom-card')],
-                        ['Custom card'],
-                      )
-                    : undefined,
-              }),
-              zlozPlacementPreview(h, model) ?? h.span([], []),
-            ],
-          ),
+  const Palette = Html.component({
+    name: 'Palette',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      placementHost(h, controls, (input) => input.type).children(
+        placementPalette(h, controls, (input) => input.type, {
+          instructions: !minimal,
+          measurements: !minimal,
+          entryClass: custom ? 'custom-card' : undefined,
+          renderEntry: custom ? (entry, h) => h.span(`Custom card: ${entry.label}`) : undefined,
+          renderStatus: custom ? () => null : undefined,
         }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+        placementPreview(h, controls),
+      ),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(Palette, {}, { static: true }));
   const window = new Window();
+  const style = window.document.createElement('style');
+  style.textContent = await Bun.file(new URL('../src/effect-ui.css', import.meta.url)).text();
+  window.document.head.append(style);
   window.document.body.innerHTML = output.html;
-  return window.document;
+  return window;
 }
 test('native/custom cards share protection and delegated input while minimal mode omits diagnostics', async () => {
-  const native = await render();
+  const nativeWindow = await render();
+  const native = nativeWindow.document;
+  const frame = native.querySelector('[data-zloz-palette-frame]');
+  if (frame)
+    expect(nativeWindow.getComputedStyle(frame).getPropertyValue('touch-action')).toBe('none');
   expect(native.querySelector('[data-zloz-palette-entry]')?.tagName).toBe('BUTTON');
   expect(native.querySelector('[data-zloz-palette-entry]')?.getAttribute('aria-pressed')).toBe(
     'true',
@@ -94,11 +81,11 @@ test('native/custom cards share protection and delegated input while minimal mod
     'true',
   );
   expect(native.querySelector('[data-zloz-placement-readout]')).not.toBeNull();
-  const custom = await render(true, true, true);
+  expect(native.querySelector('[data-zloz-placement-status]')).not.toBeNull();
+  const { document: custom } = await render(true, true, true);
   expect(custom.querySelector('.custom-card')?.hasAttribute('disabled')).toBe(true);
-  expect(custom.querySelector('[data-zloz-palette-frame]')?.getAttribute('style')).toContain(
-    'touch-action: none',
-  );
+  expect(custom.querySelector('.custom-card')?.textContent).toBe('Custom card: C4 context');
+  expect(custom.querySelector('[data-zloz-placement-status]')).toBeNull();
   expect(custom.querySelector('.custom-card')?.getAttribute('aria-label')).toBe('C4 context');
   expect(custom.body.textContent).toContain('Governed source');
   expect(custom.querySelector('[data-zloz-placement-readout]')).toBeNull();

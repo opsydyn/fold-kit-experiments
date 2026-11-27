@@ -182,42 +182,35 @@ this headless slice.
 
 ## Native and custom placement palettes
 
-The optional Foldkit adapter composes the headless contract. Core exports
-`ZlozPaletteEntry`, `ZlozPalettePolicy`, `ZlozPlacementInput`,
-`resolvePlacementControls`, `updatePlacementControls` and `placementForScope`.
-Each catalogue entry supplies a stable ID, label and the normalized placement
-intent above; its source may be palette or external.
+The Effect UI adapter composes the headless placement controller. Each catalogue
+entry supplies a stable ID, label and normalized placement intent.
 
 ```ts
 import { resolvePlacementControls, updatePlacementControls } from '@opsydyn/foldkit-zloz';
 import {
-  zlozPlacementHost,
-  zlozPalette,
-  zlozPaletteEntry,
-  zlozPlacementPreview,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  graphSurface,
+  placementHost,
+  placementPalette,
+  placementPreview,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
-// In the host update, using current editor, scope, catalogue and policies:
 const result = updatePlacementControls(model.placement, context, entries, input, policy);
-// Publish result.editor, result.placement and result.notice together in Model.
-
-// In the host view; onInput maps package facts to your own Foldkit Message:
 const controls = resolvePlacementControls(model.placement, context, entries, policy);
-const palette = zlozPalette(h, controls, onInput, {
-  diagnostics,
-  renderEntry: (entry, builder) =>
-    zlozPaletteEntry(
-      builder,
-      entry,
-      [builder.Class('my-palette-card')],
-      [builder.strong([], [entry.label])],
-    ),
+const palette = placementPalette(h, controls, onPlacement, {
+  ...diagnostics,
+  entryClass: 'my-palette-card',
+  renderEntry: (entry, builder) => builder.strong(entry.label),
 });
-// Wrap palette and zlozView under zlozPlacementHost(h, controls, onInput, attrs, children).
-// In zlozView's renderWorldOverlay, return zlozPlacementPreview(builder, controls).
+const canvas = graphSurface(h, model.editor, {
+  id: 'placement-canvas',
+  label: 'Diagram',
+  onInput,
+  worldOverlay: placementPreview(h, controls) ?? null,
+});
+const view = placementHost(h, controls, onPlacement).children(palette, canvas);
 ```
 
-One stable `zlozPlacementHost` contains one canvas and its palette. It scopes the
+One stable `placementHost` contains one canvas and its palette. It scopes the
 Live input resource and releases listeners/capture on unmount. Cards use native
 buttons with shared pointer and keyboard behavior. Drag with mouse/touch, or
 activate a card then tap the canvas. Releasing inside applies once; outside retains
@@ -236,10 +229,10 @@ removed catalogue entry does not revoke an already captured intent; express that
 in the live Apply policy. Change scope on editor/controller replacement;
 `placementForScope` explicitly returns a fresh session when scope changes.
 
-Compose `zlozPaletteEntry` and `zlozPlacementAction` for custom layouts. An internal
+Compose `placementPaletteEntry` and `placementAction` for custom layouts. An internal
 frame retains touch behavior when button styles are replaced. The palette
 supports custom entry/status renderers (`undefined` falls back; `null` omits).
-`zlozPlacementPreview` is decorative world-space artwork; use the public preview
+`placementPreview` is decorative world-space artwork; use the public preview
 context to draw other shapes. Instructions and position/snap measurements respect
 passed diagnostics; protection reasons and controls remain available in minimal
 mode. The host chooses whether to render any part at all.
@@ -4554,8 +4547,8 @@ whole source/target; receipt retention is host-owned and independent. Empty/equa
 patches return `unchanged` without history or receipt. Imported previews, receipts
 and unsigned actor claims are not permission. There is no CLI Apply.
 
-The optional `/foldkit` entry exports `zlozModellingPatchReview`,
-`zlozModellingPatchAcknowledgement`, `zlozModellingPatchApply` and view/parts types.
+The `/effect-ui` entry exports `modellingPatchReview`,
+`modellingPatchAcknowledgement`, `modellingPatchApply` and view/parts types.
 Native defaults show provenance, expandable source identity and before/after
 values, findings, explicit acknowledgement, Apply and live reasons. Nullable
 summary/finding/change slots, layout, attributes and action helpers support custom
@@ -4822,11 +4815,11 @@ fragmented or unsupported targets fail visibly; cleanup releases the observer an
 timer and ignores late callbacks. SSR adds inert hooks without measuring anything.
 No automatic arrangement or continuous resize observation is installed.
 
-For custom hosts, import `zlozLabelMeasurement` and its optional
-`ZlozLabelMeasurementOptions` from `@opsydyn/foldkit-zloz/foldkit`. Put the keyed probe
+Import `labelMeasurementProbe` and its optional `ZlozBoxMeasurementOptions`
+from `@opsydyn/foldkit-zloz/effect-ui`. Put the keyed probe
 directly inside an element marked `data-zloz-label-measurement-scope`; mark each
 rendered HTML border-box target `data-zloz-measured-label="edge-id"`. Nested scopes
-are isolated. The ordinary view handles these hooks for you. Render every requested
+are isolated. Render every requested
 target; when using culling, request a rendered subset or disable culling for the
 measurement. Content margins, shadows, overflow, local transforms, portals, SVG
 labels and later image/font changes are outside this border-box contract. Ensure
@@ -4971,9 +4964,9 @@ No automatic arrangement, continuous observation or graph serialization is added
 The shared one-shot Mount measures fractional HTML border boxes after used-font
 readiness, independent of camera zoom. It isolates nested canvases and releases its
 observer/timer on completion, failure or unmount. For custom hosts, compose
-`zlozGroupHeaderMeasurement` from `/foldkit` directly inside a host marked
+`groupHeaderMeasurementProbe` from `/effect-ui` directly inside a host marked
 `data-zloz-group-header-measurement-scope` and tag each target
-`data-zloz-group-header="group-id"`. C4/DDD group views supply targets automatically.
+`data-zloz-group-header="group-id"`. Tag the intrinsic HTML heading in the group view.
 Every requested target must render; disable culling or request a rendered subset.
 This is a typed lifecycle contract, not a decoder for unknown input. Overflow,
 shadows, local transforms, portals, SVG content and later resources are outside the

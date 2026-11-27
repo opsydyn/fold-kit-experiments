@@ -1,9 +1,22 @@
 import { afterEach, expect, test } from 'bun:test';
 import assert from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect, Schema } from 'effect';
 import { Window } from 'happy-dom';
 
-import { bindGroupHeaderMeasurement } from '../src/group-header-measurement-mount';
+import {
+  bindBoxMeasurement,
+  groupHeaderMeasurementTarget,
+  type BoxMeasurementBatch,
+} from '../src/box-measurement-mount';
+
+const bindGroupHeaderMeasurement = (
+  probe: Element,
+  ids: readonly string[],
+  emit: (batch: BoxMeasurementBatch) => void,
+  timeoutMs = 3000,
+) => bindBoxMeasurement(probe, ids, emit, timeoutMs, groupHeaderMeasurementTarget);
 const previous = Object.getOwnPropertyDescriptor(globalThis, 'document');
 afterEach(() => {
   if (previous) Object.defineProperty(globalThis, 'document', previous);
@@ -80,15 +93,10 @@ test('heading observation isolates nested native canvases and does not collect e
   ]);
 });
 
-import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
-
-import { zlozView, zlozC4Group } from '../src/foldkit';
+import { groupHeaderMeasurementProbe } from '../src/effect-ui';
 import {
   createEditor,
   startGroupHeaderMeasurement,
-  type EditorEvent,
   type LayoutGroupHeaderSpec,
 } from '../src/index';
 const spec: LayoutGroupHeaderSpec = {
@@ -113,41 +121,36 @@ const state = createEditor({
 async function render(enabled: boolean, timeoutMs = 3000) {
   const pending = startGroupHeaderMeasurement(state, 'ssr-group', 'renderer', [spec]);
   assert(pending.type === 'pending');
-  return (
-    await Effect.runPromise(
-      renderToString(
-        {
-          Flags: Schema.Struct({}),
-          init: () => ({ model: state }),
-          view: (editor, h: HtmlBuilder<EditorEvent>) => ({
-            title: 'Intrinsic group',
-            body: zlozView<EditorEvent>(h, editor, {
-              id: 'group',
-              label: 'Group',
-              onEvent: (event) => event,
-              groupHeaderMeasurement: enabled
-                ? {
-                    request: pending.request,
-                    timeoutMs,
-                    onMeasured: () => ({ type: 'SelectionCleared' }),
-                  }
-                : undefined,
-              renderGroupShell: (context, builder) =>
-                zlozC4Group(context, builder, { groupHeader: { ...spec, sizing: 'intrinsic' } }),
-            }),
-          }),
-        },
-        { flags: {}, isHydratable: false },
+  const View = Html.component({
+    name: 'Measurement',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      h.div.attr('data-zloz-group-header-measurement-scope', enabled ? '' : undefined).children(
+        h.button
+          .attr('data-zloz-group-header', 'g')
+          .style({ width: 'max-content' })
+          .children('C4 group'),
+        enabled
+          ? groupHeaderMeasurementProbe(h, pending.request, (result) => result.type, {
+              timeoutMs,
+            })
+          : null,
       ),
-    )
-  ).html;
+  });
+  return (await Effect.runPromise(HtmlServer.renderToHtml(View, {}, { static: true }))).html;
 }
 test('group measurement hooks are opt-in and SSR inert; intrinsic sizing and deadline validation are public', async () => {
   const plain = await render(false),
     measured = await render(true);
   expect(plain).not.toContain('data-zloz-group-header-measurement-scope');
-  expect(measured).toContain('data-zloz-group-header-measurement-scope=""');
+  expect(plain).not.toContain('hidden');
+  expect(measured).toContain('hidden');
+  expect(measured).toContain('data-zloz-group-header-measurement-scope');
   expect(measured).toContain('data-zloz-group-header="g"');
   expect(measured).toContain('max-content');
-  await expect(render(true, 0)).rejects.toThrow('timeout');
+  expect(await render(true, 0)).not.toContain('<div hidden');
 });

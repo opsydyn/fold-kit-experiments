@@ -540,7 +540,13 @@ export { zlozLightTheme, zlozDarkTheme, zlozThemeStyle } from './theme';
 export type { ZlozColorScheme, ZlozTheme } from './theme';
 export { resolveZlozDiagnostics } from './diagnostics';
 export type { ZlozDiagnostics } from './diagnostics';
-export { modellingPatchReview } from './effect-ui-patch-review';
+export {
+  modellingPatchAcknowledgement,
+  modellingPatchApply,
+  modellingPatchReview,
+  type ZlozModellingPatchReviewParts,
+  type ZlozModellingPatchReviewViewOptions,
+} from './effect-ui-patch-review';
 
 export {
   historyComparisonV2,
@@ -569,9 +575,21 @@ export {
   type ZlozHistoryChangeNavigatorViewOptionsV2,
 } from './effect-ui-history-navigation';
 
-export { placementHost, placementPalette, placementPreview } from './effect-ui-placement';
+export {
+  placementAction,
+  placementHost,
+  placementPalette,
+  placementPaletteEntry,
+  placementPreview,
+  type ZlozPaletteViewOptions,
+} from './effect-ui-placement';
+export { bindPlacementInput } from './bind-placement-input';
 
-export { groupHeaderMeasurementProbe, labelMeasurementProbe } from './effect-ui-measurement';
+export {
+  groupHeaderMeasurementProbe,
+  labelMeasurementProbe,
+  type ZlozBoxMeasurementOptions,
+} from './effect-ui-measurement';
 
 export type { ZlozResizeReadoutContext } from './resize-readout';
 

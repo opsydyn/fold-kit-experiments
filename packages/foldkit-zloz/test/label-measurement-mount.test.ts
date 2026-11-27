@@ -3,7 +3,18 @@ import assert from 'node:assert/strict';
 
 import { Window } from 'happy-dom';
 
-import { bindLabelMeasurement } from '../src/label-measurement-mount';
+import {
+  bindBoxMeasurement,
+  labelMeasurementTarget,
+  type BoxMeasurementBatch,
+} from '../src/box-measurement-mount';
+
+const bindLabelMeasurement = (
+  probe: Element,
+  ids: readonly string[],
+  emit: (batch: BoxMeasurementBatch) => void,
+  timeoutMs = 3000,
+) => bindBoxMeasurement(probe, ids, emit, timeoutMs, labelMeasurementTarget);
 
 const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 afterEach(() => {

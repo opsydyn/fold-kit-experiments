@@ -10,7 +10,6 @@ import {
   captureEdition,
   compareEditions,
   resolveEditionRestore,
-  type EdgePathStyle,
   type EditorEvent,
   type ZlozPlacementInput,
   type ZlozAuditComparisonRequest,
@@ -71,7 +70,7 @@ import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
 import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-browse';
 import { nativeCausalRelationships, nativeDiagramCaption } from './native-diagram-notation';
-import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
+import { nativeConnectionCreation, nativeSelectedConnection } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
 import { nativePatternInsertion } from './native-pattern-insertion';
 import { nativePolicies } from './native-policies';
@@ -90,13 +89,6 @@ import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
 import { workshopPanel } from './workshop-view';
-
-const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
-  { label: 'Automatic', style: null },
-  { label: 'Straight', style: 'straight' },
-  { label: 'Stepped', style: 'stepped' },
-  { label: 'Smooth', style: 'smooth' },
-];
 
 const playbackIcons = { play: '▶', pause: 'Ⅱ', rewind: '↶', previous: '←', next: '→' };
 const playbackMessages = {
@@ -1233,63 +1225,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         : []),
       ...(!model.minimalMode && selectedEdge
         ? [
-            h.div(
-              [h.Role('group'), h.AriaLabel('Selected connection')],
-              [
-                ...(endpointFields.length
-                  ? [
-                      nativeSelectedEndpoints(
-                        h,
-                        { ...endpointScope, fields: endpointFields },
-                        'architecture-effect-ui',
-                        'connection-endpoints',
-                      ),
-                    ]
-                  : []),
-                h.label(
-                  [],
-                  [
-                    'Edge path',
-                    h.select(
-                      [
-                        h.AriaLabel('Edge path'),
-                        h.Disabled(model.editor.readOnly),
-                        h.OnChange((value) =>
-                          observedInput({
-                            message: {
-                              type: 'EdgePathStyleChanged',
-                              id: selectedEdge.id,
-                              pathStyle:
-                                edgePathOptions.find(({ style }) => style === value)?.style ?? null,
-                            },
-                          }),
-                        ),
-                      ],
-                      edgePathOptions.map(({ label, style }) =>
-                        h.option(
-                          [
-                            h.Value(style ?? 'auto'),
-                            h.Selected((selectedEdge.pathStyle ?? null) === style),
-                          ],
-                          [label],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                button(
-                  'Solid edge',
-                  observedInput({
-                    message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'solid' },
-                  }),
-                ),
-                button(
-                  'Dashed edge',
-                  observedInput({
-                    message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'dashed' },
-                  }),
-                ),
-              ],
+            nativeSelectedConnection(
+              h,
+              {
+                ...endpointScope,
+                fields: endpointFields,
+                edge: selectedEdge,
+                readOnly: model.editor.readOnly,
+                reviewing: model.historyReview !== null,
+              },
+              'architecture-effect-ui',
+              'connection-endpoints',
             ),
           ]
         : []),

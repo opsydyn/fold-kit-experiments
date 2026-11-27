@@ -157,6 +157,56 @@ async function qualify() {
     );
     await button('Undo').click();
     expect(await graph()).toEqual(baseline);
+    await section('Inspect');
+    await button('source:out → review:in').press('Enter');
+    const selected = inspector.getByRole('group', { name: 'Selected connection', exact: true });
+    const path = selected.getByRole('combobox', { name: 'Edge path', exact: true });
+    const stroke = page.locator('[data-flow-edge-stroke="draft-review"]');
+    await path.focus();
+    await path.selectOption('stepped');
+    await expect(path).toHaveValue('stepped');
+    await expect(path).toBeFocused();
+    await selected.getByRole('button', { name: 'Dashed edge', exact: true }).press('Enter');
+    await expect(stroke).toHaveAttribute('stroke-dasharray', '9 5');
+    const styled = await graph();
+    expect(styled.edges.find(({ id }) => id === 'draft-review')).toMatchObject({
+      pathStyle: 'stepped',
+      data: 'dashed',
+    });
+    await section('Inspect');
+    await expect(path).toHaveValue('stepped');
+    await selected.getByRole('button', { name: 'Solid edge', exact: true }).press('Enter');
+    await expect(stroke).not.toHaveAttribute('stroke-dasharray', '9 5');
+    expect((await graph()).edges.find(({ id }) => id === 'draft-review')?.data).toBe('solid');
+    await button('Undo').click();
+    expect(await graph()).toEqual(styled);
+    await button('Undo').click();
+    expect((await graph()).edges.find(({ id }) => id === 'draft-review')).toMatchObject({
+      pathStyle: 'stepped',
+    });
+    await button('Undo').click();
+    expect(await graph()).toEqual(baseline);
+    await section('History');
+    await page
+      .getByRole('textbox', { name: 'Edition name', exact: true })
+      .fill('Connection checkpoint');
+    await button('Capture edition').click();
+    const rewind = page.getByRole('combobox', { name: 'Rewind to edition', exact: true });
+    await rewind.selectOption({ label: 'Connection checkpoint' });
+    await expect(page.locator('[data-flow-surface]')).toHaveAttribute('data-flow-readonly', 'true');
+    await section('Inspect');
+    await button('source:out → review:in').press('Enter');
+    await expect(path).toBeDisabled();
+    await expect(reconnect).toBeDisabled();
+    await expect(selected.getByRole('button', { name: 'Solid edge', exact: true })).toBeDisabled();
+    await expect(selected.getByRole('button', { name: 'Dashed edge', exact: true })).toBeDisabled();
+    await section('History');
+    await button('Return to present').click();
+    await expect(page.locator('[data-flow-surface]')).toHaveAttribute(
+      'data-flow-readonly',
+      'false',
+    );
+    expect(await graph()).toEqual(baseline);
     await section('Diagnostics');
     await button('Minimal mode').click();
     await section('Ports');
@@ -165,7 +215,7 @@ async function qualify() {
     expect(errors).toEqual([]);
     console.log(
       engine +
-        ': native endpoint search, live protection, focus, creation, reconnection and exact Undo passed',
+        ': native connection search, protection, reconnection, styling, read-only review and exact Undo passed',
     );
   })().finally(() => browser.close());
 }

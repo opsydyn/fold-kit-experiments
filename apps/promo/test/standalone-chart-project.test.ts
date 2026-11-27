@@ -6,8 +6,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { SourceName } from '@opsydyn/dataset-explorer/source';
+import { Schema } from 'effect';
+import { chromium } from 'playwright';
+
 import { buildExampleTemplate } from '../src/lib/example-project';
 import type { SourceFile } from '../src/lib/example-project';
+import { verifyDatasetSwitch } from './dataset-browser-scenario';
 
 const exec = promisify(execFile);
 const examplesRoot = fileURLToPath(new URL('../src/examples/', import.meta.url));
@@ -16,7 +21,7 @@ async function maintainedSources(example: string): Promise<ReadonlyArray<SourceF
     const root = fileURLToPath(new URL('../../../packages/dataset-explorer/src/', import.meta.url));
     return Promise.all(
       (await readdir(root))
-        .filter((name) => /\.(ts|css)$/.test(name))
+        .filter((name) => Schema.is(SourceName)(name))
         .map(async (name) => ({
           name,
           content: await readFile(join(root, name), 'utf8'),
@@ -41,6 +46,11 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
     const directory = await mkdtemp(join(tmpdir(), `foldkit-standalone-${example}-`));
     try {
       const files = await buildExampleTemplate(await maintainedSources(example), example);
+      if (example === 'datasets') {
+        expect(files['package.json']).toContain('"@effect/ui"');
+        expect(files['package.json']).not.toContain('"foldkit"');
+        expect(files['src/entry.ts']).toContain('BrowserHost');
+      }
       for (const [name, contents] of Object.entries(files)) {
         const file = join(directory, name);
         await mkdir(dirname(file), { recursive: true });
@@ -55,12 +65,28 @@ for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
         [
           '--input-type=module',
           '-e',
-          `import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/foldkit/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);`,
+          example === 'datasets'
+            ? "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { symbolPath } from '@opsydyn/foldkit-viz/shape/symbol'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof symbolPath);"
+            : "import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian'; import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme'; import { chartFrame } from '@opsydyn/foldkit-viz/foldkit/cartesian'; console.log(typeof lineGeometry, lightTheme.labelSize, typeof chartFrame);",
         ],
         options,
       );
       expect(stdout.trim()).toBe('function 12 function');
       expect(await readdir(join(directory, 'dist'))).toContain('index.html');
+      if (example === 'datasets' && process.env.DATASET_BROWSER === '1') {
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const origin = 'http://dataset-standalone.test';
+          await page.route(origin + '/**', async (request) => {
+            const path = new URL(request.request().url()).pathname.slice(1);
+            await request.fulfill({ path: join(directory, 'dist', path || 'index.html') });
+          });
+          await verifyDatasetSwitch(page, origin, (url) => url.pathname === '/datasets/coast.json');
+        } finally {
+          await browser.close();
+        }
+      }
       if (example === 'datasets') {
         for (const [station, first, last] of [
           ['north', 4, 8],

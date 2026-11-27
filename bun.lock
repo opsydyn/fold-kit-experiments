@@ -340,6 +340,7 @@
     "packages/dataset-explorer": {
       "name": "@opsydyn/dataset-explorer",
       "dependencies": {
+        "@effect/ui": "catalog:",
         "@opsydyn/foldkit-viz": "workspace:*",
         "@wooorm/starry-night": "^3.11.0",
         "effect": "catalog:",

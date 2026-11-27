@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
 
 import { DatasetId, Transport } from './data';
-import { HighlightedSource, Highlighting, SourceKey } from './highlighting';
+import { HighlightedSource, SourceKey } from './highlighting-core';
 import { DatasetQuery } from './query';
 import { Source, SourceName } from './source';
 import { loadSelected } from './update';
@@ -18,7 +18,6 @@ export const Props = Schema.Struct({
 });
 export type Props = typeof Props.Type;
 export const Model = Schema.Struct({
-  highlighting: Highlighting,
   requestedSource: Schema.optional(SourceKey),
   highlightedSource: Schema.optional(HighlightedSource),
   chartWidth: Schema.Number,
@@ -43,10 +42,11 @@ export const initModel: Model = {
   datasets: DatasetQuery.init(),
   trace: [],
 };
-export const init = (props: Props = {}) =>
-  loadSelected({
-    ...initModel,
-    transport: props.transport ?? 'api',
-    fixturesUrl: props.fixturesUrl ?? '/datasets/',
-    sources: props.sources ?? [],
-  });
+export const initialModel = (props: Props = {}): Model => ({
+  ...initModel,
+  transport: props.transport ?? 'api',
+  fixturesUrl: props.fixturesUrl ?? '/datasets/',
+  sources: props.sources ?? [],
+});
+
+export const init = (props: Props = {}) => loadSelected(initialModel(props));

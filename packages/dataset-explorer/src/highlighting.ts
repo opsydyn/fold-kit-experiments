@@ -1,4 +1,3 @@
-import type { createStarryNight } from '@wooorm/starry-night';
 import { Effect, Match, Option, Schema } from 'effect';
 import { ManagedResource } from 'foldkit';
 import type { Command } from 'foldkit';
@@ -6,14 +5,16 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 import type { Root, Element, Text } from 'hast';
 
-import { linkedSourceTree } from './source-lines';
+import { codeTree, loadHighlighter, sourceMatches } from './highlighting-core';
+import type {
+  Highlighter,
+  HighlightedSource,
+  HighlightingModel,
+  SourceKey,
+} from './highlighting-core';
 
-// The runtime owns the opaque engine; application state contains only source keys and tokens.
-export type Highlighter = Pick<
-  Awaited<ReturnType<typeof createStarryNight>>,
-  'flagToScope' | 'highlight' | 'missingScopes'
->;
-export const Highlighting = Schema.optional(Schema.Literals(['ready', 'failed']));
+export * from './highlighting-core';
+
 export const SourceHighlighter = ManagedResource.tag<Highlighter>()('SourceHighlighter');
 export type HighlightingService = ManagedResource.ServiceOf<typeof SourceHighlighter>;
 export interface HighlightingLifecycle<Message> {
@@ -35,52 +36,6 @@ export function highlightingResources<Model, Message>(messages: HighlightingLife
     }),
   }));
 }
-// Resource acquisition loads the engine; views consume serialisable settled tokens.
-export async function loadHighlighter() {
-  // The WASM/grammar bundle is loaded only when a live app requests it.
-  // oxlint-disable-next-line linteffect/prevent-dynamic-imports
-  const browser = await import('./highlighting-browser');
-  return browser.createBrowserHighlighter();
-}
-
-export type TokenTree = Root;
-export const HighlightedSource = Schema.Struct({
-  source: Schema.String,
-  language: Schema.String,
-  tree: Schema.declare(
-    (value): value is Root =>
-      // The engine produces HAST roots; the boundary checks the root discriminator.
-      // oxlint-disable-next-line linteffect/no-magic-domain-string, linteffect/no-domain-logic-in-conditional
-      typeof value === 'object' && value !== null && 'type' in value && value.type === 'root',
-  ),
-});
-export type HighlightedSource = typeof HighlightedSource.Type;
-export const SourceKey = Schema.Struct({ source: Schema.String, language: Schema.String });
-export type SourceKey = typeof SourceKey.Type;
-export interface HighlightingModel {
-  readonly highlighting?: 'ready' | 'failed' | undefined;
-  readonly highlightedSource?: HighlightedSource | undefined;
-  readonly requestedSource?: SourceKey | undefined;
-}
-export function sourceMatches(
-  key: SourceKey | undefined,
-  source: string,
-  language: string,
-): boolean {
-  return key?.source === source && key.language === language;
-}
-export function settleHighlighting<Model extends HighlightingModel>(
-  model: Model,
-  highlightedSource: HighlightedSource,
-  source: string,
-  language: string,
-): Model {
-  // Keep the generic model unchanged for stale results.
-  // oxlint-disable-next-line linteffect/no-if-statement
-  if (!sourceMatches(highlightedSource, source, language)) return model;
-  return { ...model, highlightedSource, requestedSource: undefined };
-}
-
 export function requestHighlighting<Model extends HighlightingModel, Message>(
   result: Return<Model, Message, HighlightingService>,
   source: string,
@@ -102,22 +57,6 @@ export function requestHighlighting<Model extends HighlightingModel, Message>(
     model: { ...result.model, requestedSource },
     commands: [...(result.commands ?? []), command(requestedSource)],
   };
-}
-
-export function highlightedTree(
-  source: string,
-  language: string,
-  highlighter?: Highlighter | null,
-): TokenTree {
-  function tokens(engine: Highlighter): Option.Option<Root> {
-    return Option.map(Option.fromNullishOr(engine.flagToScope(language)), (scope) =>
-      engine.highlight(source, scope),
-    );
-  }
-  return Option.fromNullishOr(highlighter).pipe(
-    Option.flatMap(tokens),
-    Option.getOrElse((): Root => ({ type: 'root', children: [{ type: 'text', value: source }] })),
-  );
 }
 
 export function highlightedCode<Message>(
@@ -174,14 +113,5 @@ export function highlightedCode<Message>(
       Match.when({ type: 'text' }, render),
       Match.orElse(() => []),
     );
-  const tree = Option.fromNullishOr(cached).pipe(
-    Option.filter((entry) => entry.source === source && entry.language === language),
-    Option.map((entry) => entry.tree),
-    Option.getOrElse(() => highlightedTree(source, language)),
-  );
-  const output = Option.match(Option.fromNullishOr(sourceId), {
-    onNone: () => tree,
-    onSome: (name) => linkedSourceTree(tree, name),
-  });
-  return output.children.flatMap(renderContent);
+  return codeTree(source, language, cached, sourceId).children.flatMap(renderContent);
 }

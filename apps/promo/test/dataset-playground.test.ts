@@ -3,7 +3,6 @@ import { expect, test } from 'bun:test';
 import { Effect } from 'effect';
 
 import workspace from '../../../package.json';
-import astroPackage from '../../../packages/astro-foldkit/package.json';
 import datasetPackage from '../../../packages/dataset-explorer/package.json';
 import { OpenPlayground } from '../src/examples/datasets/launcher/command';
 import { Message } from '../src/examples/datasets/launcher/message';
@@ -11,18 +10,12 @@ import { init } from '../src/examples/datasets/launcher/model';
 import { update } from '../src/examples/datasets/launcher/update';
 import { datasetProject } from '../src/lib/dataset-project';
 
-test('dataset starter uses the maintained source runtime and matching Vite plugin', () => {
+test('dataset starter uses the maintained Effect UI runtime and matching Effect pin', () => {
   const manifest = JSON.parse(datasetProject({}, [])['package.json']);
-  // The dataset explorer takes FoldKit from the workspace catalog.
-  expect(datasetPackage.dependencies.foldkit).toBe('catalog:');
-  expect(manifest.dependencies.foldkit).toBe(workspace.workspaces.catalog.foldkit);
+  expect(datasetPackage.dependencies['@effect/ui']).toBe('catalog:');
+  expect(manifest.dependencies['@effect/ui']).toBe(workspace.workspaces.catalog['@effect/ui']);
   expect(manifest.dependencies.effect).toBe(workspace.workspaces.catalog.effect);
-  expect(manifest.dependencies['@effect/platform-browser']).toBe(
-    workspace.workspaces.catalog['@effect/platform-browser'],
-  );
-  expect(manifest.devDependencies['@foldkit/vite-plugin']).toBe(
-    astroPackage.dependencies['@foldkit/vite-plugin'].replace(/^\^/, ''),
-  );
+  expect(manifest.dependencies.foldkit).toBeUndefined();
 });
 
 test('dataset starter automatically installs and starts a reachable Vite server in StackBlitz', () => {

@@ -22,3 +22,26 @@ Use Astro's built-in directives for the first slice. First-interaction replay
 requires an adoption-aware directive and a decision about directive ownership
 on mixed pages. Full-page metadata and Flags, Astro slots, broad version
 compatibility and npm publication require their own qualification.
+
+## Shared Dataset Explorer
+
+The shared component owns selection, retained snapshots and the response log.
+Astro supplies the Web API or the Promo fixture base path as props. The
+standalone export starts the same component with local fixtures. The first
+request starts on the browser mount so Astro can render the controls without
+fetching a snapshot while building the page.
+
+The explorer keeps its request generations in the model. The race demo needs
+both responses to finish and be visible in the log even when the slower
+response is superseded. Using the runtime query cache for this example would
+make that logging depend on the host's handling of superseded requests.
+The component therefore uses scoped Effect UI commands and accepts a result
+only for the pending generation of its transport and station. The browser
+mount owns resize and hash listeners.
+
+The source tokenizer and line-link construction are shared with the remaining
+examples. Their existing FoldKit adapters stay available while those callers
+migrate. The standalone export copies the explorer's Effect UI sources and
+the pure Viz modules it imports. Its browser entry supplies SVG metadata
+creation for the pinned preview, since its npm install does not apply the
+monorepo's Bun patch.

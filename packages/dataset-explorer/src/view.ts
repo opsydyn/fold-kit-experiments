@@ -1,7 +1,6 @@
-import { dataTable } from '@opsydyn/foldkit-viz/foldkit/cartesian';
-import { Option } from 'effect';
-import { getData, getError, hasData, isPending, matchData } from 'foldkit/asyncData';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
+import { Effect, Option, Queue, Stream } from 'effect';
 
 import { hourLabel, snapshotChart } from './chart';
 import { datasetIds, datasets } from './data';
@@ -9,184 +8,170 @@ import { frameForWidth } from './frame';
 import { MeasureDatasetChart } from './measurement';
 import { Message } from './message';
 import type { Model } from './model';
-import { DatasetQuery } from './query';
+import { DatasetQuery, status } from './query';
+import { parseSourceLine } from './source-line-core';
 import { sourcePanel } from './source-view';
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const args = {
+const ObserveExplorer = Mount.makeStream('ObserveExplorer', { args: {} }, (element: HTMLElement) =>
+  Stream.callback<Message>((queue) => {
+    const subscribe = Effect.sync(() => {
+      const window = element.ownerDocument.defaultView;
+      const navigate = () =>
+        Option.map(parseSourceLine(window?.location.hash ?? ''), (line) =>
+          Queue.offerUnsafe(queue, Message.NavigatedSourceLine(line)),
+        );
+      window?.addEventListener('hashchange', navigate);
+      Queue.offerUnsafe(queue, Message.MountedExplorer());
+      navigate();
+      return () => window?.removeEventListener('hashchange', navigate);
+    });
+    return Effect.acquireRelease(subscribe, (close) => Effect.sync(close)).pipe(
+      // Leave the hash listener attached for the lifetime of this mount.
+      // oxlint-disable-next-line linteffect/no-effect-never
+      Effect.andThen(Effect.never),
+    );
+  }),
+);
+
+export const view = (h: Html.H<Message>, model: Model) => {
+  const entry = DatasetQuery.read(model.datasets, {
     source: model.transport,
     dataset: model.selected,
-    revision: model.nextRevision,
-    profile: 'normal' as const,
-    fail: false,
-  };
-  const data = DatasetQuery.read(model.datasets, args);
-  const busy = isPending(data);
-  const snapshot = getData(data);
-  const cached = datasetIds.filter((dataset) =>
-    hasData(DatasetQuery.read(model.datasets, { ...args, dataset })),
+  });
+  const { snapshot, pending, error } = entry;
+  const cached = datasetIds.filter(
+    (dataset) =>
+      DatasetQuery.read(model.datasets, { source: model.transport, dataset }).snapshot !==
+      undefined,
   ).length;
   const button = (label: string, message: Message) =>
-    h.button(
-      [h.Type('button'), h.Class('query-action'), h.Disabled(busy), h.OnClick(message)],
-      [label],
-    );
-  const body = h.div(
-    [h.Class('query-explorer')],
-    [
-      h.div(
-        [h.Class('query-toolbar')],
-        [
-          h.div(
-            [h.Role('group'), h.AriaLabel('Dataset selection'), h.Class('query-stations')],
-            datasetIds.map((dataset) =>
-              h.button(
-                [
-                  h.Type('button'),
-                  h.Class('query-station'),
-                  h.Style({ '--station-colour': datasets[dataset].colour }),
-                  h.AriaPressed(dataset === model.selected ? 'true' : 'false'),
-                  h.OnClick(Message.ClickedDataset({ dataset })),
-                ],
-                [datasets[dataset].label],
-              ),
+    h.button
+      .class('query-action')
+      .attr('type', 'button')
+      .disabled(pending !== undefined)
+      .on('click', message)
+      .children(label);
+  const hint = (text: string) => h.p.class('query-hint').children(text);
+  const chart = snapshot
+    ? snapshotChart(snapshot, h, { frame: frameForWidth(model.chartWidth) })
+    : h.div.class('query-empty').children(error ?? 'Loading observations…');
+  return h.div
+    .class('query-explorer')
+    .onMount(Mount.map(ObserveExplorer(), (message) => message))
+    .children(
+      h.div.class('query-toolbar').children(
+        h.div
+          .class('query-stations')
+          .attrs({ role: 'group', 'aria-label': 'Dataset selection' })
+          .children(
+            ...datasetIds.map((dataset) =>
+              h.button
+                .class('query-station')
+                .attrs({ type: 'button', 'aria-pressed': String(dataset === model.selected) })
+                .style({ '--station-colour': datasets[dataset].colour })
+                .on('click', Message.ClickedDataset({ dataset }))
+                .children(datasets[dataset].label),
             ),
           ),
-          h.span(
-            [h.Class('query-cache-count')],
-            [`${cached} / ${datasetIds.length} datasets retained`],
-          ),
-        ],
+        h.span
+          .class('query-cache-count')
+          .children(`${cached} / ${datasetIds.length} datasets retained`),
       ),
-      h.section(
-        [h.Class('query-panel'), h.AriaLabel('Dataset preview')],
-        [
-          h.div(
-            [h.Class('query-readout')],
-            [
-              h.div(
-                [],
-                [
-                  h.span([h.Class('query-eyebrow')], ['REMOTE OBSERVATIONS']),
-                  h.h2([], [datasets[model.selected].label]),
-                ],
+      h.section
+        .class('query-panel')
+        .attr('aria-label', 'Dataset preview')
+        .children(
+          h.div.class('query-readout').children(
+            h.div(
+              h.span.class('query-eyebrow').children('REMOTE OBSERVATIONS'),
+              h.h2(datasets[model.selected].label),
+            ),
+            h.div
+              .class('query-state')
+              .attrs({ role: 'status', 'aria-live': 'polite' })
+              .children(
+                h.strong(status(entry)),
+                h.span(
+                  snapshot
+                    ? `Snapshot ${snapshot.revision} · ${snapshot.points.length} observations`
+                    : 'Awaiting a snapshot',
+                ),
               ),
-              h.div(
-                [h.Class('query-state'), h.Role('status'), h.AriaLive('polite')],
-                [
-                  h.strong([], [data._tag]),
-                  h.span(
-                    [],
-                    [
-                      Option.match(snapshot, {
-                        onNone: () => 'Awaiting a snapshot',
-                        onSome: (snapshot) =>
-                          `Snapshot ${snapshot.revision} · ${snapshot.points.length} observations`,
-                      }),
-                    ],
-                  ),
-                ],
-              ),
-            ],
           ),
-          h.div(
-            [h.Class('query-chart-viewport'), h.OnMount(MeasureDatasetChart())],
-            [
-              matchData(data, {
-                onEmpty: () => h.div([h.Class('query-empty')], ['Loading observations…']),
-                onFailure: (error) => h.div([h.Class('query-empty')], [error]),
-                onData: (snapshot) =>
-                  snapshotChart(snapshot, h, { frame: frameForWidth(model.chartWidth) }),
-              }),
-            ],
-          ),
-          ...Option.match(getError(data), {
-            onNone: () => [],
-            onSome: (error) => [
-              h.p(
-                [h.Class('query-error'), h.Role('alert')],
-                [
-                  error,
-                  hasData(data) ? ' Your last snapshot stays visible.' : ' Try refresh dataset.',
-                ],
+          h.div
+            .class('query-chart-viewport')
+            .onMount(Mount.map(MeasureDatasetChart(), (message) => message))
+            .children(chart),
+          error !== undefined &&
+            h.p
+              .class('query-error')
+              .attr('role', 'alert')
+              .children(
+                error,
+                snapshot ? ' Your last snapshot stays visible.' : ' Try refresh dataset.',
               ),
-            ],
-          }),
-          h.div(
-            [h.Class('query-actions')],
-            [
+          h.div
+            .class('query-actions')
+            .children(
               button('Refresh dataset', Message.ClickedRefresh()),
               button('Simulate failed refresh', Message.ClickedFailedRefresh()),
               button('Run response race', Message.ClickedResponseRace()),
-            ],
+            ),
+          hint(
+            'Switch stations to reuse retained data. Refresh keeps the current chart visible while its replacement loads.',
           ),
-          h.p(
-            [h.Class('query-hint')],
-            [
-              'Switch stations to reuse retained data. Refresh keeps the current chart visible while its replacement loads.',
-            ],
-          ),
-        ],
-      ),
-      h.div(
-        [h.Class('query-lower')],
-        [
-          h.section(
-            [h.Class('query-panel'), h.AriaLabel('Response log')],
-            [
-              h.h2([h.Class('query-section-title')], ['Response log']),
-              h.p(
-                [h.Class('query-hint')],
-                [
-                  'Race: launch a slow request, reset, then launch a fast replacement. Reset invalidates old responses; it does not cancel the request.',
-                ],
-              ),
-              h.ol(
-                [h.Class('query-log'), h.AriaLive('polite')],
-                model.trace
-                  .toReversed()
-                  .map((fact) =>
-                    h.li(
-                      [
-                        h.Key(`${fact.dataset}-${fact.revision}`),
-                        h.Class('query-log-row'),
-                        h.DataAttribute('outcome', fact.outcome),
-                      ],
-                      [
-                        h.span([], [`${datasets[fact.dataset].label} · snapshot ${fact.revision}`]),
-                        h.strong([], [fact.outcome]),
-                      ],
+        ),
+      h.div.class('query-lower').children(
+        h.section
+          .class('query-panel')
+          .attr('aria-label', 'Response log')
+          .children(
+            h.h2.class('query-section-title').children('Response log'),
+            hint(
+              'Race: launch a slow request, reset, then launch a fast replacement. Reset invalidates old responses; it does not cancel the request.',
+            ),
+            h.ol
+              .class('query-log')
+              .attr('aria-live', 'polite')
+              .children(
+                ...model.trace.toReversed().map(({ dataset, revision, outcome }) =>
+                  h.li
+                    .key(`${dataset}-${revision}`)
+                    .class('query-log-row')
+                    .attr('data-outcome', outcome)
+                    .children(
+                      h.span(`${datasets[dataset].label} · snapshot ${revision}`),
+                      h.strong(outcome),
                     ),
-                  ),
+                ),
               ),
-              ...(model.trace.length === 0
-                ? [h.p([h.Class('query-hint')], ['Responses appear here as requests finish.'])]
-                : []),
-            ],
+            model.trace.length === 0 && hint('Responses appear here as requests finish.'),
           ),
-          h.section(
-            [h.Class('query-panel'), h.AriaLabel('Source observations')],
-            [
-              h.h2([h.Class('query-section-title')], ['Source observations']),
-              ...Option.match(snapshot, {
-                onNone: () => [h.p([h.Class('query-hint')], ['No snapshot loaded yet.'])],
-                onSome: (snapshot) => [
-                  dataTable(h, {
-                    caption: `Illustrative data · snapshot ${snapshot.revision}`,
-                    headers: ['Hour', 'Wind speed (m/s)'],
-                    rows: snapshot.points.map((point) => [
-                      hourLabel(point.hour),
-                      String(point.value),
-                    ]),
-                  }),
-                ],
-              }),
-            ],
+        h.section
+          .class('query-panel')
+          .attr('aria-label', 'Source observations')
+          .children(
+            h.h2.class('query-section-title').children('Source observations'),
+            snapshot
+              ? h.table
+                  .class('chart-data-table')
+                  .children(
+                    h.caption(`Illustrative data · snapshot ${snapshot.revision}`),
+                    h.thead(
+                      h.tr(
+                        h.th.attr('scope', 'col').children('Hour'),
+                        h.th.attr('scope', 'col').children('Wind speed (m/s)'),
+                      ),
+                    ),
+                    h.tbody(
+                      ...snapshot.points.map(({ hour, value }) =>
+                        h.tr(h.td(hourLabel(hour)), h.td(String(value))),
+                      ),
+                    ),
+                  )
+              : hint('No snapshot loaded yet.'),
           ),
-        ],
       ),
-      ...sourcePanel(model, h),
-    ],
-  );
-  return { title: 'Dataset explorer — FoldKit Query', body };
+      sourcePanel(h, model),
+    );
 };

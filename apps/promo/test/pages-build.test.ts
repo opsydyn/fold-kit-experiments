@@ -17,6 +17,10 @@ test.skipIf(!base)(
     const home = await Bun.file(join(directory, 'index.html')).text();
     expect(home.includes(`href="${base}examples/signals/"`)).toBe(true);
     expect(home.includes(`href="${base}examples/wordcloud/"`)).toBe(true);
+    const explorer = await Bun.file(join(directory, 'examples/datasets/index.html')).text();
+    expect(explorer).toContain('data-effect-ui-root');
+    expect(explorer).toContain('aria-label="Dataset selection"');
+    expect(explorer).toContain('Awaiting a snapshot');
     for (const example of ['signals', 'wordcloud']) {
       for (const theme of ['light', 'dark']) {
         expect(home.includes(`${base}images/showcase/${example}-${theme}.png`)).toBe(true);

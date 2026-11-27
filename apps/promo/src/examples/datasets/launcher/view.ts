@@ -127,7 +127,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [
           Status.match(model.status, {
             Ready: () =>
-              'Open StackBlitz to edit the code, or download the Vite starter to run with npm or Bun. All three datasets and native FoldKit source are included.',
+              'Open StackBlitz to edit the code, or download the Vite starter to run with npm or Bun. All three datasets and the maintained Effect UI source are included.',
             Pending: () => 'Preparing the project…',
             Opened: () => 'Opening StackBlitz…',
             Failed: ({ error }) => error,

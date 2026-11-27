@@ -1,17 +1,16 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { ok } from 'node:assert/strict';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Request } from '@opsydyn/dataset-explorer/data';
 import { Message } from '@opsydyn/dataset-explorer/message';
-import { init } from '@opsydyn/dataset-explorer/model';
+import { init, Model } from '@opsydyn/dataset-explorer/model';
 import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
 import { sourceContent } from '@opsydyn/dataset-explorer/source';
 import { update } from '@opsydyn/dataset-explorer/update';
 import { view } from '@opsydyn/dataset-explorer/view';
 import { Effect, pipe, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
-import type { Command } from 'foldkit';
-import { renderToString } from 'foldkit/experimental/server';
 
 const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
 beforeAll(() =>
@@ -28,24 +27,27 @@ afterAll(() => {
 const testFetch = (run: (input: RequestInfo | URL) => Promise<Response>): typeof globalThis.fetch =>
   Object.assign(run, { preconnect: globalThis.fetch.preconnect });
 
-const firstCommand = (started: ReturnType<typeof update>): Command.Command<Message> => {
+const firstCommand = (started: ReturnType<typeof update>) => {
   const command = started.commands?.[0];
   ok(command, 'Expected a fetch Command');
-  // Query Commands supply their HTTP client and never read the highlighter.
-  // Verify provenance before narrowing the update's union of service requirements.
   expect(command.name).toBe('FetchDatasetSnapshot');
-  // SAFETY: the checked FetchDatasetSnapshot definition supplies its own HTTP services.
-  return command as Command.Command<Message>;
+  return command;
 };
 
-const render = (model: ReturnType<typeof init>['model']) =>
-  pipe(
-    renderToString(
-      { Flags: Schema.Struct({}), init: () => ({ model }), view },
-      { flags: {}, isHydratable: false },
-    ),
-    Effect.runPromise,
-  );
+const RenderFixture = Html.component({
+  name: 'DatasetExplorerRenderFixture',
+  model: Model,
+  props: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($) => $.model,
+  view,
+});
+async function render(model: Model) {
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(RenderFixture, model));
+  return output;
+}
 
 test('resizing preserves pending requests and selected source without issuing commands', () => {
   const started = init({ transport: 'fixtures' });
@@ -161,7 +163,9 @@ test('the snapshot source follows retained, refreshed and newly selected data', 
     points: [{ hour: 0, value: 6 }],
   });
   const north = update(coastal, Message.ClickedDataset({ dataset: 'north' }));
-  expect(north.commands ?? []).toHaveLength(0);
+  expect(north.commands?.filter(({ name }) => name === 'FetchDatasetSnapshot') ?? []).toHaveLength(
+    0,
+  );
   expect(JSON.parse(sourceContent(north.model)).revision).toBe(2);
   const code = update(north.model, Message.SelectedSource({ name: 'query.ts' })).model;
   expect(sourceContent(code)).toBe('actual query source');
@@ -225,4 +229,24 @@ test('fixture requests use the deployed promo directory', async () => {
   );
   expect(urls).toEqual(['http://localhost/fold-kit-experiments/viz/datasets/north.json']);
   expect((await render(update(started.model, message).model)).html).toContain('Snapshot 1');
+});
+
+test('a Web API response cannot replace a different station or revision', async () => {
+  for (const [dataset, revision] of [
+    ['coast', 1],
+    ['north', 2],
+  ] as const) {
+    const started = init();
+    const fetch = testFetch(() =>
+      Promise.resolve(Response.json({ dataset, revision, points: [{ hour: 0, value: 4 }] })),
+    );
+    const message = await pipe(
+      firstCommand(started).effect,
+      Effect.provideService(FetchHttpClient.Fetch, fetch),
+      Effect.runPromise,
+    );
+    const { html } = await render(update(started.model, message).model);
+    expect(html).toContain('Failure');
+    expect(html).not.toContain('chart-line-series');
+  }
 });

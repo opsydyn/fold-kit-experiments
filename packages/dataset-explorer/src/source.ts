@@ -1,12 +1,11 @@
 import { Option, Schema } from 'effect';
-import { getData } from 'foldkit/asyncData';
 
 import type { Model } from './model';
-import { DatasetQuery } from './query';
+import { DatasetQuery, status } from './query';
 
 export const SourceName = Schema.Literals([
-  'source-lines.ts',
-  'highlighting.ts',
+  'source-line-core.ts',
+  'highlighting-core.ts',
   'highlighting-engine.ts',
   'highlighting-browser.ts',
   'highlighting-assets.d.ts',
@@ -37,12 +36,9 @@ export const sourceContent = (model: Model): string => {
   const data = DatasetQuery.read(model.datasets, {
     source: model.transport,
     dataset: model.selected,
-    revision: model.nextRevision,
-    profile: 'normal',
-    fail: false,
   });
-  return Option.match(getData(data), {
-    onNone: () => JSON.stringify({ state: data._tag, dataset: model.selected }, null, 2),
+  return Option.match(Option.fromNullishOr(data.snapshot), {
+    onNone: () => JSON.stringify({ state: status(data), dataset: model.selected }, null, 2),
     onSome: (snapshot) => JSON.stringify(snapshot, null, 2),
   });
 };

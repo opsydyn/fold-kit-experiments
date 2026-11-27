@@ -22,8 +22,7 @@ export const OpenPlayground = Command.define('OpenPlayground', {
         sdk.openProject(
           {
             title: 'Foldkit Viz — Dataset explorer',
-            description:
-              'Explore native FoldKit KeyedQuery, chart composition and cached datasets.',
+            description: 'Explore Effect UI, chart composition and cached datasets.',
             template: 'node',
             files,
           },

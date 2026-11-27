@@ -67,7 +67,9 @@ export async function buildExampleTemplate(
     );
     for (const name of [
       'source-lines.ts',
+      'source-line-core.ts',
       'highlighting.ts',
+      'highlighting-core.ts',
       'highlighting-engine.ts',
       'highlighting-browser.ts',
       'highlighting-assets.d.ts',
@@ -105,10 +107,10 @@ export async function buildExampleTemplate(
   const modules = [
     'chart/cartesian',
     'chart/theme',
-    'foldkit/cartesian',
+    ...(example === 'datasets' ? [] : ['foldkit/cartesian']),
     ...{
       line: ['math/scale', 'shape/line', 'shape/path'],
-      datasets: ['math/scale', 'shape/line', 'shape/path'],
+      datasets: ['shape/symbol'],
       histogram: ['math/scale', 'math/bin'],
       scatter: ['math/scale'],
       comparison: [

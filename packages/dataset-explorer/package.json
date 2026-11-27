@@ -22,6 +22,7 @@
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit"
   },
   "dependencies": {
+    "@effect/ui": "catalog:",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@wooorm/starry-night": "^3.11.0",
     "effect": "catalog:",

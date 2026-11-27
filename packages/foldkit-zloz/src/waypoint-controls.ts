@@ -40,6 +40,19 @@ export type ZlozEdgeWaypointControlsContext = Readonly<{
   dragging: boolean;
   bypassed: boolean;
 }>;
+/** Clear a waypoint handle while keeping the offset constant in screen pixels. */
+export function waypointLabelPosition(
+  edge: ZlozEdge,
+  anchor: Point,
+  zoom: number,
+  offset: Point = { x: 0, y: -32 },
+): Point {
+  const overlaps = edge.waypoints?.some(
+    ({ position }) => Math.hypot(position.x - anchor.x, position.y - anchor.y) * zoom < 28,
+  );
+  return overlaps ? { x: anchor.x + offset.x / zoom, y: anchor.y + offset.y / zoom } : anchor;
+}
+
 /** Package-owned availability, identity allocation and actions; no view or host state is required. */
 export function resolveEdgeWaypointControls(
   state: EditorState,

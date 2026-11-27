@@ -1,7 +1,13 @@
 import type { View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
-import { notationView, notationDash, notationPrefix, notationStroke } from './effect-ui-notation';
+import {
+  notationView,
+  notationDash,
+  notationPrefix,
+  notationStroke,
+  type NativeNotationLabels,
+} from './effect-ui-notation';
 import { portSockets, type GraphPortOptions } from './effect-ui-ports';
 import { nodeResizeControls } from './effect-ui-resize';
 import { withDescendants } from './group-presentation';
@@ -47,6 +53,7 @@ export type NativeNodeOptions<M> = GraphPortOptions<M> &
     resizeHandles?: boolean;
     nodeNote?: (node: ZlozNode) => string;
     architectureNotation?: boolean;
+    notationLabels?: NativeNotationLabels;
     onToggleGroup?: (id: string) => M;
     nodeContextAction?: (node: ZlozNode) => M;
     /** Change presentation while retaining the keyed frame and the native controller buttons. */
@@ -65,7 +72,9 @@ export function nodeView<Message>(
   const selected = editor.selectedNodes.includes(node.id);
   const architecture = options.architectureNotation ? node.architecture : undefined;
   const prefix = architecture && notationPrefix(architecture);
-  const notation = architecture ? notationView(h, node, architecture) : null;
+  const notation = architecture
+    ? notationView(h, node, architecture, options.notationLabels)
+    : null;
   const accent = notationStroke(architecture);
   const group = node.kind === 'group';
   const collapsed = group && editor.collapsedGroups.includes(node.id);

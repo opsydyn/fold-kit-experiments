@@ -173,6 +173,7 @@ import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
+import { workbenchArchitectureBadge, workbenchHotspotStatus } from './workbench-notation';
 import { workshopPanel } from './workshop-view';
 
 type WorkbenchEdgeHooks = {
@@ -201,7 +202,7 @@ const stormOptionsWithoutCache: ZlozEventStormingNodeOptions<Message> = {
                   : 'var(--zloz-event-storming-hotspot-open)',
             }),
           ],
-          [architecture.status === 'open' ? 'Discuss · open' : 'Agreed · resolved'],
+          [workbenchHotspotStatus(architecture.status)],
         )
       : null,
 };
@@ -219,10 +220,10 @@ const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>
   zlozC4Group(context, h, c4Options) ??
   zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
-  renderBadge: ({ architecture }, h) =>
-    architecture.role === 'aggregate-root'
-      ? h.span([h.Style({ 'font-size': '10px', 'font-weight': '600' })], ['Consistency owner'])
-      : null,
+  renderBadge: ({ architecture }, h) => {
+    const badge = workbenchArchitectureBadge(architecture);
+    return badge ? h.span([h.Style({ 'font-size': '10px', 'font-weight': '600' })], [badge]) : null;
+  },
 };
 const dddOptions: ZlozDddNodeOptions<Message> = {
   ...dddOptionsWithoutCache,

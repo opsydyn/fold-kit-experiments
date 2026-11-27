@@ -153,6 +153,13 @@ async function qualify() {
   const bends = (graph) => graph.edges.find(({ id }) => id === 'draft-review').waypoints;
   const added = await snapshot();
   expect(bends(added)).toHaveLength(1);
+  const cancelLabelEdit = async (graph) => {
+    await canvas.getByRole('button', { name: /^Add label for/ }).click();
+    await expect(canvas.getByRole('button', { name: 'Save label', exact: true })).toBeVisible();
+    await canvas.getByRole('textbox', { name: /^Edge label for/ }).press('Escape');
+    expect(await snapshot()).toEqual(graph);
+  };
+  await cancelLabelEdit(added);
   await bend.press('ArrowRight');
   const moved = await snapshot();
   expect(bends(moved)).toEqual([
@@ -201,13 +208,26 @@ async function qualify() {
   await waypointDesign.selectOption('off');
   await expect(canvas.getByRole('button', { name: 'Add bend', exact: true })).toHaveCount(0);
   await waypointDesign.selectOption('native');
-  await expect(canvas.getByRole('button', { name: 'Add bend', exact: true })).toBeVisible();
+  await canvas.getByRole('button', { name: 'Add bend', exact: true }).click();
+  await cancelLabelEdit(added);
+  await button('Undo').click();
+  expect(await snapshot()).toEqual(initial);
 
+  await section('Appearance');
   await page.getByRole('combobox', { name: 'Node design', exact: true }).selectOption('orbits');
   await expect(canvas.locator('[data-orbit-body="source"] circle').first()).toBeVisible();
   await expect(button('Select Draft')).toBeVisible();
   if (process.env.ZLOZ_ARCHITECTURE_SCREENSHOT)
     await canvas.screenshot({ path: process.env.ZLOZ_ARCHITECTURE_SCREENSHOT });
+  await section('Diagram');
+  await button('Open DDD Order aggregate').click();
+  await expect(canvas.locator('[data-flow-node="order"]')).toContainText('Consistency owner');
+  await expect(button('Select Order')).toHaveAccessibleDescription(/Consistency owner/);
+  await button('Open workshop semantics example').click();
+  await expect(canvas.locator('[data-flow-node="retry-question"]')).toContainText('Discuss · open');
+  await expect(canvas.locator('[data-flow-node="timeout-agreement"]')).toContainText(
+    'Agreed · resolved',
+  );
   expect(errors).toEqual([]);
   console.log(
     engine + ': native Architecture canvas shares the working model, actions, export and Undo',

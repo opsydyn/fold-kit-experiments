@@ -17,6 +17,7 @@ export { zlozLabelMeasurement } from './label-measurement-mount';
 export type { ZlozLabelMeasurementOptions } from './label-measurement-mount';
 import {
   resolveEdgeWaypointControls,
+  waypointLabelPosition,
   type ZlozEdgeWaypointControlsContext,
 } from './waypoint-controls';
 import { zlozEdgeWaypoints } from './waypoint-controls-view';
@@ -1890,26 +1891,25 @@ export function zlozView<M>(
   };
   const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition, selectionDisabledReason }) => {
     const selected = state.selectedEdges.includes(edge.id);
-    const offsetLabel =
+    const displayedLabel =
       options.edgeWaypoints &&
       selected &&
       !presentation.hiddenBy.has(edge.source.node) &&
       !presentation.hiddenBy.has(edge.target.node) &&
-      labelPosition &&
-      edge.waypoints?.some(
-        ({ position }) =>
-          Math.hypot(position.x - labelPosition.x, position.y - labelPosition.y) *
-            state.viewport.zoom <
-          28,
-      );
-    const labelOffset = offsetLabel
-      ? (options.waypointLabelOffset ?? { x: 0, y: -32 })
-      : { x: 0, y: 0 };
+      labelPosition
+        ? waypointLabelPosition(
+            edge,
+            labelPosition,
+            state.viewport.zoom,
+            options.waypointLabelOffset,
+          )
+        : labelPosition;
     const labelEditable = !state.readOnly && selectionDisabledReason === undefined;
     const draft =
       labelEditable && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
     const defaultLabelVisible = Boolean(draft || edge.label || (labelEditable && selected));
-    if (!labelPosition || (!defaultLabelVisible && !options.renderEdgeLabel)) return [];
+    if (!labelPosition || !displayedLabel || (!defaultLabelVisible && !options.renderEdgeLabel))
+      return [];
     const context: ZlozEdgeLabelContext = {
       edge,
       labelPosition,
@@ -1943,8 +1943,8 @@ export function zlozView<M>(
           h.DataAttribute('flow-no-drag', ''),
           h.Style({
             position: 'absolute',
-            left: `${labelPosition.x + labelOffset.x / state.viewport.zoom}px`,
-            top: `${labelPosition.y + labelOffset.y / state.viewport.zoom}px`,
+            left: `${displayedLabel.x}px`,
+            top: `${displayedLabel.y}px`,
             transform: 'translate(-50%, -50%)',
             'pointer-events': labelEditable ? 'auto' : 'none',
             'z-index': draft ? '2' : 'auto',

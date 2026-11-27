@@ -40,7 +40,7 @@ import { resolveBoxSelection } from './selection-preview';
 import { zlozThemeStyle, type ZlozTheme } from './theme';
 import type { EditorState } from './types';
 import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
-import { resolveEdgeWaypointControls } from './waypoint-controls';
+import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
 export { BrowserInput } from './browser-input';
@@ -202,6 +202,7 @@ export function graphSurface<Message>(
   const doubleClickFactor = doubleClickZoomFactor(options.doubleClickZoom);
   const marker = `${id}-arrow`;
   const waypointPreview = options.edgeWaypoints ? resolveEdgeWaypointPreview(editor, policy) : null;
+  const waypointEdge = editor.selectedEdges.length === 1 ? editor.selectedEdges[0] : undefined;
   const edgeViews = canvas.edges.map((stored) => {
     const edge =
       waypointPreview?.type === 'allowed' && waypointPreview.edge.id === stored.id
@@ -232,15 +233,24 @@ export function graphSurface<Message>(
     const selectionDisabledReason = options.edgeEditing
       ? (policy?.canSelectEdge?.(stored, editor.graph) ?? undefined)
       : undefined;
+    const displayedLabel =
+      position &&
+      options.edgeWaypoints &&
+      !editor.readOnly &&
+      waypointEdge === edge.id &&
+      !scene.hiddenBy.has(edge.source.node) &&
+      !scene.hiddenBy.has(edge.target.node)
+        ? waypointLabelPosition(edge, position, editor.viewport.zoom)
+        : position;
     const relationshipLabel =
-      relationship && position ? contextMapLabel(h, relationship, position) : null;
+      relationship && displayedLabel ? contextMapLabel(h, relationship, displayedLabel) : null;
     const label =
-      options.edgeEditing && position
+      options.edgeEditing && displayedLabel
         ? edgeLabel(
             h,
             {
               edge,
-              labelPosition: position,
+              labelPosition: displayedLabel,
               description: `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`,
               selected,
               readOnly: editor.readOnly,
@@ -251,16 +261,15 @@ export function graphSurface<Message>(
             relationshipLabel,
           )
         : (relationshipLabel ??
-          (edge.label && position
+          (edge.label && displayedLabel
             ? h.span
                 .key(`label:${edge.id}`)
                 .class('zloz-ui-edge-label')
-                .style({ left: `${position.x}px`, top: `${position.y}px` })
+                .style({ left: `${displayedLabel.x}px`, top: `${displayedLabel.y}px` })
                 .children(edge.label)
             : null));
     return { path, label, position, edge, selectionDisabledReason };
   });
-  const waypointEdge = editor.selectedEdges.length === 1 ? editor.selectedEdges[0] : undefined;
   const waypoint =
     options.edgeWaypoints &&
     !editor.readOnly &&

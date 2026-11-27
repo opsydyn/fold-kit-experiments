@@ -38,8 +38,18 @@ function person<M>() {
     );
 }
 
+export type NativeNotationLabels = Readonly<{
+  badge?: (architecture: ZlozNodeArchitecture) => string | undefined;
+  hotspotStatus?: (status: 'open' | 'resolved') => string;
+}>;
+
 /** Authored facts for the drag handle. The surface owns the frame and interactive controls. */
-export function notationView<M>(h: Html.H<M>, node: ZlozNode, architecture: ZlozNodeArchitecture) {
+export function notationView<M>(
+  h: Html.H<M>,
+  node: ZlozNode,
+  architecture: ZlozNodeArchitecture,
+  labels: NativeNotationLabels | undefined,
+) {
   const prefix = notationPrefix(architecture);
   const role = architectureRoleLabel(architecture);
   const external = architecture.family === 'c4' && architecture.scope === 'external';
@@ -53,11 +63,15 @@ export function notationView<M>(h: Html.H<M>, node: ZlozNode, architecture: Zloz
   const subdomainText = subdomain
     ? `${subdomain.charAt(0).toUpperCase()}${subdomain.slice(1)} subdomain`
     : undefined;
-  const statusText = hotspot === 'open' ? 'Open question' : hotspot ? 'Resolved' : undefined;
+  const badge = labels?.badge?.(architecture);
+  const statusText = hotspot
+    ? (labels?.hotspotStatus?.(hotspot) ?? (hotspot === 'open' ? 'Open question' : 'Resolved'))
+    : undefined;
   const authoredDescription =
     !node.kind || architecture.family === 'c4' ? architecture.description : undefined;
   const accessibleDescription = [
     roleText,
+    badge,
     technology,
     subdomainText,
     statusText,
@@ -72,6 +86,7 @@ export function notationView<M>(h: Html.H<M>, node: ZlozNode, architecture: Zloz
       architecture.family === 'c4' && architecture.role === 'person' && !node.kind
         ? person<M>()
         : null,
+      badge ? h.span.class('zloz-ui-notation-badge').children(badge) : null,
       h.span
         .class(`${prefix}-type`)
         .attr(`data-${prefix}-type`, architecture.role)

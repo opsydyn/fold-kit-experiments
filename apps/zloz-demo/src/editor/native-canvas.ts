@@ -22,6 +22,7 @@ import { orbitArtwork } from './native-orbit';
 import { architectureNativePanel } from './native-panel';
 import { raisedConnection, raisedEdge } from './presentation';
 import { workbenchThemes } from './theme';
+import { workbenchArchitectureBadge, workbenchHotspotStatus } from './workbench-notation';
 
 type Canvas = Readonly<{
   model: Model;
@@ -220,6 +221,7 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
       resizeHandles: true,
       resizeReadout: measurements,
       architectureNotation: ddd || model.nodeDesign === 'c4',
+      notationLabels: { badge: workbenchArchitectureBadge, hotspotStatus: workbenchHotspotStatus },
       contextActions: { onEvent: observe, design: model.contextMenuDesign, measurements },
       nodeContextAction: (node) =>
         observe({

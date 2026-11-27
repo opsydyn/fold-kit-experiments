@@ -1,5 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import type { Props } from './main';
-// oxlint-disable-next-line linteffect/prevent-dynamic-imports -- Astro island entry point
-export default lazyApp<Props>(() => import('./main'), { prerender: true });
+import { BoardSettings } from './main';
+
+export default astroComponent(BoardSettings);

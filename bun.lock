@@ -241,6 +241,8 @@
     "apps/zloz-team": {
       "name": "@opsydyn/zloz-team",
       "dependencies": {
+        "@effect/ui": "catalog:",
+        "@opsydyn/astro-effect-ui": "workspace:*",
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-phosphor": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",

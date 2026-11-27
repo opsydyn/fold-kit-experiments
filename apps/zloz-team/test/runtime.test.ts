@@ -519,6 +519,23 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     expect((await rename(data.viewer.cookie, 'Viewer edit')).status).toBe(403);
     expect((await rename(data.outsider.cookie, 'Other team edit')).status).toBe(403);
     expect((await rename(data.owner.cookie, '  ')).status).toBe(400);
+    const initial = await fetch(url, { headers: { cookie: data.owner.cookie } });
+    expect(initial.status).toBe(200);
+    const roots: string[] = [];
+    await new HTMLRewriter()
+      .on('.board-title [data-effect-ui-root]', {
+        element: () => {
+          roots.push('board');
+        },
+      })
+      .on('#my-preferences [data-effect-ui-root]', {
+        element: () => {
+          roots.push('preferences');
+        },
+      })
+      .transform(initial)
+      .text();
+    expect(roots.sort()).toEqual(['board', 'preferences']);
     const browser = await chromium.launch();
     await using _browser = { [Symbol.asyncDispose]: () => browser.close() };
     const open = async (cookie: string) => {
@@ -558,6 +575,7 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
     await editor.getByRole('button', { name: 'Apply my name' }).click();
     for (const page of [owner, editor, viewer]) {
       await browserExpect(heading(page)).toHaveText('Refund approvals', { timeout: 15000 });
+      await browserExpect(page).toHaveTitle('Refund approvals | ZLOZ');
       await page.reload();
       await browserExpect(heading(page)).toHaveText('Refund approvals');
       expect(page.url()).toBe(url);

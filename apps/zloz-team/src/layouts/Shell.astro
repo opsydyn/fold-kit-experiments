@@ -24,7 +24,7 @@ const preference = themePreference(Astro.cookies.get(themeCookie)?.value);
         <section id="my-preferences" popover="auto" class="workspace-settings" aria-labelledby="preferences-heading">
           <h2 id="preferences-heading">My preferences</h2>
           <p>Theme, motion and tool labels apply in this browser.</p>
-          <Appearance client:load noMeta motion={motion} preference={preference} toolLabels={toolLabelsPreference(Astro.cookies.get(toolLabelsCookie)?.value)} />
+          <Appearance client:load motion={motion} preference={preference} toolLabels={toolLabelsPreference(Astro.cookies.get(toolLabelsCookie)?.value)} />
         </section>
       </div>
     </header>

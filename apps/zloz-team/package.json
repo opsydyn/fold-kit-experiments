@@ -14,6 +14,8 @@
     "qualify:packed": "bun tools/qualify-packed.ts"
   },
   "dependencies": {
+    "@effect/ui": "catalog:",
+    "@opsydyn/astro-effect-ui": "workspace:*",
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/foldkit-phosphor": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",

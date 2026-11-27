@@ -173,7 +173,7 @@ inspector. Responsive layouts stack the rails rather than hiding actions.
 
 **System**, **Light** and **Dark** are personal browser preferences. A validated
 `zloz-team-theme` cookie supplies the server-rendered preference; the header
-FoldKit Model controls live styling, and a Command persists the cookie. This
+The Effect UI model controls live styling, and a command persists the cookie. This
 non-sensitive cookie contains only the theme name. System follows OS changes.
 Failed persistence keeps the chosen palette usable for the current visit.
 The live stylesheet requires modern CSS `:has` and `color-mix` support.

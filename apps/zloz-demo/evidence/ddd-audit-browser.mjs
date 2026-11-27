@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -89,9 +98,9 @@ async function run() {
   await finding('target', 'persisting', 'Still outstanding', 'after').click();
   await expect(rewind).toHaveValue('ddd-after');
   const introduced = group.getByRole('checkbox', { name: 'Introduced findings', exact: true });
-  await introduced.uncheck();
+  await toggleCheckbox(introduced, false);
   await expect(findings.locator('li')).toHaveCount(4);
-  await introduced.check();
+  await toggleCheckbox(introduced);
   await target.selectOption('ddd-before');
   await expect(page.getByLabel('DDD audit status', { exact: true })).toHaveText(
     '0 introduced, 0 resolved, 4 persisting.',
@@ -105,7 +114,9 @@ async function run() {
   );
   await baseline.selectOption('ddd-before');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }).check();
+  await toggleCheckbox(
+    page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }),
+  );
   await button('Play editions').click();
   await finding('edge', 'resolved', 'Legacy partnership', 'before').click();
   await expect(page.getByLabel('Edition playback status', { exact: true })).toContainText('Paused');
@@ -122,12 +133,15 @@ async function run() {
   );
   await section('Diagnostics');
   await button('Minimal mode').click();
-  await page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }).uncheck();
+  await toggleCheckbox(
+    page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }),
+    false,
+  );
   await section('History');
   await expect(page.getByLabel('DDD audit status', { exact: true })).toHaveCount(0);
   await expect(introduced).toBeChecked();
   await section('Diagnostics');
-  await page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }).check();
+  await toggleCheckbox(page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }));
   await section('History');
   await rewind.selectOption('ddd-after');
   for (const theme of ['light', 'dark']) {
@@ -136,7 +150,7 @@ async function run() {
       .getByRole('heading', { name: 'DDD findings', exact: true })
       .evaluate((element) => element.scrollIntoView({ block: 'start' }));
     await page.screenshot({
-      path: fileURLToPath(new URL(`./ddd-audit-${theme}.png`, import.meta.url)),
+      path: capturePath(`ddd-audit-${theme}.png`),
     });
   }
   expect((await download()).snapshot).toEqual(working.snapshot);

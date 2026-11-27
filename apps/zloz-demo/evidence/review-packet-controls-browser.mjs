@@ -35,6 +35,10 @@ await new Promise((resolve, reject) =>
 );
 const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
 const browser = await { chromium, firefox, webkit }[engine].launch();
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1200 },
@@ -139,12 +143,15 @@ async function run() {
   await expect(save).toBeEnabled();
   await section('Diagnostics');
   await button('Minimal mode').click();
-  await page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }).uncheck();
+  await toggleCheckbox(
+    page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }),
+    false,
+  );
   await section('History');
   await expect(panel.getByLabel('Review packet status', { exact: true })).toHaveCount(0);
   await expect(save).toBeEnabled();
   await section('Diagnostics');
-  await page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }).check();
+  await toggleCheckbox(page.getByRole('checkbox', { name: 'Show diagnostics', exact: true }));
   await section('History');
   await target.selectOption('audit-after');
   await page

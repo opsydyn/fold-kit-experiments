@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseEditions } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file.replace(/^\.\//u, '')}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -51,7 +60,7 @@ async function run() {
   };
   const snapshot = async () => {
     await section('Diagram');
-    await page.getByRole('checkbox', { name: 'Include camera', exact: true }).check();
+    await toggleCheckbox(page.getByRole('checkbox', { name: 'Include camera', exact: true }));
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       button('Export JSON').click(),
@@ -83,14 +92,14 @@ async function run() {
   ).toHaveValue('order-start');
   await expect(surface.locator('[data-zloz-history-ghosts]')).toHaveCount(0);
   const ghosts = page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true });
-  await ghosts.check();
+  await toggleCheckbox(ghosts);
   await expect(surface.locator('[data-zloz-history-node]')).toHaveCount(5);
   await expect(surface.locator('[data-zloz-history-node="removed"]')).toHaveCount(1);
   await expect(surface.locator('[data-zloz-history-node="added"]')).toHaveCount(1);
   await expect(surface.locator('[data-zloz-history-movement]')).toHaveCount(1);
-  await expect(page.getByRole('list', { name: 'History changes', exact: true })).toContainText(
-    'removed: Pricing policy',
-  );
+  await expect(
+    page.getByRole('button', { name: 'View removed node: Pricing policy', exact: true }),
+  ).toBeVisible();
   expect(
     await surface
       .locator(
@@ -104,9 +113,9 @@ async function run() {
     ['Movement connectors', '[data-zloz-history-movement]'],
   ]) {
     const toggle = page.getByRole('checkbox', { name, exact: true });
-    await toggle.uncheck();
+    await toggleCheckbox(toggle, false);
     await expect(surface.locator(selector)).toHaveCount(0);
-    await toggle.check();
+    await toggleCheckbox(toggle);
     await expect(surface.locator(selector)).not.toHaveCount(0);
   }
   const handle = surface.locator('[data-flow-handle="order"]');
@@ -131,7 +140,7 @@ async function run() {
       element.scrollTop = 0;
     });
     await page.screenshot({
-      path: fileURLToPath(new URL(`history-${preference}.png`, import.meta.url)),
+      path: capturePath(`history-${preference}.png`),
     });
   }
   await section('Diagnostics');
@@ -179,7 +188,7 @@ async function run() {
     })
     .toBe(true);
   await expect(button('Back to present')).toBeVisible();
-  await page.screenshot({ path: fileURLToPath(new URL('history-mobile.png', import.meta.url)) });
+  await page.screenshot({ path: capturePath('history-mobile.png') });
   await button('Back to present').click();
   await expect(
     page.getByRole('status', { name: 'Historical edition notice', exact: true }),

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseModelDocument } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file.replace(/^\.\//u, '')}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -67,13 +76,15 @@ async function run() {
   await button('Load scrubber history example').click();
   const working = await download();
   expect(working.editions).toHaveLength(8);
-  await page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }).check();
+  await toggleCheckbox(
+    page.getByRole('checkbox', { name: 'Enable edition playback', exact: true }),
+  );
   await expect(slider()).toHaveAttribute('max', '7');
   await expect(button('Play editions')).toBeDisabled();
   await expect(slider()).toBeEnabled();
   await button('Open edition').press('Enter');
   await expect(selected()).toHaveValue('scrubber-order-0');
-  await page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true }).check();
+  await toggleCheckbox(page.getByRole('checkbox', { name: 'Show comparison ghosts', exact: true }));
   await slider().press('End');
   await expect(slider()).toBeFocused();
   await expect(selected()).toHaveValue('scrubber-order-7');
@@ -92,7 +103,8 @@ async function run() {
   await page.mouse.move(track.x + track.width - 8, track.y + track.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect(selected()).toHaveValue('scrubber-order-7');
-  await expect(slider()).toBeFocused();
+  // WebKit also blurs a focused standalone range after a pointer drag.
+  if (engine !== 'webkit') await expect(slider()).toBeFocused();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(button('Play editions')).toBeEnabled();
   await slider().press('Home');
@@ -119,9 +131,7 @@ async function run() {
       .getByRole('group', { name: 'Edition scrubber', exact: true })
       .scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: fileURLToPath(
-        new URL(`./edition-scrubber-${theme.toLowerCase()}.png`, import.meta.url),
-      ),
+      path: capturePath(`./edition-scrubber-${theme.toLowerCase()}.png`),
     });
   }
   await button('Return to present').click();

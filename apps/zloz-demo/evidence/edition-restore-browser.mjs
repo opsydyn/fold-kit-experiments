@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseEditions } from '../../../packages/foldkit-zloz/dist/index.mjs';
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
-const { chromium, expect } = require('@playwright/test');
+const { chromium, firefox, webkit, expect } = require('@playwright/test');
 const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const server = createServer(async (request, response) => {
   const route = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -33,7 +33,16 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve, reject) =>
   server.once('error', reject).listen(0, '127.0.0.1', resolve),
 );
-const browser = await chromium.launch();
+const engine = process.env.ZLOZ_BROWSER ?? 'chromium';
+const browser = await { chromium, firefox, webkit }[engine].launch();
+const capturePath = (file) =>
+  process.env.ZLOZ_CAPTURE_DIR
+    ? resolve(process.env.ZLOZ_CAPTURE_DIR, `${engine}-${file.replace(/^\.\//u, '')}`)
+    : fileURLToPath(new URL(file, import.meta.url));
+async function toggleCheckbox(control, checked = true) {
+  if ((await control.isChecked()) !== checked) await control.click();
+  await expect(control).toBeChecked({ checked });
+}
 async function run() {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1100 },
@@ -51,7 +60,7 @@ async function run() {
   };
   const snapshot = async () => {
     await section('Diagram');
-    await page.getByRole('checkbox', { name: 'Include camera', exact: true }).check();
+    await toggleCheckbox(page.getByRole('checkbox', { name: 'Include camera', exact: true }));
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       button('Export JSON').click(),
@@ -127,21 +136,21 @@ async function run() {
     await theme.selectOption(preference);
     await preview.scrollIntoViewIfNeeded();
     await page.screenshot({
-      path: fileURLToPath(new URL(`edition-restore-${preference}.png`, import.meta.url)),
+      path: capturePath(`edition-restore-${preference}.png`),
     });
     await expect(notice).not.toContainText('Return to the present to edit');
   }
   const protection = page.getByRole('checkbox', { name: 'Protect edition restore', exact: true });
-  await protection.check();
+  await toggleCheckbox(protection);
   await expect(
     preview.getByRole('status', { name: 'Restore protection reason', exact: true }),
   ).toContainText('protected');
   await expect(button('Restore as new change')).toBeDisabled();
   await preview.scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: fileURLToPath(new URL('edition-restore-protected.png', import.meta.url)),
+    path: capturePath('edition-restore-protected.png'),
   });
-  await protection.uncheck();
+  await toggleCheckbox(protection, false);
   await expect(button('Restore as new change')).toBeEnabled();
   await button('Restore as new change').click();
   await expect(

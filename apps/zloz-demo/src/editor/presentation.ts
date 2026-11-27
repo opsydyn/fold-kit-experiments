@@ -13,7 +13,6 @@ import {
   type ZlozWorldOverlayContext,
   type ZlozEdgeRenderContext,
   zlozEdgeLabelBadge,
-  zlozEdgeToolbarButton,
   zlozContextAction,
   zlozContextTrigger,
   zlozConnectionButton,
@@ -23,9 +22,6 @@ import {
   type ZlozSelectionMarqueeContext,
   type ZlozCanvasHelpContext,
   type ZlozCanvasStatusContext,
-  zlozEdgeEndpointField,
-  zlozEdgePathStyleSelect,
-  type ZlozEdgeToolbarContext,
   type ZlozNodeToolbarContext,
   zlozEdgeLabelForm,
   zlozEdgeLabelInput,
@@ -708,67 +704,6 @@ export function compactNodeToolbar(context: ZlozNodeToolbarContext, h: HtmlBuild
           ],
           [index === 0 ? 'Duplicate' : 'Delete'],
         ),
-      ),
-    ],
-  );
-}
-
-export function compactEdgeToolbar(context: ZlozEdgeToolbarContext, h: HtmlBuilder<Message>) {
-  return h.div(
-    [
-      h.Class('compact-edge-actions'),
-      h.Style({
-        display: 'flex',
-        gap: '6px',
-        'align-items': 'center',
-        'flex-wrap': 'wrap',
-        width: 'fit-content',
-        'max-width': '100%',
-        margin: '0 auto',
-        padding: '5px',
-        background: 'light-dark(#f0f9ff, #152b3c)',
-        border: '1px solid #38bdf8',
-        'border-radius': '14px',
-        'box-shadow': '0 2px 8px #0c4a6e33',
-      }),
-    ],
-    [
-      ...(context.reconnection
-        ? [
-            zlozEdgeEndpointField(h, context.reconnection.source, zlozEvent, {
-              idPrefix: context.reconnection.idPrefix,
-            }),
-            zlozEdgeEndpointField(h, context.reconnection.target, zlozEvent, {
-              idPrefix: context.reconnection.idPrefix,
-            }),
-          ]
-        : []),
-      zlozEdgePathStyleSelect(h, context, zlozEvent, [
-        h.Style({
-          'min-height': '36px',
-          padding: '0 8px',
-          border: '1px solid #7dd3fc',
-          'border-radius': '9px',
-          background: 'light-dark(#fff, #1c2d3c)',
-          color: 'light-dark(#0c4a6e, #bde7ff)',
-        }),
-      ]),
-      zlozEdgeToolbarButton(
-        h,
-        context.actions.deleteEdge,
-        zlozEvent,
-        [
-          h.Style({
-            'min-height': '36px',
-            padding: '0 12px',
-            border: '0',
-            'border-radius': '9px',
-            background: 'light-dark(#fee2e2, #49262f)',
-            color: 'light-dark(#991b1b, #ffc2c8)',
-            cursor: 'pointer',
-          }),
-        ],
-        ['Delete edge'],
       ),
     ],
   );

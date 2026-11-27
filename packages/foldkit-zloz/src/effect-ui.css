@@ -586,15 +586,40 @@
   align-items: center;
   gap: 4px;
 }
-.zloz-ui-edge-toolbar {
+.zloz-ui-edge-toolbar-frame {
   position: absolute;
-  transform: translateX(-50%);
-  width: min(300px, calc(100% - 24px));
   box-sizing: border-box;
-  z-index: 3;
+  z-index: 1;
 }
-.zloz-ui-edge-toolbar small {
+.zloz-ui-edge-toolbar {
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
+}
+.zloz-ui-edge-toolbar small,
+.zloz-ui-edge-toolbar .zloz-ui-endpoint-field {
   width: 100%;
+}
+.zloz-ui-edge-toolbar.compact-edge-actions {
+  padding: 5px;
+  border-color: #38bdf8;
+  border-radius: 14px;
+  background: light-dark(#f0f9ff, #152b3c);
+  box-shadow: 0 2px 8px #0c4a6e33;
+}
+.zloz-ui-edge-toolbar.compact-edge-actions > select {
+  min-height: 36px;
+  padding-inline: 8px;
+  border: 1px solid #7dd3fc;
+  border-radius: 9px;
+  background: light-dark(#fff, #1c2d3c);
+  color: light-dark(#0c4a6e, #bde7ff);
+}
+.zloz-ui-edge-toolbar.compact-edge-actions button {
+  padding-inline: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: light-dark(#fee2e2, #49262f);
+  color: light-dark(#991b1b, #ffc2c2);
 }
 .zloz-ui-edge-label-editor {
   box-sizing: border-box;

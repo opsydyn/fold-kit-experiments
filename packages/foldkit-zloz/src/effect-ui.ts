@@ -52,6 +52,8 @@ export { surfaceInput } from './effect-ui-input';
 export { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
 export type { ZlozContextMenuContext } from './context-menu';
 export { endpointField, type NativeEndpointFieldOptions } from './effect-ui-endpoints';
+export { edgeToolbarContent, type NativeEdgeToolbarOptions } from './effect-ui-edge-toolbar';
+export type { ZlozEdgeToolbarContext } from './edge-toolbar';
 export type { NativeEdgeEditing } from './effect-ui-edge-editing';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
 export { viewportControl } from './effect-ui-viewport-control';
@@ -401,12 +403,13 @@ export function graphSurface<Message>(
       toolbarEdge?.position && options.edgeEditing
         ? edgeToolbar(
             h,
+            id,
             editor,
             toolbarEdge.edge,
             toolbarEdge.position,
             reconnectPoints,
             policy,
-            options.edgeEditing.onEdit,
+            options.edgeEditing,
           )
         : null,
       context && options.contextActions

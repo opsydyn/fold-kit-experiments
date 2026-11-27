@@ -47,7 +47,8 @@ export {
 } from './connection-creation-view';
 export type { ZlozConnectionCreationViewOptions } from './connection-creation-view';
 import { zlozEdgeEndpointField } from './edge-endpoint';
-import { resolveEdgeReconnection, type ZlozEdgeReconnectionOptions } from './edge-reconnection';
+import type { ZlozEdgeReconnectionOptions } from './edge-reconnection';
+import { resolveEdgeToolbar } from './edge-toolbar-context';
 import { edgeToolbarBand, edgeToolbarPosition } from './edge-toolbar-placement';
 export {
   zlozEdgeEndpointField,
@@ -273,7 +274,6 @@ import {
 } from './canvas-gestures';
 import {
   contextPanelPlacement,
-  deletionReason,
   resolveContextMenu,
   selectedNodeActions,
 } from './context-menu-context';
@@ -907,6 +907,7 @@ function edgeToolbarFrame<M>(
       h.Role('group'),
       h.AriaLabel('Selected edge actions'),
       h.Tabindex(-1),
+      h.DataAttribute('flow-edge-toolbar', ''),
       h.DataAttribute('flow-no-drag', ''),
       h.Style({
         position: 'absolute',
@@ -2059,51 +2060,20 @@ export function zlozView<M>(
       : undefined;
   const nodeToolbarContent =
     selectedNodeToolbar && options.renderNodeToolbar?.(selectedNodeToolbar, h);
-  const toolbarContext: ZlozEdgeToolbarContext | undefined =
+  const toolbarContext =
     activeEdge?.labelPosition && !state.edgeLabelDraft && !drag && !state.context
-      ? {
-          edge: activeEdge.edge,
-          labelPosition: activeEdge.labelPosition,
-          reconnection: options.edgeReconnection
+      ? resolveEdgeToolbar(
+          state,
+          activeEdge.edge,
+          activeEdge.labelPosition,
+          options,
+          options.edgeReconnection
             ? {
                 idPrefix: `${encodeURIComponent(options.id)}-toolbar-endpoint`,
-                source: resolveEdgeReconnection(
-                  state,
-                  activeEdge.edge.id,
-                  'source',
-                  options,
-                  options.edgeReconnection === true ? {} : options.edgeReconnection,
-                )!,
-                target: resolveEdgeReconnection(
-                  state,
-                  activeEdge.edge.id,
-                  'target',
-                  options,
-                  options.edgeReconnection === true ? {} : options.edgeReconnection,
-                )!,
+                options: options.edgeReconnection === true ? {} : options.edgeReconnection,
               }
             : undefined,
-          actions: {
-            rename: {
-              label: 'Rename',
-              event: { type: 'EdgeLabelEditingStarted', id: activeEdge.edge.id },
-            },
-            deleteEdge: {
-              label: 'Delete edge',
-              event: { type: 'EdgeDeleted', id: activeEdge.edge.id },
-              disabledReason: deletionReason(
-                state.graph,
-                { nodeIds: [], edgeIds: [activeEdge.edge.id] },
-                options.canDelete,
-              ),
-            },
-            changePathStyle: (pathStyle) => ({
-              type: 'EdgePathStyleChanged',
-              id: activeEdge.edge.id,
-              pathStyle,
-            }),
-          },
-        }
+        )
       : undefined;
   const pixelHeight = options.height === 'fill' ? 440 : (options.height ?? 440);
   const toolbarContent = toolbarContext && options.renderEdgeToolbar?.(toolbarContext, h);

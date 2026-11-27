@@ -135,6 +135,7 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeContextMenu } from './native-context-menu';
+import { nativeEdgeToolbar } from './native-edge-toolbar';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
 import { packetReaderPanel } from './packet-reader';
@@ -158,7 +159,6 @@ import {
   edgeBadgeEditor,
   releaseGateAnnotation,
   compactNodeToolbar,
-  compactEdgeToolbar,
   connectionRows,
   labeledResizeReadout,
   endpointAlignmentGuide,
@@ -3726,9 +3726,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           canSelectNode: policy.canSelectNode,
           canSelectEdge: policy.canSelectEdge,
           renderEdgeToolbar: (context, builder) =>
-            model.edgeToolbarDesign === 'compact'
-              ? compactEdgeToolbar(context, builder)
-              : undefined,
+            nativeEdgeToolbar(
+              builder,
+              { context, design: model.edgeToolbarDesign, modelId, epoch },
+              'architecture-effect-ui',
+              'edge-toolbar',
+            ),
           renderCanvasHelp: (context, builder) =>
             model.canvasCopyDesign === 'card' ? canvasHelpCard(context, builder) : undefined,
           renderCanvasStatus: (context, builder) =>

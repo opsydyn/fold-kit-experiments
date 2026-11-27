@@ -15,7 +15,7 @@ export type NativeEndpointFieldOptions<M> = Readonly<{
     query: string;
     onChange: (query: string) => M;
   }>;
-  onEvent: (event: EditorEvent) => M;
+  onEvent: (event: EditorEvent) => M | undefined;
 }>;
 
 /** Renders the current creation or reconnection proposal with native selection and policy feedback. */

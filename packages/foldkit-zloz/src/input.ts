@@ -974,28 +974,38 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   const resize = new window.ResizeObserver((entries) =>
     entries.forEach((entry) => measure(entry.target)),
   );
+  const focusFirstControl = (panel: HTMLElement) => {
+    const controls = panel.querySelectorAll(
+      'button, select, input:not([type="hidden"]), textarea, a[href], [tabindex]',
+    );
+    for (const control of controls) {
+      if (
+        !(control instanceof window.HTMLElement) ||
+        control.tabIndex < 0 ||
+        control.matches(':disabled') ||
+        control.closest('[hidden], [inert]')
+      )
+        continue;
+      control.focus({ preventScroll: true });
+      if (window.document.activeElement === control) return;
+    }
+  };
   let focusedPanel: Element | null = null;
   const observe = () => {
     const panel = element.querySelector('[data-flow-context-panel]');
     const needsFocus = panel !== focusedPanel || window.document.activeElement === panel;
     focusedPanel = panel;
     if (needsFocus && panel instanceof window.HTMLElement) {
-      const controls = panel.querySelectorAll(
-        'button, select, input:not([type="hidden"]), textarea, a[href], [tabindex]',
-      );
-      for (const control of controls) {
-        if (
-          !(control instanceof window.HTMLElement) ||
-          control.tabIndex < 0 ||
-          control.matches(':disabled') ||
-          control.closest('[hidden], [inert]')
-        )
-          continue;
-        control.focus({ preventScroll: true });
-        if (window.document.activeElement === control) break;
-      }
+      focusFirstControl(panel);
       if (!panel.contains(window.document.activeElement)) panel.focus({ preventScroll: true });
     }
+    const active = window.document.activeElement;
+    if (
+      active instanceof window.HTMLElement &&
+      active.matches('[data-flow-edge-toolbar]') &&
+      element.contains(active)
+    )
+      focusFirstControl(active);
     const nodes = new Set(element.querySelectorAll('[data-flow-node]'));
     for (const node of observed)
       if (!nodes.has(node)) {

@@ -1,10 +1,5 @@
 import type { Html } from '@effect/ui/html';
-import {
-  resolveConnectionCreation,
-  resolveEdgeReconnection,
-  type EditorPolicy,
-  type EditorState,
-} from '@opsydyn/foldkit-zloz';
+import { resolveConnectionCreation } from '@opsydyn/foldkit-zloz';
 import { graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
 
@@ -103,38 +98,6 @@ function endpointField(
     ),
     ...(hint ? [h.p.id(description).children(hint)] : []),
   );
-}
-
-function edgeEndpointControls(
-  h: Tags,
-  editor: EditorState,
-  policy: EditorPolicy,
-  observe: Observe,
-) {
-  const edge =
-    editor.selectedEdges.length === 1
-      ? editor.graph.edges.find(({ id }) => id === editor.selectedEdges[0])
-      : undefined;
-  if (!edge || editor.readOnly) return [];
-  const { id } = edge;
-  const endpoints = (['source', 'target'] as const).flatMap((end) => {
-    const field = resolveEdgeReconnection(editor, id, end, policy);
-    return field
-      ? [
-          endpointField(h, field.label, field.entries, observe, {
-            disabled: field.reason !== null,
-            hint: field.reason ?? field.emptyReason,
-          }),
-        ]
-      : [];
-  });
-  return [
-    h.div
-      .class('connection-edge-actions')
-      .attr('role', 'group')
-      .attr('aria-label', 'Selected edge endpoints')
-      .children(...endpoints),
-  ];
 }
 
 export function view(h: Tags, model: Model) {
@@ -302,7 +265,6 @@ export function view(h: Tags, model: Model) {
                       ),
                   ),
                 ),
-              ...edgeEndpointControls(h, editor, policy, observe),
               h.p('Select a connection to change either end. Each edit is one Undo.'),
               h.p(
                 'This connection workbench uses v2 documents. Architecture editions and portable adapters retain their existing formats.',
@@ -317,7 +279,7 @@ export function view(h: Tags, model: Model) {
             policy,
             dropRadius: 32,
             reconnect: true,
-            edgeEditing: { toolbar: true, onEdit: observe },
+            edgeEditing: { toolbar: true, onEdit: observe, reconnection: { onEvent: observe } },
             wheelNavigation: 'zoom',
             portLabel: ({ port, end, reason }) =>
               model.design === 'native'

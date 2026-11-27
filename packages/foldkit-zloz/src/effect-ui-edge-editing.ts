@@ -2,9 +2,11 @@ import { Component, Mount, type View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 import { Effect, Schema, Stream } from 'effect';
 
-import { resolveDeletion } from './deletion';
 import type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
-import { edgePathStyles, edgeToolbarPosition } from './edge-toolbar-placement';
+import type { ZlozEdgeReconnectionOptions } from './edge-reconnection';
+import { resolveEdgeToolbar } from './edge-toolbar-context';
+import { edgeToolbarBand, edgeToolbarPosition } from './edge-toolbar-placement';
+import { edgeToolbarContent } from './effect-ui-edge-toolbar';
 import type { EditorEvent, EditorPolicy, EditorState, Point, ZlozEdge } from './types';
 
 type EdgeEditEvent = Extract<
@@ -23,6 +25,10 @@ type EdgeEditEvent = Extract<
 export type NativeEdgeEditing<M> = Readonly<{
   onEdit: (event: EdgeEditEvent) => M;
   toolbar?: boolean;
+  reconnection?: ZlozEdgeReconnectionOptions &
+    Readonly<{
+      onEvent: (event: Extract<EditorEvent, { type: 'EdgeReconnected' }>) => M;
+    }>;
   renderLabel?: (context: ZlozEdgeLabelContext, h: Html.H<M>) => View.Content<M> | null | undefined;
   renderLabelEditor?: (
     context: ZlozEdgeLabelEditorContext,
@@ -147,57 +153,59 @@ function clampLabelCenter(
 
 export function edgeToolbar<M>(
   h: Html.H<M>,
+  id: string,
   state: EditorState,
   edge: ZlozEdge,
   position: Point,
   handlePoints: readonly Point[],
   policy: EditorPolicy | undefined,
-  onEdit: NativeEdgeEditing<M>['onEdit'],
+  { onEdit, reconnection }: NativeEdgeEditing<M>,
 ) {
-  const { id } = edge;
-  const decision = resolveDeletion(state.graph, { nodeIds: [], edgeIds: [id] }, policy?.canDelete);
-  const reason = decision.type === 'blocked' ? decision.reason : undefined;
-  const { x, y } = edgeToolbarPosition(
+  const frameId = `${encodeURIComponent(id)}-edge-actions`;
+  const context = resolveEdgeToolbar(
+    state,
+    edge,
     position,
-    state.viewport,
-    handlePoints,
-    state.surface?.height ?? 420,
+    policy,
+    reconnection ? { idPrefix: `${frameId}-endpoint`, options: reconnection } : undefined,
   );
+  const height = state.surface?.height ?? 420;
+  const { x, y } = edgeToolbarPosition(position, state.viewport, handlePoints, height);
+  const band = context.reconnection
+    ? edgeToolbarBand(
+        height,
+        handlePoints.map((point) => state.viewport.y + point.y * state.viewport.zoom),
+        9 * state.viewport.zoom + 6,
+      )
+    : undefined;
+  const width = band ? 320 : 300;
   return h.div
-    .key(`toolbar:${id}`)
-    .class('zloz-ui-edge-toolbar')
+    .key(`toolbar:${edge.id}`)
+    .id(frameId)
+    .class('zloz-ui-edge-toolbar-frame')
     .attr('role', 'group')
     .attr('aria-label', 'Selected edge actions')
     .attr('data-flow-no-drag', '')
-    .style({ left: `clamp(min(50%, 160px), ${x}px, max(50%, calc(100% - 160px)))`, top: `${y}px` })
+    .attr('data-flow-edge-toolbar', '')
+    .attr('tabindex', '-1')
+    .style({
+      left: `clamp(6px, ${x - width / 2}px, max(6px, calc(100% - ${width + 6}px)))`,
+      top: band ? `${band.top}px` : `clamp(6px, ${y}px, max(6px, calc(100% - 82px)))`,
+      maxHeight: band ? `${band.height}px` : 'calc(100% - 12px)',
+      overflow: band ? 'auto' : 'visible',
+      width: `min(${width}px, calc(100% - 12px))`,
+    })
     .children(
-      h.button
-        .attr('type', 'button')
-        .on('click', onEdit({ type: 'EdgeLabelEditingStarted', id }))
-        .children('Rename'),
-      h.select
-        .attr('aria-label', 'Path style')
-        .on('change', ({ value }) =>
-          onEdit({
-            type: 'EdgePathStyleChanged',
-            id,
-            pathStyle: edgePathStyles.find(({ style }) => style === value)?.style ?? null,
-          }),
-        )
-        .children(
-          ...edgePathStyles.map(({ label, style }) =>
-            h.option
-              .attr('value', style ?? '')
-              .selected((edge.pathStyle ?? null) === style)
-              .children(label),
-          ),
-        ),
-      h.button
-        .attr('type', 'button')
-        .attr('title', reason)
-        .disabled(reason !== undefined)
-        .on('click', onEdit({ type: 'EdgeDeleted', id }))
-        .children('Delete edge'),
-      reason === undefined ? null : h.small.children(reason),
+      edgeToolbarContent(h, context, {
+        pathLabel: 'Path style',
+        onEvent: (event) => {
+          if (event.type === 'EdgeReconnected') return reconnection?.onEvent(event);
+          return event.type === 'EdgeLabelEditingStarted' ||
+            event.type === 'EdgePathStyleChanged' ||
+            event.type === 'EdgeDeleted'
+            ? onEdit(event)
+            : undefined;
+        },
+      }),
     );
 }

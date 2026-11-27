@@ -10,6 +10,12 @@
 
 - Add pure, content-bound review-packet export controls and optional composable Foldkit views.
 
+## [0.11.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.10.0...foldkit-zloz-mermaid-v0.11.0) (2026-11-26)
+
+### Miscellaneous Chores
+
+- **foldkit-zloz-mermaid:** Synchronize foldkit-zloz versions
+
 ## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-mermaid-v0.9.0...foldkit-zloz-mermaid-v0.10.0) (2026-11-23)
 
 ### Miscellaneous Chores

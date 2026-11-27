@@ -2054,7 +2054,12 @@ describe('Astro + private Alchemy Worker + D1 + Domain Durable Object', () => {
         await browserExpect(apply).toBeEnabled();
         await browserExpect(ghosts(editor)).toHaveCount(4);
       };
+      let navigations = 0;
+      editor.on('framenavigated', (frame) => {
+        if (frame === editor.mainFrame()) navigations++;
+      });
       await preview();
+      expect(navigations).toBe(0);
       if (method === 'elk')
         await editor.screenshot({ path: join(tmpdir(), 'zloz-teams-layout-preview.png') });
       const reviewed = new Map(

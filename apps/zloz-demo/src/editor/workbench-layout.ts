@@ -1,6 +1,6 @@
 import { type EditorState } from '@opsydyn/foldkit-zloz';
 import { historyMinimap } from '@opsydyn/foldkit-zloz/effect-ui';
-import { viewportControlActions, type ZlozViewLayoutParts } from '@opsydyn/foldkit-zloz/foldkit';
+import { viewportControlActions, type ZlozSidebarParts } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
@@ -164,11 +164,11 @@ const overview = architectureNativePanel<
 export function workbenchLayout(
   h: HtmlBuilder<Message>,
   model: Model,
-  parts: ZlozViewLayoutParts,
+  parts: ZlozSidebarParts & Readonly<{ canvas: Html }>,
   controls: WorkbenchControls,
   theme: typeof ThemePreference.Type,
   notice: Html,
-  nativeCanvas?: Html,
+  nativeCanvas = false,
 ) {
   const alchemy = model.alchemyReview.review;
   const packet = packetReviewActive(model) ? model.packetPreview : null;
@@ -306,12 +306,12 @@ export function workbenchLayout(
         ],
         [
           model.alchemyReview.review
-            ? alchemyReviewCanvas(model, h, nativeCanvas !== undefined)
+            ? alchemyReviewCanvas(model, h, nativeCanvas)
             : packetReviewActive(model)
-              ? packetReviewCanvas(model, h, nativeCanvas !== undefined)
+              ? packetReviewCanvas(model, h, nativeCanvas)
               : model.receiptReview
-                ? receiptReviewCanvas(model, h, nativeCanvas !== undefined)
-                : (nativeCanvas ?? parts.canvas),
+                ? receiptReviewCanvas(model, h, nativeCanvas)
+                : parts.canvas,
           ...(model.historyReview &&
           !model.receiptReview &&
           !model.alchemyReview.review &&

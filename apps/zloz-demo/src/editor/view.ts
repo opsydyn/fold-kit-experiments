@@ -23,6 +23,8 @@ import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import { zlozReviewPacketControls } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
 import {
   zlozView,
+  zlozSidebarParts,
+  zlozThemeStyle,
   zlozDddRelationshipControls,
   zlozDddRelationshipPatternSelect,
   zlozDddUpstreamRole,
@@ -3493,6 +3495,90 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
         : model.notice,
     ],
   );
+  if (nativeCanvas) {
+    const editor = model.editor;
+    const toolbarEdgeId =
+      showEdgeToolbar &&
+      !editor.readOnly &&
+      editor.gesture.type === 'idle' &&
+      !editor.connection &&
+      !editor.context &&
+      !editor.edgeLabelDraft &&
+      editor.selectedEdges.length === 1
+        ? editor.selectedEdges[0]
+        : undefined;
+    const sidebar = zlozSidebarParts(
+      h,
+      editor,
+      {
+        id: 'flow-demo',
+        label: 'Workflow editor',
+        onEvent: zlozInput,
+        diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
+        minimalMode: model.minimalMode,
+        wheelNavigation: model.wheelNavigation,
+        doubleClickZoom: model.doubleClickZoom,
+        spaceToPan: model.spaceToPan,
+        middleButtonPan: model.middleButtonPan,
+        edgeToolbar: showEdgeToolbar,
+        contextActions: true,
+        canConnect: policy.canConnect,
+        canConnectPort: policy.canConnectPort,
+        canSelectEdge: policy.canSelectEdge,
+        connectionCreation: model.sidebarSection === 'ports' && !model.sidebarCollapsed,
+        renderConnectionCreation: (context, builder) =>
+          nativeConnectionCreation(
+            builder,
+            { ...endpointScope, context },
+            'architecture-effect-ui',
+            'connection-creation',
+          ),
+        renderConnections: (context, builder) =>
+          model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,
+        renderCanvasHelp: (context, builder) =>
+          model.canvasCopyDesign === 'card' ? canvasHelpCard(context, builder) : undefined,
+        renderCanvasStatus: (context, builder) =>
+          model.canvasCopyDesign === 'card' ? canvasStatusCard(context, builder) : undefined,
+      },
+      toolbarEdgeId,
+    );
+    return {
+      title,
+      body: zlozPlacementHost(
+        h,
+        placementControls,
+        placementInput,
+        [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
+        [
+          h.div(
+            [
+              h.Id('flow-demo'),
+              h.Class('foldkit-zloz foldkit-flow'),
+              h.DataAttribute('flow-minimal', String(model.minimalMode)),
+              h.Style({
+                ...zlozThemeStyle(workbenchThemes[colorScheme]),
+                height: '100%',
+                'min-height': '0',
+                display: 'flex',
+                'flex-direction': 'column',
+              }),
+            ],
+            [
+              workbenchLayout(
+                h,
+                model,
+                { ...sidebar, canvas: nativeCanvas },
+                controls,
+                themePreference,
+                notice,
+                true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    };
+  }
   return {
     title,
     body: zlozPlacementHost(
@@ -3563,7 +3649,7 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
             ),
           height: 'fill',
           renderLayout: (parts, builder) =>
-            workbenchLayout(builder, model, parts, controls, themePreference, notice, nativeCanvas),
+            workbenchLayout(builder, model, parts, controls, themePreference, notice),
           id: 'flow-demo',
           wheelNavigation: model.wheelNavigation,
           doubleClickZoom: model.doubleClickZoom,

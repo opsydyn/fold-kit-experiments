@@ -1492,6 +1492,174 @@ function retainedNodeLayer<M>(
   );
 }
 
+export type ZlozSidebarParts = Pick<
+  ZlozViewLayoutParts,
+  'canvasId' | 'help' | 'creation' | 'status' | 'connections'
+>;
+
+function connectionContextAction(
+  state: EditorState,
+  id: string,
+  label: string,
+): ZlozContextTrigger {
+  return {
+    label: `More actions for ${label}`,
+    expanded: state.context?.kind === 'edge' && state.context.id === id,
+    disabled: state.gesture.type !== 'idle',
+    event: { type: 'ContextOpened', context: { kind: 'edge', id, point: { x: 12, y: 12 } } },
+  };
+}
+
+/** Sidebar controls for a host that supplies its own graph surface. */
+export function zlozSidebarParts<M>(
+  h: HtmlBuilder<M>,
+  state: EditorState,
+  options: ZlozViewOptions<M>,
+  toolbarEdgeId?: string,
+): ZlozSidebarParts {
+  return sidebarParts(
+    h,
+    state,
+    options,
+    resolveZlozDiagnostics(options),
+    presentVisibleGraph(state),
+    options.edgeToolbar === true && !state.readOnly,
+    toolbarEdgeId,
+  );
+}
+
+function sidebarParts<M>(
+  h: HtmlBuilder<M>,
+  state: EditorState,
+  options: ZlozViewOptions<M>,
+  diagnostics: ZlozDiagnostics,
+  presentation: ReturnType<typeof presentVisibleGraph>,
+  toolbarEnabled: boolean,
+  toolbarEdgeId: string | undefined,
+): ZlozSidebarParts {
+  const visibleEdges = presentation.edges;
+  const connections = () => {
+    const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
+    const compact = !diagnostics.connectionList;
+    const entries = visibleEdges.map((edge): ZlozConnectionEntry => {
+      const selectionDisabledReason = options.canSelectEdge?.(edge, state.graph) ?? undefined;
+      const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
+      const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
+      const label =
+        edge.label ??
+        (compact
+          ? `${sourceLabel} → ${targetLabel}`
+          : `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`);
+      return {
+        edge,
+        label,
+        sourceLabel,
+        targetLabel,
+        selected: state.selectedEdges.includes(edge.id),
+        selectionDisabledReason,
+        contextAction:
+          options.contextActions && !state.readOnly && selectionDisabledReason === undefined
+            ? connectionContextAction(state, edge.id, label)
+            : undefined,
+        toolbarId:
+          toolbarEdgeId === edge.id && selectionDisabledReason === undefined
+            ? `${encodeURIComponent(options.id)}-edge-actions`
+            : undefined,
+      };
+    });
+    const custom = options.renderConnections?.({ entries, compact, readOnly: state.readOnly }, h);
+    return h.div(
+      [
+        h.Id(`${options.id}-connections`),
+        h.DataAttribute('flow-connections', compact ? 'compact' : 'expanded'),
+        h.Role('group'),
+        h.AriaLabel('Connections'),
+      ],
+      custom
+        ? [custom]
+        : entries.map((entry) => {
+            const selection = zlozConnectionButton(h, entry, options.onEvent, [], [entry.label]);
+            return entry.contextAction
+              ? h.span(
+                  [
+                    h.Key(entry.edge.id),
+                    h.Style({ display: 'inline-flex', gap: '4px', 'margin-right': '8px' }),
+                  ],
+                  [
+                    selection,
+                    zlozContextTrigger(
+                      h,
+                      entry.contextAction,
+                      options.onEvent,
+                      nodeContextStyles(h, false),
+                      ['⋯'],
+                    ),
+                  ],
+                )
+              : selection;
+          }),
+    );
+  };
+  const creationContext = options.connectionCreation
+    ? resolveConnectionCreation(
+        state,
+        options,
+        options.connectionCreation === true ? {} : options.connectionCreation,
+      )
+    : undefined;
+  const creationContent = creationContext && options.renderConnectionCreation?.(creationContext, h);
+
+  const connectionParts = diagnostics.connectionList
+    ? [connections()]
+    : [
+        h.div(
+          [],
+          [
+            h.button(
+              [
+                h.Type('button'),
+                h.DataAttribute('flow-connections-toggle', ''),
+                h.AriaExpanded(state.connectionsExpanded),
+                ...(state.connectionsExpanded ? [h.AriaControls(`${options.id}-connections`)] : []),
+                h.OnClick(options.onEvent({ type: 'ConnectionListToggled' })),
+                h.Style({ 'min-height': '36px', padding: '6px 10px' }),
+              ],
+              ['Connections'],
+            ),
+            ...(state.connectionsExpanded ? [connections()] : []),
+          ],
+        ),
+      ];
+  const descriptionId = `${options.id}-help`;
+  return {
+    canvasId: `${options.id}-surface`,
+    creation:
+      creationContext && creationContent !== null
+        ? (creationContent ??
+          zlozConnectionCreation(h, creationContext, options.onEvent, {
+            idPrefix: `${encodeURIComponent(options.id)}-create`,
+          }))
+        : null,
+    help: canvasHelpView(
+      h,
+      options,
+      state,
+      descriptionId,
+      toolbarEnabled,
+      diagnostics.instructions,
+    ),
+    status: canvasStatusView(
+      h,
+      options,
+      state.notice,
+      presentation.nodes.length,
+      visibleEdges.length,
+      diagnostics.status,
+    ),
+    connections: connectionParts[0]!,
+  };
+}
+
 /** A normal FoldKit view: all state and message handling belong to its parent. */
 export function zlozView<M>(
   h: HtmlBuilder<M>,
@@ -2041,65 +2209,6 @@ export function zlozView<M>(
             : undefined,
         )
       : null;
-  const connections = () => {
-    const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
-    const compact = !diagnostics.connectionList;
-    const entries = visibleEdges.map((edge): ZlozConnectionEntry => {
-      const selectionDisabledReason = options.canSelectEdge?.(edge, state.graph) ?? undefined;
-      const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
-      const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
-      const label =
-        edge.label ??
-        (compact
-          ? `${sourceLabel} → ${targetLabel}`
-          : `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`);
-      return {
-        edge,
-        label,
-        sourceLabel,
-        targetLabel,
-        selected: state.selectedEdges.includes(edge.id),
-        selectionDisabledReason,
-        contextAction:
-          contextEnabled && selectionDisabledReason === undefined
-            ? contextAction('edge', edge.id, label, { x: 12, y: 12 })
-            : undefined,
-        toolbarId: toolbar && activeEdge?.edge.id === edge.id ? toolbarId : undefined,
-      };
-    });
-    const custom = options.renderConnections?.({ entries, compact, readOnly: state.readOnly }, h);
-    return h.div(
-      [
-        h.Id(`${options.id}-connections`),
-        h.DataAttribute('flow-connections', compact ? 'compact' : 'expanded'),
-        h.Role('group'),
-        h.AriaLabel('Connections'),
-      ],
-      custom
-        ? [custom]
-        : entries.map((entry) => {
-            const selection = zlozConnectionButton(h, entry, options.onEvent, [], [entry.label]);
-            return entry.contextAction
-              ? h.span(
-                  [
-                    h.Key(entry.edge.id),
-                    h.Style({ display: 'inline-flex', gap: '4px', 'margin-right': '8px' }),
-                  ],
-                  [selection, contextTrigger(entry.contextAction)],
-                )
-              : selection;
-          }),
-    );
-  };
-  const creationContext = options.connectionCreation
-    ? resolveConnectionCreation(
-        state,
-        options,
-        options.connectionCreation === true ? {} : options.connectionCreation,
-      )
-    : undefined;
-  const creationContent = creationContext && options.renderConnectionCreation?.(creationContext, h);
-
   const fillSize = { height: '100%', flex: '1 1 0', 'min-height': '0', 'box-sizing': 'border-box' };
   const pixelSize = { height: `${pixelHeight}px` };
   const surfaceSize = options.height === 'fill' ? fillSize : pixelSize;
@@ -2114,14 +2223,6 @@ export function zlozView<M>(
           'flex-direction': 'column',
         }
       : themeStyles;
-  const help = canvasHelpView(
-    h,
-    options,
-    state,
-    descriptionId,
-    toolbarEnabled,
-    diagnostics.instructions,
-  );
   const controlParts = options.viewportControls
     ? [
         options.renderViewportControls?.(
@@ -2138,15 +2239,6 @@ export function zlozView<M>(
         ) ?? viewportControls(h, state, options, diagnostics),
       ]
     : [];
-  const creationParts =
-    creationContext && creationContent !== null
-      ? [
-          creationContent ??
-            zlozConnectionCreation(h, creationContext, options.onEvent, {
-              idPrefix: `${encodeURIComponent(options.id)}-create`,
-            }),
-        ]
-      : [];
   const minimapParts = minimap
     ? [
         options.renderMinimap?.(minimap, h) ??
@@ -2380,44 +2472,20 @@ export function zlozView<M>(
       ...contextPanel(h, state, options, diagnostics),
     ],
   );
-  const status = canvasStatusView(
+  const sidebar = sidebarParts(
     h,
+    state,
     options,
-    state.notice,
-    presentation.nodes.length,
-    visibleEdges.length,
-    diagnostics.status,
+    diagnostics,
+    presentation,
+    toolbarEnabled,
+    toolbar ? activeEdge?.edge.id : undefined,
   );
-  const connectionParts = diagnostics.connectionList
-    ? [connections()]
-    : [
-        h.div(
-          [],
-          [
-            h.button(
-              [
-                h.Type('button'),
-                h.DataAttribute('flow-connections-toggle', ''),
-                h.AriaExpanded(state.connectionsExpanded),
-                ...(state.connectionsExpanded ? [h.AriaControls(`${options.id}-connections`)] : []),
-                h.OnClick(options.onEvent({ type: 'ConnectionListToggled' })),
-                h.Style({ 'min-height': '36px', padding: '6px 10px' }),
-              ],
-              ['Connections'],
-            ),
-            ...(state.connectionsExpanded ? [connections()] : []),
-          ],
-        ),
-      ];
   const parts: ZlozViewLayoutParts = {
     canvas: canvasPart,
-    canvasId: `${options.id}-surface`,
-    help,
+    ...sidebar,
     controls: controlParts[0] ?? null,
-    creation: creationParts[0] ?? null,
     minimap: minimapParts[0] ?? null,
-    status,
-    connections: connectionParts[0]!,
   };
 
   return h.div(
@@ -2433,7 +2501,14 @@ export function zlozView<M>(
     ],
     options.renderLayout
       ? [options.renderLayout(parts, h)]
-      : [help, ...controlParts, ...creationParts, canvasPart, status, ...connectionParts],
+      : [
+          sidebar.help,
+          ...controlParts,
+          ...(sidebar.creation ? [sidebar.creation] : []),
+          canvasPart,
+          sidebar.status,
+          sidebar.connections,
+        ],
   );
 }
 

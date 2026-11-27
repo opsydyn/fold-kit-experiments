@@ -56,6 +56,38 @@ async function qualify() {
   await section('Appearance');
   await page.getByRole('combobox', { name: 'Node toolbar', exact: true }).selectOption('standard');
   const initial = await snapshot();
+  await expect(page.locator('[data-flow-surface]')).toHaveCount(1);
+  await section('Appearance');
+  await page
+    .getByRole('combobox', { name: 'Canvas help and status', exact: true })
+    .selectOption('card');
+  await page
+    .getByRole('combobox', { name: 'Connection list layout', exact: true })
+    .selectOption('rows');
+  await section('Diagnostics');
+  await expect(page.locator('[data-flow-help] .canvas-help-card')).toBeVisible();
+  await expect(page.locator('[data-flow-status] .canvas-status-card')).toHaveText(
+    '3 nodes · 1 connection',
+  );
+  await expect(canvas).toHaveAccessibleDescription(/Drag a node title/);
+  await section('Inspect');
+  const row = page
+    .getByRole('group', { name: 'Connections', exact: true })
+    .getByRole('button', { name: 'Draft → Review', exact: true });
+  await row.press('Enter');
+  await expect(row).toHaveAttribute('aria-pressed', 'true');
+  await row.press('ArrowUp');
+  await expect(canvas.getByRole('button', { name: 'Rename', exact: true })).toBeFocused();
+  await row.press('Shift+F10');
+  await expect(
+    canvas.getByRole('group', { name: 'Edge context actions', exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await section('Ports');
+  await expect(
+    page.getByRole('combobox', { name: 'New connection source', exact: true }),
+  ).toBeEnabled();
+  expect(await snapshot()).toEqual(initial);
   const draft = button('Select Draft');
   await draft.press('Enter');
   await expect(page.getByRole('group', { name: 'Actions for Draft', exact: true })).toBeVisible();

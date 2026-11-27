@@ -20,15 +20,7 @@ import {
   type EditorState,
   type ZlozEventStormingDddConversion,
 } from '@opsydyn/foldkit-zloz';
-import {
-  zlozView,
-  zlozHistoryChangeButton,
-  zlozC4Node,
-  zlozDddNode,
-  zlozEventStormingNode,
-  zlozC4Group,
-  zlozDddGroup,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozHistoryChangeButton } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 
@@ -38,7 +30,6 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeDetachedReview } from './native-detached-review';
-import { workbenchThemes } from './theme';
 import type { Return } from './transition';
 
 export type ReceiptReview = Readonly<{
@@ -405,7 +396,7 @@ export function updateReceiptReview(model: Model, message: Message): Return<Mode
     Match.tag('ObservedReceiptInput', (input): Return<Model, Message> => {
       const review = model.receiptReview;
       if (!review || review.id !== input.id || review.side !== input.side) return { model };
-      // SAFETY: only the detached zlozView emits this input. The package adapter rejects non-navigation events.
+      // SAFETY: only the detached canvas emits this input. The package adapter rejects non-navigation events.
       const event = input.message as EditorEvent;
       const next = updateHistoryReview(
         { editionId: String(review.id), editor: review.editor },
@@ -722,7 +713,7 @@ export function receiptReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     ],
   );
 }
-export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
+export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   const review = model.receiptReview;
   if (!review) return h.div([], []);
   const onEvent = (message: EditorEvent) =>
@@ -742,35 +733,18 @@ export function receiptReviewCanvas(model: Model, h: HtmlBuilder<Message>, nativ
           ),
         ],
       ),
-      native
-        ? nativeDetachedReview(
-            h,
-            {
-              id: `receipt-${review.id}-${review.side}`,
-              label: 'Read-only receipt diagram',
-              editor: review.editor,
-              scheme: scheme ?? 'light',
-              onEvent,
-            },
-            'architecture-detached-review',
-            `receipt-${review.id}-${review.side}`,
-          )
-        : zlozView(h, review.editor, {
-            id: `receipt-${review.id}-${review.side}`,
-            label: 'Read-only receipt diagram',
-            height: 'fill',
-            theme: workbenchThemes[scheme ?? 'light'],
-            diagnostics: false,
-            background: { type: 'dots' },
-            renderNodeShell: (context, builder) =>
-              zlozEventStormingNode(context, builder) ??
-              zlozC4Node(context, builder) ??
-              zlozDddNode(context, builder),
-            renderGroupShell: (context, builder) =>
-              zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
-            renderLayout: (parts) => parts.canvas,
-            onEvent,
-          }),
+      nativeDetachedReview(
+        h,
+        {
+          id: `receipt-${review.id}-${review.side}`,
+          label: 'Read-only receipt diagram',
+          editor: review.editor,
+          scheme: scheme ?? 'light',
+          onEvent,
+        },
+        'architecture-detached-review',
+        `receipt-${review.id}-${review.side}`,
+      ),
     ],
   );
 }

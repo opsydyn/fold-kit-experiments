@@ -102,7 +102,7 @@ test('visible socket reasons use native descriptions and remain semantic in mini
   const { Effect, Schema } = await import('effect');
   const { renderToString } = await import('foldkit/experimental/server');
   const { zlozView } = await import('@opsydyn/foldkit-zloz/foldkit');
-  const { orbitNode, reasonSocketPort } = await import('../src/editor/presentation');
+  const { orbitNode, reasonSocketPort } = await import('./orbit-cache-fixture');
   const { Message } = await import('../src/editor/message');
   const state = createEditor(createProtectedWorkflowGraph());
   const policy = workbenchPolicy({ ...init().model, editor: state, mixedPortProtection: true });

@@ -168,7 +168,6 @@ export function workbenchLayout(
   controls: WorkbenchControls,
   theme: typeof ThemePreference.Type,
   notice: Html,
-  nativeCanvas = false,
 ) {
   const alchemy = model.alchemyReview.review;
   const packet = packetReviewActive(model) ? model.packetPreview : null;
@@ -306,11 +305,11 @@ export function workbenchLayout(
         ],
         [
           model.alchemyReview.review
-            ? alchemyReviewCanvas(model, h, nativeCanvas)
+            ? alchemyReviewCanvas(model, h)
             : packetReviewActive(model)
-              ? packetReviewCanvas(model, h, nativeCanvas)
+              ? packetReviewCanvas(model, h)
               : model.receiptReview
-                ? receiptReviewCanvas(model, h, nativeCanvas)
+                ? receiptReviewCanvas(model, h)
                 : parts.canvas,
           ...(model.historyReview &&
           !model.receiptReview &&

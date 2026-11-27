@@ -10,7 +10,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { expect, test } from 'vitest';
 
 import { Message } from '../src/editor/message';
-import { orbitGroup, orbitNode } from '../src/editor/presentation';
+import { orbitGroup, orbitNode } from './orbit-cache-fixture';
 
 const initial = createEditor({
   nodes: [

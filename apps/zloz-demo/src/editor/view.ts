@@ -3,7 +3,6 @@ import {
   resolveEdgeReconnection,
   resolveEventStormingRelationship,
   eventStormingRelationshipRules,
-  resolveContextMapRelationship,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -15,7 +14,6 @@ import {
   resolveEditionRestore,
   architectureNodePresets,
   type EdgePathStyle,
-  type ZlozNode,
   type EditorEvent,
   type ZlozPlacementInput,
   type ZlozAuditComparisonRequest,
@@ -29,16 +27,12 @@ import {
   resolveConnectionList,
 } from '@opsydyn/foldkit-zloz/effect-ui';
 import {
-  zlozView,
   zlozThemeStyle,
   zlozDddRelationshipControls,
   zlozDddRelationshipPatternSelect,
   zlozDddUpstreamRole,
   zlozDddDownstreamRoleSelect,
   zlozDddRelationshipReasons,
-  zlozContextMapConnector,
-  zlozContextMapLabel,
-  zlozContextMapParticipant,
   zlozEventStormingRelationshipControls,
   zlozEventStormingRelationshipSelect,
   zlozEventStormingRelationshipInference,
@@ -61,21 +55,6 @@ import {
   zlozPlaybackControl,
   zlozPlaybackStatus,
   zlozPlaybackReason,
-  zlozEventStormingNode,
-  zlozEventStormingGroup,
-  type ZlozEventStormingNodeOptions,
-  zlozHistoryGhosts,
-  zlozGroupFrame,
-  zlozDragHandle,
-  zlozC4Node,
-  zlozC4Group,
-  zlozDddNode,
-  zlozDddGroup,
-  type ZlozDddNodeOptions,
-  type ZlozC4NodeOptions,
-  createZlozNodeBodyCache,
-  zlozPortLabel,
-  zlozPortAnchorHandle,
   portInspectorContext,
   portAdditionContext,
   zlozPortAddButton,
@@ -96,12 +75,10 @@ import {
   zlozPortPositionCancel,
   type ZlozPortPositionDraftChange,
   resolveZlozDiagnostics,
-  type ZlozBackground,
-  type ZlozNodeRenderContext,
 } from '@opsydyn/foldkit-zloz/foldkit';
-import { zlozPlacementHost, zlozPlacementPreview } from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozPlacementHost } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match, Option, Schema } from 'effect';
-import { createLazy, type Document, type Html, type HtmlBuilder } from 'foldkit/html';
+import { type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
 import { workbenchAuditContext } from './audit-comparison';
@@ -130,9 +107,6 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
-import { nativeContextMenu } from './native-context-menu';
-import { nativeEdgeLabel } from './native-edge-label';
-import { nativeEdgeToolbar } from './native-edge-toolbar';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
@@ -145,199 +119,13 @@ import { playbackReason, playbackInspectionReason } from './playback';
 import { workbenchPngReview } from './png-review';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
-import {
-  orbitNode,
-  socketPort,
-  reasonSocketPort,
-  targetAnchorGuide,
-  orbitGroup,
-  raisedEdge,
-  storageDependencyEdge,
-  raisedConnection,
-  releaseGateAnnotation,
-  compactNodeToolbar,
-  connectionRows,
-  labeledResizeReadout,
-  endpointAlignmentGuide,
-  hatchedSelectionMarquee,
-  canvasHelpCard,
-  canvasStatusCard,
-} from './presentation';
 import { relationshipControlsContext } from './relationship-controls';
 import { workbenchPacketContext } from './review-packet';
 import { searchDiagram } from './search';
 import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
-import { customWaypointControls } from './waypoint-presentation';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
-import { workbenchArchitectureBadge, workbenchHotspotStatus } from './workbench-notation';
 import { workshopPanel } from './workshop-view';
-
-type WorkbenchEdgeHooks = {
-  edgeGeometry?: typeof raisedEdge;
-  renderEdge?: typeof storageDependencyEdge;
-};
-
-const workbenchNodeCache = createLazy();
-const workbenchBodyCache = createZlozNodeBodyCache();
-const orbitBodyCache = createZlozNodeBodyCache();
-const stormOptionsWithoutCache: ZlozEventStormingNodeOptions<Message> = {
-  renderStatus: ({ architecture }, builder) =>
-    architecture.role === 'hotspot'
-      ? builder.span(
-          [
-            builder.DataAttribute('workbench-hotspot', architecture.status),
-            builder.Style({
-              border: '1px solid currentColor',
-              borderRadius: '999px',
-              padding: '3px 10px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color:
-                architecture.status === 'resolved'
-                  ? 'var(--zloz-event-storming-hotspot-resolved)'
-                  : 'var(--zloz-event-storming-hotspot-open)',
-            }),
-          ],
-          [workbenchHotspotStatus(architecture.status)],
-        )
-      : null,
-};
-const stormOptions: ZlozEventStormingNodeOptions<Message> = {
-  ...stormOptionsWithoutCache,
-  bodyCache: createZlozNodeBodyCache(),
-};
-const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
-const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h, stormOptions) ??
-  zlozC4Node(context, h, c4Options) ??
-  zlozDddNode(context, h, dddOptions);
-const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingGroup(context, h, stormOptions) ??
-  zlozC4Group(context, h, c4Options) ??
-  zlozDddGroup(context, h, dddOptions);
-const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
-  renderBadge: ({ architecture }, h) => {
-    const badge = workbenchArchitectureBadge(architecture);
-    return badge ? h.span([h.Style({ 'font-size': '10px', 'font-weight': '600' })], [badge]) : null;
-  },
-};
-const dddOptions: ZlozDddNodeOptions<Message> = {
-  ...dddOptionsWithoutCache,
-  bodyCache: createZlozNodeBodyCache(),
-};
-const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h, stormOptionsWithoutCache) ??
-  zlozDddNode(context, h, dddOptionsWithoutCache) ??
-  zlozC4Node(context, h);
-const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h, stormOptions) ??
-  zlozDddNode(context, h, dddOptions) ??
-  zlozC4Node(context, h, c4Options);
-const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingGroup(context, h, stormOptions) ??
-  zlozDddGroup(context, h, dddOptions) ??
-  zlozC4Group(context, h, c4Options);
-const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  orbitNode(context, h, orbitBodyCache);
-const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  orbitGroup(context, h, orbitBodyCache);
-
-const reconnectionRadiusOptions = {
-  match: {},
-  exact: { reconnectionDropRadius: 0 },
-  wide: { reconnectionDropRadius: 48 },
-} as const;
-function renderWorkbenchNode(
-  node: ZlozNode,
-  builder: HtmlBuilder<Message>,
-  minimalMode: boolean,
-  measurements: boolean,
-  resizeDisabled: boolean,
-  onEvent: (event: EditorEvent) => Message,
-) {
-  return builder.div(
-    [builder.Style({ visibility: minimalMode ? 'hidden' : 'visible' })],
-    [
-      builder.input([
-        builder.AriaLabel(`Label for ${node.id}`),
-        builder.Value(node.label),
-        builder.OnInput((label) => onEvent({ type: 'NodeLabelChanged', id: node.id, label })),
-        builder.Style({
-          width: '100%',
-          'box-sizing': 'border-box',
-          'margin-top': '8px',
-          'min-height': '30px',
-        }),
-      ]),
-      builder.label(
-        [
-          builder.Style({
-            visibility: measurements ? 'visible' : 'hidden',
-          }),
-        ],
-        [
-          'Width',
-          builder.input([
-            builder.Type('range'),
-            builder.AriaLabel(`Width for ${node.label}`),
-            builder.Disabled(resizeDisabled),
-            builder.Min(
-              String(
-                node.resizeLimits?.minWidth ??
-                  Math.min(140, node.size.width, node.resizeLimits?.maxWidth ?? Infinity),
-              ),
-            ),
-            builder.Max(
-              String(
-                node.resizeLimits?.maxWidth ??
-                  Math.max(320, node.size.width, node.resizeLimits?.minWidth ?? 0),
-              ),
-            ),
-            builder.Step('10'),
-            builder.Value(String(node.size.width)),
-            builder.Style({ width: '100%', 'touch-action': 'pan-x' }),
-            builder.OnChange((value) =>
-              onEvent({ type: 'NodeWidthChanged', id: node.id, width: Number(value) }),
-            ),
-          ]),
-        ],
-      ),
-    ],
-  );
-}
-const historyStormOptions: ZlozEventStormingNodeOptions<Message> = {
-  ...stormOptions,
-  renderControls: () => [],
-};
-const historyDddOptions: ZlozDddNodeOptions<Message> = { ...dddOptions, renderControls: () => [] };
-const historyC4Options: ZlozC4NodeOptions<Message> = { ...c4Options, renderControls: () => [] };
-const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingNode(context, h, historyStormOptions) ??
-  zlozDddNode(context, h, historyDddOptions) ??
-  zlozC4Node(context, h, historyC4Options);
-const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozEventStormingGroup(context, h, historyStormOptions) ??
-  zlozDddGroup(context, h, historyDddOptions) ??
-  zlozC4Group(context, h, historyC4Options) ??
-  zlozGroupFrame(
-    h,
-    context,
-    [
-      h.Style({
-        border: '2px dashed var(--flow-node-border, #64748b)',
-        background: 'var(--flow-group-background, transparent)',
-      }),
-    ],
-    [
-      zlozDragHandle(
-        h,
-        context,
-        [h.Style({ position: 'absolute', top: '8px', left: '12px', padding: '6px' })],
-        [context.node.label],
-      ),
-    ],
-  );
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -356,14 +144,12 @@ const playbackMessages = {
 } satisfies Record<ZlozPlaybackControlEvent['type'], () => Message>;
 const playbackInput = (event: ZlozPlaybackControlEvent): Message => playbackMessages[event.type]();
 
-export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = false): Document {
+export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const modelId = model.modelIdentity.id;
   const epoch = model.modelEpoch;
   const observedInput = ({ message }: { message: EditorEvent }) =>
     Message.ObservedModelInput({ modelId, epoch, message });
   const zlozInput = (message: EditorEvent) => observedInput({ message });
-  const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
-    renderWorkbenchNode(node, builder, false, true, false, zlozInput);
   const workingEditor = model.editor;
   const playback = model.historyPlayback?.cursor;
   const playbackId = playback ? playbackEditionId(playback) : null;
@@ -435,14 +221,6 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
   const hasContextMap = model.editor.graph.edges.some(
     (edge) => edge.architecture?.family === 'ddd' && edge.architecture.scope === 'strategic',
   );
-  const contextMapRelationships = new Map(
-    model.contextMapPresentation
-      ? model.editor.graph.edges.flatMap((edge) => {
-          const relation = resolveContextMapRelationship(model.editor.graph, edge);
-          return relation ? [[edge.id, relation] as const] : [];
-        })
-      : [],
-  );
   const title = 'Architecture workbench | ZLOZ';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
@@ -472,44 +250,6 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
     'white-space': 'nowrap',
     border: '0',
   } as const;
-  const background: ZlozBackground<Message> =
-    model.background === 'custom'
-      ? {
-          type: 'custom',
-          render: ({ viewport, spacing }, builder) => {
-            const pitch = spacing * viewport.zoom;
-            const position = `${viewport.x}px ${viewport.y}px`;
-            return builder.div(
-              [
-                builder.DataAttribute('custom-flow-grid', 'graph-paper'),
-                builder.Style({
-                  position: 'absolute',
-                  inset: '0',
-                  'background-image':
-                    'linear-gradient(to right, var(--flow-grid-line, #94a3b833) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-line, #94a3b833) 1px, transparent 1px)',
-                  'background-size': `${pitch}px ${pitch}px`,
-                  'background-position': position,
-                }),
-              ],
-              [
-                builder.div(
-                  [
-                    builder.Style({
-                      position: 'absolute',
-                      inset: '0',
-                      'background-image':
-                        'linear-gradient(to right, var(--flow-grid-dot, #64748b66) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-dot, #64748b66) 1px, transparent 1px)',
-                      'background-size': `${pitch * 5}px ${pitch * 5}px`,
-                      'background-position': position,
-                    }),
-                  ],
-                  [],
-                ),
-              ],
-            );
-          },
-        }
-      : { type: model.background };
   const selectedNode =
     model.editor.selectedNodes.length === 1
       ? model.editor.graph.nodes.find((node) => node.id === model.editor.selectedNodes[0])
@@ -551,23 +291,21 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
       model.sidebarSection === 'diagram' &&
       !model.sidebarCollapsed
     );
-  const nativeCanvas = useNativeCanvas
-    ? nativeArchitectureCanvas(
-        h,
-        {
-          model,
-          policy,
-          placement: placementControls,
-          scheme: colorScheme,
-          measurements: diagnostics.measurements,
-          alignmentGuides: diagnostics.alignmentGuides,
-          edgeToolbar: showEdgeToolbar,
-          history: { comparison, ghosts: comparisonControls.effectiveGhosts },
-        },
-        'architecture-effect-ui',
-        'working-canvas',
-      )
-    : undefined;
+  const nativeCanvas = nativeArchitectureCanvas(
+    h,
+    {
+      model,
+      policy,
+      placement: placementControls,
+      scheme: colorScheme,
+      measurements: diagnostics.measurements,
+      alignmentGuides: diagnostics.alignmentGuides,
+      edgeToolbar: showEdgeToolbar,
+      history: { comparison, ghosts: comparisonControls.effectiveGhosts },
+    },
+    'architecture-effect-ui',
+    'working-canvas',
+  );
   const placementInput = (input: ZlozPlacementInput) => Message.ObservedPlacementInput({ input });
   const inspector = Option.getOrUndefined(
     !model.minimalMode &&
@@ -615,10 +353,6 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
           return field ? [field] : [];
         })
       : [];
-  const edgeHooks: WorkbenchEdgeHooks = {};
-  if (model.edgeDesign === 'raised') edgeHooks.edgeGeometry = raisedEdge;
-  if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
-    edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
     alchemy: [alchemyReviewPanel(model, h)],
     review: packetReaderPanel(model, h),
@@ -3002,117 +2736,74 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
         : model.notice,
     ],
   );
-  if (nativeCanvas) {
-    const editor = model.editor;
-    const toolbarEdgeId =
-      showEdgeToolbar &&
-      !editor.readOnly &&
-      editor.gesture.type === 'idle' &&
-      !editor.connection &&
-      !editor.context &&
-      !editor.edgeLabelDraft &&
-      editor.selectedEdges.length === 1
-        ? editor.selectedEdges[0]
-        : undefined;
-    const { nodes, edges } = presentVisibleGraph(editor);
-    const card = model.canvasCopyDesign === 'card';
-    const sidebar = {
-      canvasId: 'flow-demo-surface',
-      help: nativeCanvasHelp(
-        h,
-        {
-          id: 'flow-demo-help',
-          context: canvasHelpContext(
-            editor,
-            model,
-            showEdgeToolbar && !editor.readOnly,
-            diagnostics.instructions,
-          ),
-          card,
-        },
-        'architecture-effect-ui',
-        'canvas-help',
-      ),
-      status: nativeCanvasStatus(
-        h,
-        {
-          context: canvasStatusContext(
-            editor.notice,
-            nodes.length,
-            edges.length,
-            diagnostics.status,
-          ),
-          card,
-        },
-        'architecture-effect-ui',
-        'canvas-status',
-      ),
-      connections: nativeConnections(
-        h,
-        {
-          id: 'flow-demo-connections',
-          context: resolveConnectionList(editor, edges, {
-            ...policy,
-            id: 'flow-demo',
-            compact: !diagnostics.connectionList,
-            contextActions: true,
-            toolbarEdgeId,
-          }),
-          rows: model.connectionListDesign === 'rows',
-          expanded: editor.connectionsExpanded,
-          modelId,
-          epoch,
-        },
-        'architecture-effect-ui',
-        'connection-list',
-      ),
-      creation:
-        model.sidebarSection === 'ports' && !model.sidebarCollapsed
-          ? nativeConnectionCreation(
-              h,
-              { ...endpointScope, context: resolveConnectionCreation(editor, policy) },
-              'architecture-effect-ui',
-              'connection-creation',
-            )
-          : null,
-    };
-    return {
-      title,
-      body: zlozPlacementHost(
-        h,
-        placementControls,
-        placementInput,
-        [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
-        [
-          h.div(
-            [
-              h.Id('flow-demo'),
-              h.Class('foldkit-zloz foldkit-flow'),
-              h.DataAttribute('flow-minimal', String(model.minimalMode)),
-              h.Style({
-                ...zlozThemeStyle(workbenchThemes[colorScheme]),
-                height: '100%',
-                'min-height': '0',
-                display: 'flex',
-                'flex-direction': 'column',
-              }),
-            ],
-            [
-              workbenchLayout(
-                h,
-                model,
-                { ...sidebar, canvas: nativeCanvas },
-                controls,
-                themePreference,
-                notice,
-                true,
-              ),
-            ],
-          ),
-        ],
-      ),
-    };
-  }
+  const editor = model.editor;
+  const toolbarEdgeId =
+    showEdgeToolbar &&
+    !editor.readOnly &&
+    editor.gesture.type === 'idle' &&
+    !editor.connection &&
+    !editor.context &&
+    !editor.edgeLabelDraft &&
+    editor.selectedEdges.length === 1
+      ? editor.selectedEdges[0]
+      : undefined;
+  const { nodes, edges } = presentVisibleGraph(editor);
+  const card = model.canvasCopyDesign === 'card';
+  const sidebar = {
+    canvasId: 'flow-demo-surface',
+    help: nativeCanvasHelp(
+      h,
+      {
+        id: 'flow-demo-help',
+        context: canvasHelpContext(
+          editor,
+          model,
+          showEdgeToolbar && !editor.readOnly,
+          diagnostics.instructions,
+        ),
+        card,
+      },
+      'architecture-effect-ui',
+      'canvas-help',
+    ),
+    status: nativeCanvasStatus(
+      h,
+      {
+        context: canvasStatusContext(editor.notice, nodes.length, edges.length, diagnostics.status),
+        card,
+      },
+      'architecture-effect-ui',
+      'canvas-status',
+    ),
+    connections: nativeConnections(
+      h,
+      {
+        id: 'flow-demo-connections',
+        context: resolveConnectionList(editor, edges, {
+          ...policy,
+          id: 'flow-demo',
+          compact: !diagnostics.connectionList,
+          contextActions: true,
+          toolbarEdgeId,
+        }),
+        rows: model.connectionListDesign === 'rows',
+        expanded: editor.connectionsExpanded,
+        modelId,
+        epoch,
+      },
+      'architecture-effect-ui',
+      'connection-list',
+    ),
+    creation:
+      model.sidebarSection === 'ports' && !model.sidebarCollapsed
+        ? nativeConnectionCreation(
+            h,
+            { ...endpointScope, context: resolveConnectionCreation(editor, policy) },
+            'architecture-effect-ui',
+            'connection-creation',
+          )
+        : null,
+  };
   return {
     title,
     body: zlozPlacementHost(
@@ -3121,336 +2812,30 @@ export function view(model: Model, h: HtmlBuilder<Message>, useNativeCanvas = fa
       placementInput,
       [h.Class('flow-workbench'), h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
       [
-        zlozView(h, model.editor, {
-          renderPort: model.customPorts
-            ? model.socketReasonBadges
-              ? reasonSocketPort
-              : socketPort
-            : undefined,
-          portLabels: model.portLabels,
-          portAnchorHandles: model.portAnchorHandles,
-          portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
-          portAnchorGuides: model.portAnchorGuides,
-          portAnchorKeyboardTargets: model.keyboardPortTargets,
-          renderPortAnchorGuide: model.customPortAnchorGuides ? targetAnchorGuide : undefined,
-          renderPortAnchorHandle: (context, builder) =>
-            context.snappedCorner || context.snappedMidpoint
-              ? zlozPortAnchorHandle(
-                  builder,
-                  context,
-                  [
-                    builder.Class(
-                      context.snappedCorner
-                        ? 'workbench-corner-handle'
-                        : 'workbench-midpoint-handle',
-                    ),
-                    builder.Style({
-                      background: 'var(--flow-node-background, #fff)',
-                      color: 'var(--flow-node-color, #172033)',
-                      border: '2px solid var(--flow-selection, #2563eb)',
-                      'border-radius': '6px',
-                      padding: '4px 8px',
-                      'white-space': 'nowrap',
-                      'font-size': '11px',
-                    }),
-                  ],
-                  [
-                    context.snappedCorner
-                      ? `◆ Pinned ${context.snappedCorner}`
-                      : `⊙ Centered ${context.snappedMidpoint}`,
-                  ],
-                )
-              : undefined,
-          canEditPort: policy.canEditPort,
-          renderPortLabel: (context, builder) =>
-            zlozPortLabel(
-              builder,
-              { ...context, offset: 22 },
-              [
-                builder.Class('workbench-port-label'),
-                builder.Style({
-                  background: 'var(--flow-node-background, #fff)',
-                  color: 'var(--flow-node-color, #172033)',
-                  border: '1px solid var(--flow-canvas-border, #94a3b8)',
-                  'border-radius': '6px',
-                  padding: '3px 7px',
-                  'font-size': '11px',
-                  'font-weight': '600',
-                  'z-index': '4',
-                }),
-              ],
-              [context.label],
+        h.div(
+          [
+            h.Id('flow-demo'),
+            h.Class('foldkit-zloz foldkit-flow'),
+            h.DataAttribute('flow-minimal', String(model.minimalMode)),
+            h.Style({
+              ...zlozThemeStyle(workbenchThemes[colorScheme]),
+              height: '100%',
+              'min-height': '0',
+              display: 'flex',
+              'flex-direction': 'column',
+            }),
+          ],
+          [
+            workbenchLayout(
+              h,
+              model,
+              { ...sidebar, canvas: nativeCanvas },
+              controls,
+              themePreference,
+              notice,
             ),
-          height: 'fill',
-          renderLayout: (parts, builder) =>
-            workbenchLayout(builder, model, parts, controls, themePreference, notice),
-          id: 'flow-demo',
-          wheelNavigation: model.wheelNavigation,
-          doubleClickZoom: model.doubleClickZoom,
-          spaceToPan: model.spaceToPan,
-          middleButtonPan: model.middleButtonPan,
-          renderEdge: (context, builder) => {
-            const relationship = contextMapRelationships.get(context.edge.id);
-            return relationship
-              ? zlozContextMapConnector(builder, context, relationship)
-              : undefined;
-          },
-          renderEdgeLabel: (context, builder) => {
-            const relationship = contextMapRelationships.get(context.edge.id);
-            return relationship
-              ? zlozContextMapLabel(builder, context, relationship, zlozInput, {
-                  renderSource: (participant, _relationship, h) =>
-                    participant.badges.length
-                      ? zlozContextMapParticipant(h, participant, {
-                          renderBadge: (badge, h) =>
-                            h.span(
-                              [
-                                h.Title(badge.description),
-                                h.AriaLabel(badge.description),
-                                h.Style({
-                                  border: '1px solid var(--flow-node-border)',
-                                  borderRadius: '999px',
-                                  padding: '1px 5px',
-                                  fontWeight: '650',
-                                }),
-                              ],
-                              [badge.text],
-                            ),
-                        })
-                      : undefined,
-                })
-              : model.edgeLabelDesign === 'badge'
-                ? nativeEdgeLabel(
-                    builder,
-                    { context, modelId, epoch },
-                    'architecture-effect-ui',
-                    `edge-label:${context.edge.id}`,
-                  )
-                : undefined;
-          },
-          renderEdgeLabelEditor: (context, builder) =>
-            model.edgeLabelDesign === 'badge'
-              ? nativeEdgeLabel(
-                  builder,
-                  { context, draft: context.draft, modelId, epoch },
-                  'architecture-effect-ui',
-                  `edge-label:${context.edge.id}`,
-                )
-              : undefined,
-          connectionGeometry: (context) => {
-            if (model.edgeDesign === 'raised') return raisedConnection(context);
-            return undefined;
-          },
-          renderConnection: (context, builder) => {
-            if (model.connectionDesign === 'hidden') return builder.g([], []);
-            if (model.connectionDesign !== 'ribbon') return undefined;
-            const pointer = context.movingEnd === 'source' ? context.source : context.target;
-            return builder.g(
-              [builder.DataAttribute('preview-design', 'ribbon')],
-              [
-                builder.path(
-                  [
-                    builder.D(context.path),
-                    builder.Fill('none'),
-                    builder.Stroke(context.stroke),
-                    builder.StrokeWidth('10'),
-                    builder.Opacity('.25'),
-                  ],
-                  [],
-                ),
-                builder.path(
-                  [
-                    builder.D(context.path),
-                    builder.Fill('none'),
-                    builder.Stroke(context.stroke),
-                    builder.StrokeWidth('3'),
-                    builder.StrokeLinecap('round'),
-                  ],
-                  [],
-                ),
-                builder.circle(
-                  [
-                    builder.Cx(String(pointer.x)),
-                    builder.Cy(String(pointer.y)),
-                    builder.R('6'),
-                    builder.Fill(context.stroke),
-                  ],
-                  [],
-                ),
-              ],
-            );
-          },
-          ...edgeHooks,
-          viewportCulling: model.viewportCulling,
-          nodeViewCache:
-            model.retainNodeViews && model.nodeDesign === 'cards' ? workbenchNodeCache : undefined,
-          nodeBodyCache:
-            model.retainNodeViews && model.nodeDesign === 'cards' ? workbenchBodyCache : undefined,
-          renderWorldOverlay: (context, builder) =>
-            builder.div(
-              [],
-              [
-                ...[zlozPlacementPreview(builder, placementControls)].flatMap((preview) =>
-                  preview === null ? [] : [preview],
-                ),
-                ...(model.showWorldAnnotation && !model.historyReview
-                  ? [releaseGateAnnotation(context, builder)]
-                  : []),
-                ...(comparison && model.historyReview && comparisonControls.effectiveGhosts.enabled
-                  ? [zlozHistoryGhosts(builder, comparison, comparisonControls.effectiveGhosts)!]
-                  : []),
-              ],
-            ),
-          renderNodeShell: model.historyReview
-            ? historyNode
-            : model.nodeDesign === 'orbits'
-              ? model.retainNodeViews
-                ? retainedOrbitNode
-                : orbitNode
-              : model.nodeDesign === 'c4'
-                ? model.retainNodeViews
-                  ? retainedC4Node
-                  : (context, builder) =>
-                      zlozEventStormingNode(context, builder) ??
-                      zlozC4Node(context, builder) ??
-                      zlozDddNode(context, builder, dddOptionsWithoutCache)
-                : model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming'
-                  ? model.retainNodeViews
-                    ? retainedDddNode
-                    : unretainedDddNode
-                  : undefined,
-          renderGroupShell: (context, builder) => {
-            if (model.historyReview) return historyGroup(context, builder);
-            if (model.nodeDesign === 'c4')
-              return model.retainNodeViews
-                ? retainedC4Group(context, builder)
-                : (zlozC4Group(context, builder) ??
-                    zlozDddGroup(context, builder, dddOptionsWithoutCache));
-            if (model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming')
-              return model.retainNodeViews
-                ? retainedDddGroup(context, builder)
-                : (zlozEventStormingGroup(context, builder, stormOptionsWithoutCache) ??
-                    zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
-                    zlozC4Group(context, builder));
-            if (model.nodeDesign !== 'orbits') return undefined;
-            return model.retainNodeViews
-              ? retainedOrbitGroup(context, builder)
-              : orbitGroup(context, builder);
-          },
-          minimalMode: model.minimalMode,
-          diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
-          background,
-          theme: workbenchThemes[colorScheme],
-          nodeToolbar:
-            model.nodeToolbarDesign === 'compact'
-              ? { placement: 'bottom', offset: 12 }
-              : model.nodeToolbarDesign === 'standard',
-          renderNodeToolbar: (context, builder) =>
-            model.nodeToolbarDesign === 'compact'
-              ? compactNodeToolbar(context, builder)
-              : undefined,
-          edgeToolbar: showEdgeToolbar,
-          edgeWaypoints: model.waypointDesign !== 'off',
-          canChangeEdgeWaypoints: policy.canChangeEdgeWaypoints,
-          renderEdgeWaypoints:
-            model.waypointDesign === 'custom'
-              ? (context, builder) => customWaypointControls(context, builder, zlozInput)
-              : undefined,
-          edgeReconnection: true,
-          connectionCreation: model.sidebarSection === 'ports' && !model.sidebarCollapsed,
-          renderConnectionCreation: (context, builder) =>
-            nativeConnectionCreation(
-              builder,
-              { ...endpointScope, context },
-              'architecture-effect-ui',
-              'connection-creation',
-            ),
-          canConnect: policy.canConnect,
-          canDelete: policy.canDelete,
-          canReconnect: policy.canReconnect,
-          canConnectPort:
-            model.portLocks.draftOutput || model.portLocks.publishInput || model.mixedPortProtection
-              ? policy.canConnectPort
-              : undefined,
-          canMoveNode: policy.canMoveNode,
-          canResizeNode: policy.canResizeNode,
-          canSelectNode: policy.canSelectNode,
-          canSelectEdge: policy.canSelectEdge,
-          renderEdgeToolbar: (context, builder) =>
-            nativeEdgeToolbar(
-              builder,
-              { context, design: model.edgeToolbarDesign, modelId, epoch },
-              'architecture-effect-ui',
-              'edge-toolbar',
-            ),
-          renderCanvasHelp: (context, builder) =>
-            model.canvasCopyDesign === 'card' ? canvasHelpCard(context, builder) : undefined,
-          renderCanvasStatus: (context, builder) =>
-            model.canvasCopyDesign === 'card' ? canvasStatusCard(context, builder) : undefined,
-          renderSelectionMarquee: (context, builder) =>
-            model.selectionMarqueeDesign === 'hatched'
-              ? hatchedSelectionMarquee(context, builder)
-              : undefined,
-          renderZoomAreaMarquee: ({ viewport }, builder) =>
-            builder.div(
-              [
-                builder.Class('workbench-zoom-area'),
-                builder.Style({
-                  position: 'absolute',
-                  inset: '0',
-                  border: `${2 / viewport.zoom}px dashed var(--flow-selection, #2563eb)`,
-                  'border-radius': `${8 / viewport.zoom}px`,
-                  background: 'var(--flow-selection-background, rgb(37 99 235 / 0.12))',
-                  'box-sizing': 'border-box',
-                }),
-              ],
-              [],
-            ),
-          renderAlignmentGuide: (context, builder) =>
-            model.alignmentGuideDesign === 'endpoints'
-              ? endpointAlignmentGuide(context, builder)
-              : undefined,
-          renderResizeReadout: (context, builder) =>
-            model.resizeReadoutDesign === 'labeled'
-              ? labeledResizeReadout(context, builder)
-              : undefined,
-          renderConnections: (context, builder) =>
-            model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,
-          contextActions: true,
-          renderContextMenu: (context, builder) =>
-            nativeContextMenu(
-              builder,
-              { context, design: model.contextMenuDesign, modelId, epoch },
-              'architecture-effect-ui',
-              'context-menu',
-            ),
-          autoPan: true,
-          connectionDropRadius: model.snapConnections ? 32 : 0,
-          ...reconnectionRadiusOptions[model.reconnectionSnap],
-          pinchZoom: true,
-          resizeHandles: true,
-          label: 'Workflow editor',
-          onEvent: zlozInput,
-          edgeAppearance: (edge) =>
-            edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},
-          renderNode: model.historyReview
-            ? (_node, builder) => builder.span([], [])
-            : model.minimalMode ||
-                !diagnostics.measurements ||
-                model.editor.readOnly ||
-                policy.canResizeNode
-              ? (node, builder) =>
-                  renderWorkbenchNode(
-                    node,
-                    builder,
-                    model.minimalMode,
-                    !model.minimalMode && diagnostics.measurements,
-                    model.editor.readOnly ||
-                      (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
-                    zlozInput,
-                  )
-              : renderDefaultNode,
-        }),
+          ],
+        ),
       ],
     ),
   };

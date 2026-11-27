@@ -11,14 +11,6 @@ import {
   type ZlozReviewReaderSide,
 } from '@opsydyn/foldkit-zloz-mermaid';
 import { zlozReviewReader } from '@opsydyn/foldkit-zloz-mermaid/foldkit';
-import {
-  zlozView,
-  zlozC4Node,
-  zlozDddNode,
-  zlozEventStormingNode,
-  zlozC4Group,
-  zlozDddGroup,
-} from '@opsydyn/foldkit-zloz/foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { ReadReviewPacket } from './command';
@@ -27,7 +19,6 @@ import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeDetachedReview } from './native-detached-review';
 import { receiptAllowsMessage } from './receipt-review';
-import { workbenchThemes } from './theme';
 import type { Return } from './transition';
 export type PacketReviewPreview = Readonly<{
   scope: string;
@@ -172,7 +163,7 @@ export function updatePacketReader(model: Model, message: Message): Return<Model
         current.scope !== state.scope
       )
         return { model };
-      // SAFETY: this detached zlozView emits EditorEvent; updateHistoryReview admits only read-only inspection events.
+      // SAFETY: this detached canvas emits EditorEvent; updateHistoryReview admits only read-only inspection events.
       const next = updateHistoryReview(
         { editionId: String(current.id), editor: current.editor },
         message.message as EditorEvent,
@@ -214,7 +205,7 @@ export function packetReaderPanel(model: Model, h: HtmlBuilder<Message>) {
     ),
   ];
 }
-export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
+export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   const current = model.packetPreview,
     state = packetReaderState(model);
   if (!current || !state.review) return h.div([], []);
@@ -254,35 +245,18 @@ export function packetReviewCanvas(model: Model, h: HtmlBuilder<Message>, native
           ),
         ],
       ),
-      native
-        ? nativeDetachedReview(
-            h,
-            {
-              id: `packet-${current.id}-${current.side}`,
-              label: 'Read-only packet diagram',
-              editor: current.editor,
-              scheme: scheme ?? 'light',
-              onEvent,
-            },
-            'architecture-detached-review',
-            `packet-${current.id}-${current.side}`,
-          )
-        : zlozView(h, current.editor, {
-            id: `packet-${current.id}-${current.side}`,
-            label: 'Read-only packet diagram',
-            height: 'fill',
-            theme: workbenchThemes[scheme ?? 'light'],
-            diagnostics: false,
-            background: { type: 'dots' },
-            renderNodeShell: (context, builder) =>
-              zlozEventStormingNode(context, builder) ??
-              zlozC4Node(context, builder) ??
-              zlozDddNode(context, builder),
-            renderGroupShell: (context, builder) =>
-              zlozC4Group(context, builder) ?? zlozDddGroup(context, builder),
-            renderLayout: (parts) => parts.canvas,
-            onEvent,
-          }),
+      nativeDetachedReview(
+        h,
+        {
+          id: `packet-${current.id}-${current.side}`,
+          label: 'Read-only packet diagram',
+          editor: current.editor,
+          scheme: scheme ?? 'light',
+          onEvent,
+        },
+        'architecture-detached-review',
+        `packet-${current.id}-${current.side}`,
+      ),
     ],
   );
 }

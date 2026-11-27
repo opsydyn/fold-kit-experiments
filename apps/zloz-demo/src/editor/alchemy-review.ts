@@ -1,21 +1,12 @@
-import {
-  createEditor,
-  updateHistoryReview,
-  type EditorEvent,
-  type ZlozLabelMeasurementResult,
-  type ZlozGroupHeaderMeasurementResult,
-} from '@opsydyn/foldkit-zloz';
+import { createEditor, updateHistoryReview, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import {
   resolveAlchemyFindingNavigator,
   resolveAlchemyFindingReveal,
 } from '@opsydyn/foldkit-zloz-alchemy';
-import { zlozView, zlozDddNode, zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
 import { Match } from 'effect';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import example from './alchemy-example.json';
-import { alchemyGroupShell } from './alchemy-group-header';
-import { alchemyRelationBadge } from './alchemy-labels';
 import {
   alchemyLayoutControls,
   alchemyLabelContext,
@@ -31,7 +22,6 @@ import { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeAlchemyCanvas } from './native-alchemy';
-import { workbenchThemes } from './theme';
 import type { Return } from './transition';
 const own = new Set([
   'ChangedAlchemyText',
@@ -465,7 +455,7 @@ export function alchemyReviewPanel(model: Model, h: HtmlBuilder<Message>) {
     ],
   );
 }
-export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>, native: boolean) {
+export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>) {
   const review = model.alchemyReview.review;
   if (!review) return h.div([], []);
   const scheme =
@@ -507,52 +497,12 @@ export function alchemyReviewCanvas(model: Model, h: HtmlBuilder<Message>, nativ
           ),
         ],
       ),
-      native
-        ? nativeAlchemyCanvas(
-            h,
-            { review, scheme: scheme ?? 'light', headings, labels },
-            'architecture-detached-review',
-            `alchemy-${review.id}`,
-          )
-        : zlozView(h, review.editor, {
-            id: `alchemy-${review.id}`,
-            label: 'Read-only Domain descriptor diagram',
-            height: 'fill',
-            theme: workbenchThemes[scheme ?? 'light'],
-            diagnostics: false,
-            renderEdgeLabel: (context, builder) =>
-              alchemyRelationBadge(
-                context,
-                builder,
-                review.layout.labels.mode === 'measured' ? review.layout.labels.detail : undefined,
-              ),
-            groupHeaderMeasurement: headings
-              ? {
-                  request: headings,
-                  onMeasured: (result: ZlozGroupHeaderMeasurementResult) =>
-                    Message.ObservedAlchemyHeadings({ id: review.id, result }),
-                }
-              : undefined,
-            labelMeasurement: labels
-              ? {
-                  request: labels,
-                  onMeasured: (result: ZlozLabelMeasurementResult) =>
-                    Message.ObservedAlchemyLabels({ id: review.id, result }),
-                }
-              : undefined,
-            background: { type: 'dots' },
-            renderNodeShell: (context, builder) =>
-              zlozDddNode(context, builder) ?? zlozEventStormingNode(context, builder),
-            renderGroupShell: (context, builder) =>
-              alchemyGroupShell(
-                context,
-                builder,
-                review.layout.header,
-                review.layout.heading.detail,
-              ),
-            renderLayout: (parts) => parts.canvas,
-            onEvent: (message) => Message.ObservedAlchemyInput({ id: review.id, message }),
-          }),
+      nativeAlchemyCanvas(
+        h,
+        { review, scheme: scheme ?? 'light', headings, labels },
+        'architecture-detached-review',
+        `alchemy-${review.id}`,
+      ),
     ],
   );
 }

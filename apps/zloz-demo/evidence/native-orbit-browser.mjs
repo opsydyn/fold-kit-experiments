@@ -64,6 +64,20 @@ async function qualify() {
   expect(await draft.evaluate((element, before) => element === before, previous)).toBe(true);
   await draft.press('Enter');
   await expect(artwork.locator('circle').first()).toHaveAttribute('stroke', '#f97316');
+  const selectedRing = await artwork.locator('circle').first().elementHandle();
+  await section('Ports');
+  const lock = page.getByRole('checkbox', { name: 'Lock Draft output', exact: true });
+  const output = button('Connect from Draft: out');
+  await lock.check();
+  await expect(output).toBeDisabled();
+  expect(
+    await artwork
+      .locator('circle')
+      .first()
+      .evaluate((element, before) => element === before, selectedRing),
+  ).toBe(true);
+  await lock.uncheck();
+  await expect(output).toBeEnabled();
   if (process.env.ZLOZ_ORBIT_SCREENSHOT)
     await page
       .locator('[data-flow-surface]')

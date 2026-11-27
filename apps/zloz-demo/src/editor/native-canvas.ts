@@ -22,12 +22,19 @@ import { Schema } from 'effect';
 
 import { Message } from './message';
 import type { Model } from './model';
-import { architectureBadgeDesign } from './native-edge-label';
-import { orbitArtwork } from './native-orbit';
+import { renderOrbitArtwork } from './native-orbit';
 import { architectureNativePanel } from './native-panel';
 import { raisedConnection, raisedEdge, releaseGatePosition } from './presentation';
 import { workbenchThemes } from './theme';
 import { workbenchArchitectureBadge, workbenchHotspotStatus } from './workbench-notation';
+
+const architectureBadgeDesign = {
+  badgeClass: 'custom-edge-badge',
+  editorClass: 'custom-edge-editor',
+  icon: '↗',
+  saveLabel: 'Apply label',
+  cancelLabel: 'Discard',
+} as const;
 
 type Canvas = Readonly<{
   model: Model;
@@ -440,12 +447,11 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
                 borderRadius: '50%',
                 color: '#fff',
               },
-              content: orbitArtwork(builder, {
-                id: node.id,
-                label: node.label,
-                selected,
-                preview: selectionPreview,
-              }),
+              content: renderOrbitArtwork(
+                builder,
+                { id: node.id, label: node.label, selected, preview: selectionPreview },
+                model.retainNodeViews,
+              ),
             },
           };
         if (readOnly || model.minimalMode || model.nodeDesign !== 'cards') return undefined;
@@ -464,7 +470,11 @@ export const nativeArchitectureCanvas = architectureNativePanel<Canvas>(
           ? {
               className: 'architecture-native-orbit-group',
               title: {
-                content: orbitArtwork(builder, { id: node.id, label: node.label, group: true }),
+                content: renderOrbitArtwork(
+                  builder,
+                  { id: node.id, label: node.label, group: true },
+                  model.retainNodeViews,
+                ),
               },
               style: {
                 borderStyle: 'dotted',

@@ -334,7 +334,7 @@ export const nativeDiagnosticSettings = architectureNativePanel<Diagnostics>(
             model.retainNodeViews,
             Message.ClickedRetainNodeViews(),
             false,
-            'Retain built-in bodies; port protections and custom ports stay live.',
+            'Retain Orbit artwork when shown. Port protections and controls stay live.',
           ),
           toggle('World annotation', model.showWorldAnnotation, Message.ClickedWorldAnnotation()),
         ),

@@ -204,7 +204,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       : [];
   if (model.historyReview) {
     if (message._tag === 'ObservedZlozInput') {
-      // SAFETY: zlozView emits EditorEvent values through the Schema.Unknown input field.
+      // SAFETY: The canvas supplies EditorEvent values through the workbench input field.
       const event = message.message as EditorEvent;
       const historyReview = updateHistoryReview(
         model.historyReview,
@@ -794,7 +794,7 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
       },
     }),
     ObservedZlozInput: ({ message: input }) => {
-      // SAFETY: zlozView and the toolbar emit the package's typed EditorEvent contract.
+      // SAFETY: The canvas and toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;
       return {
         model: {

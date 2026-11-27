@@ -66,7 +66,7 @@ export function edgeLabel<M>(
   options: NativeEdgeEditing<M>,
   fallback: View.Content<M> | null,
 ) {
-  const { edge, labelPosition, description, selected, readOnly, selectionDisabledReason } = context;
+  const { edge, labelPosition, selected, readOnly, selectionDisabledReason } = context;
   const { id, label } = edge;
   const draft = state.edgeLabelDraft?.id === id ? state.edgeLabelDraft.text : undefined;
   const editable = !readOnly && selectionDisabledReason === undefined;
@@ -78,43 +78,7 @@ export function edgeLabel<M>(
   if (!editing && custom === undefined && fallback) return fallback;
   if (!editing && (custom === null || (!label && !(selected && editable) && !custom)))
     return undefined;
-  const badge = () =>
-    editable
-      ? h.button
-          .class('zloz-ui-edge-label-badge')
-          .attr('type', 'button')
-          .attr(
-            'aria-label',
-            label ? `Edit edge label ${label} for ${description}` : `Add label for ${description}`,
-          )
-          .attr('data-flow-context-edge', id)
-          .on('click', onEdit({ type: 'EdgeLabelEditingStarted', id }))
-          .children(label || 'Add label')
-      : h.span
-          .class('zloz-ui-edge-label-badge')
-          .attr('title', selectionDisabledReason)
-          .children(label);
-  const editor = () =>
-    h.form
-      .class('zloz-ui-edge-label-editor')
-      .on('submit', onEdit({ type: 'EdgeLabelSaved', id }))
-      .on(
-        'keydown',
-        ({ key }) => (key === 'Escape' ? onEdit({ type: 'EdgeLabelCancelled', id }) : undefined),
-        { preventDefault: true },
-      )
-      .children(
-        h.input
-          .attr('type', 'text')
-          .attr('aria-label', `Edge label for ${description}`)
-          .value(draft ?? '')
-          .on('input', ({ value: text }) => onEdit({ type: 'EdgeLabelDraftChanged', id, text })),
-        h.button.attr('type', 'submit').children('Save label'),
-        h.button
-          .attr('type', 'button')
-          .on('click', onEdit({ type: 'EdgeLabelCancelled', id }))
-          .children('Cancel'),
-      );
+  const content = custom ?? edgeLabelControl(h, context, draft, onEdit);
   const { viewport, surface } = state;
   const width = Math.max(0, Math.min(276, (surface?.width ?? 292) - 16));
   const frame =
@@ -136,7 +100,86 @@ export function edgeLabel<M>(
       pointerEvents: editable ? 'auto' : 'none',
     })
     .onMount(edgeLabelFocus({ editing }))
-    .children(custom ?? (editing ? editor() : badge()));
+    .children(content);
+}
+
+export type EdgeLabelDesign = Readonly<{
+  badgeClass?: string;
+  editorClass?: string;
+  icon?: string;
+  saveLabel?: string;
+  cancelLabel?: string;
+}>;
+
+/** Reuse the native label control when its geometry is owned by a containing canvas. */
+export function edgeLabelControls<M>(
+  h: Html.H<M>,
+  context: ZlozEdgeLabelContext,
+  draft: string | undefined,
+  onEdit: (event: EdgeEditEvent) => M,
+  design: EdgeLabelDesign,
+) {
+  const editing =
+    !context.readOnly && context.selectionDisabledReason === undefined && draft !== undefined;
+  return h.div
+    .attr('data-flow-edge-label-control', context.edge.id)
+    .onMount(edgeLabelFocus({ editing }))
+    .children(edgeLabelControl(h, context, draft, onEdit, design));
+}
+
+function edgeLabelControl<M>(
+  h: Html.H<M>,
+  context: ZlozEdgeLabelContext,
+  draft: string | undefined,
+  onEdit: (event: EdgeEditEvent) => M,
+  design: EdgeLabelDesign = {},
+) {
+  const {
+    edge: { id, label },
+    description,
+    readOnly,
+    selectionDisabledReason,
+  } = context;
+  const editable = !readOnly && selectionDisabledReason === undefined;
+  const labelContent = label || 'Add label';
+  const icon = design.icon ? h.span.attr('aria-hidden', 'true').children(design.icon) : null;
+  if (!editable)
+    return h.span
+      .class('zloz-ui-edge-label-badge', design.badgeClass)
+      .attr('title', selectionDisabledReason)
+      .children(icon, label ?? '');
+  if (draft === undefined)
+    return h.button
+      .class('zloz-ui-edge-label-badge', design.badgeClass)
+      .attr('type', 'button')
+      .attr(
+        'aria-label',
+        label ? `Edit edge label ${label} for ${description}` : `Add label for ${description}`,
+      )
+      .attr('data-flow-context-edge', id)
+      .attr('data-selected', design.badgeClass ? String(context.selected) : undefined)
+      .on('click', onEdit({ type: 'EdgeLabelEditingStarted', id }))
+      .children(icon, design.badgeClass ? h.span.children(labelContent) : labelContent);
+  return h.form
+    .class('zloz-ui-edge-label-editor', design.editorClass)
+    .on('submit', onEdit({ type: 'EdgeLabelSaved', id }))
+    .on(
+      'keydown',
+      ({ key }) => (key === 'Escape' ? onEdit({ type: 'EdgeLabelCancelled', id }) : undefined),
+      { preventDefault: true },
+    )
+    .children(
+      h.input
+        .attr('type', 'text')
+        .attr('aria-label', `Edge label for ${description}`)
+        .value(draft)
+        .on('input', ({ value: text }) => onEdit({ type: 'EdgeLabelDraftChanged', id, text })),
+      h.button.attr('type', 'submit').children(design.saveLabel ?? 'Save label'),
+      h.button
+        .attr('type', 'button')
+        .on('click', onEdit({ type: 'EdgeLabelCancelled', id }))
+        .children(design.cancelLabel ?? 'Cancel'),
+    );
 }
 
 function clampLabelCenter(

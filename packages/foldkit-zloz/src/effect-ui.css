@@ -26,8 +26,7 @@
   overflow: visible;
   fill: var(--flow-edge, var(--muted, #64748b));
 }
-.zloz-ui-edge,
-.zloz-ui-preview {
+.zloz-ui-group-surface .zloz-ui-edge {
   fill: none;
   stroke: var(--flow-edge, var(--muted, #64748b));
   stroke-width: var(--flow-edge-width, 3);
@@ -35,13 +34,6 @@
 .zloz-ui-edge {
   pointer-events: stroke;
   cursor: pointer;
-}
-.zloz-ui-edge[data-selected='true'],
-.zloz-ui-preview {
-  stroke: var(--blue, #2563eb);
-}
-.zloz-ui-preview {
-  stroke-dasharray: 5 4;
 }
 .zloz-ui-node {
   box-sizing: border-box;
@@ -135,9 +127,6 @@
 }
 .zloz-ui-port[data-target='true'] {
   outline: 2px solid var(--blue, #2563eb);
-}
-.zloz-ui-preview[data-feedback='invalid'] {
-  stroke: var(--coral, #be123c);
 }
 .zloz-ui-port:disabled {
   opacity: 0.55;

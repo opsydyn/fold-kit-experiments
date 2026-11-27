@@ -12,7 +12,6 @@ import {
   zlozWorldOverlayItem,
   type ZlozWorldOverlayContext,
   type ZlozEdgeRenderContext,
-  zlozEdgeLabelBadge,
   zlozContextAction,
   zlozContextTrigger,
   zlozConnectionButton,
@@ -23,11 +22,6 @@ import {
   type ZlozCanvasHelpContext,
   type ZlozCanvasStatusContext,
   type ZlozNodeToolbarContext,
-  zlozEdgeLabelForm,
-  zlozEdgeLabelInput,
-  zlozEdgeLabelCancel,
-  type ZlozEdgeLabelContext,
-  type ZlozEdgeLabelEditorContext,
   zlozGroupFrame,
   zlozNodeFrame,
   zlozPort,
@@ -528,87 +522,6 @@ export const raisedConnection: import('@opsydyn/foldkit-zloz').ZlozConnectionGeo
 };
 
 const zlozEvent = (message: EditorEvent) => Message.ObservedZlozInput({ message });
-
-export function edgeBadge(context: ZlozEdgeLabelContext, h: HtmlBuilder<Message>) {
-  return zlozEdgeLabelBadge(
-    h,
-    context,
-    zlozEvent,
-    [
-      h.Class('custom-edge-badge'),
-      h.Style({
-        display: 'inline-flex',
-        'align-items': 'center',
-        gap: '6px',
-        padding: '5px 10px',
-        border: '1px solid #38bdf8',
-        'border-radius': '999px',
-        background: context.selected ? '#075985' : 'light-dark(#f0f9ff, #152b3c)',
-        color: context.selected ? '#fff' : 'light-dark(#0c4a6e, #bde7ff)',
-        cursor: context.readOnly ? 'inherit' : 'pointer',
-        'font-size': '13px',
-      }),
-    ],
-    [
-      h.span([h.AriaHidden(true)], ['↗']),
-      h.span(
-        [
-          h.Style({
-            'max-width': '180px',
-            overflow: 'hidden',
-            'text-overflow': 'ellipsis',
-            'white-space': 'nowrap',
-          }),
-        ],
-        [context.edge.label || 'Add label'],
-      ),
-    ],
-  );
-}
-
-export function edgeBadgeEditor(context: ZlozEdgeLabelEditorContext, h: HtmlBuilder<Message>) {
-  return zlozEdgeLabelForm(
-    h,
-    context,
-    zlozEvent,
-    [
-      h.Class('custom-edge-editor'),
-      h.Style({
-        display: 'flex',
-        gap: '6px',
-        padding: '6px',
-        border: '2px solid #38bdf8',
-        'border-radius': '12px',
-        background: 'light-dark(#f0f9ff, #152b3c)',
-        'box-shadow': '0 4px 12px #0c4a6e33',
-      }),
-    ],
-    [
-      zlozEdgeLabelInput(h, context, zlozEvent, [
-        h.Style({
-          width: '145px',
-          padding: '6px 8px',
-          border: '1px solid #7dd3fc',
-          'border-radius': '6px',
-        }),
-      ]),
-      h.button(
-        [
-          h.Type('submit'),
-          h.Style({
-            border: '0',
-            background: '#075985',
-            color: '#fff',
-            'border-radius': '6px',
-            padding: '0 10px',
-          }),
-        ],
-        ['Apply label'],
-      ),
-      zlozEdgeLabelCancel(h, context, zlozEvent, [], ['Discard']),
-    ],
-  );
-}
 
 export function releaseGateAnnotation(context: ZlozWorldOverlayContext, h: HtmlBuilder<Message>) {
   const review = context.nodes.find((node) => node.id === 'review');

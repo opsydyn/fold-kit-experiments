@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { Window, type HTMLButtonElement, type HTMLElement } from 'happy-dom';
+import { Window, type HTMLButtonElement, type HTMLDivElement, type HTMLElement } from 'happy-dom';
 
 import { createEditor, updateEditor } from '../src/editor';
 import { graphSurface } from '../src/effect-ui';
@@ -435,5 +435,107 @@ test('native custom guides receive only the editor’s acquired snap targets', a
   expect(mark?.getAttribute('cy')).toBe('80');
   expect(document.querySelector('[data-flow-anchor-guides]')?.getAttribute('aria-hidden')).toBe(
     'true',
+  );
+});
+
+test('native custom edge artwork shares geometry with its hit area and label', async () => {
+  const state = createEditor({
+    nodes: [
+      {
+        id: 'a',
+        label: 'A',
+        position: { x: 10, y: 10 },
+        size: { width: 100, height: 80 },
+        ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+      },
+      {
+        id: 'b',
+        label: 'B',
+        position: { x: 310, y: 10 },
+        size: { width: 100, height: 80 },
+        ports: [{ id: 'in', kind: 'input', side: 'left', offset: 0.5 }],
+      },
+    ],
+    edges: [
+      {
+        id: 'link',
+        label: 'Link',
+        source: { node: 'a', port: 'out' },
+        target: { node: 'b', port: 'in' },
+      },
+    ],
+  });
+  const dragging = updateEditor(
+    updateEditor(state, {
+      type: 'ConnectionDragStarted',
+      endpoint: { node: 'a', port: 'out' },
+      pointer: 1,
+      point: { x: 110, y: 50 },
+    }),
+    {
+      type: 'PointerMoved',
+      pointer: 1,
+      point: { x: 310, y: 50 },
+      target: { node: 'b', port: 'in' },
+    },
+  );
+  const component = Html.component({
+    name: 'NativeEdgeArtwork',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: ($) => $.model,
+    view: (h) =>
+      graphSurface(h, dragging, {
+        id: 'edge-artwork',
+        label: 'Edge artwork',
+        dropRadius: 24,
+        reconnectionDropRadius: 0,
+        edgeGeometry: ({ source, target }) => ({
+          path: `M${source.x},${source.y} Q210,-50 ${target.x},${target.y}`,
+          labelPosition: { x: 210, y: 0 },
+        }),
+        edgeAppearance: () => ({ hitWidth: 18, dashArray: '6 2' }),
+        renderEdge: ({ path, dashArray }) =>
+          new Html.Element<string>('path')
+            .attr('data-custom-edge', '')
+            .attr('d', path)
+            .attr('stroke-dasharray', dashArray)
+            .children(),
+        connectionGeometry: ({ source, target }) => ({
+          path: `M${source.x},${source.y} L${target.x},${target.y}`,
+          labelPosition: undefined,
+        }),
+        renderConnection: ({ path, feedback }) =>
+          new Html.Element<string>('path')
+            .attr('data-custom-preview', feedback.type)
+            .attr('d', path)
+            .children(),
+        onInput: ({ type }) => type,
+      }),
+  });
+  const rendered = await Effect.runPromise(
+    HtmlServer.renderToHtml(component, {}, { static: true }),
+  );
+  const { document } = new Window();
+  document.body.innerHTML = rendered.html;
+  const surface = document.querySelector('[data-flow-surface]');
+  expect(surface?.getAttribute('data-flow-connection-drop-radius')).toBe('24');
+  expect(surface?.getAttribute('data-flow-reconnection-drop-radius')).toBe('0');
+  const path = 'M110,50 Q210,-50 310,50';
+  const painted = document.querySelector('[data-custom-edge]');
+  const hit = document.querySelector('[data-flow-edge="link"]');
+  expect(painted?.getAttribute('d')).toBe(path);
+  expect(painted?.getAttribute('stroke-dasharray')).toBe('6 2');
+  expect(hit?.getAttribute('d')).toBe(path);
+  expect(hit?.getAttribute('stroke-width')).toBe('18');
+  expect(hit?.getAttribute('stroke')).toBe('transparent');
+  expect(document.querySelector<HTMLDivElement>('.zloz-ui-edge-label')?.style.top).toBe('0px');
+  const preview = document.querySelector('[data-flow-connection-preview]');
+  expect(preview?.getAttribute('aria-hidden')).toBe('true');
+  expect(preview?.getAttribute('data-flow-connection-state')).toBe('invalid');
+  expect(preview?.querySelector('[data-custom-preview="invalid"]')?.getAttribute('d')).toBe(
+    'M110,50 L310,50',
   );
 });

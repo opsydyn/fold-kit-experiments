@@ -135,6 +135,7 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeContextMenu } from './native-context-menu';
+import { nativeEdgeLabel } from './native-edge-label';
 import { nativeEdgeToolbar } from './native-edge-toolbar';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { architecturePalettePanel } from './native-palette';
@@ -155,8 +156,6 @@ import {
   raisedEdge,
   storageDependencyEdge,
   raisedConnection,
-  edgeBadge,
-  edgeBadgeEditor,
   releaseGateAnnotation,
   compactNodeToolbar,
   connectionRows,
@@ -3575,11 +3574,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       : undefined,
                 })
               : model.edgeLabelDesign === 'badge'
-                ? edgeBadge(context, builder)
+                ? nativeEdgeLabel(
+                    builder,
+                    { context, modelId, epoch },
+                    'architecture-effect-ui',
+                    `edge-label:${context.edge.id}`,
+                  )
                 : undefined;
           },
           renderEdgeLabelEditor: (context, builder) =>
-            model.edgeLabelDesign === 'badge' ? edgeBadgeEditor(context, builder) : undefined,
+            model.edgeLabelDesign === 'badge'
+              ? nativeEdgeLabel(
+                  builder,
+                  { context, draft: context.draft, modelId, epoch },
+                  'architecture-effect-ui',
+                  `edge-label:${context.edge.id}`,
+                )
+              : undefined,
           connectionGeometry: (context) => {
             if (model.edgeDesign === 'raised') return raisedConnection(context);
             return undefined;

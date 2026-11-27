@@ -11,9 +11,11 @@ import { resolveConnectionPreview } from './connection-preview';
 import { resolveContextMapRelationship } from './context-map';
 import { contextPanelPlacement, resolveContextMenu } from './context-menu-context';
 import { resolveEdgeGeometry } from './edge-geometry';
+import { connectionDropRadii } from './edge-presentation';
 import { contextMapLabel } from './effect-ui-context-map';
 import { contextMenu, type NativeContextMenuOptions } from './effect-ui-context-menu';
 import { edgeLabel, edgeToolbar, type NativeEdgeEditing } from './effect-ui-edge-editing';
+import { connectionStroke, edgeStroke, type NativeEdgePresentation } from './effect-ui-edges';
 import {
   anchorControls,
   anchorGuides,
@@ -49,7 +51,17 @@ export type { ZlozContextMenuContext } from './context-menu';
 export { endpointField, type NativeEndpointFieldOptions } from './effect-ui-endpoints';
 export { edgeToolbarContent, type NativeEdgeToolbarOptions } from './effect-ui-edge-toolbar';
 export type { ZlozEdgeToolbarContext } from './edge-toolbar';
-export type { NativeEdgeEditing } from './effect-ui-edge-editing';
+export {
+  edgeLabelControls,
+  type EdgeLabelDesign,
+  type NativeEdgeEditing,
+} from './effect-ui-edge-editing';
+export type { NativeEdgePresentation } from './effect-ui-edges';
+export type {
+  ZlozConnectionRenderContext,
+  ZlozEdgeAppearance,
+  ZlozEdgeRenderContext,
+} from './edge-presentation';
 export type { ZlozEdgeLabelContext, ZlozEdgeLabelEditorContext } from './edge-label';
 export { viewportControl } from './effect-ui-viewport-control';
 export {
@@ -70,6 +82,7 @@ export type { ZlozPortAnchorHandleContext } from './port-anchor-presentation';
 export type { ZlozPortAnchorGuideContext } from './port-anchor-guides';
 
 export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
+  NativeEdgePresentation<Message> &
   Readonly<{
     id: string;
     label: string;
@@ -97,6 +110,8 @@ export type GraphSurfaceOptions<Message> = GraphPortOptions<Message> &
       h: Html.H<Message>,
     ) => View.Content<Message> | null | undefined;
     dropRadius?: number;
+    /** Defaults to the creation radius. Zero requires an exact reconnection target. */
+    reconnectionDropRadius?: number;
     reconnect?: boolean;
     /** Expose native width controls and eight-direction controls for expanded selected groups. */
     resizeHandles?: boolean;
@@ -130,7 +145,11 @@ export function graphSurface<Message>(
   editor: EditorState,
   options: GraphSurfaceOptions<Message>,
 ) {
-  const { id, label, descriptionId, onInput, policy, dropRadius = 0 } = options;
+  const { id, label, descriptionId, onInput, policy } = options;
+  const { connectionDropRadius, reconnectionDropRadius } = connectionDropRadii(
+    options.dropRadius,
+    options.reconnectionDropRadius,
+  );
   const svg = (tag: string) => new Html.Element<Message>(tag);
   const scene = presentVisibleGraph(editor);
   const context = options.contextActions
@@ -145,7 +164,7 @@ export function graphSurface<Message>(
     ...groupsInPaintOrder(scene.nodes),
     ...scene.nodes.filter((node) => node.kind !== 'group'),
   ];
-  const preview = resolveConnectionPreview(editor);
+  const preview = resolveConnectionPreview(editor, options.connectionGeometry);
   const selection =
     editor.gesture.type === 'box-selection'
       ? resolveBoxSelection(editor, editor.gesture, scene.nodes, policy?.canSelectNode)
@@ -170,6 +189,7 @@ export function graphSurface<Message>(
         : stored;
     const route = editor.routes.find((item) => item.id === edge.id);
     const geometry = resolveEdgeGeometry(editor.graph, edge, {
+      policy: options.edgeGeometry,
       route: route?.points,
       labelPosition: route?.label?.position,
       sourceGroup: scene.hiddenBy.get(edge.source.node),
@@ -178,20 +198,17 @@ export function graphSurface<Message>(
     const relationship = options.architectureNotation
       ? resolveContextMapRelationship(editor.graph, edge)
       : null;
-    const path = svg('path')
-      .key(edge.id)
-      .class('zloz-ui-edge')
-      .attr('d', geometry.path)
-      .attr('data-flow-edge', edge.id)
-      .attr('data-selected', String(editor.selectedEdges.includes(edge.id)))
-      .attr('data-zloz-context-map-edge', relationship?.edge.id)
-      .attr(
-        'marker-end',
-        relationship && relationship.direction !== 'directed' ? undefined : `url(#${marker})`,
-      )
-      .children();
     const position = geometry.labelPosition;
     const selected = editor.selectedEdges.includes(edge.id);
+    const path = edgeStroke(
+      h,
+      edge,
+      geometry,
+      selected,
+      relationship && relationship.direction !== 'directed' ? '' : `url(#${marker})`,
+      relationship?.edge.id,
+      options,
+    );
     const selectionDisabledReason = options.edgeEditing
       ? (policy?.canSelectEdge?.(stored, editor.graph) ?? undefined)
       : undefined;
@@ -288,8 +305,8 @@ export function graphSurface<Message>(
     .attr('data-flow-context-actions', String(options.contextActions !== undefined))
     .attr('data-flow-readonly', String(editor.readOnly))
     .attr('data-flow-connection-mode', editor.connectionMode ?? 'strict')
-    .attr('data-flow-connection-drop-radius', String(dropRadius))
-    .attr('data-flow-reconnection-drop-radius', String(dropRadius))
+    .attr('data-flow-connection-drop-radius', String(connectionDropRadius))
+    .attr('data-flow-reconnection-drop-radius', String(reconnectionDropRadius))
     .attr('data-flow-wheel-navigation', options.wheelNavigation ?? 'off')
     .attr('data-flow-double-click-zoom', doubleClickFactor?.toString())
     .attr('data-flow-space-to-pan', String(options.spaceToPan === true))
@@ -336,16 +353,7 @@ export function graphSurface<Message>(
                   .children(svg('path').attr('d', 'M 0 0 L 10 5 L 0 10 Z').children()),
               ),
               ...edgeViews.map(({ path }) => path),
-              ...(preview
-                ? [
-                    svg('path')
-                      .key('preview')
-                      .class('zloz-ui-preview')
-                      .attr('data-feedback', preview.feedback.type)
-                      .attr('d', preview.path)
-                      .children(),
-                  ]
-                : []),
+              connectionStroke(h, preview, options),
             ),
           ...nodes.map((node) => nodeView(h, editor, options, node, selecting.has(node.id))),
           ...(options.worldOverlay

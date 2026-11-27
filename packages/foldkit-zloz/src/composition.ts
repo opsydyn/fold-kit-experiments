@@ -2,8 +2,8 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { portConnectionEnd } from './connection-mode';
 import type { ZlozDiagnostics } from './diagnostics';
+import { edgeHitWidth } from './edge-presentation';
 import { finitePoint, portAnchor } from './geometry';
-import { ZlozError } from './graph';
 import type {
   EditorPolicy,
   ZlozEdge,
@@ -299,9 +299,6 @@ export function zlozEdgeHitTarget<M>(
   context: Readonly<{ edge: ZlozEdge; path: string; hitWidth?: number }>,
   attributes: Parameters<HtmlBuilder<M>['path']>[0] = [],
 ): Html {
-  const width = context.hitWidth ?? 12;
-  if (!Number.isFinite(width) || width <= 0)
-    throw new ZlozError('invalid-edit', 'Edge hit width must be positive and finite');
   return h.path(
     [
       ...attributesWithGeometry(h, attributes, { 'pointer-events': 'stroke', cursor: 'pointer' }),
@@ -309,7 +306,7 @@ export function zlozEdgeHitTarget<M>(
       h.D(context.path),
       h.Fill('none'),
       h.Stroke('transparent'),
-      h.StrokeWidth(String(width)),
+      h.StrokeWidth(edgeHitWidth(context.hitWidth)),
     ],
     [],
   );

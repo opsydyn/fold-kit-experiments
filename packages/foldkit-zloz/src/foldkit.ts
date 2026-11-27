@@ -302,6 +302,13 @@ import { groupsInPaintOrder, presentVisibleGraph, withDescendants } from './grou
 import { ZlozInput } from './mount';
 import { movementReason } from './movement';
 export type { ZlozBackground, ZlozBackgroundRenderContext } from './background';
+import {
+  connectionDropRadii,
+  connectionRenderContext,
+  type ZlozConnectionRenderContext,
+  type ZlozEdgeAppearance,
+  type ZlozEdgeRenderContext,
+} from './edge-presentation';
 import type {
   AlignmentGuide,
   EditorPolicy,
@@ -316,24 +323,11 @@ import type {
   ResizeHandle,
 } from './types';
 
-export type ZlozEdgeRenderContext = Readonly<{
-  edge: ZlozEdge;
-  path: string;
-  labelPosition: Point | undefined;
-  selected: boolean;
-  stroke: string;
-  strokeWidth: string;
-  dashArray: string;
-  markerEnd: string;
-}>;
-
-/** Geometry, core target feedback and default appearance for a decorative preview renderer. */
-export type ZlozConnectionRenderContext = ZlozConnectionPreview &
-  Readonly<{
-    stroke: string;
-    strokeWidth: string;
-    dashArray: string;
-  }>;
+export type {
+  ZlozConnectionRenderContext,
+  ZlozEdgeAppearance,
+  ZlozEdgeRenderContext,
+} from './edge-presentation';
 
 /** Model dimensions for the current resize readout, before any view styling. */
 export type ZlozResizeReadoutContext = Readonly<{
@@ -488,13 +482,7 @@ export type ZlozViewOptions<M> = ZlozDiagnosticOptions &
     ) => Html | undefined;
     /** Replaces minimap appearance using the public navigation primitive. */
     renderMinimap?: (context: ZlozMinimapContext, h: HtmlBuilder<M>) => Html | undefined;
-    edgeAppearance?: (edge: ZlozEdge) => Readonly<{
-      stroke?: string;
-      strokeWidth?: number;
-      dashArray?: string;
-      /** Selection corridor in world units; defaults to 12. Must be positive and finite. */
-      hitWidth?: number;
-    }>;
+    edgeAppearance?: (edge: ZlozEdge) => ZlozEdgeAppearance;
     /** Classes on the editor root, including classes produced by Pleat's cssClass(). */
     themeClassName?: string;
     /** Scoped token overrides and optional native color scheme. */
@@ -1103,17 +1091,7 @@ function connectionPreviewView<M>(
   options: ZlozViewOptions<M>,
 ): Html | undefined {
   if (!preview) return undefined;
-  const context: ZlozConnectionRenderContext = {
-    ...preview,
-    stroke:
-      preview.feedback.type === 'valid'
-        ? 'var(--flow-valid-target, #0f766e)'
-        : preview.feedback.type === 'invalid'
-          ? 'var(--flow-invalid-target, #dc2626)'
-          : 'var(--flow-selection, #2563eb)',
-    strokeWidth: '3',
-    dashArray: '6 4',
-  };
+  const context = connectionRenderContext(preview);
   const decoration =
     options.renderConnection?.(context, h) ??
     h.path(
@@ -1552,12 +1530,10 @@ export function zlozView<M>(
   state: EditorState,
   options: ZlozViewOptions<M>,
 ): Html {
-  const connectionDropRadius = options.connectionDropRadius ?? 0;
-  if (!Number.isFinite(connectionDropRadius) || connectionDropRadius < 0)
-    throw new RangeError('Connection drop radius must be finite and non-negative');
-  const reconnectionDropRadius = options.reconnectionDropRadius ?? connectionDropRadius;
-  if (!Number.isFinite(reconnectionDropRadius) || reconnectionDropRadius < 0)
-    throw new RangeError('Reconnection drop radius must be finite and non-negative');
+  const { connectionDropRadius, reconnectionDropRadius } = connectionDropRadii(
+    options.connectionDropRadius,
+    options.reconnectionDropRadius,
+  );
   const doubleClickFactor = doubleClickZoomFactor(options.doubleClickZoom);
   if (options.waypointLabelOffset) finitePoint(options.waypointLabelOffset);
   const diagnostics = resolveZlozDiagnostics(options);

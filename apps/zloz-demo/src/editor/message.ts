@@ -504,7 +504,12 @@ export const Message = UiSchema.TaggedEnum({
   ChangedPortChooserSearch: { field: PortChooserSearchField, query: Schema.String },
   ChangedDiagramSearch: { query: Schema.String },
   SelectedSearchScope: { scope: SearchScope },
-  SubmittedDiagramSearch: {},
+  SubmittedDiagramSearch: {
+    query: Schema.String,
+    scope: SearchScope,
+    modelId: Schema.String,
+    epoch: Schema.Number,
+  },
   ClickedExport: {},
   ClickedMermaidPreview: {},
   SelectedWorkbenchSection: { section: WorkbenchSection },

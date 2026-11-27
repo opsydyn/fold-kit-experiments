@@ -808,8 +808,9 @@ function updateModel(model: Model, message: Message): Return<Model, Message> {
     }),
     ChangedDiagramSearch: ({ query }) => ({ model: { ...model, searchQuery: query } }),
     SelectedSearchScope: ({ scope }) => ({ model: { ...model, searchScope: scope } }),
-    SubmittedDiagramSearch: () => {
-      const result = searchDiagram(model.editor, model.searchQuery, model.searchScope)[0];
+    SubmittedDiagramSearch: ({ query, scope, modelId, epoch }) => {
+      if (model.modelIdentity.id !== modelId || model.modelEpoch !== epoch) return { model };
+      const result = searchDiagram(model.editor, query, scope)[0];
       if (!result) return { model };
       return { model: { ...model, editor: updateEditor(model.editor, result.event) } };
     },

@@ -150,3 +150,28 @@ test('stale model scopes reject before inspecting a historical canvas payload', 
     ).model,
   ).toBe(review);
 });
+
+test('diagram search submits the current form fields and rejects submissions from a replaced editor', () => {
+  const initial = init().model;
+  const model = {
+    ...initial,
+    searchQuery: 'Draft',
+    editor: updateEditor(initial.editor, {
+      type: 'SurfaceMeasured',
+      size: { width: 1000, height: 600 },
+    }),
+  };
+  const submitted = Message.SubmittedDiagramSearch({
+    query: 'publish',
+    scope: 'nodes',
+    modelId: model.modelIdentity.id,
+    epoch: model.modelEpoch,
+  });
+  const revealed = update(model, submitted).model;
+  expect(revealed.editor.notice).toBe('Revealed Publish.');
+  expect(revealed.editor.graph).toBe(model.editor.graph);
+  expect(revealed.editor.selectedNodes).toBe(model.editor.selectedNodes);
+  const replaced = update(model, Message.SelectedExample({ example: 'release' })).model;
+  expect(replaced.modelEpoch).toBeGreaterThan(model.modelEpoch);
+  expect(update(replaced, submitted).model).toBe(replaced);
+});

@@ -97,7 +97,6 @@ import { mappingReviewPanel } from './mapping-review-view';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
-  SearchScope,
   PortAnchorPreset,
   ReconnectLock,
   ReconnectionSnap,
@@ -106,6 +105,7 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { nativeArchitectureCanvas } from './native-canvas';
+import { nativeDiagramSearch, nativeExamplePicker } from './native-diagram-browse';
 import { nativeConnectionCreation, nativeSelectedEndpoints } from './native-endpoints';
 import { nativeGraphActions } from './native-graph-actions';
 import { architecturePalettePanel } from './native-palette';
@@ -121,7 +121,6 @@ import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import { relationshipControlsContext } from './relationship-controls';
 import { workbenchPacketContext } from './review-packet';
-import { searchDiagram } from './search';
 import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
@@ -257,9 +256,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdge = model.editor.graph.edges.find((edge) =>
     model.editor.selectedEdges.includes(edge.id),
   );
-  const matches = searchDiagram(model.editor, model.searchQuery, model.searchScope);
-  const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
-  const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
   const causalRules = workbenchRelationshipOptions(model).rules ?? eventStormingRelationshipRules;
   const relationshipEditingBlocked =
@@ -1197,68 +1193,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ]),
         ],
       ),
-      h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
-        'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
-      ]),
-      ...(model.minimalMode
-        ? []
-        : [
-            h.div(
-              [
-                h.Role('group'),
-                h.AriaLabel('Examples'),
-                h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }),
-              ],
-              [
-                button(
-                  'Open event-storming example',
-                  Message.SelectedExample({ example: 'event-storming' }),
-                ),
-                button(
-                  'Open workshop semantics example',
-                  Message.SelectedExample({ example: 'event-storming-workshop' }),
-                ),
-                button('Open release workflow', Message.SelectedExample({ example: 'release' })),
-                button(
-                  'Open C4 system context',
-                  Message.SelectedExample({ example: 'c4-context' }),
-                ),
-                button(
-                  'Open C4 container view',
-                  Message.SelectedExample({ example: 'c4-containers' }),
-                ),
-                button(
-                  'Open nested C4 container view',
-                  Message.SelectedExample({ example: 'c4-nested-containers' }),
-                ),
-                button(
-                  'Open DDD Order aggregate',
-                  Message.SelectedExample({ example: 'ddd-orders' }),
-                ),
-                button('Open DDD context map', Message.SelectedExample({ example: 'context-map' })),
-                button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
-                button(
-                  'Open grouped Onion Architecture',
-                  Message.SelectedExample({ example: 'grouped-onion' }),
-                ),
-                button(
-                  'Open large workflow (320 nodes)',
-                  Message.SelectedExample({ example: 'large-workflow' }),
-                ),
-                button(
-                  'Open protected Orbit workflow (320 nodes)',
-                  Message.SelectedExample({ example: 'protected-orbits' }),
-                ),
-                button(
-                  'Open port snapping demo',
-                  Message.SelectedExample({ example: 'port-snapping' }),
-                ),
-              ],
+      ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
+        ? [
+            nativeExamplePicker(
+              h,
+              { model, showInstructions: diagnostics.instructions },
+              'architecture-effect-ui',
+              'examples',
             ),
-          ]),
-      h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
-        'In Onion Architecture, arrows show source dependencies toward the domain.',
-      ]),
+          ]
+        : []),
       ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
         ? [
             nativeGraphActions(
@@ -1278,85 +1222,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ]
         : []),
-      h.form(
-        [
-          h.Role('search'),
-          h.AriaLabel(`Diagram ${model.searchScope}`),
-          h.Style({
-            display: 'flex',
-            'flex-wrap': 'wrap',
-            gap: '8px',
-            'align-items': 'center',
-            margin: '12px 0',
-          }),
-          h.OnSubmit(Message.SubmittedDiagramSearch()),
-        ],
-        [
-          h.label(
-            [],
-            [
-              `Find a ${searchItem} `,
-              h.input([
-                h.Type('search'),
-                h.Value(model.searchQuery),
-                h.Placeholder('Label or ID'),
-                h.OnInput((query) => Message.ChangedDiagramSearch({ query })),
-              ]),
-            ],
-          ),
-          h.select(
-            [
-              h.AriaLabel('Search scope'),
-              h.Value(model.searchScope),
-              h.OnChange((value) =>
-                Message.SelectedSearchScope({
-                  scope: Schema.decodeUnknownSync(SearchScope)(value),
-                }),
-              ),
-            ],
-            [
-              h.option([h.Value('nodes'), h.Selected(model.searchScope === 'nodes')], ['Nodes']),
-              h.option(
-                [h.Value('connections'), h.Selected(model.searchScope === 'connections')],
-                ['Connections'],
-              ),
-            ],
-          ),
-          h.button(
-            [h.Type('submit'), h.Disabled(!canReveal || matches.length === 0)],
-            ['Reveal first match'],
-          ),
-          ...(model.searchQuery.trim()
-            ? [
-                h.p(
-                  [h.Role('status'), h.Style({ margin: '0' })],
-                  [
-                    matches.length === 0
-                      ? `No matching ${model.searchScope}`
-                      : matches.length > 8
-                        ? `Showing 8 of ${matches.length} matching ${model.searchScope}`
-                        : matches.length === 1
-                          ? `1 matching ${searchItem}`
-                          : `${matches.length} matching ${model.searchScope}`,
-                  ],
-                ),
-                ...matches
-                  .slice(0, 8)
-                  .map(({ label, event }) =>
-                    h.button(
-                      [
-                        h.Key(event.id),
-                        h.Type('button'),
-                        h.Disabled(!canReveal),
-                        h.OnClick(zlozInput(event)),
-                      ],
-                      [label],
-                    ),
-                  ),
-              ]
-            : []),
-        ],
-      ),
+      ...(model.sidebarSection === 'diagram' && !model.sidebarCollapsed
+        ? [nativeDiagramSearch(h, model, 'architecture-effect-ui', 'diagram-search')]
+        : []),
       ...(model.nodeDesign === 'event-storming'
         ? [
             h.div(

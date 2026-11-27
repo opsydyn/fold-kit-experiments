@@ -220,7 +220,7 @@ const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Stock price — zoom &amp; pan</p>
-      <ZoomableLineApp client:load noMeta />
+      <ZoomableLineApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Phyllotaxis — zoom &amp; mini map</p>

@@ -1,11 +1,8 @@
 import { invertAxis } from '@opsydyn/foldkit-viz/plot';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { histogram, pixelOf, snapToBins } from './charts';
 import { Message } from './message';
 import type { Model } from './model';
-
-type Return = UpdateReturn<Model, Message>;
 
 const pair = (a: number, b: number): readonly [number, number] => [a, b];
 
@@ -26,19 +23,17 @@ function brushOf(from: number, to: number): Model {
   };
 }
 
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
     PressedPointer: ({ surface, x }) =>
-      surface === 'histogram'
-        ? { model: { ...model, dragFrom: x, brushPixels: pair(x, x) } }
-        : { model },
+      surface === 'histogram' ? { ...model, dragFrom: x, brushPixels: pair(x, x) } : model,
     MovedPointer: ({ surface, x }) =>
       surface === 'histogram' && model.dragFrom !== null
-        ? { model: { ...model, brushPixels: pair(model.dragFrom, x) } }
-        : { model },
+        ? { ...model, brushPixels: pair(model.dragFrom, x) }
+        : model,
     ReleasedPointer: () => {
-      if (model.dragFrom === null) return { model };
-      return { model: brushOf(model.dragFrom, model.brushPixels?.[1] ?? model.dragFrom) };
+      if (model.dragFrom === null) return model;
+      return brushOf(model.dragFrom, model.brushPixels?.[1] ?? model.dragFrom);
     },
-    ClearedBrush: () => ({ model: cleared }),
+    ClearedBrush: () => cleared,
   });

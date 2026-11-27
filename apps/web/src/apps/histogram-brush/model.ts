@@ -1,7 +1,5 @@
 import { Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
 const Range = Schema.Tuple([Schema.Number, Schema.Number]);
 
 export const Model = Schema.Struct({
@@ -14,6 +12,4 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-export const init = (_props: AppInitProps) => ({
-  model: { dragFrom: null, brushPixels: null, brushed: null } satisfies Model,
-});
+export const init: Model = { dragFrom: null, brushPixels: null, brushed: null };

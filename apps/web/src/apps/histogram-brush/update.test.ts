@@ -5,14 +5,14 @@ import { Message } from './message';
 import { init } from './model';
 import { update } from './update';
 
-const { model } = init({});
+const model = init;
 const axis = histogram(null).facets[0]?.x;
 const at = (ms: number): number => (axis === null || axis === undefined ? 0 : pixelOf(axis, ms));
 
 const drag = (from: number, to: number) => {
-  const pressed = update(model, Message.PressedPointer({ surface: 'histogram', x: from })).model;
-  const moved = update(pressed, Message.MovedPointer({ surface: 'histogram', x: to })).model;
-  return update(moved, Message.ReleasedPointer()).model;
+  const pressed = update(model, Message.PressedPointer({ surface: 'histogram', x: from }));
+  const moved = update(pressed, Message.MovedPointer({ surface: 'histogram', x: to }));
+  return update(moved, Message.ReleasedPointer());
 };
 
 describe('histogram brush', () => {
@@ -39,11 +39,11 @@ describe('histogram brush', () => {
   it('clears on a click and on the clear button', () => {
     expect(drag(100, 101).brushed).toBeNull();
     const brushed = drag(at(160), at(260));
-    expect(update(brushed, Message.ClearedBrush()).model.brushed).toBeNull();
+    expect(update(brushed, Message.ClearedBrush()).brushed).toBeNull();
   });
 
   it('ignores drags that start outside the histogram', () => {
-    const pressed = update(model, Message.PressedPointer({ surface: 'outside', x: 50 })).model;
+    const pressed = update(model, Message.PressedPointer({ surface: 'outside', x: 50 }));
     expect(pressed.dragFrom).toBeNull();
   });
 });

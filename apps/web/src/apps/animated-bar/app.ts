@@ -1,2 +1,5 @@
-import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
-export default lazyApp(() => import('./main'));
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
+
+import { AnimatedBar } from './main';
+
+export default astroComponent(AnimatedBar);

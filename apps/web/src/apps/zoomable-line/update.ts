@@ -1,11 +1,8 @@
 import { panDomain, zoomDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
-import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { fullDomain } from './data';
 import { Message } from './message';
 import type { Model } from './model';
-
-type Return = UpdateReturn<Model, Message>;
 
 /** Never narrower than two weeks. */
 const MIN_SPAN = 14 * 24 * 60 * 60 * 1000;
@@ -24,11 +21,11 @@ const pan = (model: Model, direction: number): Model => {
   return { domain: panDomain([lo, hi], direction * 0.25 * (hi - lo), fullDomain, MIN_SPAN) };
 };
 
-export const update = (model: Model, message: Message): Return =>
+export const update = (model: Model, message: Message): Model =>
   Message.match(message, {
-    ZoomedIn: () => ({ model: zoom(model, 0.5) }),
-    ZoomedOut: () => ({ model: zoom(model, 2) }),
-    PannedEarlier: () => ({ model: pan(model, -1) }),
-    PannedLater: () => ({ model: pan(model, 1) }),
-    ResetView: () => ({ model: { domain: null } }),
+    ZoomedIn: () => zoom(model, 0.5),
+    ZoomedOut: () => zoom(model, 2),
+    PannedEarlier: () => pan(model, -1),
+    PannedLater: () => pan(model, 1),
+    ResetView: () => ({ domain: null }),
   });

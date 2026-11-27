@@ -196,6 +196,9 @@
       "effect/plot": [
         "./dist/effect/plot.d.mts"
       ],
+      "effect-ui/cartesian": [
+        "./dist/effect-ui/cartesian.d.mts"
+      ],
       "effect-ui/plot": [
         "./dist/effect-ui/plot.d.mts"
       ],
@@ -452,6 +455,10 @@
     "./effect/plot": {
       "types": "./dist/effect/plot.d.mts",
       "import": "./dist/effect/plot.mjs"
+    },
+    "./effect-ui/cartesian": {
+      "types": "./dist/effect-ui/cartesian.d.mts",
+      "import": "./dist/effect-ui/cartesian.mjs"
     },
     "./effect-ui/plot": {
       "types": "./dist/effect-ui/plot.d.mts",

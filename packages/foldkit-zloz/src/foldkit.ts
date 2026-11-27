@@ -2673,29 +2673,6 @@ export type {
   ZlozEventStormingNodeOptions,
 } from './event-storming-renderer';
 export {
-  zlozPlaybackControls,
-  zlozPlaybackControl,
-  zlozPlaybackStatus,
-  zlozPlaybackReason,
-} from './playback-controls-view';
-export type {
-  ZlozPlaybackTextOptions,
-  ZlozPlaybackControlsParts,
-  ZlozPlaybackControlsViewOptions,
-} from './playback-controls-view';
-export {
-  zlozEditionScrubber,
-  zlozEditionScrubberInput,
-  zlozEditionScrubberReadout,
-  zlozEditionScrubberReason,
-  zlozEditionSeekButton,
-} from './edition-scrubber-view';
-export type {
-  ZlozEditionScrubberParts,
-  ZlozEditionScrubberViewOptions,
-} from './edition-scrubber-view';
-
-export {
   zlozHistoryComparisonControls,
   zlozHistoryBaselineSelect,
   zlozHistoryGhostToggle,

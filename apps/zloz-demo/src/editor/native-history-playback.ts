@@ -1,11 +1,20 @@
 import type { Html } from '@effect/ui/html';
 import {
-  editionScrubberRequest,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
   type ZlozPlaybackControlEvent,
 } from '@opsydyn/foldkit-zloz';
+import {
+  editionScrubber,
+  editionScrubberInput,
+  editionScrubberReadout,
+  editionSeekButton,
+  playbackControl,
+  playbackControls,
+  playbackReason as playbackAvailability,
+  playbackStatus,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
 import { Message } from './message';
 import type { Model } from './model';
@@ -49,17 +58,15 @@ export function historyPlayback<M>(h: Html.H<M>, model: Model, send: (message: M
     send(Message.SelectedPlaybackEdition({ modelId: model.modelIdentity.id, session, editionId }));
   return group.children(
     toggle,
-    h.div
-      .class('workbench-playback-transport')
-      .attr('role', 'group')
-      .attr('aria-label', 'Edition playback controls')
-      .children(
-        h.p
-          .attr('role', 'status')
-          .attr('aria-live', 'polite')
-          .attr('aria-label', 'Edition playback status')
-          .style({ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' })
-          .children(
+    playbackControls(h, playback, (event) => send(messages[event.type]()), {
+      decorate: (panel) => panel.class('workbench-playback-transport'),
+      renderStatus: (context, h) =>
+        playbackStatus(
+          h,
+          context,
+          (status) =>
+            status.style({ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }),
+          [
             h.span
               .attr('aria-hidden', 'true')
               .style({
@@ -71,84 +78,65 @@ export function historyPlayback<M>(h: Html.H<M>, model: Model, send: (message: M
                 letterSpacing: '0.06em',
               })
               .children('TIMELINE'),
-            playback.statusText,
-          ),
-        h.div.style({ display: 'flex', gap: '6px', flexWrap: 'wrap' }).children(
-          ...(['play', 'pause', 'rewind', 'previous', 'next'] as const).map((name) => {
-            const action = playback.actions[name];
-            return h.button
-              .key(name)
-              .attr('type', 'button')
-              .attr('aria-label', action.label)
-              .disabled(action.disabled)
-              .attr('aria-description', action.reason ?? undefined)
-              .attr('title', action.reason ?? undefined)
-              .style({
-                display: 'inline-flex',
-                gap: '6px',
-                alignItems: 'center',
-                padding: '8px 12px',
-                borderRadius: '999px',
-                border: '1px solid var(--rule)',
-                background: 'var(--panel)',
-                color: 'var(--ink)',
-              })
-              .on('click', send(messages[action.event.type]()))
-              .children(h.span.attr('aria-hidden', 'true').children(icons[name]), action.label);
+            context.statusText,
+          ],
+        ),
+      renderControl: (action, h, sendEvent) =>
+        playbackControl(
+          h,
+          action,
+          sendEvent,
+          (button) =>
+            button.style({
+              display: 'inline-flex',
+              gap: '6px',
+              alignItems: 'center',
+              padding: '8px 12px',
+              borderRadius: '999px',
+              border: '1px solid var(--rule)',
+              background: 'var(--panel)',
+              color: 'var(--ink)',
+            }),
+          [h.span.attr('aria-hidden', 'true').children(icons[action.name]), action.label],
+        ),
+      renderReason: (context, h) =>
+        playbackAvailability(h, context, (reason) =>
+          reason.style({
+            borderLeft: '2px solid var(--blue)',
+            paddingLeft: '10px',
+            color: 'var(--muted)',
           }),
         ),
-        playback.reason &&
-          h.p
-            .attr('role', 'status')
-            .attr('aria-live', 'polite')
-            .attr('aria-label', 'Playback availability')
-            .style({
-              borderLeft: '2px solid var(--blue)',
-              paddingLeft: '10px',
-              color: 'var(--muted)',
-            })
-            .children(playback.reason),
-      ),
-    h.div
-      .class('workbench-edition-scrubber')
-      .attr('role', 'group')
-      .attr('aria-label', 'Edition scrubber')
-      .style({ padding: '12px 0', display: 'grid', gap: '8px' })
-      .children(
-        h.input
-          .key('edition-scrubber')
-          .attr('type', 'range')
-          .attr('min', '0')
-          .attr('max', String(Math.max(0, scrubber.entries.length - 1)))
-          .attr('step', '1')
-          .value(String(scrubber.current?.index ?? 0))
-          .attr('aria-label', scrubber.label)
-          .attr('aria-valuetext', scrubber.valueText)
-          .disabled(scrubber.rangeReason !== null)
-          .attr('aria-description', scrubber.rangeReason ?? undefined)
-          .attr('title', scrubber.rangeReason ?? undefined)
-          .style({ width: '100%', accentColor: 'var(--blue)' })
-          .on('input', ({ value }) => seek(editionScrubberRequest(scrubber, value).editionId)),
-        h.output
-          .attr('aria-label', 'Selected edition')
-          .attr('aria-live', 'off')
-          .style({ display: 'block', fontWeight: '600', fontSize: '12px' })
-          .children(h.span.attr('aria-hidden', 'true').children('◇ '), scrubber.valueText),
-        scrubber.rangeReason &&
-          h.p
-            .attr('role', 'status')
-            .attr('aria-live', 'polite')
-            .attr('aria-label', 'Edition seek availability')
-            .children(scrubber.rangeReason),
-        h.button
-          .attr('type', 'button')
-          .attr('aria-label', 'Open edition')
-          .disabled(scrubber.reason !== null || scrubber.current === null)
-          .attr('aria-description', scrubber.reason ?? undefined)
-          .style({ justifySelf: 'start', padding: '7px 12px', borderRadius: '999px' })
-          .on('click', seek(scrubber.current?.editionId ?? null))
-          .children('Open edition'),
-      ),
+      renderLayout: ({ controls, status, reason }, _context, h) => [
+        status,
+        h.div.style({ display: 'flex', gap: '6px', flexWrap: 'wrap' }).children(controls),
+        reason,
+      ],
+    }),
+    editionScrubber(h, scrubber, (request) => seek(request.editionId), {
+      decorate: (panel) =>
+        panel.class('workbench-edition-scrubber').style({
+          padding: '12px 0',
+          display: 'grid',
+          gap: '8px',
+        }),
+      renderInput: (context, h, onSeek) =>
+        editionScrubberInput(h, context, onSeek, (input) =>
+          input.style({ width: '100%', accentColor: 'var(--blue)' }),
+        ),
+      renderReadout: (context, h) =>
+        editionScrubberReadout(
+          h,
+          context,
+          (output) => output.style({ display: 'block', fontWeight: '600', fontSize: '12px' }),
+          [h.span.attr('aria-hidden', 'true').children('◇ '), context.valueText],
+        ),
+      renderOpen: (context, h, onSeek) =>
+        editionSeekButton(h, context, onSeek, (button) =>
+          button.style({ justifySelf: 'start', padding: '7px 12px', borderRadius: '999px' }),
+        ),
+      renderLayout: ({ input, readout, reason, open }) => [input, readout, reason, open],
+    }),
     h.label.class('workbench-field').children(
       'Edition interval',
       h.select

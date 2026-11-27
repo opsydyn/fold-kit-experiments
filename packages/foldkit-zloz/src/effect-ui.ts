@@ -556,3 +556,20 @@ export { placementHost, placementPalette, placementPreview } from './effect-ui-p
 export { groupHeaderMeasurementProbe, labelMeasurementProbe } from './effect-ui-measurement';
 
 export type { ZlozResizeReadoutContext } from './resize-readout';
+
+export {
+  playbackControl,
+  playbackControls,
+  playbackReason,
+  playbackStatus,
+  editionScrubber,
+  editionScrubberInput,
+  editionScrubberReadout,
+  editionScrubberReason,
+  editionSeekButton,
+  type ZlozPlaybackTextOptions,
+  type ZlozPlaybackControlsParts,
+  type ZlozPlaybackControlsViewOptions,
+  type ZlozEditionScrubberParts,
+  type ZlozEditionScrubberViewOptions,
+} from './effect-ui-playback';

@@ -3361,21 +3361,21 @@ without putting edition data inside the cursor.
 
 ```ts
 import { resolveEditionPlaybackControls } from '@opsydyn/foldkit-zloz';
-import { zlozPlaybackControls, zlozPlaybackControl } from '@opsydyn/foldkit-zloz/foldkit';
+import { playbackControls, playbackControl } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const context = resolveEditionPlaybackControls(playback, {
   editionLabel: currentEditionName,
   blockedReason: editingReason,
   automaticReason: visibilityReason,
 });
-const controls = zlozPlaybackControls(h, context, toMessage, {
+const controls = playbackControls(h, context, toMessage, {
   renderControl: (action, builder, onEvent) =>
-    zlozPlaybackControl(builder, action, onEvent, [builder.Class('my-pill')], [action.label]),
+    playbackControl(builder, action, onEvent, (button) => button.class('my-pill'), [action.label]),
 });
 ```
 
-The Foldkit entry exposes the group composition and individual native helpers
-`zlozPlaybackControl`, `zlozPlaybackStatus` and `zlozPlaybackReason`. The component
+The `/effect-ui` entry exposes the group composition and individual native helpers
+`playbackControl`, `playbackStatus` and `playbackReason`. The component
 is unstyled. Customize `renderControl`, `renderStatus`, `renderReason` and
 `renderLayout`, or use the helpers independently inside your own frame. Slot
 undefined retains a default; null omits a part. `controls` sets an ordered subset
@@ -3424,7 +3424,7 @@ return a nonempty blocked reason. Applying the ready EditionSelected event pause
 playback and clears elapsed timing. The host projects a read-only review while
 preserving the working editor and Undo.
 
-The `/foldkit` entry exposes `zlozEditionScrubber` and individual input, readout,
+The `/effect-ui` entry exposes `editionScrubber` and individual input, readout,
 reason and Open-button helpers. The controlled native range supports browser
 keyboard navigation and uses `aria-valuetext` for human labels. Its readout is
 non-live to avoid another announcement of each range value. A single edition

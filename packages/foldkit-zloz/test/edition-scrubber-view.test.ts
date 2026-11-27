@@ -1,20 +1,18 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozEditionScrubber,
-  zlozEditionScrubberInput,
-  zlozEditionScrubberReadout,
+  editionScrubber,
+  editionScrubberInput,
+  editionScrubberReadout,
   type ZlozEditionScrubberViewOptions,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import {
   createEditionPlayback,
   resolveEditionScrubber,
-  type ZlozEditionSeekRequest,
   type ZlozEditionScrubberContext,
 } from '../src/index';
 const context = resolveEditionScrubber(createEditionPlayback(['a', 'b', 'c']), {
@@ -22,21 +20,14 @@ const context = resolveEditionScrubber(createEditionPlayback(['a', 'b', 'c']), {
 });
 async function render(
   value: ZlozEditionScrubberContext = context,
-  options: ZlozEditionScrubberViewOptions<ZlozEditionSeekRequest> = {},
+  options: ZlozEditionScrubberViewOptions<string> = {},
 ) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: value }),
-        view: (model, h: HtmlBuilder<ZlozEditionSeekRequest>) => ({
-          title: 'Seek',
-          body: zlozEditionScrubber(h, model, (request) => request, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+  const Review = Html.component({ name: 'Seek', model: Schema.Null, message: Schema.String }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => editionScrubber(h, value, (event) => event.editionId ?? '', options),
+  });
+  const result = await Effect.runPromise(HtmlServer.renderToHtml(Review, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = result.html;
   return window.document;
@@ -73,16 +64,13 @@ test('single/empty/blocked states preserve explicit opening and visible reasons'
 test('slots customize native input/readout and layout, or omit every part without changing the cursor', async () => {
   const document = await render(context, {
     renderInput: (value, h, onSeek) =>
-      zlozEditionScrubberInput(h, value, onSeek, [h.Class('my-track')]),
+      editionScrubberInput(h, value, onSeek, (element) => element.class('my-track')),
     renderReadout: (value, h) =>
-      zlozEditionScrubberReadout(h, value, [], [h.strong([], ['Custom']), value.valueText]),
+      editionScrubberReadout(h, value, undefined, [h.strong('Custom'), value.valueText]),
     renderOpen: () => null,
     renderReason: () => null,
     renderLayout: (parts, _value, h) => [
-      h.div(
-        [h.Class('my-frame')],
-        [...(parts.readout ? [parts.readout] : []), ...(parts.input ? [parts.input] : [])],
-      ),
+      h.div.class('my-frame').children(parts.readout, parts.input),
     ],
   });
   expect(document.querySelector('.my-frame')?.firstElementChild?.tagName).toBe('OUTPUT');

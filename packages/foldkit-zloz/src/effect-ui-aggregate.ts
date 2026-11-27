@@ -1,7 +1,8 @@
 import type { Html } from '@effect/ui/html';
-import type { ZlozAggregateLink, ZlozAggregateProjection } from '@opsydyn/foldkit-zloz';
 
-export function aggregateViewContent<M>(h: Html.H<M>, aggregate: ZlozAggregateProjection | null) {
+import type { ZlozAggregateLink, ZlozAggregateProjection } from './aggregate';
+
+export function aggregateView<M>(h: Html.H<M>, aggregate: ZlozAggregateProjection | null) {
   const panel = h.section.class('zloz-aggregate-view').attr('aria-label', 'Aggregate view');
   if (!aggregate)
     return panel.children(h.p.children('Select an aggregate or aggregate root on the canvas.'));

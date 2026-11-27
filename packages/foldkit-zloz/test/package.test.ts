@@ -22,6 +22,7 @@ import patchReceiptV3Wire from './fixtures/modelling-patch-receipt-v3.json';
 import patchV1Wire from './fixtures/modelling-patch-v1.json';
 import nativePatchWire from './fixtures/modelling-patch-v2.json';
 import patchV3Wire from './fixtures/modelling-patch-v3.json';
+import orderAggregateWire from './fixtures/order-aggregate-v1.json';
 import workshopWire from './fixtures/workshop-v1.json';
 const exec = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -59,8 +60,8 @@ async function checkNativeGroupPackage(
     entry,
     `import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { createArchitectureNode, startGroupHeaderMeasurement, captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, createContextMapPattern, resolveContextMapRelationship, dddRelationshipPolicy, resolveDddRelationshipControls, createEventStormingPattern, resolveEventStormingRelationshipControls, eventStormingRelationshipPolicy, createEventStormingWorkshopPattern, resolveEventStormingWorkshopControls, captureModellingPatch, createEditor, resolveModellingPatchReview, createArchitecturePattern, createPlacement, resolvePlacementControls, captureEdition, compareEditions, resolveHistoryChangeNavigator, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
-import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, graphSurface, groupHeaderMeasurementProbe, contextMapConnector, contextMapParticipant, dddRelationshipControls, dddRelationshipPatternSelect, eventStormingRelationshipControls, eventStormingRelationshipInference, workshopControls, workshopSelect, modellingPatchReview, placementHost, placementPalette, labelMeasurementProbe, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, historyChangeNavigator, historyChangeButton, historyChangeNavigatorV2, historyChangeButtonV2, historyComparisonV2, historyGhosts, historyGhostsV2, historyComparisonControls, historyGhostToggle, type ZlozHistoryChangeNavigatorViewOptionsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryPresentationPartsV2, type ZlozHistoryGhostOptionsV2, type GroupSurfaceOptionsV3, type NativeNotationParts } from '@opsydyn/foldkit-zloz/effect-ui';
+import { createArchitectureNode, parseGraph, projectAggregate, startGroupHeaderMeasurement, captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, createContextMapPattern, resolveContextMapRelationship, dddRelationshipPolicy, resolveDddRelationshipControls, createEventStormingPattern, resolveEventStormingRelationshipControls, eventStormingRelationshipPolicy, createEventStormingWorkshopPattern, resolveEventStormingWorkshopControls, captureModellingPatch, createEditor, resolveModellingPatchReview, createArchitecturePattern, createPlacement, resolvePlacementControls, captureEdition, compareEditions, resolveHistoryChangeNavigator, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
+import { aggregateView, groupSurfaceV3, groupInspectorV3, groupClipboardV3, graphSurface, groupHeaderMeasurementProbe, contextMapConnector, contextMapParticipant, dddRelationshipControls, dddRelationshipPatternSelect, eventStormingRelationshipControls, eventStormingRelationshipInference, workshopControls, workshopSelect, modellingPatchReview, placementHost, placementPalette, labelMeasurementProbe, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, historyChangeNavigator, historyChangeButton, historyChangeNavigatorV2, historyChangeButtonV2, historyComparisonV2, historyGhosts, historyGhostsV2, historyComparisonControls, historyGhostToggle, type ZlozHistoryChangeNavigatorViewOptionsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryPresentationPartsV2, type ZlozHistoryGhostOptionsV2, type GroupSurfaceOptionsV3, type NativeNotationParts } from '@opsydyn/foldkit-zloz/effect-ui';
 import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
@@ -191,6 +192,7 @@ const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: S
   init: () => null,
   update: () => null,
   view: (h) => h.div(
+    aggregateView(h, projectAggregate(parseGraph(${JSON.stringify(JSON.stringify(orderAggregateWire))}), 'order')),
     groupSurfaceV3(h, copied, viewOptions),
     groupInspectorV3(h, copied, viewOptions),
     groupClipboardV3(h, copied, viewOptions),
@@ -288,7 +290,8 @@ for (const text of ['data-flow-owner="g"', 'Fit view', 'Copy selection', 'Paste 
   'Packed workshop status', 'Hotspot status', 'Packed context pattern:', 'Packed context participant',
   'data-zloz-group-header-measurement-scope', 'data-zloz-group-header="boundary"',
   'data-flow-c4-node="component"', 'data-flow-c4-group="boundary"', 'Packed custom technology',
-  'Select Packed component', 'data-flow-ddd-node="order"', 'data-flow-ddd-group="aggregate"',
+  'Select Packed component', 'Aggregate view', 'Handled commands', 'PlaceOrder',
+  'OrderPlaced', 'Activates Request payment', '(inferred)', 'data-flow-ddd-node="order"', 'data-flow-ddd-group="aggregate"',
   'Packed DDD badge: aggregate-root', 'data-zloz-event-storming-group="workshop-lane"',
   'Packed hotspot: open', 'Packed hotspot meaning', '--flow-event-storming-event:var(--host-event)',
   'data-zloz-context-map-edge="orders-billing"', 'data-zloz-context-map-label="orders-billing"']) {

@@ -44,6 +44,7 @@ import { viewportItems, type ZlozViewportCulling } from './viewport-culling';
 import { resolveEdgeWaypointControls, waypointLabelPosition } from './waypoint-controls';
 import { resolveEdgeWaypointPreview } from './waypoint-interaction';
 
+export { aggregateView } from './effect-ui-aggregate';
 export { canvasHelpContext, canvasStatusContext } from './canvas-accessibility';
 export type {
   ZlozCanvasHelpContext,

@@ -36,6 +36,7 @@ import {
 } from '@opsydyn/foldkit-zloz-alchemy/session';
 import type { DiagramSession, DiagramRoom } from '@opsydyn/foldkit-zloz-alchemy/session';
 import {
+  aggregateView as aggregateViewContent,
   canvasStatusContext,
   graphSurface,
   historyMinimap,
@@ -52,7 +53,6 @@ import { teamIcon } from '../appearance/icons';
 import { publishTitle, titleChanges } from '../board-settings/channel';
 import * as DiagramImport from '../likec4/board';
 import { requestLimit } from '../likec4/review';
-import { aggregateViewContent } from './aggregate-view';
 import * as Assessment from './assessment';
 import { bridgeEvent, isAuthoredGesture } from './bridge';
 import { boardWidths, historyMotion, historyVisibility } from './browser-signals';

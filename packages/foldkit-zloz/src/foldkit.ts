@@ -2668,5 +2668,3 @@ export {
   zlozDddAuditReason,
 } from './ddd-audit-controls-view';
 export type { ZlozDddAuditParts, ZlozDddAuditViewOptions } from './ddd-audit-controls-view';
-
-export { zlozAggregateView } from './aggregate-view';

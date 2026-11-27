@@ -733,5 +733,42 @@
         "outcome": "caught"
       }
     ]
+  },
+  {
+    "workspace": "packages/foldkit-viz",
+    "selected": 3,
+    "budgetSkipped": 0,
+    "failed": false,
+    "run": 46070950476,
+    "attempt": 1,
+    "commit": "f373852c6e3afa348698419ec13ab020afdddb16",
+    "startedAt": "2026-11-27T21:32:21Z",
+    "reportSha256": "152af6fbf66d35614e6f3a62ccfac38ae586f3875780c807822282b7fb050f2b",
+    "entries": [
+      {
+        "id": "47434606e330580e5ef0a603",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      },
+      {
+        "id": "cec254c4a128d942fd973c7a",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      },
+      {
+        "id": "fcf999e3071a382b77893676",
+        "file": "src/chart/layout.ts",
+        "fn": "linearLabels",
+        "genre": "FnValue",
+        "line": 197,
+        "outcome": "caught"
+      }
+    ]
   }
 ]

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { Match } from 'effect';
+import { UiSchema } from '@effect/ui';
+import { Match, Schema } from 'effect';
 import { toHtml } from 'hast-util-to-html';
 
 import {
@@ -159,12 +160,12 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
 });
 
 test('resource lifecycle messages discard opaque engine and error values', async () => {
-  const [{ Message }, { init }, { Schema }] = await Promise.all([
-    import('../src/examples/comparison/message'),
-    import('../src/examples/comparison/model'),
-    import('effect'),
-  ]);
-  type Model = ReturnType<typeof init>['model'];
+  const Message = UiSchema.TaggedEnum({
+    AcquiredHighlighter: {},
+    FailedHighlighter: {},
+    ReleasedHighlighter: {},
+  });
+  type Model = Readonly<{ id: string }>;
   const resources = highlightingResources<Model, typeof Message.Type>({
     acquired: Message.AcquiredHighlighter,
     failed: Message.FailedHighlighter,

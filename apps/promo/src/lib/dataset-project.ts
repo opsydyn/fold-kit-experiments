@@ -74,7 +74,7 @@ export function datasetProject(
     'src/entry.ts': effectUiEntry(
       sources,
       'DatasetExplorer',
-      'explorer.css',
+      { module: './main', stylesheet: 'explorer.css' },
       "{ transport: 'fixtures', sources }",
     ),
     'src/standalone.css': standaloneStyles,

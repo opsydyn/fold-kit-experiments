@@ -27,7 +27,9 @@ async function open(page: Page): Promise<string[]> {
   const errors = watchErrors(page);
   await page.goto('/comparison');
   await expect(page.locator('.comparison-panel')).toHaveCount(2);
-  // The island has hydrated once its controls respond.
+  const island = page.locator('astro-island').filter({ has: page.locator('.comparison') });
+  await expect(island.locator('[data-effect-ui-root]')).toHaveCount(1);
+  await expect(island).not.toHaveAttribute('ssr');
   await expect(page.locator('#comparison-add-scatter')).toBeEnabled();
   return errors;
 }
@@ -65,6 +67,14 @@ test.describe('chart comparison', () => {
     page,
   }) => {
     const errors = await open(page);
+    const root = page.locator('astro-island [data-effect-ui-root]').filter({
+      has: page.getByRole('button', { name: 'Add scatter' }),
+    });
+    await expect(root).toHaveCount(1);
+    await expect(chartOf(page, 'Scatter 1').locator('svg desc')).toHaveJSProperty(
+      'namespaceURI',
+      'http://www.w3.org/2000/svg',
+    );
     await expect(headings(page)).toHaveText(['Scatter 1', 'Histogram 2']);
     await expect(page.getByRole('button', { name: 'Add scatter' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add histogram' })).toBeVisible();

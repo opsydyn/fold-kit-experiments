@@ -1,17 +1,9 @@
-import workspace from '../../../../package.json' with { type: 'json' };
 import type { SourceFile } from './example-project';
-
-// The Vite plugin accepts platform patches that can require a newer Effect.
-const platformNode = workspace.workspaces.catalog['@effect/platform-node'];
-export const standaloneEffectOverrides = {
-  '@effect/platform-node': platformNode,
-  '@effect/platform-node-shared': platformNode,
-};
 
 export function effectUiEntry(
   sources: ReadonlyArray<SourceFile>,
-  component: 'DatasetExplorer' | 'Histogram' | 'Line' | 'Scatter',
-  stylesheet: 'explorer.css' | 'chart.css',
+  component: 'DatasetExplorer' | 'Histogram' | 'Line' | 'Scatter' | 'PromoComparison',
+  source: { readonly module: string; readonly stylesheet?: string },
   props: string,
 ): string {
   const imports = sources
@@ -23,9 +15,8 @@ export function effectUiEntry(
   return `import { Renderer } from '@effect/ui';
 import { BrowserHost, Html } from '@effect/ui/html';
 import { Effect, Fiber } from 'effect';
-import { ${component} } from './main';
-import './${stylesheet}';
-import './standalone.css';
+import { ${component} } from '${source.module}';
+${source.stylesheet === undefined ? '' : `import './${source.stylesheet}';\n`}import './standalone.css';
 ${imports}
 const container = document.getElementById('app');
 if (!container) throw new Error('Missing example container');

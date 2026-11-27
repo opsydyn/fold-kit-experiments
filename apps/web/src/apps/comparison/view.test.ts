@@ -1,21 +1,31 @@
-import { Option } from 'effect';
+import { Html, HtmlServer } from '@effect/ui/html';
+import { Effect, Option } from 'effect';
 import { expect, it } from 'vitest';
 
 import { linkedDots } from '../../ui/plot-panel/highlights.test-helper';
-import { renderChart } from '../../ui/shared/render-chart.test-helper';
-import type { Message } from './message';
-import { Linking, init } from './model';
-import type { Model } from './model';
-import { body } from './view';
+import { init, Linking, Message, Model } from './workbench-state';
+import { workbenchView } from './workbench-view';
+
+const ComparisonFixture = Html.component({
+  name: 'ComparisonFixture',
+  props: Model,
+  model: Model,
+  message: Message,
+}).make({
+  init: ({ props }) => props,
+  update: ($) => $.model,
+  view: (h, model) => workbenchView(h, model, (message) => message),
+});
 
 async function rendered(model: Model) {
   const node = document.createElement('div');
-  node.innerHTML = await renderChart<Message>((h) => body(model, h));
+  const { html } = await Effect.runPromise(HtmlServer.renderToHtml(ComparisonFixture, model));
+  node.innerHTML = html;
   return node;
 }
 
 it('renders every linked match, a separate local tooltip and both data alternatives', async () => {
-  const initial = init().model;
+  const initial = init();
   const model: Model = {
     ...initial,
     panels: initial.panels.map((panel) =>
@@ -51,7 +61,7 @@ it('renders every linked match, a separate local tooltip and both data alternati
 });
 
 it('keeps stable headings, native linking, named controls and disabled add boundaries', async () => {
-  const initial = init().model;
+  const initial = init();
   const node = await rendered(initial);
   expect(node.querySelector('#comparison-panel-1[tabindex="-1"]')?.textContent).toContain(
     'Scatter 1',
@@ -76,7 +86,7 @@ it('keeps stable headings, native linking, named controls and disabled add bound
       panels: [1, 2, 3, 4].map((id) => ({ id, kind: 'scatter' as const })),
       nextPanelId: 5,
       linkInspections: true,
-    }).model,
+    }),
   ]) {
     const capped = await rendered(model);
     expect(capped.querySelector('#comparison-add-scatter')?.hasAttribute('disabled')).toBe(true);

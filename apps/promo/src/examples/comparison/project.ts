@@ -1,16 +1,15 @@
 import { Match, Schema } from 'effect';
 import { strToU8, zipSync } from 'fflate';
 
-import type * as Comparison from '../../../../web/src/apps/comparison/main';
-import { Linking } from '../../../../web/src/apps/comparison/model';
 import { Settings } from '../../../../web/src/apps/comparison/settings';
+import { Linking, type Model } from '../../../../web/src/apps/comparison/workbench-state';
 
 // This is a maintained source path, not a domain status sentinel.
 // oxlint-disable-next-line linteffect/no-string-sentinel-const
 export const settingsPath = 'web/src/apps/comparison/initial-settings.ts';
 type ProjectFiles = Readonly<Record<string, string>>;
 
-export function captureSettings(model: Comparison.Model): Settings {
+export function captureSettings(model: Model): Settings {
   const panels = model.panels.map((panel) =>
     Match.value(panel).pipe(
       Match.when({ _tag: 'Scatter' }, ({ id }) => ({ id, kind: 'scatter' as const })),

@@ -1,10 +1,10 @@
-import { SourceHighlighter, highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
-import { SourceLine, focusSourceLine } from '@opsydyn/dataset-explorer/source-lines';
+import { Command } from '@effect/ui';
+import { SourceLine } from '@opsydyn/dataset-explorer/source-line-core';
+import { focusSourceLine, highlightSource } from '@opsydyn/dataset-explorer/source-ui';
 // Browser delivery is an imperative boundary, entirely inside Command Effects.
 /* oxlint-disable linteffect/no-if-statement, linteffect/no-magic-domain-string */
 import sdk from '@stackblitz/sdk';
 import { Data, Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { Settings } from '../../../../web/src/apps/comparison/settings';
 import { Message } from './message';
@@ -14,10 +14,10 @@ class ProjectPreparationError extends Data.TaggedError('ProjectPreparationError'
   readonly message: string;
 }> {}
 
-export const CopySource = Command.define('CopySource', {
-  args: { source: Schema.String },
-  messages: [Message.SucceededAction, Message.FailedAction],
-  execute: ({ source }) =>
+export const CopySource = Command.make(
+  'CopySource',
+  { args: { source: Schema.String } },
+  ({ source }) =>
     Effect.tryPromise({
       try: () => navigator.clipboard.writeText(source),
       catch: () => 'Copy was blocked. Select the code and copy it with your keyboard.',
@@ -27,16 +27,18 @@ export const CopySource = Command.define('CopySource', {
         onFailure: (error) => Message.FailedAction({ error }),
       }),
     ),
-});
+);
 
-export const ExportProject = Command.define('ExportProject', {
-  args: {
-    action: Schema.Literals(['download', 'playground']),
-    settings: Settings,
-    templateUrl: Schema.String,
+export const ExportProject = Command.make(
+  'ExportProject',
+  {
+    args: {
+      action: Schema.Literals(['download', 'playground']),
+      settings: Settings,
+      templateUrl: Schema.String,
+    },
   },
-  messages: [Message.SucceededAction, Message.FailedAction],
-  execute: ({ action, settings, templateUrl }) =>
+  ({ action, settings, templateUrl }) =>
     Effect.tryPromise({
       try: async () => {
         const response = await fetch(templateUrl);
@@ -73,33 +75,20 @@ export const ExportProject = Command.define('ExportProject', {
         onFailure: (error) => Message.FailedAction({ error }),
       }),
     ),
-});
+);
 
-export const HighlightSource = Command.define('HighlightSource', {
-  args: { source: Schema.String, language: Schema.String },
-  messages: [Message.SettledHighlightedSource],
-  execute: ({ source, language }) =>
-    SourceHighlighter.get.pipe(
-      Effect.match({
-        onSuccess: (engine) =>
-          Message.SettledHighlightedSource({
-            highlightedSource: {
-              source,
-              language,
-              tree: highlightedTree(source, language, engine),
-            },
-          }),
-        onFailure: () =>
-          Message.SettledHighlightedSource({
-            highlightedSource: { source, language, tree: highlightedTree(source, language) },
-          }),
-      }),
+export const HighlightSource = Command.make(
+  'HighlightComparisonSource',
+  { args: { source: Schema.String, language: Schema.String } },
+  ({ source, language }) =>
+    highlightSource(source, language).pipe(
+      Effect.map((highlightedSource) => Message.SettledHighlightedSource({ highlightedSource })),
     ),
-});
+);
 
-export const FocusSourceLine = Command.define('FocusSourceLine', {
-  args: SourceLine.fields,
-  messages: [Message.CompletedSourceLineFocus],
-  execute: (location) =>
+export const FocusSourceLine = Command.make(
+  'FocusComparisonSourceLine',
+  { args: SourceLine.fields },
+  (location) =>
     focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
-});
+);

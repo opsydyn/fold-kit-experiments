@@ -1,18 +1,26 @@
 import '@opsydyn/dataset-explorer/highlighting.css';
-import { highlightedCode } from '@opsydyn/dataset-explorer/highlighting';
-import type { Document, HtmlBuilder } from 'foldkit/html';
-import { defineView } from 'foldkit/submodel';
+import { Mount } from '@effect/ui';
+import type { Html } from '@effect/ui/html';
+import { highlightedCode, sourceLineChanges } from '@opsydyn/dataset-explorer/source-ui';
+import { Stream } from 'effect';
 
-import type * as Comparison from '../../../../web/src/apps/comparison/main';
-import { body } from '../../../../web/src/apps/comparison/view';
+import { workbenchView } from '../../../../web/src/apps/comparison/workbench-view';
 import { Message } from './message';
-import { ActionStatus } from './model';
-import type { Model } from './model';
+import { ActionStatus, type Model } from './model';
 import { currentSource } from './update';
 
 import './comparison-host.css';
 
-const workbenchView = defineView<Comparison.Model, Comparison.Message>(body);
+const ObserveSource = Mount.makeStream(
+  'ObserveComparisonSource',
+  { args: {} },
+  (element: HTMLElement) =>
+    Stream.concat(
+      Stream.make(Message.MountedSourceViewer()),
+      Stream.map(sourceLineChanges(element), Message.NavigatedSourceLine),
+    ),
+);
+
 const feedback = (model: Model): string =>
   ActionStatus.match(model.actionStatus, {
     Ready: () => '',
@@ -26,84 +34,62 @@ const feedback = (model: Model): string =>
     Failed: ({ error }) => error,
   });
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+export function view(h: Html.H<Message>, model: Model) {
   const pending = model.actionStatus._tag === 'Pending';
-  return {
-    title: 'Chart comparison - Foldkit Viz',
-    body: h.div(
-      [h.Class('comparison-host')],
-      [
-        h.submodel({
-          slotId: 'workbench',
-          model: model.workbench,
-          view: workbenchView,
-          toParentMessage: (message) => Message.GotWorkbenchMessage({ message }),
-        }),
-        h.div(
-          [h.Class('comparison-source')],
-          [
-            h.div(
-              [h.Class('comparison-source-toolbar')],
-              [
-                h.label([h.For('comparison-source-file')], ['Source file']),
-                h.select(
-                  [
-                    h.Id('comparison-source-file'),
-                    h.Value(model.activeFile),
-                    h.OnChange((name) => Message.SelectedFile({ name })),
-                  ],
-                  model.sources.map(({ name }) => h.option([h.Value(name)], [name])),
-                ),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Disabled(pending || model.sources.length === 0),
-                    h.OnClick(Message.ClickedCopy()),
-                  ],
-                  ['Copy file'],
-                ),
-              ],
+  return h.div
+    .class('comparison-host')
+    .onMount(Mount.map(ObserveSource(), (message) => message))
+    .children(
+      workbenchView(h, model.workbench, (message) => Message.ReceivedWorkbenchMessage({ message })),
+      h.div.class('comparison-source').children(
+        h.div.class('comparison-source-toolbar').children(
+          h.label.attr('for', 'comparison-source-file').children('Source file'),
+          h.select
+            .id('comparison-source-file')
+            .value(model.activeFile)
+            .on('change', ({ value: name }) => Message.SelectedFile({ name }))
+            .children(
+              ...model.sources.map(({ name }) => h.option.attr('value', name).children(name)),
             ),
-            h.pre(
-              [
-                h.Class('syntax-highlight'),
-                h.Tabindex(0),
-                h.AriaLabel(model.activeFile + ' source code'),
-              ],
-              [
-                h.code(
-                  [],
-                  highlightedCode(
-                    h,
-                    currentSource(model),
-                    model.activeFile,
-                    model.highlightedSource,
-                    model.activeFile,
-                  ),
-                ),
-              ],
+          h.button
+            .attr('type', 'button')
+            .disabled(pending || model.sources.length === 0)
+            .on('click', Message.ClickedCopy())
+            .children('Copy file'),
+        ),
+        h.pre
+          .class('syntax-highlight')
+          .attrs({ tabindex: '0', 'aria-label': model.activeFile + ' source code' })
+          .children(
+            h.code.children(
+              ...highlightedCode(
+                h,
+                currentSource(model),
+                model.activeFile,
+                model.highlightedSource,
+                model.activeFile,
+              ),
             ),
-          ],
+          ),
+      ),
+      h.div
+        .class('comparison-export')
+        .children(
+          h.p.attrs({ role: 'status', 'aria-live': 'polite' }).children(feedback(model)),
+          model.templateUrl === null
+            ? undefined
+            : [
+                h.button
+                  .attr('type', 'button')
+                  .disabled(pending)
+                  .on('click', Message.ClickedDownload())
+                  .children('Download project'),
+                h.button
+                  .attr('type', 'button')
+                  .disabled(pending)
+                  .on('click', Message.ClickedPlayground())
+                  .children('Open in StackBlitz'),
+              ],
         ),
-        h.div(
-          [h.Class('comparison-export')],
-          [
-            h.p([h.Role('status'), h.AriaLive('polite')], [feedback(model)]),
-            ...(model.templateUrl === null
-              ? []
-              : [
-                  h.button(
-                    [h.Type('button'), h.Disabled(pending), h.OnClick(Message.ClickedDownload())],
-                    ['Download project'],
-                  ),
-                  h.button(
-                    [h.Type('button'), h.Disabled(pending), h.OnClick(Message.ClickedPlayground())],
-                    ['Open in StackBlitz'],
-                  ),
-                ]),
-          ],
-        ),
-      ],
-    ),
-  };
+    );
 }

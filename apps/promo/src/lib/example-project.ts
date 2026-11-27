@@ -6,7 +6,7 @@ import workspace from '../../../../package.json' with { type: 'json' };
 import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
 import { datasetProject } from './dataset-project';
-import { effectUiEntry, standaloneEffectOverrides } from './standalone-effect';
+import { effectUiEntry } from './standalone-effect';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
@@ -60,27 +60,14 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
-  const effectUiChart = example === 'line' || example === 'histogram' || example === 'scatter';
-  const foldkitRuntime = {
-    foldkit: '0.171.0',
-    '@effect/platform-browser': workspace.workspaces.catalog['@effect/platform-browser'],
-  };
-  const effectUiRuntime = { '@effect/ui': workspace.workspaces.catalog['@effect/ui'] };
-  const runtime = effectUiChart ? effectUiRuntime : foldkitRuntime;
-  const sourceExports = effectUiChart
-    ? {
-        './source-ui': './source-ui.ts',
-        './source-line-core': './source-line-core.ts',
-        './highlighting-core': './highlighting-core.ts',
-      }
-    : { './source-lines': './source-lines.ts', './highlighting': './highlighting.ts' };
+  const runtime = { '@effect/ui': workspace.workspaces.catalog['@effect/ui'] };
   // Bundle the private shared renderer so exported examples do not require a workspace.
   if (example !== 'datasets') {
     const highlightingRoot = dirname(
-      fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/highlighting')),
+      fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/source-ui')),
     );
     for (const name of [
-      ...(effectUiChart ? ['source-ui.ts'] : ['source-lines.ts', 'highlighting.ts']),
+      'source-ui.ts',
       'source-line-core.ts',
       'highlighting-core.ts',
       'highlighting-engine.ts',
@@ -99,7 +86,9 @@ export async function buildExampleTemplate(
         private: true,
         type: 'module',
         exports: {
-          ...sourceExports,
+          './source-ui': './source-ui.ts',
+          './source-line-core': './source-line-core.ts',
+          './highlighting-core': './highlighting-core.ts',
           './highlighting.css': './highlighting.css',
         },
         dependencies: {
@@ -117,7 +106,7 @@ export async function buildExampleTemplate(
   const modules = [
     'chart/cartesian',
     'chart/theme',
-    ...(example === 'datasets' || effectUiChart ? ['effect-ui/cartesian'] : ['foldkit/cartesian']),
+    'effect-ui/cartesian',
     ...{
       line: ['math/scale', 'shape/line', 'shape/path', 'shape/symbol'],
       datasets: ['shape/symbol'],
@@ -153,10 +142,6 @@ export async function buildExampleTemplate(
     null,
     2,
   );
-  const devDependencies = effectUiChart
-    ? { vite: '8.3.1', typescript: '6.0.3' }
-    : { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' };
-  const overrides = effectUiChart ? undefined : standaloneEffectOverrides;
   files['package.json'] = JSON.stringify(
     {
       name: 'foldkit-viz-live-' + example,
@@ -183,15 +168,14 @@ export async function buildExampleTemplate(
         fflate: '0.8.3',
         '@stackblitz/sdk': '1.11.0',
       },
-      devDependencies,
-      overrides,
+      devDependencies: { vite: '8.3.1', typescript: '6.0.3' },
       stackblitz: { installDependencies: true, startCommand: 'npm start' },
     },
     null,
     2,
   );
   files['vite.config.ts'] =
-    "import { defineConfig } from 'vite';\nimport { foldkit } from '@foldkit/vite-plugin';\nexport default defineConfig({ plugins: [foldkit()] });\n";
+    "import { defineConfig } from 'vite';\nexport default defineConfig({});\n";
   files['tsconfig.json'] = JSON.stringify(
     {
       compilerOptions: {
@@ -217,47 +201,32 @@ export async function buildExampleTemplate(
     files['index.html'] =
       '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart comparison</title></head><body><main><h1>Chart comparison</h1><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>';
   }
-  const imports = sources
-    .map(({ name }, index) => `import source${index} from './${name}?raw';`)
-    .join('\n');
-  const sourceList = sources
-    .map(({ name }, index) => `{ name: '${name}', content: source${index} }`)
-    .join(',\n');
-  files['src/entry.ts'] =
-    "import { Runtime } from 'foldkit';\n" +
-    (example === 'comparison'
-      ? "import * as app from './promo/src/examples/comparison/main';\n"
-      : "import * as app from './main';\nimport './chart.css';\n") +
-    "import './standalone.css';\n" +
-    imports +
-    "\nconst container = document.getElementById('app');\nif (!container) throw new Error('Missing example container');\nconst sources = [\n" +
-    sourceList +
-    '\n] as const;\nRuntime.embed(Runtime.makeApplication({ ...app, container, devTools: false, init: () => app.init({ sources, templateUrl: null }) }));\n';
   files['src/standalone.css'] =
     ':root { color-scheme: light dark; --text:#151619; --muted:#5d6574; --border:#d9dce1; --surface:#fffefa; background:#f8f7f3; color:var(--text); font-family:system-ui,sans-serif; } * { box-sizing:border-box; } body { margin:0; } main { max-width:1160px; margin:auto; padding:32px 20px; } h1 { letter-spacing:-.04em; font-size:clamp(32px,6vw,56px); } p { line-height:1.6; } @media(prefers-color-scheme:dark) { :root { --text:#f4f2ed; --muted:#adb6c7; --border:#303641; --surface:#191c24; background:#111317; } }';
   files['README.md'] =
     '# Foldkit Viz live ' +
     example +
-    '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time. Change data/accessors in `src/chart.ts` and `src/data.ts` (where present), brand paints and keyed styles in `src/chart.ts`, surface tokens in `src/shared/frame.ts`, ordered layers and custom tooltips/annotations in `src/view.ts`. The Model owns measured width, controls and inspection; the scoped observer in `src/shared/measurement.ts` reports facts through Messages. Use the data table for complete raw values; numeric axes use concise caller-supplied formatting. Palette assignment is stable over an explicit domain and cycles deterministically.\n\nThe same maintained sources power the promo island. The geometry, semantic themes and optional FoldKit layers plus their compiled dependencies are included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+    '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time. Change data/accessors in `src/chart.ts` and `src/data.ts` (where present), brand paints and keyed styles in `src/chart.ts`, surface tokens in `src/shared/frame.ts`, ordered layers and custom tooltips/annotations in `src/view.ts`. The Model owns measured width, controls and inspection; the scoped observer in `src/shared/measurement.ts` reports facts through Messages. Use the data table for complete raw values; numeric axes use concise caller-supplied formatting. Palette assignment is stable over an explicit domain and cycles deterministically.\n\nThe same maintained sources power the promo island. The geometry, semantic themes and Effect UI views plus their compiled dependencies are included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. Effect UI, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
   if (example === 'comparison') {
     files['src/standalone.css'] =
       ':root { color-scheme: light dark; --text:#151619; --muted:#5d6574; --border:#d9dce1; --surface:#fff; background:#f4f6f8; color:var(--text); font-family:system-ui,sans-serif; } * { box-sizing:border-box; } body { margin:0; } main { max-width:1160px; margin:auto; padding:24px 16px; } h1 { font-size:24px; letter-spacing:0; } @media(prefers-color-scheme:dark) { :root { --text:#f4f2ed; --muted:#adb6c7; --border:#43464b; --surface:#232529; background:#17191c; } }';
     files['README.md'] =
-      '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
-  }
-  if (effectUiChart) {
-    files['vite.config.ts'] =
-      "import { defineConfig } from 'vite';\nexport default defineConfig({});\n";
-    files['src/entry.ts'] = effectUiEntry(
-      sources,
-      ({ line: 'Line', histogram: 'Histogram', scatter: 'Scatter' } as const)[example],
-      'chart.css',
-      '{ sources, templateUrl: null }',
-    );
-    files['README.md'] = files['README.md']
-      .replace('optional FoldKit layers', 'Effect UI views')
-      .replace('FoldKit, Effect,', 'Effect UI, Effect,');
+      '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. Effect UI, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
   }
   if (example === 'datasets') return datasetProject(files, sources);
+  const component = {
+    line: 'Line',
+    histogram: 'Histogram',
+    scatter: 'Scatter',
+    comparison: 'PromoComparison',
+  } as const;
+  files['src/entry.ts'] = effectUiEntry(
+    sources,
+    component[example],
+    example === 'comparison'
+      ? { module: './promo/src/examples/comparison/main' }
+      : { module: './main', stylesheet: 'chart.css' },
+    '{ sources, templateUrl: null }',
+  );
   return files;
 }

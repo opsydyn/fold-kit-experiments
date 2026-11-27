@@ -8,5 +8,11 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tools/**/*.ts", "tsdown.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "tools/**/*.ts",
+    "test/**/*.ts",
+    "tsdown.config.ts",
+    "vitest.config.ts"
+  ]
 }

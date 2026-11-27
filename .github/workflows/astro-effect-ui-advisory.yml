@@ -1,0 +1,69 @@
+name: Astro Effect UI client mutation advisory
+
+on:
+  pull_request:
+    paths:
+      - 'packages/astro-effect-ui/src/client.ts'
+      - 'packages/astro-effect-ui/src/component.ts'
+      - 'packages/astro-effect-ui/src/server.ts'
+      - 'packages/astro-effect-ui/test/client.test.ts'
+      - 'packages/astro-effect-ui/vitest.config.ts'
+      - 'packages/astro-effect-ui/package.json'
+      - '.github/workflows/astro-effect-ui-advisory.yml'
+      - 'tools/mutant-cafe/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: astro-effect-ui-client-mutation-advisory-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  astro-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - run: bun install --frozen-lockfile
+
+      - name: Install the locked mutation tool
+        run: npm ci --prefix tools/mutant-cafe
+
+      - name: Replay standalone renderer client mutations
+        id: mutation
+        working-directory: packages/astro-effect-ui
+        run: |
+          package_dir=$PWD
+          suite="$RUNNER_TEMP/astro-effect-ui-suite"
+          mkdir -p "$suite"
+          cp -R src test package.json tsconfig.json vitest.config.ts "$suite/"
+          ln -s "$package_dir/node_modules" "$suite/node_modules"
+          cd "$suite"
+          "$package_dir/../../tools/mutant-cafe/node_modules/.bin/mutant-cafe" --advisory --format github \
+            --file src/client.ts --jobs 1 --max-mutants 6 --baseline-timeout 300 \
+            --output "$RUNNER_TEMP/astro-mutants"
+
+          jq -e '.results | length == 6' "$RUNNER_TEMP/astro-mutants/outcomes.json"
+
+      - name: Upload mutation outcomes
+        if: ${{ !cancelled() && steps.mutation.outcome != 'skipped' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ github.run_attempt == 1 && 'astro-effect-ui-client-outcomes' || format('astro-effect-ui-client-outcomes-{0}', github.run_attempt) }}
+          path: ${{ runner.temp }}/astro-mutants/outcomes.json
+          if-no-files-found: error

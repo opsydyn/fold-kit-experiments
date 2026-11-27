@@ -1,6 +1,9 @@
+tags: ['foldkit-vitest']
 tasks:
   build:
     script: 'tsdown && bun tools/stage-package.ts'
     outputs: ['dist/**/*']
   typecheck:
     script: 'tsc --noEmit'
+  test:
+    script: 'vitest run'

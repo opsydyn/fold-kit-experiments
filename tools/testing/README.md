@@ -7,6 +7,7 @@ Run these commands from the repository root. On a fresh checkout, use the Bun ve
 | Full workspace test suite                          | `bun run test`                                                                               |
 | P0 tests for release-blocking user impact          | `bun run test:p0`                                                                            |
 | All Vitest projects                                | `bun run test:vitest run`                                                                    |
+| Astro Effect UI renderer tests                     | `bun run test:vitest run --project astro-effect-ui`                                          |
 | Cartesian scale tests                              | `bun run test:vitest run --project foldkit-viz`                                              |
 | Watch a workbench test                             | `bun run test:vitest watch --project zloz-demo history.test.ts`                              |
 | One workspace and its build prerequisites          | `bun moon run web:test`, `bun moon run zloz-demo:test` or `bun moon run foldkit-viz-py:test` |
@@ -27,7 +28,7 @@ Run `bun run test:p0` locally. CI runs the same check alongside the full suite, 
 
 ## Testing Effect UI workspaces
 
-The root Vitest command asks Moon to build the tagged apps’ workspace dependencies, then forwards the arguments to Vitest 5. Use `bun run test:vitest list --filesOnly` to see which files each project discovers. The root config loads each app’s existing Vitest config, which chooses its test files and environment. The web app uses happy-dom and its CSS transform. The Zloz demo and the Cartesian scale tests in foldkit-viz run in Node. The [axis mutation advisory](../../.github/workflows/viz-axis-advisory.yml) runs the Cartesian suite against three label replacements in an isolated copy of the package source and archives those outcomes in the field guide. The package’s other unit tests run under Bun in the workspace test job.
+The root Vitest command asks Moon to build the tagged apps’ workspace dependencies, then forwards the arguments to Vitest 5. Use `bun run test:vitest list --filesOnly` to see which files each project discovers. The root config loads each app’s existing Vitest config, which chooses its test files and environment. The web app uses happy-dom and its CSS transform. The Zloz demo and the Cartesian scale tests in foldkit-viz run in Node. The [axis mutation advisory](../../.github/workflows/viz-axis-advisory.yml) runs the Cartesian suite against three label replacements in an isolated copy of the package source and archives those outcomes in the field guide. The [Astro client mutation advisory](../../.github/workflows/astro-effect-ui-advisory.yml) exercises the standalone renderer. The Viz package’s other unit tests run under Bun in the workspace test job.
 
 The private `@opsydyn/testing/tags` entry supplies the shared Vitest tags. `foldkit-vitest` is the existing Moon tag for preparing the Vitest workspaces.
 

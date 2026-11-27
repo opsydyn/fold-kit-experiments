@@ -9,7 +9,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsdown && bun tools/stage-package.ts"
+    "build": "tsdown && bun tools/stage-package.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@effect/ui": "catalog:",
@@ -17,9 +18,12 @@
     "effect": "catalog:"
   },
   "devDependencies": {
+    "@opsydyn/testing": "workspace:*",
     "@types/node": "catalog:",
     "bun-types": "catalog:",
+    "happy-dom": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

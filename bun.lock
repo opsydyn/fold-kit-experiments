@@ -103,7 +103,6 @@
       "dependencies": {
         "@fontsource-variable/inter": "catalog:",
         "@opsydyn/astro-effect-ui": "workspace:*",
-        "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/dataset-explorer": "workspace:*",
         "@opsydyn/effect-three": "workspace:*",
         "@opsydyn/effect-three-foldkit": "workspace:*",
@@ -112,7 +111,6 @@
         "@opsydyn/effect-three-troika": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
-        "foldkit": "catalog:",
         "hast-util-to-html": "catalog:",
         "three": "catalog:",
         "vscode-oniguruma": "catalog:",

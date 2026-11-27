@@ -1,12 +1,11 @@
 import effectUi from '@opsydyn/astro-effect-ui';
-import foldkit from '@opsydyn/astro-foldkit';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   output: 'static',
   site: process.env.THREE_PROMO_SITE_URL ?? 'https://opsydyn.github.io',
   base: process.env.THREE_PROMO_BASE_PATH ?? '/',
-  integrations: [foldkit(), effectUi({ interaction: false })],
+  integrations: [effectUi()],
   trailingSlash: 'always',
   server: {
     port: 4323,

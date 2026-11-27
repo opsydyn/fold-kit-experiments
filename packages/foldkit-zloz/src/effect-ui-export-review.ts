@@ -14,6 +14,24 @@ type Options<M> = Readonly<{
   renderFinding?: (finding: Finding, h: Html.H<M>) => View.Content<M>;
 }>;
 
+type SvgReviewOptions<M> = Options<M> &
+  Readonly<{
+    hideRegion?: boolean;
+    status?: string;
+    showAcceptance?: boolean;
+    renderLayout?: (
+      parts: Readonly<{
+        settings: ReadonlyArray<View.Content<M>>;
+        preview: View.Content<M> | null;
+        findings: View.Content<M>;
+        status: View.Content<M>;
+        acceptance: View.Content<M> | null;
+        download: View.Content<M>;
+      }>,
+      h: Html.H<M>,
+    ) => View.Input<M>;
+  }>;
+
 const fields = [
   { key: 'regionId', label: 'region', entries: 'regions' },
   { key: 'themeId', label: 'theme', entries: 'themes' },
@@ -26,35 +44,38 @@ function settings<M>(
   kind: 'SVG' | 'PNG',
   svg: ZlozSvgReviewControls,
   change: (preferences: Settings) => M,
+  hideRegion = false,
 ) {
-  return fields.map(({ key, label, entries }) => {
-    const id = `${prefix}-${key}`;
-    const selected = svg.preferences[key];
-    const choices = svg[entries];
-    return h.div(
-      h.label.attr('for', id).children(`${kind} ${label}`),
-      h.select
-        .id(id)
-        .attr('data-zloz-svg-setting', key)
-        .on('change', ({ value }) => change({ ...svg.preferences, [key]: value }))
-        .children(
-          ...(choices.some((entry) => entry.id === selected)
-            ? []
-            : [
-                h.option
-                  .attr('value', selected)
-                  .selected(true)
-                  .children('Unavailable — choose an option'),
-              ]),
-          ...choices.map(({ id, label }) =>
-            h.option
-              .attr('value', id)
-              .selected(id === selected)
-              .children(label),
+  return fields
+    .filter(({ key }) => !hideRegion || key !== 'regionId')
+    .map(({ key, label, entries }) => {
+      const id = `${prefix}-${key}`;
+      const selected = svg.preferences[key];
+      const choices = svg[entries];
+      return h.div(
+        h.label.attr('for', id).children(`${kind} ${label}`),
+        h.select
+          .id(id)
+          .attr('data-zloz-svg-setting', key)
+          .on('change', ({ value }) => change({ ...svg.preferences, [key]: value }))
+          .children(
+            ...(choices.some((entry) => entry.id === selected)
+              ? []
+              : [
+                  h.option
+                    .attr('value', selected)
+                    .selected(true)
+                    .children('Unavailable — choose an option'),
+                ]),
+            ...choices.map(({ id, label }) =>
+              h.option
+                .attr('value', id)
+                .selected(id === selected)
+                .children(label),
+            ),
           ),
-        ),
-    );
-  });
+      );
+    });
 }
 
 function reviewImage<M>(h: Html.H<M>, kind: 'SVG' | 'PNG', src: string) {
@@ -120,9 +141,49 @@ export function svgReview<M>(
   h: Html.H<M>,
   context: ZlozSvgReviewControls,
   request: (event: ZlozSvgReviewRequest) => M,
-  options: Options<M>,
+  options: SvgReviewOptions<M>,
 ) {
   const { identity, result, findings, downloadReason } = context;
+  const parts = {
+    settings: settings(
+      h,
+      options.idPrefix,
+      'SVG',
+      context,
+      (preferences) => request({ ...identity, type: 'SvgSettingsChanged', preferences }),
+      options.hideRegion,
+    ),
+    preview:
+      result?.type === 'written'
+        ? reviewImage(
+            h,
+            'SVG',
+            `data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`,
+          )
+        : null,
+    findings: reviewFindings(h, 'SVG', findings, options.renderFinding),
+    status: h.p
+      .attr('role', 'status')
+      .children(downloadReason ?? options.status ?? 'SVG is ready to download.'),
+    acceptance:
+      context.hasLosses && options.showAcceptance !== false
+        ? acknowledgement(
+            h,
+            'SVG',
+            context.accepted,
+            result?.type !== 'written' || context.busy,
+            (accepted) => request({ ...identity, type: 'SvgLossAcceptanceChanged', accepted }),
+          )
+        : null,
+    download: h.button
+      .attr('type', 'button')
+      .attr('data-zloz-svg-download', '')
+      .class(options.download?.className ?? '')
+      .attr('title', downloadReason ?? `Download ${context.fileName}`)
+      .disabled(downloadReason !== null)
+      .on('click', request({ ...identity, type: 'SvgDownloadRequested' }))
+      .children(options.download?.label ?? 'Download SVG'),
+  };
   return h.div
     .attr('role', 'group')
     .attr('aria-label', 'SVG export review')
@@ -136,39 +197,16 @@ export function svgReview<M>(
               'Review the canonical-model export and its findings. Loss acceptance applies only to this artifact.',
             ),
           ]),
-      ...settings(h, options.idPrefix, 'SVG', context, (preferences) =>
-        request({ ...identity, type: 'SvgSettingsChanged', preferences }),
-      ),
-      ...(result?.type === 'written'
-        ? [
-            reviewImage(
-              h,
-              'SVG',
-              `data:image/svg+xml;charset=utf-8,${encodeURIComponent(result.svg)}`,
-            ),
-          ]
-        : []),
-      h.p.attr('role', 'status').children(downloadReason ?? 'SVG is ready to download.'),
-      reviewFindings(h, 'SVG', findings, options.renderFinding),
-      ...(context.hasLosses
-        ? [
-            acknowledgement(
-              h,
-              'SVG',
-              context.accepted,
-              result?.type !== 'written' || context.busy,
-              (accepted) => request({ ...identity, type: 'SvgLossAcceptanceChanged', accepted }),
-            ),
-          ]
-        : []),
-      h.button
-        .attr('type', 'button')
-        .attr('data-zloz-svg-download', '')
-        .class(options.download?.className ?? '')
-        .attr('title', downloadReason ?? `Download ${context.fileName}`)
-        .disabled(downloadReason !== null)
-        .on('click', request({ ...identity, type: 'SvgDownloadRequested' }))
-        .children(options.download?.label ?? 'Download SVG'),
+      options.renderLayout
+        ? options.renderLayout(parts, h)
+        : [
+            ...parts.settings,
+            parts.preview,
+            parts.status,
+            parts.findings,
+            parts.acceptance,
+            parts.download,
+          ],
       ...(options.diagnostics?.measurements === false
         ? []
         : [

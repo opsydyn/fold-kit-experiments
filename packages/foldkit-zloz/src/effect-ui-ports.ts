@@ -2,7 +2,7 @@ import type { View } from '@effect/ui';
 import type { Html } from '@effect/ui/html';
 
 import { portConnectionEnd } from './connection-mode';
-import { portAnchor, portPosition } from './geometry';
+import { portAnchor } from './geometry';
 import {
   portLabelContexts,
   portLabelLayout,
@@ -60,7 +60,7 @@ export function portSockets<M>(
 ) {
   const drag = editor.gesture.type === 'connection-drag' ? editor.gesture : undefined;
   return node.ports.map((port) => {
-    const point = portPosition(node, port.id);
+    const anchor = portAnchor(port, node);
     const end = portConnectionEnd(editor, port);
     const target = drag?.target?.node === node.id && drag.target.port === port.id;
     const active = editor.connection?.node === node.id && editor.connection.port === port.id;
@@ -72,7 +72,7 @@ export function portSockets<M>(
       {
         node,
         port,
-        anchor: portAnchor(port, node),
+        anchor,
         label,
         connectionEnd: end,
         active,
@@ -99,8 +99,8 @@ export function portSockets<M>(
       .disabled(reason !== null)
       .style({
         ...custom?.style,
-        left: `${point.x - node.position.x}px`,
-        top: `${point.y - node.position.y}px`,
+        left: `${anchor.x * 100}%`,
+        top: `${anchor.y * 100}%`,
       })
       .children(custom?.content ?? badge ?? '');
   });

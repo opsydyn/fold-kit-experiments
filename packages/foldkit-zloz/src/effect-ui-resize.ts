@@ -47,7 +47,7 @@ export function nodeResizeControls<M>(
     return [
       button(`Resize ${node.label}`)
         .key('resize:width')
-        .style({ left: '100%', top: '100%', cursor: 'ew-resize' })
+        .class('zloz-ui-resize', 'zloz-ui-width-resize')
         .children('↔'),
     ];
   }

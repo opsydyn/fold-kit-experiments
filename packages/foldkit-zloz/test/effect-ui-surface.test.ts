@@ -345,8 +345,8 @@ test('native port presentation keeps canonical anchors and input semantics', asy
   const socket = document.querySelector<HTMLButtonElement>('.custom-socket');
   expect(socket?.getAttribute('data-flow-port')).toBe('out');
   expect(socket?.getAttribute('data-flow-connection-end')).toBe('source');
-  expect(socket?.style.left).toBe('100px');
-  expect(socket?.style.top).toBe('20px');
+  expect(socket?.style.left).toBe('100%');
+  expect(socket?.style.top).toBe('25%');
   expect(socket?.textContent).toBe('source');
   expect(socket?.disabled).toBe(false);
   expect(document.querySelector('[data-flow-port="in"]')?.getAttribute('title')).toBe(

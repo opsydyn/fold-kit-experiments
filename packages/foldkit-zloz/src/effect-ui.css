@@ -96,6 +96,11 @@
   touch-action: none;
   user-select: none;
 }
+.zloz-ui-width-resize {
+  left: 100%;
+  top: 100%;
+  cursor: ew-resize;
+}
 .zloz-ui-resize-readout {
   position: absolute;
   left: 8px;

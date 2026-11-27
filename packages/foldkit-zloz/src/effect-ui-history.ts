@@ -135,7 +135,7 @@ export function historyMinimap<M>(
   h: Html.H<M>,
   state: EditorState,
   onEvent: (event: EditorEvent) => M,
-  options?: Readonly<{ compact?: boolean }>,
+  options?: Readonly<{ compact?: boolean; onEscape?: M }>,
 ) {
   const compact = options?.compact === true;
   const context = minimapContext(state);
@@ -178,6 +178,7 @@ export function historyMinimap<M>(
     .on(
       'keydown',
       ({ key, shift }) => {
+        if (key === 'Escape') return options?.onEscape;
         if (key === 'Home') return onEvent({ type: 'FitViewClicked' });
         const direction = arrowDirections.get(key);
         if (!direction) return undefined;

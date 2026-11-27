@@ -2,11 +2,6 @@ import { Mount, type View } from '@effect/ui';
 import { Html } from '@effect/ui/html';
 
 import { minimapInput } from './effect-ui-input';
-import type { ZlozHistoryChangeKind } from './history-change-navigator';
-import type {
-  ZlozHistoryChangeFocusRequestV2,
-  ZlozHistoryChangeNavigatorContextV2,
-} from './history-change-navigator-v2';
 import type { ZlozHistoryGhostVisibility } from './history-comparison-controls';
 import {
   drawHistoryGhosts,
@@ -17,17 +12,56 @@ import type { ZlozHistoryPresentationContextV2 } from './history-presentation-v2
 import { minimapContext } from './minimap-context';
 import type { EditorEvent, EditorState, Point, Size } from './types';
 
-export function historyComparisonV2<M>(h: Html.H<M>, context: ZlozHistoryPresentationContextV2) {
+export type ZlozHistoryPresentationPartsV2<M> = Readonly<{
+  summary: View.Content<M> | null;
+  mode: View.Content<M> | null;
+}>;
+export type ZlozHistoryPresentationViewOptionsV2<M> = Readonly<{
+  className?: string;
+  label?: string;
+  renderSummary?: (
+    context: ZlozHistoryPresentationContextV2,
+    h: Html.H<M>,
+  ) => View.Content<M> | null | undefined;
+  renderMode?: (
+    context: ZlozHistoryPresentationContextV2,
+    h: Html.H<M>,
+  ) => View.Content<M> | null | undefined;
+  renderLayout?: (
+    parts: ZlozHistoryPresentationPartsV2<M>,
+    context: ZlozHistoryPresentationContextV2,
+    h: Html.H<M>,
+  ) => View.Input<M>;
+}>;
+
+export function historyComparisonV2<M>(
+  h: Html.H<M>,
+  context: ZlozHistoryPresentationContextV2,
+  options: ZlozHistoryPresentationViewOptionsV2<M> = {},
+) {
+  const summary = options.renderSummary?.(context, h);
+  const mode = options.renderMode?.(context, h);
+  const parts = {
+    summary:
+      summary === undefined
+        ? h.span.attr('data-zloz-history-summary', '').children(context.summaryText)
+        : summary,
+    mode:
+      mode === undefined
+        ? h.span
+            .attr('data-zloz-history-mode', context.comparison.modeChange.kind)
+            .children(context.modeText)
+        : mode,
+  };
   return h.div
+    .class(options.className ?? '')
     .attr('role', 'status')
     .attr('aria-live', 'polite')
-    .attr('aria-label', 'History comparison')
+    .attr('aria-label', options.label?.trim() || 'History comparison')
     .children(
-      h.span.attr('data-zloz-history-summary', '').children(context.summaryText),
-      ' ',
-      h.span
-        .attr('data-zloz-history-mode', context.comparison.modeChange.kind)
-        .children(context.modeText),
+      options.renderLayout
+        ? options.renderLayout(parts, context, h)
+        : [parts.summary, parts.summary && parts.mode ? ' ' : null, parts.mode],
     );
 }
 
@@ -36,10 +70,10 @@ export type NativeHistoryGhostArtwork<M> = Pick<
   'renderNode' | 'renderEdge' | 'renderMovement'
 >;
 
-/** Inert world-space marks use the same geometry and visibility as the FoldKit view. */
+/** Inert world-space marks use the same geometry and visibility on the inspected checkpoint. */
 export function historyGhosts<M>(
   comparison: HistoryGhostComparison,
-  visibility: ZlozHistoryGhostVisibility,
+  visibility: Partial<ZlozHistoryGhostVisibility> = {},
   displaySide: 'baseline' | 'selected' = 'selected',
   artwork?: NativeHistoryGhostArtwork<M>,
 ) {
@@ -63,65 +97,18 @@ export function historyGhosts<M>(
   );
 }
 
-export function historyGhostsV2<M>(context: ZlozHistoryPresentationContextV2) {
-  return historyGhosts<M>(context.comparison, context.effectiveGhosts, context.displaySide);
-}
+export type ZlozHistoryGhostOptionsV2<M> = NativeHistoryGhostArtwork<M>;
 
-const changeKinds = ['added', 'removed', 'changed'] as const;
-
-export function historyChangeNavigatorV2<M>(
-  h: Html.H<M>,
-  context: ZlozHistoryChangeNavigatorContextV2,
-  handlers: {
-    onFilter: (kind: ZlozHistoryChangeKind) => M;
-    onFocus: (request: ZlozHistoryChangeFocusRequestV2) => M;
-  },
-  options: { className?: string; hideStatus?: boolean } = {},
+export function historyGhostsV2<M>(
+  context: ZlozHistoryPresentationContextV2,
+  artwork?: ZlozHistoryGhostOptionsV2<M>,
 ) {
-  return h.div
-    .class(options.className ?? '')
-    .attr('role', 'group')
-    .attr('aria-label', 'History change navigator')
-    .children(
-      ...changeKinds.map((kind) =>
-        h.label
-          .key(kind)
-          .children(
-            h.input
-              .attr('type', 'checkbox')
-              .attr('aria-label', context.filters[kind].label)
-              .checked(context.filters[kind].checked)
-              .on('click', handlers.onFilter(kind)),
-            context.filters[kind].label,
-          ),
-      ),
-      options.hideStatus
-        ? null
-        : h.p
-            .attr('role', 'status')
-            .attr('aria-live', 'polite')
-            .attr('aria-label', 'History changes status')
-            .children(context.statusText),
-      h.ul.attr('aria-label', 'History changes').children(
-        ...context.entries.map((entry) =>
-          h.li.key(entry.entity === 'mode' ? 'mode' : `${entry.entity}:${entry.id}`).children(
-            h.button
-              .attr('type', 'button')
-              .attr('data-zloz-history-change-v2', entry.entity)
-              .attr('aria-label', `View ${entry.summary}`)
-              .attr('aria-description', entry.reason ?? undefined)
-              .attr('title', entry.reason ?? undefined)
-              .disabled(entry.reason !== null)
-              .on('click', handlers.onFocus(entry.request))
-              .children(entry.summary),
-            entry.reason ? h.span(entry.reason) : null,
-          ),
-        ),
-      ),
-      context.reason
-        ? h.p.attr('aria-label', 'History changes availability').children(context.reason)
-        : null,
-    );
+  return historyGhosts<M>(
+    context.comparison,
+    context.effectiveGhosts,
+    context.displaySide,
+    artwork,
+  );
 }
 
 const arrowDirections = new Map<string, Point>([

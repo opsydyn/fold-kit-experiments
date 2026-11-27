@@ -63,8 +63,8 @@ The pure core exports `captureEdition`, `appendEdition`, `serializeEditions`,
 `parseEditions`, `createHistoryReview`, `updateHistoryReview`,
 `isHistoryNavigationEvent`, `compareEditions` and their `ZlozEdition`,
 `ZlozHistoryReview`, `ZlozHistoryChange`, `ZlozHistoryComparison` contracts.
-The optional Foldkit entry exports `zlozHistoryGhosts` and
-`ZlozHistoryGhostOptions`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
+The `/effect-ui` entry exports `historyGhosts` and
+`NativeHistoryGhostArtwork`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
 for archive compatibility, navigation permissions and inert mark customization.
 
 ### Edition import and restore
@@ -133,8 +133,8 @@ Core exports `resolveEditionPlaybackControls` and its `ZlozPlaybackControlName`,
 and `ZlozPlaybackControlsOptions` contracts. Host restrictions add vetoes without
 removing core playback guards or blocking an active Pause.
 
-The `/foldkit` entry exports `zlozPlaybackControls`, `zlozPlaybackControl`,
-`zlozPlaybackStatus`, `zlozPlaybackReason`, `ZlozPlaybackControlsParts`,
+The `/effect-ui` entry exports `playbackControls`, `playbackControl`,
+`playbackStatus`, `playbackReason`, `ZlozPlaybackControlsParts`,
 `ZlozPlaybackControlsViewOptions` and `ZlozPlaybackTextOptions`. Native helpers,
 ordered subsets, nullable slots and a layout hook separate behavior from visual
 composition. See the [package example](../packages/foldkit-zloz/README.md#composable-playback-controls)
@@ -149,8 +149,8 @@ Core exports `resolveEditionScrubber`, `editionScrubberRequest` and
 dispatch; fresh host state/policy determines whether an EditionSelected event is
 ready, blocked or ignored.
 
-The `/foldkit` entry exports `zlozEditionScrubber`, `zlozEditionScrubberInput`,
-`zlozEditionScrubberReadout`, `zlozEditionScrubberReason`, `zlozEditionSeekButton`,
+The `/effect-ui` entry exports `editionScrubber`, `editionScrubberInput`,
+`editionScrubberReadout`, `editionScrubberReason`, `editionSeekButton`,
 `ZlozEditionScrubberParts` and `ZlozEditionScrubberViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#edition-scrubber-and-explicit-seeking)
 and [ADR 0027](adr/0027-seek-editions-with-a-composable-scrubber.md).
@@ -166,9 +166,9 @@ and the `ZlozHistoryComparisonControlsState`, `ZlozHistoryComparisonRequest`,
 stored preferences from effective visibility; fresh requests validate identity
 and current host policy without editing history or Undo.
 
-The `/foldkit` entry exports `zlozHistoryComparisonControls`,
-`zlozHistoryBaselineSelect`, `zlozHistoryGhostToggle`,
-`zlozHistoryComparisonStatus`, `zlozHistoryComparisonReason`,
+The `/effect-ui` entry exports `historyComparisonControls`,
+`historyBaselineSelect`, `historyGhostToggle`,
+`historyComparisonStatus`, `historyComparisonReason`,
 `ZlozHistoryComparisonControlsParts`, `ZlozHistoryComparisonTextOptions` and
 `ZlozHistoryComparisonControlsViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-comparison-controls)
@@ -186,9 +186,9 @@ pair, visible entity and current host policy before returning camera-only target
 Core also exports the existing `fitNodes` geometry primitive so earlier node bounds
 can frame a camera directly without constructing an editor graph.
 
-The `/foldkit` entry exports `zlozHistoryChangeNavigator`,
-`zlozHistoryChangeFilter`, `zlozHistoryChangeButton`, `zlozHistoryChangeStatus`,
-`zlozHistoryChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
+The `/effect-ui` entry exports `historyChangeNavigator`,
+`historyChangeFilter`, `historyChangeButton`, `historyChangeStatus`,
+`historyChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
 `ZlozHistoryChangeNavigatorParts` and `ZlozHistoryChangeNavigatorViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-change-navigation)
 and [ADR 0029](adr/0029-navigate-history-comparison-changes.md).

@@ -2664,39 +2664,12 @@ export type { ZlozViewOptions as FlowViewOptions };
 /** @deprecated Use resolveZlozDiagnostics. */
 export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics';
 
-export { zlozHistoryGhosts } from './history-ghosts';
-export type { ZlozHistoryGhostOptions } from './history-ghosts';
 export { zlozEventStormingNode, zlozEventStormingGroup } from './event-storming-renderer';
 export type {
   ZlozEventStormingContentContext,
   ZlozEventStormingContentRenderer,
   ZlozEventStormingNodeOptions,
 } from './event-storming-renderer';
-export {
-  zlozHistoryComparisonControls,
-  zlozHistoryBaselineSelect,
-  zlozHistoryGhostToggle,
-  zlozHistoryComparisonStatus,
-  zlozHistoryComparisonReason,
-} from './history-comparison-controls-view';
-export type {
-  ZlozHistoryComparisonTextOptions,
-  ZlozHistoryComparisonControlsParts,
-  ZlozHistoryComparisonControlsViewOptions,
-} from './history-comparison-controls-view';
-
-export {
-  zlozHistoryChangeNavigator,
-  zlozHistoryChangeFilter,
-  zlozHistoryChangeButton,
-  zlozHistoryChangeStatus,
-  zlozHistoryChangeReason,
-} from './history-change-navigator-view';
-export type {
-  ZlozHistoryChangeNavigatorHandlers,
-  ZlozHistoryChangeNavigatorParts,
-  ZlozHistoryChangeNavigatorViewOptions,
-} from './history-change-navigator-view';
 
 export {
   zlozEventStormingRelationshipControls,
@@ -2783,25 +2756,5 @@ export {
   zlozWorkshopStatusButton,
 } from './workshop-controls-view';
 export type { ZlozWorkshopParts, ZlozWorkshopViewOptions } from './workshop-controls-view';
-
-export {
-  zlozHistoryComparisonPresentationV2,
-  zlozHistoryGhostsV2,
-} from './history-presentation-v2-view';
-export type {
-  ZlozHistoryPresentationPartsV2,
-  ZlozHistoryPresentationViewOptionsV2,
-  ZlozHistoryGhostOptionsV2,
-} from './history-presentation-v2-view';
-
-export {
-  zlozHistoryChangeNavigatorV2,
-  zlozHistoryChangeButtonV2,
-} from './history-change-navigator-v2-view';
-export type {
-  ZlozHistoryChangeNavigatorHandlersV2,
-  ZlozHistoryChangeNavigatorPartsV2,
-  ZlozHistoryChangeNavigatorViewOptionsV2,
-} from './history-change-navigator-v2-view';
 
 export { zlozAggregateView } from './aggregate-view';

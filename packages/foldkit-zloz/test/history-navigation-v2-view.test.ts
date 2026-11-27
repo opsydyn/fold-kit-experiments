@@ -1,21 +1,15 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
+import { compareEditionsV2, parseModelDocumentV2, resolveHistoryChangeNavigatorV2 } from '../src';
 import {
-  compareEditionsV2,
-  parseModelDocumentV2,
-  resolveHistoryChangeNavigatorV2,
-  type ZlozHistoryChangeFocusRequestV2,
-} from '../src';
-import {
-  zlozHistoryChangeNavigatorV2,
-  zlozHistoryChangeButtonV2,
+  historyChangeNavigatorV2,
+  historyChangeButtonV2,
   type ZlozHistoryChangeNavigatorViewOptionsV2,
-} from '../src/foldkit';
+} from '../src/effect-ui';
 import wire from './fixtures/model-v2-modes.json';
 
 const before = parseModelDocumentV2(JSON.stringify(wire)).editions[0]!;
@@ -30,34 +24,23 @@ const after = {
 };
 const comparison = compareEditionsV2(before, after);
 const context = resolveHistoryChangeNavigatorV2(comparison, 'selected');
-async function render(
-  options: ZlozHistoryChangeNavigatorViewOptionsV2<ZlozHistoryChangeFocusRequestV2> = {},
-) {
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozHistoryChangeFocusRequestV2>) => ({
-          title: 'Navigator v2',
-          body: zlozHistoryChangeNavigatorV2(
-            h,
-            model,
-            {
-              onFocus: (request) => request,
-              onFilter: (): ZlozHistoryChangeFocusRequestV2 => ({
-                baselineId: before.id,
-                selectedId: after.id,
-                entity: 'mode',
-              }),
-            },
-            options,
-          ),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(options: ZlozHistoryChangeNavigatorViewOptionsV2<string> = {}) {
+  const TestView = Html.component({
+    name: 'HistoryTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) =>
+      historyChangeNavigatorV2(
+        h,
+        context,
+        { onFilter: (kind) => kind, onFocus: (request) => request.entity },
+        options,
+      ),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -83,7 +66,7 @@ test('entry, filter, status, reason and layout hooks support replacement, defaul
     filters: ['changed'],
     label: 'Custom changes',
     renderEntry: (entry, h, onFocus) =>
-      h.li([], [zlozHistoryChangeButtonV2(h, entry, onFocus, [], [`Badge ${entry.label}`])]),
+      h.li(historyChangeButtonV2(h, entry, onFocus, undefined, [`Badge ${entry.label}`])),
     renderFilter: () => null,
     renderStatus: () => null,
     renderReason: () => null,

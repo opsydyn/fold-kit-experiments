@@ -1,12 +1,16 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { zlozHistoryGhosts, type ZlozHistoryGhostOptions } from '../src/foldkit';
-import { captureEdition, compareEditions, type ZlozGraph } from '../src/index';
+import { historyGhosts, type NativeHistoryGhostArtwork } from '../src/effect-ui';
+import {
+  captureEdition,
+  compareEditions,
+  type ZlozGraph,
+  type ZlozHistoryGhostVisibility,
+} from '../src/index';
 const node = {
   id: 'a',
   label: 'Order',
@@ -34,20 +38,20 @@ const diff = compareEditions(
   captureEdition({ id: 'a', name: 'Before', snapshot: { graph: before } }),
   captureEdition({ id: 'b', name: 'After', snapshot: { graph: after } }),
 );
-async function render(options: ZlozHistoryGhostOptions<never> = {}, comparison = diff) {
-  const output = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: {} }),
-        view: (_model, h: HtmlBuilder<never>) => ({
-          title: 'Ghosts',
-          body: h.div([], [zlozHistoryGhosts(h, comparison, options) ?? h.span([], [])]),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(
+  options: Partial<ZlozHistoryGhostVisibility> & NativeHistoryGhostArtwork<string> = {},
+  comparison = diff,
+) {
+  const TestView = Html.component({
+    name: 'HistoryTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => h.div(historyGhosts(comparison, options, 'selected', options)),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
   window.document.body.innerHTML = output.html;
   return window.document;
@@ -63,7 +67,7 @@ test('ghosts use old geometry with independent movements; no ports, editing targ
     document.querySelectorAll('button, input, [tabindex], [data-flow-node], [data-flow-port]'),
   ).toHaveLength(0);
   expect(document.querySelector('[data-zloz-history-ghosts]')?.getAttribute('style')).toContain(
-    'pointer-events: none',
+    'pointer-events:none',
   );
   expect(document.body.textContent).toContain('Removed: Removed');
   expect(document.querySelector('[data-zloz-history-edge]')?.getAttribute('d')).toBe(

@@ -543,13 +543,31 @@ export type { ZlozDiagnostics } from './diagnostics';
 export { modellingPatchReview } from './effect-ui-patch-review';
 
 export {
-  historyChangeNavigatorV2,
   historyComparisonV2,
   historyGhosts,
   historyGhostsV2,
   historyMinimap,
   type NativeHistoryGhostArtwork,
+  type ZlozHistoryGhostOptionsV2,
+  type ZlozHistoryPresentationViewOptionsV2,
+  type ZlozHistoryPresentationPartsV2,
 } from './effect-ui-history';
+
+export {
+  historyChangeButton,
+  historyChangeButtonV2,
+  historyChangeFilter,
+  historyChangeNavigator,
+  historyChangeNavigatorV2,
+  historyChangeReason,
+  historyChangeStatus,
+  type ZlozHistoryChangeNavigatorHandlers,
+  type ZlozHistoryChangeNavigatorHandlersV2,
+  type ZlozHistoryChangeNavigatorParts,
+  type ZlozHistoryChangeNavigatorPartsV2,
+  type ZlozHistoryChangeNavigatorViewOptions,
+  type ZlozHistoryChangeNavigatorViewOptionsV2,
+} from './effect-ui-history-navigation';
 
 export { placementHost, placementPalette, placementPreview } from './effect-ui-placement';
 
@@ -573,3 +591,14 @@ export {
   type ZlozEditionScrubberParts,
   type ZlozEditionScrubberViewOptions,
 } from './effect-ui-playback';
+
+export {
+  historyBaselineSelect,
+  historyComparisonControls,
+  historyComparisonReason,
+  historyComparisonStatus,
+  historyGhostToggle,
+  type ZlozHistoryComparisonControlsParts,
+  type ZlozHistoryComparisonControlsViewOptions,
+  type ZlozHistoryComparisonTextOptions,
+} from './effect-ui-history-comparison';

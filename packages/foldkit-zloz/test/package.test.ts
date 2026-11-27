@@ -58,8 +58,9 @@ async function checkNativeGroupPackage(
     entry,
     `import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
-import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
+import { captureGroupDocumentV3, createGroupWorkbenchV3, updateGroupWorkbenchV3, groupLayoutRequestV3, applyGroupWorkbenchLayoutV3, groupWorkbenchRoutesV3, captureEdition, compareEditions, resolveHistoryChangeNavigator, resolveHistoryComparisonControls, createEditionPlayback, resolveEditionPlaybackControls, resolveEditionScrubber, createSvgReview, resolveGroupSvgReviewV3, createPngReview, resolveGroupPngReviewV3, type ZlozGroupWorkbenchEventV3 } from '@opsydyn/foldkit-zloz';
+import { groupSurfaceV3, groupInspectorV3, groupClipboardV3, svgReview, pngReview, playbackControls, playbackControl, editionScrubber, editionScrubberReadout, historyChangeNavigator, historyChangeButton, historyChangeNavigatorV2, historyChangeButtonV2, historyComparisonV2, historyGhosts, historyGhostsV2, historyComparisonControls, historyGhostToggle, type ZlozHistoryChangeNavigatorViewOptionsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryPresentationPartsV2, type ZlozHistoryGhostOptionsV2, type GroupSurfaceOptionsV3 } from '@opsydyn/foldkit-zloz/effect-ui';
+import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
 import { createElkGroupLayoutV3 } from '@opsydyn/foldkit-zloz-elk';
 
 const model = createGroupWorkbenchV3(captureGroupDocumentV3(${JSON.stringify(groupV3Wire)}), { sessionId: 'packed-group' });
@@ -95,6 +96,58 @@ const png = resolveGroupPngReviewV3(createPngReview('packed-png'), { ...exportCo
 const playback = createEditionPlayback(['first', 'next']);
 const transport = resolveEditionPlaybackControls(playback, { editionLabel: 'Packed first' });
 const seek = resolveEditionScrubber(playback, { labelEdition: (id) => 'Packed ' + id });
+const presentationModelV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(modelModesWire))});
+const presentationBeforeV2=presentationModelV2.editions[0]!;
+const presentationOptionsV2:ZlozHistoryPresentationOptionsV2={minimalMode:true,ghosts:{enabled:true},formatMode:(_change,text)=>text};
+const presentationV2:ZlozHistoryPresentationContextV2=resolveHistoryComparisonPresentationV2(presentationBeforeV2,{...presentationBeforeV2,snapshot:{...presentationBeforeV2.snapshot,connectionMode:'strict'}},presentationOptionsV2);
+const navigationOptionsV2:ZlozHistoryChangeNavigatorOptionsV2={focusReason:(_item,side)=>side==='baseline'?null:'Selected inspection protected'};
+const navigationV2:ZlozHistoryChangeNavigatorContextV2=resolveHistoryChangeNavigatorV2(presentationV2.comparison,'baseline',navigationOptionsV2);
+const navigationCursorV2:ZlozHistoryChangeCursorV2=navigationV2.entries[0]!.request;
+const navigationFocusV2=resolveHistoryChangeFocusV2(presentationV2.comparison,'baseline',navigationCursorV2,navigationOptionsV2);
+if(navigationFocusV2.type!=='ready'||navigationFocusV2.target.type!=='mode'||navigationFocusV2.target.side!=='baseline'||navigationFocusV2.target.connectionMode!=='loose'||'event' in navigationFocusV2.target||resolveHistoryChangeFocusV2(presentationV2.comparison,'selected',navigationCursorV2,navigationOptionsV2).type!=='blocked'||resolveHistoryChangeStepV2(presentationV2.comparison,'baseline',null,'next',navigationOptionsV2).type!=='ready')throw new Error('V2 navigation lost mode inspection, chosen side or live veto');
+// @ts-expect-error Mode entries do not have an authored graph ID.
+const impossibleModeRequestV2:ZlozHistoryChangeFocusRequestV2={baselineId:'a',selectedId:'b',entity:'mode',id:'invented'};void impossibleModeRequestV2;
+// @ts-expect-error Mode targets cannot issue editor reveal events.
+const impossibleModeTargetV2:ZlozHistoryChangeFocusTargetV2={type:'mode',side:'baseline',editionId:'a',connectionMode:'loose',event:{type:'NodeRevealRequested',id:'invented'}};void impossibleModeTargetV2;
+if(navigationV2.entries[0]?.entity==='mode') {
+// @ts-expect-error A mode transition is always a changed entry, never added or removed.
+const impossibleModeEntryV2:ZlozHistoryChangeEntryV2={...navigationV2.entries[0],kind:'added'};void impossibleModeEntryV2;
+}
+
+const navigationViewV2: ZlozHistoryChangeNavigatorViewOptionsV2<string> = {
+  renderEntry: (entry, h, onFocus) =>
+    h.li(historyChangeButtonV2(h, entry, onFocus, undefined, ['Packed change ' + entry.label])),
+};
+const presentationViewV2: ZlozHistoryPresentationViewOptionsV2<string> = {
+  renderMode: (context, h) => h.strong(context.modeText),
+  renderLayout: (parts: ZlozHistoryPresentationPartsV2<string>) => [parts.summary, parts.mode],
+};
+const presentationGhostsV2: ZlozHistoryGhostOptionsV2<string> = { renderNode: () => null };
+// @ts-expect-error Visibility belongs to the resolved context, not the drawing override.
+const impossibleGhostsV2: ZlozHistoryGhostOptionsV2<string> = { enabled: true };
+void impossibleGhostsV2;
+if (historyGhostsV2(presentationV2, presentationGhostsV2) !== null ||
+    !presentationV2.ghosts.enabled || presentationV2.effectiveGhosts.enabled) {
+  throw new Error('Packed V2 minimal mode must suppress ghost artwork');
+}
+
+const historyNode = {
+  id: 'packed-history-node', label: 'History node', position: { x: 0, y: 0 },
+  size: { width: 100, height: 80 }, ports: [],
+};
+const before = captureEdition({
+  id: 'packed-a', name: 'Packed original', snapshot: { graph: { nodes: [historyNode], edges: [] } },
+});
+const after = captureEdition({
+  id: 'packed-b', name: 'Packed evolved',
+  snapshot: { graph: { nodes: [{ ...historyNode, position: { x: 400, y: 90 } }], edges: [] } },
+});
+const history = compareEditions(before, after);
+const navigator = resolveHistoryChangeNavigator(history);
+const compare = resolveHistoryComparisonControls([before, after], after.id,
+  { baselineId: before.id, ghosts: { enabled: true, nodes: false, edges: true, movements: true } },
+  { ghostReasons: { edges: 'Packed policy' } },
+);
 const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: Schema.String }).make({
   init: () => null,
   update: () => null,
@@ -111,12 +164,27 @@ const App = Html.component({ name: 'PackedGroup', model: Schema.Null, message: S
     editionScrubber(h, seek, (request) => request.editionId ?? '', {
       renderReadout: (value, h) => editionScrubberReadout(h, value, undefined, ['Custom ' + value.valueText]),
     }),
+    historyComparisonControls(h, compare, (request) => request.type, {
+      renderGhost: (control, h, onRequest) =>
+        h.label(historyGhostToggle(h, control, onRequest), 'Custom ' + control.label),
+    }),
+    historyChangeNavigator(h, navigator, { onFilter: (kind) => kind, onFocus: (request) => request.id }, {
+      renderEntry: (entry, h, focus) => h.li(historyChangeButton(h, entry, focus, undefined, ['Custom ' + entry.summary])),
+    }),
+    h.div.attr('data-packed-history-ghosts', '').children(historyGhosts<string>(history, { edges: false })),
+    historyChangeNavigatorV2(h, navigationV2, { onFocus: (request) => request.entity, onFilter: (kind) => kind }, navigationViewV2),
+    historyComparisonV2(h, presentationV2, presentationViewV2),
+
   ),
 });
 const { html } = await Effect.runPromise(HtmlServer.renderToHtml(App, {}, { static: true }));
 for (const text of ['data-flow-owner="g"', 'Fit view', 'Copy selection', 'Paste copy',
   'Published interface is protected.', 'crosses the copied selection', 'Download SVG', 'SVG export preview',
-  'Render PNG', 'Accept the reported PNG losses', 'packed-pill', 'aria-description=', 'aria-valuetext=', 'Custom Packed first']) {
+  'Render PNG', 'Accept the reported PNG losses', 'packed-pill', 'aria-description=', 'aria-valuetext=', 'Custom Packed first',
+  'Packed policy', 'Custom Node ghosts', 'Packed evolved compared with Packed original.',
+  'Custom changed node:', 'aria-label="History changes"', 'data-zloz-history-movement=',
+  'data-zloz-history-change-v2="mode"', 'Packed change Connection mode',
+  'Connection mode changed from loose to strict.', 'role="status"']) {
   if (!html.includes(text)) throw new Error('Missing packed native group view: ' + text);
 }
 console.log('native-group-ok');
@@ -667,42 +735,13 @@ import { resolveDddAuditControls as resolvePackedDddControls, type ZlozDddAuditR
 import { zlozDddAuditControls, zlozDddAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
 import { resolveModellingPatchReview, applyModellingPatch, parseModellingPatch, type ZlozModellingPatchParseResult, captureModellingPatch, dryRunModellingPatch, resolveAuditComparisonControls, type ZlozAuditComparisonControlsContext, compareModelEventStormingRelationships, type ZlozRelationshipAuditComparisonDecision, auditEventStormingRelationships, type ZlozEventStormingRelationshipAudit, resolveEventStormingRelationshipControls, resolveEventStormingRelationshipRequest, createEventStormingPattern, resolveEventStormingRelationship, eventStormingRelationshipPolicy, type EventStormingEdgeArchitecture, fitNodes, resolveHistoryChangeNavigator, resolveHistoryChangeFocus, resolveHistoryComparisonControls, createEditionPlayback, captureModelDocument, serializeModelDocument, parseModelDocument, forkEdition, createModelEditor, type ZlozModelDocument, mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
 import { createPngReview, resolvePngReview, updatePngReview, type ZlozPngReviewContext, captureSvgLayout, planSvgExport, writeSvgExport, type ZlozSvgAdapter, type ZlozSvgLayoutOptions, startGroupHeaderMeasurement, updateGroupHeaderMeasurements, resolveGroupHeaderMeasurements, resolveLayoutGroupHeader, type LayoutGroupHeader, startLabelMeasurement, updateLabelMeasurements, resolveLabelMeasurements, createArchitectureNode, createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, applyPreviewLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type ZlozConnectionGeometryPolicy, resolveEdgeGeometry, type ZlozEdgeGeometryPolicy, type ZlozEdge, type ZlozGraph, type ZlozNode, type EditorEvent } from '@opsydyn/foldkit-zloz';
-import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelationshipPatternSelect, zlozDddUpstreamRole, zlozDddDownstreamRoleSelect, type ZlozDddRelationshipControlsViewOptions, zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingRelationshipControls, zlozEventStormingRelationshipInference, type ZlozEventStormingRelationshipControlsViewOptions, zlozHistoryChangeNavigator, zlozHistoryChangeButton, type ZlozHistoryChangeNavigatorViewOptions, zlozHistoryComparisonControls, zlozHistoryGhostToggle, type ZlozHistoryComparisonControlsViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozHistoryGhosts, type ZlozHistoryGhostOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
+import { zlozModellingPatchReview, zlozDddRelationshipControls, zlozDddRelationshipPatternSelect, zlozDddUpstreamRole, zlozDddDownstreamRoleSelect, type ZlozDddRelationshipControlsViewOptions, zlozAuditComparisonControls, zlozAuditFindingButton, type ZlozAuditComparisonViewOptions, zlozEventStormingRelationshipControls, zlozEventStormingRelationshipInference, type ZlozEventStormingRelationshipControlsViewOptions, zlozEventStormingNode, type ZlozEventStormingNodeOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozContextMapConnector, zlozContextMapLabel, zlozContextMapParticipant, type ZlozContextMapLabelOptions, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 
 import type { HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
-import { resolveHistoryChangeNavigatorV2, resolveHistoryChangeFocusV2, resolveHistoryChangeStepV2, type ZlozHistoryChangeEntryV2, type ZlozHistoryChangeCursorV2, type ZlozHistoryChangeFocusRequestV2, type ZlozHistoryChangeFocusTargetV2, type ZlozHistoryChangeNavigatorOptionsV2, type ZlozHistoryChangeNavigatorContextV2, parseModelDocumentV2, resolveHistoryComparisonPresentationV2, type ZlozHistoryPresentationOptionsV2, type ZlozHistoryPresentationContextV2 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryChangeNavigatorV2, zlozHistoryChangeButtonV2, type ZlozHistoryChangeNavigatorViewOptionsV2, zlozHistoryComparisonPresentationV2, zlozHistoryGhostsV2, type ZlozHistoryPresentationViewOptionsV2, type ZlozHistoryGhostOptionsV2, type ZlozHistoryPresentationPartsV2 } from '@opsydyn/foldkit-zloz/foldkit';
-const presentationModelV2=parseModelDocumentV2(${JSON.stringify(JSON.stringify(modelModesWire))});
-const presentationBeforeV2=presentationModelV2.editions[0]!;
-const presentationOptionsV2:ZlozHistoryPresentationOptionsV2={minimalMode:true,ghosts:{enabled:true},formatMode:(_change,text)=>text};
-const presentationV2:ZlozHistoryPresentationContextV2=resolveHistoryComparisonPresentationV2(presentationBeforeV2,{...presentationBeforeV2,snapshot:{...presentationBeforeV2.snapshot,connectionMode:'strict'}},presentationOptionsV2);
-const navigationOptionsV2:ZlozHistoryChangeNavigatorOptionsV2={focusReason:(_item,side)=>side==='baseline'?null:'Selected inspection protected'};
-const navigationV2:ZlozHistoryChangeNavigatorContextV2=resolveHistoryChangeNavigatorV2(presentationV2.comparison,'baseline',navigationOptionsV2);
-const navigationCursorV2:ZlozHistoryChangeCursorV2=navigationV2.entries[0]!.request;
-const navigationFocusV2=resolveHistoryChangeFocusV2(presentationV2.comparison,'baseline',navigationCursorV2,navigationOptionsV2);
-if(navigationFocusV2.type!=='ready'||navigationFocusV2.target.type!=='mode'||navigationFocusV2.target.side!=='baseline'||navigationFocusV2.target.connectionMode!=='loose'||'event' in navigationFocusV2.target||resolveHistoryChangeFocusV2(presentationV2.comparison,'selected',navigationCursorV2,navigationOptionsV2).type!=='blocked'||resolveHistoryChangeStepV2(presentationV2.comparison,'baseline',null,'next',navigationOptionsV2).type!=='ready')throw new Error('V2 navigation lost mode inspection, chosen side or live veto');
-// @ts-expect-error Mode entries do not have an authored graph ID.
-const impossibleModeRequestV2:ZlozHistoryChangeFocusRequestV2={baselineId:'a',selectedId:'b',entity:'mode',id:'invented'};void impossibleModeRequestV2;
-// @ts-expect-error Mode targets cannot issue editor reveal events.
-const impossibleModeTargetV2:ZlozHistoryChangeFocusTargetV2={type:'mode',side:'baseline',editionId:'a',connectionMode:'loose',event:{type:'NodeRevealRequested',id:'invented'}};void impossibleModeTargetV2;
-if(navigationV2.entries[0]?.entity==='mode') {
-// @ts-expect-error A mode transition is always a changed entry, never added or removed.
-const impossibleModeEntryV2:ZlozHistoryChangeEntryV2={...navigationV2.entries[0],kind:'added'};void impossibleModeEntryV2;
-}
-const navigationViewV2:ZlozHistoryChangeNavigatorViewOptionsV2<EditorEvent>={renderEntry:(entry,h,onFocus)=>h.li([], [zlozHistoryChangeButtonV2(h,entry,onFocus,[],['Packed change '+entry.label])])};
-const navigationOutputV2=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:navigationV2}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed v2 changes',body:zlozHistoryChangeNavigatorV2(h,context,{onFocus:():EditorEvent=>({type:'SelectionCleared'}),onFilter:():EditorEvent=>({type:'SelectionCleared'})},navigationViewV2)})},{flags:{},isHydratable:false}));
-if(!navigationOutputV2.html.includes('data-zloz-history-change-v2="mode"')||!navigationOutputV2.html.includes('Packed change Connection mode'))throw new Error('Missing packed v2 change controls');
-const presentationViewV2:ZlozHistoryPresentationViewOptionsV2<EditorEvent>={renderMode:(context,h)=>h.strong([], [context.modeText]),renderLayout:(parts:ZlozHistoryPresentationPartsV2)=>[...(parts.summary?[parts.summary]:[]),...(parts.mode?[parts.mode]:[])]};
-const presentationGhostsV2:ZlozHistoryGhostOptionsV2<EditorEvent>={renderNode:()=>null};
-// @ts-expect-error Visibility belongs to the resolved context, not the drawing override.
-const impossibleGhostsV2:ZlozHistoryGhostOptionsV2<EditorEvent>={enabled:true};void impossibleGhostsV2;
-const presentationOutputV2=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:presentationV2}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed v2 comparison',body:h.div([], [zlozHistoryComparisonPresentationV2(h,context,presentationViewV2),zlozHistoryGhostsV2(h,context,presentationGhostsV2)??h.span([],[])])})},{flags:{},isHydratable:false}));
-if(!presentationOutputV2.html.includes('Connection mode changed from loose to strict.')||!presentationOutputV2.html.includes('role="status"')||presentationOutputV2.html.includes('data-zloz-history-ghosts=')||!presentationV2.ghosts.enabled||presentationV2.effectiveGhosts.enabled)throw new Error('Packed v2 presentation lost mode text, customization or minimal visibility');
-
 if(typeof zlozModellingPatchReview!=='function')throw new Error('Packed patch controls missing');
 const externalEdge:ZlozEdge={id:'external-edge',source:{node:'a',port:'out'},target:{node:'b',port:'in'},label:'External relation'};
 const graph: ZlozGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',anchor:{x:0.75,y:0.25}}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',anchor:{x:0.25,y:0.75}}]}],edges:[externalEdge]};
@@ -934,10 +973,6 @@ const stormNote=createArchitectureNode({id:'placed',label:'Packed event',positio
 const stormOptions:ZlozEventStormingNodeOptions<EditorEvent>={bodyCache:createZlozNodeBodyCache(),renderType:({architecture},builder)=>builder.span([],['Custom '+architecture.role])};
 const stormOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:createEditor({nodes:[stormNote],edges:[]})}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Packed workshop',body:zlozView(h,model,{id:'packed-workshop',label:'Packed workshop',onEvent:event=>event,renderNodeShell:(context,builder)=>zlozEventStormingNode(context,builder,stormOptions),theme:{tokens:{eventStormingEvent:'var(--host-event)'}}})})},{flags:{},isHydratable:false}));
 if(!stormOutput.html.includes('data-zloz-event-storming-node=')||!stormOutput.html.includes('Custom domain-event')||!stormOutput.html.includes('--flow-event-storming-event: var(--host-event)'))throw new Error('Missing packed event-storming renderer');
-const comparisonContext=resolveHistoryComparisonControls([{id:'packed-a',name:'Packed original'},{id:'packed-b',name:'Packed evolved'}],'packed-b',{baselineId:'packed-a',ghosts:{enabled:true,nodes:false,edges:true,movements:true}},{ghostReasons:{edges:'Packed policy'}});
-const comparisonOptions:ZlozHistoryComparisonControlsViewOptions<EditorEvent>={renderGhost:(control,h,onRequest)=>h.label([],[zlozHistoryGhostToggle(h,control,onRequest),'Custom '+control.label])};
-const comparisonOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:comparisonContext}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed comparison',body:zlozHistoryComparisonControls(h,context,():EditorEvent=>({type:'SelectionCleared'}),comparisonOptions)})},{flags:{},isHydratable:false}));
-if(!comparisonOutput.html.includes('Packed policy')||!comparisonOutput.html.includes('Custom Node ghosts')||!comparisonOutput.html.includes('Packed evolved compared with Packed original.'))throw new Error('Missing packed comparison controls');
 // @ts-expect-error added changes must carry the new node
 const invalidHistoryChange:ZlozHistoryChange<ZlozNode>={id:'x',kind:'added',before:null,after:null,semanticChanged:true,layoutChanged:true};
 const edition=captureEdition({id:'first',name:'First',snapshot:{graph:{nodes:[dddNode],edges:[]}}});
@@ -965,12 +1000,6 @@ const navigatorEntry=navigatorContext.entries[0];
 const fittedBounds=fitNodes([dddNode],{width:800,height:600},24,{minZoom:0.1,maxZoom:4});
 if(!Number.isFinite(fittedBounds.zoom))throw new Error('Missing packed bounds fitter');
 if(!navigatorEntry || resolveHistoryChangeFocus(comparison,navigatorEntry.request).type!=='ready')throw new Error('Missing packed focus request');
-const navigatorOptions:ZlozHistoryChangeNavigatorViewOptions<EditorEvent>={renderEntry:(entry,h,onFocus)=>h.li([],[zlozHistoryChangeButton(h,entry,onFocus,[],['Custom '+entry.summary])])};
-const navigatorOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:navigatorContext}),view:(context,h:HtmlBuilder<EditorEvent>)=>({title:'Packed changes',body:zlozHistoryChangeNavigator(h,context,{onFilter:():EditorEvent=>({type:'SelectionCleared'}),onFocus:():EditorEvent=>({type:'SelectionCleared'})},navigatorOptions)})},{flags:{},isHydratable:false}));
-if(!navigatorOutput.html.includes('Custom changed node:')||!navigatorOutput.html.includes('aria-label="History changes"'))throw new Error('Missing packed navigator composition');
-const ghostOptions:ZlozHistoryGhostOptions<EditorEvent>={edges:false};
-const ghostOutput=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:{}}),view:(_model,h:HtmlBuilder<EditorEvent>)=>({title:'Packed history',body:zlozHistoryGhosts(h,comparison,ghostOptions)??h.span([],[])})},{flags:{},isHydratable:false}));
-if(!ghostOutput.html.includes('data-zloz-history-movement=') || ghostOutput.html.includes('data-flow-port=')) throw new Error('Missing packed inert history ghosts');
 const contextMapOptions:ZlozContextMapLabelOptions<EditorEvent>={renderName:()=>null}; if(!contextMapOptions.renderName||[zlozContextMapConnector,zlozContextMapLabel,zlozContextMapParticipant].some(view=>typeof view!=='function'))throw new Error('Missing context-map view contract');
 const dddEditingOptions:ZlozDddRelationshipControlsViewOptions<EditorEvent>={renderStatus:()=>null}; if(!dddEditingOptions.renderStatus||[zlozDddRelationshipControls,zlozDddRelationshipPatternSelect,zlozDddUpstreamRole,zlozDddDownstreamRoleSelect].some(view=>typeof view!=='function'))throw new Error('Missing DDD native controls');
 const dddReviewModel=parseModelDocument(${JSON.stringify(JSON.stringify(dddReviewWire))});

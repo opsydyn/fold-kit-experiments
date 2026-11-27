@@ -3041,7 +3041,7 @@ import {
   updateHistoryReview,
   compareEditions,
 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryGhosts } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyGhosts } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const edition = captureEdition({
   id: 'ordering-v1',
@@ -3056,7 +3056,7 @@ const review = createHistoryReview(reopened[0]!, model.editor);
 const nextReview = updateHistoryReview(review, event);
 const comparison = compareEditions(baselineEdition, selectedEdition);
 // Optional world-overlay content; emit an accessible change list alongside it.
-const ghosts = zlozHistoryGhosts(h, comparison, {
+const ghosts = historyGhosts(comparison, {
   enabled: model.showGhosts,
   nodes: true,
   edges: true,
@@ -3094,7 +3094,7 @@ external layout routes are not archived or compared. Use `semanticChanged` and
 `layoutChanged` flags independently; renaming an ID is an addition/removal, not a
 guessed identity match.
 
-`zlozHistoryGhosts` composes inside `renderWorldOverlay`. It creates inert SVG
+`historyGhosts` supplies `graphSurface`'s `worldOverlay`. It creates inert SVG
 outlines, dashed baseline edges and movement connectors without editor nodes,
 ports, hit targets or Undo entries. Node, edge and movement switches are
 independent; `enabled: false` omits the layer. Optional `renderNode`, `renderEdge`
@@ -3342,7 +3342,7 @@ the first without looping. Invalid identities, intervals or active elapsed value
 throw `ZlozError`. Replace the controller when the edition collection changes.
 
 Use `createHistoryReview` for the selected edition and `compareEditions` plus
-`zlozHistoryGhosts` for optional comparison. Preserve the working editor and its
+`historyGhosts` for optional comparison. Preserve the working editor and its
 Undo. Hosts must cancel subscriptions and reject stale scoped ticks after pause,
 model/collection changes, leaving history or lifecycle changes. The workbench
 uses a scoped Effect Stream timer with model/run identity, pauses for hidden
@@ -3476,26 +3476,23 @@ and blank names reject with `ZlozError`. `GhostVisibilityChanged` sets an absolu
 value; native controls emit `GhostVisibilityToggled` for fresh-state updates.
 No-op requests return unchanged; denied requests return blocked with a reason.
 
-Use `context.effectiveGhosts` with `zlozHistoryGhosts`. Minimal mode and the master
+Use `context.effectiveGhosts` with `historyGhosts`. Minimal mode and the master
 switch retain each layer choice. Preferences can be configured before reviewing.
 Global `blockedReason`, `baselineReason` and per-part `ghostReasons` protect
 controls independently, with visible reasons. Labels and edition names can be
 localized through context options.
 
 ```ts
-import {
-  zlozHistoryComparisonControls,
-  zlozHistoryGhostToggle,
-} from '@opsydyn/foldkit-zloz/foldkit';
+import { historyComparisonControls, historyGhostToggle } from '@opsydyn/foldkit-zloz/effect-ui';
 
-const controls = zlozHistoryComparisonControls(h, context, toMessage, {
+const controls = historyComparisonControls(h, context, toMessage, {
   renderGhost: (control, builder, onRequest) =>
-    builder.label([], [zlozHistoryGhostToggle(builder, control, onRequest), control.label]),
+    builder.label(historyGhostToggle(builder, control, onRequest), control.label),
 });
 ```
 
-The optional entry also exports `zlozHistoryBaselineSelect`,
-`zlozHistoryComparisonStatus` and `zlozHistoryComparisonReason`. Helpers are
+The optional entry also exports `historyBaselineSelect`,
+`historyComparisonStatus` and `historyComparisonReason`. Helpers are
 unstyled native controls. Compose individually or customize `renderBaseline`,
 `renderGhost`, `renderStatus`, `renderReason` and `renderLayout`. Undefined keeps
 defaults; null omits a part. `ghosts` selects/reorders visible layers (duplicates
@@ -3515,17 +3512,17 @@ never changes the comparison or ghost preferences.
 
 ```ts
 import { resolveHistoryChangeNavigator, resolveHistoryChangeFocus } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryChangeNavigator, zlozHistoryChangeButton } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyChangeNavigator, historyChangeButton } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const options = { filters, blockedReason: busyReason };
 const context = resolveHistoryChangeNavigator(comparison, options);
-const view = zlozHistoryChangeNavigator(
+const view = historyChangeNavigator(
   h,
   context,
   { onFilter, onFocus },
   {
     renderEntry: (entry, builder, focus) =>
-      builder.li([], [zlozHistoryChangeButton(builder, entry, focus, [], [entry.summary])]),
+      builder.li(historyChangeButton(builder, entry, focus, undefined, [entry.summary])),
   },
 );
 // In update, recheck current comparison, preferences and policy:
@@ -3549,8 +3546,8 @@ and host/model scope. Camera focus leaves keyboard focus on the native button;
 no DOM focus is performed. Ghost visibility remains independent, including when
 focusing a removed item with its ghost hidden.
 
-The optional entry also exports `zlozHistoryChangeFilter`,
-`zlozHistoryChangeStatus` and `zlozHistoryChangeReason`. Composition supports
+The optional entry also exports `historyChangeFilter`,
+`historyChangeStatus` and `historyChangeReason`. Composition supports
 nullable `renderFilter`, `renderEntry`, `renderStatus`, `renderReason`, and a
 `renderLayout` hook. Undefined keeps defaults; null omits parts. `filters` in view
 options selects/reorders filter **controls**, while core options decide which
@@ -6028,16 +6025,16 @@ partial. No npm publication or deployment.
 
 ### V2 comparison status and ghosts
 
-Compose the headless presentation with optional FoldKit parts. The resolver
+Compose the headless presentation with optional Effect UI parts. The resolver
 validates both chosen checkpoints; it owns no editor, selection or lifecycle.
 
 ```ts
 import { resolveHistoryComparisonPresentationV2 } from '@opsydyn/foldkit-zloz';
 import {
-  zlozHistoryComparisonPresentationV2,
-  zlozHistoryGhostsV2,
-  zlozView,
-} from '@opsydyn/foldkit-zloz/foldkit';
+  historyComparisonV2,
+  historyGhostsV2,
+  graphSurface,
+} from '@opsydyn/foldkit-zloz/effect-ui';
 
 const context = resolveHistoryComparisonPresentationV2(baseline, selected, {
   ghosts: savedGhostPreferences, // existing comparison controls' visibility type
@@ -6045,14 +6042,14 @@ const context = resolveHistoryComparisonPresentationV2(baseline, selected, {
   formatMode: (_change, text) => text, // replace for host language
 });
 
-const status = zlozHistoryComparisonPresentationV2(h, context, {
-  renderMode: (current, builder) => builder.strong([], [current.modeText]),
+const status = historyComparisonV2(h, context, {
+  renderMode: (current, builder) => builder.strong(current.modeText),
 });
-const canvas = zlozView(h, review.editor, {
+const canvas = graphSurface(h, review.editor, {
   id: 'edition-preview',
   label: 'Edition preview',
-  onEvent,
-  renderWorldOverlay: (_overlay, builder) => zlozHistoryGhostsV2(builder, context),
+  onInput,
+  worldOverlay: historyGhostsV2(context),
 });
 ```
 
@@ -6095,10 +6092,10 @@ import {
   resolveHistoryChangeFocusV2,
   resolveHistoryChangeStepV2,
 } from '@opsydyn/foldkit-zloz';
-import { zlozHistoryChangeNavigatorV2 } from '@opsydyn/foldkit-zloz/foldkit';
+import { historyChangeNavigatorV2 } from '@opsydyn/foldkit-zloz/effect-ui';
 
 const navigation = resolveHistoryChangeNavigatorV2(comparison, chosenSide, options);
-const controls = zlozHistoryChangeNavigatorV2(h, navigation, {
+const controls = historyChangeNavigatorV2(h, navigation, {
   onFilter: (kind) => Message.ClickedHistoryFilter({ kind }),
   onFocus: (request) => Message.ClickedHistoryChange({ request }),
 });
@@ -6134,10 +6131,10 @@ Exceptions propagate without returning a target. `labelChange` and `filterLabels
 customize language while retaining identity. Context, entries, requests and filters
 are frozen; caller-owned preferences and comparator pins are untouched.
 
-`ZlozHistoryChangeNavigatorViewOptionsV2` supports attributes, accessible names,
+`ZlozHistoryChangeNavigatorViewOptionsV2` supports a class, accessible names,
 ordered filter controls, `renderFilter`, `renderEntry`, `renderStatus`,
 `renderReason` and `renderLayout`. Undefined keeps defaults; null omits a part.
-Compose `zlozHistoryChangeButtonV2` inside custom entries to keep native availability
+Compose `historyChangeButtonV2` inside custom entries to keep native availability
 and request behavior. Custom entries own list semantics. Status/counts can be
 replaced or omitted without changing filters, live reasons or core navigation.
 

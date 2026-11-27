@@ -1,16 +1,15 @@
 import { expect, test } from 'bun:test';
 
+import { Html, HtmlServer } from '@effect/ui/html';
 import { Effect, Schema } from 'effect';
-import { renderToString } from 'foldkit/experimental/server';
-import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
 import {
-  zlozHistoryComparisonControls,
-  zlozHistoryGhostToggle,
+  historyComparisonControls,
+  historyGhostToggle,
   type ZlozHistoryComparisonControlsViewOptions,
-} from '../src/foldkit';
-import { resolveHistoryComparisonControls, type ZlozHistoryComparisonRequest } from '../src/index';
+} from '../src/effect-ui';
+import { resolveHistoryComparisonControls } from '../src/index';
 const context = resolveHistoryComparisonControls(
   [
     { id: 'a', name: 'Original' },
@@ -20,24 +19,19 @@ const context = resolveHistoryComparisonControls(
   { baselineId: 'a', ghosts: { enabled: true, nodes: false, edges: true, movements: true } },
   { ghostReasons: { edges: 'Managed layer' } },
 );
-async function render(
-  options: ZlozHistoryComparisonControlsViewOptions<ZlozHistoryComparisonRequest> = {},
-) {
-  const result = await Effect.runPromise(
-    renderToString(
-      {
-        Flags: Schema.Struct({}),
-        init: () => ({ model: context }),
-        view: (model, h: HtmlBuilder<ZlozHistoryComparisonRequest>) => ({
-          title: 'Comparison',
-          body: zlozHistoryComparisonControls(h, model, (request) => request, options),
-        }),
-      },
-      { flags: {}, isHydratable: false },
-    ),
-  );
+async function render(options: ZlozHistoryComparisonControlsViewOptions<string> = {}) {
+  const TestView = Html.component({
+    name: 'HistoryTest',
+    model: Schema.Null,
+    message: Schema.String,
+  }).make({
+    init: () => null,
+    update: () => null,
+    view: (h) => historyComparisonControls(h, context, (request) => request.type, options),
+  });
+  const output = await Effect.runPromise(HtmlServer.renderToHtml(TestView, {}, { static: true }));
   const window = new Window();
-  window.document.body.innerHTML = result.html;
+  window.document.body.innerHTML = output.html;
   return window.document;
 }
 test('native baseline and ghost controls retain names, choices, checked state and visible protection', async () => {
@@ -46,6 +40,7 @@ test('native baseline and ghost controls retain names, choices, checked state an
     'History comparison controls',
   );
   expect(document.querySelectorAll('option')).toHaveLength(2);
+  expect(document.querySelector('select')?.value).toBe('a');
   expect(document.querySelector('option[value="a"]')?.textContent).toBe('Original');
   expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(4);
   expect(document.querySelector('input[aria-label="Node ghosts"]')?.hasAttribute('checked')).toBe(
@@ -66,7 +61,7 @@ test('slots omit/reorder parts and customize native controls without duplicating
     renderStatus: () => null,
     renderReason: () => null,
     renderGhost: (control, h, onRequest) =>
-      h.label([], [zlozHistoryGhostToggle(h, control, onRequest), `Custom ${control.label}`]),
+      h.label(historyGhostToggle(h, control, onRequest), `Custom ${control.label}`),
     renderLayout: (parts) => [...parts.ghosts].reverse(),
   });
   expect(document.querySelector('select')).toBeNull();

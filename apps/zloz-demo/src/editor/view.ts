@@ -10,7 +10,6 @@ import {
   captureEdition,
   compareEditions,
   resolveEditionRestore,
-  type EditorEvent,
   type ZlozPlacementInput,
   type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
@@ -45,7 +44,6 @@ import {
   resolveZlozDiagnostics,
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { zlozPlacementHost } from '@opsydyn/foldkit-zloz/foldkit';
-import { Schema } from 'effect';
 import { type Document, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import { alchemyReviewPanel } from './alchemy-review';
@@ -73,6 +71,7 @@ import { nativePortInspector } from './native-port-inspector';
 import { nativePortSettings } from './native-port-settings';
 import { nativeAppearanceSettings, nativeDiagnosticSettings } from './native-settings';
 import { nativeCanvasHelp, nativeCanvasStatus, nativeConnections } from './native-sidebar';
+import { nativeWorkshopInspector } from './native-workshop-inspector';
 import { packetReaderPanel } from './packet-reader';
 import { workbenchPlacement } from './palette';
 import { patchWorkbenchPanel } from './patch-review';
@@ -83,7 +82,6 @@ import { workbenchPacketContext } from './review-packet';
 import { workbenchSvgReview } from './svg-review';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
-import { workshopPanel } from './workshop-view';
 
 const playbackIcons = { play: '▶', pause: 'Ⅱ', rewind: '↶', previous: '←', next: '→' };
 const playbackMessages = {
@@ -98,9 +96,6 @@ const playbackInput = (event: ZlozPlaybackControlEvent): Message => playbackMess
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const modelId = model.modelIdentity.id;
   const epoch = model.modelEpoch;
-  const observedInput = ({ message }: { message: EditorEvent }) =>
-    Message.ObservedModelInput({ modelId, epoch, message });
-  const zlozInput = (message: EditorEvent) => observedInput({ message });
   const workingEditor = model.editor;
   const playback = model.historyPlayback?.cursor;
   const playbackId = playback ? playbackEditionId(playback) : null;
@@ -165,7 +160,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       modelId,
       epoch,
     });
-  const workshopInspector = model.sidebarSection === 'inspect' ? workshopPanel(model, h) : null;
   const mappingPanel = model.sidebarSection === 'mapping' ? mappingReviewPanel(model, h) : null;
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
@@ -206,6 +200,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.editor.selectedEdges.includes(edge.id),
   );
   const policy = workbenchPolicy(model);
+  const showWorkshopInspector =
+    model.sidebarSection === 'inspect' &&
+    model.editor.graph.nodes.some((node) => node.architecture?.family === 'event-storming');
   const hasDddNodes = model.editor.graph.nodes.some((node) => node.architecture?.family === 'ddd');
   const dddInspectorVisible =
     hasDddNodes && model.sidebarSection === 'inspect' && !model.sidebarCollapsed;
@@ -1100,7 +1097,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     c4mapping: model.sidebarSection === 'c4mapping' ? [c4MappingReviewPanel(model, h)] : [],
     mapping: mappingPanel ? [mappingPanel] : [],
     inspect: [
-      ...(workshopInspector ? [workshopInspector] : []),
+      ...(showWorkshopInspector
+        ? [nativeWorkshopInspector(h, model, 'architecture-effect-ui', 'workshop-inspector')]
+        : []),
       ...(hasDddNodes && model.sidebarSection === 'inspect'
         ? [nativeDddInspector(h, model, 'architecture-effect-ui', 'ddd-relationship-inspector')]
         : []),

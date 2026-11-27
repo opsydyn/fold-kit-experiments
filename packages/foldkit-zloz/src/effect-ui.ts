@@ -88,6 +88,7 @@ export {
 export type { ZlozPortPositionDraft, ZlozPortPositionDraftChange } from './port-position-editor';
 export { dddRelationshipControls } from './effect-ui-ddd-relationship-controls';
 export { eventStormingRelationshipControls } from './effect-ui-relationship-controls';
+export { workshopControls } from './effect-ui-workshop-controls';
 export { viewportControl } from './effect-ui-viewport-control';
 export {
   groupClipboardV3,

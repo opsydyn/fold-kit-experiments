@@ -1,14 +1,11 @@
-import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting';
+import { UiSchema } from '@effect/ui';
+import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting-core';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
 
 import { LayoutChoice } from './model';
-import type { ReplayEvent } from './ports';
+import { ReplayEvent } from './ports';
 
-export const Message = defineMessageUnion({
-  AcquiredHighlighter: {},
-  FailedHighlighter: {},
-  ReleasedHighlighter: {},
+export const Message = UiSchema.TaggedEnum({
   SettledHighlightedSource: { highlightedSource: HighlightedSource },
   ClickedPlay: {},
   ClickedPause: {},
@@ -31,11 +28,8 @@ export const Message = defineMessageUnion({
   SelectedTrace: { sequence: Schema.Number },
   SelectedNode: { node: Schema.String },
   SelectedEdge: { edge: Schema.String },
-  ReceivedReplayEvent: { event: Schema.Unknown },
+  ReceivedReplayEvent: { event: ReplayEvent },
   CompletedReportTransition: { sequence: Schema.Number },
 });
 
-export type ReceivedReplayEvent = Omit<typeof Message.ReceivedReplayEvent.Type, 'event'> & {
-  readonly event: ReplayEvent;
-};
 export type Message = typeof Message.Type;

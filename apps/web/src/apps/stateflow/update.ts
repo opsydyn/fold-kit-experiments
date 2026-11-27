@@ -1,10 +1,9 @@
-import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
-import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
+import type { Command } from '@effect/ui';
+import { settleHighlighting, sourceMatches } from '@opsydyn/dataset-explorer/highlighting-core';
 import { Match, Option, Schema, Struct } from 'effect';
 
 import { CopySessionLink, CopyTest, HighlightSource, ReportTransition } from './command';
 import { Message } from './message';
-import type { ReceivedReplayEvent } from './message';
 import type { Model } from './model';
 import { ReplayEvent } from './ports';
 import { framesOf, specimenFor } from './replay';
@@ -14,7 +13,10 @@ import { testFor } from './specimen';
 import { specimenOf, specimens } from './specimens';
 import { diagnosticsSpecimen } from './specimens/diagnostics';
 
-type Return = import('foldkit/update').Return<Model, Message, HighlightingService>;
+interface Return {
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<Command.Command<Message>>;
+}
 
 const encodeReplayEvent = Schema.encodeSync(Schema.fromJsonString(ReplayEvent));
 
@@ -41,7 +43,7 @@ const stepForward = (model: Model): Return => {
     onSome: ({ record }) =>
       moved.cursor === model.cursor
         ? { model: next }
-        : { model: next, commands: [ReportTransition({ record })] },
+        : { model: next, commands: [ReportTransition.make({ record })] },
   });
 };
 
@@ -131,7 +133,7 @@ const copyTest = (model: Model, edgeId: string): Return => {
   }).pipe(Option.map(({ edge, path }) => testFor(specimen, edge, path)));
   return Option.match(test, {
     onNone: () => ({ model }),
-    onSome: (text) => ({ model: { ...model, notice: null }, commands: [CopyTest({ text })] }),
+    onSome: (text) => ({ model: { ...model, notice: null }, commands: [CopyTest.make({ text })] }),
   });
 };
 
@@ -145,20 +147,6 @@ const copyNotices = {
 
 export function update(model: Model, message: Message): Return {
   const result: Return = Message.match(message, {
-    AcquiredHighlighter: () => ({
-      model: {
-        ...model,
-        highlighting: 'ready' as const,
-        requestedSource: undefined,
-        highlightedSource: undefined,
-      },
-    }),
-    FailedHighlighter: () => ({
-      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
-    }),
-    ReleasedHighlighter: () => ({
-      model: { ...model, highlighting: undefined, requestedSource: undefined },
-    }),
     SettledHighlightedSource: ({ highlightedSource }) => ({
       model: settleHighlighting(model, highlightedSource, selectedEventSource(model), 'json'),
     }),
@@ -186,7 +174,7 @@ export function update(model: Model, message: Message): Return {
     ClickedCopyLink: () => ({
       model: { ...model, notice: null },
       commands: [
-        CopySessionLink({
+        CopySessionLink.make({
           session: { specimen: model.specimen, events: model.events, at: model.cursor },
         }),
       ],
@@ -207,15 +195,24 @@ export function update(model: Model, message: Message): Return {
     SelectedEdge: ({ edge }) => ({
       model: { ...model, selectedEdge: edge, selectedSequence: null },
     }),
-    ReceivedReplayEvent: ({ event: rawEvent }) => {
-      // SAFETY: ReplayEventPort decodes this value before it reaches the app subscription.
-      // oxlint-disable-next-line linteffect/no-model-overlay-cast
-      const event = rawEvent as ReceivedReplayEvent['event'];
-      return receive(model, diagnosticsSpecimen.id, encodeReplayEvent(event));
-    },
+    ReceivedReplayEvent: ({ event }) =>
+      receive(model, diagnosticsSpecimen.id, encodeReplayEvent(event)),
     CompletedReportTransition: ({ sequence }) => ({
       model: { ...model, lastTelemetrySequence: sequence },
     }),
   });
-  return requestHighlighting(result, selectedEventSource(result.model), 'json', HighlightSource);
+  const current = result.model;
+  const source = selectedEventSource(current);
+  const language = 'json';
+  if (
+    source.length === 0 ||
+    sourceMatches(current.requestedSource, source, language) ||
+    sourceMatches(current.highlightedSource, source, language)
+  )
+    return result;
+  const requestedSource = { source, language };
+  return {
+    model: { ...current, requestedSource },
+    commands: [...(result.commands ?? []), HighlightSource.make(requestedSource)],
+  };
 }

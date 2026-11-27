@@ -25,7 +25,7 @@ describe('stateflow Commands', () => {
   it('copies a test to the clipboard and says so', async () => {
     const writeText = clipboard(() => Promise.resolve());
 
-    const message = await Effect.runPromise(CopyTest({ text: 'it("works")' }).effect);
+    const message = await Effect.runPromise(CopyTest.make({ text: 'it("works")' }).effect);
 
     expect(writeText).toHaveBeenCalledWith('it("works")');
     expect(message).toEqual({ _tag: 'CompletedCopy', what: 'test', copied: true });
@@ -34,7 +34,7 @@ describe('stateflow Commands', () => {
   it('says a test was not copied when the clipboard refuses', async () => {
     clipboard(() => Promise.reject(new Error('denied')));
 
-    const message = await Effect.runPromise(CopyTest({ text: 'it("works")' }).effect);
+    const message = await Effect.runPromise(CopyTest.make({ text: 'it("works")' }).effect);
 
     expect(message).toEqual({ _tag: 'CompletedCopy', what: 'test', copied: false });
   });
@@ -42,7 +42,7 @@ describe('stateflow Commands', () => {
   it('puts the session link in the address bar and on the clipboard', async () => {
     const writeText = clipboard(() => Promise.resolve());
 
-    const message = await Effect.runPromise(CopySessionLink({ session }).effect);
+    const message = await Effect.runPromise(CopySessionLink.make({ session }).effect);
     const link = globalThis.location.href;
 
     expect(Option.getOrNull(sessionFrom(link))).toEqual(session);
@@ -53,7 +53,7 @@ describe('stateflow Commands', () => {
   it('keeps the link in the address bar when the clipboard refuses', async () => {
     clipboard(() => Promise.reject(new Error('denied')));
 
-    const message = await Effect.runPromise(CopySessionLink({ session }).effect);
+    const message = await Effect.runPromise(CopySessionLink.make({ session }).effect);
 
     expect(Option.getOrNull(sessionFrom(globalThis.location.href))).toEqual(session);
     expect(message).toEqual({ _tag: 'CompletedCopy', what: 'link', copied: false });

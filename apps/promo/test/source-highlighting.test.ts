@@ -140,8 +140,7 @@ test('stateflow replay frames reuse the selected event tokens', async () => {
     import('../../web/src/apps/stateflow/update'),
     import('../../web/src/apps/stateflow/source'),
   ]);
-  const acquired = update(initModel, Message.AcquiredHighlighter()).model;
-  const stepped = update(acquired, Message.ClickedStep()).model;
+  const stepped = update(initModel, Message.ClickedStep()).model;
   const source = selectedEventSource(stepped);
   const settled = update(
     stepped,

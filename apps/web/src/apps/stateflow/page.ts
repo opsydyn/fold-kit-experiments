@@ -1,10 +1,5 @@
-import { definePage } from '@opsydyn/astro-foldkit/define-page';
-import { Option } from 'effect';
+import { astroComponent } from '@opsydyn/astro-effect-ui/component';
 
-import * as main from './main';
-import { sessionFrom } from './share';
+import { Stateflow } from './main';
 
-export default definePage<Record<never, never>, typeof main.Flags.Type>(
-  () => Promise.resolve(main),
-  { flags: ({ url }) => ({ session: Option.getOrNull(sessionFrom(url.href)) }) },
-);
+export default astroComponent(Stateflow);

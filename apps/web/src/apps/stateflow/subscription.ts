@@ -1,45 +1,68 @@
-import { Schema, Stream } from 'effect';
-import { Dom, Port, Subscription } from 'foldkit';
+import { Subscription } from '@effect/ui';
+import { Effect, Queue, Stream } from 'effect';
 
 import { liveEnvelopes } from './live';
 import { Message } from './message';
 import type { Model } from './model';
-import { ReplayEventPort } from './ports';
 
 /** Phone width: the graph's ranks run down the page. */
 export const narrowQuery = '(max-width: 640px)';
+const motionQuery = '(prefers-reduced-motion: reduce)';
 
-export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
-  replay: Port.subscriptionEntry(ReplayEventPort, (event) =>
-    Message.ReceivedReplayEvent({ event }),
+function mediaQuery(query: string, message: (matches: boolean) => Message) {
+  return Stream.callback<Message>((queue) => {
+    const open = Effect.sync(() => {
+      const list = globalThis.window?.matchMedia(query);
+      if (!list) return () => {};
+      const change = ({ matches }: MediaQueryListEvent) =>
+        Queue.offerUnsafe(queue, message(matches));
+      list.addEventListener('change', change);
+      Queue.offerUnsafe(queue, message(list.matches));
+      return () => list.removeEventListener('change', change);
+    });
+    const listen = Effect.acquireRelease(open, Effect.sync);
+    // The subscription owns the listener until its scope closes.
+    // oxlint-disable-next-line linteffect/no-effect-never
+    return Effect.andThen(listen, Effect.never);
+  });
+}
+
+const playbackFrames = Stream.callback<Message>((queue) => {
+  const open = Effect.sync(() => {
+    const browser = globalThis.window;
+    let last: number | undefined;
+    let id = 0;
+    const tick = (time: number) => {
+      if (last !== undefined)
+        Queue.offerUnsafe(queue, Message.AdvancedReplay({ deltaTimeMs: time - last }));
+      last = time;
+      id = browser.requestAnimationFrame(tick);
+    };
+    id = browser.requestAnimationFrame(tick);
+    return () => browser.cancelAnimationFrame(id);
+  });
+  const listen = Effect.acquireRelease(open, Effect.sync);
+  // oxlint-disable-next-line linteffect/no-effect-never
+  return Effect.andThen(listen, Effect.never);
+});
+
+export const subscriptions = ({ model }: { readonly model: Model }) => [
+  Subscription.make(
+    'ReducedMotion',
+    mediaQuery(motionQuery, (isReducedMotion) => Message.ChangedReducedMotion({ isReducedMotion })),
   ),
-  reducedMotion: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: '(prefers-reduced-motion: reduce)',
-      mapMatches: (isReducedMotion) => Message.ChangedReducedMotion({ isReducedMotion }),
-    }),
+  Subscription.make(
+    'NarrowLayout',
+    mediaQuery(narrowQuery, (isNarrow) => Message.ChangedNarrow({ isNarrow })),
   ),
-  narrow: Subscription.persistentEntry(
-    Dom.streamFromMediaQuery({
-      query: narrowQuery,
-      mapMatches: (isNarrow) => Message.ChangedNarrow({ isNarrow }),
-    }),
-  ),
-  frame: Subscription.animationFrameEntry({
-    isActive: (model) => model.playback === 'playing' && model.cursor < model.events.length,
-    toMessage: (deltaTimeMs) => Message.AdvancedReplay({ deltaTimeMs }),
-  }),
-  // Listening only while live, so a closed page holds no channel open.
-  live: entry(
-    { live: Schema.Boolean },
-    {
-      modelToDependencies: (model) => ({ live: model.live }),
-      dependenciesToStream: ({ live }) =>
-        live
-          ? liveEnvelopes.pipe(
-              Stream.map(({ specimen, event }) => Message.ReceivedLiveEvent({ specimen, event })),
-            )
-          : Stream.empty,
-    },
-  ),
-}));
+  model.playback === 'playing' &&
+    model.cursor < model.events.length &&
+    Subscription.make('PlaybackFrames', playbackFrames),
+  model.live &&
+    Subscription.make(
+      'LiveRecording',
+      liveEnvelopes.pipe(
+        Stream.map(({ specimen, event }) => Message.ReceivedLiveEvent({ specimen, event })),
+      ),
+    ),
+];

@@ -1,4 +1,4 @@
-import { HighlightedSource, Highlighting, SourceKey } from '@opsydyn/dataset-explorer/highlighting';
+import { HighlightedSource, SourceKey } from '@opsydyn/dataset-explorer/highlighting-core';
 import { Schema } from 'effect';
 
 import type { TransitionRecorded as TransitionRecordedValue } from './ports';
@@ -17,9 +17,8 @@ export type EventSource = typeof EventSource.Type;
 export const LayoutChoice = Schema.Literals(['layered', 'force']);
 
 export type Model = Readonly<{
-  highlighting?: 'ready' | 'failed';
-  highlightedSource?: import('@opsydyn/dataset-explorer/highlighting').HighlightedSource;
-  requestedSource?: import('@opsydyn/dataset-explorer/highlighting').SourceKey;
+  highlightedSource?: import('@opsydyn/dataset-explorer/highlighting-core').HighlightedSource;
+  requestedSource?: import('@opsydyn/dataset-explorer/highlighting-core').SourceKey;
   /** The machine being watched. */
   specimen: string;
   /** Its events, each encoded as JSON by the machine's own Message schema. */
@@ -44,7 +43,6 @@ export type Model = Readonly<{
 }>;
 
 export const Model = Schema.Struct({
-  highlighting: Highlighting,
   highlightedSource: Schema.optional(HighlightedSource),
   requestedSource: Schema.optional(SourceKey),
   specimen: Schema.String,

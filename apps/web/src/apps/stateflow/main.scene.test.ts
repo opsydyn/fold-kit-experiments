@@ -1,47 +1,20 @@
-import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
-import { Data, Effect } from 'effect';
-import { Runtime } from 'foldkit';
-import { describe, expect, it, vi } from 'vitest';
+import { Component } from '@effect/ui';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
-import { Message as DiagnosticsMessage } from '../request-diagnostics/message';
 import { samplePoints } from '../request-diagnostics/model';
-import { managedResources as liveResources } from './main';
+import { mountStateflow } from './host.test-helper';
 import { Message } from './message';
-import type { Message as AppMessage } from './message';
-import { initModel, Model } from './model';
-import type { Model as AppModel } from './model';
-import { ReplayEventPort, TransitionTelemetryPort } from './ports';
-import type { ReplayEvent } from './ports';
-import { subscriptions } from './subscription';
-import { update } from './update';
+import page from './page';
+import { ReplayEvent, replayEventName, transitionTelemetryName } from './ports';
 
-const loaded: ReplayEvent = DiagnosticsMessage.LoadedMetrics({ points: samplePoints });
+import { pulse } from './stateflow.css';
 
-class TestHighlighterUnavailable extends Data.TaggedError('TestHighlighterUnavailable') {}
+describe('Stateflow Effect UI host', () => {
+  it('uses the native Effect UI Astro component', () => {
+    expect(Component.isComponent(page)).toBe(true);
+  });
 
-// Port tests use an unavailable highlighter to keep browser assets outside the harness.
-const managedResources = {
-  ...liveResources,
-  sourceHighlighter: {
-    ...liveResources.sourceHighlighter,
-    acquire: () => Effect.fail(new TestHighlighterUnavailable()),
-  },
-};
-
-function recordUpdate(
-  model: AppModel,
-  message: AppMessage,
-  received: AppMessage[],
-  models: AppModel[],
-): ReturnType<typeof update> {
-  const result = update(model, message);
-  received.push(message);
-  models.push(result.model);
-  return result;
-}
-
-describe('stateflow Port bridge', () => {
-  it('bridges the current and changed reduced-motion media query values into the model', async () => {
+  it('bridges initial and changed media values and releases both listeners', async () => {
     const listeners = new Set<(event: MediaQueryListEvent) => void>();
     const addEventListener = vi.fn(
       (_type: string, listener: (event: MediaQueryListEvent) => void) => {
@@ -53,146 +26,50 @@ describe('stateflow Port bridge', () => {
         listeners.delete(listener);
       },
     );
-    const mediaQueryList = {
-      matches: true,
-      media: '(prefers-reduced-motion: reduce)',
-      onchange: null,
-      addEventListener,
-      removeEventListener,
-    };
     vi.stubGlobal(
       'matchMedia',
-      vi.fn(() => mediaQueryList),
+      vi.fn(() => ({ matches: true, addEventListener, removeEventListener })),
     );
-
-    const received: AppMessage[] = [];
-    const models: AppModel[] = [];
-    const container = document.createElement('div');
-    container.id = 'stateflow-motion-preference-test';
-    document.body.appendChild(container);
-    const handle = Runtime.embed(
-      Runtime.makeElement({
-        Model,
-        init: () => ({ model: initModel }),
-        update: (model: AppModel, message: AppMessage) =>
-          recordUpdate(model, message, received, models),
-        view: (_model, h) => h.div([], []),
-        subscriptions,
-        managedResources,
-        ports: {
-          inbound: { replay: ReplayEventPort },
-          outbound: { transitionTelemetry: TransitionTelemetryPort },
-        },
-        container,
-      }),
-    );
-
-    // DOM media-query events supply the boolean matches field.
-    // oxlint-disable-next-line linteffect/no-boolean-domain-flag
-    const reducedMotionMessage = (isReducedMotion: boolean): AppMessage =>
-      Message.ChangedReducedMotion({ isReducedMotion });
-
-    await vi.waitFor(() => {
-      expect(received).toContainEqual(reducedMotionMessage(true));
-    });
-    expect(models.at(-1)?.reducedMotion).toBe(true);
-
-    // SAFETY: The subscription reads only the `matches` field from this synthetic event.
-    const changedEvent = { matches: false } as MediaQueryListEvent;
-    for (const listener of listeners) {
-      listener(changedEvent);
-    }
-    await vi.waitFor(() => {
-      expect(received).toContainEqual(reducedMotionMessage(false));
-    });
-    expect(models.at(-1)?.reducedMotion).toBe(false);
-
-    handle.dispose();
-    // Reduced motion and the phone-width layout each listen to a media query.
+    const { host, root, dispose } = await mountStateflow();
+    await vi.waitFor(() => expect(addEventListener).toHaveBeenCalledTimes(2));
+    const graph = host.querySelector<SVGSVGElement>('svg[role="application"]');
+    await vi.waitFor(() => expect(graph?.style.minWidth).toBe(''));
+    root.send(Message.ClickedStep());
+    await vi.waitFor(() => expect(host.textContent).toContain('Current state: Ready'));
+    expect(graph?.querySelector(`.${pulse}`)).toBeNull();
+    // SAFETY: The subscription only reads the synthetic event's matches field.
+    const change = { matches: false } as MediaQueryListEvent;
+    for (const listener of listeners) listener(change);
+    await vi.waitFor(() => expect(graph?.style.minWidth).toMatch(/px$/));
+    await vi.waitFor(() => expect(graph?.querySelector(`.${pulse}`)).not.toBeNull());
+    await dispose();
     expect(removeEventListener).toHaveBeenCalledTimes(2);
-    container.remove();
-    vi.unstubAllGlobals();
+    expect(listeners.size).toBe(0);
   });
 
-  it('processes an inbound replay event sent during runtime boot', async () => {
-    const received: AppMessage[] = [];
-    const container = document.createElement('div');
-    container.id = 'stateflow-boot-port-test';
-    document.body.appendChild(container);
-    const ports = {
-      inbound: { replay: ReplayEventPort },
-      outbound: { transitionTelemetry: TransitionTelemetryPort },
-    } as const;
-    const handle = Runtime.embed(
-      Runtime.makeElement<AppModel, AppMessage, never, HighlightingService, typeof ports>({
-        Model,
-        init: () => ({ model: initModel }),
-        update: (model, message) => (received.push(message), update(model, message)),
-        view: (_model, h) => h.div([], []),
-        subscriptions,
-        managedResources,
-        ports,
-        container,
+  it('validates inbound events and emits the typed transition record', async () => {
+    const { host } = await mountStateflow();
+    const target = host.querySelector('stateflow-observatory');
+    expect(target).not.toBeNull();
+    const telemetry = vi.fn();
+    const listener = new AbortController();
+    window.addEventListener(transitionTelemetryName, telemetry, { signal: listener.signal });
+    onTestFinished(() => listener.abort());
+    target?.dispatchEvent(
+      new CustomEvent(replayEventName, {
+        detail: ReplayEvent.LoadedMetrics({ points: samplePoints }),
       }),
     );
-
-    handle.ports.replay.send(loaded);
-
-    await vi.waitFor(() => {
-      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: loaded }));
+    await vi.waitFor(() => expect(host.textContent).toContain('Current state: Ready'));
+    await vi.waitFor(() => expect(telemetry).toHaveBeenCalledTimes(1));
+    expect(telemetry.mock.calls[0]?.[0]?.detail).toMatchObject({
+      messageTag: 'LoadedMetrics',
+      outcome: 'transitioned',
+      target: 'Ready',
     });
-
-    handle.dispose();
-    container.remove();
-  });
-
-  it('replays valid inbound events and rejects malformed values at the boundary', async () => {
-    const received: AppMessage[] = [];
-    const telemetry: unknown[] = [];
-    const container = document.createElement('div');
-    container.id = 'stateflow-port-test';
-    document.body.appendChild(container);
-    const recordAndUpdate = (model: AppModel, message: AppMessage) => (
-      received.push(message),
-      update(model, message)
-    );
-    const handle = Runtime.embed(
-      Runtime.makeElement({
-        Model,
-        init: () => ({ model: initModel }),
-        update: recordAndUpdate,
-        view: (_model, h) => h.div([], []),
-        subscriptions,
-        managedResources,
-        ports: {
-          inbound: { replay: ReplayEventPort },
-          outbound: { transitionTelemetry: TransitionTelemetryPort },
-        },
-        container,
-      }),
-    );
-    const unsubscribe = handle.ports.transitionTelemetry.subscribe((record) =>
-      telemetry.push(record),
-    );
-
-    handle.ports.replay.send(loaded);
-
-    await vi.waitFor(() => {
-      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: loaded }));
-      expect(telemetry).toEqual([
-        expect.objectContaining({ messageTag: 'LoadedMetrics', outcome: 'transitioned' }),
-      ]);
-    });
-
-    // SAFETY: This test deliberately bypasses the host's static type to exercise Port decoding.
-    const invalid = handle.ports.replay.send(null as never);
-    expect(invalid._tag).toBe('Failure');
+    target?.dispatchEvent(new CustomEvent(replayEventName, { detail: null }));
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(received.filter(({ _tag }) => _tag === 'ReceivedReplayEvent')).toHaveLength(1);
-    expect(telemetry).toHaveLength(1);
-
-    unsubscribe();
-    handle.dispose();
-    container.remove();
+    expect(telemetry).toHaveBeenCalledTimes(1);
+    expect(host.textContent).toContain('Event 1 of 1');
   });
 });

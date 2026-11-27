@@ -183,11 +183,7 @@ describe('Astro page rendering smoke', () => {
           const response = await fetch(`http://127.0.0.1:${port}/greeting?name=Ada&locale=ar`);
           expect(response.ok).toBe(true);
           const requestHtml = await response.text();
-          const requestBuildId = expectHydratablePage(
-            requestHtml,
-            '{"name":"Ada","locale":"ar"}',
-            buildId,
-          );
+          expectHydratablePage(requestHtml, '{"name":"Ada","locale":"ar"}', buildId);
           expect(requestHtml).toContain('<html lang="ar" dir="rtl">');
           expect(requestHtml).toContain('<title>مرحبا، Ada! — Astro + FoldKit</title>');
           expect(requestHtml).toContain('مرحبا، Ada!');
@@ -197,7 +193,8 @@ describe('Astro page rendering smoke', () => {
           const stateflowResponse = await fetch(`http://127.0.0.1:${port}/stateflow`);
           expect(stateflowResponse.ok).toBe(true);
           const stateflowHtml = await stateflowResponse.text();
-          expectHydratablePage(stateflowHtml, '{"session":null}', requestBuildId);
+          expect(count(stateflowHtml, 'data-effect-ui-root')).toBe(1);
+          expect(count(stateflowHtml, 'data-effect-ui-state')).toBe(1);
           expect(stateflowHtml).toContain('<title>Stateflow Observatory — Loading</title>');
           expect(stateflowHtml).toContain('Current state: Loading');
           expect(stateflowHtml).toContain('aria-label="Request diagnostics state graph"');

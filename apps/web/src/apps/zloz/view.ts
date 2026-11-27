@@ -1,69 +1,50 @@
-import { zlozView } from '@opsydyn/foldkit-zloz/foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import type { Html } from '@effect/ui/html';
+import { BrowserInput, graphSurface } from '@opsydyn/foldkit-zloz/effect-ui';
+import { Schema } from 'effect';
 
 import { Message } from './message';
 import type { Model } from './model';
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
+const decodeBrowserInput = Schema.decodeUnknownSync(BrowserInput);
+
+export function view(h: Html.H<Message>, model: Model) {
   const button = (label: string, message: Message) =>
-    h.button(
-      [h.Type('button'), h.OnClick(message), h.Style({ padding: '10px 16px', cursor: 'pointer' })],
-      [label],
-    );
-  return {
-    title: 'ZLOZ',
-    body: h.div(
-      [],
-      [
-        h.p(
-          [],
-          [
-            'Connect a source to a review, edit the labels and arrange the graph. Changes stay in this example’s Model; Save stores a graph in this browser.',
-          ],
-        ),
-        h.div(
-          [
-            h.Role('group'),
-            h.AriaLabel('Graph actions'),
-            h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap', 'margin-bottom': '12px' }),
-          ],
-          [
-            button('Add node', Message.ClickedAdd()),
-            button('Arrange with ELK', Message.ClickedArrange()),
-            button('Fit view', Message.ClickedFit()),
-            button('Undo', Message.ObservedZlozInput({ message: { type: 'UndoPressed' } })),
-            button('Redo', Message.ObservedZlozInput({ message: { type: 'RedoPressed' } })),
-            button(
-              'Delete selected',
-              Message.ObservedZlozInput({ message: { type: 'DeletePressed' } }),
-            ),
-            button('Save', Message.ClickedSave()),
-            button('Load saved', Message.ClickedLoad()),
-          ],
-        ),
-        zlozView(h, model.editor, {
-          id: 'flow-demo',
-          label: 'Workflow editor',
-          onEvent: (message) => Message.ObservedZlozInput({ message }),
-          renderNode: (node, builder) =>
-            builder.input([
-              builder.AriaLabel(`Label for ${node.id}`),
-              builder.Value(node.label),
-              builder.OnInput((label) =>
-                Message.ObservedZlozInput({
-                  message: { type: 'NodeLabelChanged', id: node.id, label },
-                }),
-              ),
-              builder.Style({
-                width: '100%',
-                'box-sizing': 'border-box',
-                'margin-top': '8px',
-                'min-height': '30px',
-              }),
-            ]),
-        }),
-        h.p([h.Role('status'), h.AriaLive('polite')], [model.notice]),
-      ],
+    h.button
+      .attr('type', 'button')
+      .on('click', message)
+      .style({ padding: '10px 16px', cursor: 'pointer' })
+      .children(label);
+
+  return h.div(
+    h.p(
+      'Connect a source to a review, edit the labels and arrange the graph. Save stores a graph in this browser.',
     ),
-  };
+    h.div
+      .attr('role', 'group')
+      .attr('aria-label', 'Graph actions')
+      .style({ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' })
+      .children(
+        button('Add node', Message.ClickedAdd()),
+        button('Arrange with ELK', Message.ClickedArrange()),
+        button('Fit view', Message.ClickedFit()),
+        button('Undo', Message.ClickedUndo()),
+        button('Redo', Message.ClickedRedo()),
+        button('Delete selected', Message.ClickedDelete()),
+        button('Save', Message.ClickedSave()),
+        button('Load saved', Message.ClickedLoad()),
+      ),
+    graphSurface(h, model.editor, {
+      id: 'flow-demo',
+      label: 'Workflow editor',
+      onInput: (event) => Message.ObservedBrowserInput({ event: decodeBrowserInput(event) }),
+      renderNodeShell: ({ node }, builder) => ({
+        body: builder.input
+          .attr('aria-label', `Label for ${node.id}`)
+          .attr('value', node.label)
+          .on('input', ({ value }) => Message.ChangedNodeLabel({ id: node.id, label: value }))
+          .style({ width: '100%', boxSizing: 'border-box', marginTop: '8px', minHeight: '30px' }),
+      }),
+    }),
+    h.p.attr('role', 'status').attr('aria-live', 'polite').children(model.notice),
+  );
 }

@@ -29,8 +29,8 @@ export const initialGraph: ZlozGraph = {
   edges: [],
 };
 export const Model = Schema.Struct({
-  editor: Schema.Unknown,
-  active: Schema.NullOr(Schema.Unknown),
+  editor: Schema.fromJsonString(Schema.Unknown),
+  active: Schema.NullOr(Schema.fromJsonString(Schema.Unknown)),
   sequence: Schema.Number,
   notice: Schema.String,
 });
@@ -40,11 +40,9 @@ export type Model = Readonly<{
   sequence: number;
   notice: string;
 }>;
-export const init = () => ({
-  model: {
-    editor: createEditor(initialGraph),
-    active: null,
-    sequence: 0,
-    notice: 'A graph editor built with ZLOZ.',
-  } satisfies Model,
+export const init = (): Model => ({
+  editor: createEditor(initialGraph),
+  active: null,
+  sequence: 0,
+  notice: 'A graph editor built with ZLOZ.',
 });

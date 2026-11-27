@@ -1,15 +1,17 @@
+import { Command } from '@effect/ui';
 import { parseGraph, serializeGraph } from '@opsydyn/foldkit-zloz';
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
 import { Effect, Schema } from 'effect';
-import { Command } from 'foldkit';
 
 import { Message } from './message';
 
-export const ArrangeFlow = Command.define('ArrangeFlow', {
-  args: { json: Schema.String, requestId: Schema.String, revision: Schema.Number },
-  interrupt: true,
-  messages: [Message.SucceededLayout, Message.FailedLayout],
-  execute: ({ json, requestId, revision }) =>
+export const ArrangeFlow = Command.make(
+  'ArrangeFlow',
+  {
+    args: { json: Schema.String, requestId: Schema.String, revision: Schema.Number },
+    mode: 'switch',
+  },
+  ({ json, requestId, revision }) =>
     Effect.tryPromise(() =>
       createElkLayout()({ requestId, revision, graph: parseGraph(json) }),
     ).pipe(
@@ -18,21 +20,17 @@ export const ArrangeFlow = Command.define('ArrangeFlow', {
         onFailure: () => Message.FailedLayout({ requestId }),
       }),
     ),
-});
-export const SaveZloz = Command.define('SaveZloz', {
-  args: { json: Schema.String },
-  messages: [Message.SucceededSave, Message.FailedStorage],
-  execute: ({ json }) =>
-    Effect.try(() => globalThis.localStorage.setItem('opsydyn.foldkit-flow.demo.v1', json)).pipe(
-      Effect.match({
-        onSuccess: () => Message.SucceededSave(),
-        onFailure: () => Message.FailedStorage(),
-      }),
-    ),
-});
-export const LoadZloz = Command.define('LoadZloz', {
-  messages: [Message.SucceededLoad, Message.FailedStorage],
-  execute: Effect.try(() =>
+);
+export const SaveZloz = Command.make('SaveZloz', { args: { json: Schema.String } }, ({ json }) =>
+  Effect.try(() => globalThis.localStorage.setItem('opsydyn.foldkit-flow.demo.v1', json)).pipe(
+    Effect.match({
+      onSuccess: () => Message.SucceededSave(),
+      onFailure: () => Message.FailedStorage(),
+    }),
+  ),
+);
+export const LoadZloz = Command.make('LoadZloz', { args: {} }, () =>
+  Effect.try(() =>
     serializeGraph(
       parseGraph(globalThis.localStorage.getItem('opsydyn.foldkit-flow.demo.v1') ?? 'null'),
     ),
@@ -42,4 +40,4 @@ export const LoadZloz = Command.define('LoadZloz', {
       onFailure: () => Message.FailedStorage(),
     }),
   ),
-});
+);

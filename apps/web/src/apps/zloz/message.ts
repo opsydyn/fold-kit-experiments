@@ -1,7 +1,12 @@
+import { UiSchema } from '@effect/ui';
+import { BrowserInput } from '@opsydyn/foldkit-zloz/effect-ui';
 import { Schema } from 'effect';
-import { defineMessageUnion } from 'foldkit/message';
-export const Message = defineMessageUnion({
-  ObservedZlozInput: { message: Schema.Unknown },
+export const Message = UiSchema.TaggedEnum({
+  ObservedBrowserInput: { event: BrowserInput },
+  ChangedNodeLabel: { id: Schema.String, label: Schema.String },
+  ClickedUndo: {},
+  ClickedRedo: {},
+  ClickedDelete: {},
   ClickedAdd: {},
   ClickedArrange: {},
   ClickedFit: {},

@@ -1,3 +1,4 @@
+import type { Command } from '@effect/ui';
 import {
   applyLayout,
   createEditor,
@@ -6,22 +7,35 @@ import {
   parseGraph,
   serializeGraph,
   updateEditor,
-  type EditorEvent,
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
-import type { Return } from 'foldkit/update';
 
 import { ArrangeFlow, LoadZloz, SaveZloz } from './command';
 import { Message } from './message';
 import type { Model } from './model';
 
-export function update(model: Model, message: Message): Return<Model, Message> {
+type Update = Readonly<{ model: Model; commands?: readonly Command.Command<Message>[] }>;
+
+export function update(model: Model, message: Message): Update {
   return Message.match(message, {
-    ObservedZlozInput: ({ message: input }) => {
-      // SAFETY: zlozView and the toolbar emit the package's typed EditorEvent contract.
-      const event = input as EditorEvent;
-      return { model: { ...model, editor: updateEditor(model.editor, event) } };
-    },
+    ObservedBrowserInput: ({ event }) => ({
+      model: { ...model, editor: updateEditor(model.editor, event) },
+    }),
+    ChangedNodeLabel: ({ id, label }) => ({
+      model: {
+        ...model,
+        editor: updateEditor(model.editor, { type: 'NodeLabelChanged', id, label }),
+      },
+    }),
+    ClickedUndo: () => ({
+      model: { ...model, editor: updateEditor(model.editor, { type: 'UndoPressed' }) },
+    }),
+    ClickedRedo: () => ({
+      model: { ...model, editor: updateEditor(model.editor, { type: 'RedoPressed' }) },
+    }),
+    ClickedDelete: () => ({
+      model: { ...model, editor: updateEditor(model.editor, { type: 'DeletePressed' }) },
+    }),
     ClickedAdd: () => {
       let sequence = model.sequence + 1;
       while (model.editor.graph.nodes.some((node) => node.id === `step-${sequence}`)) sequence++;
@@ -46,7 +60,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: { ...model, active, sequence, notice: 'Arranging…' },
         commands: [
-          ArrangeFlow({
+          ArrangeFlow.make({
             json: serializeGraph(active.graph),
             requestId: active.requestId,
             revision: active.revision,
@@ -89,9 +103,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     ClickedSave: () => ({
       model,
-      commands: [SaveZloz({ json: serializeGraph(model.editor.graph) })],
+      commands: [SaveZloz.make({ json: serializeGraph(model.editor.graph) })],
     }),
-    ClickedLoad: () => ({ model, commands: [LoadZloz()] }),
+    ClickedLoad: () => ({ model, commands: [LoadZloz.make({})] }),
     SucceededSave: () => ({ model: { ...model, notice: 'Saved on this browser.' } }),
     FailedStorage: () => ({
       model: {
